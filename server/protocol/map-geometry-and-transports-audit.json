@@ -1,0 +1,177 @@
+{
+  "haven_bag_geometry": {
+    "map_id": 9,
+    "spawn": [
+      3,
+      3,
+      0
+    ],
+    "room_origin_formula": "x=(index//3)*6; y=(index%3)*6",
+    "exit": {
+      "template_id": 13901,
+      "class": "bAP",
+      "type": 36,
+      "position": [
+        -4,
+        2,
+        0
+      ],
+      "automatic": true,
+      "action": "QT.bjy -> bpq.dDU -> client opcode12247",
+      "gui_verified_at": "2026-10-03 10:13:54-10:13:56 local runtime logs reported by root"
+    },
+    "consoles": [
+      {
+        "template_id": 1563,
+        "kind": "merchant",
+        "position": [
+          1,
+          -7,
+          4
+        ]
+      },
+      {
+        "template_id": 1565,
+        "kind": "craft",
+        "position": [
+          2,
+          -7,
+          4
+        ]
+      },
+      {
+        "template_id": 1544,
+        "kind": "admin",
+        "position": [
+          0,
+          -7,
+          4
+        ]
+      },
+      {
+        "template_id": 3729,
+        "kind": "lock",
+        "position": [
+          3,
+          -7,
+          4
+        ]
+      }
+    ],
+    "evidence": [
+      ".runtime/local/InspectBagObjects.java",
+      ".runtime/local/bag-exit-trigger-current.txt",
+      ".runtime/local/bag-topology-cells.txt"
+    ]
+  },
+  "transport_audit": {
+    "implemented_request": 12296,
+    "supported_mode": {
+      "flag": false,
+      "iTS": 2,
+      "instance_id": 0
+    },
+    "routes": [
+      {
+        "source_map": 1385,
+        "interactive_element_id": 34607,
+        "destination_id": 4561,
+        "source_position": {
+          "x": 21,
+          "y": -22,
+          "z": 1
+        },
+        "destination": {
+          "map_id": 1388,
+          "instance_id": 0,
+          "x": 0,
+          "y": 0,
+          "z": 0
+        }
+      },
+      {
+        "source_map": 1388,
+        "interactive_element_id": 34608,
+        "destination_id": 4562,
+        "source_position": {
+          "x": 0,
+          "y": 1,
+          "z": 0
+        },
+        "destination": {
+          "map_id": 1385,
+          "instance_id": 0,
+          "x": 21,
+          "y": -22,
+          "z": 1
+        }
+      },
+      {
+        "source_map": 1385,
+        "interactive_element_id": 34619,
+        "destination_id": 4560,
+        "source_position": {
+          "x": -19,
+          "y": 25,
+          "z": 5
+        },
+        "destination": {
+          "map_id": 1387,
+          "instance_id": 0,
+          "x": 0,
+          "y": 0,
+          "z": 0
+        }
+      },
+      {
+        "source_map": 1387,
+        "interactive_element_id": 34618,
+        "destination_id": 4563,
+        "source_position": {
+          "x": 1,
+          "y": 0,
+          "z": 0
+        },
+        "destination": {
+          "map_id": 1385,
+          "instance_id": 0,
+          "x": -19,
+          "y": 25,
+          "z": 5
+        },
+        "verification": {
+          "kind": "current_client_static_data",
+          "env": "client/contents/maps/env/1387.jar:0_0",
+          "interactive_class": "bEk",
+          "parameter": "4287",
+          "destination_catalog": "aNE4287 / aNF.cyU4563",
+          "destination_fields": "getX=-19,getY=25,NN=5,cpb=1385",
+          "bootstrap": "Reuses observed map1385 packet sequence; map_transition rewrites own identity and destination position."
+        }
+      }
+    ],
+    "destination_bootstrap_opcodes": [
+      13256,
+      13974,
+      13778,
+      13984,
+      12318
+    ],
+    "limitations": [
+      "Four directed tutorial teleporter routes supported, including statically verified return1387->1385; generic zaap and other destinations remain unimplemented.",
+      "Bootstrap reuses captured destination packets with local identity adaptation; nested world state is not constructed fully from own database.",
+      "Other transport modes, generic door/boat routing and zaap destination discovery not implemented by this handler.",
+      "Available map geometry does not prove destination coordinates or route ownership.",
+      "Reject currently sends a world transition packet back to current map; exact negative transport result not yet verified."
+    ],
+    "next_steps": [
+      "Decode bEk teleporter static data and action callsites to distinguish genuine zaap from tutorial teleporter.",
+      "Extract source/destination static links from bdata and env; cross-check known three routes before extending.",
+      "Generate clean destination bootstrap from map geometry and own state, eliminating inherited actor/world blobs.",
+      "Verify transport result/error message in Java before replacing rejection bootstrap.",
+      "GUI test each implemented direction and reconnect at destination; inspect persistent map_id/coordinates."
+    ],
+    "tests": "tests/test_transports.py",
+    "static_catalog": "teleporter-static-destinations.json (3370 destinations; not runtime-enabled)"
+  }
+}

@@ -1,0 +1,53 @@
+# Server runtime adapter
+
+`combat_runtime_adapter.NativeServerRuntimeAdapter.contexts()` supplies the reusable factory with complete live preview actors, fcE metadata, conditions and persisted UID allocation. No spell ID selects behavior. Real damage effect339526 targets both the enemy at (1,0) and ally at (0,1) through its native area; two damage packets and two UIDs are produced. The adapter never emits its private outbox.
+
+Conditions read current characteristic snapshots and ordered state ledger entries. Deck, exclusion deck, native player kind, breed, carry, summon counts and native occupant-blocking flags are explicit `NativeActorAuthority` fields. Actor identities do not imply native properties. `GetDistanceBetweenCasterAndTarget`: offline javap eQb token51 -> eQd constructs eJQ -> eJQ.d calls ala.c(alb,alb). This is the same XY distance with both actor radii audited for native mastery. Missing actor target stays unknown here; native actor-to-cell distance is not guessed.
+
+Pending authority: native target properties (including ff e properties21/42 and linked-carrier predicates), facing/block results, execution guards, healing-resistance eligibility, state turn/realtime clocks and timing bytes. `NativeCastAuthority` requires explicit callbacks for these existing handler contexts, selection/delivery, cell obstacles/routing, group cells and RNG/probability. Random fractions validate [0,1); probability is deliberately the caller's verified native policy, rather than an invented float threshold. Caller must preserve or clone RNG state with the transaction if rollback must restore random draws.
+
+Events remain guarded by `NativeEffectResolver`; subscription masks0..5 cannot execute as immediate effects. Unknown selector bits, variant bits, effect flags/families, state chance values, resistance-stack redistribution and undead healing conversion continue to reject. Ordinary actors, empty cells, no-block, front-facing and empty decks have no implicit defaults.
+
+Validation: `PYTHONPATH=server:server/tests python3 -m unittest discover -s server/tests -p test_combat_runtime_adapter.py` — 4 tests pass (real native area damage, current condition/deck snapshots, missing metadata/UID/RNG rejection, unknown selector rejection). Existing factory suite also ran during initial adapter verification: its 8 tests passed. No main integration or restart performed.
+
+## Ordinary creation authority and directional damage
+
+`OrdinaryActorAuthority` consumes exact player/monster source maps and selected deck IDs. It covers eHd/eHj kind0/1 with no summon master/carrier, validates exact roster, and reads breed properties exported by `ExportActorProperties.java`. The exporter runs native bbo.a(aMb,short)->blj and eGE.pIq, writes sorted reproducible JSON (2,874 NPC breeds); two independent Java processes produced byte-identical output. NPC5525 fight properties[15,78], world[7]; default player fight/world properties empty. 13130 is an outgoing coP request, not actor creation.
+
+`ordinary_cast_authority(actors=..., timing=NativeEffectTimingProvider(...), rng=transaction_private_rng, critical=authoritative_bool)` builds execution policies for ordinary PVE spell container11. Critical is an explicit testing/cast decision: client fqX identifies FEROCITY9 as CRITICAL_CHANCE but no server roll consumer was found; full critical rolling is not claimed. Target BLOCK87 uses audited eXt.fOH positive value and UK.pT(100)<=value, integer draw1..100 inclusive; flag2 disables block. Numeric probability uses eZR.bbH UK.pT(100)<=UP.bt(float32(eVn.eg(level))); fractional stochastic rounding is explicit. Probability100 accepts,0 rejects; eVt.fLN bypass and internal chance parameters are separate.
+
+`ProbeNativeFacing.java` verifies all direction vectors and native Sl.o results. Direction comes from creation/orientation/movement, with no fallback. `DamageExecutionContext.localization` supports FRONT/SIDE/BACK; legacy front=True is accepted, front=False requires explicit localization. Native fau.fSL applies SIDE1.10 and BACK1.25 after mastery/resistance and before final bonuses, even when coefficient bits are disabled. BACK adds source mastery16 and target resistance17 under their respective coefficient bits. Neutral element1 disables localization in fau.fSH. ProbeDirectionalDamage.java verifies12 native results: base400 FRONT400/SIDE440; BACK masks0..3 yield500/1000/405/810. The .81 resistance at100points is native float+BigDecimal CEILING behavior.
+
+Ordinary healing resistance accumulation requires playerkind0 or eHQ.pUr worldproperty122 (battleground general), matching eGj.PO; native target32 bounds are read live. Stat/state timing comes from the common timing provider. Cell obstacles and group-cell routing remain guards requiring their native paths; subscriptions stay outside immediate execution. Caller must initialize actor direction and retain authoritative branch/RNG policy.
+
+Validation: 5 ordinary-authority tests pass, including real damage339526 with native NPCdirection3 (both SIDE and BACK targets); 3 directional arithmetic tests and 4 existing damage handler tests pass. No main edits or service restarts.
+
+## Native displacement families
+
+`combat_displacement.NativeDisplacementHandler` implements effect classes300/eXK push,301/eXJ pull,302/eZC teleport caster,340/eZD teleport target,331/eXp move caster away from effect cell,422/eXk swap. Registry/catalog counts respectively205/100/292/59/5/227 definitions. Factory opt-in `displacement_authority=OrdinaryActorAuthority(...)` binds these families to the same preview, persisted UID allocator and private outbox. Caster teleport resolves an empty cell without inventing an actor target. No spell/breed ID controls execution.
+
+Native `aBA.bXz -> aBz.bp` selects four cardinal sectors with float32 angle boundaries; ties(1,1) select+X and(1,-1) select-Y. eXK computes the inverse one-cell endpoint and faz reverses the direction; eXJ default endpoint is adjacent to the caster, while direction mode5 uses the effect cell. eXp moves away from the effect cell. Teleport and swap preserve actual orientation: eGj.b(aAS) changes temporary forced direction, not eGj.a(aAS)/bcy. Native eXD.fOU compares caster.bcM() to target.Sn() (eGj.aHm actor identity), rather than comparing team fields; this unusual predicate is preserved for properties110/111.
+
+`ProbeNativeDisplacement.java` executes native endpoint methods and native AdditionalDatas serializers. Exact native fields are teleport ij15/iJ destination plus33 accepted, push/pull ij70/iF field1 repeated destination positions, swap ij15 target-original plus23 source-original. Outer running-effect packet is12613/cvX, iN8 AdditionalDatas. Byte-exact AdditionalDatas tests include negative coordinates. Native geometry/AdditionalDatas are probed; a complete live-client application is not claimed.
+
+Validation: 10 displacement tests plus8 existing factory and5 ordinary-authority tests pass (23 total). Real catalog references358000(push),326690(pull),349548(caster teleport),351394(target teleport),262489(move-away),349546(swap). Tests cover empty-cell factory routing, stabilized-property rejection, collision rejection before UID/position mutation, and rollback after a subsequent unsupported effect.
+
+Supported execution is immediate native timing, living ordinary uncarried actors of radius0, flat collision-free cardinal paths and checked teleport/swap cells. Terrain uses Fight.walkable, explicit edge restrictions and native_obstacle_cells when present. Collision paths reject because native collision AP loss and reaction/event propagation are not implemented. Altitude/footprint transitions, wrapped/carried actors, push modes4/6/7, unsupported pull modes, cell-check bypass and unaudited flags reject explicitly. Event subscription masks remain guarded by the common resolver. Movement-trigger dispatch and delayed execution require additional machinery; no restart or main-server change was performed.
+
+## Native active fight affiliation (2026-10-03)
+
+`fcE` mask bit50 asks for `QK.bcN() >= 0`, independently of team relation tests. `eGn.zm` decodes the owned `pW` fight section and calls `eGj.M(pW.Uj)`. `eGj.M` delegates to `eGz.M`, storing `bgW`; `eGj.bcN` returns that same field. The server emits `pW.Uj` as its signed-byte fight team in `combat_actor.py`; the ordinary provider now supplies `bcN=actor.team` after validating its range. This is sourced from the serialized actor, rather than assuming every actor is an eligible target.
+
+`ProbeNativeFightAffiliation.java` decodes the actual ten-byte native section and applies `eGn.zm`; teams0,1,127 and-1 roundtrip to the exact `bcN` value. Offline Java22 output confirms all four. The ordinary-target test verifies bit50 with a live target and rejects unknown/negative ordinary affiliation. A full server-entry test for Sacrógrito Transposición5043 swaps the two positions, consumes PA1/PW1, and preserves the original fight until commit. This is internal execution and codec evidence, not an in-game verification.
+
+## Máximos de características y alias nativos
+
+`characteristic-condition-aliases.json` contiene 128 alias resueltos mediante `eJy.tt`, compartido por las condiciones de valor actual, máximo y porcentaje. `GetCharacMax` (token 40, clase `eJA`) consulta `eHg.d(PC)` después de comprobar presencia con `eHg.a(PC)`. El selector por defecto es el lanzador; `target` consulta el objetivo. Una característica ausente produce -1; una instantánea desconocida se rechaza en el servidor.
+
+`ProbeNativeCharacteristicMaximum.java` ejecuta el código del cliente instalado, sin conexión al servidor oficial: confirma alias PA, máximo HP del objetivo, DMG_FIRE y ausencia de PC/actor. Las pruebas Python separan recursos actuales de máximos y verifican rechazo de datos desconocidos.
+
+## IsOwnSummon y propiedad nativa
+
+Token eQb280 construye eOG. Este criterio selecciona target por defecto; opcionalmente convierte la raza a short y exige el modelo eGj. El resultado requiere dTE y la misma identidad de raíz fqK para objetivo y lanzador. fqK recorre la cadena nativa de propietario, por lo que comparar únicamente al padre inmediato sería incorrecto.
+
+ProbeNativeOwnSummon.java confirma usando el JAR casos propio/ajeno/ordinario, selector caster, objetivo nulo y filtro de raza con conversión a short. ConditionActor conserva is_native_fighter, is_summon y summon_root_id explícitos. La autoridad ordinaria conoce ausencia de relaciones de propietario y transmite dTE=false; no asigna semillas de identidad a futuras invocaciones. Contextos desconocidos de celdas/eventos siguen rechazados hasta disponer del fallback nativo ePy.fyI.

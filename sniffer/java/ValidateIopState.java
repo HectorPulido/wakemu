@@ -1,0 +1,1 @@
+import java.nio.file.*;public class ValidateIopState{public static void main(String[]a)throws Exception{cvX p=new cvX();if(!p.dp(Files.readAllBytes(Path.of(a[0])))||p.eII()!=304)throw new AssertionError();eWu state=new eWu();state.ds(p.eIJ());if(state.ejo()!=3425||state.fNe()!=25)throw new AssertionError();System.out.println("Native cvX/eWu state3425 level25 accepted");}}

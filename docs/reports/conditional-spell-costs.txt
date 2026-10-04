@@ -1,0 +1,195 @@
+Costes condicionales — fuente nativa y contrato
+
+ExportConditionalSpellCosts.java carga aNr.cwI, conserva cada criterio literal,
+y convierte aNs mediante bPS.a(aNs). fyP.c obtiene AP/MP/WP por nivel1..200.
+conditional-spell-costs.json incluye225hechizos propios y422reglas.
+El evaluador compartido cubre completamente161hechizos/272reglas con contexto
+estado/deck proporcionado;64hechizos tienen criterios/contextos adicionales
+(GetStateLevel, casterController, características, etc.) y siguen rechazados
+cuando no hay evaluación exacta. No se afirma cobertura de todas las clases.
+
+fyF.A selecciona la TABLA completa del último criterio coincidente, no un delta.
+La tabla nativa es HashMap con objetosamb como claves; no se inventa orden para
+múltiples coincidencias de costes distintos. Se rechazan esos casos. Criterio
+no soportado cuyo coste es idéntico al base se considera irrelevante SOLO si
+no existe otra coincidencia con coste distinto que pudiera ser sobrescrita.
+
+prepare_spell_cast(..., conditional_context=callback) invoca callback(request,
+fight) sobre el estado previo real sin mutarlo. Recomendado devolver:
+ConditionalCostContext(ConditionContext(...), ap_modifiers_by_category={...}).
+ConditionActor puede salir de StateLedger.condition_actor con deck activos,
+exclusiones eEI/eEL propias y características actuales. No inferir deck vacío
+ni estado ausente si el snapshot es desconocido.
+
+MODIFICADORES: fyF.g recorre categorías fyU deduplicadas de aNr.ckE y suma
+eHl.a(ffw,fyU). NativeeHl solo ajusta APsgD y rangosgK; MPsgE y WPsgF dan0.
+AP se obtiene del mapa eHl.pOJ, acumulado por eHl.a(int,fyU), NO de APactual ni
+máximo ni de una característica plana estándar. El mapa requiere tracking
+propio de efectos que escriben en él; si falta, snapshotNone rechaza. Mapa{}
+es una declaración autoritativa de ausencia de modificadores, no fallback.
+Para callbacks que devuelven soloConditionContext se consulta
+actor.spell_ap_cost_modifiers. Sin categorías, ausencia de modificadores es
+probada por el recorrido vacío. Los costes finales se limitan a0como fyF.g.
+
+No se han modificado dispatcher ni combat_server_spell; root debe pasar el
+callback desde su autoridad actual. No hubo reinicios ni despliegues.
+
+Inicialización fresca y checkpoints:
+eGj.<init> crea neweHl; eHl.<init> no inicializa pOJ/pOK y a(fyU)
+devuelve0cuando null. Verificado ejecutando el JAR real para todas lascategorías
+fyU y recursosAP/MP/WP. ActorSnapshot.install establece mapa{} solo tras
+builders fresh: runningeffects explícitamentevacíos, sinledger, equipo/
+aptitudes estrictamenteplanos. Cualquier effectunsupported rechaza elbuilder.
+Deckpasivos posteriores deberán registrar cambios enese mismo mapa.
+Actor por defecto conservaNone; reinstalar snapshot conmapa existente rechaza.
+Checkpoint genérico serializa elcampo y conservaNone frente{} frentevalores;
+no existe reconstrucción decombate alrearranque ni se inventa reset alrestaurar.
+
+Ampliación a costes simples:
+spell_categories ahora contiene TODOS722hechizos del catálogo propio, no solo
+225condicionales. Falta de metadata rechaza siempre; listado vacío explícito
+es distinto de ausente y representa recorrido nativo vacío. prepare_spell_cast
+aplica modificadores también enhechizos sincriterios, antes de validar recursos.
+Fixtures legacy sincampo Actor conservan sucontrato anterior de costes base,
+pero siguen exigiendo metadata. Actor real conmapaNone nunca recibe cero
+implícito. Tests de transacción bare declaran{}; buildersfresh siguenvalidados.
+Verificación cast/cost/transaction:25pruebaspasan.
+
+Condiciones adicionales verificadas (2026-10-03)
+IsEnemy()/IsEnnemy(): eQe.tz identifica eNM para ambos nombres; cero argumentos.
+eNM.a compara eHg.bcM (afiliación registrada fdt/fdy, no bcN). Target null
+literal devuelve 0 (verdadero en amb.b); target actor con igual afiliación
+ devuelve -1. El adaptador de objetos propios usa team inicial y permite
+native_fight_affiliation explícita para cambios posteriores. La rama celda
+requiere afiliaciones de ocupantes/obstáculo verificadas; no se deduce de
+walkability y falta de metadatos sigue rechazándose.
+HasFightProperty: eQe.tz identifica eMo. Admite ID o selector caster/target
+seguido de ID; default caster. eMo.fyq obtiene el número, a lo convierte a
+byte firmado y llama ffe.Ua. Enum inexistente devuelve falso. PV.a(ffe)
+consulta propiedades de combate; eGj.a(PE) usa pGH cuando aZu=1, distinto
+de propiedades de mundo pGI. El adaptador usa OrdinaryActorAuthority.properties,
+que consulta catálogo nativo por plantilla y override vivo del actor.
+Probe ffe.values/aKg confirma IDs 0..122 salvo13/53/89. Pruebas cubren
+selector, conversión284→28, enum inválido y rechazo de snapshot ausente.
+Soplido Repulsivo7320: prueba entrada común prepare_server_spell ahora llega
+hasta daño/desplazamiento, consumo PA y aislamiento transaccional, sin omitir
+criterios IsEnemy/HasFightProperty ni modificar el cliente.
+
+Modificadores de coste AP (familia nativa1065, no41)
+eVi registra41=eWN(ffw.sgE), Boost PM. El modificador de coste categorizado
+es1065=eZe: eZf.C evalúa parámetro0 amount y parámetro1 fyU; fyU.aaq enum
+válida1..18. eZe.c aplica -amount a eGj.frM/eHl.pOJ.adjustOrPutValue;
+eZe.d revierte +amount. Java int desborda y conserva entradas con valor0.
+eZf.b(iP) guarda categoría en AdditionalDatas ij.getValue (protobuf field10),
+mientras amount permanece en iN.value. Probe JAR de payload propio confirmó
+category8 y acumulación -1→0; no depende de captura de jugadores.
+Nuevo NativeSpellCostHandler conserva UID/category/amount/timer/state_uid
+con los efectos propios. StatHandler.remove delega esa familia, lo que
+incluye eliminación por estado y prepare_timed_expiration. Cuatro pruebas
+ligeras aprobadas: pila, retirada, unknown snapshot, categorías inválidas,
+overflow y expiración atómica. No registry de41 falseado.
+Límite: catálogos actuales spell-effect-trees y combat-state-definitions
+contienen cero registros1065, por tanto esta implementación general no
+supone que un hechizo observado active hoy la familia. Factory1065 está
+coordinada por el agente effect_targets.
+
+Máximos de recursos eWN31/41/191
+eVi vincula31/AP,41/MP,191/WP. eWN.C lee tres parámetros amount,
+applyCurrent,removeCurrent. eWN.c llama PA.op(raw maximum), obtiene delta
+máximo efectivo y opcionalmente PA.nG(delta) para current. Al retirar,
+eWN.bbR opcionalmente PA.oo(delta), luego PA.op(-actual raw change).
+fff.op ajusta bqG y limita current al nuevo máximo; nG/oo respetan frozen.
+El límite de eWN.fU aplica PC.aZt: AP16/MP8, WP-1 sin límite, y flag17
+rwN lo omite. El mundo actual usa caster/contexto nativos explícitos.
+Payload eWN: iN.value actual cambio raw y AdditionalDatas10 delta máximo
+efectivo,31 applyCurrent,32 removeCurrent. Probe JAR confirmó MP3→4→3 y
+los tres campos del payload propio. Se conservan UID/timer/state_uid en
+owned_stat_effects, con retirada en StatHandler y expiración atómica común.
+NativeMaximumResourceHandler exige snapshots flat explícitos con raw maximum,
+percentage0 y máximos efectivos coherentes. Percentajes/raw clamping requieren
+evaluador PA completo y se rechazan; no se sustituyen por cero. Cantidades-1
+requieren trigger_value explícito; transformación-2 por container no soportada.
+Pruebas8/8 (máximos+modificadores AP) aprobadas en0.31s; familia41 tiene124
+registros en catálogo de hechizos,31 tiene35,191 tiene3. Factory coordina
+agente effect_targets; sin main ni reinicios.
+
+Ampliación eWN: raw/effective y porcentajes (sustituye límite flat anterior)
+Ahora se evalúa fff.aYU exactamente: int32(raw*sfV), división entera por100
+truncada hacia cero, suma int32 y clamp de hard_minimum/hard_maximum nativos.
+Snapshot.install conserva effect_base_minima explícito (PA.bqF), además de
+rawmaximum/percentage/effective; restauración sin ese dato se rechaza.
+eWN.fU limita amount contra rawmaximum, no máximo efectivo; cap y flag17
+conservan su comportamiento. PA.op protege sentinel INT_MAX y ajusta raw
+contra rawmínimo. Aplicación guarda porUID actual cambio raw + deltaefectivo;
+retirada resta los valores efectivamente aplicados en ese instante, en lugar
+de recalcular amount o delta usando los efectos solapados actuales. Así se
+mantiene nativecurrent al retirar efectos en orden distinto al de aplicación.
+Prueba nativa fff50%: raw3/effective4/current4, boost1→raw4/max6/current6,
+otroboost1→raw5/max7/current7; retirar primero→raw4/max6/current5,
+retirar segundo→raw3/max4/current4. Python coincide. Diez pruebas pequeñas
+máximos+AP-cost pasan en0.67s. Frozen aún necesita rawcurrent separado y se
+rechaza; la configuración propia fresca tiene mutabilidad explícita nofrozen.
+Persistir actores/effects exige guardar effect_base_minima,base_maxima,
+percentages,stats,maxima y owned_stat_effects (actual/effective_delta/flags/
+UID/timer/payload); checkpoint genérico guarda __dict__, sin restaurador
+que rellene ceros. No reconstruir stats/base desde raza al retirar efectos.
+
+Familia400/eXE parametrizada
+Bytecode eXE.C comprueba fKJ>0 y lee exclusivamente parámetro0 al nivel0,
+convertido a byte firmado mediante i2b; no evalúa crecimiento al nivelactor.
+Otros parámetros de la definición no se consultan en este runner. Constructor
+eZR rIU=-1 provee default para efecto sin parámetros. eXE.c no altera stats;
+la envoltura eZR.a establece rEj executed=true después de aplicación.
+Codec eZR.QH: iN.field11/iB.field2 lleva executionStatus y iB.field5 ejecutado.
+El handler400 ahora conserva clocks suministrados y agrega esos campos al
+mismo submessage protobuf (last-one-wins), sin borrar temporizadores ni UID.
+Owned null conserva execution_status y payload completo para retirada/expiry.
+14 pruebas ligeras de null/currentstat aprobadas en0.44s, incluyendo nivel200
+con parámetro7+9growth→status7 (nivel0),130→-126 signedbyte y default-1.
+Probe JAR decodificó payload propio, aplicó eZR.f(iB) en eXE y cYh=-126.
+No fake-characteristic ni ignored-parameter fallback; familias400 parametrizadas
+se admiten por la semántica observada del runner, sin cambiar factory/main.
+
+Reducción máximos eWO56(AP)/57(PM)/192(PW)
+eVi registra esos runners eWO;353800 Sacrógrito contiene192 amount2 y
+340104 Uginak contiene57 amount1. eWO.C lee1..4 parámetros: amount,
+probabilidad(default100; negativos fuerzan100; resto clamp0..100), restore
+current(defaulttrue; parámetro2==1), reduce current(defaulttrue;param3==1).
+Amount-1 requiere trigger y-2 usa PV.c=current, no máximo ni requested inventado.
+eWO.bbH usa UK.pT(100) y permite draw==chance; callback RNG transaccional
+explícito para chance<100, sin asumir chance0 imposible.
+eWO.fNL reduce primero rawmínimo PA.oq(-amount), luego rawmáximo PA.op(-amount),
+y resta de current solamente remaining=amount-(currentBefore-currentClamped).
+A diferencia de eWN, guarda requested amount para retiro; bbR restaura primero
+máximo, luego mínimo y opcionalmente current(+amount). Ambas operaciones
+respetan sentinels INT_MIN/MAX y aritmética Java mediante primitives auditadas.
+Payload eWO AdditionalDatas34=rCr(restoreCurrent),35=rCs(reduceCurrent).
+Se conserva UID/state_uid/timer/payload y familiaeWO en owned_stat_effects;
+StatHandler.remove y expiración común revocan en el mismo orden nativo.
+11 pruebas ligeras máximos/reducciones aprobadas en0.75s. Probe JAR fff al50%
+confirmó current4→1→3, effectiveMax4→1→4 y rawmin0→-2→0, además flags34/35.
+Límites actuales: frozen requiere rawcurrent explícito; modificación probabilística
+requiere callbackowned; no reglaHP(leave1) aplicada aPW/PM ni pretensión clase
+completa. Factory queda coordinada con effect_targets; source sinreinicios.
+
+986/eZI porcentajeHP (Sacrógrito353198)
+eVi vincula986=eZI(ffw.sgC). C lee porcentaje solicitado; con tresparámetros
+leeapplyCurrent(param1==1) yrestoreCurrent(param2==1), defaults true/false.
+eZI.c llama PA.om(amount), guarda cambio efectivo sfV y calcula diferencia
+máximo efectivo. SiapplyCurrent ajusta HP por esa diferencia, con protección
+estricta: cuando -delta>current usa -(current-1); igualdad puede llegarHP0.
+No se inventa inmunidad a muerte. Retirada elimina porcentaje y opcionalmente
+reduceHP según diferencia de máximo nueva, manteniendo protección estricta.
+Probe ejecutó runnerREAL eZI.c/bbR con PVproxy→fff: HP60/max100,amount-30
+produceHP30/max70; retirada default dejaHP30/max100. Python coincide.
+Writer nativo eZI.b llama il.y dosveces: field35 terminaapplyCurrent y
+field34restore no aparece. Se reproduce el payload real, conservando flags
+servidor porUID en metadata; no se corrige silenciosamente protocolo cliente.
+NativePercentageHPHandler registra retención/timer/payload/state_uid y usa
+StatHandler.removeeZI. HP/maxHP y snapshot se sincronizan; muerte0 emite
+lifecycledeath y resuelve despuésdel contexto effect_resolution, sin fingir
+un golpe directo adicional. Frozen necesita rawcurrent y sigue rechazándose.
+Serializer tB ahora conserva rawminimum explícito yrawmaximum inclusivepct0;
+evita que refreshde eWO borre rawmínimo negativo. HP fff.fZB=true permite
+current porencima demaxefectivo; serializer respeta esa condición nativa.
+8pruebas pequeñasHP/snapshotwirePASS0.98s; no se reivindica Sacrógritocompleto.

@@ -1,0 +1,62 @@
+{
+  "scope": "Native current client bootstrap/menu/discovery audit; no claim of GUI end-to-end verification",
+  "native_context": {
+    "opcodes": [
+      13256,
+      13974,
+      12318
+    ],
+    "decoder": "csW.dp -> ciu.b -> eHd.qt/qv/rE; eVa.eD -> ceG.b(mapID,context)",
+    "proof": "tools/VerifyNativeZaapContexts.java validates45 current native_transports.bootstrap outputs against actual installed Java classes; own map/XYZ match, empty fight lists, context equals new eUZ",
+    "destinations": 45,
+    "maps": 44,
+    "limitations": [
+      "Offline native parsing validates encoding, not renderer/assets callback or GUI completion",
+      "World actors and static interactives must be initialized separately by destination"
+    ]
+  },
+  "menu": {
+    "request": 13686,
+    "codec": "csO: two i64 source Re.Sn and destination transportID",
+    "consumers": [
+      "bRm.b(eGj,Re,long)",
+      "bRp.b(eGj,Re,long)",
+      "bRs.run"
+    ],
+    "eligibility": "bRm.a(eGj,Re,long) -> fzD.aQ -> each fzI.a/b evaluates native amb criteria; successful candidate required",
+    "policy_warning": "Backend waive_criteria does not bypass client eligibility; all45 discovery alone does not guarantee usable rows",
+    "restricted_destinations": [
+      {
+        "id": 26730,
+        "map_id": 1076,
+        "criterion": "False"
+      },
+      {
+        "id": 36157,
+        "map_id": 455,
+        "criterion": "2026-09-08T09:00 through2026-11-03T08:59 native date expression"
+      }
+    ]
+  },
+  "discovery": {
+    "request": 12870,
+    "codec": "cpF i64 sourceID + i16 QT action + two inherited flags",
+    "consumer": "bEG.b(QT) -> stop own graphical route beS.dgy -> cpF(QT.beb,Re.Sn)",
+    "response": 12674,
+    "account_initialization": "13873 section12 fzy/zR account-scoped known transport IDs"
+  },
+  "pending_work": [
+    "GUI source-menu select/travel/return proof controlled by parent",
+    "Determine whether ALL_ZAAPS should expose literalFalse destinations under an explicit local test policy",
+    "Rejected13686 currently logs only: choose native visible generic-error handling without claiming a dedicated travel ACK",
+    "Map-load callback and interactive/geometry initialization must be tested across representative destinations"
+  ],
+  "evidence_files": [
+    ".runtime/local/zaap-context-handler.txt",
+    ".runtime/local/zaap-load-callback.txt",
+    ".runtime/local/zaap-menu-handler.txt",
+    ".runtime/local/zaap-eligibility.txt",
+    ".runtime/local/zaap-registration-handler.txt"
+  ],
+  "tests": "10 transport/discovery tests pass;45 native Java context decodes pass"
+}

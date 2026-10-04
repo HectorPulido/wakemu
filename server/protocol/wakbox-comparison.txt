@@ -1,0 +1,94 @@
+Comparación con WakBox-Evolution y base para la fase 2
+
+Referencia:
+https://github.com/WakBox/WakBox-Evolution
+Commit: bacde4702ed871c639ea81f2179f1619beb42c0b
+Fecha del commit: 2017-07-03
+Su README y configuración apuntan a Wakfu 1.54.0. El cliente capturado anuncia 1.93.2. La revisión se hizo sobre el código clonado; no se compiló ni se ejecutó el servidor antiguo.
+
+Qué se conserva:
+- Separación dispatcher/autenticación y servidor de mundo.
+- Intercambio de versión, desafío/clave RSA, resultado de autenticación, listado de servidores, ticket y selección de personaje.
+- Selección de personaje: id de 64 bits seguido por nombre con longitud de 32 bits.
+- Coordenadas x/y de 32 bits y altura de 16 bits.
+- Pasos de movimiento en un byte: 3 bits de dirección y 5 bits de diferencia de altura con signo. La tabla de ocho direcciones es idéntica.
+- Varios contenedores de entrada al mundo siguen usando bloques con tamaños de 16/32 bits.
+- Protobuf sigue presente. Tras normalizar el prefijo de paquete antiguo WakfuProto, 53 tipos pueden compararse por nombre: 36 conservan exactamente los campos comparados; 17 presentan cambios. Se compararon número, nombre, tipo, repetición/requerido, tipo referenciado y valor por defecto, no todos los enum/opciones/contratos funcionales. No se afirma compatibilidad completa por esta coincidencia.
+
+Qué cambió:
+1. Transporte. WakBox usa QTcpSocket sin TLS en los servidores revisados. Las conexiones oficiales capturadas usan TLS. En este JAR aTl.d(...) recibe la opción TLS y los intentos de conexión al mundo la activan; aBW.bYq() construye el contexto de cliente. Un servidor de prueba necesita atender ese transporte o un perfil local del cliente expresamente configurado para su transporte.
+2. Cabecera. WakBox lee/escribe longitud total u16; el cliente actual usa u32. Las cabeceras pasan de 5 a 7 bytes cliente->servidor y de 4 a 6 bytes servidor->cliente. Los opcodes siguen siendo u16, pero sus valores cambiaron. No hay un desplazamiento numérico uniforme.
+3. Autenticación. El servidor antiguo descifra salt+usuario+contraseña y consulta SQL. El flujo actual capturado recibe un token del launcher y manda autenticación cifrada al dispatcher. El ticket de mundo conserva str32 y añade otro str32 con identificador de máquina. Las estructuras de información de cuenta crecieron.
+4. Petición de ticket. Antiguo: u32 server_id + u64 account_id. Actual cmS: i32 server_id + bool presencia + i64 opcional.
+5. Movimiento. La petición actual añade i32 movement_mode antes de las coordenadas. La respuesta de actualización de posición añade el mismo tipo de campo al final. El handler antiguo leería el modo como x y quedaría desalineado.
+6. Lista de personajes. La colección de blobs conserva el conteo, pero cada blob de cEk usa longitud u32 en vez de u16. Hay registros adicionales. El formato interno del personaje requiere adaptación separada.
+7. Cadenas. Packet.h usa Latin-1 y a veces cuenta caracteres o reduce longitudes a u8. BV.aS del cliente actual usa UTF-8 y cuenta bytes. El chat de proximidad/comercio usa ahora longitud u16. No conviene reutilizar esos helpers antiguos sin corregirlos.
+8. Datos de personaje/mundo. Los tamaños de los contenedores externos no garantizan que el contenido antiguo funcione. Builds, equipo, inventarios y recompensas incluyen campos añadidos, retirados o referencias cambiadas. Los valores de raza, objeto y mapa fijados en 2017 no están verificados para este cliente.
+9. El propio proyecto es incompleto: SendCharacterEnterWorldPackets contiene TODO y partes comentadas; el handler de inicio de pelea está sin registrar en Opcodes.cpp. Su existencia no prueba que login/caminar funcionen hoy ni que combate estuviera completo.
+
+Correspondencias verificadas relevantes (también en wakbox-comparison.json):
+Versión cliente: 7 -> 33
+Resultado versión: 8 -> 23
+Petición clave pública: 1033 -> 574
+Clave/desafío: 1034 -> 400
+Autenticación dispatcher: 1026 -> 584; cambia el flujo de credenciales
+Resultado autenticación dispatcher: 1027 -> 472
+Petición servidores: 1035 -> 402
+Listado servidores: 1036 -> 453
+Petición ticket: 1211 -> 575
+Resultado ticket: 1212 -> 466
+Autenticación mundo: 1213 -> 426
+Resultado autenticación mundo: 1025 -> 457
+Lista personajes: 2048 -> 23548
+Seleccionar personaje: 2049 -> 23664
+Resultado selección: 2050 -> 23082
+Información personaje local: 4098 -> 12666
+Entrada al mundo: 4100 -> 13974
+Movimiento cliente: 4113 -> 13331
+Posición servidor: 4127 -> 13530
+
+Conclusión para un servidor local sencillo:
+La arquitectura y el algoritmo de pasos sirven como referencia. Arrancar ese repositorio con nuevos opcodes no es suficiente. Un prototipo de una cuenta y un personaje puede mantener su estado en memoria y limitarse a una zona; no necesita implementar toda la base de datos, chat ni combate.
+
+Orden concreto de fase 2:
+1. Perfil local separado, dispatcher/world en loopback y transporte compatible. Usar un token ficticio aceptado solamente por el servidor del experimento. No enviar ese token al servicio oficial.
+2. Implementar versión/desafío y autenticación de laboratorio, una lista de servidor y un ticket local efímero. Reproducir las estructuras actuales de cuenta, no copiar las antiguas.
+3. Presentar un personaje sintético y aceptar su selección. Decodificar y construir sus bloques actuales de personaje/cuenta; evitar flags de recustom/renombrado para ese personaje.
+4. Emitir la inicialización mínima de mundo: información local, posición, instancia y datos de zona necesarios. Este es el mayor pendiente: los blobs internos de personaje todavía no están totalmente interpretados.
+5. Procesar opcode 13331, calcular destino y conservar posición. Emitir opcode 13530 con modo de movimiento y comprobar posición antes/después desde el cliente. Validar cambios de partición si se permite salir de una zona.
+
+Criterio de éxito: el cliente entra con el personaje sintético en el servidor local, completa la carga y un clic produce un cambio de coordenadas confirmado. Hasta entonces no se considerará logrado login+caminar. En esta fase de análisis no se creó ni se arrancó ese servidor.
+
+Fuentes de la comparación (URLs fijadas al commit):
+https://github.com/WakBox/WakBox-Evolution/blob/bacde4702ed871c639ea81f2179f1619beb42c0b/authserver/AuthSession.cpp
+https://github.com/WakBox/WakBox-Evolution/blob/bacde4702ed871c639ea81f2179f1619beb42c0b/shared/Packets/WorldPacket.h
+https://github.com/WakBox/WakBox-Evolution/blob/bacde4702ed871c639ea81f2179f1619beb42c0b/worldserver/Game/Handlers/MovementHandler.cpp
+https://github.com/WakBox/WakBox-Evolution/blob/bacde4702ed871c639ea81f2179f1619beb42c0b/worldserver/Game/Handlers/CharacterHandler.cpp
+El formato actual procede del JAR local y de la captura cerrada, no de documentación externa.
+
+Tabla completa de correspondencias:
+auth CMSG_CLIENT_VERSION: 7 -> 33 (cmP): same version body; frame widened
+auth SMSG_CLIENT_VERSION_RESULT: 8 -> 23 (Ns): same accepted flag and version bytes
+auth SMSG_CLIENT_IP: 110 -> 309 (Nq): four-byte seed/IP-like payload; semantics must not assume IP
+auth CMSG_PUBLIC_KEY_REQUEST: 1033 -> 574 (cmO): same empty body; route byte differs by service
+auth SMSG_PUBLIC_KEY: 1034 -> 400 (cmZ): same i64 challenge plus DER public key
+auth CMSG_CLIENT_AUTH: 1026 -> 584 (cmL): RSA blob container retained; credentials now use launcher token flow
+auth SMSG_CLIENT_AUTH_RESULT: 1027 -> 472 (cmV): account structure substantially expanded
+auth CMSG_REALMS_REQUEST: 1035 -> 402 (cmN): empty body retained
+auth SMSG_REALMS_LIST: 1036 -> 453 (cmY): realm concept retained; more metadata
+auth CMSG_AUTH_TOKEN_REQUEST: 1211 -> 575 (cmS): second field now bool presence plus optional i64
+auth SMSG_AUTH_TOKEN_RESULT: 1212 -> 466 (cnd): result plus str32 ticket retained
+world CMSG_AUTH_TOKEN: 1213 -> 426 (cmG): str32 ticket now followed by str32 machine identifier
+world SMSG_CLIENT_AUTH_RESULT: 1025 -> 457 (cmU): success plus u16 account block retained; block contents changed
+world CMSG_CHAR_SELECT: 2049 -> 23664 (cDR): i64 id plus str32 name retained
+world SMSG_CHAR_LIST: 2048 -> 23548 (cEk): character count retained; each character block length widened u16 to u32; extra records
+world SMSG_CHAR_SELECT: 2050 -> 23082 (cEi): single result byte retained
+world SMSG_CHARACTER_INFORMATION: 4098 -> 12666 (csY): reserved i64 id list plus three u32 blobs; inner serialized fields changed
+world SMSG_CHARACTER_ENTER_WORLD: 4100 -> 13974 (csW): four u16-sized outer blocks retained; protector subrecords expanded
+world CMSG_CHAR_MOVEMENT: 4113 -> 13331 (cnl): new leading i32 movement mode; path layout retained
+world SMSG_UPDATE_POSITION: 4127 -> 13530 (csQ): new trailing i32 movement mode
+world CMSG_CLIENT_LANGUAGE: 13001 -> 13003 (cpo): two-byte language retained for current es sample; variable UTF-8 length now supported by serializer
+world CMSG_CHAT_MESSAGE: 3153 -> 12366 (cmy): current str16 vs old str8
+world CMSG_PRIVATE_MESSAGE: 3155 -> 13917 (cmv): recipient str8 retained; message str16 vs old str8
+world CMSG_TRADE_MESSAGE: 3159 -> 13074 (cmx): current str16 vs old str8
+world CMSG_RECRUIT_MESSAGE: 3167 -> 13188 (cmw): language prefix plus str16 text; old handler empty

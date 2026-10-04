@@ -1,0 +1,22 @@
+{
+  "source": [
+    "fep.a(fev) constructs feq",
+    "fet.rH reads ffw.INIT characteristic35",
+    "feq.fYN and bhH initial ordering",
+    "fex.f comparator and rG hash"
+  ],
+  "algorithm": [
+    "Query eligible fight.bJ(team0/1), compute integer mean INIT per team.",
+    "Higher mean team starts; ties fightID even team1, odd team0.",
+    "Within team sort INIT descending, effective level drk>0?drk:drm descending, deterministic hash ascending, actorID ascending.",
+    "Alternate teams while both have members; append all remaining actors from longer team."
+  ],
+  "hash": "seed=(actorID+fightID+INIT)&65535; square=int32(seed*seed); hash=(square&255)^((square>>16)&65280)",
+  "implementation": "wakfu_server/combat_turns.py",
+  "verification": "3 unit tests and7 actual Java fex.rG reflection comparisons",
+  "limits": [
+    "Initial two-team ordering only.",
+    "Eligibility is supplied by caller; dead/summon/ownership filtering is not inferred.",
+    "Summon insertion, turn delay, deaths, rounds and active-state mutations require separate SU/Tc/fem port."
+  ]
+}

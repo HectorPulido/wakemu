@@ -1,0 +1,109 @@
+ARRANQUE LOCAL AISLADO DE WAKFU
+
+El servidor del experimento y el puente que simula al launcher están escritos
+en Python, usando la biblioteca estándar. WakBox se utiliza como referencia.
+Los agentes Java son auxiliares del cliente: aislamiento de DNS/sockets,
+captura y una corrección de escritorio de macOS; no implementan el servidor.
+
+Arranque desde la carpeta del experimento, en dos terminales:
+  ./local-server.sh
+  ./local-client.sh
+
+Comprobar las barreras de red sin abrir el cliente:
+  ./local-client.sh --check
+
+Ver la ventana o su captura:
+  python3 inspect-client.py --local state
+  python3 inspect-client.py --local screen
+Leer coordenadas reales del personaje:
+  python3 inspect-client.py --local position
+
+DESTINOS Y AISLAMIENTO
+Dispatcher TLS: 127.0.0.1:15558.
+Servicios HTTP configurados: 127.0.0.1:18080 (aún no implementados).
+Chat externo configurado: 127.0.0.1:16337 (aún no implementado).
+API de cuentas: 127.0.0.1:18081.
+Puente del launcher: puerto efímero de 127.0.0.1, token local de un solo uso.
+
+El perfil .runtime/local/client tiene config.properties propio y preferencias
+y caché independientes. Los recursos del cliente se comparten mediante enlaces.
+La configuración original y los tokens reales no se usan para este arranque.
+
+sandbox-exec restringe las conexiones del proceso y sus hijos a loopback,
+incluidos sockets nativos; también deniega servicios Mach de resolución DNS.
+El agente LocalNetworkGuard bloquea en Java la resolución de nombres externos
+y las conexiones externas, e impide quitar esa barrera durante la ejecución.
+Las pruebas previas exigen rechazo por permisos de una IP externa y rechazo
+de DNS a dominios de Ankama, además de conexión satisfactoria a localhost.
+El arranque se detiene si falla alguna prueba o no se puede aplicar el sandbox.
+
+Este bloqueo pertenece a los procesos del experimento. Otras aplicaciones de
+macOS conservan su configuración de red. Al cerrar estos procesos, desaparece
+su bloqueo; no hay modificaciones que revertir en /etc/hosts ni en el DNS global.
+
+ALCANCE ACTUAL
+Servidor Python dispatcher/mundo TLS con cuentas SQLite, contraseñas scrypt,
+tokens y tickets de un solo uso. Personajes separados por propietario y
+posiciones persistidas en .runtime/local/world.sqlite3. El login local tiene
+campos usuario/contraseña y recordar token; su formulario visual sigue por probar.
+
+Perfiles independientes:
+  ./local-client.sh --profile alpha
+  ./local-client.sh --profile beta
+  python3 inspect-client.py --profile alpha position
+  python3 inspect-client.py --profile beta position
+  python3 verify-local-world.py --profiles alpha beta
+Cada perfil separa preferencias, caché, logs y capturas. Para las pruebas hay
+sesiones locales privadas guardadas; nunca usan credenciales del servicio real.
+
+Verificado con dos clientes reales: Alpha y Beta cargan el mundo y aceptan
+varios clics, enviando caminos 13331 y recibiendo confirmaciones 13530. Sus
+coordenadas reales coinciden con SQLite. Evidencia en
+.runtime/local/multi-client-verification.json.
+
+La inicialización todavía reutiliza datos de una captura propia: estadísticas,
+inventario y apariencia de Pekebu nivel 148. Nivel 1 existe en SQLite pero no
+se serializa correctamente aún. El movimiento está limitado a la zona cargada,
+40 unidades por eje respecto a (-12,-8); no hay validación completa de colisiones
+en servidor. Chat local del mapa implementado y verificado entre dos clientes reales; combate, regeneración, zaaps y mapas adicionales pendientes.
+Los jugadores locales se incorporan con 12608 y se retiran con 12304.
+Sus posiciones 13530 se comparten únicamente dentro del mismo mapa/instancia.
+Se filtran los jugadores de la captura; NPCs siguen usando sus datos iniciales.
+Visibilidad y movimiento mutuos comprobados leyendo /actors en dos clientes.
+
+Las hojas de atributos 12393 contienen identificadores protobuf varint, que se
+reconstruyen por cada personaje local. Los inventarios 13078 se asignan a los
+personajes propios antes de la selección. Esta asociación es necesaria para
+que el cliente termine la carga; reemplazar solo enteros i64 no basta.
+
+Dockerfile y compose.yaml preparados y configuración validada. Imagen no
+probada todavía: no hay daemon Docker disponible en esta máquina.
+
+REGISTROS
+.runtime/local/logs/dispatcher.jsonl: mensajes del receptor Python.
+.runtime/local/logs/game-server.jsonl: login, mundo y movimientos del servidor.
+.runtime/local/captures/: eventos del cliente desde el inicio de la JVM.
+.runtime/local/logs/network-blocked.log: intentos rechazados por Java.
+.runtime/local/logs/client-console.log: salida del cliente.
+.runtime/local/logs/bridge.log: salida del arranque y puente, cuando se redirige.
+
+AJUSTE DE MACOS
+El cliente puede abortar al llamar desde AWT a showMenuAndDock, una función
+nativa que modifica el menú de macOS fuera de su hilo principal. El agente
+LocalDesktopFix omite esa llamada en memoria para este perfil de ventana.
+No modifica el JAR original ni el protocolo.
+El mismo agente omite las llamadas del helper de telemetría cbW en este perfil:
+sin su contexto remoto habitual, el helper lanzaba un NullPointerException al
+procesar el resultado de login, interrumpiendo la entrada a personajes.
+
+Nivel 1 (avance parcial): XP cero confirmado con sG y UI en selección/mundo;
+13873 CHARACTERS adaptado al personaje local. La UI muestra vida60; SQLite
+todavía50. Equipo y aptitudes heredados pendientes. Ver entity-layouts.json.
+
+Reloj del mundo: WAKFU_CLOCK_OFFSET_SECONDS (entero, por defecto0) desplaza hora enviadaen23354; cliente usaUTC y ciclo7200segundos. No aceleraeltiempo. Los plazosdecombate futuros deben usarigualreloj. Cambio requiere próximoarranquedelservidor.
+
+Combate de prueba optativo: WAKFU_ENABLE_COMBAT_TEST=1 activaNPCpropio-200ref5525nivel1 enmap1134(-7,-7,-1). WAKFU_COMBAT_TEST_WP=6 fijaWPexperimental,noafirma baseuniversalraza. Entrada13130+colocación12806conFSMterreno verificado. Listo/turnos/efectos todavíaenintegración;nofullcombat. Border46políticaPVElocal explícita.
+
+Combate local: WAKFU_ENABLE_COMBAT_TEST=1 habilita el grupo propio en Amakna1134. WAKFU_COMBAT_TEST_GROUP_SIZE acepta1(default) o2, con dos Wonejosref5525; ataca cualquier miembro para incluir todo el grupo. WAKFU_LOCAL_FIGHT_XP y WAKFU_LOCAL_FIGHT_KAMAS son política local explícita no fórmula oficial, default0; premio único por generación/fight/character guardadoSQLite y reflejado reporte12755. Se espera12925 antes progression/health/wallet/mundo. Recompensas positivas están verificadas por pruebas yJAR; interfaz pendiente.
+
+Grupos propios: combat_groups SQLite conserva derrotados y recupera sólo reservas de combates perdidos al arrancar. WAKFU_LOCAL_MONSTER_RESPAWN_SECONDS=60 controla reaparición local; notifica12608 al mapa/instancia. Es política local, no tiempo oficial extraído. Raza nativa5=Xelor; ejecutor754 exige rama bare/AP>=4/LOS nativa+actores. Raza9=Cra.

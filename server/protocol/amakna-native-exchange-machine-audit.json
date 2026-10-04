@@ -1,0 +1,23 @@
+{
+  "map_id": 1134,
+  "source": "client/contents/maps/env/1134.jar",
+  "object": {
+    "id": 34599,
+    "type": "ExchangeMachine",
+    "java_class": "bBB",
+    "position": [-5, -11, -1],
+    "parameter": 259,
+    "translation_key": "content.107.259",
+    "spanish_name": "Crupier de Amakna"
+  },
+  "nearby_zaap": {
+    "id": 31316,
+    "position": [-10, -11, -1]
+  },
+  "verification": {
+    "map_parser": "Native ach/aoG readers and bEE factory instantiated bBB from the installed map archive.",
+    "name_source": "bBB.getName resolves category 107 and its parsed parameter; installed i18n_es.jar texts_es.properties maps 107.259 to Crupier de Amakna.",
+    "scope": "This proves the native object identity and location. The current cratest screenshot was not tooltip-confirmed because the active character/build UI obscured the scene; no clicks or server changes were made."
+  },
+  "cleanup_policy": "Keep this native exchange machine. Its visual resemblance to a haven bag does not justify filtering it or removing other native interactive objects."
+}

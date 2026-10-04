@@ -1,0 +1,5 @@
+import java.nio.*;import java.nio.file.*;
+public class VerifyCombatRecovery{
+ static void check(boolean v){if(!v)throw new AssertionError();}
+ static class OwnFields extends fg{fj field=new fj(){public void as(ByteBuffer b){}public void a(ByteBuffer b,int flags){int n=b.getShort();byte[] bytes=new byte[n];b.get(bytes);ByteBuffer t=ByteBuffer.wrap(bytes);check(t.getShort()==2);check(t.getInt()==3);check(SS.ab(t.get())==SS.values()[1]);check(t.getLong()==31000);Tc tc=new Tc(null);tc.a(null,t);check(tc.bil()==-201);check(!tc.eY(-200));int count=t.get();check(count==1);long dead=t.getLong();feu status=feu.a(null,dead,t);check(dead==-200);check(status.fYO()==0);check(status.fYP()==2);int bonuses=t.get();check(bonuses==3);for(int i=0;i<bonuses;i++){t.getLong();check(t.getInt()==0);}check(t.remaining()==0);}};public fj[]zj(){return new fj[]{field};}}
+ public static void main(String[]args)throws Exception{cvn m=new cvn();check(m.dp(Files.readAllBytes(Path.of(args[0]))));check(m.bhe()==190982470);new OwnFields().as(m.eHJ());System.out.println("Native cvn/fg/Tc/feu live recovery decoded; dead actor excluded and exact turn counter retained");}}

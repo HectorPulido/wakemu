@@ -1,0 +1,21 @@
+Auditoría del orden general de turnos — 2026-10-03
+
+Se compararon combat_turns.initial_order y Fight.ready con bytecode del cliente instalado: feq.fYN/P/bhH, fex.f/bH/rG y fet.rH. No se encontró una discrepancia en el algoritmo inicial para dos equipos y participantes fijos. No se cambiaron reglas del servidor ni se reiniciaron servicios.
+
+Reglas verificadas:
+- La iniciativa proviene de la característica INIT consultada por fet, no de la clase del personaje ni del signo del identificador.
+- Primero juega el equipo con mayor iniciativa media. La suma desborda como entero Java de 32 bits; la división entera trunca hacia cero.
+- Si ambas medias son iguales, un fightID par inicia equipo1; impar inicia equipo0.
+- Cada equipo ordena por iniciativa descendente, nivel efectivo descendente (drk si positivo, en caso contrario drm), hash nativo ascendente y finalmente identificador long con signo ascendente.
+- Se alternan integrantes de ambos equipos; al agotarse uno se añaden los restantes del otro. No existe ordenación global por iniciativa.
+- feq.b copia la lista preparada para la ronda siguiente. Para el elenco fijo actual no se recalcula la iniciativa entre turnos.
+
+Prueba independiente: invocación offline de fex.rG en el JAR instalado, fightID3 e iniciativa40. Los siete vectores (-1706442035971439,-1,0,4,5,65535,Long.MAX_VALUE) coinciden exactamente con Python: 34832,228,57,161,0,228,228. Se añadieron regresiones para desbordamiento, división negativa, empate final de identificadores y estabilidad ante cambiar el orden de entrada. Las 16 pruebas de orden, FSM, mensajes y recuperación pasan.
+
+Fases y contadores actuales:
+Fight.ready calcula el orden al completar las confirmaciones de propietarios. Se conserva un contador global y otro por actor: los mensajes de fin de turno del jugador validan el contador del actor; la sincronización13510 valida el global. El inicio de combate envía12233 y12514 ACTION, después13477 al inicio de ronda antes de13337/13482. No se sustituyó este flujo por animaciones o turnos por clase.
+
+Límites explícitos:
+Los 30000ms de duración son configuración local, no una afirmación de valor universal oficial. La FSM no controla por sí sola vencimiento del reloj. La recuperación anuncia un plazo nuevo conforme a su política actual. Quedan fuera de esta auditoría invocaciones añadidas durante la pelea, retraso/reinserción, resurrección, iniciativas modificadas por efectos aún no evaluados y elegibilidad dinámica de fight.bJ. La llamada de prueba actual fija iniciativa0 al jugador; el algoritmo será idéntico al original solamente si sus entradas INIT/nivel efectivo también reflejan estadísticas reales de equipo y efectos. No se afirma soporte completo de esas estadísticas.
+
+Ampliación posterior: equipment_stats ahora exporta INIT35 de los efectos incondicionales de objetos y combat_resources devuelve iniciativa efectiva. Su integración en bootstrap corresponde al servidor; la nota anterior sobre iniciativa0 describe la situación auditada antes de integrar este módulo.

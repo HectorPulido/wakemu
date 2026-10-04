@@ -1,0 +1,5061 @@
+{
+  "source": "Installed client bdata/66.jar -> aNr via apw; unlock_level from aNr.cwe/ert, confirmed bPO unlockLevel; kind from aNr.cwv/erK -> fyN",
+  "jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+  "bdata_sha256": "9e47655eca77a8820fb5bcbbe900015a6f7f0d7301fa7a488a6692d2aeff9603",
+  "spells": [
+    {
+      "id": 623,
+      "breed": 7,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 625,
+      "breed": 7,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 627,
+      "breed": 7,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 628,
+      "breed": 7,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 630,
+      "breed": 7,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 636,
+      "breed": 7,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 638,
+      "breed": 7,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 644,
+      "breed": 7,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 645,
+      "breed": 7,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 749,
+      "breed": 5,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 750,
+      "breed": 5,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 751,
+      "breed": 5,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 752,
+      "breed": 5,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 753,
+      "breed": 5,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 754,
+      "breed": 5,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 756,
+      "breed": 5,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 757,
+      "breed": 5,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 758,
+      "breed": 5,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 761,
+      "breed": 5,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 763,
+      "breed": 5,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 764,
+      "breed": 5,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 765,
+      "breed": 5,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 766,
+      "breed": 5,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 767,
+      "breed": 5,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 771,
+      "breed": 5,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 772,
+      "breed": 5,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 775,
+      "breed": 5,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 776,
+      "breed": 5,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 777,
+      "breed": 5,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 779,
+      "breed": 7,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 780,
+      "breed": 7,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 781,
+      "breed": 7,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 782,
+      "breed": 7,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 783,
+      "breed": 5,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 785,
+      "breed": 5,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 912,
+      "breed": 10,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 913,
+      "breed": 10,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 914,
+      "breed": 10,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 915,
+      "breed": 10,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 916,
+      "breed": 10,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 917,
+      "breed": 10,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 918,
+      "breed": 10,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 919,
+      "breed": 10,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 920,
+      "breed": 10,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 921,
+      "breed": 10,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 922,
+      "breed": 10,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 925,
+      "breed": 10,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 927,
+      "breed": 10,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 928,
+      "breed": 10,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 929,
+      "breed": 10,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 930,
+      "breed": 10,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 931,
+      "breed": 10,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 932,
+      "breed": 10,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 933,
+      "breed": 10,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 934,
+      "breed": 10,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 935,
+      "breed": 10,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 937,
+      "breed": 10,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 938,
+      "breed": 10,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 1415,
+      "breed": 7,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 1417,
+      "breed": 5,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 1418,
+      "breed": 5,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 1532,
+      "breed": 7,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 1533,
+      "breed": 7,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 1534,
+      "breed": 7,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 1535,
+      "breed": 7,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 1536,
+      "breed": 7,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 1537,
+      "breed": 7,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 1538,
+      "breed": 7,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 1539,
+      "breed": 7,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 1540,
+      "breed": 7,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 1541,
+      "breed": 7,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 1542,
+      "breed": 7,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 2008,
+      "breed": 3,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 2009,
+      "breed": 3,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 2010,
+      "breed": 3,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 2011,
+      "breed": 3,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 2012,
+      "breed": 3,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 2013,
+      "breed": 3,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 2014,
+      "breed": 3,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 2015,
+      "breed": 3,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 2016,
+      "breed": 3,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 2017,
+      "breed": 3,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 2018,
+      "breed": 3,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 2019,
+      "breed": 3,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 2021,
+      "breed": 3,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 2022,
+      "breed": 3,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 2026,
+      "breed": 3,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 2028,
+      "breed": 3,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 2032,
+      "breed": 3,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 2037,
+      "breed": 3,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 2039,
+      "breed": 3,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 2041,
+      "breed": 6,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 2042,
+      "breed": 6,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 2043,
+      "breed": 6,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 2044,
+      "breed": 6,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 2045,
+      "breed": 6,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 2046,
+      "breed": 6,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 2047,
+      "breed": 6,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 2048,
+      "breed": 6,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 2049,
+      "breed": 6,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 2050,
+      "breed": 6,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 2059,
+      "breed": 6,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 2060,
+      "breed": 6,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 2061,
+      "breed": 6,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 2062,
+      "breed": 6,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 2064,
+      "breed": 3,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 2065,
+      "breed": 6,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 2066,
+      "breed": 6,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 2067,
+      "breed": 6,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 2068,
+      "breed": 6,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 2072,
+      "breed": 6,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 2073,
+      "breed": 6,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 2075,
+      "breed": 6,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 2076,
+      "breed": 6,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 2078,
+      "breed": 6,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 2079,
+      "breed": 6,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 2080,
+      "breed": 6,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 2839,
+      "breed": 5,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4579,
+      "breed": 4,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4581,
+      "breed": 4,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4583,
+      "breed": 4,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4584,
+      "breed": 4,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4585,
+      "breed": 4,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4586,
+      "breed": 4,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4587,
+      "breed": 4,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4588,
+      "breed": 4,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4589,
+      "breed": 4,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4590,
+      "breed": 4,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4592,
+      "breed": 4,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4593,
+      "breed": 4,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4594,
+      "breed": 4,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4595,
+      "breed": 4,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4596,
+      "breed": 4,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4597,
+      "breed": 4,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4601,
+      "breed": 4,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4602,
+      "breed": 4,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 4606,
+      "breed": 4,
+      "unlock_level": 100,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 4607,
+      "breed": 4,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 4608,
+      "breed": 4,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 4609,
+      "breed": 4,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 4610,
+      "breed": 4,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 4668,
+      "breed": 18,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4669,
+      "breed": 18,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4670,
+      "breed": 18,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4671,
+      "breed": 18,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4680,
+      "breed": 18,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4683,
+      "breed": 18,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4684,
+      "breed": 18,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4685,
+      "breed": 18,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4686,
+      "breed": 18,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 4687,
+      "breed": 18,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 4688,
+      "breed": 18,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 4689,
+      "breed": 18,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 4690,
+      "breed": 18,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 4691,
+      "breed": 18,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4692,
+      "breed": 18,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4693,
+      "breed": 18,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4694,
+      "breed": 18,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4695,
+      "breed": 18,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4697,
+      "breed": 18,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4698,
+      "breed": 18,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4699,
+      "breed": 18,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4700,
+      "breed": 18,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4701,
+      "breed": 18,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4702,
+      "breed": 12,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4703,
+      "breed": 12,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4704,
+      "breed": 12,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4705,
+      "breed": 12,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4706,
+      "breed": 12,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4707,
+      "breed": 12,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4708,
+      "breed": 12,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4709,
+      "breed": 12,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4710,
+      "breed": 12,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4711,
+      "breed": 12,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4712,
+      "breed": 12,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4713,
+      "breed": 12,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4714,
+      "breed": 12,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4715,
+      "breed": 12,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4716,
+      "breed": 12,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4717,
+      "breed": 12,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4719,
+      "breed": 12,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4720,
+      "breed": 12,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4721,
+      "breed": 12,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4722,
+      "breed": 12,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 4723,
+      "breed": 12,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 4724,
+      "breed": 12,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 4725,
+      "breed": 12,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 4726,
+      "breed": 12,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 4769,
+      "breed": 9,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4774,
+      "breed": 9,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4775,
+      "breed": 8,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4776,
+      "breed": 8,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4777,
+      "breed": 8,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4778,
+      "breed": 8,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4779,
+      "breed": 8,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4780,
+      "breed": 8,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4781,
+      "breed": 8,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4782,
+      "breed": 8,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4783,
+      "breed": 8,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4784,
+      "breed": 8,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4785,
+      "breed": 8,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4786,
+      "breed": 8,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4787,
+      "breed": 8,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4788,
+      "breed": 8,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4789,
+      "breed": 8,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4790,
+      "breed": 8,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4791,
+      "breed": 8,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4792,
+      "breed": 8,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4793,
+      "breed": 8,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4794,
+      "breed": 8,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4795,
+      "breed": 8,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 4796,
+      "breed": 8,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 4797,
+      "breed": 8,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 4798,
+      "breed": 8,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 4799,
+      "breed": 8,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 4805,
+      "breed": 9,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4806,
+      "breed": 9,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4808,
+      "breed": 9,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4809,
+      "breed": 9,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4810,
+      "breed": 9,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4811,
+      "breed": 9,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4812,
+      "breed": 9,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4813,
+      "breed": 9,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4814,
+      "breed": 9,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4815,
+      "breed": 9,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 4816,
+      "breed": 9,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4817,
+      "breed": 9,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4818,
+      "breed": 9,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4819,
+      "breed": 9,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 4820,
+      "breed": 9,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 4821,
+      "breed": 9,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 4822,
+      "breed": 9,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 4959,
+      "breed": 10,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 5028,
+      "breed": 11,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 5029,
+      "breed": 11,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 5030,
+      "breed": 11,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 5031,
+      "breed": 11,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 5032,
+      "breed": 11,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 5033,
+      "breed": 11,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 5034,
+      "breed": 11,
+      "unlock_level": 20,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 5035,
+      "breed": 11,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 5036,
+      "breed": 11,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 5037,
+      "breed": 11,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 5038,
+      "breed": 11,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 5039,
+      "breed": 11,
+      "unlock_level": 6,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 5040,
+      "breed": 11,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 5041,
+      "breed": 11,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 5042,
+      "breed": 11,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 5043,
+      "breed": 11,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 5044,
+      "breed": 11,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 5045,
+      "breed": 11,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 5047,
+      "breed": 11,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 5049,
+      "breed": 11,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 5050,
+      "breed": 11,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 5051,
+      "breed": 11,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 5052,
+      "breed": 11,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 5053,
+      "breed": 11,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 5054,
+      "breed": 11,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 5055,
+      "breed": 10,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 5056,
+      "breed": 18,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 5057,
+      "breed": 10,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 5058,
+      "breed": 10,
+      "unlock_level": 100,
+      "kind": "passive",
+      "ui_order": 27
+    },
+    {
+      "id": 5059,
+      "breed": 3,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 5071,
+      "breed": 3,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 5075,
+      "breed": 3,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 5076,
+      "breed": 3,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 5100,
+      "breed": 8,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 5101,
+      "breed": 8,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 5102,
+      "breed": 8,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 5103,
+      "breed": 8,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 5104,
+      "breed": 8,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 5122,
+      "breed": 4,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 5124,
+      "breed": 4,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 5126,
+      "breed": 4,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 5130,
+      "breed": 8,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 5131,
+      "breed": 18,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 5132,
+      "breed": 18,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 5143,
+      "breed": 18,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 5148,
+      "breed": 12,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 5149,
+      "breed": 12,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 5151,
+      "breed": 12,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 5152,
+      "breed": 12,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 5192,
+      "breed": 11,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 5193,
+      "breed": 11,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 5194,
+      "breed": 11,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 5195,
+      "breed": 11,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 5234,
+      "breed": 10,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 5246,
+      "breed": 6,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 5249,
+      "breed": 6,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 5250,
+      "breed": 6,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 5251,
+      "breed": 6,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 5344,
+      "breed": 5,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 5351,
+      "breed": 5,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 5352,
+      "breed": 5,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 5353,
+      "breed": 5,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 5451,
+      "breed": 7,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 5453,
+      "breed": 7,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 5454,
+      "breed": 7,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 5455,
+      "breed": 7,
+      "unlock_level": 100,
+      "kind": "passive",
+      "ui_order": 27
+    },
+    {
+      "id": 5463,
+      "breed": 7,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 5561,
+      "breed": 19,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 5562,
+      "breed": 19,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 5563,
+      "breed": 19,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 5564,
+      "breed": 19,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 5565,
+      "breed": 19,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 5566,
+      "breed": 19,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 5567,
+      "breed": 19,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 5568,
+      "breed": 19,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 5569,
+      "breed": 19,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 5570,
+      "breed": 19,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 5571,
+      "breed": 19,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 5572,
+      "breed": 19,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 5575,
+      "breed": 19,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 5576,
+      "breed": 19,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 5577,
+      "breed": 19,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 5579,
+      "breed": 19,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 5580,
+      "breed": 19,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 5581,
+      "breed": 19,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 5582,
+      "breed": 19,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 5583,
+      "breed": 19,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 5584,
+      "breed": 19,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 5585,
+      "breed": 19,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 5586,
+      "breed": 19,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 5587,
+      "breed": 19,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 5588,
+      "breed": 19,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 5590,
+      "breed": 19,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 5591,
+      "breed": 19,
+      "unlock_level": 29,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 5592,
+      "breed": 19,
+      "unlock_level": 35,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 5593,
+      "breed": 19,
+      "unlock_level": 31,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 5594,
+      "breed": 19,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 5595,
+      "breed": 19,
+      "unlock_level": 33,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 5596,
+      "breed": 19,
+      "unlock_level": 27,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 5597,
+      "breed": 19,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6256,
+      "breed": 15,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6257,
+      "breed": 15,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6258,
+      "breed": 15,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6259,
+      "breed": 15,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6260,
+      "breed": 15,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 0
+    },
+    {
+      "id": 6261,
+      "breed": 15,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 0
+    },
+    {
+      "id": 6262,
+      "breed": 15,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6263,
+      "breed": 15,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6264,
+      "breed": 15,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6265,
+      "breed": 15,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6266,
+      "breed": 15,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 0
+    },
+    {
+      "id": 6267,
+      "breed": 15,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6268,
+      "breed": 15,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6269,
+      "breed": 15,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6270,
+      "breed": 15,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6271,
+      "breed": 15,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 6272,
+      "breed": 15,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 6273,
+      "breed": 15,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 6274,
+      "breed": 15,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 6275,
+      "breed": 15,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 6276,
+      "breed": 15,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 6277,
+      "breed": 15,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 6278,
+      "breed": 15,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 6279,
+      "breed": 15,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 6280,
+      "breed": 15,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 6281,
+      "breed": 15,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 6282,
+      "breed": 15,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 6284,
+      "breed": 15,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 0
+    },
+    {
+      "id": 6285,
+      "breed": 15,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6287,
+      "breed": 15,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6288,
+      "breed": 15,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6324,
+      "breed": 3,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6326,
+      "breed": 3,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 6337,
+      "breed": 3,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6463,
+      "breed": 13,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6464,
+      "breed": 13,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6465,
+      "breed": 13,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6466,
+      "breed": 13,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6467,
+      "breed": 13,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6468,
+      "breed": 13,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6469,
+      "breed": 13,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6470,
+      "breed": 13,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6471,
+      "breed": 13,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6472,
+      "breed": 13,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6473,
+      "breed": 13,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6474,
+      "breed": 13,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6475,
+      "breed": 13,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6476,
+      "breed": 13,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6478,
+      "breed": 13,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6479,
+      "breed": 13,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 6480,
+      "breed": 13,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 6481,
+      "breed": 13,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 6482,
+      "breed": 13,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 6483,
+      "breed": 13,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 6484,
+      "breed": 13,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 6485,
+      "breed": 13,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 6486,
+      "breed": 13,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 6487,
+      "breed": 13,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 6488,
+      "breed": 13,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 6489,
+      "breed": 13,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 6490,
+      "breed": 13,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6491,
+      "breed": 13,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6492,
+      "breed": 13,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6493,
+      "breed": 13,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6494,
+      "breed": 13,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6842,
+      "breed": 9,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 6844,
+      "breed": 12,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6845,
+      "breed": 12,
+      "unlock_level": 75,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 6846,
+      "breed": 12,
+      "unlock_level": 100,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 6850,
+      "breed": 4,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6902,
+      "breed": 16,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6903,
+      "breed": 16,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6904,
+      "breed": 16,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6905,
+      "breed": 16,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6906,
+      "breed": 16,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6907,
+      "breed": 16,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6908,
+      "breed": 16,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6909,
+      "breed": 16,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6910,
+      "breed": 16,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6911,
+      "breed": 16,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6912,
+      "breed": 16,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6913,
+      "breed": 16,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6914,
+      "breed": 16,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6915,
+      "breed": 16,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6916,
+      "breed": 16,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6917,
+      "breed": 16,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6918,
+      "breed": 16,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6919,
+      "breed": 16,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6920,
+      "breed": 16,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6921,
+      "breed": 16,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6922,
+      "breed": 16,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 6925,
+      "breed": 16,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 6926,
+      "breed": 16,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 6927,
+      "breed": 16,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 6928,
+      "breed": 16,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 6929,
+      "breed": 16,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 6930,
+      "breed": 16,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 6931,
+      "breed": 16,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 6932,
+      "breed": 16,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 6933,
+      "breed": 16,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 6934,
+      "breed": 16,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 6935,
+      "breed": 16,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 6936,
+      "breed": 16,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 6937,
+      "breed": 16,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 6938,
+      "breed": 16,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 6939,
+      "breed": 16,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 6940,
+      "breed": 16,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 6941,
+      "breed": 16,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 6942,
+      "breed": 16,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 6943,
+      "breed": 16,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 6945,
+      "breed": 9,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 6946,
+      "breed": 9,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 6947,
+      "breed": 9,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 6948,
+      "breed": 9,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 6949,
+      "breed": 9,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 6950,
+      "breed": 9,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 6951,
+      "breed": 9,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 6952,
+      "breed": 9,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 6953,
+      "breed": 9,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 6955,
+      "breed": 9,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 6956,
+      "breed": 9,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 6957,
+      "breed": 9,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 6958,
+      "breed": 9,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 6959,
+      "breed": 9,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 6960,
+      "breed": 9,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 6961,
+      "breed": 9,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 6962,
+      "breed": 9,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 6963,
+      "breed": 9,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 6967,
+      "breed": 1,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6968,
+      "breed": 1,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6969,
+      "breed": 1,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6970,
+      "breed": 1,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6971,
+      "breed": 1,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6972,
+      "breed": 1,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6973,
+      "breed": 1,
+      "unlock_level": 2,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6974,
+      "breed": 1,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6975,
+      "breed": 1,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6976,
+      "breed": 1,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6977,
+      "breed": 1,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6978,
+      "breed": 1,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6979,
+      "breed": 1,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6980,
+      "breed": 1,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6981,
+      "breed": 1,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6982,
+      "breed": 1,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 6983,
+      "breed": 1,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 6984,
+      "breed": 1,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 6985,
+      "breed": 1,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 6986,
+      "breed": 1,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 6987,
+      "breed": 1,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 6988,
+      "breed": 1,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 6989,
+      "breed": 1,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 6990,
+      "breed": 1,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 6991,
+      "breed": 1,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 6992,
+      "breed": 1,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 6993,
+      "breed": 1,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 6994,
+      "breed": 1,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 6995,
+      "breed": 1,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 6996,
+      "breed": 1,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 6997,
+      "breed": 1,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 6998,
+      "breed": 1,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 6999,
+      "breed": 1,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 7000,
+      "breed": 1,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 7001,
+      "breed": 1,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 7002,
+      "breed": 1,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 7003,
+      "breed": 1,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 7004,
+      "breed": 1,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 7005,
+      "breed": 1,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 7053,
+      "breed": 10,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 7054,
+      "breed": 10,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 7062,
+      "breed": 13,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 7063,
+      "breed": 13,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 7064,
+      "breed": 13,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 7065,
+      "breed": 13,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 7066,
+      "breed": 14,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 7067,
+      "breed": 14,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 7068,
+      "breed": 14,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 7069,
+      "breed": 14,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 7070,
+      "breed": 14,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 7071,
+      "breed": 14,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 7072,
+      "breed": 14,
+      "unlock_level": 5,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 7073,
+      "breed": 14,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 7074,
+      "breed": 14,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 7075,
+      "breed": 14,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 7076,
+      "breed": 14,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 7077,
+      "breed": 14,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 7078,
+      "breed": 14,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 7079,
+      "breed": 14,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 7080,
+      "breed": 14,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 7084,
+      "breed": 14,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 7085,
+      "breed": 14,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 7086,
+      "breed": 14,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 7087,
+      "breed": 14,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 7088,
+      "breed": 14,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 7089,
+      "breed": 14,
+      "unlock_level": 75,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 7090,
+      "breed": 13,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 7091,
+      "breed": 13,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 7092,
+      "breed": 13,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 7093,
+      "breed": 14,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 7094,
+      "breed": 14,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 7095,
+      "breed": 14,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 7096,
+      "breed": 14,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 7097,
+      "breed": 14,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 7098,
+      "breed": 14,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 7099,
+      "breed": 14,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 7100,
+      "breed": 14,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 7101,
+      "breed": 14,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 7102,
+      "breed": 14,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 7103,
+      "breed": 14,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 7104,
+      "breed": 14,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 7105,
+      "breed": 14,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 7106,
+      "breed": 14,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 7107,
+      "breed": 14,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 7108,
+      "breed": 14,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 7111,
+      "breed": 14,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 7112,
+      "breed": 14,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 7113,
+      "breed": 14,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 7184,
+      "breed": 5,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 7185,
+      "breed": 5,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 7186,
+      "breed": 5,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 7187,
+      "breed": 5,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 7188,
+      "breed": 5,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 7189,
+      "breed": 5,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 7190,
+      "breed": 5,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 7191,
+      "breed": 5,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 7192,
+      "breed": 5,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 7193,
+      "breed": 5,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 7195,
+      "breed": 5,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 7196,
+      "breed": 5,
+      "unlock_level": 100,
+      "kind": "passive",
+      "ui_order": 27
+    },
+    {
+      "id": 7198,
+      "breed": 18,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 7199,
+      "breed": 18,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 7200,
+      "breed": 18,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 7202,
+      "breed": 18,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 7203,
+      "breed": 18,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 7204,
+      "breed": 18,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 7205,
+      "breed": 18,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 7206,
+      "breed": 18,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 7207,
+      "breed": 18,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 7208,
+      "breed": 18,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 7209,
+      "breed": 18,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 7210,
+      "breed": 18,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 7211,
+      "breed": 11,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 7212,
+      "breed": 11,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 7213,
+      "breed": 11,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 7214,
+      "breed": 11,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 7215,
+      "breed": 11,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 7216,
+      "breed": 11,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 7217,
+      "breed": 11,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 7218,
+      "breed": 11,
+      "unlock_level": 100,
+      "kind": "passive",
+      "ui_order": 27
+    },
+    {
+      "id": 7219,
+      "breed": 11,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 7220,
+      "breed": 11,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 7224,
+      "breed": 11,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 7225,
+      "breed": 6,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 7307,
+      "breed": 2,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 7308,
+      "breed": 2,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 7309,
+      "breed": 2,
+      "unlock_level": 9,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 7310,
+      "breed": 2,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 7311,
+      "breed": 2,
+      "unlock_level": 21,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 7312,
+      "breed": 2,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 7313,
+      "breed": 2,
+      "unlock_level": 2,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 7314,
+      "breed": 2,
+      "unlock_level": 11,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 7315,
+      "breed": 2,
+      "unlock_level": 17,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 7316,
+      "breed": 2,
+      "unlock_level": 23,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 7317,
+      "breed": 2,
+      "unlock_level": 1,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 7318,
+      "breed": 2,
+      "unlock_level": 7,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 7319,
+      "breed": 2,
+      "unlock_level": 13,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 7320,
+      "breed": 2,
+      "unlock_level": 19,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 7321,
+      "breed": 2,
+      "unlock_level": 25,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 7322,
+      "breed": 2,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 7323,
+      "breed": 2,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 7324,
+      "breed": 2,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 7325,
+      "breed": 2,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 7326,
+      "breed": 2,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 7327,
+      "breed": 2,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 7328,
+      "breed": 2,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 7329,
+      "breed": 2,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 7330,
+      "breed": 2,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 7331,
+      "breed": 2,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 7332,
+      "breed": 2,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 7333,
+      "breed": 2,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 7334,
+      "breed": 2,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 7335,
+      "breed": 2,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 7336,
+      "breed": 2,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 7337,
+      "breed": 2,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 7338,
+      "breed": 2,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 7339,
+      "breed": 2,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 7340,
+      "breed": 2,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 7341,
+      "breed": 2,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 7342,
+      "breed": 2,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 7343,
+      "breed": 2,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 7344,
+      "breed": 2,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 7551,
+      "breed": 15,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 7552,
+      "breed": 15,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 7553,
+      "breed": 15,
+      "unlock_level": 20,
+      "kind": "passive",
+      "ui_order": 5
+    },
+    {
+      "id": 7554,
+      "breed": 15,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 7555,
+      "breed": 15,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 7556,
+      "breed": 15,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 7557,
+      "breed": 15,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 7558,
+      "breed": 15,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 7596,
+      "breed": 15,
+      "unlock_level": 15,
+      "kind": "passive",
+      "ui_order": 4
+    },
+    {
+      "id": 7720,
+      "breed": 18,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 7753,
+      "breed": 9,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 7754,
+      "breed": 19,
+      "unlock_level": 45,
+      "kind": "active",
+      "ui_order": 4
+    },
+    {
+      "id": 7755,
+      "breed": 19,
+      "unlock_level": 15,
+      "kind": "active",
+      "ui_order": 2
+    },
+    {
+      "id": 7795,
+      "breed": 9,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 7797,
+      "breed": 19,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 7798,
+      "breed": 19,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 7800,
+      "breed": 19,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 7801,
+      "breed": 19,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 7802,
+      "breed": 19,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 7803,
+      "breed": 19,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 7804,
+      "breed": 19,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 7805,
+      "breed": 19,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 7809,
+      "breed": 19,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 7810,
+      "breed": 16,
+      "unlock_level": 100,
+      "kind": "passive",
+      "ui_order": 27
+    },
+    {
+      "id": 7814,
+      "breed": 18,
+      "unlock_level": 100,
+      "kind": "passive",
+      "ui_order": 27
+    },
+    {
+      "id": 7830,
+      "breed": 11,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 7954,
+      "breed": 6,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 7955,
+      "breed": 6,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 7956,
+      "breed": 6,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 7957,
+      "breed": 6,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 7958,
+      "breed": 6,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 7959,
+      "breed": 6,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 7960,
+      "breed": 6,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 7961,
+      "breed": 6,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 7982,
+      "breed": 13,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 7983,
+      "breed": 13,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 1
+    },
+    {
+      "id": 7984,
+      "breed": 13,
+      "unlock_level": 100,
+      "kind": "passive",
+      "ui_order": 27
+    },
+    {
+      "id": 7985,
+      "breed": 7,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 7987,
+      "breed": 7,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 7990,
+      "breed": 7,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 7991,
+      "breed": 7,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 7992,
+      "breed": 7,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 7993,
+      "breed": 7,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 7994,
+      "breed": 7,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 7995,
+      "breed": 7,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 7996,
+      "breed": 7,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 7997,
+      "breed": 7,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 7998,
+      "breed": 7,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 7999,
+      "breed": 6,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 8000,
+      "breed": 6,
+      "unlock_level": 100,
+      "kind": "passive",
+      "ui_order": 27
+    },
+    {
+      "id": 8001,
+      "breed": 6,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 8139,
+      "breed": 10,
+      "unlock_level": 60,
+      "kind": "active",
+      "ui_order": 5
+    },
+    {
+      "id": 8149,
+      "breed": 10,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 8150,
+      "breed": 10,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 8151,
+      "breed": 10,
+      "unlock_level": 40,
+      "kind": "passive",
+      "ui_order": 11
+    },
+    {
+      "id": 8152,
+      "breed": 10,
+      "unlock_level": 10,
+      "kind": "passive",
+      "ui_order": 2
+    },
+    {
+      "id": 8153,
+      "breed": 10,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 8154,
+      "breed": 10,
+      "unlock_level": 25,
+      "kind": "passive",
+      "ui_order": 7
+    },
+    {
+      "id": 8155,
+      "breed": 10,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 8156,
+      "breed": 10,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 8157,
+      "breed": 10,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 8158,
+      "breed": 10,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 8240,
+      "breed": 3,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 8242,
+      "breed": 3,
+      "unlock_level": 90,
+      "kind": "active",
+      "ui_order": 6
+    },
+    {
+      "id": 8272,
+      "breed": 3,
+      "unlock_level": 55,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 8273,
+      "breed": 3,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 8274,
+      "breed": 3,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 8275,
+      "breed": 3,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 8276,
+      "breed": 3,
+      "unlock_level": 75,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 8277,
+      "breed": 3,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 8278,
+      "breed": 3,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 8279,
+      "breed": 3,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 8280,
+      "breed": 3,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 8413,
+      "breed": 8,
+      "unlock_level": 100,
+      "kind": "passive",
+      "ui_order": 27
+    },
+    {
+      "id": 8414,
+      "breed": 8,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 8415,
+      "breed": 8,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 8416,
+      "breed": 8,
+      "unlock_level": 85,
+      "kind": "passive",
+      "ui_order": 24
+    },
+    {
+      "id": 8417,
+      "breed": 8,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 8418,
+      "breed": 8,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 23
+    },
+    {
+      "id": 8419,
+      "breed": 8,
+      "unlock_level": 95,
+      "kind": "passive",
+      "ui_order": 26
+    },
+    {
+      "id": 8420,
+      "breed": 8,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 25
+    },
+    {
+      "id": 8421,
+      "breed": 8,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 8422,
+      "breed": 8,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 8479,
+      "breed": 4,
+      "unlock_level": 3,
+      "kind": "active",
+      "ui_order": 1
+    },
+    {
+      "id": 8481,
+      "breed": 4,
+      "unlock_level": 30,
+      "kind": "active",
+      "ui_order": 3
+    },
+    {
+      "id": 8503,
+      "breed": 4,
+      "unlock_level": 30,
+      "kind": "passive",
+      "ui_order": 8
+    },
+    {
+      "id": 8504,
+      "breed": 4,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 8508,
+      "breed": 4,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 15
+    },
+    {
+      "id": 8510,
+      "breed": 4,
+      "unlock_level": 35,
+      "kind": "passive",
+      "ui_order": 10
+    },
+    {
+      "id": 8511,
+      "breed": 4,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 8512,
+      "breed": 4,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 8513,
+      "breed": 4,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 8595,
+      "breed": 12,
+      "unlock_level": 45,
+      "kind": "passive",
+      "ui_order": 12
+    },
+    {
+      "id": 8596,
+      "breed": 12,
+      "unlock_level": 70,
+      "kind": "passive",
+      "ui_order": 19
+    },
+    {
+      "id": 8597,
+      "breed": 12,
+      "unlock_level": 80,
+      "kind": "passive",
+      "ui_order": 21
+    },
+    {
+      "id": 8598,
+      "breed": 12,
+      "unlock_level": 50,
+      "kind": "passive",
+      "ui_order": 13
+    },
+    {
+      "id": 8599,
+      "breed": 12,
+      "unlock_level": 65,
+      "kind": "passive",
+      "ui_order": 18
+    },
+    {
+      "id": 8600,
+      "breed": 12,
+      "unlock_level": 60,
+      "kind": "passive",
+      "ui_order": 16
+    },
+    {
+      "id": 8601,
+      "breed": 12,
+      "unlock_level": 90,
+      "kind": "passive",
+      "ui_order": 23
+    }
+  ]
+}

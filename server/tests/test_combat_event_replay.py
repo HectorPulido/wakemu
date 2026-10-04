@@ -1,0 +1,309 @@
+import json, unittest
+from copy import deepcopy
+from dataclasses import replace
+from pathlib import Path
+from wakfu_server.combat_state import Actor, Fight
+from wakfu_server.combat_effect_dispatch import (
+    EffectDispatcher,
+    EffectInvocation,
+    UnsupportedEffectExecution,
+)
+from wakfu_server.combat_retained_runtime import (
+    NativeRetainedRuntime,
+    native_retained_condition_effects,
+)
+from wakfu_server.combat_native_timing_context import NativeEffectTimingProvider
+from wakfu_server.combat_stat_handler import NativeStatHandler
+from wakfu_server.combat_event_replay import (
+    NativeEventReplay,
+    NativeCloneAuthority,
+    NativeTriggerHistory,
+    healing_event_source,
+)
+from wakfu_server.combat_conditions import ConditionActor, ConditionContext
+from wakfu_server.combat_healing_effect import direct_healing
+from wakfu_server.combat_effect_removal import _identity_fields
+
+
+class NativeEventReplayTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.fixture = json.loads(
+            (
+                Path(__file__).parents[1] / "protocol/native-event-replay-fixture.json"
+            ).read_text()
+        )
+
+    def setUp(self):
+        actors = [
+            Actor(7, 0, (0, 0, 0), 60, 6, 3, 10, 1, 3, True),
+            Actor(-7, 1, (1, 0, 0), 20, 6, 3, 5, 1),
+        ]
+        self.fight = Fight(
+            77, actors, {a.position for a in actors}, {0: {(0, 0, 0)}, 1: {(1, 0, 0)}}
+        )
+        self.fight.ready(3)
+        self.fight.native_effect_uid_next = 900
+        self.effects = deepcopy(self.fixture["effects"])
+        self.packets = []
+        timing = NativeEffectTimingProvider({})
+        self.retention = NativeRetainedRuntime(
+            self.fight,
+            self.packets,
+            plan=dict(spell_id=6266, evaluation_level=1),
+            state_catalog={},
+            action_id=1,
+            timing=timing,
+            metadata=deepcopy(self.fixture["retained_metadata"]),
+        )
+        stat = NativeStatHandler(
+            self.fight,
+            self.packets,
+            {"effects": {"400": {"runner": "eXE"}}},
+            action_id=1,
+            allocate_uid=self.fight.allocate_effect_uid,
+            context=lambda effect, inv: timing.stat(self.fight, {}, effect, inv),
+        )
+        self.retention.stat_handler = stat
+        self.dispatcher = EffectDispatcher(
+            self.effects,
+            {400: self.retention.wrap(stat)},
+            resolve=lambda effect, inv: (inv,),
+            condition_context=lambda inv: self.conditions(),
+            probability_accepts=lambda probability, inv: probability == 100,
+            group_cells=lambda *args: (),
+            actor_position=lambda id: self.fight.actors[id].position,
+            group_retention=self.retention,
+        )
+        self.replay = NativeEventReplay(self.dispatcher, self.retention)
+        self.authority = NativeCloneAuthority(
+            lambda effect, inv, source: self.fight.actors[inv.target_id].hp > 0,
+            lambda effect, inv, source: self.conditions(),
+        )
+        self.dispatcher.execute(EffectInvocation(308265, 1, 7, 7, (0, 0, 0)))
+
+    def test_external_null_source_preserves_listener_actors_and_allocates_clone(self):
+        from wakfu_server.combat_event_replay import NativeExternalEvent
+        row = self.fight.native_owned_group_effects[900]
+        row["native_subscription_masks"][5] = [1003]
+        self.retention.metadata["effects"]["308265"]["event_reverse_subscription"] = False
+        contexts = []
+        authority = NativeCloneAuthority(
+            lambda effect, inv, source: True,
+            lambda effect, inv, source: (contexts.append(inv) or self.conditions()))
+        self.replay(NativeExternalEvent(7, (1003,), 6), authority=authority)
+        self.assertTrue(contexts)
+        self.assertTrue(all(i.native_trigger_context is None for i in contexts))
+        self.assertTrue(all((i.caster_id, i.target_id) == (7, 7) for i in contexts))
+        self.assertGreater(self.fight.native_effect_uid_next, 901)
+
+    def conditions(self):
+        actor = ConditionActor(
+            retained_effect_ids=frozenset(
+                row[0] for row in native_retained_condition_effects(self.fight, 7)
+            )
+        )
+        return ConditionContext({"caster": actor, "target": actor})
+
+    def test_real_feline_impact_400_listener_clone_uses_one_uid_and_is_not_retained(
+        self,
+    ):
+        reference = 359836  # Native Impacto Felino 5249 subscription.
+        invocation = EffectInvocation(reference, 40, 7, 7, (0, 0, 0))
+        self.assertTrue(self.dispatcher.execute(invocation))
+        listener_uid = 901
+        row = self.fight.native_owned_group_effects[listener_uid]
+        self.assertEqual(row["effect_class"], 400)
+        original = _identity_fields(bytes.fromhex(row["payload"]))
+        self.assertEqual((original[1], original[2]), (901, 901))
+        self.assertNotIn(listener_uid, self.fight.owned_stat_effects)
+        # Delivery of native subscription event1002, channel6; source IDs are explicit.
+        source = replace(self.source(), event_ids=(1002,), channel=60)
+        packets_before = len(self.packets)
+        self.assertEqual(self.replay(source, authority=self.authority), (True,))
+        self.assertEqual(self.fight.native_effect_uid_next, 903)
+        self.assertIn(listener_uid, self.fight.native_owned_group_effects)
+        self.assertEqual(set(self.fight.owned_stat_effects), set())
+        packet = self.packets[packets_before][1]
+        # cvY envelope: running-effect protobuf follows the 18-byte identity header.
+        import struct
+
+        payload_length = struct.unpack_from(">h", packet, 16)[0]
+        cloned = _identity_fields(packet[18 : 18 + payload_length])
+        self.assertEqual((cloned[1], cloned[2], cloned[3]), (902, 901, reference))
+
+    def test_400_removal_routes_both_retained_listener_and_executed_marker(self):
+        self.dispatcher.execute(EffectInvocation(359836, 40, 7, 7, (0, 0, 0)))
+        self.dispatcher.execute(EffectInvocation(308267, 1, 7, 7, (0, 0, 0)))
+        self.assertIn(901, self.fight.native_owned_group_effects)
+        self.assertIn(902, self.fight.owned_stat_effects)
+        removal = self.retention.removal(self.retention.view())
+        removal.remove((901, 902))
+        self.assertNotIn(901, self.fight.native_owned_group_effects)
+        self.assertNotIn(902, self.fight.owned_stat_effects)
+        self.retention.view()
+
+    def source(self, uid=800):
+        reference = self.fixture["source"]
+        effect = self.effects[str(reference)]
+        invocation = EffectInvocation(reference, 1, 7, 7, (0, 0, 0))
+        packet = direct_healing(
+            77,
+            1,
+            uid=uid,
+            generic_effect=reference,
+            effect_class=25,
+            caster_id=7,
+            target_id=7,
+            restored=1,
+        )
+        source = healing_event_source(
+            effect,
+            invocation,
+            packet,
+            channel=30,
+            manager_actor_id=7,
+            source_suppressed=False,
+            definition_suppresses_level_one=False,
+            extra_dynamic_event_ids=(),
+        )
+        self.assertEqual(
+            list(source.event_ids), self.fixture["native_source_event_ids"]
+        )
+        return source
+
+    def test_real_healing_event_activates_catalog_group_and_child_once(self):
+        self.assertEqual(self.replay(self.source(), authority=self.authority), (True,))
+        self.assertEqual(
+            set(self.fight.native_owned_group_effects), set()
+        )  # PK.aZS=1 exhausted; clone never retained.
+        self.assertEqual(len(self.fight.owned_stat_effects), 1)
+        child = next(iter(self.fight.owned_stat_effects.values()))
+        fields = _identity_fields(bytes.fromhex(child["payload"]))
+        self.assertEqual(
+            (fields[1], fields[2], fields[3]), (child["uid"], child["uid"], 308267)
+        )
+        self.assertIsNone(child["state_uid"])
+        self.assertEqual(self.replay(self.source(801), authority=self.authority), ())
+        self.assertEqual(
+            len(self.fight.owned_stat_effects), 1
+        )  # Real HasEffectWithSpecificId guard.
+
+    def test_recipient_manager_and_suppression_are_not_inferred(self):
+        self.assertEqual(
+            self.replay(
+                replace(self.source(), manager_actor_id=-7), authority=self.authority
+            ),
+            (),
+        )
+        self.assertEqual(
+            self.replay(
+                replace(self.source(), suppressed=True), authority=self.authority
+            ),
+            (),
+        )
+        self.assertEqual(self.fight.native_effect_uid_next, 901)
+
+    def test_failed_child_rolls_back_when_preview_is_discarded(self):
+        original = deepcopy(self.fight)
+        preview = deepcopy(self.fight)
+        self.retention.fight = preview
+        old = self.dispatcher.handlers[400]
+        self.dispatcher.handlers[400] = lambda *args: (_ for _ in ()).throw(
+            UnsupportedEffectExecution("Injected child failure")
+        )
+        with self.assertRaises(UnsupportedEffectExecution):
+            self.replay(self.source(), authority=self.authority)
+        self.assertEqual(
+            self.fight.native_effect_uid_next, original.native_effect_uid_next
+        )
+        self.assertEqual(
+            self.fight.native_retained_records, original.native_retained_records
+        )
+        self.assertEqual(self.replay.history.active, set())
+        self.dispatcher.handlers[400] = old
+
+    def test_native_qj_active_triple_guard_is_released(self):
+        history = NativeTriggerHistory()
+        key = history.enter(308265, 7, -7)
+        self.assertIsNone(history.enter(308265, 7, -7))
+        self.assertIsNotNone(history.enter(308265, -7, 7))
+        history.leave(key)
+        self.assertIsNotNone(history.enter(308265, 7, -7))
+
+    def test_automatic_emitter_replays_real_source_with_applied_packet_identity(self):
+        from wakfu_server.combat_event_replay import (
+            NativeHealingEventAuthority,
+            NativeHealingEventEmitter,
+        )
+
+        invocation = EffectInvocation(self.fixture["source"], 1, 7, 7, (0, 0, 0))
+        effect = self.effects[str(invocation.reference)]
+        packet = direct_healing(
+            77,
+            1,
+            uid=800,
+            generic_effect=invocation.reference,
+            effect_class=25,
+            caster_id=7,
+            target_id=7,
+            restored=1,
+        )
+        authority = NativeHealingEventAuthority(
+            lambda *args: (self.source(),), self.authority
+        )
+        emit = NativeHealingEventEmitter(
+            self.replay, authority, preview=self.fight, plan={}
+        )
+        self.assertEqual(emit(effect, invocation, packet), ((True,),))
+        self.assertEqual(len(self.fight.owned_stat_effects), 1)
+        self.assertEqual(set(self.fight.native_owned_group_effects), set())
+
+    def test_emitter_rejects_foreign_delivery_before_any_clone(self):
+        from wakfu_server.combat_event_replay import (
+            NativeHealingEventAuthority,
+            NativeHealingEventEmitter,
+        )
+
+        invocation = EffectInvocation(self.fixture["source"], 1, 7, 7, (0, 0, 0))
+        packet = direct_healing(
+            77,
+            1,
+            uid=800,
+            generic_effect=invocation.reference,
+            effect_class=25,
+            caster_id=7,
+            target_id=7,
+            restored=1,
+        )
+        authority = NativeHealingEventAuthority(
+            lambda *args: (self.source(801),), self.authority
+        )
+        emit = NativeHealingEventEmitter(
+            self.replay, authority, preview=self.fight, plan={}
+        )
+        with self.assertRaisesRegex(ValueError, "does not belong"):
+            emit(self.effects[str(invocation.reference)], invocation, packet)
+        self.assertEqual(self.fight.native_effect_uid_next, 901)
+        self.assertEqual(self.fight.owned_stat_effects, {})
+
+    def test_probability_rejection_keeps_listener_count_and_uid(self):
+        self.dispatcher.probability_accepts = lambda *args: False
+        self.assertEqual(self.replay(self.source(), authority=self.authority), (False,))
+        self.assertEqual(
+            self.fight.native_owned_group_effects[900]["execution_count"], 1
+        )
+        self.assertEqual(self.fight.native_effect_uid_next, 901)
+
+    def test_listener_depletes_after_accepted_clone_even_when_children_return_false(
+        self,
+    ):
+        self.dispatcher.handlers[400] = lambda *args: False
+        self.assertEqual(self.replay(self.source(), authority=self.authority), (False,))
+        self.assertEqual(self.fight.native_owned_group_effects, {})
+        self.assertEqual(self.fight.native_effect_uid_next, 902)
+        self.assertEqual(self.packets[-1][0], 13560)
+
+
+if __name__ == "__main__":
+    unittest.main()

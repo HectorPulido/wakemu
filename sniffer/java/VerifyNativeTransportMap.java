@@ -1,0 +1,2 @@
+import java.nio.file.*;
+public class VerifyNativeTransportMap{public static void main(String[]a)throws Exception{csW m=new csW();if(!m.dp(Files.readAllBytes(Path.of(a[0]))))throw new AssertionError();eHj entity=new eHj();entity.ew(m.eEX());if(entity.fsS().Vc!=7||entity.fsR().Vh!=9||entity.fsV().XC!=-10||entity.fsV().XD!=-10||entity.fsV().XE!=-1||entity.fsV().Vp!=1134||!m.eEY().isEmpty()||!m.eEZ().isEmpty())throw new AssertionError();eUZ c=eVa.eD(m.eFa());if(c.Fq()!=0)throw new AssertionError();System.out.println("Native csW format28 own-map clean decode OK");}}

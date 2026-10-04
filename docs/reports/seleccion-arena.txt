@@ -1,0 +1,9 @@
+Selección general de arena — 2026-10-03
+
+combat_arena_selection.bounded_arena(data, player, members, radius=12) recibe geometría nativa exportada {map_id,cells,edges}, coordenada del jugador y coordenadas de todos los integrantes del grupo. No conoce mapas ni posiciones concretas. También acepta diccionarios de actor con position o x/y/z.
+
+El radio delimita un cuadrado alrededor del jugador. Se conservan aristas dirigidas existentes y superficies alcanzables desde el jugador. Una altura desconectada en la mismaXY no bloquea la altura correcta. Si dos alturas de una columna son alcanzables, ambas se bloquean; se recalcula el componente para eliminar puentes que dependían de esa ambigüedad. El grupo entero debe pertenecer al componente resultante y no solaparse. No se teletransporta ningún miembro ni se inventan aristas inversas.
+
+Devuelve cells/edges como conjuntos, placement{0:[jugador],1:[miembros]}, bounds y blocked_ambiguous. El llamador genera el codec con combat_wire.arena y asigna esos conjuntos como terreno autoritativo a Fight. Radio1..89 respeta el máximo nativo de32767 posiciones en un rectángulo; el valor habitual12 permite625 posiciones como máximo.
+
+Cinco pruebas cubren escaleras reales de altura, pisos apilados, puente ambiguo, componentes apartados, aristas de un solo sentido, recorte y datos inválidos. Sobre la exportación nativa1134 ya existente se obtienen117 celdas/416 aristas y rectángulo11x11, coincidiendo con la arena anterior. Esto valida selección y compatibilidad de formato; no afirma que todos los mapas estén exportados ni que todo piso ambiguo tenga soporte en el codec de una altura porXY.

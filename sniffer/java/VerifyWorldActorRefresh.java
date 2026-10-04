@@ -1,0 +1,3 @@
+import java.nio.file.*;import java.util.*;
+/** Verifies the actual native csZ decoder, including length prefix. */
+public class VerifyWorldActorRefresh {public static void main(String[]paths)throws Exception {for(String p:paths){byte[] body=Files.readAllBytes(Path.of(p));csZ message=new csZ();if(!message.dp(body)||message.d()!=13046)throw new AssertionError("Rejected csZ");byte[] blob=message.eFf();if(blob.length!=body.length-10||!Arrays.equals(blob,Arrays.copyOfRange(body,10,body.length)))throw new AssertionError("Native blob mismatch");System.out.println("csZ valid actor="+message.KU()+" format="+blob[0]+" blob="+blob.length);}}}

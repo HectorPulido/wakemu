@@ -1,0 +1,36 @@
+Servidor local de Wakfu con Docker Compose
+
+Los tres servicios son world (servidor), ai (IA independiente) y redis (posiciones pendientes).
+
+Desde la raíz del proyecto:
+  docker compose up -d --build
+  docker compose ps
+  docker compose logs -f world
+  docker compose restart world
+  docker compose down
+
+Datos persistentes
+SQLite, certificados y registros se conservan en .runtime/local, montada como /data. Redis utiliza el volumen wakfu-local_redis-data. No uses down -v si quieres conservar el registro pendiente de Redis. La base de datos no está en un volumen world-data.
+
+Registros detallados
+.runtime/local/logs/game-server.jsonl
+
+Cliente local
+  bash client/tools/local-client.sh
+Otra instancia:
+  bash client/tools/local-client.sh --profile nombre
+Comprobar bloqueo de red sin abrir cliente:
+  bash client/tools/local-client.sh --profile nombre --check
+
+Red
+IA y Redis permanecen en la red interna isolated. world también usa client-access para publicar los puertos 15556, 15558 y 18081 exclusivamente en 127.0.0.1. Esta segunda red tiene el masquerade deshabilitado. El cliente mantiene su sandbox y bloqueo Java de conexiones externas.
+
+Guardado de posiciones
+WAKFU_POSITION_FLUSH_SECONDS=2 configura el guardado SQLite por lotes. Redis registra las posiciones pendientes y permite recuperar movimientos cuando la sesión todavía es válida. No es una garantía de recuperación de sesiones expiradas ni habilita por sí solo varios servidores de mundo simultáneos.
+
+Opciones de pruebas
+Todos los destinos verificados de zaap y dragopavo están habilitados por defecto. El grupo local de Wonejos también está habilitado. Se puede modificar mediante WAKFU_ALL_ZAAPS, WAKFU_ALL_DRAGOS, WAKFU_ENABLE_COMBAT_TEST y WAKFU_COMBAT_TEST_GROUP_SIZE.
+
+Pruebas
+  PYTHONPATH=server python3 -m unittest discover -s server/tests
+La fixture de captura montada en Compose es necesaria para el arranque actual. No borrar .runtime/captures/2026-10-03T03-40-46.413625Z-fe2520f4/decoded/frames.jsonl.

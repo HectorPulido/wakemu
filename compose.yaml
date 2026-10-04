@@ -1,0 +1,93 @@
+name: wakfu-local
+services:
+  world:
+    build: ./server
+    init: true
+    depends_on:
+      ai:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      WAKFU_ALL_ZAAPS: ${WAKFU_ALL_ZAAPS:-1}
+      WAKFU_ADVERTISE_HOST: ${WAKFU_ADVERTISE_HOST:-127.0.0.1}
+      WAKFU_ADVERTISE_WORLD_PORT: ${WAKFU_ADVERTISE_WORLD_PORT:-15556}
+      WAKFU_ALL_DRAGOS: ${WAKFU_ALL_DRAGOS:-1}
+      WAKFU_OPEN_PLANTING: ${WAKFU_OPEN_PLANTING:-1}
+      WAKFU_PLANT_GROWTH_SECONDS: ${WAKFU_PLANT_GROWTH_SECONDS:-30}
+      WAKFU_AI_URL: ${WAKFU_AI_URL:-http://ai:8090}
+      WAKFU_REDIS_URL: ${WAKFU_REDIS_URL:-redis://redis:6379/0}
+      WAKFU_POSITION_FLUSH_SECONDS: ${WAKFU_POSITION_FLUSH_SECONDS:-2}
+      WAKFU_EXTERNAL_SCHEDULER: '1'
+      WAKFU_ENABLE_COMBAT_TEST: ${WAKFU_ENABLE_COMBAT_TEST:-1}
+      WAKFU_COMBAT_TEST_GROUP_SIZE: ${WAKFU_COMBAT_TEST_GROUP_SIZE:-2}
+      WAKFU_LOCAL_MONSTER_RESPAWN_SECONDS: ${WAKFU_LOCAL_MONSTER_RESPAWN_SECONDS:-0}
+      # Empty uses the native breed resource; a number is an explicit test override.
+      WAKFU_COMBAT_TEST_WP: ${WAKFU_COMBAT_TEST_WP:-}
+      WAKFU_COMBAT_ARENA_RADIUS: ${WAKFU_COMBAT_ARENA_RADIUS:-89}
+      WAKFU_LOCAL_FIGHT_XP: ${WAKFU_LOCAL_FIGHT_XP:-0}
+      WAKFU_LOCAL_FIGHT_KAMAS: ${WAKFU_LOCAL_FIGHT_KAMAS:-0}
+      WAKFU_CLOCK_OFFSET_SECONDS: ${WAKFU_CLOCK_OFFSET_SECONDS:-0}
+    ports:
+      - "127.0.0.1:15556:15556"
+      - "127.0.0.1:15558:15558"
+      - "127.0.0.1:18081:18081"
+    volumes:
+      - ./server/local_game_server.py:/app/local_game_server.py:ro
+      - ./server/protocol_codec.py:/app/protocol_codec.py:ro
+      - ./server/wakfu_server:/app/wakfu_server:ro
+      - ./server/protocol:/app/protocol:ro
+      - ./.runtime/local:/data
+      - ./.runtime/captures/2026-10-03T03-40-46.413625Z-fe2520f4/decoded/frames.jsonl:/fixtures/frames.jsonl:ro
+    networks: [isolated, client-access]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18081/health',timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+  cron:
+    build:
+      context: ./server
+      dockerfile: cron-service/Dockerfile
+    init: true
+    depends_on:
+      world:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      WAKFU_REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./server/wakfu_server:/app/wakfu_server:ro
+      - ./server/cron-service/service.py:/app/service.py:ro
+      - ./server/cron-service/config.json:/app/config.json:ro
+    networks: [isolated]
+  ai:
+    build: ./server/ai-service
+    init: true
+    networks: [isolated]
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health',timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  redis:
+    image: redis:7-alpine@sha256:bb186d083732f669da90be8b0f975a37812b15e913465bb14d845db72a4e3e08
+    command: [redis-server, --appendonly, 'yes', --appendfsync, always, --save, '']
+    volumes:
+      - redis-data:/data
+    networks: [isolated]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+volumes:
+  redis-data:
+networks:
+  client-access:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: 'false'
+  isolated:
+    internal: true

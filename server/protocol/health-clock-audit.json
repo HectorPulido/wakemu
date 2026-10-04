@@ -1,0 +1,50 @@
+{
+  "health": {
+    "maximum": "aKe.ckP + floor(level * aKz.cmj[HP]) = 50 + 10*level for all currently supported bare breeds",
+    "regen_packet": {
+      "opcode": 12436,
+      "body": ">qii actor_id, health, coefficient"
+    },
+    "regen_formula": "bic.jq uses Math.round(coefficient * elapsed_ms /4000), biu applies to HP characteristic",
+    "observed_coefficients": {
+      "0": 51,
+      "1": 8,
+      "2": 22,
+      "3": 8
+    },
+    "persistence": "health_store.py session/actor/expectedHP CAS and baseline initialHP/start/coef/lasttime table",
+    "integration": [
+      "Initialize owned HP before character bootstrap.",
+      "Send12436 with actual persisted HP and active coefficient after initial load.",
+      "Tick only live owned session; after successfulCAS send updated12436 and refresh character HP snapshot.",
+      "Set coefficient0/reset baseline on entering combat; resume chosen coefficient after fight.",
+      "Keep equipment/passive/aptitude HP excluded until corresponding stats exist."
+    ]
+  },
+  "clock": {
+    "opcode": 23354,
+    "body": ">q Unix epoch milliseconds",
+    "handler": "cgX adds packet-processing elapsed and TX.fi initializes clock",
+    "cycle_seconds": 7200,
+    "day_window_seconds": [
+      1800,
+      5400
+    ],
+    "source": "TX.bjX + TW.buX + TP.bun UTC",
+    "integration": [
+      "Replace captured23354 with live world_clock.packet.",
+      "Clock offset config must be shared with fightdeadline generation; otherwise deadline synchronization breaks.",
+      "Client advances in real time; accelerated clocks require periodic resync."
+    ],
+    "limits": "Visual daynight is driven by client map rendering/listeners; serverclock verified but GUI light transition not yet validated."
+  },
+  "evidence": [
+    ".runtime/local/health-current.txt",
+    ".runtime/local/health-breedloader.txt",
+    ".runtime/local/health-growth-loader.txt",
+    ".runtime/local/base-health.tsv",
+    ".runtime/local/clock-cgx.txt",
+    ".runtime/local/clock-tx.txt",
+    ".runtime/local/clock-constants.txt"
+  ]
+}

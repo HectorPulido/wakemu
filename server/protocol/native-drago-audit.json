@@ -1,0 +1,43 @@
+{
+  "source": "Installed client env/mapID.jar chunk acq via ach; native bEE type factory bEu.as. Independent of account/captures. Arrival XY from aKT/aNN and heights from native VB/Vy topology decoder.",
+  "counts": {
+    "native_objects": 165,
+    "zaaps": 45,
+    "dragos": 120,
+    "drago_maps": 32
+  },
+  "unsupported": {
+    "drago_ids": [
+      4412
+    ],
+    "reason": "No matching installed environment object; no map association invented"
+  },
+  "static_activation": {
+    "opcode": 13984,
+    "codec": "cwJ u16count,(i64ID,u16payloadLength,payload)*",
+    "handler": "cEX.a -> bEG.b(ID,blob) -> existing bEC.du object; as native state + aWA visuals + cdE.l",
+    "ordering": "After map environment ready14689; early packet may find absent object and be ignored"
+  },
+  "registration": {
+    "opcode": 12870,
+    "action": 24,
+    "response": 12674,
+    "account_storage": "transport_discoveries(account_id,kind,transport_id)",
+    "source_validation": "Native source object map/position, kind1ZAAP orkind2DRAGO"
+  },
+  "travel": {
+    "opcode": 13686,
+    "source_destination": "Owned source/current-map object and discovered destination of samekind; unknown maps/objects/heights failclosed",
+    "server_hook_required": "Pass complete known_transports(account_id) mapping to resolve; old [1] only excludes DRAGO"
+  },
+  "proof": [
+    "13tests transports/discoveries pass",
+    "VerifyNativeTransportObjects actual bEu/cwJ decodes165objects",
+    "All120DRAGO arrival cells have exactlyone nativewalkable height"
+  ],
+  "limits": [
+    "45ZAAP/120DRAGO transport support does not supply ecosystem creatures, resources or clanmembers",
+    "Source distance4 is existing local policy; not claimed as native authoritative interaction range",
+    "Some unrelated envchunks use unsupported formats; exporter reports/skips these; all45ZAAP and120matchedDRAGO have actual objects"
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "client_jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+  "appearance_catalog": "protocol/haven-bag-models.json",
+  "messages": [
+    {
+      "opcode": 13434,
+      "direction": "outbound",
+      "class": "crD",
+      "purpose": "change haven bag appearance",
+      "schema": "i32 model_id",
+      "status": "source_verified",
+      "ack": "No dedicated ACK verified; dal.eTX sends, closing dialog applies bpq.EZ locally."
+    },
+    {
+      "opcode": 12580,
+      "direction": "outbound",
+      "class": "crG",
+      "purpose": "save haven bag permissions",
+      "schema": "i32 byte_length + uh",
+      "status": "source_verified"
+    },
+    {
+      "opcode": 13522,
+      "direction": "inbound",
+      "class": "czh",
+      "purpose": "update haven bag permissions",
+      "schema": "i64 bag_owner_id + i32 byte_length + uh",
+      "status": "source_verified",
+      "handler": "chk checks bpq.Xi() owner identity then uh.aG and bpq.a(uh)"
+    },
+    {
+      "opcode": 13826,
+      "direction": "outbound",
+      "class": "crM",
+      "purpose": "deploy furniture from catalogue",
+      "schema": "i32 item_ref + i64 item_uid + i32 x + i32 y + i16 z + i32 direction",
+      "body_bytes": 26,
+      "status": "source_verified",
+      "caller": "cKB.startFurnitureDeploy/cKC.startFurnitureDeploy -> fla.Vd(ref) -> bFz placement callback",
+      "ack": "Unresolved; do not assume a dedicated ACK."
+    },
+    {
+      "opcode": 13578,
+      "direction": "outbound",
+      "class": "crv",
+      "purpose": "enter own bag",
+      "schema": "i64 target_character; own=0",
+      "status": "handler_and_gui_verified"
+    },
+    {
+      "opcode": 13307,
+      "direction": "inbound",
+      "class": "cyT",
+      "purpose": "entry result",
+      "schema": "own success: 01 01 00000000 00 01",
+      "status": "decoder_and_gui_verified"
+    },
+    {
+      "opcode": 12247,
+      "direction": "outbound",
+      "class": "crx",
+      "purpose": "leave bag",
+      "schema": "one zero byte; legacy empty accepted by local server",
+      "status": "source_and_capture_verified"
+    },
+    {
+      "opcode": 13959,
+      "direction": "inbound",
+      "class": "cyU",
+      "purpose": "leave status",
+      "schema": "one status byte; 00 accepted; empty fails decoder",
+      "status": "decoder_verified",
+      "notice": "chk handles status without clearing the active bag. This packet alone is insufficient."
+    },
+    {
+      "opcode": 13019,
+      "direction": "inbound",
+      "class": "cyV",
+      "purpose": "leave notification and UI cleanup",
+      "schema": "empty",
+      "status": "source_decoder_and_gui_verified",
+      "notice": "ciu switch13019→2860 clears isInDimensionalBag/isInOwnDimensionalBag and removes chk; chk close clears biB active bag. Send before exterior13974."
+    },
+    {
+      "opcode": 12187,
+      "direction": "inbound",
+      "class": "cyX",
+      "purpose": "authoritative owned bag snapshot",
+      "schema": "tR",
+      "status": "source_decoder_verified",
+      "notice": "Used for local gem/furniture edits; operation-specific dedicated ACK not inferred."
+    },
+    {
+      "opcode": 13210,
+      "direction": "outbound",
+      "class": "crJ",
+      "purpose": "move/swap existing owned room gems",
+      "schema": "bool primary_source,bool primary_target,i8 source_room,i8 target_room",
+      "status": "source_and_store_tests_verified"
+    },
+    {
+      "opcode": 12870,
+      "direction": "outbound",
+      "class": "cpF",
+      "purpose": "itemizable generic action",
+      "schema": "i64 Re.Sn template_id,u16 QT_action,two zero padding bytes",
+      "status": "outbound_generator_verified",
+      "notice": "QT23=repack; QT29=rotate. cWb UI actions44/47 are different identifiers, never send those as QT."
+    },
+    {
+      "opcode": 12363,
+      "direction": "outbound",
+      "class": "cpH",
+      "purpose": "move placed itemizable element",
+      "schema": "i64 Re.Sn template_id,i32x,i32y,i16z,i32direction",
+      "status": "outbound_generator_verified"
+    }
+  ],
+  "furniture_snapshot": {
+    "class": "xM",
+    "schema": "vf",
+    "vf_prefix": "i64 template_id + i32 x + i32 y + i16 z + i8 direction + bool virtual",
+    "vf_suffix": "vj itemForm + i8 oI discriminator + oI specificData",
+    "status": "minimal_vf_vj_wI_codec_and_decoder_verified",
+    "minimal_size": 43,
+    "minimal_item_form": "i64 item_uid,i32 item_ref,i16 quantity,eight zero optional bytes",
+    "minimal_specific_data": "u8 discriminator0 -> wI; empty specific payload"
+  },
+  "evidence": [
+    {
+      "path": ".runtime/local/bag-furniture-current.txt",
+      "sha256": "e06b3a0b5d90c17836533ebc45c5403d0c55e01e093daf677e7f0fef570918d9"
+    },
+    {
+      "path": ".runtime/local/bag-permissions-response.txt",
+      "sha256": "1b657975c6ab87bf81625b84d5d727d177644100aa24fd89316716dea1c744f6"
+    },
+    {
+      "path": ".runtime/local/bag-furniture-handler.txt",
+      "sha256": "acd9963cb117f216b6ab0e0fbe55738fcf27e21406114cd35e22d5536637ad12"
+    },
+    {
+      "path": ".runtime/local/bag-furniture-more.txt",
+      "sha256": "d3c8465eac4a6b7ee7b58c67e74575e6b683447ac4f7106a09d58a357ad74cab"
+    },
+    {
+      "path": ".runtime/local/bag-furniture-world.txt",
+      "sha256": "17bb495eb087a4546e8f0b6ee8f9aa70be37d90a5e50a73972088c6cd579202a"
+    },
+    {
+      "path": ".runtime/local/bag-exit-result.txt",
+      "sha256": "4f84f77bc9f33d62aa2ae404d655af9b2a740bfc029a560acb134a8f3fbe6d72"
+    },
+    {
+      "path": ".runtime/local/bag-exit-notification.txt",
+      "sha256": "e27c18eb7423e94371d861aaadefa719d283d1cbc43fe51c39cdaa528b05e306"
+    },
+    {
+      "path": ".runtime/local/world-allhandlers.txt",
+      "sha256": "14c9eaab059c0de61ec2f5ad1422040c70f16209ba773403a287003e7211e8ec"
+    },
+    {
+      "path": ".runtime/local/bag-furniture-move-request.txt",
+      "sha256": "3dc3e6b9a8051e9e8e47c19abee7f2d8ac9fd478a16e66cad4655c0b3d2879d3"
+    },
+    {
+      "path": ".runtime/local/bag-manager-qy.txt",
+      "sha256": "d1c9a4d3506dc07072bd07f0eb6241912803e4c6b9c5c634937cea0bcfe3b240"
+    },
+    {
+      "path": ".runtime/local/bag-client-logout.txt",
+      "sha256": "39740e7a934ef283796b34509ee6690cb8b2a4f9efe2722f9cae5deed9dfe0e3"
+    }
+  ],
+  "local_persistence": {
+    "table": "haven_bags",
+    "key": "character_id",
+    "columns": [
+      "appearance_id",
+      "layout",
+      "locked",
+      "furniture",
+      "access"
+    ],
+    "initial": "model408 (explicit fvs constructor/fallback), nine explicit room slots: room0 fixed with own commerce4262 UID, rooms1..8 empty; absent gem wire ref/UID=-1/-1, own SQLite absentUID0; no furniture; default ALL group rights1 and no individuals. Existing configured groups[] preserved.",
+    "location": "Interior map9/privateinstancecharacter_id is in memory; SQLite keeps exterior return point. Character switches clear the interior session; bag modifications require current selected character and session generation."
+  },
+  "limitations": [
+    "Initial state grants no extra gems/furniture; item inventory integration and grants are separate.",
+    "Minimal furniture has quantity1 only; stack splitting unsupported.",
+    "One item per template in each bag; generic action Re.Sn is template ID, not item UID. Dynamic instance descriptors needed for repeated templates.",
+    "1391 templates in four families accept empty specificData; merchant/shelf rich commerce data unsupported.",
+    "Template catalog presence does not prove item_ref corresponds to that template. Explicit local state must provide the pair; no captured objects are copied.",
+    "No furniture visual/UI validation with granted objects yet; codec, store and action bodies verified.",
+    "Appearance catalog validated, unlock/context restrictions still primarily filtered by client.",
+    "Foreign bag entry is currently rejected; stored access settings persist but multi-owner access is not implemented."
+  ],
+  "gui_validation": {
+    "own_entry_exit_reentry": "Root verified09:48:48entry,09:49:15leave13019,09:49:40new13578 reentry; previously repeated12247loop resolved.",
+    "furniture_actions": "not visually tested"
+  },
+  "geometry": {
+    "room_origin": "x=(index//3)*6, y=(index%3)*6",
+    "spawn": [
+      3,
+      3,
+      0
+    ],
+    "room_zero_flags": "uB.adK true (fixed primary); others false",
+    "verified_fresh_capture": {
+      "character": "Chemet",
+      "character_id": 10434830,
+      "bag_section": ".runtime/local/fresh-main.bin[377:698]",
+      "room_count": 9,
+      "primary_ref": 4262,
+      "primary_uid": 748098341094555805,
+      "secondary_ref": -1,
+      "secondary_uid": -1,
+      "model": 408,
+      "default_rights": "ALL=1",
+      "furniture": []
+    },
+    "door": [
+      -4,
+      2,
+      0
+    ],
+    "adjacent_walkable": [
+      1,
+      -6,
+      4
+    ],
+    "notice": "Exit trigger is bAP13901 at(-4,2,0), decoded from real map object payload; root verified automatic12247 there. Previous(1,-7,4) was MerchantConsole1563, not an exit. Stair path to that console remains physically valid.",
+    "nine_vs_one": "fvk.b(tR) clears layout and fvu.a(fvn) fills missing slots via bpJ.newfvw. Thus explicit nine empty slots match official fresh data but are not evidence of a changed staircase collision mesh.",
+    "exit_object": {
+      "id": 13901,
+      "type": 36,
+      "class": "bAP",
+      "auto": true
+    },
+    "merchant_console": {
+      "id": 1563,
+      "position": [
+        1,
+        -7,
+        4
+      ]
+    }
+  },
+  "sequence_regression": "tests/test_haven_bag.py enter_leave_reenter requires13307→13974, then13959=00→13019empty→13974 exterior, then a fresh13307 while preserving own nine-slot configuration."
+}

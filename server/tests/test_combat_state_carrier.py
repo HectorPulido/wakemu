@@ -1,0 +1,69 @@
+import struct
+import unittest
+from wakfu_server.combat_effect_removal import running_effect_removal
+from wakfu_server.combat_state_carrier import (
+    state_carrier_payload,
+    state_carrier_application,
+)
+
+
+class StateCarrierTests(unittest.TestCase):
+    def parameters(self):
+        return dict(
+            uid=2345,
+            base_uid=1234,
+            caster_id=22,
+            target_id=-33,
+            state_id=3442,
+            level=1,
+            native_turn_clock=-1,
+            native_realtime_remaining=0,
+        )
+
+    def test_native_serialization_identity_fields_and_additional(self):
+        payload = state_carrier_payload(**self.parameters())
+        # Native ProbeStateCarrier output: omit its optional Position5/TimeDatas11.
+        expected = bytes.fromhex(
+            "08a91210d20918ffffffffffffffffff01208180c86b301638dfffffffffffffffff014223508180c86b68a912880100900100980100a801ffffffffffffffffff01b00100900300"
+        )
+        self.assertEqual(payload, expected)
+        applied = state_carrier_application(
+            7, 8, uid=2345, target_id=-33, running_effect_payload=payload
+        )
+        self.assertEqual(
+            struct.unpack(">iiiih", applied[:18]), (7, 8, -1, 310, len(payload))
+        )
+        self.assertEqual(applied[18:], payload)
+        removed = running_effect_removal(
+            7,
+            9,
+            uid=2345,
+            target_id=-33,
+            effect_class=310,
+            running_effect_payload=payload,
+        )
+        self.assertEqual(removed[18:-16], payload)
+
+    def test_distinct_parent_uid_and_explicit_clocks(self):
+        params = self.parameters()
+        for overrides in [
+            dict(related_uid=2345),
+            dict(uid=True),
+            dict(native_turn_clock=None),
+            dict(native_realtime_remaining=-(1 << 63) - 1),
+            dict(level=32768),
+        ]:
+            with self.assertRaises(ValueError):
+                state_carrier_payload(**dict(params, **overrides))
+        from wakfu_server.combat_effect_removal import _identity_fields
+
+        fields = _identity_fields(state_carrier_payload(**dict(params, base_uid=None)))
+        self.assertEqual((fields[1], fields[2]), (2345, 2345))
+
+    def test_native_permanent_sacrier_realtime_value_is_not_normalized(self):
+        from wakfu_server.combat_effects import _integer
+
+        payload = state_carrier_payload(
+            **dict(self.parameters(), state_id=3702, native_realtime_remaining=-1000)
+        )
+        self.assertIn(_integer(22, -1000), payload)

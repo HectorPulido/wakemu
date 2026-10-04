@@ -1,0 +1,18 @@
+.DS_Store
+.runtime/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pcap
+*.pcapng
+
+# User-supplied copyrighted client (entire directory)
+/client/
+
+# Generated artifacts
+javac.*.args
+.env
+.env.*
+*.key
+*.pem
+docs/reports/combat-inventory/inventory.json

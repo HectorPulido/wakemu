@@ -1,0 +1,68 @@
+Estado actual del servidor local de Wakfu
+3 de octubre de 2026. El objetivo completo sigue activo en progress.txt.
+
+COMPROBADO DESDE EL JUEGO
+- Entrada, movimiento, chat y presencia de varios jugadores, según las pruebas acumuladas.
+- Viajes por zaap y dragopavo: confirmados por el usuario. No se han probado todos los trayectos.
+- Bolsas: retirar, equipar y volver a entrar sin duplicación, en la cuenta aislada.
+- Inventario: mover, separar cantidades, agrupar parcialmente, destruir y consumir un alimento. Los resultados permanecen al volver a entrar.
+- Combates contra wonejos ganados con varios personajes. Esto no equivale a combate completo ni a todos los hechizos implementados.
+- Tras una recarga, el cliente de prueba volvió al login.
+
+CAMBIOS CARGADOS
+- Posiciones recientes en memoria y guardado por lotes cada dos segundos. Guardado antes de cambios de mapa, personaje y cierre.
+- Renovación de sesión cada diez segundos, con comprobación de sesiones sustituidas.
+- Alimentos curativos sencillos y animación nativa de comer. La curación y la pose de comer se comprobaron visualmente en la cuenta aislada.
+- La última posición observada por el agente, (17, 8, 0), se guardó exactamente en SQLite después de salir. Al volver a entrar se confirmó visualmente esa misma posición.
+
+CAMBIOS RECIÉN CARGADOS
+- Chequeo de regeneración sin escrituras cuando la vida no cambia. Las pruebas revisan las sentencias SQL.
+- IA de movimiento de los mobs en un servicio HTTP separado, con la misma lógica anterior y sin Laya. Comunicación real comprobada; falta observar un turno desde el juego.
+
+EN TRABAJO
+- Redis como respaldo de las posiciones pendientes, con recuperación validada por sesión y propiedad. Todavía no está operativo.
+- Abandonar combate sin dejar al personaje bloqueado.
+
+PENDIENTES IMPORTANTES
+- Combate por turnos completo y todos los hechizos/mecánicas de clase.
+- Bonificaciones de equipo, consumibles con efectos distintos de los soportados y bolsas especializadas.
+- Todas las interacciones y rutas de mapas, personalización completa del merkasaco y estado limpio de todas las funciones.
+- Repetir pruebas de varias instancias después de los cambios de persistencia y comprobar sustitución de sesión con esos cambios.
+- Verificar escalado real entre procesos. Redis por sí solo no convierte el servidor actual en multiproceso.
+
+DOCKER
+La imagen se construye y un contenedor aislado responde a la consulta de salud. Cuenta y personaje permanecieron tanto al reiniciar el contenedor como al usar otro contenedor con el mismo volumen.
+Falta probar clientes del juego contra el servicio en Docker. Los contenedores de validación quedaron detenidos; el servidor local sigue activo.
+
+PRUEBAS
+La última suite completa comprobada tiene 271 pruebas que pasan. Las pruebas automáticas respaldan casos concretos, no demuestran que todo el juego funcione.
+
+ARCHIVOS
+Historial y objetivo: docs/reports/progress.txt (se conservan y se añaden nuevas entradas).
+Comandos Docker: docs/reports/docker-operacion.txt.
+Base de datos local: .runtime/local/world.sqlite3.
+Registros del servidor: .runtime/local/logs/game-server.jsonl.
+
+2026-10-03 — Servicios agrupados con Docker Compose
+El servidor de juego, la IA y Redis están funcionando dentro del proyecto wakfu-local de Docker Compose. Los tres pasaron sus comprobaciones de salud. También comprobé desde el contenedor del servidor la conexión HTTP a la IA y la conexión a Redis; el registro confirma que Redis es el backend activo de posiciones.
+Se conserva la base de datos existente en .runtime/local/world.sqlite3 y los certificados y registros en la misma carpeta. Antes del cambio guardé una copia de la base de datos en .runtime/local/world.before-compose.sqlite3.
+Retiré los tres contenedores sueltos de pruebas y cerré los procesos anteriores del servidor y de la IA. Los volúmenes de pruebas se conservaron. La prueba gráfica de un turno de monstruo después del cambio sigue pendiente.
+Comandos: docker compose up -d --build; docker compose ps; docker compose logs -f world; docker compose restart world.
+Los eventos detallados siguen en .runtime/local/logs/game-server.jsonl.
+
+Actualización de organización: el arranque oficial ahora es docker compose up -d --build desde la raíz. Código dentro de server/, cliente en client/tools/, captura en sniffer/, documentación en docs/. Redis está activo. El cliente ya reconectó y se movió contra Compose; el combate después del cambio aún requiere comprobación gráfica.
+
+2026-10-03 — Equipo y características de combate
+El reporte del amuleto2021 destapó PA/PM/iniciativa fijos en el inicio del combate y un máximo de vida que ignoraba equipo al salir. Ahora el servidor calcula los bonos desde el equipo propio guardado. Exportamos efectos nativos de 12.254 objetos; solo se aplican operaciones verificadas y los casos no soportados quedan señalados.
+El amuleto2021 aporta PA+1, PdV+6, crítico+2 y dominio+9. Prueba con SQLite: equipado da7PA y116PdV máximos; mantiene la herida y la build al salir; desequipado vuelve a6PA y110PdV máximos. La selección y la regeneración usan el máximo con equipo. El ejecutor de daño todavía no consume todos los bonos de dominio/crítico.
+La imagen nueva quedó cargada en Docker Compose y los tres servicios están saludables. Comprobación de la cuenta de pruebas dentro del contenedor: PA7, PM3, máximo116. Suite:318 ejecutadas,310 correctas y8 omitidas. Falta la comprobación gráfica del usuario. La casilla visual vacía con el objeto marcado como equipado sigue bajo investigación; no se afirma resuelta.
+Además se resolvió por bytecode el mensaje13256 antes pendiente: es una señal vacía de limpieza/salida de contexto de mundo. Sigue sin implicar implementación completa de todos los eventos.
+
+2026-10-03 — Validación del usuario y prioridades actuales
+El usuario marca movimiento, zaaps y dragopavos como OK por ahora. Equipo e inventario funcionan razonablemente bien, con detalles pendientes; no se consideran completos. Confirmó que ya pudo volver a pelear y que va mejor.
+Los tres servicios de Compose están saludables. Están cargadas las correcciones de giro, golpes adyacentes y salida por rendición; la comprobación completa de rendición en pantalla sigue pendiente. Hay geometría exportada para 934 mapas, con 27 errores de exportación documentados. Las zonas de pelea se seleccionan sobre el terreno del mapa, no se sustituyen por arenas de Amakna.
+Nueva prioridad: el combate solo ofrecía una casilla al jugador. Se está ampliando la colocación y verificando su serialización con Java. Entrar con otro jugador requiere además compartir el combate entre conexiones y publicar su contexto en el mundo; todavía no funciona y ampliar casillas por sí solo no lo resuelve.
+La recuperación visual del equipo al reconectar tiene una causa identificada: el paquete de entrada omitía las hojas de equipo guardadas. Corrección en trabajo, todavía sin afirmar despliegue o prueba gráfica. El objetivo original y el historial se conservan.
+
+2026-10-03 — Requisito pendiente de multiplataforma
+Por instrucción del usuario, revisar en el futuro la compatibilidad de todo el proyecto con Windows, macOS y Linux: mini launcher, detección de instalación/Java, perfiles y rutas, redirección y bloqueo de red, arranque del cliente, sniffer, servidores y Docker Compose. Validar en cada sistema y conservar el funcionamiento de varias instancias. El launcher actual está probado principalmente en macOS; no se afirma soporte de las otras plataformas.

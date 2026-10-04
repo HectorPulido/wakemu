@@ -1,0 +1,9480 @@
+[
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 551,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 549,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 548,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 550,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 448,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1
+    ],
+    "resource_reference": 461,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 536,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 563,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 505,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 259,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 23,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 3101752,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 30,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 561,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 163,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 2755423,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 345,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": 10,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 79,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 3111889,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 15,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      2,
+      16
+    ],
+    "resource_reference": 625,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 326,
+    "monster_resource": true,
+    "monster_family_ids": [
+      316
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 587,
+    "monster_resource": true,
+    "monster_family_ids": [
+      696
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 535,
+    "monster_resource": true,
+    "monster_family_ids": [
+      553
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 564,
+    "monster_resource": true,
+    "monster_family_ids": [
+      609
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 565,
+    "monster_resource": true,
+    "monster_family_ids": [
+      612
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 463,
+    "monster_resource": true,
+    "monster_family_ids": [
+      469
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 588,
+    "monster_resource": true,
+    "monster_family_ids": [
+      694
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 320,
+    "monster_resource": true,
+    "monster_family_ids": [
+      284
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 187,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1037
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 318,
+    "monster_resource": true,
+    "monster_family_ids": [
+      289
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 433,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 28119749,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 342,
+    "monster_resource": true,
+    "monster_family_ids": [
+      356
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 341,
+    "monster_resource": true,
+    "monster_family_ids": [
+      347
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 498,
+    "monster_resource": true,
+    "monster_family_ids": [
+      511
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 598,
+    "monster_resource": true,
+    "monster_family_ids": [
+      772
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 449,
+    "monster_resource": true,
+    "monster_family_ids": [
+      452
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 497,
+    "monster_resource": true,
+    "monster_family_ids": [
+      508
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 499,
+    "monster_resource": true,
+    "monster_family_ids": [
+      498
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 500,
+    "monster_resource": true,
+    "monster_family_ids": [
+      501
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 512,
+    "monster_resource": true,
+    "monster_family_ids": [
+      529
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 583,
+    "monster_resource": true,
+    "monster_family_ids": [
+      624
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 324,
+    "monster_resource": true,
+    "monster_family_ids": [
+      91
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 504,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 509,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 537,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 516,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 351,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 2,
+    "parameter_cvx": 2784443,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 10,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 542,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 467,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 476,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 365,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 519,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 475,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 473,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 471,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 469,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 242,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 184,
+    "monster_resource": true,
+    "monster_family_ids": [
+      101
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 151,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 2,
+    "parameter_cvx": 3139270,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 20,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 465,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 328,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 353,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 30911462,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 478,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 255,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 596,
+    "monster_resource": true,
+    "monster_family_ids": [
+      739
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 356,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 3,
+    "parameter_cvx": 30911467,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 10,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 506,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 539,
+    "monster_resource": true,
+    "monster_family_ids": [
+      557
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 514,
+    "monster_resource": true,
+    "monster_family_ids": [
+      261
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 538,
+    "monster_resource": true,
+    "monster_family_ids": [
+      561
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 513,
+    "monster_resource": true,
+    "monster_family_ids": [
+      532
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 432,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 430,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 2811853,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 592,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28118483,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 349,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 2,
+    "parameter_cvx": 31311451,
+    "parameter_cvu": 4,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 327,
+    "monster_resource": true,
+    "monster_family_ids": [
+      334
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 540,
+    "monster_resource": true,
+    "monster_family_ids": [
+      582
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 568,
+    "monster_resource": true,
+    "monster_family_ids": [
+      621
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 182,
+    "monster_resource": true,
+    "monster_family_ids": [
+      81
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 1
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 515,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 352,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 3,
+    "parameter_cvx": 2785446,
+    "parameter_cvu": 4,
+    "cvo": 10,
+    "cvp": 30,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 566,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 567,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": 10,
+    "cvp": 30,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 594,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 595,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 474,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 470,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 468,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 544,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 322,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 4,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 368,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 4,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 37,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 543,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 217,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 18,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 332,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 334,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 30622350,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 370,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 477,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 525,
+    "monster_resource": true,
+    "monster_family_ids": [
+      546
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 186,
+    "monster_resource": true,
+    "monster_family_ids": [
+      113
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 495,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 479,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 480,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 481,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 482,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 483,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 484,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 485,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 486,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 487,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 488,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 489,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 490,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 491,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 492,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 493,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 494,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 466,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 323,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 526,
+    "monster_resource": true,
+    "monster_family_ids": [
+      563
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 472,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 331,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30626477,
+    "parameter_cvu": 1,
+    "cvo": -10,
+    "cvp": 10,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 366,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28113182,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 524,
+    "monster_resource": true,
+    "monster_family_ids": [
+      549
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 518,
+    "monster_resource": true,
+    "monster_family_ids": [
+      147
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 333,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 496,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1038
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 531,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 4,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 179,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 3116948,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 15,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 362,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 263,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 3068172,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 361,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28111481,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 152,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 2,
+    "parameter_cvx": 2785440,
+    "parameter_cvu": 4,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 359,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28111479,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 360,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28111480,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 378,
+    "monster_resource": true,
+    "monster_family_ids": [
+      394
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 413,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 427,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 450,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": 10,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 420,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 376,
+    "monster_resource": true,
+    "monster_family_ids": [
+      387
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 389,
+    "monster_resource": true,
+    "monster_family_ids": [
+      406
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 589,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 0,
+    "parameter_cvx": 27510009,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 377,
+    "monster_resource": true,
+    "monster_family_ids": [
+      391
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 546,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": 27913147,
+    "parameter_cvu": 3,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 453,
+    "monster_resource": true,
+    "monster_family_ids": [
+      79
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 451,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": 10,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 380,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 30918478,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 296,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 2,
+    "parameter_cvx": 31311455,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 428,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 387,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 27913147,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 253,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 363,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28111485,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 386,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 27913144,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 388,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31313140,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 375,
+    "monster_resource": true,
+    "monster_family_ids": [
+      291
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 528,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 286,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "resource_reference": 220,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 18,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 23,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 423,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 422,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 381,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 31013170,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 443,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 28111480,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 298,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 3119268,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 15,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 438,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 400,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 27513110,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 382,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 31013163,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 306,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": 10,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 441,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 440,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 28111485,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 311,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 2,
+    "parameter_cvx": 2784443,
+    "parameter_cvu": 3,
+    "cvo": -10,
+    "cvp": 10,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 409,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": 10,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      16
+    ],
+    "resource_reference": 6,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 2,
+    "parameter_cvx": 2011718,
+    "parameter_cvu": 5,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 411,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": 10,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 292,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 2,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 15,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 222,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      16
+    ],
+    "resource_reference": 15,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 2751732,
+    "parameter_cvu": 5,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 162,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 27513096,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 291,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": 10,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 60,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 2,
+    "parameter_cvx": 2792504,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 15,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 437,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 28113182,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 150,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 2,
+    "parameter_cvx": 2794441,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 15,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 313,
+    "monster_resource": true,
+    "monster_family_ids": [
+      229
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 309,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": 3139710,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 429,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 384,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 3,
+    "parameter_cvx": 3118288,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 10,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 425,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 424,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 219,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 18,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 216,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 18,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "resource_reference": 221,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 18,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 23,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 218,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 18,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 215,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 18,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 214,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 18,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 584,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": 10,
+    "cvp": 30,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 447,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 414,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 435,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 28113178,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 581,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 412,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 408,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": 10,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 434,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 3025461,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 605,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 30919764,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 547,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 191,
+    "monster_resource": true,
+    "monster_family_ids": [
+      99
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 578,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31318472,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 260,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      16
+    ],
+    "resource_reference": 553,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 0,
+    "parameter_cvx": 27518111,
+    "parameter_cvu": 5,
+    "cvo": 10,
+    "cvp": 30,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 574,
+    "monster_resource": true,
+    "monster_family_ids": [
+      638
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 442,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 28111481,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 268,
+    "monster_resource": true,
+    "monster_family_ids": [
+      104
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 545,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 576,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 3101786,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 445,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 28111479,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 195,
+    "monster_resource": true,
+    "monster_family_ids": [
+      71
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 610,
+    "monster_resource": true,
+    "monster_family_ids": [
+      797
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 102,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 2791783,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 76,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 3,
+    "parameter_cvx": 30911464,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 18,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 3101750,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 30,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 582,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 294,
+    "monster_resource": true,
+    "monster_family_ids": [
+      219
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 507,
+    "monster_resource": true,
+    "monster_family_ids": [
+      505
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 418,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 8,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 2,
+    "parameter_cvx": 2751719,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 10,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 315,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 573,
+    "monster_resource": true,
+    "monster_family_ids": [
+      630
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 609,
+    "monster_resource": true,
+    "monster_family_ids": [
+      796
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 317,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 27510737,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 585,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": 10,
+    "cvp": 30,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 623,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 12
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 577,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31319170,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 464,
+    "monster_resource": true,
+    "monster_family_ids": [
+      470
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 617,
+    "monster_resource": true,
+    "monster_family_ids": [
+      811
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 599,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28111483,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 622,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 4
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 626,
+    "monster_resource": true,
+    "monster_family_ids": [
+      829
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 554,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 0,
+    "parameter_cvx": 30918115,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 611,
+    "monster_resource": true,
+    "monster_family_ids": [
+      798
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 395,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 2811853,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 606,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 30919768,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 555,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 0,
+    "parameter_cvx": 30918117,
+    "parameter_cvu": 4,
+    "cvo": 10,
+    "cvp": 30,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 397,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30620181,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 570,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 4558068,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 385,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 3,
+    "parameter_cvx": 3113474,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 446,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 444,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      16
+    ],
+    "resource_reference": 552,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 0,
+    "parameter_cvx": 27518107,
+    "parameter_cvu": 5,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 201,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 2797352,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 532,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 27513114,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 556,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 0,
+    "parameter_cvx": 31318121,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 4
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 569,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30618465,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 557,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 0,
+    "parameter_cvx": 31318122,
+    "parameter_cvu": 4,
+    "cvo": 10,
+    "cvp": 30,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 571,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 3025474,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 619,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 575,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 30911474,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 335,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 2,
+    "parameter_cvx": 31311458,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 393,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 396,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30612004,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 590,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 27610957,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 572,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28113180,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 541,
+    "monster_resource": true,
+    "monster_family_ids": [
+      585
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 402,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 613,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 3,
+    "parameter_cvx": 3101902,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 10,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 604,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 392,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28119749,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 600,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28119751,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 627,
+    "monster_resource": true,
+    "monster_family_ids": [
+      655
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      16
+    ],
+    "resource_reference": 398,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 25715957,
+    "parameter_cvu": 5,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 390,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28113178,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 391,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 3025461,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 401,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31318471,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 523,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 30917369,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 15,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 629,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 630,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 614,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 27913151,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 593,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": 3089232,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      2,
+      16
+    ],
+    "resource_reference": 634,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 5
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 369,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 174,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 27513098,
+    "parameter_cvu": 5,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 139,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 2751723,
+    "parameter_cvu": 4,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 635,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 243,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 426,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 406,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 602,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30619757,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 601,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30619754,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 164,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 2,
+    "parameter_cvx": 2755425,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 631,
+    "monster_resource": true,
+    "monster_family_ids": [
+      872
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      2,
+      16
+    ],
+    "resource_reference": 637,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 5
+  },
+  {
+    "stages": [
+      2
+    ],
+    "resource_reference": 632,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 3,
+    "parameter_cvx": 0,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      16
+    ],
+    "resource_reference": 347,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30611440,
+    "parameter_cvu": 5,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 639,
+    "monster_resource": true,
+    "monster_family_ids": [
+      884
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 640,
+    "monster_resource": true,
+    "monster_family_ids": [
+      887
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 591,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 30918479,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 641,
+    "monster_resource": true,
+    "monster_family_ids": [
+      878
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 633,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 580,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": 3088114,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 252,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 615,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28120176,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 419,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 254,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 405,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 677,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 30919173,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      16
+    ],
+    "resource_reference": 330,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 2756162,
+    "parameter_cvu": 5,
+    "cvo": 20,
+    "cvp": 30,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 562,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 560,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 417,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 316,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 579,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 407,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 558,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28118126,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 607,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31319771,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 603,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 616,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 350,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 2,
+    "parameter_cvx": 31311454,
+    "parameter_cvu": 4,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 416,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 22,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 403,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 638,
+    "monster_resource": true,
+    "monster_family_ids": [
+      882
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 608,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31319774,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 628,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 533,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 30217490,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 636,
+    "monster_resource": true,
+    "monster_family_ids": [
+      891
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 661,
+    "monster_resource": true,
+    "monster_family_ids": [
+      900
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 679,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 2,
+    "parameter_cvx": 2757781,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 647,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 2609761,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 650,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 2811856,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 651,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28119176,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      2,
+      16
+    ],
+    "resource_reference": 656,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 5
+  },
+  {
+    "stages": [
+      2,
+      16
+    ],
+    "resource_reference": 657,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 5
+  },
+  {
+    "stages": [
+      2,
+      16
+    ],
+    "resource_reference": 658,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 5
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      16
+    ],
+    "resource_reference": 644,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 27513106,
+    "parameter_cvu": 5,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 693,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 674,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 27513098,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 668,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30611445,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      3,
+      16
+    ],
+    "resource_reference": 684,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 1,
+    "parameter_cvx": 2797352,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 642,
+    "monster_resource": true,
+    "monster_family_ids": [
+      875
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 683,
+    "monster_resource": true,
+    "monster_family_ids": [
+      867
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 671,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 27513096,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 685,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 682,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 30918477,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 258,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 669,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30611445,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 673,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 27513098,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 649,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 2781832,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 662,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 30217490,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 675,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 27513098,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 664,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 28118128,
+    "parameter_cvu": 2,
+    "cvo": 10,
+    "cvp": 30,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 660,
+    "monster_resource": true,
+    "monster_family_ids": [
+      866
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 666,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30619169,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 680,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30612004,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      2,
+      16
+    ],
+    "resource_reference": 691,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 678,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 27510009,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 672,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 27513096,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      15,
+      16
+    ],
+    "resource_reference": 643,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 15,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 681,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31318473,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 653,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 652,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": 30820178,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 670,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30611445,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 667,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30618469,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      2,
+      16
+    ],
+    "resource_reference": 655,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 612,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30611445,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 687,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 688,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 690,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 692,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 663,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 23,
+    "kind": 0,
+    "parameter_cvx": 28118126,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 686,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 648,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31320184,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 646,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 3125444,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "resource_reference": 698,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": 0,
+    "parameter_cvu": 11,
+    "cvo": 0,
+    "cvp": 0,
+    "parameter_aLj": 5
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3
+    ],
+    "resource_reference": 696,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": 0,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 0,
+    "parameter_aLj": 7
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      16
+    ],
+    "resource_reference": 694,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 25,
+    "kind": 0,
+    "parameter_cvx": 0,
+    "parameter_cvu": 5,
+    "cvo": 0,
+    "cvp": 0,
+    "parameter_aLj": 4
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "resource_reference": 697,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": 0,
+    "parameter_cvu": 11,
+    "cvo": 0,
+    "cvp": 0,
+    "parameter_aLj": 5
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 676,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 27510009,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 710,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 711,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 702,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 700,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30618465,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 705,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 30918477,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 701,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31318473,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 703,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30618469,
+    "parameter_cvu": 4,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 706,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 30918478,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 715,
+    "monster_resource": true,
+    "monster_family_ids": [
+      983
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 723,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 718,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 734,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 719,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 728,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 712,
+    "monster_resource": true,
+    "monster_family_ids": [
+      225
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 729,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 722,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 716,
+    "monster_resource": true,
+    "monster_family_ids": [
+      957
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 741,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1031
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 707,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 30919173,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 739,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1029
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 704,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30619169,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 708,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31319170,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 730,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 733,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 724,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 725,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 731,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 720,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 726,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 721,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 740,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1030
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 737,
+    "monster_resource": true,
+    "monster_family_ids": [
+      984
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      2,
+      16
+    ],
+    "resource_reference": 736,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 714,
+    "monster_resource": true,
+    "monster_family_ids": [
+      980
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 727,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 735,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      4,
+      16
+    ],
+    "resource_reference": 709,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31318472,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 713,
+    "monster_resource": true,
+    "monster_family_ids": [
+      918
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 732,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 738,
+    "monster_resource": true,
+    "monster_family_ids": [
+      982
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 742,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1032
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 743,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 744,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      2
+    ],
+    "resource_reference": 745,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 3,
+    "parameter_cvx": 0,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      2
+    ],
+    "resource_reference": 746,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 3,
+    "parameter_cvx": 0,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 821,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 2,
+    "parameter_cvx": 27513110,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 771,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1059
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 772,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1060
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 773,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1061
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 774,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1062
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 770,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": 30827869,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 779,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 769,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": 30827867,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 789,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": 30828760,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 764,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 26027855,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 754,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1039
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 755,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1040
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 766,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31327861,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 757,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": 10,
+    "cvp": 30,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 758,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 759,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 760,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 780,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 785,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31328751,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 761,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 30627846,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 775,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1066
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 756,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 4
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 776,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1067
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 790,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": 30828762,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      2,
+      16
+    ],
+    "resource_reference": 751,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": 0,
+    "cvp": 0,
+    "parameter_aLj": 1
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 765,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31327858,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 777,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1068
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 783,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 26027855,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 784,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 26027855,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 752,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": 0,
+    "cvp": 0,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 781,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 30628739,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      2,
+      16
+    ],
+    "resource_reference": 778,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 5
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 768,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28127865,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 767,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28127863,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 782,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 30628741,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 787,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28128756,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 792,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 80928969,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 791,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 27513098,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 793,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 80928968,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 786,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31328754,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 796,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31319170,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 788,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28128758,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 799,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1077
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 797,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1073
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 798,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1075
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 801,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1081
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 762,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 30627849,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 800,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1079
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 795,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 2,
+    "parameter_cvx": 80928971,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 802,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 80929569,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 803,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 80929569,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 763,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 30927852,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 819,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 2,
+    "parameter_cvx": 2756162,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 820,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 2,
+    "parameter_cvx": 30627849,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 806,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1100
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 822,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 30920187,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 559,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28118128,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 807,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1102
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 805,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1098
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 808,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1104
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 809,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1106
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 192,
+    "monster_resource": true,
+    "monster_family_ids": [
+      68
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      16
+    ],
+    "resource_reference": 645,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 2754455,
+    "parameter_cvu": 5,
+    "cvo": -10,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 357,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 3,
+    "parameter_cvx": 30920187,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 10,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 354,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 1,
+    "parameter_cvx": 31013166,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 804,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30626395,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 689,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 794,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 80928970,
+    "parameter_cvu": 3,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 823,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1113
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -20,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 813,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 811,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 812,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 810,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 717,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30626395,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 828,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1117
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 818,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 2,
+    "parameter_cvx": 2754455,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 826,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 80931173,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 829,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1119
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 830,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 831,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 827,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 80931173,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 824,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 80929569,
+    "parameter_cvu": 3,
+    "cvo": -5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 834,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 2,
+    "parameter_cvx": 2792504,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 15,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 825,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31331006,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 379,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 30911469,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 839,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28131819,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 833,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 2,
+    "parameter_cvx": 2751719,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 10,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 844,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 30631833,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 410,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 21,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 842,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31331827,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 838,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 30931817,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 835,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": 30831809,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 846,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 850,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1142
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 851,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1143
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 852,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1144
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 853,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1145
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 854,
+    "monster_resource": true,
+    "monster_family_ids": [
+      1146
+    ],
+    "family_id": 16,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 3
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 845,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 847,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 848,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 849,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 19,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 841,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31331824,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 837,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 2,
+    "kind": 2,
+    "parameter_cvx": 30931814,
+    "parameter_cvu": 4,
+    "cvo": 5,
+    "cvp": 25,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      16
+    ],
+    "resource_reference": 840,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 7,
+    "kind": 0,
+    "parameter_cvx": 28131821,
+    "parameter_cvu": 2,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      16
+    ],
+    "resource_reference": 836,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 20,
+    "kind": 0,
+    "parameter_cvx": 30831811,
+    "parameter_cvu": 3,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 2
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 843,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 3,
+    "parameter_cvx": 30631830,
+    "parameter_cvu": 4,
+    "cvo": -10,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 855,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 10,
+    "kind": 1,
+    "parameter_cvx": 31332722,
+    "parameter_cvu": 4,
+    "cvo": -5,
+    "cvp": 35,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      16
+    ],
+    "resource_reference": 856,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 1,
+    "kind": 1,
+    "parameter_cvx": 30632726,
+    "parameter_cvu": 4,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1
+    ],
+    "resource_reference": 857,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 26,
+    "kind": 3,
+    "parameter_cvx": 0,
+    "parameter_cvu": 1,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1
+    ],
+    "resource_reference": 858,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 26,
+    "kind": 3,
+    "parameter_cvx": 0,
+    "parameter_cvu": 1,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 861,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      16
+    ],
+    "resource_reference": 462,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 24,
+    "kind": 0,
+    "parameter_cvx": -1,
+    "parameter_cvu": 1,
+    "cvo": -25,
+    "cvp": 35,
+    "parameter_aLj": 0
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 859,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 26,
+    "kind": 3,
+    "parameter_cvx": 0,
+    "parameter_cvu": 2,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 860,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 26,
+    "kind": 3,
+    "parameter_cvx": 0,
+    "parameter_cvu": 2,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1,
+      2
+    ],
+    "resource_reference": 863,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 26,
+    "kind": 3,
+    "parameter_cvx": 0,
+    "parameter_cvu": 2,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  },
+  {
+    "stages": [
+      1
+    ],
+    "resource_reference": 862,
+    "monster_resource": false,
+    "monster_family_ids": [],
+    "family_id": 26,
+    "kind": 3,
+    "parameter_cvx": 0,
+    "parameter_cvu": 1,
+    "cvo": 0,
+    "cvp": 20,
+    "parameter_aLj": 6
+  }
+]

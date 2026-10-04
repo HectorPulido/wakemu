@@ -1,0 +1,4 @@
+import java.nio.file.*;import java.lang.reflect.*;
+public class ProbeStateLevelGroup{
+ static Object field(Object o,String n)throws Exception{for(Class<?> c=o.getClass();c!=null;c=c.getSuperclass())try{Field f=c.getDeclaredField(n);f.setAccessible(true);return f.get(o);}catch(NoSuchFieldException e){}throw new NoSuchFieldException(n);}
+ public static void main(String[]a)throws Exception{apw.bGL().dd("jar:file:"+Path.of("client/contents/bdata").toAbsolutePath()+"/%d.jar!/%d.bin");eVn definition=bcA.dcX().AH(305162);eYr runner=new eYr();runner.b(definition);runner.C(null);System.out.println("native844 reference="+field(runner,"ejn")+" caster="+field(runner,"rFA")+" factor="+field(runner,"rFE")+" constant="+field(runner,"rFD"));Object context=runner.d(null,false);if((int)field(context,"ryo")!=-1)throw new AssertionError("nulltarget override");System.out.println("nulltarget childlevel override=-1 sentinel");}}

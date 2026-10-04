@@ -1,0 +1,19 @@
+Anillo2022: guardar/cargarbuild0, ACK y registro nativo
+
+Referencia confirmada en inventario propioactual de char7 por lectura SQLite del contenedor:2022 UID1099511628685 qty1. Catálogo nativo: Anillo de Boz Layt Yer, nivel8, posiciones7/8, criterio EQUIP «not HasAnotherSameEquipment()». El objeto2024 se llama Capa Jalosa; no se extrapola ese nombre al anillo.
+
+Logs disponibles: build_rejected char7 2026-10-04T05:45:30,05:49:25,05:50:13 y05:50:23 UTC dan «Native equipment criteria evaluation is not implemented». Los rechazos de05:50:27 y05:52:45 son «Additional equipment slot clone identities are not implemented», compatibles con otra selección con ocupaciones adicionales, sin payload suficientes para atribuir esos dos al anillo. El catálogo2022 no tiene occupied_slots extras. Archivos fuente equipment.py/equipment_conditions.py coinciden actualmente con los archivos en disco del contenedor; esa lectura no acredita qué versión está cargada en el proceso world activo antes de un reinicio.
+
+Pruebas propias nuevas, sin cambiarusuario: test_ring_build_integration.py,2PASS. Fixture tempSQLite+RedisMemory namespaceaislado y Sacro20:
+-12772 se decodifica y Store.save_build valida el UIDreal y build0;
+-ACK12284 es éxito0+hasdata1 y conserva sheet/equipment/deck/aptitudes;
+-12393 contiene hN→hV(owner)→equipment sheet0 con el mismoUID/slot7;
+-otra Store reabre leyendobuildRedis antes del loteSQL;
+-guardar/reabrir/repetir mismoanillo mantiene exactamente HPmáximo+5 y dominio+5, no duplica ni cura HP80;
+-SQL no recibe build porcadaedición; flush_due1200 persisteuna vez;
+-mover el únicoanillo7→8 funciona;
+-una segundaunidadigual en bolsa no impideequipar; dosunidadesiguales equipadas sírechazan, conservando selecciónanterior.
+
+Probe realJAR ProbeRingBuildCodec.java PASS: fpi.eO decodifica12393, fpo.a guarda registro y fpo.aN/uv reconsulta sheet0 con el mismoUID; ctU.dp decodifica12284statuscorrecto y su fpj tiene exactamente1UID en7. NativectU.dp retornasiemprefalse (no indicaerror) y fpl.Wk eliminaunregistro; la sonda usa uv().get para lecturareal.
+
+No se encontró otro fallo genérico en la serialización/ACK/persistencia del anillo en fuenteactual. El criterio corregido por missions está probado en esta ruta completa. Esto no acredita la reapertura real del panel GUI en la sesión del usuario; no hubo clicks, peticiones oficiales ni reinicios. No se añadieron parches funcionales por un fallo no reproducido.

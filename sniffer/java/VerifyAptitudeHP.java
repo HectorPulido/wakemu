@@ -1,0 +1,1 @@
+public class VerifyAptitudeHP { public static void main(String[]args){for(int flat:new int[]{110,116}){fff hp=new fff(ffw.sgC,0,Integer.MAX_VALUE);hp.or(flat);hp.om(8);System.out.println(flat+" +8% = "+hp.aYU());}}}

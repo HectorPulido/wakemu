@@ -1,0 +1,78 @@
+Desplazamientos nativos 300/301/302 — auditoría acotada
+
+Fuentes: bytecode del JAR local actual, eXD, eXK, eXJ, faz, aAS, eGj.
+No se efectuaron conexiones oficiales ni cambios en servicios.
+
+Dirección implementada
+Push modo7 usa PV.bcy(): orientación actual del lanzador.
+Push modo4 usa PV.baA().bWo(); pull modo4 usa PV.baA().
+La diferencia se compensa porque faz invierte el vector en push (fOv=false),
+pero no en pull. Ambos modos4 avanzan en sentido opuesto a baA.
+eGj.baA devuelve pGJ si no es null, y bkU en caso contrario.
+Se exige native_forced_direction explícito para distinguir null de información
+no obtenida. direction debe contener la orientación nativa planar (0..7).
+Estos campos no se inventan ni se inicializan implícitamente en restauraciones.
+
+Probe real: VerifyDisplacementFacing.java, aAS.wL/bWj/bWo + aBA.bXz.
+Para direcciones0..7, modo7:
+(0,-1),(1,0),(1,0),(0,1),(0,1),(-1,0),(-1,0),(0,-1).
+Modo4 produce el inverso cardinal. Tres pruebas Python pasan.
+Modo6 aleatorio sigue rechazado: falta fuente RNG transaccional explícita.
+
+Colisión todavía no implementada
+Una ruta incompleta activa eXD.fPa si fOs=true y la distancia recorrida es
+menor que ckD. rEa se fija en1: no es el número de celdas no recorridas.
+eXD.fPh, cuando rDX=true, aplica q al desplazado y al actor obstáculo (si PV).
+q crea eVZ con ffw.sgD, asigna la referencia eVI.fMg y ox(2254), luego bal().
+Esto requiere resolución real de pérdida AP; no equivale a restar1.
+Incluso con rDX=false, rDZ dispara el evento204: caster rol30, target rol3.
+Con actor obstáculo, cambia también Qe.target al obstáculo y dispara caster
+rol30 + obstáculo rol3. Ignorar estos eventos rompe pasivos dependientes.
+Por eso se conserva rechazo antes de mutar preview ante colisión.
+
+Restricción nativa inusual
+En eXD.fOU se compara caster.bcM() convertido a long contra target.Sn().
+No se sustituyó por comparación de equipos: sería una desviación del bytecode.
+El carrier bcM dinámico puede requerir snapshot adicional bajo cambios de bando.
+
+Límites restantes
+Terreno forzado/alturas, actores envueltos o transportados, footprint distinto
+de radio0 y teleport sin comprobación de celdas siguen rechazados por falta de
+maquinaria nativa acreditada. No se afirma soporte completo de clase alguna.
+
+Componente pérdida de recursos y replay204
+combat_resource_loss.py implementa cálculo puro eVZ para PA/PM, float32
+por operación, voluntad86 explícita, flag30 y mismo actor, UP.bt mediante RNG
+transaccional inyectado, clamp de PA.oo y retirada por PA.nG(actual).
+No confundir calculation_status (C) con estado final después de bbH/d.
+La elegibilidad, lifecycle y retención permanecen responsabilidad del executor.
+Positive actual obliga ejecutar estado5227 en el objetivo que perdió AP antes de lifecycle;
+parámetros nativos[5227,0,actual*10,0,100,0]. Flag19 lo suprime.
+No se inicializa voluntad desconocida a0 ni se simula estado5227 con raíz304.
+
+El codec collision_ap_packet usa eVI auténtico: ID-13, clase55, parámetro1AP,
+AdditionalDatas stat2/originValue0. El paquete no afirma que bbH haya aceptado.
+Probes Java conservados en sniffer/java/VerifyCollision{Definition,AP,Apply}.
+C real: castervoluntad100=>1, targetvoluntad100=>0; cuarenta draws bare dieron
+17 ceros y23 unos. d real verificó AP6->5 y retirada de actual1=>6.
+iN/eWW.f aceptó AdditionalDatas stat2/origin0.
+
+combat_displacement_collision.py entrega fuentes para replay_event existentes:
+30caster/3desplazado, y30caster/3obstáculo si es PV; evento204 en ambospares.
+Primero ejecuta pérdidaAP desplazado y obstáculo, después replay de fuentes. El par del obstáculo usa UID nuevo de Qe.bbm,
+asignado después de entregar el par del desplazado.
+Exige NativeCloneAuthority y ejecutor completo AP si loss_ap=true.
+No agrega canal global: fPh usa PV.a directamente, no Qe.L.
+Once pruebas puras de cálculo, conservación, callbacks, timing heredado y replay pasan.
+
+Integración pendiente explícita
+El handler de desplazamiento todavía rechaza rutas truncadas. Debe conectarse
+el contexto completo de plantilla eVI negativa al dispatcher, aplicar estado
+5227 con su carrier/timing nativo y lifecycle eVZ, validar geometría faz del
+obstáculo y usar estas fuentes204 en la misma transacción. Los componentes
+entregados no autorizan callbacks vacíos ni pérdidaAP sin estado asociado.
+
+Metadata reproducible eVI: server/protocol/collision-effect.json, generado por
+ExportCollisionEffect.java. native_definition_timing acepta eVI específicamente
+porque hereda eVy.en/eo, con ryE0/ryH0 comprobados. Probes lifecycle verifican
+AP event77, MP event79; AP añade58 por cambio de cálculo y quita77 poractual0.

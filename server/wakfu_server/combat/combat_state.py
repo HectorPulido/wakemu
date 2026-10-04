@@ -1,0 +1,498 @@
+"""Authoritative fight state, independent of packets, spell effects and AI.
+
+Terrain cells and transitions must be validated against client map geometry by
+caller. Actor control is explicit; signed identifiers never imply ownership.
+"""
+from dataclasses import dataclass, field
+from contextlib import contextmanager
+from .combat_turns import initial_order
+from .combat_state_ledger import StateLedger
+
+
+@dataclass
+class Actor:
+    id: int
+    team: int
+    position: tuple
+    hp: int
+    ap: int
+    mp: int
+    initiative: int
+    effective_level: int
+    owner_id: int | None = None
+    controlled: bool = False
+    turn_count: int = field(default=0, init=False)
+    max_hp: int | None = None
+    max_ap: int = field(init=False)
+    max_mp: int = field(init=False)
+    state_ledger: StateLedger = field(init=False, repr=False)
+    # Complete native snapshots, populated by runtime; None means unknown.
+    effect_stats: dict | None = None
+    effect_maxima: dict | None = None
+    effect_minima: dict | None = None
+    effect_frozen: frozenset | None = None
+    # Native eGj.frM()->eHl.pOJ; None is unknown/restored without snapshot.
+    # Initialized only for a verified fresh actor before passive execution.
+    spell_ap_cost_modifiers: dict | None = None
+    physical_radius: int | None = None
+
+    def __post_init__(self):
+        if any(
+            type(n) is not int
+            for n in (
+                self.id,
+                self.team,
+                self.hp,
+                self.ap,
+                self.mp,
+                self.initiative,
+                self.effective_level,
+            )
+        ):
+            raise ValueError("Actor fields must be integers")
+        if self.team not in (0, 1) or self.hp <= 0 or self.ap < 0 or self.mp < 0:
+            raise ValueError("Invalid actor team or resources")
+        if self.controlled and (type(self.owner_id) is not int or self.owner_id <= 0):
+            raise ValueError("Controlled actor needs an owner")
+        if len(self.position) != 3 or any(type(n) is not int for n in self.position):
+            raise ValueError("Invalid actor position")
+        if self.max_hp is None:
+            self.max_hp = self.hp
+        if type(self.max_hp) is not int or self.max_hp < self.hp:
+            raise ValueError("Maximum HP is below current HP")
+        self.max_ap, self.max_mp = self.ap, self.mp
+        self.state_ledger = StateLedger(self.id)
+
+
+class Fight:
+    def __init__(self, fight_id, actors, walkable, placement_cells, valid_edges=None):
+        actors = list(actors)
+        self.actors = {a.id: a for a in actors}
+        if len(self.actors) != len(actors) or {a.team for a in actors} != {0, 1}:
+            raise ValueError("Fight requires unique actors on both teams")
+        initial_order(
+            fight_id,
+            [
+                dict(
+                    id=a.id,
+                    team=a.team,
+                    initiative=a.initiative,
+                    effective_level=a.effective_level,
+                )
+                for a in actors
+            ],
+        )
+        self.id = fight_id
+        self.walkable = set(walkable)
+        self.placement = {team: set(cells) for team, cells in placement_cells.items()}
+        if set(self.placement) != {0, 1} or any(
+            not cells or not cells <= self.walkable for cells in self.placement.values()
+        ):
+            raise ValueError("Invalid placement terrain")
+        self.edges = None if valid_edges is None else set(valid_edges)
+        self.phase = "placement"
+        self.native_start_event_delivered = False
+        self.winner = None
+        self.order = []
+        self.turn_index = 0
+        self.turn_id = 0
+        self.ready_owners = set()
+        self.events = []
+        self._resolution_depth = 0
+        self.sequence = 0
+        self.native_effect_uid_next = (
+            None  # Authoritative runtime initializes the owned UID sequence.
+        )
+        self.native_owned_group_effects = {}
+        self.native_retained_records = {}
+        self.native_retained_order = []
+        self.native_retained_tracking = not any(a.state_ledger.entries for a in actors)
+        self.owned_stat_effects = {}
+        self.state_wire_payloads = {}  # UID -> original owned carrier payload hex
+        self._check_positions()
+
+    def allocate_effect_uid(self):
+        """Allocate only from this fight's initialized, checkpointed sequence."""
+        uid = self.native_effect_uid_next
+        if type(uid) is not int or not 0 < uid < (1 << 63) - 1:
+            raise ValueError("Native effect UID sequence is missing or exhausted")
+        occupied = (
+            set(self.state_wire_payloads)
+            | set(self.owned_stat_effects)
+            | set(self.native_owned_group_effects)
+        )
+        occupied.update(
+            entry.uid
+            for actor in self.actors.values()
+            for entry in actor.state_ledger.entries
+        )
+        if uid in occupied:
+            raise ValueError("Native effect UID sequence collides with an owned effect")
+        self.native_effect_uid_next = uid + 1
+        return uid
+
+    def _check_positions(self):
+        positions = [a.position for a in self.actors.values() if a.hp > 0]
+        if len(set(positions)) != len(positions) or any(
+            a.position not in self.placement[a.team] for a in self.actors.values()
+        ):
+            raise ValueError("Actor placement is occupied or outside team area")
+
+    def _event(self, kind, **fields):
+        self.sequence += 1
+        event = dict(sequence=self.sequence, kind=kind, **fields)
+        self.events.append(event)
+        return event
+
+    def _owned(self, owner_id, actor_id):
+        actor = self.actors.get(actor_id)
+        if (
+            actor is None
+            or not actor.controlled
+            or actor.owner_id != owner_id
+            or actor.hp <= 0
+        ):
+            raise ValueError("Actor is not controlled by this owner")
+        return actor
+
+    @property
+    def current(self):
+        return (
+            self.actors[self.order[self.turn_index]] if self.phase == "active" else None
+        )
+
+    def place(self, owner_id, actor_id, position):
+        if self.phase != "placement":
+            raise ValueError("Placement has ended")
+        actor = self._owned(owner_id, actor_id)
+        position = tuple(position)
+        if owner_id in self.ready_owners or position not in self.placement[actor.team]:
+            raise ValueError("Placement is ready or outside team area")
+        if any(
+            a.id != actor_id and a.hp > 0 and a.position == position
+            for a in self.actors.values()
+        ):
+            raise ValueError("Placement cell occupied")
+        actor.position = position
+        return self._event("placement", actor_id=actor_id, position=position)
+
+    def ready(self, owner_id, ready=True):
+        if self.phase != "placement":
+            raise ValueError("Placement has ended")
+        owners = {a.owner_id for a in self.actors.values() if a.controlled}
+        if owner_id not in owners:
+            raise ValueError("Owner is not a participant")
+        if ready:
+            self.ready_owners.add(owner_id)
+        else:
+            self.ready_owners.discard(owner_id)
+        event = self._event("ready", owner_id=owner_id, ready=bool(ready))
+        if owners <= self.ready_owners:
+            self.order = initial_order(
+                self.id,
+                [
+                    dict(
+                        id=a.id,
+                        team=a.team,
+                        initiative=a.initiative,
+                        effective_level=a.effective_level,
+                    )
+                    for a in self.actors.values()
+                ],
+            )
+            self.phase = "active"
+            self.turn_id = 1
+            self._begin_turn()
+        return event
+
+    @staticmethod
+    def _sync_resources(actor):
+        if actor.effect_stats is not None:
+            for stat, value in ((1, actor.hp), (2, actor.ap), (3, actor.mp)):
+                if stat in actor.effect_stats:
+                    actor.effect_stats[stat] = value
+
+    def _begin_turn(self):
+        actor = self.current
+        actor.ap = actor.max_ap
+        actor.mp = actor.max_mp
+        self._sync_resources(actor)
+        actor.turn_count += 1
+        self._event(
+            "turn_started",
+            actor_id=actor.id,
+            turn_id=self.turn_id,
+            actor_turn=actor.turn_count,
+        )
+
+    def _current_owned(self, owner_id, actor_id):
+        actor = self._owned(owner_id, actor_id)
+        if self.current is None or self.current.id != actor_id:
+            raise ValueError("Actor does not have the turn")
+        return actor
+
+    def spend(self, owner_id, actor_id, ap=0, mp=0):
+        actor = self._current_owned(owner_id, actor_id)
+        if (
+            type(ap) is not int
+            or type(mp) is not int
+            or min(ap, mp) < 0
+            or actor.ap < ap
+            or actor.mp < mp
+        ):
+            raise ValueError("Insufficient or invalid action resources")
+        actor.ap -= ap
+        actor.mp -= mp
+        self._sync_resources(actor)
+
+    def move(self, owner_id, actor_id, path):
+        actor = self._current_owned(owner_id, actor_id)
+        path = [tuple(cell) for cell in path]
+        if any(
+            len(cell) != 3 or any(type(n) is not int for n in cell) for cell in path
+        ):
+            raise ValueError("Invalid path coordinates")
+        return self._move_actor(actor, path)
+
+    def server_move(self, actor_id, path):
+        actor = self.current
+        if actor is None or actor.id != actor_id or actor.controlled or actor.hp <= 0:
+            raise ValueError("Invalid server controlled movement")
+        path = [tuple(cell) for cell in path]
+        if any(
+            len(cell) != 3 or any(type(n) is not int for n in cell) for cell in path
+        ):
+            raise ValueError("Invalid path coordinates")
+        return self._move_actor(actor, path)
+
+    def _move_actor(self, actor, path):
+        actor_id = actor.id
+        origin = actor.position
+        cost = 0
+        occupied = {
+            a.position for a in self.actors.values() if a.id != actor_id and a.hp > 0
+        }
+        for target in path:
+            step = abs(target[0] - origin[0]) + abs(target[1] - origin[1])
+            if (
+                len(target) != 3
+                or target not in self.walkable
+                or target in occupied
+                or step != 1
+            ):
+                raise ValueError("Invalid combat movement path")
+            if self.edges is not None and (origin, target) not in self.edges:
+                raise ValueError("Terrain transition is not walkable")
+            if self.edges is None and target[2] != origin[2]:
+                raise ValueError("Altitude transition requires validated terrain edge")
+            cost += step
+            origin = target
+        if not path or cost > actor.mp:
+            raise ValueError("Empty path or insufficient MP")
+        actor.mp -= cost
+        self._sync_resources(actor)
+        actor.position = origin
+        return self._event("movement", actor_id=actor_id, path=path, cost=cost)
+
+    def end_turn(self, owner_id, actor_id, turn_id):
+        actor = self._current_owned(owner_id, actor_id)
+        if turn_id != actor.turn_count:
+            raise ValueError("Stale turn identifier")
+        self._advance()
+
+    def end_server_turn(self, actor_id, turn_id):
+        if (
+            self.current is None
+            or self.current.id != actor_id
+            or self.current.controlled
+            or turn_id != self.turn_id
+        ):
+            raise ValueError("Invalid server controlled turn")
+        self._advance()
+
+    def _advance(self):
+        self._event("turn_ended", actor_id=self.current.id, turn_id=self.turn_id)
+        self.turn_index = (self.turn_index + 1) % len(self.order)
+        self.turn_id += 1
+        self._begin_turn()
+
+    def apply_damage(self, source_id, target_id, amount):
+        """Trusted effect executor only: caller validates spell, AP and targeting."""
+        if (
+            self.current is None
+            or self.current.id != source_id
+            or type(amount) is not int
+            or amount < 0
+        ):
+            raise ValueError("Invalid damage source or amount")
+        return self.apply_effect_damage(source_id, target_id, amount)
+
+    def apply_effect_damage(self, source_id, target_id, amount):
+        """Trusted dispatched effect, including reactions outside source's turn.
+
+        The dispatcher validates the trigger, ownership and native eligibility.
+        Player requests continue through apply_damage's current-turn guard.
+        """
+        if (
+            self.phase != "active"
+            or self.current is None
+            or source_id not in self.actors
+            or type(amount) is not int
+            or amount < 0
+        ):
+            raise ValueError("Invalid dispatched damage context")
+        target = self.actors.get(target_id)
+        if target is None or target.hp <= 0:
+            raise ValueError("Target is not alive")
+        dealt = min(target.hp, amount)
+        target.hp -= dealt
+        self._sync_resources(target)
+        self._event(
+            "damage",
+            source_id=source_id,
+            target_id=target_id,
+            amount=dealt,
+            hp=target.hp,
+        )
+        if target.hp == 0:
+            self._event("death", actor_id=target_id)
+            if not self._resolution_depth:
+                self._settle_deaths()
+        return dealt
+
+    @contextmanager
+    def effect_resolution(self):
+        """Defer turn/result reconciliation until the outer effect chain ends.
+
+        Use on a transaction preview: an exception discards that preview.
+        This boundary does not grant eligibility to effects from dead actors.
+        """
+        self._resolution_depth += 1
+        try:
+            yield
+        finally:
+            self._resolution_depth -= 1
+            if self._resolution_depth == 0 and self.phase == "active":
+                self._settle_deaths()
+
+    def _settle_deaths(self):
+        old_order = tuple(self.order)
+        current_id = old_order[self.turn_index]
+        self.order = [uid for uid in old_order if self.actors[uid].hp > 0]
+        alive = {a.team for a in self.actors.values() if a.hp > 0}
+        if len(alive) < 2:
+            self.phase = "finished"
+            self.winner = next(iter(alive), None)
+            self._event("finished", winner=self.winner)
+        elif current_id in self.order:
+            self.turn_index = self.order.index(current_id)
+        else:
+            start = old_order.index(current_id)
+            next_id = next(
+                old_order[(start + offset) % len(old_order)]
+                for offset in range(1, len(old_order) + 1)
+                if old_order[(start + offset) % len(old_order)] in self.order
+            )
+            self.turn_index = self.order.index(next_id)
+            self.turn_id += 1
+            self._begin_turn()
+
+    def apply_effect_healing(self, source_id, target_id, amount):
+        """Trusted healing effect; resurrection has a separate native path."""
+        if (
+            self.phase != "active"
+            or self.current is None
+            or source_id not in self.actors
+            or type(amount) is not int
+            or amount < 0
+        ):
+            raise ValueError("Invalid dispatched healing context")
+        target = self.actors.get(target_id)
+        if target is None or target.hp <= 0:
+            raise ValueError("Healing target is not alive")
+        restored = min(amount, target.max_hp - target.hp)
+        target.hp += restored
+        self._sync_resources(target)
+        self._event(
+            "healing",
+            source_id=source_id,
+            target_id=target_id,
+            amount=restored,
+            hp=target.hp,
+        )
+        return restored
+
+    def apply_state(
+        self,
+        source_id,
+        target_id,
+        reference,
+        level,
+        *,
+        uid,
+        catalog,
+        applying_effect_has_delay=None,
+        timeline=None,
+        protected=None
+    ):
+        """Trusted effect dispatcher only; selection/conditions are its job.
+
+        The ledger returns child effects, including instant states. This method
+        records the application but does not claim those effects were executed.
+        """
+        source = self.actors.get(source_id)
+        target = self.actors.get(target_id)
+        if self.phase != "active" or source is None or target is None or target.hp <= 0:
+            raise ValueError("Invalid state source, target or fight phase")
+        change = target.state_ledger.apply(
+            catalog,
+            reference,
+            level,
+            caster_id=source_id,
+            uid=uid,
+            applying_effect_has_delay=applying_effect_has_delay,
+            timeline=timeline,
+            protected=protected,
+        )
+        for entry in change.removed:
+            self._event(
+                "state_removed",
+                actor_id=target_id,
+                uid=entry.uid,
+                state_id=entry.reference,
+                reason="replacement",
+            )
+        if change.applied is not None:
+            entry = change.applied
+            self._event(
+                "state_applied",
+                actor_id=target_id,
+                source_id=source_id,
+                uid=entry.uid,
+                state_id=entry.reference,
+                level=entry.level,
+                duration=entry.duration,
+                instant=not entry.retained,
+            )
+        return change
+
+    def expire_states(self, *, actor_id, round_number, phase, round_cleanup=False):
+        """Trusted timeline dispatcher; returned entries still need wire removal."""
+        removed = []
+        for actor in self.actors.values():
+            entries = actor.state_ledger.expire(
+                actor_id=actor_id,
+                round_number=round_number,
+                phase=phase,
+                round_cleanup=round_cleanup,
+            )
+            for entry in entries:
+                self._event(
+                    "state_removed",
+                    actor_id=actor.id,
+                    uid=entry.uid,
+                    state_id=entry.reference,
+                    reason="expiration",
+                )
+            removed.extend(entries)
+        return tuple(removed)

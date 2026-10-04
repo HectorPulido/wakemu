@@ -1,0 +1,40 @@
+Planificador global de persistencia (fuente, sin desplegar)
+
+serve_api(..., global_tasks=GlobalTasks({
+    'positions_flush': flush_positions,
+    'builds_flush': BUILD_JOURNAL.flush,
+    'groups_flush': COMBAT_GROUPS.flush,
+}))
+Registrar únicamente callbacks disponibles; si se configura Redis y falla,
+propagar error. No usar comandos de personaje para estas tareas globales.
+Los flush son idempotentes y checkpoints CAS conservan versiones más nuevas.
+La deduplicación HTTP es local al proceso; el scheduler usa lease Redis
+renovable compartido y ocurrencias estables. Un fallo después del commit SQL
+puede repetir la llamada: no se promete ejecución exactamente una vez.
+
+config.json apunta a world:18081. Activar positions_flush/builds_flush/groups_flush
+solo después de integrar los callbacks. Builds y groups usan1200 segundos,
+posiciones2. Population/weather/zone_challenges permanecen desactivados.
+No se implementan clima/ecosistema ni se infieren reglas oficiales.
+
+Fragmento para services en compose.yaml (no aplicado):
+  cron:
+    build:
+      context: ./server
+      dockerfile: cron-service/Dockerfile
+    init: true
+    depends_on:
+      world:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      WAKFU_REDIS_URL: redis://redis:6379/0
+    networks: [isolated]
+
+No publicar puertos del cron. Si cron sustituye temporizadores actuales,
+retirar las llamadas redundantes de flush_due del main; conservar flush de
+shutdown y descarga de posiciones al logout. Hay que decidir una única
+política de temporización antes de activarlo, sin reinicios en esta tarea.
+
+Integración realizada en archivos: Compose incluye cron sin puertos públicos; world usa WAKFU_EXTERNAL_SCHEDULER=1 para no arrancar temporizadores duplicados. Callbacks reales de posiciones, equipo y grupos registrados. Configuración activa esos tres trabajos (2 segundos para posiciones y 20 minutos para equipo/grupos). Guardado al apagar y al salir permanece en el servidor. Cinco pruebas entre HTTP y planificador pasan. Falta cargar y verificar cron en el entorno activo; no se reinició.

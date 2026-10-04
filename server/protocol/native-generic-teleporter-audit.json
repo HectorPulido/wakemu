@@ -1,0 +1,37 @@
+{
+  "source": "Installed native map env acq/bEE/bEk plus bdata aNE/aNF; no official-network requests or captured account data",
+  "counts": {
+    "sources": 3542,
+    "sources_with_definition": 3445,
+    "destinations": 3531,
+    "native_altitude_walkable": 3523,
+    "implemented_free_unconditional_world_routes": 2987
+  },
+  "native_chain": {
+    "source_definition": "bEk.dSG: Integer.parseInt(bbz) -> flz.a(flT.szw,id) -> flE",
+    "destination_loader": "baP.a(aNE) -> aNF -> flF",
+    "request": "bEk.a(biB,flF) -> cpJ12296: >qiBi sourceObjectId,destinationId,flag,mode",
+    "map": "aNF.cpb -> signed short -> flF.bdQ",
+    "altitude": "aNF.NN -> flF.geB[2], verified native VB/Vy exact walkable layer",
+    "criterion": "aNF.clT -> eQe.tz -> amb; blank criterion only implemented",
+    "costs": "flU.geX item rules (aNF.cod/cyW), flU.geY -> fkH.a -> flF.geA(aNF.cyX)*party_size",
+    "menu_flags": "aNF.cvd/cyY -> flF.gev/gew -> cXI.bxQ visibility, not instance modes",
+    "dungeon_context": "aNF.cyZ -> bFE.d/e and fqv/eQN; unsupported"
+  },
+  "limitations": [
+    "Proximity validation required via source_allowed callback, no arbitrary native-radius claim",
+    "Nonempty criteria explicitly rejected until authoritative criterion evaluator exists",
+    "Item/kama costs rejected until atomic owned transaction exists",
+    "Dungeon contexts, flag!=0 and mode!=2 rejected",
+    "97 sources missing native definitions; 8 destination altitudes not verified",
+    "Unsupported environment chunks in original export mean catalog is not all 961 maps"
+  ],
+  "evidence_files": [
+    ".runtime/local/world-teleporter-native.txt",
+    ".runtime/local/world-teleporter-loader.txt",
+    ".runtime/local/world-teleporter-form.txt",
+    ".runtime/local/world-teleporter-runtime-conditions.txt",
+    ".runtime/local/world-teleporter-cost.txt",
+    ".runtime/local/world-teleporter-menu.txt"
+  ]
+}

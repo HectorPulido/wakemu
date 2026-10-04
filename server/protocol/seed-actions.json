@@ -1,0 +1,2034 @@
+[
+  {
+    "item_reference": 1750,
+    "profession_id": 64,
+    "action_id": 300,
+    "resource_reference": 18,
+    "minimum_level": 15,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 1752,
+    "profession_id": 64,
+    "action_id": 644,
+    "resource_reference": 23,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 1786,
+    "profession_id": 64,
+    "action_id": 390,
+    "resource_reference": 382,
+    "minimum_level": 65,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 1886,
+    "profession_id": 64,
+    "action_id": 631,
+    "resource_reference": 76,
+    "minimum_level": 25,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 4273,
+    "profession_id": 72,
+    "action_id": 393,
+    "resource_reference": 102,
+    "minimum_level": 40,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 4275,
+    "profession_id": 72,
+    "action_id": 406,
+    "resource_reference": 60,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 4335,
+    "profession_id": 64,
+    "action_id": 392,
+    "resource_reference": 79,
+    "minimum_level": 5,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 4440,
+    "profession_id": 72,
+    "action_id": 625,
+    "resource_reference": 150,
+    "minimum_level": 10,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 4442,
+    "profession_id": 72,
+    "action_id": 391,
+    "resource_reference": 151,
+    "minimum_level": 45,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 4444,
+    "profession_id": 72,
+    "action_id": 637,
+    "resource_reference": 152,
+    "minimum_level": 20,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 5453,
+    "profession_id": 72,
+    "action_id": 641,
+    "resource_reference": 388,
+    "minimum_level": 70,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 6220,
+    "profession_id": 74,
+    "action_id": 1954,
+    "resource_reference": 375,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 7314,
+    "profession_id": 64,
+    "action_id": 642,
+    "resource_reference": 179,
+    "minimum_level": 20,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 7353,
+    "profession_id": 82,
+    "action_id": 654,
+    "resource_reference": 201,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 7358,
+    "profession_id": 74,
+    "action_id": 645,
+    "resource_reference": 182,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 7359,
+    "profession_id": 74,
+    "action_id": 635,
+    "resource_reference": 186,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 7361,
+    "profession_id": 74,
+    "action_id": 616,
+    "resource_reference": 192,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 7370,
+    "profession_id": 74,
+    "action_id": 629,
+    "resource_reference": 191,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 7373,
+    "profession_id": 74,
+    "action_id": 665,
+    "resource_reference": 187,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 8063,
+    "profession_id": 71,
+    "action_id": 471,
+    "resource_reference": 139,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 8064,
+    "profession_id": 71,
+    "action_id": 301,
+    "resource_reference": 15,
+    "minimum_level": 5,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 8065,
+    "profession_id": 71,
+    "action_id": 303,
+    "resource_reference": 6,
+    "minimum_level": 15,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 8066,
+    "profession_id": 71,
+    "action_id": 304,
+    "resource_reference": 8,
+    "minimum_level": 20,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 8068,
+    "profession_id": 71,
+    "action_id": 295,
+    "resource_reference": 162,
+    "minimum_level": 45,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 8069,
+    "profession_id": 71,
+    "action_id": 296,
+    "resource_reference": 174,
+    "minimum_level": 50,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 8097,
+    "profession_id": 82,
+    "action_id": 297,
+    "resource_reference": 679,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 8171,
+    "profession_id": 71,
+    "action_id": 273,
+    "resource_reference": 263,
+    "minimum_level": 30,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 9269,
+    "profession_id": 64,
+    "action_id": 663,
+    "resource_reference": 298,
+    "minimum_level": 10,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 9271,
+    "profession_id": 72,
+    "action_id": 664,
+    "resource_reference": 296,
+    "minimum_level": 25,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 9710,
+    "profession_id": 82,
+    "action_id": 865,
+    "resource_reference": 309,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 10008,
+    "profession_id": 71,
+    "action_id": 1113,
+    "resource_reference": 334,
+    "minimum_level": 25,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 10430,
+    "profession_id": 71,
+    "action_id": 1298,
+    "resource_reference": 330,
+    "minimum_level": 35,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 10603,
+    "profession_id": 82,
+    "action_id": 1368,
+    "resource_reference": 331,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 10736,
+    "profession_id": 71,
+    "action_id": 1456,
+    "resource_reference": 317,
+    "minimum_level": 40,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 10957,
+    "profession_id": 72,
+    "action_id": 1507,
+    "resource_reference": 335,
+    "minimum_level": 50,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 11439,
+    "profession_id": 71,
+    "action_id": 1931,
+    "resource_reference": 347,
+    "minimum_level": 10,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 11452,
+    "profession_id": 72,
+    "action_id": 1929,
+    "resource_reference": 349,
+    "minimum_level": 5,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 11453,
+    "profession_id": 72,
+    "action_id": 1930,
+    "resource_reference": 350,
+    "minimum_level": 15,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 11456,
+    "profession_id": 72,
+    "action_id": 1928,
+    "resource_reference": 351,
+    "minimum_level": 30,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 11457,
+    "profession_id": 72,
+    "action_id": 1927,
+    "resource_reference": 352,
+    "minimum_level": 35,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 11461,
+    "profession_id": 64,
+    "action_id": 1922,
+    "resource_reference": 353,
+    "minimum_level": 30,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 11463,
+    "profession_id": 64,
+    "action_id": 1933,
+    "resource_reference": 354,
+    "minimum_level": 35,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 11466,
+    "profession_id": 64,
+    "action_id": 1924,
+    "resource_reference": 356,
+    "minimum_level": 40,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 11468,
+    "profession_id": 64,
+    "action_id": 1923,
+    "resource_reference": 357,
+    "minimum_level": 45,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 11474,
+    "profession_id": 64,
+    "action_id": 2189,
+    "resource_reference": 379,
+    "minimum_level": 50,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 12544,
+    "profession_id": 74,
+    "action_id": 1967,
+    "resource_reference": 376,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 12545,
+    "profession_id": 74,
+    "action_id": 1968,
+    "resource_reference": 377,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 12808,
+    "profession_id": 74,
+    "action_id": 1998,
+    "resource_reference": 389,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13093,
+    "profession_id": 71,
+    "action_id": 2153,
+    "resource_reference": 396,
+    "minimum_level": 55,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13095,
+    "profession_id": 71,
+    "action_id": 2154,
+    "resource_reference": 397,
+    "minimum_level": 60,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13100,
+    "profession_id": 71,
+    "action_id": 2155,
+    "resource_reference": 398,
+    "minimum_level": 65,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13109,
+    "profession_id": 71,
+    "action_id": 2157,
+    "resource_reference": 400,
+    "minimum_level": 70,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13113,
+    "profession_id": 71,
+    "action_id": 2158,
+    "resource_reference": 532,
+    "minimum_level": 85,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13139,
+    "profession_id": 72,
+    "action_id": 2159,
+    "resource_reference": 385,
+    "minimum_level": 55,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13143,
+    "profession_id": 72,
+    "action_id": 2160,
+    "resource_reference": 386,
+    "minimum_level": 65,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13146,
+    "profession_id": 72,
+    "action_id": 2161,
+    "resource_reference": 387,
+    "minimum_level": 60,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13150,
+    "profession_id": 72,
+    "action_id": 2162,
+    "resource_reference": 401,
+    "minimum_level": 85,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13162,
+    "profession_id": 64,
+    "action_id": 2165,
+    "resource_reference": 380,
+    "minimum_level": 55,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13165,
+    "profession_id": 64,
+    "action_id": 2167,
+    "resource_reference": 381,
+    "minimum_level": 60,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13172,
+    "profession_id": 64,
+    "action_id": 2172,
+    "resource_reference": 384,
+    "minimum_level": 70,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 13174,
+    "profession_id": 64,
+    "action_id": 2174,
+    "resource_reference": 23,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 14356,
+    "profession_id": 74,
+    "action_id": 2536,
+    "resource_reference": 449,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 14789,
+    "profession_id": 74,
+    "action_id": 2805,
+    "resource_reference": 453,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 14820,
+    "profession_id": 74,
+    "action_id": 2835,
+    "resource_reference": 463,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 14915,
+    "profession_id": 74,
+    "action_id": 2863,
+    "resource_reference": 464,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 15065,
+    "profession_id": 82,
+    "action_id": 2938,
+    "resource_reference": 465,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 15088,
+    "profession_id": 82,
+    "action_id": 2974,
+    "resource_reference": 466,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 15594,
+    "profession_id": 82,
+    "action_id": 3162,
+    "resource_reference": 495,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 15715,
+    "profession_id": 74,
+    "action_id": 3185,
+    "resource_reference": 496,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 15804,
+    "profession_id": 74,
+    "action_id": 3397,
+    "resource_reference": 497,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 15805,
+    "profession_id": 74,
+    "action_id": 3398,
+    "resource_reference": 498,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 15806,
+    "profession_id": 74,
+    "action_id": 3399,
+    "resource_reference": 499,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 15807,
+    "profession_id": 74,
+    "action_id": 3400,
+    "resource_reference": 500,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 15834,
+    "profession_id": 74,
+    "action_id": 3472,
+    "resource_reference": 507,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 16779,
+    "profession_id": 74,
+    "action_id": 3860,
+    "resource_reference": 514,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 16781,
+    "profession_id": 74,
+    "action_id": 3861,
+    "resource_reference": 512,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 16808,
+    "profession_id": 74,
+    "action_id": 3865,
+    "resource_reference": 513,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 17075,
+    "profession_id": 74,
+    "action_id": 4360,
+    "resource_reference": 518,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 17225,
+    "profession_id": 74,
+    "action_id": 4409,
+    "resource_reference": 525,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 17249,
+    "profession_id": 74,
+    "action_id": 4414,
+    "resource_reference": 524,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 17275,
+    "profession_id": 74,
+    "action_id": 4418,
+    "resource_reference": 535,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 17300,
+    "profession_id": 74,
+    "action_id": 4422,
+    "resource_reference": 539,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 17335,
+    "profession_id": 74,
+    "action_id": 4427,
+    "resource_reference": 538,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 17368,
+    "profession_id": 64,
+    "action_id": 4438,
+    "resource_reference": 523,
+    "minimum_level": 85,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 17374,
+    "profession_id": 74,
+    "action_id": 4474,
+    "resource_reference": 526,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 17729,
+    "profession_id": 74,
+    "action_id": 4964,
+    "resource_reference": 540,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 17730,
+    "profession_id": 74,
+    "action_id": 4965,
+    "resource_reference": 541,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18106,
+    "profession_id": 71,
+    "action_id": 5442,
+    "resource_reference": 552,
+    "minimum_level": 75,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18110,
+    "profession_id": 71,
+    "action_id": 5443,
+    "resource_reference": 553,
+    "minimum_level": 80,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18114,
+    "profession_id": 64,
+    "action_id": 5444,
+    "resource_reference": 554,
+    "minimum_level": 75,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18116,
+    "profession_id": 64,
+    "action_id": 5445,
+    "resource_reference": 555,
+    "minimum_level": 80,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18120,
+    "profession_id": 72,
+    "action_id": 5446,
+    "resource_reference": 556,
+    "minimum_level": 75,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18123,
+    "profession_id": 72,
+    "action_id": 5447,
+    "resource_reference": 557,
+    "minimum_level": 80,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18136,
+    "profession_id": 74,
+    "action_id": 5450,
+    "resource_reference": 564,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18137,
+    "profession_id": 74,
+    "action_id": 5451,
+    "resource_reference": 565,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18233,
+    "profession_id": 74,
+    "action_id": 5474,
+    "resource_reference": 568,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18465,
+    "profession_id": 71,
+    "action_id": 6155,
+    "resource_reference": 569,
+    "minimum_level": 90,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18466,
+    "profession_id": 71,
+    "action_id": 6156,
+    "resource_reference": 570,
+    "minimum_level": 95,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18471,
+    "profession_id": 72,
+    "action_id": 6157,
+    "resource_reference": 577,
+    "minimum_level": 100,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18472,
+    "profession_id": 72,
+    "action_id": 6158,
+    "resource_reference": 578,
+    "minimum_level": 90,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18477,
+    "profession_id": 64,
+    "action_id": 6159,
+    "resource_reference": 575,
+    "minimum_level": 90,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18478,
+    "profession_id": 64,
+    "action_id": 6160,
+    "resource_reference": 576,
+    "minimum_level": 95,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18491,
+    "profession_id": 74,
+    "action_id": 6161,
+    "resource_reference": 573,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18492,
+    "profession_id": 74,
+    "action_id": 6162,
+    "resource_reference": 574,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 18648,
+    "profession_id": 74,
+    "action_id": 6386,
+    "resource_reference": 583,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19157,
+    "profession_id": 74,
+    "action_id": 7184,
+    "resource_reference": 588,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19158,
+    "profession_id": 74,
+    "action_id": 7185,
+    "resource_reference": 587,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19169,
+    "profession_id": 71,
+    "action_id": 7188,
+    "resource_reference": 589,
+    "minimum_level": 100,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19170,
+    "profession_id": 72,
+    "action_id": 7189,
+    "resource_reference": 590,
+    "minimum_level": 95,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19173,
+    "profession_id": 64,
+    "action_id": 7190,
+    "resource_reference": 591,
+    "minimum_level": 100,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19281,
+    "profession_id": 74,
+    "action_id": 7270,
+    "resource_reference": 596,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19516,
+    "profession_id": 74,
+    "action_id": 7401,
+    "resource_reference": 598,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19753,
+    "profession_id": 71,
+    "action_id": 7610,
+    "resource_reference": 601,
+    "minimum_level": 115,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19756,
+    "profession_id": 71,
+    "action_id": 7611,
+    "resource_reference": 602,
+    "minimum_level": 110,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19763,
+    "profession_id": 64,
+    "action_id": 7612,
+    "resource_reference": 605,
+    "minimum_level": 115,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19767,
+    "profession_id": 64,
+    "action_id": 7613,
+    "resource_reference": 606,
+    "minimum_level": 110,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19770,
+    "profession_id": 72,
+    "action_id": 7614,
+    "resource_reference": 607,
+    "minimum_level": 110,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19773,
+    "profession_id": 72,
+    "action_id": 7615,
+    "resource_reference": 608,
+    "minimum_level": 115,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19786,
+    "profession_id": 74,
+    "action_id": 7616,
+    "resource_reference": 609,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 19794,
+    "profession_id": 74,
+    "action_id": 7619,
+    "resource_reference": 610,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 20109,
+    "profession_id": 74,
+    "action_id": 7922,
+    "resource_reference": 611,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 20180,
+    "profession_id": 71,
+    "action_id": 7933,
+    "resource_reference": 612,
+    "minimum_level": 105,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 20183,
+    "profession_id": 72,
+    "action_id": 7935,
+    "resource_reference": 614,
+    "minimum_level": 105,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 20186,
+    "profession_id": 64,
+    "action_id": 7936,
+    "resource_reference": 613,
+    "minimum_level": 105,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 20191,
+    "profession_id": 74,
+    "action_id": 7938,
+    "resource_reference": 617,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 20669,
+    "profession_id": 74,
+    "action_id": 8298,
+    "resource_reference": 627,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 20670,
+    "profession_id": 74,
+    "action_id": 8299,
+    "resource_reference": 626,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 20958,
+    "profession_id": 74,
+    "action_id": 9884,
+    "resource_reference": 683,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 21175,
+    "profession_id": 74,
+    "action_id": 8769,
+    "resource_reference": 641,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 21199,
+    "profession_id": 74,
+    "action_id": 8918,
+    "resource_reference": 631,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 21270,
+    "profession_id": 74,
+    "action_id": 9214,
+    "resource_reference": 640,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 21776,
+    "profession_id": 74,
+    "action_id": 9090,
+    "resource_reference": 660,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 21814,
+    "profession_id": 74,
+    "action_id": 9100,
+    "resource_reference": 636,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22026,
+    "profession_id": 74,
+    "action_id": 9211,
+    "resource_reference": 638,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22027,
+    "profession_id": 74,
+    "action_id": 9212,
+    "resource_reference": 639,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22028,
+    "profession_id": 74,
+    "action_id": 9213,
+    "resource_reference": 642,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22038,
+    "profession_id": 74,
+    "action_id": 9223,
+    "resource_reference": 661,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22053,
+    "profession_id": 71,
+    "action_id": 9248,
+    "resource_reference": 644,
+    "minimum_level": 120,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22056,
+    "profession_id": 71,
+    "action_id": 9253,
+    "resource_reference": 645,
+    "minimum_level": 125,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22061,
+    "profession_id": 64,
+    "action_id": 9254,
+    "resource_reference": 646,
+    "minimum_level": 120,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22065,
+    "profession_id": 64,
+    "action_id": 9255,
+    "resource_reference": 647,
+    "minimum_level": 125,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22067,
+    "profession_id": 72,
+    "action_id": 9256,
+    "resource_reference": 648,
+    "minimum_level": 125,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22071,
+    "profession_id": 72,
+    "action_id": 9257,
+    "resource_reference": 649,
+    "minimum_level": 120,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22501,
+    "profession_id": 82,
+    "action_id": 9566,
+    "resource_reference": 666,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22502,
+    "profession_id": 82,
+    "action_id": 9567,
+    "resource_reference": 667,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22503,
+    "profession_id": 82,
+    "action_id": 9568,
+    "resource_reference": 668,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22504,
+    "profession_id": 82,
+    "action_id": 9569,
+    "resource_reference": 669,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22505,
+    "profession_id": 82,
+    "action_id": 9570,
+    "resource_reference": 670,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22506,
+    "profession_id": 82,
+    "action_id": 9571,
+    "resource_reference": 671,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22507,
+    "profession_id": 82,
+    "action_id": 9572,
+    "resource_reference": 672,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22508,
+    "profession_id": 82,
+    "action_id": 9573,
+    "resource_reference": 673,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22509,
+    "profession_id": 82,
+    "action_id": 9574,
+    "resource_reference": 674,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22510,
+    "profession_id": 82,
+    "action_id": 9575,
+    "resource_reference": 675,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22511,
+    "profession_id": 82,
+    "action_id": 9576,
+    "resource_reference": 676,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22512,
+    "profession_id": 82,
+    "action_id": 9577,
+    "resource_reference": 677,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22513,
+    "profession_id": 82,
+    "action_id": 9579,
+    "resource_reference": 678,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22515,
+    "profession_id": 82,
+    "action_id": 9580,
+    "resource_reference": 164,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22516,
+    "profession_id": 82,
+    "action_id": 9581,
+    "resource_reference": 163,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22517,
+    "profession_id": 82,
+    "action_id": 9582,
+    "resource_reference": 680,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22565,
+    "profession_id": 82,
+    "action_id": 9628,
+    "resource_reference": 681,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 22566,
+    "profession_id": 82,
+    "action_id": 9629,
+    "resource_reference": 682,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 24318,
+    "profession_id": 82,
+    "action_id": 10127,
+    "resource_reference": 694,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26394,
+    "profession_id": 82,
+    "action_id": 10719,
+    "resource_reference": 717,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26401,
+    "profession_id": 74,
+    "action_id": 10720,
+    "resource_reference": 294,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26407,
+    "profession_id": 74,
+    "action_id": 10721,
+    "resource_reference": 327,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26413,
+    "profession_id": 74,
+    "action_id": 10722,
+    "resource_reference": 342,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26419,
+    "profession_id": 74,
+    "action_id": 10723,
+    "resource_reference": 184,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26425,
+    "profession_id": 74,
+    "action_id": 10724,
+    "resource_reference": 268,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26431,
+    "profession_id": 74,
+    "action_id": 10725,
+    "resource_reference": 318,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26437,
+    "profession_id": 74,
+    "action_id": 10726,
+    "resource_reference": 324,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26443,
+    "profession_id": 74,
+    "action_id": 10727,
+    "resource_reference": 320,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26449,
+    "profession_id": 74,
+    "action_id": 10728,
+    "resource_reference": 712,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26455,
+    "profession_id": 74,
+    "action_id": 10729,
+    "resource_reference": 313,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26461,
+    "profession_id": 74,
+    "action_id": 10730,
+    "resource_reference": 326,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26467,
+    "profession_id": 74,
+    "action_id": 10731,
+    "resource_reference": 195,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26473,
+    "profession_id": 74,
+    "action_id": 10732,
+    "resource_reference": 716,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26481,
+    "profession_id": 74,
+    "action_id": 10790,
+    "resource_reference": 714,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26492,
+    "profession_id": 74,
+    "action_id": 10791,
+    "resource_reference": 715,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26493,
+    "profession_id": 74,
+    "action_id": 10792,
+    "resource_reference": 713,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26605,
+    "profession_id": 74,
+    "action_id": 10819,
+    "resource_reference": 341,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26682,
+    "profession_id": 74,
+    "action_id": 10871,
+    "resource_reference": 737,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 26714,
+    "profession_id": 74,
+    "action_id": 10903,
+    "resource_reference": 738,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27043,
+    "profession_id": 74,
+    "action_id": 11039,
+    "resource_reference": 739,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27049,
+    "profession_id": 74,
+    "action_id": 11040,
+    "resource_reference": 740,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27055,
+    "profession_id": 74,
+    "action_id": 11041,
+    "resource_reference": 741,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27061,
+    "profession_id": 74,
+    "action_id": 11042,
+    "resource_reference": 742,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27362,
+    "profession_id": 74,
+    "action_id": 11469,
+    "resource_reference": 754,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27368,
+    "profession_id": 74,
+    "action_id": 11470,
+    "resource_reference": 755,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27823,
+    "profession_id": 74,
+    "action_id": 11577,
+    "resource_reference": 772,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27829,
+    "profession_id": 74,
+    "action_id": 11578,
+    "resource_reference": 773,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27835,
+    "profession_id": 74,
+    "action_id": 11579,
+    "resource_reference": 774,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27841,
+    "profession_id": 74,
+    "action_id": 11580,
+    "resource_reference": 771,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27845,
+    "profession_id": 71,
+    "action_id": 11582,
+    "resource_reference": 761,
+    "minimum_level": 130,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27848,
+    "profession_id": 71,
+    "action_id": 11583,
+    "resource_reference": 762,
+    "minimum_level": 135,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27851,
+    "profession_id": 64,
+    "action_id": 11584,
+    "resource_reference": 763,
+    "minimum_level": 130,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27854,
+    "profession_id": 64,
+    "action_id": 11585,
+    "resource_reference": 764,
+    "minimum_level": 135,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27857,
+    "profession_id": 72,
+    "action_id": 11586,
+    "resource_reference": 765,
+    "minimum_level": 130,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 27860,
+    "profession_id": 72,
+    "action_id": 11587,
+    "resource_reference": 766,
+    "minimum_level": 135,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28334,
+    "profession_id": 74,
+    "action_id": 11802,
+    "resource_reference": 775,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28340,
+    "profession_id": 74,
+    "action_id": 11803,
+    "resource_reference": 776,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28346,
+    "profession_id": 74,
+    "action_id": 11804,
+    "resource_reference": 777,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28738,
+    "profession_id": 71,
+    "action_id": 12295,
+    "resource_reference": 781,
+    "minimum_level": 140,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28741,
+    "profession_id": 71,
+    "action_id": 12296,
+    "resource_reference": 782,
+    "minimum_level": 145,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28744,
+    "profession_id": 64,
+    "action_id": 12297,
+    "resource_reference": 783,
+    "minimum_level": 140,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28747,
+    "profession_id": 64,
+    "action_id": 12298,
+    "resource_reference": 784,
+    "minimum_level": 145,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28750,
+    "profession_id": 72,
+    "action_id": 12299,
+    "resource_reference": 785,
+    "minimum_level": 140,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28753,
+    "profession_id": 72,
+    "action_id": 12300,
+    "resource_reference": 786,
+    "minimum_level": 145,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28967,
+    "profession_id": 82,
+    "action_id": 12514,
+    "resource_reference": 791,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28968,
+    "profession_id": 82,
+    "action_id": 12515,
+    "resource_reference": 793,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28969,
+    "profession_id": 82,
+    "action_id": 12516,
+    "resource_reference": 792,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28970,
+    "profession_id": 82,
+    "action_id": 12517,
+    "resource_reference": 794,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28971,
+    "profession_id": 82,
+    "action_id": 12518,
+    "resource_reference": 795,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 28974,
+    "profession_id": 82,
+    "action_id": 12521,
+    "resource_reference": 796,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 29364,
+    "profession_id": 74,
+    "action_id": 12576,
+    "resource_reference": 797,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 29370,
+    "profession_id": 74,
+    "action_id": 12577,
+    "resource_reference": 798,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 29376,
+    "profession_id": 74,
+    "action_id": 12578,
+    "resource_reference": 799,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 29382,
+    "profession_id": 74,
+    "action_id": 12579,
+    "resource_reference": 800,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 29388,
+    "profession_id": 74,
+    "action_id": 12580,
+    "resource_reference": 801,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 29569,
+    "profession_id": 82,
+    "action_id": 12736,
+    "resource_reference": 802,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 29582,
+    "profession_id": 82,
+    "action_id": 12743,
+    "resource_reference": 803,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 29647,
+    "profession_id": 82,
+    "action_id": 12771,
+    "resource_reference": 804,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30143,
+    "profession_id": 74,
+    "action_id": 13162,
+    "resource_reference": 808,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30220,
+    "profession_id": 74,
+    "action_id": 13159,
+    "resource_reference": 805,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30272,
+    "profession_id": 74,
+    "action_id": 13161,
+    "resource_reference": 809,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30349,
+    "profession_id": 74,
+    "action_id": 13163,
+    "resource_reference": 806,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30389,
+    "profession_id": 74,
+    "action_id": 13160,
+    "resource_reference": 807,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30826,
+    "profession_id": 82,
+    "action_id": 13392,
+    "resource_reference": 818,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30827,
+    "profession_id": 82,
+    "action_id": 13393,
+    "resource_reference": 819,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30828,
+    "profession_id": 82,
+    "action_id": 13394,
+    "resource_reference": 820,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30829,
+    "profession_id": 82,
+    "action_id": 13395,
+    "resource_reference": 821,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30830,
+    "profession_id": 82,
+    "action_id": 13396,
+    "resource_reference": 822,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30927,
+    "profession_id": 74,
+    "action_id": 13427,
+    "resource_reference": 823,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 30938,
+    "profession_id": 82,
+    "action_id": 13435,
+    "resource_reference": 824,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31007,
+    "profession_id": 72,
+    "action_id": 13500,
+    "resource_reference": 825,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31066,
+    "profession_id": 74,
+    "action_id": 13552,
+    "resource_reference": 828,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31173,
+    "profession_id": 82,
+    "action_id": 13627,
+    "resource_reference": 826,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31175,
+    "profession_id": 82,
+    "action_id": 13628,
+    "resource_reference": 827,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31228,
+    "profession_id": 74,
+    "action_id": 13682,
+    "resource_reference": 829,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31588,
+    "profession_id": 71,
+    "action_id": 13907,
+    "resource_reference": 833,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31589,
+    "profession_id": 72,
+    "action_id": 13908,
+    "resource_reference": 834,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31763,
+    "profession_id": 74,
+    "action_id": 14041,
+    "resource_reference": 850,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31769,
+    "profession_id": 74,
+    "action_id": 14042,
+    "resource_reference": 851,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31775,
+    "profession_id": 74,
+    "action_id": 14043,
+    "resource_reference": 852,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31781,
+    "profession_id": 74,
+    "action_id": 14044,
+    "resource_reference": 854,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31787,
+    "profession_id": 74,
+    "action_id": 14045,
+    "resource_reference": 853,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31813,
+    "profession_id": 64,
+    "action_id": 14048,
+    "resource_reference": 837,
+    "minimum_level": 150,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31816,
+    "profession_id": 64,
+    "action_id": 14049,
+    "resource_reference": 838,
+    "minimum_level": 155,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31823,
+    "profession_id": 72,
+    "action_id": 14050,
+    "resource_reference": 841,
+    "minimum_level": 150,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31826,
+    "profession_id": 72,
+    "action_id": 14051,
+    "resource_reference": 842,
+    "minimum_level": 155,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31829,
+    "profession_id": 71,
+    "action_id": 14052,
+    "resource_reference": 843,
+    "minimum_level": 150,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 31832,
+    "profession_id": 71,
+    "action_id": 14053,
+    "resource_reference": 844,
+    "minimum_level": 155,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 32723,
+    "profession_id": 72,
+    "action_id": 14780,
+    "resource_reference": 855,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 32725,
+    "profession_id": 71,
+    "action_id": 14781,
+    "resource_reference": 856,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  },
+  {
+    "item_reference": 33214,
+    "profession_id": 82,
+    "action_id": 15166,
+    "resource_reference": 861,
+    "minimum_level": 0,
+    "has_item_criteria": false
+  }
+]

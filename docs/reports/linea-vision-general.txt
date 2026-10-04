@@ -1,0 +1,9 @@
+Línea de visión general adyacente — 2026-10-03
+
+ExportAdjacentCombatLOS.java evalúa Sf.bfZ del cliente instalado sobre VB/Vz reales de cada mapa, para todos los pares cardinales de superficies exportadas. Una casilla adyacente puede estar oculta: no se da por visible por distancia. Se preservan alturas y probes del raycast nativo, sin inventar aristas o paredes.
+
+combat_los.py carga protocol/combat-los/{map_id}.json.gz. Conserva el catálogo completo Amakna para sus endpoints históricos. Fuera de ese catálogo, el nuevo alcance es cardinal adyacente exclusivamente; una consulta distante o no exportada produce ValueError. No se trata ausencia de evidencia como visible ni como pared real.
+
+authoritative_visible utiliza los probes de Sf y máscaras de terreno de la pelea, junto con footprints explícitos de cada actor vivo. Los extremos no bloquean por una heurística nuestra: esa conducta se obtiene de los probes nativos. El exportador estático no afirma incorporar VD dinámicos del mundo, puertas cambiantes, estados de invisibilidad, tamaños o actores cuya obstrucción no esté representada por el llamador.
+
+Rii1385:2317 superficies,7808 pares visibles. Prueba nativa positiva (27,-25,1)→(27,-24,1), negativa (5,-21,6)→(6,-21,1). Cinco pruebas verifican Amakna, Rii, bloqueo de un actor intermedio, extremos y rechazo de rayos lejanos sin evidencia. El lote se genera desde el catálogo de934 mapas exportables; los27 mapas que no pudieron cargarse por el cliente mantienen sus errores documentados en combat-maps/index.json.

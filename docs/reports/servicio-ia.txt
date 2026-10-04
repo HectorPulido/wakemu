@@ -1,0 +1,28 @@
+IA de monstruos: servicio separado
+
+El servidor de Wakfu envía el estado del turno por HTTP al servicio de IA. El servicio calcula la misma búsqueda de rutas que existía antes y devuelve un plan. Wakfu comprueba turno, puntos de movimiento, casillas ocupadas y aristas transitables antes de ejecutarlo.
+
+Archivos
+server/ai-service/server.py: entrada HTTP, /health y /v1/decide.
+server/ai-service/planner.py: búsqueda de rutas de los monstruos.
+server/wakfu_server/combat_ai.py: cliente HTTP y validación de la respuesta.
+
+Para arrancar solo la IA en local
+WAKFU_AI_BIND=127.0.0.1 WAKFU_AI_PORT=18090 python3 server/ai-service/server.py
+El servidor local usa http://127.0.0.1:18090 por defecto; se puede cambiar con WAKFU_AI_URL.
+
+Docker
+Compose arranca ai como servicio interno en el puerto8090. world espera a que ai responda a la consulta de salud y lo usa mediante http://ai:8090. No se publica el puerto de IA hacia fuera.
+
+Alcance
+Se conserva la lógica actual. No se copiaron reglas de celdas, hechizos o modelos entrenados para Dofus. No hay Laya ni llamadas a modelos de lenguaje.
+El ejecutor de ataques y el estado autoritativo del combate siguen en Wakfu. Si la IA no responde o devuelve una ruta inválida, no se inventa un movimiento local alternativo.
+
+2026-10-03 — Servicios agrupados con Docker Compose
+El servidor de juego, la IA y Redis están funcionando dentro del proyecto wakfu-local de Docker Compose. Los tres pasaron sus comprobaciones de salud. También comprobé desde el contenedor del servidor la conexión HTTP a la IA y la conexión a Redis; el registro confirma que Redis es el backend activo de posiciones.
+Se conserva la base de datos existente en .runtime/local/world.sqlite3 y los certificados y registros en la misma carpeta. Antes del cambio guardé una copia de la base de datos en .runtime/local/world.before-compose.sqlite3.
+Retiré los tres contenedores sueltos de pruebas y cerré los procesos anteriores del servidor y de la IA. Los volúmenes de pruebas se conservaron. La prueba gráfica de un turno de monstruo después del cambio sigue pendiente.
+Comandos: docker compose up -d --build; docker compose ps; docker compose logs -f world; docker compose restart world.
+Los eventos detallados siguen en .runtime/local/logs/game-server.jsonl.
+
+Actualización de organización: el arranque oficial ahora es docker compose up -d --build desde la raíz. Código dentro de server/, cliente en client/tools/, captura en sniffer/, documentación en docs/. Redis está activo. El cliente ya reconectó y se movió contra Compose; el combate después del cambio aún requiere comprobación gráfica.

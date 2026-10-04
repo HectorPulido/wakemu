@@ -1,0 +1,84 @@
+{
+  "request": {
+    "opcode": 13241,
+    "direction": "OUT",
+    "class": "coU",
+    "body": ">qB",
+    "target": "existing fighter actor ID, not fight ID",
+    "boolean": "AUTO_LOCK_FIGHTS_KEY / autoLockFights"
+  },
+  "client_chain": [
+    "cWS.run fight.join",
+    "bvz.d",
+    "bvy extends bvC",
+    "bvC.dNd native join conditions",
+    "bvC.dNf sends coU"
+  ],
+  "incoming": [
+    {
+      "opcode": 13091,
+      "class": "cvg",
+      "handlers": [
+        "cjs participant fight buH",
+        "ckT external fight buG"
+      ],
+      "purpose": "add fighter to existing fight"
+    },
+    {
+      "opcode": 13753,
+      "class": "cuY",
+      "handler": "ckM",
+      "purpose": "construct external world fight buG for observer join action",
+      "schema_complete": true
+    }
+  ],
+  "implemented": false,
+  "architecture_blockers": [
+    "fight/runtime locals per connection",
+    "no shared fight registry by actor ID",
+    "no external fight context broadcast",
+    "combat sends target starter connection only",
+    "actor callbacks assume starter character",
+    "group reservation tied starter generation",
+    "abandon rejects multiple controlled owners"
+  ],
+  "required_tests": [
+    "two live accounts join one placement fight",
+    "concurrent final free cell join",
+    "all owners ready before start",
+    "turn acknowledgement owner fencing",
+    "starter disconnect does not release active group",
+    "per-owner HP exit and rewards exactly once"
+  ],
+  "unknowns": [
+    "joiner bootstrap ordering",
+    "full native join denial response mapping",
+    "midfight join eligibility",
+    "multiplayer individual abandonment rules"
+  ],
+  "evidence_files": [
+    ".runtime/local/multiplayer-coU.txt",
+    ".runtime/local/multiplayer-bvC.txt",
+    ".runtime/local/multiplayer-join-inbound.txt",
+    ".runtime/local/multiplayer-external-ckM.txt",
+    ".runtime/local/multiplayer-option-bWD.txt"
+  ],
+  "shared_adapter": {
+    "module": "wakfu_server.combat_shared",
+    "implemented": true,
+    "network_integrated": false,
+    "gui_verified": false,
+    "native_codecs": "wakfu_server.combat_multiplayer_wire",
+    "java_verifier": "sniffer/java/VerifyCombatJoin.java",
+    "placement_only_join": true,
+    "tests": "server/tests/test_combat_shared.py",
+    "remaining_gates": [
+      "owned joiner bootstrap order GUI",
+      "external fight flags values policy/source",
+      "single socket writer queue integration",
+      "shared pending action ACK/runtime integration",
+      "per-owner results/HP/rewards settlement",
+      "individual abandonment/timeout native flow"
+    ]
+  }
+}

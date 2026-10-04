@@ -1,0 +1,6547 @@
+{
+  "source": "Installed native Sf.bfZ over exported VB/Vz, cardinal neighbor pairs only",
+  "scope": "cardinal-adjacent-only",
+  "map_count": 934,
+  "visible_pairs": 5879012,
+  "maps": [
+    {
+      "map_id": 9,
+      "file": "9.json.gz",
+      "cells": 1732,
+      "visible_pairs": 6184,
+      "sha256": "f2993df45e615461105de3c94bdd58b761ece71de6b2619446a4c8dc29b6a9a6"
+    },
+    {
+      "map_id": 146,
+      "file": "146.json.gz",
+      "cells": 608,
+      "visible_pairs": 1780,
+      "sha256": "adf34ab6db0a37476e924142696912eb7f5e82abc8a25c1242ceafcc472e9481"
+    },
+    {
+      "map_id": 147,
+      "file": "147.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "6c2cf1b9124e1026bcad05cc32c73d4835b8c272a0a0c2d3009533e695d8e926"
+    },
+    {
+      "map_id": 151,
+      "file": "151.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1343474814d09cfbb16f07c8e923168f312af6719ac3bd2edd0f8ff433d25a3a"
+    },
+    {
+      "map_id": 153,
+      "file": "153.json.gz",
+      "cells": 366,
+      "visible_pairs": 1132,
+      "sha256": "772c68443f1be850a670aceb49e5a2f1b8b47194e64f24fc0a7e8b6cbff8d8ce"
+    },
+    {
+      "map_id": 154,
+      "file": "154.json.gz",
+      "cells": 786,
+      "visible_pairs": 2655,
+      "sha256": "d070cb98b3c95a005527fb448afd6d25745704d435c5694f62406436df960c45"
+    },
+    {
+      "map_id": 163,
+      "file": "163.json.gz",
+      "cells": 800,
+      "visible_pairs": 2620,
+      "sha256": "7a3a61b2848915a70dc160900cb53d3d7c8d62543857d7a01ad00545d308a083"
+    },
+    {
+      "map_id": 165,
+      "file": "165.json.gz",
+      "cells": 660,
+      "visible_pairs": 2186,
+      "sha256": "b7d069af7f76f3a408575b194eabe84429695a51b1ad7ef9edbef72d8fdb1cae"
+    },
+    {
+      "map_id": 179,
+      "file": "179.json.gz",
+      "cells": 132,
+      "visible_pairs": 372,
+      "sha256": "697b0c4e69206beb34f8549845074562655e1e5fa189e053d4f985008637684d"
+    },
+    {
+      "map_id": 184,
+      "file": "184.json.gz",
+      "cells": 16622,
+      "visible_pairs": 56216,
+      "sha256": "c7eff9b9851f2559c3950be3f7ae19076b2483b12d94ab590e0c791bb8410a96"
+    },
+    {
+      "map_id": 202,
+      "file": "202.json.gz",
+      "cells": 945,
+      "visible_pairs": 3158,
+      "sha256": "ddfe698d2a5e5b816eb5561e9de4c81d80590d68f70d344199757755fc8814a4"
+    },
+    {
+      "map_id": 209,
+      "file": "209.json.gz",
+      "cells": 631,
+      "visible_pairs": 1968,
+      "sha256": "3a95b6187935ee0a06a6e9c8dd435d635486de2350dc0674a4f2a9f34507537f"
+    },
+    {
+      "map_id": 223,
+      "file": "223.json.gz",
+      "cells": 2126,
+      "visible_pairs": 6816,
+      "sha256": "1f0c1d4c9772252593ad033e0daa93e7ff6287e71becb3cf73f7a5ebf6a8bce0"
+    },
+    {
+      "map_id": 224,
+      "file": "224.json.gz",
+      "cells": 2137,
+      "visible_pairs": 6841,
+      "sha256": "226492cf6cf0e123b6bd618e70f9f723b30e04f715d318d3d3ca620de50a27b4"
+    },
+    {
+      "map_id": 235,
+      "file": "235.json.gz",
+      "cells": 161081,
+      "visible_pairs": 558641,
+      "sha256": "7738233212c8e849300c995f6e9dfb39deef5ccfaa836f3ded08573bd4927ada"
+    },
+    {
+      "map_id": 295,
+      "file": "295.json.gz",
+      "cells": 1378,
+      "visible_pairs": 4522,
+      "sha256": "1e836b251bb488a732603ed279b4b5136b461196f8a68d6dc9ed3ce0c2ae346c"
+    },
+    {
+      "map_id": 296,
+      "file": "296.json.gz",
+      "cells": 1936,
+      "visible_pairs": 6430,
+      "sha256": "1612e863daab2dfe6e22d81dde68905083336487358c6a553014c5957bb8e1b7"
+    },
+    {
+      "map_id": 297,
+      "file": "297.json.gz",
+      "cells": 1092,
+      "visible_pairs": 3780,
+      "sha256": "445cce3d3a84f02d762003204bae780fdf443835d3bc32a342b62b0641f3f0c4"
+    },
+    {
+      "map_id": 299,
+      "file": "299.json.gz",
+      "cells": 1087,
+      "visible_pairs": 3792,
+      "sha256": "6927ec7750147b27836bce78487b1d267e9899480a6f31013f682c13f768e184"
+    },
+    {
+      "map_id": 301,
+      "file": "301.json.gz",
+      "cells": 2606,
+      "visible_pairs": 8898,
+      "sha256": "a28c00f026d2f297c9c4e1dcbd8c0ce7ab883e9b8e765f4f910cdbb6b1765caa"
+    },
+    {
+      "map_id": 311,
+      "file": "311.json.gz",
+      "cells": 864,
+      "visible_pairs": 3060,
+      "sha256": "27c2ecf61b733fa1069c870a315b0940167540553fb82352fa3cbcb75d5a57f8"
+    },
+    {
+      "map_id": 312,
+      "file": "312.json.gz",
+      "cells": 3823,
+      "visible_pairs": 12265,
+      "sha256": "81823eb116c4e1788c70484af7c18271936a14fd2a83d2de26f901fe7d5724c9"
+    },
+    {
+      "map_id": 323,
+      "file": "323.json.gz",
+      "cells": 8477,
+      "visible_pairs": 28423,
+      "sha256": "db46033d04a1c63617511cb906a8d5c9bb0d6387587c073ad78fa5b0fbe7642d"
+    },
+    {
+      "map_id": 325,
+      "file": "325.json.gz",
+      "cells": 824,
+      "visible_pairs": 2706,
+      "sha256": "965ed35b819f15e919fdfaad667d9247fa966a065d55e140f60d5e2d5426344e"
+    },
+    {
+      "map_id": 327,
+      "file": "327.json.gz",
+      "cells": 10889,
+      "visible_pairs": 34598,
+      "sha256": "0c5d093ad9e85a453d8f4bfbd64e6c772d9c12f065dca89388a68dad259e7b09"
+    },
+    {
+      "map_id": 330,
+      "file": "330.json.gz",
+      "cells": 2288,
+      "visible_pairs": 7606,
+      "sha256": "4d7b64941ef67ae6e9375cd20a0894a5449a970f121412ca25a7614d7667f5b9"
+    },
+    {
+      "map_id": 337,
+      "file": "337.json.gz",
+      "cells": 15541,
+      "visible_pairs": 49961,
+      "sha256": "3dc6f66c7f03951a26426380f7a238f23c8c3e2d5edb54830c55a7add8da6e73"
+    },
+    {
+      "map_id": 338,
+      "file": "338.json.gz",
+      "cells": 60,
+      "visible_pairs": 158,
+      "sha256": "a580237049415c2792cfd2ab26828e9eb4bef1484ecf5bff4532954f5038d07d"
+    },
+    {
+      "map_id": 341,
+      "file": "341.json.gz",
+      "cells": 64,
+      "visible_pairs": 210,
+      "sha256": "f4ed7002c6647c3857a34ab4143f26d372de49a4654de75ffccf41054d64feff"
+    },
+    {
+      "map_id": 342,
+      "file": "342.json.gz",
+      "cells": 4316,
+      "visible_pairs": 14263,
+      "sha256": "1e6f7a6a1aea6185b5cfb2576ee1906faa79d39a6ad1e5b1e988e1b8d49bcc60"
+    },
+    {
+      "map_id": 343,
+      "file": "343.json.gz",
+      "cells": 1017,
+      "visible_pairs": 3046,
+      "sha256": "b7bf1d8afc072f5c90036c43b8eba4b5bcafcd0fa83e5bd10013451348942e20"
+    },
+    {
+      "map_id": 346,
+      "file": "346.json.gz",
+      "cells": 777,
+      "visible_pairs": 2546,
+      "sha256": "1b13c31638dbae7abb72611c02464e3075e053f94b9ab8ed89367f56b4baa182"
+    },
+    {
+      "map_id": 347,
+      "file": "347.json.gz",
+      "cells": 226,
+      "visible_pairs": 732,
+      "sha256": "32ce87cdf9ce7a354029f89b066e13256aa35fed1ac73e5210f61b85e2e77d6d"
+    },
+    {
+      "map_id": 348,
+      "file": "348.json.gz",
+      "cells": 394,
+      "visible_pairs": 1164,
+      "sha256": "525dbdde66b12042b86249d59be188b777eb343f3e0234eefda0a3952f150e70"
+    },
+    {
+      "map_id": 349,
+      "file": "349.json.gz",
+      "cells": 17,
+      "visible_pairs": 44,
+      "sha256": "46c49c7af867162a9a2d7cad347d0eed6d94934f0626f7954e26e31ab11d703d"
+    },
+    {
+      "map_id": 350,
+      "file": "350.json.gz",
+      "cells": 141,
+      "visible_pairs": 428,
+      "sha256": "5b6126577a4119e5b158d13715ed07dc79613889c844b56964b682b036f9f214"
+    },
+    {
+      "map_id": 351,
+      "file": "351.json.gz",
+      "cells": 102,
+      "visible_pairs": 366,
+      "sha256": "225d190ceac093b819a71c6e4a0ddd9ae75d0abd7d147851b77276e5f0252952"
+    },
+    {
+      "map_id": 358,
+      "file": "358.json.gz",
+      "cells": 353,
+      "visible_pairs": 1140,
+      "sha256": "b336d9b36ae18638fff6093cf84ae95a622467700d2c63bdd1b9704b977efdb1"
+    },
+    {
+      "map_id": 360,
+      "file": "360.json.gz",
+      "cells": 261,
+      "visible_pairs": 938,
+      "sha256": "6d407044c1d6e5323b2e5779c20d73f34e24f03e0247f3d9cda8fb38699bee95"
+    },
+    {
+      "map_id": 363,
+      "file": "363.json.gz",
+      "cells": 517,
+      "visible_pairs": 1328,
+      "sha256": "57fc5dc584303e631c7fd9eba6a8e6efe7ffafaf98359c7e3619eda8e37003e1"
+    },
+    {
+      "map_id": 365,
+      "file": "365.json.gz",
+      "cells": 355,
+      "visible_pairs": 964,
+      "sha256": "511161fb1171ade0f4341192bada7174ca7208a75a2c472c21afc9a9b76ecfc5"
+    },
+    {
+      "map_id": 375,
+      "file": "375.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "9bc24ee761561c0437857e834700282a995fea63f9dcaf0265d899df71a0c5e6"
+    },
+    {
+      "map_id": 376,
+      "file": "376.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "341076857a8b9be84e2e8e975a728112aa870416d8459c8e2c6d04ee127c258e"
+    },
+    {
+      "map_id": 377,
+      "file": "377.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "edaccc6e9bc1e48666585fca96af2f092074ecb63695c02905fba3e2d61bf2c0"
+    },
+    {
+      "map_id": 378,
+      "file": "378.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "96b5ede128b46443f7f7bae7d3612359a95f65e1b989e75f9bda050b63127a15"
+    },
+    {
+      "map_id": 379,
+      "file": "379.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e780904c5f2211f4e849eda14ea1ea39c056d87c7ab90f943af8244962083b6d"
+    },
+    {
+      "map_id": 380,
+      "file": "380.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "bc4ecbddd44b85531fede7d51f475285141285e2c02770e46b8fba8ed4724b1f"
+    },
+    {
+      "map_id": 381,
+      "file": "381.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3ba849b1b0f103c5a4560c93125ffb97c33019611fd1a87f366245f8bd1d5a39"
+    },
+    {
+      "map_id": 382,
+      "file": "382.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3dc4d5839e622fef9e4d5d5d1a7522b6027a76b98734f1441aca68f8e4c87c7c"
+    },
+    {
+      "map_id": 383,
+      "file": "383.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "0a7d367a6ad987f627e23f1e155bad8d66b022acc7affdcf198f2106bc1df630"
+    },
+    {
+      "map_id": 384,
+      "file": "384.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "8a3ee8a5b35dc9ebf2ba00615082d545d9714464d6019eac05ba6631ef3b1b75"
+    },
+    {
+      "map_id": 385,
+      "file": "385.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "6831ba5e234287b73bebbc547d9ffa2ac7b34842b64b2fbbcaf699141c86ddb2"
+    },
+    {
+      "map_id": 386,
+      "file": "386.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "ef1170383b5d0ed58c60b9cb5a4d43e7dd2f2819798bdcf65d7261bc6df2137a"
+    },
+    {
+      "map_id": 387,
+      "file": "387.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "4aa50b028f168f082b6a0d670ab268f2abefa37e049601fba766cf8d4209fb8f"
+    },
+    {
+      "map_id": 388,
+      "file": "388.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "2d28686b653e214db04d44dc0ff911c4d5acf69d20cb11517ed5d6b704326441"
+    },
+    {
+      "map_id": 389,
+      "file": "389.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "c00ec3b4be7da4ee8c2ad1f599c638d1b3956904cbd3c32814d4dd5e525fab57"
+    },
+    {
+      "map_id": 390,
+      "file": "390.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "a8a02256724c816bd4cd9857721ae2eb76bbe991dab3349529aec6e8ccd833c6"
+    },
+    {
+      "map_id": 391,
+      "file": "391.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "a3844c20e4e37eca27e5fc500b80ebe387cc4b2588e371183a680e8fc91bf68a"
+    },
+    {
+      "map_id": 392,
+      "file": "392.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "5ee09829b27f4768646e95a0a0d35c256e260bc18d1e43dc16d48e4f9cd7d7c5"
+    },
+    {
+      "map_id": 393,
+      "file": "393.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1d1b9845b0cb922f2ef2fe1fbf24071110750c3788275c00cf5590479301db34"
+    },
+    {
+      "map_id": 394,
+      "file": "394.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "f2895781c87f0d66bb3eca44ccef7992267abd189b270795c1f58a0fe63c3a21"
+    },
+    {
+      "map_id": 395,
+      "file": "395.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "80aee83cbbe50fd2f7663daa2dab8ed08dc2d9a4ec661269963a6537fe6a8498"
+    },
+    {
+      "map_id": 396,
+      "file": "396.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3c4d45e60f22f20e6335e81cdcb4ea032f5dc8033e8fc873207a07dc590fa2e9"
+    },
+    {
+      "map_id": 397,
+      "file": "397.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1d5b73d145a46e98b71bd8a08a7ed78fe1ebc3d6658723248040fa7e2c29225b"
+    },
+    {
+      "map_id": 398,
+      "file": "398.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "ea0a3ef7fc21d4132d3fb0d2b45c99f8294b7a10e5f5440518888fec49b860d9"
+    },
+    {
+      "map_id": 399,
+      "file": "399.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "573a671a522bcafedeb372cd59b26fddfe289b2fc45f4e46b28fbceeb9f3ebe7"
+    },
+    {
+      "map_id": 400,
+      "file": "400.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "31513a57710a8818b0db724c5fc14327443838ffe46ec26bebd870b175cb2900"
+    },
+    {
+      "map_id": 401,
+      "file": "401.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "71c1a1de73ba469e305c8023fcf49a287d8316a79588e96fc861b7a7bb2bdc6f"
+    },
+    {
+      "map_id": 402,
+      "file": "402.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "59cd643a6cf8604ba4739c41ea4483e2e602b1696d7605344eb739f9f6d5735a"
+    },
+    {
+      "map_id": 403,
+      "file": "403.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "9f5c3ab3fa9f1ebe5c8ebddcc21ace907c66783bd7ee4b0065a3561f4f78f32a"
+    },
+    {
+      "map_id": 404,
+      "file": "404.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "baac0b27f52b8c13873c4a15d87ddce8af788c81ffb2eeb7d52aeb7cf5a2f10a"
+    },
+    {
+      "map_id": 405,
+      "file": "405.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "586e85a5806960253dce0271a4f9c2db38a091d109944e34171a27d9c0d60019"
+    },
+    {
+      "map_id": 406,
+      "file": "406.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "8505aac0a3cfac07f7a7abc4c4e29fd35c159b9e2b7bc5603c871c8d6a503be7"
+    },
+    {
+      "map_id": 407,
+      "file": "407.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "f7ec80f28d6b85562caa0187598f7f44c92f3d74b4d3581451cdc51e8d3ec7f9"
+    },
+    {
+      "map_id": 408,
+      "file": "408.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "817355fbe5d31fad2d01d641b2cacead6d20f61df00a4d52bf6b2197e715f593"
+    },
+    {
+      "map_id": 409,
+      "file": "409.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "fcfa517534fe3112985371629d332be1cffd25a1cc4409feb0be40581c4808c2"
+    },
+    {
+      "map_id": 410,
+      "file": "410.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "28b91a67c73387ecbb634ef6bc71c00bfa6ef018410dd2c6963edbd288502754"
+    },
+    {
+      "map_id": 411,
+      "file": "411.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "757ca3efafaaba5d1f00148c26f7b88e3fdb3aff5d97e15839eab5acee1cc23c"
+    },
+    {
+      "map_id": 412,
+      "file": "412.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "351e3381457bdd3b4d754751c9c2190de56aa13962aebd0189ccb00eadc9b64d"
+    },
+    {
+      "map_id": 413,
+      "file": "413.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "427dcc6b4c7b05610a51e77719836d2b0297a6b3483b5c8b3a80cd386f1f4bbc"
+    },
+    {
+      "map_id": 414,
+      "file": "414.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "ab3b36c4fd25af2c6ec6e89146bf3777fd8212abf8f460a750ff1833571339a7"
+    },
+    {
+      "map_id": 415,
+      "file": "415.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "bc428228d5b9e10f9b70a4867fa8c0903c53d1989a29dbc93665a557ecba3b74"
+    },
+    {
+      "map_id": 416,
+      "file": "416.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "014e4532f7c2b4174a05497bbeef7431efe4343490985a676157aafb19879e75"
+    },
+    {
+      "map_id": 417,
+      "file": "417.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "93d36aaa522f7d805d891a67c6593c34df88d77d559a68371980c430c82aa501"
+    },
+    {
+      "map_id": 418,
+      "file": "418.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "2368c161cff8c7316d4ac80945282b7a9c12ddc3d19f889fd65ee9a29815dc5d"
+    },
+    {
+      "map_id": 419,
+      "file": "419.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "c5c5398a17cf696421e179e8f60f9c6e81be61b4793dd109d52fb3b3be6ab0ac"
+    },
+    {
+      "map_id": 420,
+      "file": "420.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e706afad0754b504b8e1b3023d204b2e730ad74caaf5454be82d06ef4ffa303c"
+    },
+    {
+      "map_id": 421,
+      "file": "421.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3d6f084ebca2f6e6ff4a1fada3d344fa1d7897cd74188964f135b24780a3b721"
+    },
+    {
+      "map_id": 422,
+      "file": "422.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "ef6ac9e6bfff8749d20358bfd3b63d534099bda38bc73febd2f58d05c42664c9"
+    },
+    {
+      "map_id": 423,
+      "file": "423.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "87e5c12d9f7048f3aecf4b2a357c9e1b8103caba6044506f9124efe4c2a24952"
+    },
+    {
+      "map_id": 424,
+      "file": "424.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "0adb5509e3e0f9f0f50da143278d3099c38e5bc01be1337e6c30fd0590191655"
+    },
+    {
+      "map_id": 425,
+      "file": "425.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "94435a24231fc4a148b1b59fd2d77f044e00daf5dca9cc7a97f20b5e4eae3d4b"
+    },
+    {
+      "map_id": 426,
+      "file": "426.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "fd6b17920578ca866cc038601a698a0bee69e133a641a381038e706dfe134452"
+    },
+    {
+      "map_id": 427,
+      "file": "427.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "0f281699711367fab49304517e7d5d7f3040c70af75b6fbf8e41041a5f09079b"
+    },
+    {
+      "map_id": 428,
+      "file": "428.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "68746e8aafc31a9f408a8e609317fe9256baa6b28d1b63a1c1a07ed06dc69d24"
+    },
+    {
+      "map_id": 429,
+      "file": "429.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "796dd279fe65174b974589c9498f00a363081d6a9f8be13b80c8c7d3debe9c5d"
+    },
+    {
+      "map_id": 430,
+      "file": "430.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "4b178257810413505cb4b5a1f7e79a429734da64e189b6388a42ce9f79bf1c95"
+    },
+    {
+      "map_id": 431,
+      "file": "431.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "7e8913bbea299788f4e07403297de55025aabbec0519743b8c90c0688446b815"
+    },
+    {
+      "map_id": 432,
+      "file": "432.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "83e68b0d0c9cc13fbe8a4353b55ecf3a7a6a0007bd0dc1d736578a9b6e27849c"
+    },
+    {
+      "map_id": 433,
+      "file": "433.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3ebcb3c72a12f66d8e8c1879e8deca3bdf60be3f54ee4b7092f0fe5e2ef32585"
+    },
+    {
+      "map_id": 434,
+      "file": "434.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "acb84c85db4404178bfcda9e658b64506d19b4d7ba2d83a4509db8f18c171758"
+    },
+    {
+      "map_id": 436,
+      "file": "436.json.gz",
+      "cells": 234,
+      "visible_pairs": 761,
+      "sha256": "1fa45e27923cce0b204ce8596d55ddc846b5c456fbfc279ffa1ad40f2aec8bef"
+    },
+    {
+      "map_id": 437,
+      "file": "437.json.gz",
+      "cells": 544,
+      "visible_pairs": 1960,
+      "sha256": "eed6c43684d30bcc71ffb630a83dc61bf6d16c720044e2b467ddc257edf7f290"
+    },
+    {
+      "map_id": 438,
+      "file": "438.json.gz",
+      "cells": 132,
+      "visible_pairs": 402,
+      "sha256": "4f698f39bc8131183cd98779796d58c49b8e4695925dde00c8e4a675dba94837"
+    },
+    {
+      "map_id": 439,
+      "file": "439.json.gz",
+      "cells": 126,
+      "visible_pairs": 406,
+      "sha256": "e7b6ace94275d7c5198549b32be04eba1f2d28f4115e17e7178459ea4ec91782"
+    },
+    {
+      "map_id": 440,
+      "file": "440.json.gz",
+      "cells": 136,
+      "visible_pairs": 420,
+      "sha256": "d36f7f698ea08d5c4e6faa139651a59a991b676491adfbb7191fc37c59c51146"
+    },
+    {
+      "map_id": 441,
+      "file": "441.json.gz",
+      "cells": 115,
+      "visible_pairs": 354,
+      "sha256": "d8d0bd137121d14fb16db7e793ecabe386b46f312dfdb621b82ec7c096ff0de6"
+    },
+    {
+      "map_id": 443,
+      "file": "443.json.gz",
+      "cells": 390,
+      "visible_pairs": 1342,
+      "sha256": "c18350800b598d6a7134b0e9bf54d83c6a173bd7980c69c751ff94326d005abd"
+    },
+    {
+      "map_id": 444,
+      "file": "444.json.gz",
+      "cells": 18335,
+      "visible_pairs": 63304,
+      "sha256": "988b2fa6d4e346d600ad3ace7994169d58102a4f5f9d42826e298c3095373440"
+    },
+    {
+      "map_id": 445,
+      "file": "445.json.gz",
+      "cells": 1452,
+      "visible_pairs": 4888,
+      "sha256": "fabe415ce13284a5d11380128d5d3e52f4502f79a029a379b0ad25d82f5cb0d2"
+    },
+    {
+      "map_id": 446,
+      "file": "446.json.gz",
+      "cells": 1179,
+      "visible_pairs": 3812,
+      "sha256": "d6a53b6d9c78e22daca098a7a0cfb8669ada961168913da2c01fc4765103ec63"
+    },
+    {
+      "map_id": 447,
+      "file": "447.json.gz",
+      "cells": 1889,
+      "visible_pairs": 6576,
+      "sha256": "909e03979d09a2843e75a1fb8d07da522f21ae543321c4dd27c127f11e6c6e76"
+    },
+    {
+      "map_id": 448,
+      "file": "448.json.gz",
+      "cells": 1252,
+      "visible_pairs": 4300,
+      "sha256": "a521c07ba7538cc4a06fa7a534c1c8fa5ff7d77fd4db19785cca6c8d45547261"
+    },
+    {
+      "map_id": 449,
+      "file": "449.json.gz",
+      "cells": 112,
+      "visible_pairs": 316,
+      "sha256": "3dcd20028dace17bfd968b4313336374c78e3f6724ae4cf8794c7a55f6c882df"
+    },
+    {
+      "map_id": 452,
+      "file": "452.json.gz",
+      "cells": 948,
+      "visible_pairs": 2970,
+      "sha256": "1f8a018fd4f1dbadc924387242e5eeb6e30e95b66b56de0cb3c198017487d302"
+    },
+    {
+      "map_id": 453,
+      "file": "453.json.gz",
+      "cells": 329,
+      "visible_pairs": 1154,
+      "sha256": "6cbbbfa835fa80d9bf2c9a0e3510473f43b05ddd6898315c912d318f148a5a99"
+    },
+    {
+      "map_id": 455,
+      "file": "455.json.gz",
+      "cells": 18973,
+      "visible_pairs": 69334,
+      "sha256": "cbfb7898e1f0a500d72397758b0766b496a101a7669b26802c8023c0e12b52db"
+    },
+    {
+      "map_id": 456,
+      "file": "456.json.gz",
+      "cells": 1428,
+      "visible_pairs": 4714,
+      "sha256": "9206cf10c3594f582de807051643c06952d944991f9a3a0d35c3265fff756040"
+    },
+    {
+      "map_id": 458,
+      "file": "458.json.gz",
+      "cells": 15553,
+      "visible_pairs": 53762,
+      "sha256": "71fe16ad9e0f4c9b52f7f66d8f2af0bfab5f19f27bb34bb5526ed0e671899575"
+    },
+    {
+      "map_id": 459,
+      "file": "459.json.gz",
+      "cells": 156,
+      "visible_pairs": 468,
+      "sha256": "e01eb72793aacedf5e703d022ee1749b161bceb2ba1f978abbf03a230cc2d7a2"
+    },
+    {
+      "map_id": 460,
+      "file": "460.json.gz",
+      "cells": 505,
+      "visible_pairs": 1804,
+      "sha256": "56d6089863dd760570fd365e59a3a392f3d12075212737224063360605ae40c3"
+    },
+    {
+      "map_id": 461,
+      "file": "461.json.gz",
+      "cells": 487,
+      "visible_pairs": 1500,
+      "sha256": "b152b09a3703332464d8a3cb85ea33a4279fce1f2d2e7e4196eba43d384123d1"
+    },
+    {
+      "map_id": 466,
+      "file": "466.json.gz",
+      "cells": 934,
+      "visible_pairs": 3288,
+      "sha256": "d2f3d0eb4c8b469a76dd9b21fccea1e304700a8daf9877fbc195559aa8f08a4a"
+    },
+    {
+      "map_id": 467,
+      "file": "467.json.gz",
+      "cells": 819,
+      "visible_pairs": 2830,
+      "sha256": "bdcd093fd68c509ce73860ca43cf10411541a78582e28120aa442e05c5593877"
+    },
+    {
+      "map_id": 468,
+      "file": "468.json.gz",
+      "cells": 1018,
+      "visible_pairs": 3620,
+      "sha256": "5112c8ae985397b31ef48c9e5baba52ed6027b81a0cb86cf040a096484492a47"
+    },
+    {
+      "map_id": 471,
+      "file": "471.json.gz",
+      "cells": 848,
+      "visible_pairs": 2805,
+      "sha256": "88748f1e0aed5e500e2cc20dbce1dcbd224b1794a434e8566ca646f2a65e7611"
+    },
+    {
+      "map_id": 472,
+      "file": "472.json.gz",
+      "cells": 6293,
+      "visible_pairs": 23092,
+      "sha256": "82a03d1bca856c9267d611395f5c9f04f4c768194b66ae60af84ab35431556af"
+    },
+    {
+      "map_id": 474,
+      "file": "474.json.gz",
+      "cells": 486,
+      "visible_pairs": 1524,
+      "sha256": "14d52a3bd328fd31400c628c92fd7a525bd6b92f6f976b38b2f64483ad5a4816"
+    },
+    {
+      "map_id": 475,
+      "file": "475.json.gz",
+      "cells": 1305,
+      "visible_pairs": 3580,
+      "sha256": "ef3194b74d40b55cd7b53526dc801e873191baa27c9ab3d473672e8ffb98608c"
+    },
+    {
+      "map_id": 476,
+      "file": "476.json.gz",
+      "cells": 103,
+      "visible_pairs": 324,
+      "sha256": "685ec9f278afc8b94d774d746d227b2748154f67446b810cdcdc3e020baad0b9"
+    },
+    {
+      "map_id": 477,
+      "file": "477.json.gz",
+      "cells": 506,
+      "visible_pairs": 1646,
+      "sha256": "8fb8d5776160b0a9bf3446d4ab1d376b7ee36fa4e125b4f2d3e854b85a67392b"
+    },
+    {
+      "map_id": 479,
+      "file": "479.json.gz",
+      "cells": 141,
+      "visible_pairs": 316,
+      "sha256": "eb94f572be9f9215aa07c16df771780cf8ff724553053424911424d41eb379b7"
+    },
+    {
+      "map_id": 481,
+      "file": "481.json.gz",
+      "cells": 63,
+      "visible_pairs": 210,
+      "sha256": "d136be79321dac97e634536fb684a6cbe2ad8eb5a4420afff5b6091dbea7f75e"
+    },
+    {
+      "map_id": 483,
+      "file": "483.json.gz",
+      "cells": 420,
+      "visible_pairs": 1436,
+      "sha256": "7620132d72d96455e7f5d9ef7ca6b631cbaf785309fe9bd6dba7d3650ac946ca"
+    },
+    {
+      "map_id": 485,
+      "file": "485.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "a7511501859a9ca79fa5a51b3bb868bac9a5249937db34f87284955b7e2234a6"
+    },
+    {
+      "map_id": 493,
+      "file": "493.json.gz",
+      "cells": 1407,
+      "visible_pairs": 4744,
+      "sha256": "f3e5d246962c0010e53ca9d315ebdb51cda9e4f7d17ee156690492114e956242"
+    },
+    {
+      "map_id": 495,
+      "file": "495.json.gz",
+      "cells": 1262,
+      "visible_pairs": 4080,
+      "sha256": "2db6faa52cfa2ae0141b3c700ddb234c4c0a76fb7dc7fca0fc4daf94622d2444"
+    },
+    {
+      "map_id": 496,
+      "file": "496.json.gz",
+      "cells": 506,
+      "visible_pairs": 1538,
+      "sha256": "d30e87244bb9a124f3ba15f7c19e69433028729448beb3826d3cfae0a44826b4"
+    },
+    {
+      "map_id": 504,
+      "file": "504.json.gz",
+      "cells": 9051,
+      "visible_pairs": 30588,
+      "sha256": "c7781c8ffe859f06250f5fd0ad1c5f43690295d665c2d740b5c842ea5d278967"
+    },
+    {
+      "map_id": 507,
+      "file": "507.json.gz",
+      "cells": 7545,
+      "visible_pairs": 24213,
+      "sha256": "c8d07f524acf68fc1b5b42958016d24ecd5eba037069f98ac35d8c43affc016d"
+    },
+    {
+      "map_id": 508,
+      "file": "508.json.gz",
+      "cells": 6379,
+      "visible_pairs": 22108,
+      "sha256": "d883af8dc9d7d8da490a4e61a349305541b7b7eaea1d962a51d4d09e8eb6f59e"
+    },
+    {
+      "map_id": 510,
+      "file": "510.json.gz",
+      "cells": 1150,
+      "visible_pairs": 3765,
+      "sha256": "3fa6d92582144e0565b8c514359ef7fb027f8dad902c49031f5ea4e8ba6258ec"
+    },
+    {
+      "map_id": 515,
+      "file": "515.json.gz",
+      "cells": 486,
+      "visible_pairs": 1720,
+      "sha256": "2bd60759611e0a01c23e29791f36679b349f31c3ac619f20a2a21cacbe806585"
+    },
+    {
+      "map_id": 516,
+      "file": "516.json.gz",
+      "cells": 1345,
+      "visible_pairs": 4554,
+      "sha256": "b5d6393b9a67a4db3f2b6c24f6aeac89a361ce0c000b7b7b00e77f6f839d7192"
+    },
+    {
+      "map_id": 517,
+      "file": "517.json.gz",
+      "cells": 356,
+      "visible_pairs": 1172,
+      "sha256": "34746c4b5d53c2e4e7d489510d2fd3b754a2dc6684444b4638738395e04a14af"
+    },
+    {
+      "map_id": 518,
+      "file": "518.json.gz",
+      "cells": 476,
+      "visible_pairs": 1632,
+      "sha256": "bebcb82ea30aa99ee39c38505fde96f3af51e55f282d18d98124642942931bde"
+    },
+    {
+      "map_id": 519,
+      "file": "519.json.gz",
+      "cells": 124,
+      "visible_pairs": 302,
+      "sha256": "ffaa068f2cdaf029bbb8c191891ad16634126f0fc569c9f8a5a629b1faa45ee4"
+    },
+    {
+      "map_id": 520,
+      "file": "520.json.gz",
+      "cells": 113,
+      "visible_pairs": 320,
+      "sha256": "ae4b0247ac9b92bdd950463b6af4611a00c459d525bbcc1606da0f775344178a"
+    },
+    {
+      "map_id": 521,
+      "file": "521.json.gz",
+      "cells": 350,
+      "visible_pairs": 1102,
+      "sha256": "ec2782160311d3d873b750d04e9e0606f00ddf8d4d55ff119d0570b8faf7b7b3"
+    },
+    {
+      "map_id": 522,
+      "file": "522.json.gz",
+      "cells": 413,
+      "visible_pairs": 1356,
+      "sha256": "4e35ce2785b8d89db90273d06915c815301a3228f6da546925348fdaff6f6266"
+    },
+    {
+      "map_id": 523,
+      "file": "523.json.gz",
+      "cells": 91,
+      "visible_pairs": 272,
+      "sha256": "da5d18413a74cbcf444e3190aad371bc609feda126991c08bf7e869bcdc9ddb4"
+    },
+    {
+      "map_id": 524,
+      "file": "524.json.gz",
+      "cells": 4271,
+      "visible_pairs": 14252,
+      "sha256": "194e817b428da57b97a0291894c5951c451248f2822144cdc7387d8fc16db75d"
+    },
+    {
+      "map_id": 525,
+      "file": "525.json.gz",
+      "cells": 76,
+      "visible_pairs": 188,
+      "sha256": "3195c986e23121060bcc6370ad63b791504f2007826c1c08ddda78ebe97ff477"
+    },
+    {
+      "map_id": 526,
+      "file": "526.json.gz",
+      "cells": 45,
+      "visible_pairs": 112,
+      "sha256": "95ce55058ac9baf52dcb6d9881d98151f988e7915bfcc8171de6abe6479471b0"
+    },
+    {
+      "map_id": 527,
+      "file": "527.json.gz",
+      "cells": 65285,
+      "visible_pairs": 222536,
+      "sha256": "072bc0f3fed88daa93a9dd7cbe812f8d3304c0e227786422fd157ecf1eac06f2"
+    },
+    {
+      "map_id": 528,
+      "file": "528.json.gz",
+      "cells": 512,
+      "visible_pairs": 1732,
+      "sha256": "83af61833218a959cfe99c527d5a9bc9382309070d95086c0560071f296dc872"
+    },
+    {
+      "map_id": 529,
+      "file": "529.json.gz",
+      "cells": 593,
+      "visible_pairs": 1998,
+      "sha256": "863a920c79ffdead2d376b4fa1373352d1d6a82225f27059433e0fe7cf387e82"
+    },
+    {
+      "map_id": 532,
+      "file": "532.json.gz",
+      "cells": 27,
+      "visible_pairs": 28,
+      "sha256": "61afa611486029eaa5fe8796465a1f07df9387506db51d310c7e3b50c7bb8699"
+    },
+    {
+      "map_id": 533,
+      "file": "533.json.gz",
+      "cells": 100,
+      "visible_pairs": 304,
+      "sha256": "47038ee08db7051b5672e03e094bf7d25899bb8cba31c96ad3bdf28a71889de4"
+    },
+    {
+      "map_id": 534,
+      "file": "534.json.gz",
+      "cells": 91,
+      "visible_pairs": 254,
+      "sha256": "adfcfe49f2656af013c0533987cf68679704c8e08c3c4ac435568790d30ae105"
+    },
+    {
+      "map_id": 535,
+      "file": "535.json.gz",
+      "cells": 160,
+      "visible_pairs": 518,
+      "sha256": "dacfa70247c4f9f8bd3f00f234f594d996c83073d4e3754c9b502529111b0187"
+    },
+    {
+      "map_id": 536,
+      "file": "536.json.gz",
+      "cells": 137,
+      "visible_pairs": 456,
+      "sha256": "b7f8aac95564f674250bae91c2f28c90e069988f3f0080b576693195e85989b6"
+    },
+    {
+      "map_id": 537,
+      "file": "537.json.gz",
+      "cells": 72,
+      "visible_pairs": 200,
+      "sha256": "b14b24176e937b5001fd4e8f42e8655860e386578bdc5bbc14448468dc0633ec"
+    },
+    {
+      "map_id": 539,
+      "file": "539.json.gz",
+      "cells": 43,
+      "visible_pairs": 104,
+      "sha256": "d5054717119bde4ff08a1f8f737fe55101860267ccb5a327369c5d37dd925352"
+    },
+    {
+      "map_id": 540,
+      "file": "540.json.gz",
+      "cells": 145,
+      "visible_pairs": 472,
+      "sha256": "11f8aac592182dbcde33ba612216cf5ea8933a618192357d4a113fa79f8c3226"
+    },
+    {
+      "map_id": 541,
+      "file": "541.json.gz",
+      "cells": 256,
+      "visible_pairs": 884,
+      "sha256": "2c11af98319ac55ee5001376a735c44a8df1aa1a10887808aca9e75cf441c0ea"
+    },
+    {
+      "map_id": 542,
+      "file": "542.json.gz",
+      "cells": 183,
+      "visible_pairs": 589,
+      "sha256": "4bfe2d218db522dd8fd90fc88f74d8412014f2e47985dd2493a94a6d21588f29"
+    },
+    {
+      "map_id": 543,
+      "file": "543.json.gz",
+      "cells": 183,
+      "visible_pairs": 589,
+      "sha256": "e7f2989270c0f7adb8f1f7c981264cda8d6ca1d467184bf15acb4cc666079fd4"
+    },
+    {
+      "map_id": 544,
+      "file": "544.json.gz",
+      "cells": 599,
+      "visible_pairs": 1574,
+      "sha256": "ae1a468ea9aafd8021fb4e48e49fe078d125b22ee76905425637dd3900e81cf3"
+    },
+    {
+      "map_id": 545,
+      "file": "545.json.gz",
+      "cells": 566,
+      "visible_pairs": 1885,
+      "sha256": "e883d5e5ae789bdbbb6ca8852bde8d4208e3ad841728fee12427b20370fd284f"
+    },
+    {
+      "map_id": 546,
+      "file": "546.json.gz",
+      "cells": 3480,
+      "visible_pairs": 11414,
+      "sha256": "4f266d55b0730f5d7dce12d48da95d45fd2416200706117c2aceac451fc9770c"
+    },
+    {
+      "map_id": 548,
+      "file": "548.json.gz",
+      "cells": 1010,
+      "visible_pairs": 3346,
+      "sha256": "3a1d4d4d359f8f8e85b49bc7f9dd46951990e4916d2aff9c60237e3a76774906"
+    },
+    {
+      "map_id": 549,
+      "file": "549.json.gz",
+      "cells": 334,
+      "visible_pairs": 1120,
+      "sha256": "436a058d953e46374fa80b9188baa457ac4c10f06d13d3b47c19ee19b7cdf9c0"
+    },
+    {
+      "map_id": 552,
+      "file": "552.json.gz",
+      "cells": 2319,
+      "visible_pairs": 8094,
+      "sha256": "07bf808d1ee92b843f3c74fe21258921187faa748da58459953c33ddae8b1d93"
+    },
+    {
+      "map_id": 553,
+      "file": "553.json.gz",
+      "cells": 651,
+      "visible_pairs": 1790,
+      "sha256": "c7d374cef70174687448d7d1c05ab7710c8e043c43d5cdc2543da8834a50f036"
+    },
+    {
+      "map_id": 554,
+      "file": "554.json.gz",
+      "cells": 1069,
+      "visible_pairs": 3896,
+      "sha256": "ca2e82086c2ce5a768d3f2568d6c75b54ca22e20eefc98f764d6cb96a5d9d8fc"
+    },
+    {
+      "map_id": 557,
+      "file": "557.json.gz",
+      "cells": 429,
+      "visible_pairs": 1447,
+      "sha256": "965bf6356ba734b03a83ab81e64b30b226d4fa2a4a8bf685386249f0a72f620b"
+    },
+    {
+      "map_id": 559,
+      "file": "559.json.gz",
+      "cells": 482,
+      "visible_pairs": 1642,
+      "sha256": "c5f3e6743b5b7f0f64ba804f4205730991f4a4bc9a877218332d9692d52ba01f"
+    },
+    {
+      "map_id": 560,
+      "file": "560.json.gz",
+      "cells": 917,
+      "visible_pairs": 3038,
+      "sha256": "c9da93f19f1e18cef27e7e82b2dcd085780c35802f56aa1042fa5eaebfaa0e23"
+    },
+    {
+      "map_id": 571,
+      "file": "571.json.gz",
+      "cells": 62,
+      "visible_pairs": 188,
+      "sha256": "823550319a73cb12c67b87217606c55e2f64386e1b89f788af8ca3677503dc1f"
+    },
+    {
+      "map_id": 572,
+      "file": "572.json.gz",
+      "cells": 113,
+      "visible_pairs": 321,
+      "sha256": "a44ab4081740e6d498aa1987791f76b0317cb6b7e24d92ff2c5a1be931cce50f"
+    },
+    {
+      "map_id": 573,
+      "file": "573.json.gz",
+      "cells": 62,
+      "visible_pairs": 188,
+      "sha256": "4f0a75156db18e446200df00e734e09ae6af71bd6b81e8d2b1d92847bc3fbbdb"
+    },
+    {
+      "map_id": 583,
+      "file": "583.json.gz",
+      "cells": 181,
+      "visible_pairs": 532,
+      "sha256": "c4cb107ad0bd1030c7b334ece3066c4c2baea5e50bb5bf98f1d93bdfff9f159b"
+    },
+    {
+      "map_id": 584,
+      "file": "584.json.gz",
+      "cells": 807,
+      "visible_pairs": 2682,
+      "sha256": "73e4ebb764dd3b3b7b16173e6c949bfe0270b20248a9059b2639b14c42a1c066"
+    },
+    {
+      "map_id": 585,
+      "file": "585.json.gz",
+      "cells": 1070,
+      "visible_pairs": 3704,
+      "sha256": "bea03af960bcd9bd60f57adf77b2239e7f3d5eea2387a6c8117c5a841b8ca73e"
+    },
+    {
+      "map_id": 586,
+      "file": "586.json.gz",
+      "cells": 1883,
+      "visible_pairs": 6398,
+      "sha256": "9e4426f6ee8620a77808d3d159f6831f7a88f23407bd13c180bb218fcd4e063f"
+    },
+    {
+      "map_id": 587,
+      "file": "587.json.gz",
+      "cells": 1214,
+      "visible_pairs": 4280,
+      "sha256": "cdcccb9c4a4688bd2e1b0663aa3ef66edd23ae5203059a8f28c03b961ea2d97a"
+    },
+    {
+      "map_id": 588,
+      "file": "588.json.gz",
+      "cells": 363,
+      "visible_pairs": 1212,
+      "sha256": "d10fb157d6c8e1f69400adc9a3b93cbb6a1a1e2abbea3ea23ef3996b87ba9c23"
+    },
+    {
+      "map_id": 589,
+      "file": "589.json.gz",
+      "cells": 237,
+      "visible_pairs": 734,
+      "sha256": "7f1d99a8432eb93218b1985e5ff576fcc026a18f834c8be48e03adf39cf9f9d9"
+    },
+    {
+      "map_id": 590,
+      "file": "590.json.gz",
+      "cells": 1165,
+      "visible_pairs": 3912,
+      "sha256": "52be3c64061114b00fa55385880739bd1cf040604e517b3905d466aff5018eab"
+    },
+    {
+      "map_id": 591,
+      "file": "591.json.gz",
+      "cells": 777,
+      "visible_pairs": 2832,
+      "sha256": "37d4065c5a2e7e5fdd73ec7c9056563a78c002fb592c2a888ba953b004ae0caa"
+    },
+    {
+      "map_id": 592,
+      "file": "592.json.gz",
+      "cells": 278,
+      "visible_pairs": 880,
+      "sha256": "a666cfb1aec40c3bafd0a5ea1fef6187468fcbe9b67d56460218230f6d90e858"
+    },
+    {
+      "map_id": 593,
+      "file": "593.json.gz",
+      "cells": 411,
+      "visible_pairs": 1300,
+      "sha256": "7fcde830e2c31d12526f836ad556d7f76334ad9e21cfe7e91b9231d2c4c10864"
+    },
+    {
+      "map_id": 597,
+      "file": "597.json.gz",
+      "cells": 192,
+      "visible_pairs": 584,
+      "sha256": "9a4a18d92f46b0963492119db051eef561c30682c1f60b75b74e969f78e7c617"
+    },
+    {
+      "map_id": 598,
+      "file": "598.json.gz",
+      "cells": 215,
+      "visible_pairs": 652,
+      "sha256": "3e3ab5720ac461c452576db62972da551242ca48305a10218780471bd38587e8"
+    },
+    {
+      "map_id": 599,
+      "file": "599.json.gz",
+      "cells": 835,
+      "visible_pairs": 3004,
+      "sha256": "2377641db5a1bf3fc24dd6ba36a460bbe9431030ed0dafcae564cb507e4356a2"
+    },
+    {
+      "map_id": 600,
+      "file": "600.json.gz",
+      "cells": 347,
+      "visible_pairs": 1118,
+      "sha256": "4e0bb8a9f177c69bcc41747272a66d6394c71a63ce38fc1ac23be971f8ee426e"
+    },
+    {
+      "map_id": 601,
+      "file": "601.json.gz",
+      "cells": 350,
+      "visible_pairs": 1138,
+      "sha256": "4d1ace22b04f1660aa9e7dbbb7f1f90c2ac64861fc1e9354a2a2e294e5f169d6"
+    },
+    {
+      "map_id": 602,
+      "file": "602.json.gz",
+      "cells": 693,
+      "visible_pairs": 2181,
+      "sha256": "167793a4915914cda9d54edd10a917f033c31d66bfab3881ea5344c1c405c666"
+    },
+    {
+      "map_id": 603,
+      "file": "603.json.gz",
+      "cells": 311,
+      "visible_pairs": 940,
+      "sha256": "2a7fae09cca83ed8dadb1f96149034a34d3405f78e5366351d4f25bc97464c1e"
+    },
+    {
+      "map_id": 604,
+      "file": "604.json.gz",
+      "cells": 363,
+      "visible_pairs": 1212,
+      "sha256": "f21eaba1f1edcb001c6bb297233f8b2aa0158fce56f56d0c3b8d65cd1d933e45"
+    },
+    {
+      "map_id": 609,
+      "file": "609.json.gz",
+      "cells": 174,
+      "visible_pairs": 568,
+      "sha256": "38cbac9d493ac140e5e1b1cdfc6e92bdc2ae39310946b19bd825013689bdafb5"
+    },
+    {
+      "map_id": 610,
+      "file": "610.json.gz",
+      "cells": 127,
+      "visible_pairs": 414,
+      "sha256": "f8684849b0b5df12862d699da3d5bcac198b59aba2ab63b2785151b5a32824cd"
+    },
+    {
+      "map_id": 611,
+      "file": "611.json.gz",
+      "cells": 114,
+      "visible_pairs": 386,
+      "sha256": "5e4a7814830c05e8a3a08e091f0a10ebf465c89ce6a211f3bfadad4a864ae85a"
+    },
+    {
+      "map_id": 615,
+      "file": "615.json.gz",
+      "cells": 7855,
+      "visible_pairs": 26657,
+      "sha256": "85ae56c3512c9333c6227cd7dcb552cb4d8cd06cd1cc7af746b3155681ac79a5"
+    },
+    {
+      "map_id": 616,
+      "file": "616.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "681715d1e2dbe5c3e3b30878ea044c33fd44c6f34c8396ebc3f3ca5668bade6f"
+    },
+    {
+      "map_id": 617,
+      "file": "617.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "74753e61318c30161d1c64b11a65c265513f89383ef942457319792cfb4cb310"
+    },
+    {
+      "map_id": 618,
+      "file": "618.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1ba35cdf0497bf4e295472ea9a404a095049b0d4e85edd6eee3965e11263d1c7"
+    },
+    {
+      "map_id": 619,
+      "file": "619.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "40154a2cbb06398279d28a3e3a42b5ce57925b26b1fb9e767a99b91341a32741"
+    },
+    {
+      "map_id": 620,
+      "file": "620.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "de200f44cb13994407e1c55b7022d3c1363a92b1c63ee52114133bc226134c2b"
+    },
+    {
+      "map_id": 622,
+      "file": "622.json.gz",
+      "cells": 2843,
+      "visible_pairs": 10068,
+      "sha256": "2cf4d417cd8d6dd1a4ea978996a8beb6ead2c341200ed2dc49b6fef749341968"
+    },
+    {
+      "map_id": 624,
+      "file": "624.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "fad66ab073b85cab2b25083aa17c29c713de1264dfbd450dfd9246366b0123c9"
+    },
+    {
+      "map_id": 625,
+      "file": "625.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "08178883ba6a232bf71b24f1f009b4832cdca48937ae787e1b85385a15c79d54"
+    },
+    {
+      "map_id": 626,
+      "file": "626.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "69d3db246936a59010c75e2dcbbbeb06c94898b93a58c0fdcc2550ffcc93516c"
+    },
+    {
+      "map_id": 627,
+      "file": "627.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "a3ce3da84be4ca93dbff57ef4d4b82170d9bbbf960753984473553a236c497e6"
+    },
+    {
+      "map_id": 628,
+      "file": "628.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "2940318e7ac47e600b84ab59fa99e3fab706abe93e4ab74b1e4b036900992a2b"
+    },
+    {
+      "map_id": 629,
+      "file": "629.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "97b0aae6b33bf3581ef5252622825108a37c2912e5de30a76445d93bbc8d984f"
+    },
+    {
+      "map_id": 630,
+      "file": "630.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "82e25c791b37372cbbad90fe04508489e93e414a71542728e5c0bd7af3a59203"
+    },
+    {
+      "map_id": 631,
+      "file": "631.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "ba2a8472fbc5936220ee39cb2b6b425cc12a98f666e7167c734cf5e26bab359d"
+    },
+    {
+      "map_id": 632,
+      "file": "632.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "8c796af8de02d03a881e8a540b8bccbc08be4efeee441749842c3bb7e428707e"
+    },
+    {
+      "map_id": 633,
+      "file": "633.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "78e8063befe47e8db253e667174106e9508c9e45e410019531926aa48d28a580"
+    },
+    {
+      "map_id": 634,
+      "file": "634.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "dfbc65bac0a50344e94aa240530506b0b6204ec9e1c2cac7a5b528f21c49890b"
+    },
+    {
+      "map_id": 635,
+      "file": "635.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "85df67970c7fc70c4d844f7b9807443b03fa3a408163b0c9fa75cc5a3457f6c4"
+    },
+    {
+      "map_id": 636,
+      "file": "636.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "594bda3190eaf1d1346342c75054ff84ed935d088ae94d25cfb08d0f83730b8f"
+    },
+    {
+      "map_id": 637,
+      "file": "637.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "7f9691fabd8f7022b3c2b3230eb49cf4cb14334ad41f8de9a6171e4e970958ee"
+    },
+    {
+      "map_id": 638,
+      "file": "638.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "4808b503b4e64841c5a8cd9a1a647678a230d470669704f60d1667b761ad32e3"
+    },
+    {
+      "map_id": 639,
+      "file": "639.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "54ef2e35f626a64a2b946b1c75215e255e74aee6de237fe0a7f783d76eaeffbc"
+    },
+    {
+      "map_id": 640,
+      "file": "640.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "f426e81859518e59c3cc040d147b92452b69bc5427470b51ca420096890326a9"
+    },
+    {
+      "map_id": 641,
+      "file": "641.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "0dc7d8e0582c52d309d7a614a6b5848e3e555a810b38b848f39e628649d1ab12"
+    },
+    {
+      "map_id": 642,
+      "file": "642.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "2f6fcf42292e07115d3c32e6c6fa6723c1ef03d151816d8aa20c3dd32d0f3a90"
+    },
+    {
+      "map_id": 643,
+      "file": "643.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "dd5b809a4fe06034c6ebe4154ce6ed5938fd31d853b73d2e2f3fbda993ce81e5"
+    },
+    {
+      "map_id": 644,
+      "file": "644.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "f1290f596c5246b1809a37b05f0803d5a6190a729edcd6e74a5e6f84606c5134"
+    },
+    {
+      "map_id": 645,
+      "file": "645.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3f1dfc55649dfd42c2b463c1e344340b828f13853c73cc0aab0b74cb2f671bd0"
+    },
+    {
+      "map_id": 646,
+      "file": "646.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "932ad3d81f829db1b6cb78669634eb8b9b46ba0ce28a6a91626bfd0c80a9a9eb"
+    },
+    {
+      "map_id": 647,
+      "file": "647.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "726fb7cb2371171bf5d3c1f06c6e0d66c6aa45312f69034f0f9a9df9c5c74b68"
+    },
+    {
+      "map_id": 648,
+      "file": "648.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "c3355afe755380934bcb0daca85bd17fd91841b0144e4e0a84d3521198bf6adf"
+    },
+    {
+      "map_id": 649,
+      "file": "649.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "43bd244ca4182b026869868689eefbfefc41784582a39eb77bc34694cbb83262"
+    },
+    {
+      "map_id": 650,
+      "file": "650.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "b8bef3826a2523e8a03d26112e04171c0523799a3e665c17727aae72752d6fa4"
+    },
+    {
+      "map_id": 651,
+      "file": "651.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "80932ffc0a1d557f3b98dc4b21c24e008573e78a7a95298cd6100aa1990f9660"
+    },
+    {
+      "map_id": 652,
+      "file": "652.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "d5b0f0084fec72d1fe0ebceb6349d55967e49141c54a59ac24b7f8947322a096"
+    },
+    {
+      "map_id": 653,
+      "file": "653.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "d27a577adc6796ddc7a9c716b451016f8085c1d73a3a837ee8c87c55221a3eda"
+    },
+    {
+      "map_id": 654,
+      "file": "654.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "f3b70eba7f4a729da8b24b303aa8e08d7edc2ca978f4cc30e2834020e0e54e99"
+    },
+    {
+      "map_id": 655,
+      "file": "655.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e5713d50a9dff62bd480c15f95b8ed594e942201dd41d17852372fa1066034a5"
+    },
+    {
+      "map_id": 656,
+      "file": "656.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "008787a7fbdc27eba7a75d468a002a4c2a9b32b1bc152b02b08abfbb3db92d95"
+    },
+    {
+      "map_id": 657,
+      "file": "657.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3f190895beb3f1873f061188901a8bef0bbdb491f7c044e1721fc391fac26279"
+    },
+    {
+      "map_id": 658,
+      "file": "658.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "04faaf24f69e20e393a94b7373a96bddcbeba60f8a9854936e1a702b9f69373a"
+    },
+    {
+      "map_id": 659,
+      "file": "659.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "56434ba2e223c279956128c09d7913331a195898407610161052b99c32625589"
+    },
+    {
+      "map_id": 660,
+      "file": "660.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "62e577bb5179960dce2054f2f2b24cfa096b339c31a54e19f2f49c3a58e69a61"
+    },
+    {
+      "map_id": 661,
+      "file": "661.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "c6fc0e084670f61e0ad4c4e558fa93cab5efd7de004cfcb52e2f6756baf4484d"
+    },
+    {
+      "map_id": 662,
+      "file": "662.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "ef6d81fcfb437187d793721b9f90cddf5cfb81d1820ab432b0f4dbeb60ccb168"
+    },
+    {
+      "map_id": 663,
+      "file": "663.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "9ea9628d0b72cc8fa3702b96adf7128b8fa30491e85b29b431efcdf6bd954cb2"
+    },
+    {
+      "map_id": 664,
+      "file": "664.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e8627bf7783968194dbc632373a17ccc660824938cb16ae9c13a81248205ef38"
+    },
+    {
+      "map_id": 665,
+      "file": "665.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "eb647f9acaaa5e2fc5d612359900ec2d1f445fa08450e68ec2a4b9b8fcb898f3"
+    },
+    {
+      "map_id": 666,
+      "file": "666.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "6bd12da9b4c8af27429fc9697b0adf6cca7570cf61bf93ee64ef4e4a366b1b21"
+    },
+    {
+      "map_id": 667,
+      "file": "667.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "0460eb03736fcfced27964673b6e9318abbfc7cdb22dc77a50fb865d6e0d8c11"
+    },
+    {
+      "map_id": 668,
+      "file": "668.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "926d3933db2442e0a296cf06ad842daa7af85b806f8e8beac59af00e7b125431"
+    },
+    {
+      "map_id": 669,
+      "file": "669.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3650108ef100c4613d566e05048bfe7d1ce277ec6bcbdc8a59be189b0221a83b"
+    },
+    {
+      "map_id": 670,
+      "file": "670.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "fc6ce2aa046e526ca4922dc51d067a0596eaa07b07dfad2b7b44219a6aae5387"
+    },
+    {
+      "map_id": 671,
+      "file": "671.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "91f4788d46c554d7ff2df534cba25f1c37fa4c2b7e92865a7ab97a29605f272a"
+    },
+    {
+      "map_id": 672,
+      "file": "672.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "89901aa06094b2e872ebc7fb9de6f370d77ddbdb6674cb4dec958185a5a9c6d7"
+    },
+    {
+      "map_id": 673,
+      "file": "673.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "50c9e1ffd5106a6cea80d9e9dd95bf6ba3e3571ee3f06bc74b11af0ad5ad3ed9"
+    },
+    {
+      "map_id": 674,
+      "file": "674.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1080bc78d3d9ed31ad2ef17d2f4d04caff4e8f3f4ad5dde95cb52bfa71a974da"
+    },
+    {
+      "map_id": 675,
+      "file": "675.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "2f2809a8f018acdf9bf260751cfe6dc4d877198c4c8f6e22dd95a77db23131d9"
+    },
+    {
+      "map_id": 676,
+      "file": "676.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "aa93d78184cf928a2d3296174d8c87159623ea0ef190decbcb684de6131dac49"
+    },
+    {
+      "map_id": 677,
+      "file": "677.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "47093d0560b8e9f3307f3c3ce60a369fbee29ce54dcd5b5d8a84395b14ab6e38"
+    },
+    {
+      "map_id": 678,
+      "file": "678.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "7d9354d356290966b1eebece4718578dfffd0f292d92a9e0735dacfa31e35a9b"
+    },
+    {
+      "map_id": 679,
+      "file": "679.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "68905ec44e817390e9c50ff807f46a146d59500453b69fe08717ebef72beda43"
+    },
+    {
+      "map_id": 681,
+      "file": "681.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "caa1f92307f594b94938ef651fe07c6b9b214ad501f57692046e46e9b8d67879"
+    },
+    {
+      "map_id": 682,
+      "file": "682.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "acb9399b4bd46bb7356829667241dcb4358311a517094e43bdf5b7c4e5fa2d59"
+    },
+    {
+      "map_id": 683,
+      "file": "683.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "7a63675875a2f76b2b7848ffa2d68c37f71e80de05b9e70de36140a4fdeaef2b"
+    },
+    {
+      "map_id": 684,
+      "file": "684.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "c75603502cec3ea5c1d5321a66abb5e9933e40a1569eda1bb087deab42d864bc"
+    },
+    {
+      "map_id": 685,
+      "file": "685.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "360a55bf7c1ec1a14b2755f9b03563f64ea5ce2009bb76bdaf2049439164d747"
+    },
+    {
+      "map_id": 686,
+      "file": "686.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "63facc8b2fdb366f1926e88e14b59536f1f848b7e16b47e843d333977d9bdbb2"
+    },
+    {
+      "map_id": 687,
+      "file": "687.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3be3d71dfef3528af2c3093453b0b77518fdee68947181df60a52a076cfaa5b2"
+    },
+    {
+      "map_id": 688,
+      "file": "688.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "5a05cd0ebad417c3b52c2afcfc8a1453c3d7442b07273512314e8233f5f437d0"
+    },
+    {
+      "map_id": 689,
+      "file": "689.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "c29f3ed25f08510566c5860645993b20fdcb088096de0268d8048a3e4a049dd7"
+    },
+    {
+      "map_id": 690,
+      "file": "690.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "cfa2e6f25c4ba80bbdc34d233c4cd3acb39723016b696c9fb4aa8f092a0bd368"
+    },
+    {
+      "map_id": 691,
+      "file": "691.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e268ad340d00e66f3a87e3d38291526661f09eb12ee6121efe260ace791fb077"
+    },
+    {
+      "map_id": 692,
+      "file": "692.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "b7ded719aaf88566185c748ca91e5baa9e333b0e1b1c40efdae04eabb21e4e39"
+    },
+    {
+      "map_id": 693,
+      "file": "693.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e67a8fa740bade44449c899eccd9c8f0e0fe613b1eb2d1e0ce16589ca6ffc6c9"
+    },
+    {
+      "map_id": 694,
+      "file": "694.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "5b3cab1bf1c490ef91341dac36c5db25747b0f7dcfc0c55a975924262ffa175e"
+    },
+    {
+      "map_id": 695,
+      "file": "695.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "f5c63422899f964979295ebb3ed95a1c46159a768b2589de6dfbe377382baef2"
+    },
+    {
+      "map_id": 696,
+      "file": "696.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "2be0668bb7d3fff11f565f062a84b48b8337529a466fa357f96fd6ec61768170"
+    },
+    {
+      "map_id": 697,
+      "file": "697.json.gz",
+      "cells": 257,
+      "visible_pairs": 850,
+      "sha256": "a720262f219ed78a567cc85f6d68597eb9eed40dda92871452ff281f89ce2424"
+    },
+    {
+      "map_id": 704,
+      "file": "704.json.gz",
+      "cells": 272,
+      "visible_pairs": 968,
+      "sha256": "2207c3049c9e62328ea70cd66b6d2d6b56442077ca62b563f1e8c304e2f9e02a"
+    },
+    {
+      "map_id": 705,
+      "file": "705.json.gz",
+      "cells": 219,
+      "visible_pairs": 742,
+      "sha256": "88fe57586615b84e9a59e2307bb36dbc4e30349a7aabf5e38da80fc95b1c9c1d"
+    },
+    {
+      "map_id": 709,
+      "file": "709.json.gz",
+      "cells": 183,
+      "visible_pairs": 572,
+      "sha256": "dc5023ba55c24bf59922e1fc96351998c5b72ecf31a948cd93449b773e11616d"
+    },
+    {
+      "map_id": 711,
+      "file": "711.json.gz",
+      "cells": 22897,
+      "visible_pairs": 74686,
+      "sha256": "72d7599d3b9de5e5d98277be23196eda271807deff14714cd58d7ace56361abe"
+    },
+    {
+      "map_id": 712,
+      "file": "712.json.gz",
+      "cells": 554,
+      "visible_pairs": 1904,
+      "sha256": "470e74c19ba9c3fa6c560844fde99f11df8630229af4377522bd61d09ab0c91b"
+    },
+    {
+      "map_id": 713,
+      "file": "713.json.gz",
+      "cells": 334,
+      "visible_pairs": 1160,
+      "sha256": "7968e5e56344243050e674b0367185bee307873c8e7b2b2c113aa81a186ead30"
+    },
+    {
+      "map_id": 714,
+      "file": "714.json.gz",
+      "cells": 860,
+      "visible_pairs": 3074,
+      "sha256": "0b4bfc87a102890b93c3ee5368b71e283e54dd717bcc4c67cbcf46120428c7e2"
+    },
+    {
+      "map_id": 715,
+      "file": "715.json.gz",
+      "cells": 124,
+      "visible_pairs": 444,
+      "sha256": "8448c251ec848613a07acfe0ba97464146fbf1097c067001c40e86901bd5e42b"
+    },
+    {
+      "map_id": 716,
+      "file": "716.json.gz",
+      "cells": 1203,
+      "visible_pairs": 3740,
+      "sha256": "e2d058de72d7b76f5f60b5660a9b2f390e4f7f93b43500ca09d7cc39e32c3605"
+    },
+    {
+      "map_id": 717,
+      "file": "717.json.gz",
+      "cells": 499,
+      "visible_pairs": 1706,
+      "sha256": "7eef320782e27e060e5c5107c658389bd698db528e690b9941bb96434f8c6735"
+    },
+    {
+      "map_id": 718,
+      "file": "718.json.gz",
+      "cells": 3006,
+      "visible_pairs": 10085,
+      "sha256": "0b5fdd1a31a1ee2706a962aeb2cad340d50bc708807bb54587403f5f1e07230d"
+    },
+    {
+      "map_id": 719,
+      "file": "719.json.gz",
+      "cells": 742,
+      "visible_pairs": 2270,
+      "sha256": "42432933ae478def7502acd66b9af347f061684bb45a40c94b49a8131eccef98"
+    },
+    {
+      "map_id": 720,
+      "file": "720.json.gz",
+      "cells": 507,
+      "visible_pairs": 1594,
+      "sha256": "698255bd1b48d72a4674621fe3d5297c6774faca95545e31cffb082b6cff4c6f"
+    },
+    {
+      "map_id": 723,
+      "file": "723.json.gz",
+      "cells": 862,
+      "visible_pairs": 3090,
+      "sha256": "93951d7450ce36c4467490fa2b5c156e41e51982feb3507a0ed7ec69eef2a4c6"
+    },
+    {
+      "map_id": 725,
+      "file": "725.json.gz",
+      "cells": 204,
+      "visible_pairs": 559,
+      "sha256": "b7d4fa9547aea385606635c504749d459c95d8ad392515496132b1db5c049c8e"
+    },
+    {
+      "map_id": 726,
+      "file": "726.json.gz",
+      "cells": 259,
+      "visible_pairs": 896,
+      "sha256": "f57a4727086c78e971152e93923fdb3a9202ce593155bb55e18a242fc81e569e"
+    },
+    {
+      "map_id": 728,
+      "file": "728.json.gz",
+      "cells": 623,
+      "visible_pairs": 2238,
+      "sha256": "3a71bd6ebc377b86edf19e5528d0351f1131829997d4a2fd5a4102604e44092e"
+    },
+    {
+      "map_id": 729,
+      "file": "729.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "36d465832b36473287b904f5636f8e87ac12ed4ae3d7220a3d1d13bd76c0c0c8"
+    },
+    {
+      "map_id": 730,
+      "file": "730.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "9530d66d5bf4b4ec9c0b4b4d71a406fc6fb4df9c21fa6f988bc996363140f45b"
+    },
+    {
+      "map_id": 731,
+      "file": "731.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "9026aea1ea0ec810318747cf6e6c127bb220c6b1c182dd2bac5033423fbd3a80"
+    },
+    {
+      "map_id": 732,
+      "file": "732.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "4da86815c9b3b08716f1687cdce0e7b10073ce57fa7ac95c68d9e38666df19d3"
+    },
+    {
+      "map_id": 733,
+      "file": "733.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "283a9d34256faf69dddc904c8837bf3c980d663f4c570bfc1940fa1bc9fbacc3"
+    },
+    {
+      "map_id": 734,
+      "file": "734.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "9c31e258d8ecd9cf3cad6d617ff1a66a05d3a9f518ff6db1afc1f6f6c5394fdf"
+    },
+    {
+      "map_id": 735,
+      "file": "735.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "cb39d6c16df0a029bd3e378b026146c6190136db6f54e13a6c42c622c77bfcde"
+    },
+    {
+      "map_id": 736,
+      "file": "736.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "db8dd30670e66b7f7d9d7f933b879adcf66b5a75cecf403b925d97f463daf7d0"
+    },
+    {
+      "map_id": 737,
+      "file": "737.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "9052ffd58d5af9498fc2eb667dcb89609057f4c06832ccb12a928161dd105e84"
+    },
+    {
+      "map_id": 738,
+      "file": "738.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "f5e7cf0c5bfa5d9459f731adb233c01afe0a24bcffd45c5cf8a9fe5003ee211c"
+    },
+    {
+      "map_id": 739,
+      "file": "739.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "f21c151ea677272351223df289dfc9c049c226f86fab1dc318ab2d656243c72c"
+    },
+    {
+      "map_id": 740,
+      "file": "740.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e9bed4c01951b82b0ecd14a21b602afd8dd207552278e1820c79528104be8f07"
+    },
+    {
+      "map_id": 741,
+      "file": "741.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "192f69c1495b37b40752568cac682dc1113d2b2d53c613c28deb29988d99c17d"
+    },
+    {
+      "map_id": 742,
+      "file": "742.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "10fac7fc96d79c8e3c2ceeebe40175bb01856f7e6c7112c64dedf17bcacb5094"
+    },
+    {
+      "map_id": 743,
+      "file": "743.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "13abbec7c99c22a8b86e92451f5b9e84560198587013be74ccdcc131e15fd503"
+    },
+    {
+      "map_id": 744,
+      "file": "744.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "7add18b321d33ba2903f3e1d454849380297aca384db99e1d2e9779b1262a2bb"
+    },
+    {
+      "map_id": 747,
+      "file": "747.json.gz",
+      "cells": 198,
+      "visible_pairs": 601,
+      "sha256": "769d2eda360887af0c7b0ded8b28d6ead66ee333fa2eea1616cb8481036cfa53"
+    },
+    {
+      "map_id": 748,
+      "file": "748.json.gz",
+      "cells": 324,
+      "visible_pairs": 879,
+      "sha256": "355c8605b04e0905c1b5c73256fec0bf0e04ff91f491699994423d14e20abc10"
+    },
+    {
+      "map_id": 749,
+      "file": "749.json.gz",
+      "cells": 76,
+      "visible_pairs": 150,
+      "sha256": "c02415dff3f173fee6e3d3942e62f57b607548e8992df44e0ff7911404ace635"
+    },
+    {
+      "map_id": 750,
+      "file": "750.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "bfc6ad8edd78d54036c1a3bca4ffd0e500ba20af2f0c5732b2569139556166cf"
+    },
+    {
+      "map_id": 751,
+      "file": "751.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "b6e088b282b291bcee699283f1613b2cce771a5505a7873100d641abb679621b"
+    },
+    {
+      "map_id": 752,
+      "file": "752.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "c110f3859658dd097cfac91d3602dec3c9526320333d9b21b1c8b43c469519f7"
+    },
+    {
+      "map_id": 753,
+      "file": "753.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1a0b7422cbe7487122538c95aa7fff19091704502a550a0613815efd6a355232"
+    },
+    {
+      "map_id": 754,
+      "file": "754.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3761c7f0f0ca371d779dd07a740e0f92235d761d504f6fc6d83313a414b063fd"
+    },
+    {
+      "map_id": 755,
+      "file": "755.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "f580e679bd34deca9054c5df591cb88c27335f3c3a965d22ea9537df5a496211"
+    },
+    {
+      "map_id": 756,
+      "file": "756.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1f44bd93462348c5b1384e4406293166f51935e4a2901084b8b03f61dc53a659"
+    },
+    {
+      "map_id": 757,
+      "file": "757.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "15d36d731a591fbf6c1445e31cdce2b6d11adee0c5136019d3d7320aa59c1cb2"
+    },
+    {
+      "map_id": 758,
+      "file": "758.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "662ad8da59d01a6d17040b7044fe3103a461052213b6c30b0d258da36bf5d387"
+    },
+    {
+      "map_id": 759,
+      "file": "759.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "8a0dcf6d3f4c80328e63f9dac3624b2b085be72e5c50e46aa73496581e6d3fa2"
+    },
+    {
+      "map_id": 760,
+      "file": "760.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "50350eedfefa46c7c866d0713c21cb0a59e77e7a8d2bd39b77bf675f3a6e1b2c"
+    },
+    {
+      "map_id": 761,
+      "file": "761.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "bb8120df43dffda3f725be6a715f581483019f7ffb0cecc0fba77b5e1e0af485"
+    },
+    {
+      "map_id": 762,
+      "file": "762.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1cbd7482bfe8443ca26ea01e97080620c53642716b6115b242d525d2edc423da"
+    },
+    {
+      "map_id": 763,
+      "file": "763.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "762f31ae148eda63530459bbf9fcae5fe8f4cbfed9a82220082ce00838d21416"
+    },
+    {
+      "map_id": 764,
+      "file": "764.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "f527b0dca0d92689bc5c66e87c04e75e3d74d6760d23b3e0b58c89db4684e398"
+    },
+    {
+      "map_id": 765,
+      "file": "765.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "97ce221706ec3ce0dd5d63131a673bf5f4de459591ad0f820f445b6eae186c97"
+    },
+    {
+      "map_id": 766,
+      "file": "766.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "c45eb40ded1595c75d5af75c00599fc0378ed6c4a791311eb7c040873a4e846e"
+    },
+    {
+      "map_id": 767,
+      "file": "767.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e0f3abc2b74226a7ad0ec56098d7e37cd1fb755409434cc13a8a6bc16a62350b"
+    },
+    {
+      "map_id": 768,
+      "file": "768.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "72d44b732799390add702e3a183fac0d695bd5f00e28c72cecf824249d71a281"
+    },
+    {
+      "map_id": 769,
+      "file": "769.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "7796566d52126e6062e35244531af90f41f72d93afc9604d11c9494b1dda2d37"
+    },
+    {
+      "map_id": 770,
+      "file": "770.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "52f6406fe11b65306d9e9e0d64d6f1144b078f17f8ba443a95f563fd80bbf48f"
+    },
+    {
+      "map_id": 771,
+      "file": "771.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "9f17fda615e226e287aca329cdbcbf2f69b3df98404c7e91b4098acae4342675"
+    },
+    {
+      "map_id": 772,
+      "file": "772.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "a07e4ca07882dfcd4c28004e3e94715ec9bba89ef1c061d5c0ac1b341736aef9"
+    },
+    {
+      "map_id": 773,
+      "file": "773.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "d789408c0eab3e09ce78186a73b7a6d7c06c9f74dc13b15d1b3cc7ee728a6b7c"
+    },
+    {
+      "map_id": 774,
+      "file": "774.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "5434363614643520374a148ab1db01a457ce8b8d56bfc23d717cc5f85d832e40"
+    },
+    {
+      "map_id": 775,
+      "file": "775.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "a5fe6acdfb97394f08f3a495435338e59028ddbcfc96d545ea3ef803273f1117"
+    },
+    {
+      "map_id": 776,
+      "file": "776.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "7e5b04124fa1764115f532411c78754a2ff79340e71aa711f7c6dee275f6ad0a"
+    },
+    {
+      "map_id": 777,
+      "file": "777.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "0b9ec9a256577b645175f6d5fefe8d9e7830943edfabc244830ddd146b14b8e6"
+    },
+    {
+      "map_id": 778,
+      "file": "778.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e64465236160af381dfae8f3290716932fee6e814d3bbe6ae6d0103e33bae6aa"
+    },
+    {
+      "map_id": 779,
+      "file": "779.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "59f5e2b5a60a5593275abd461c5a3d0c23e3f7d55227acd8d0021a01f561a683"
+    },
+    {
+      "map_id": 780,
+      "file": "780.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "8a76b73adf9d33945a4fec5c7f51c7b54d7a9ca76d3153ad419f8d843f4493c3"
+    },
+    {
+      "map_id": 781,
+      "file": "781.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "10628a132f6455d543ddb5e1043b8f14898fd976a2c89649d8a4ec240a07928b"
+    },
+    {
+      "map_id": 782,
+      "file": "782.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "d6a94141fdb63c3673469df3f8e1f5e9b3f4cbd0b9e10946582010a3dbb8a833"
+    },
+    {
+      "map_id": 783,
+      "file": "783.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "86049061591360ef69b2ecf28fa29e9eafb748b9a248dd2107d9185e43ee2fd0"
+    },
+    {
+      "map_id": 784,
+      "file": "784.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "8895639443e0858767c32f47f43a19fc2facdf379326d60596c712df661a0ce7"
+    },
+    {
+      "map_id": 785,
+      "file": "785.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "a887f0677b80980956cbaf9bf62d8e0f29c7e15820a03a65c7b311351edd1a5d"
+    },
+    {
+      "map_id": 786,
+      "file": "786.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "546bb3313219bc00fd7fafea701ccf137c50dde054c58865bde83120a783a2ad"
+    },
+    {
+      "map_id": 787,
+      "file": "787.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e2655e0898977bd245e028e297de3483b65f5e3b2b62804cd09ed67d3be65ea5"
+    },
+    {
+      "map_id": 792,
+      "file": "792.json.gz",
+      "cells": 16701,
+      "visible_pairs": 61025,
+      "sha256": "feb11bf48d9eb338c923cc3f2e88c21d5e43506cc6fc30dbf99518e2a30c1208"
+    },
+    {
+      "map_id": 793,
+      "file": "793.json.gz",
+      "cells": 2742,
+      "visible_pairs": 9150,
+      "sha256": "cbe4a6f62015201b00eaaabdd6ae3c4cc82fbc9ab75be8f43303eeb24778095d"
+    },
+    {
+      "map_id": 794,
+      "file": "794.json.gz",
+      "cells": 311,
+      "visible_pairs": 858,
+      "sha256": "329bea129ec2193760c50858471da87e082b72a8f5943ae076943c30e37fe360"
+    },
+    {
+      "map_id": 795,
+      "file": "795.json.gz",
+      "cells": 547,
+      "visible_pairs": 1838,
+      "sha256": "116316ab02f3b10f20d3cc278ff98d890185e6deec3c27f1d67e1ece2db8d8ab"
+    },
+    {
+      "map_id": 796,
+      "file": "796.json.gz",
+      "cells": 6993,
+      "visible_pairs": 21684,
+      "sha256": "42f16d97cbfa60776a06ea0a39181aaad2fb81bea5f1f37d661ac5d0ed3421be"
+    },
+    {
+      "map_id": 798,
+      "file": "798.json.gz",
+      "cells": 753,
+      "visible_pairs": 2575,
+      "sha256": "727c5dc9c8c8071cd69b1429afffdb99a7f3e5794a607b6496129f7a5b7f0226"
+    },
+    {
+      "map_id": 799,
+      "file": "799.json.gz",
+      "cells": 147,
+      "visible_pairs": 492,
+      "sha256": "1fb4249b228eaaf2c67b5a55604eadd93d8245dad405004e9a331d451db396d1"
+    },
+    {
+      "map_id": 800,
+      "file": "800.json.gz",
+      "cells": 1666,
+      "visible_pairs": 5520,
+      "sha256": "d5277bf6780f174dd4f581c6c3b42f25f53db44d5b03cb9dc3840fe62ab22f64"
+    },
+    {
+      "map_id": 801,
+      "file": "801.json.gz",
+      "cells": 907,
+      "visible_pairs": 2790,
+      "sha256": "4eb52404114b5f0029fcf20da615fcd3a451529c37f08febcdb94895d6c72e53"
+    },
+    {
+      "map_id": 802,
+      "file": "802.json.gz",
+      "cells": 9067,
+      "visible_pairs": 35255,
+      "sha256": "aa549920ab1780f8879da34741cfcbaef045a990c3caf8a8527565bd71bbe0a3"
+    },
+    {
+      "map_id": 803,
+      "file": "803.json.gz",
+      "cells": 499,
+      "visible_pairs": 1706,
+      "sha256": "08dee695d5ab7af3ee9f3233939a557b3855359afa1e725ecf3fca962e1c83d9"
+    },
+    {
+      "map_id": 804,
+      "file": "804.json.gz",
+      "cells": 1137,
+      "visible_pairs": 3958,
+      "sha256": "604bc84c959c9cf27a36f7e1318cc333e3a2a7c39d752136c13634311568448a"
+    },
+    {
+      "map_id": 805,
+      "file": "805.json.gz",
+      "cells": 876,
+      "visible_pairs": 2882,
+      "sha256": "c8b0e8c3f4be1a6956dd92e25675ee2bf96a7add1692b2d975d69a43d8fb551f"
+    },
+    {
+      "map_id": 806,
+      "file": "806.json.gz",
+      "cells": 557,
+      "visible_pairs": 1950,
+      "sha256": "f4110edca00f3974198d3533c84cd0bd17ff706b00563e5ccce5959e31168fb8"
+    },
+    {
+      "map_id": 807,
+      "file": "807.json.gz",
+      "cells": 2392,
+      "visible_pairs": 7687,
+      "sha256": "5f7ecbd25c9f2b6b875e1df717e76176ea124aee814f5904ae4e00a72675d81e"
+    },
+    {
+      "map_id": 808,
+      "file": "808.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "198b7c39a70d4ecc6f09319bfa132b311738584bf142f8a75d784e344fe202a5"
+    },
+    {
+      "map_id": 809,
+      "file": "809.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "c650cced2c1abb4d3b5ae36b947ed9563cea26e688dd4385e8e3c9ae76821063"
+    },
+    {
+      "map_id": 813,
+      "file": "813.json.gz",
+      "cells": 434,
+      "visible_pairs": 1472,
+      "sha256": "6ae8c54e436a2aa4878b155e2cec91d0e047231dd437584a40df90cd64be2d17"
+    },
+    {
+      "map_id": 814,
+      "file": "814.json.gz",
+      "cells": 1363,
+      "visible_pairs": 4832,
+      "sha256": "7b59043f09768fb84979574d918e5910622e85dd2cd4e1388bc5a067ad6f0b5f"
+    },
+    {
+      "map_id": 815,
+      "file": "815.json.gz",
+      "cells": 712,
+      "visible_pairs": 2446,
+      "sha256": "bd6fa90d95ea8c040af4c2869a60d44271975aa1fcdcf101c4fac4dc86d90a1f"
+    },
+    {
+      "map_id": 816,
+      "file": "816.json.gz",
+      "cells": 360,
+      "visible_pairs": 1004,
+      "sha256": "8ded3481b829f0bfedb4df07c857d7336940701449374777a14b71f8149a2cae"
+    },
+    {
+      "map_id": 817,
+      "file": "817.json.gz",
+      "cells": 434,
+      "visible_pairs": 1472,
+      "sha256": "fa8b14a203d071f5cf92065f94d7eabd12a6e6e4aac7f9a842d96fc1b6a35e16"
+    },
+    {
+      "map_id": 820,
+      "file": "820.json.gz",
+      "cells": 2008,
+      "visible_pairs": 6748,
+      "sha256": "0c182c594ac44322744eb481bd357357b57939da34dacf023e30f3e964b42e9b"
+    },
+    {
+      "map_id": 821,
+      "file": "821.json.gz",
+      "cells": 2018,
+      "visible_pairs": 6088,
+      "sha256": "74a071de3c86bf9f3c2b4def3f4606299113704bdd8ed3401e66d1ff512a4db6"
+    },
+    {
+      "map_id": 822,
+      "file": "822.json.gz",
+      "cells": 242,
+      "visible_pairs": 562,
+      "sha256": "b4bd8b2a46d071fa1e5e659c61aae62a19ac94f347671aa2f09548eff768ec64"
+    },
+    {
+      "map_id": 823,
+      "file": "823.json.gz",
+      "cells": 232,
+      "visible_pairs": 610,
+      "sha256": "ece3c1666b329e273da917182f326aec892609937a4d447b86d53a957c6e8ee7"
+    },
+    {
+      "map_id": 824,
+      "file": "824.json.gz",
+      "cells": 238,
+      "visible_pairs": 606,
+      "sha256": "2032ad92c7f012143d56166625dbdb8b27b2c294cc1d733ca3d796d0207e1696"
+    },
+    {
+      "map_id": 825,
+      "file": "825.json.gz",
+      "cells": 287,
+      "visible_pairs": 797,
+      "sha256": "8169134da027d98f5f39f28a6baaf01780f0ad3322a9119b1edbd75a81096341"
+    },
+    {
+      "map_id": 826,
+      "file": "826.json.gz",
+      "cells": 252,
+      "visible_pairs": 678,
+      "sha256": "4b773feb44334b917140be511717b895e9e31bc266c0e6512d627d1e7ae8d470"
+    },
+    {
+      "map_id": 827,
+      "file": "827.json.gz",
+      "cells": 313,
+      "visible_pairs": 752,
+      "sha256": "ad4ca60087029fddf017e4ff910c18bdda7143903d3d21c4da73aa67a5bced0f"
+    },
+    {
+      "map_id": 828,
+      "file": "828.json.gz",
+      "cells": 423,
+      "visible_pairs": 1174,
+      "sha256": "551582be2623a632a3019711956199734ee9c39df28960e004b0b013f8e724a1"
+    },
+    {
+      "map_id": 829,
+      "file": "829.json.gz",
+      "cells": 346,
+      "visible_pairs": 812,
+      "sha256": "733053c40208b007fe2c2caaf7a9002f336730c41fd7b07bcd814390312c4383"
+    },
+    {
+      "map_id": 830,
+      "file": "830.json.gz",
+      "cells": 376,
+      "visible_pairs": 970,
+      "sha256": "f3520ebf6de28166731af97bcf61d47f67e4d0889e360af94ad0cd1b642ed179"
+    },
+    {
+      "map_id": 831,
+      "file": "831.json.gz",
+      "cells": 245,
+      "visible_pairs": 628,
+      "sha256": "26ec93f2e3b1fc4a4903fbf8196a9e77cc5f8dbce89dd213ba7d0d25a720e4f9"
+    },
+    {
+      "map_id": 832,
+      "file": "832.json.gz",
+      "cells": 240,
+      "visible_pairs": 642,
+      "sha256": "e367e697cddab2c1579924687ebf725cf94cf3621aa20674305627c9485a6095"
+    },
+    {
+      "map_id": 833,
+      "file": "833.json.gz",
+      "cells": 173,
+      "visible_pairs": 402,
+      "sha256": "735d96ecfd6f53cddfbd274fc6aab7d7cafa8fa15517c4ede7de3b85edc43460"
+    },
+    {
+      "map_id": 837,
+      "file": "837.json.gz",
+      "cells": 827,
+      "visible_pairs": 2646,
+      "sha256": "e9daf2de5de56def94c98bf0e85fdb63717884f21dddab3ca469b30816d69923"
+    },
+    {
+      "map_id": 838,
+      "file": "838.json.gz",
+      "cells": 37,
+      "visible_pairs": 64,
+      "sha256": "2f58019cc560f530ad1bbd3eeccb8a17dd03ba5af8c35ac48f12fac0739e6c24"
+    },
+    {
+      "map_id": 839,
+      "file": "839.json.gz",
+      "cells": 93,
+      "visible_pairs": 269,
+      "sha256": "b04dbb235d40f4875ffa5cdbdb9394ff1e2eeeda534945696444f09481fc914c"
+    },
+    {
+      "map_id": 840,
+      "file": "840.json.gz",
+      "cells": 58,
+      "visible_pairs": 152,
+      "sha256": "f42869ccb23e4797cd2682ea7f58ce9a1a82a9dcb2e6a073d9eecba776275961"
+    },
+    {
+      "map_id": 841,
+      "file": "841.json.gz",
+      "cells": 68,
+      "visible_pairs": 230,
+      "sha256": "e332a43b420fce050e5221206dc4382c6cb2e7dc41a02af7d338f737d6b4412e"
+    },
+    {
+      "map_id": 842,
+      "file": "842.json.gz",
+      "cells": 131,
+      "visible_pairs": 372,
+      "sha256": "16ee25dcef6fc6553c888af9cf2f3f114f2901bb09c5ffd0a7ee814b05ca0d1a"
+    },
+    {
+      "map_id": 843,
+      "file": "843.json.gz",
+      "cells": 10321,
+      "visible_pairs": 34079,
+      "sha256": "46ca9bb17a70c8c106110b466dc2d81935e92b9939c8f870ca8ef9c9c99943b8"
+    },
+    {
+      "map_id": 844,
+      "file": "844.json.gz",
+      "cells": 1383,
+      "visible_pairs": 4830,
+      "sha256": "31e442fbb04d9c84431a580f1e12bd310a6b68c533eaa5e91b219aa79785c5a1"
+    },
+    {
+      "map_id": 845,
+      "file": "845.json.gz",
+      "cells": 125,
+      "visible_pairs": 390,
+      "sha256": "f3d64bbbf877a786b3cb467d994ae522c5c77671e9a05991765f7aec121dfd39"
+    },
+    {
+      "map_id": 847,
+      "file": "847.json.gz",
+      "cells": 332,
+      "visible_pairs": 1184,
+      "sha256": "7ebdb5ad0fa21fe113f9340478dd29e0270ab7104c4d67429178c2804bb274b0"
+    },
+    {
+      "map_id": 848,
+      "file": "848.json.gz",
+      "cells": 238,
+      "visible_pairs": 700,
+      "sha256": "8bb75cefe77a01e5e38acaa7dfc9903d68d73daed0e7307904a46369b0ac581a"
+    },
+    {
+      "map_id": 849,
+      "file": "849.json.gz",
+      "cells": 86,
+      "visible_pairs": 268,
+      "sha256": "0678a9c915fee5357693905f570bb0e847f3f83993abd46d7cb4ce6deb8f4302"
+    },
+    {
+      "map_id": 850,
+      "file": "850.json.gz",
+      "cells": 1878,
+      "visible_pairs": 7092,
+      "sha256": "41f0fcdb6b07f8fa7eb9e04afa6fe69fd3d6262c6e9e5fee31d13c64f5b88084"
+    },
+    {
+      "map_id": 851,
+      "file": "851.json.gz",
+      "cells": 427,
+      "visible_pairs": 1466,
+      "sha256": "2effd0fcfa609a1a7ead00c69fdfd04cc81369d05d904a032fce923d9a50c59b"
+    },
+    {
+      "map_id": 853,
+      "file": "853.json.gz",
+      "cells": 10595,
+      "visible_pairs": 37707,
+      "sha256": "bc659f47d9369b3e8a5c25bfd6288cd3ce75f733faacb6a14754db6981c69fe5"
+    },
+    {
+      "map_id": 854,
+      "file": "854.json.gz",
+      "cells": 590,
+      "visible_pairs": 1982,
+      "sha256": "6c10f0fdcc5ac8f2b528316d67c30dc30f3538190a24bdb957dd2169dc631c79"
+    },
+    {
+      "map_id": 855,
+      "file": "855.json.gz",
+      "cells": 3370,
+      "visible_pairs": 12750,
+      "sha256": "5cc4e359c8ad4858f9a55a75c168a21fcee78525ae0b05838b95361454848b00"
+    },
+    {
+      "map_id": 856,
+      "file": "856.json.gz",
+      "cells": 844,
+      "visible_pairs": 2670,
+      "sha256": "701ff09d8790b449553e2c2454055f359c2289a2ff3ecd12fc11552221014ad2"
+    },
+    {
+      "map_id": 858,
+      "file": "858.json.gz",
+      "cells": 229,
+      "visible_pairs": 740,
+      "sha256": "e1051eec6e2813eb1fc1c4d10b3d01a83ff3903cf3d78df15684b24dc0f996a8"
+    },
+    {
+      "map_id": 859,
+      "file": "859.json.gz",
+      "cells": 478,
+      "visible_pairs": 1428,
+      "sha256": "323d289be3be6640a6fdb43f95d25ba380274ee8327811998ebcc2ef928061cb"
+    },
+    {
+      "map_id": 860,
+      "file": "860.json.gz",
+      "cells": 1296,
+      "visible_pairs": 5040,
+      "sha256": "c6765e32de41a83b037cb67011ca6e48e517c2b287ee4cb95cad1da741128862"
+    },
+    {
+      "map_id": 862,
+      "file": "862.json.gz",
+      "cells": 218,
+      "visible_pairs": 752,
+      "sha256": "ae70f8737e213d2c084bd9653eb9491c026fd48048da23ae508df36524675bca"
+    },
+    {
+      "map_id": 863,
+      "file": "863.json.gz",
+      "cells": 186,
+      "visible_pairs": 546,
+      "sha256": "279153f977b45c07f6be79843fc97d8fcecd321fbe1a4b751ca924943d1c353c"
+    },
+    {
+      "map_id": 864,
+      "file": "864.json.gz",
+      "cells": 487,
+      "visible_pairs": 1475,
+      "sha256": "14b84c0b1ad8029f9cd278fe212cdba45f87e783cd36f3677392cf1ab3c6cb67"
+    },
+    {
+      "map_id": 865,
+      "file": "865.json.gz",
+      "cells": 262,
+      "visible_pairs": 738,
+      "sha256": "ced8e3bd5d5ffa099e04ad6da964df73e5b15897912dd6fe22ae33a13ab16886"
+    },
+    {
+      "map_id": 866,
+      "file": "866.json.gz",
+      "cells": 305,
+      "visible_pairs": 1054,
+      "sha256": "46e3cf1e635ac4cbf4a865792d7e2dc13b3d35e4cac39c6c34668755ddaeb5c8"
+    },
+    {
+      "map_id": 867,
+      "file": "867.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "9aa6c9ffea69848c253c06efd0d31b3f2e0288c9cd5b8dcd72bf47af391b61d5"
+    },
+    {
+      "map_id": 868,
+      "file": "868.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "9dfd7d66f01e01421523468f39d3360026d2ebab67fcc6e60ed01d908eb4dd0d"
+    },
+    {
+      "map_id": 869,
+      "file": "869.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "81300f1d6659406ec0b87fc0284f5d96757076d67e6db38995c950d640ba7508"
+    },
+    {
+      "map_id": 871,
+      "file": "871.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1681712fc9e5d8e38890f18b84f16a0abeb1a3c22dfd8596a513ab0b668dc0f7"
+    },
+    {
+      "map_id": 872,
+      "file": "872.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "023ae560cfb73b7031b9adad286396c87204abdb4beb06cff6c8727bb042e5d3"
+    },
+    {
+      "map_id": 873,
+      "file": "873.json.gz",
+      "cells": 58,
+      "visible_pairs": 132,
+      "sha256": "8fd04fc8b13a316dba8005421323a12f895334c6da0074e1ac5c7d2e6f48aa7c"
+    },
+    {
+      "map_id": 874,
+      "file": "874.json.gz",
+      "cells": 53,
+      "visible_pairs": 128,
+      "sha256": "47f8d2be1a786eb93e8e7db613098a5589f3ebf15a0638cea8dbf2116373a564"
+    },
+    {
+      "map_id": 875,
+      "file": "875.json.gz",
+      "cells": 49,
+      "visible_pairs": 146,
+      "sha256": "3e335e773897f8326ba937831d1da4cc6dacd3df4828086f6c3c921f369c8483"
+    },
+    {
+      "map_id": 876,
+      "file": "876.json.gz",
+      "cells": 377,
+      "visible_pairs": 1182,
+      "sha256": "34ff775c712fdfa041f7bf504b06e72f09caa7737e99998e4bce05d746b1856b"
+    },
+    {
+      "map_id": 879,
+      "file": "879.json.gz",
+      "cells": 3606,
+      "visible_pairs": 12551,
+      "sha256": "46a504c8fb0e8254ed568c3cfecbcddc285f24db88989335e5d54587b58554ac"
+    },
+    {
+      "map_id": 885,
+      "file": "885.json.gz",
+      "cells": 251,
+      "visible_pairs": 834,
+      "sha256": "cb9f5e6716eca39367d8229301dd058a36f8ed398725a78b5b1a3e5ce113b6d0"
+    },
+    {
+      "map_id": 886,
+      "file": "886.json.gz",
+      "cells": 262,
+      "visible_pairs": 752,
+      "sha256": "620dcbf3bae146d6427c9994cdc0976764bf60f137d85ff8e1a925a7392c34ee"
+    },
+    {
+      "map_id": 887,
+      "file": "887.json.gz",
+      "cells": 911,
+      "visible_pairs": 2904,
+      "sha256": "75b3c18e697fb8a57e12bfd8088e7faea0368bbe3ff406dd5253b72a850c5a2f"
+    },
+    {
+      "map_id": 888,
+      "file": "888.json.gz",
+      "cells": 148,
+      "visible_pairs": 484,
+      "sha256": "2841d070d222bd1f5d2e98967b61f916e22e81f3eaf63909bcd4af341f9bd0ab"
+    },
+    {
+      "map_id": 889,
+      "file": "889.json.gz",
+      "cells": 664,
+      "visible_pairs": 2076,
+      "sha256": "87caa03b7d5da2df698fb01d560f37522fffb10c7971f91f0e2d1121fb59c525"
+    },
+    {
+      "map_id": 891,
+      "file": "891.json.gz",
+      "cells": 111,
+      "visible_pairs": 306,
+      "sha256": "6a24d0a6f154765bc33f808863367445b87dd78f4e9fe1b3b48e042c283a3400"
+    },
+    {
+      "map_id": 892,
+      "file": "892.json.gz",
+      "cells": 746,
+      "visible_pairs": 1642,
+      "sha256": "1b14ecff9501f28391ed248d3ba6584209f0d87d419abfb7c37f969677d9b5bd"
+    },
+    {
+      "map_id": 895,
+      "file": "895.json.gz",
+      "cells": 4173,
+      "visible_pairs": 13322,
+      "sha256": "f08bb3703ffdbba8e630c95cff9518070f999c14915c2f2f5a5f429442db9bbb"
+    },
+    {
+      "map_id": 896,
+      "file": "896.json.gz",
+      "cells": 990,
+      "visible_pairs": 3183,
+      "sha256": "35fe042db2365a5e3f3ba030d199bf2a157641f8d0044066d6881cbd3c2b6359"
+    },
+    {
+      "map_id": 898,
+      "file": "898.json.gz",
+      "cells": 3,
+      "visible_pairs": 0,
+      "sha256": "cfec0a8ea6170989f4f9bc7a8229f13071ee2a0a74bd5bfd3e2dadd19914a549"
+    },
+    {
+      "map_id": 899,
+      "file": "899.json.gz",
+      "cells": 57,
+      "visible_pairs": 178,
+      "sha256": "84b2a67744679f727a082f94622b8e7dda49b49f79671735716c005ce4846d07"
+    },
+    {
+      "map_id": 901,
+      "file": "901.json.gz",
+      "cells": 449,
+      "visible_pairs": 1478,
+      "sha256": "1fa268fd70af33f7b42d58172c8d660c54f66f2852a64316fe23a8d1afec10d9"
+    },
+    {
+      "map_id": 902,
+      "file": "902.json.gz",
+      "cells": 1422,
+      "visible_pairs": 4980,
+      "sha256": "40703bdc3ac22998022b87cf1d4315ac507f362f345520831d9b893f839af562"
+    },
+    {
+      "map_id": 907,
+      "file": "907.json.gz",
+      "cells": 12,
+      "visible_pairs": 28,
+      "sha256": "622961c7efd9392a7d601c6401394bbb4711f71cd27ef871aaa634126d7cbf70"
+    },
+    {
+      "map_id": 909,
+      "file": "909.json.gz",
+      "cells": 677,
+      "visible_pairs": 2174,
+      "sha256": "9abb9746dfa3aacc79f799d1c71a7270083e33a45109408a08585cdc713777a9"
+    },
+    {
+      "map_id": 910,
+      "file": "910.json.gz",
+      "cells": 503,
+      "visible_pairs": 1646,
+      "sha256": "83be44a6c69c5933face2c2b9df9afd8d444a9b10de831a79aa7600f55308d5a"
+    },
+    {
+      "map_id": 911,
+      "file": "911.json.gz",
+      "cells": 517,
+      "visible_pairs": 1552,
+      "sha256": "d7b9660d9aa1b4a847c22b727d824a607d53d3a8af1fe17a3e210d98a2fefb5d"
+    },
+    {
+      "map_id": 912,
+      "file": "912.json.gz",
+      "cells": 1173,
+      "visible_pairs": 3616,
+      "sha256": "40faf16aaf461afd84a4a1f38e2a2c26ea76782b24fb6c3f981c818edafce0dd"
+    },
+    {
+      "map_id": 913,
+      "file": "913.json.gz",
+      "cells": 134,
+      "visible_pairs": 418,
+      "sha256": "0672ec6129567768a7547d649afaa4f7d0f269d3ab25ff7e3381776e62c194d7"
+    },
+    {
+      "map_id": 916,
+      "file": "916.json.gz",
+      "cells": 753,
+      "visible_pairs": 2492,
+      "sha256": "a8a288c15ced37f14c41805826d0da86b99ca535ba8df7446ccdd2205736781c"
+    },
+    {
+      "map_id": 917,
+      "file": "917.json.gz",
+      "cells": 615,
+      "visible_pairs": 2162,
+      "sha256": "22b1bf31de7171f2ea3d2e0359e1d84716955bdfb7849cbc1ef3b72da26d2558"
+    },
+    {
+      "map_id": 919,
+      "file": "919.json.gz",
+      "cells": 588,
+      "visible_pairs": 1804,
+      "sha256": "7fbee4f7a3dcb4fbd115bad1d1d2aa89a5301bf1e5016dbf2c0babecbbf95e75"
+    },
+    {
+      "map_id": 920,
+      "file": "920.json.gz",
+      "cells": 11216,
+      "visible_pairs": 37383,
+      "sha256": "1adf8b5c48dd69c79a874662e69c03e38298e2fcbfeae7cb795b5bd231c8c5c5"
+    },
+    {
+      "map_id": 922,
+      "file": "922.json.gz",
+      "cells": 12036,
+      "visible_pairs": 40184,
+      "sha256": "ee18e938bf18ffd899eae52983cdfdf6c3032162123d092c5db604f9c42a0153"
+    },
+    {
+      "map_id": 923,
+      "file": "923.json.gz",
+      "cells": 11654,
+      "visible_pairs": 38923,
+      "sha256": "44643893bf3575c32bfd6a01e772d7fc6156d5d2dfc8d148b42a4faa07f84e59"
+    },
+    {
+      "map_id": 924,
+      "file": "924.json.gz",
+      "cells": 341,
+      "visible_pairs": 958,
+      "sha256": "a00d31ff39b82475a917c03e71d9922130ae0ce054b32439df9591b264e97757"
+    },
+    {
+      "map_id": 925,
+      "file": "925.json.gz",
+      "cells": 324,
+      "visible_pairs": 1224,
+      "sha256": "1b9464f2fc0fab244bc3c6d4eb5875b36426fccedd079a74ab9fda0dc8b836d2"
+    },
+    {
+      "map_id": 926,
+      "file": "926.json.gz",
+      "cells": 4291,
+      "visible_pairs": 14910,
+      "sha256": "0ef4cd805bb7990c121b15ebfd3ea1ed9966085ab51c3f129fc0fd4db8502b25"
+    },
+    {
+      "map_id": 929,
+      "file": "929.json.gz",
+      "cells": 141,
+      "visible_pairs": 496,
+      "sha256": "27bf21a905ad79a24ae9a208a6bf8b541d1083f4c1c268e8e0b980fe49033d57"
+    },
+    {
+      "map_id": 930,
+      "file": "930.json.gz",
+      "cells": 749,
+      "visible_pairs": 2432,
+      "sha256": "9e67f2b3f96b563e56f77009d4e58a1e00f04f68e4d7bbee8754332ee04fe0e1"
+    },
+    {
+      "map_id": 931,
+      "file": "931.json.gz",
+      "cells": 175,
+      "visible_pairs": 380,
+      "sha256": "0c13edc1963d4d9c8d2829d0d07b4659ad8aa7e1907edbc5363c38ce59f5f0f1"
+    },
+    {
+      "map_id": 932,
+      "file": "932.json.gz",
+      "cells": 50,
+      "visible_pairs": 98,
+      "sha256": "9f26bc74fd76259f95843a58c1fa4799500b7d08d2db644394d4db7d7702949c"
+    },
+    {
+      "map_id": 933,
+      "file": "933.json.gz",
+      "cells": 2341,
+      "visible_pairs": 9130,
+      "sha256": "7f6daa4821186cf3b5ebbe5d063078e0100f7140273c9521a3ffee80e454fce8"
+    },
+    {
+      "map_id": 934,
+      "file": "934.json.gz",
+      "cells": 176,
+      "visible_pairs": 364,
+      "sha256": "b441f936eac0d2cbc1868690b2532483e56e1daed2ab84afc2810da6c00c33dc"
+    },
+    {
+      "map_id": 935,
+      "file": "935.json.gz",
+      "cells": 210,
+      "visible_pairs": 666,
+      "sha256": "d6770058a75d5ef595d44439a136de28658b9fd749b011e9f12a13abead4e651"
+    },
+    {
+      "map_id": 936,
+      "file": "936.json.gz",
+      "cells": 456,
+      "visible_pairs": 1324,
+      "sha256": "d7f1f6ecebb1e5c069ddbd7f6995a405859b9db4d4afe55b533ff14d99321123"
+    },
+    {
+      "map_id": 937,
+      "file": "937.json.gz",
+      "cells": 45,
+      "visible_pairs": 112,
+      "sha256": "90abf3ab3ae87dd4e935571084e88f614733196dd8d6fe4154b2baa7d949722c"
+    },
+    {
+      "map_id": 938,
+      "file": "938.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "faac2baeafe6f1b0f1caee2f2c0b6aff54065f27ce5fe7877d9354fb51b77b0c"
+    },
+    {
+      "map_id": 939,
+      "file": "939.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "fd3f03c82e284de102a0c2c0d53d8154b9703e308a6421eccb616718810a67a0"
+    },
+    {
+      "map_id": 940,
+      "file": "940.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "f143c20aab9f25997f45769642ff51b15cbdf01386f3fc018ae9ad90d2de9e93"
+    },
+    {
+      "map_id": 941,
+      "file": "941.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1c557de6f2134758389b8a16064b0934acb22b8a4ded969c51f5b93aba92e1c0"
+    },
+    {
+      "map_id": 943,
+      "file": "943.json.gz",
+      "cells": 14905,
+      "visible_pairs": 48991,
+      "sha256": "6c20339543befe06d990d107f2cb6d87edf1512ed5f96b7c0fe46b8ea9353838"
+    },
+    {
+      "map_id": 944,
+      "file": "944.json.gz",
+      "cells": 272,
+      "visible_pairs": 824,
+      "sha256": "04cc085506dcb16cf348901bfe048992076af40c29c7b6db68cd34c08183e7af"
+    },
+    {
+      "map_id": 945,
+      "file": "945.json.gz",
+      "cells": 542,
+      "visible_pairs": 1648,
+      "sha256": "aec0a5854e5b496c7317707ff34284e24c692073a594d2b06e65bf44c3b57b05"
+    },
+    {
+      "map_id": 946,
+      "file": "946.json.gz",
+      "cells": 189,
+      "visible_pairs": 508,
+      "sha256": "1bb5c30675ef418eb03af2c4fba147c1444317a4853e4fdefef91944af7dcbf4"
+    },
+    {
+      "map_id": 947,
+      "file": "947.json.gz",
+      "cells": 2787,
+      "visible_pairs": 9618,
+      "sha256": "34aca3ed6fa3bd175151e002dba03fb135568d252c24139ac7dd618d17ceaf6c"
+    },
+    {
+      "map_id": 948,
+      "file": "948.json.gz",
+      "cells": 267,
+      "visible_pairs": 826,
+      "sha256": "f5205e0fe977647b3816861f6957b1d58d696f2938872bd771830b20f07982b3"
+    },
+    {
+      "map_id": 949,
+      "file": "949.json.gz",
+      "cells": 65,
+      "visible_pairs": 164,
+      "sha256": "7561b9d01ef18f740101968a0afb77208dc4a77979e08484758292939a4b5279"
+    },
+    {
+      "map_id": 951,
+      "file": "951.json.gz",
+      "cells": 116,
+      "visible_pairs": 352,
+      "sha256": "7d7dbaa488fb80a4159d46ce07fffd88c710b1625d88a6a0ca30e35c551c809e"
+    },
+    {
+      "map_id": 952,
+      "file": "952.json.gz",
+      "cells": 65,
+      "visible_pairs": 214,
+      "sha256": "b309f937b0542e27670721ddc5eb644fd6302b34c51150d578edab26a01a5e19"
+    },
+    {
+      "map_id": 953,
+      "file": "953.json.gz",
+      "cells": 133,
+      "visible_pairs": 410,
+      "sha256": "ffd76bb10405b67137f65c088db638443fb33a65fa437c3a1656783433e9898e"
+    },
+    {
+      "map_id": 954,
+      "file": "954.json.gz",
+      "cells": 424,
+      "visible_pairs": 1368,
+      "sha256": "5437840e04ba5de004570891e362ba414e5b18162576c50677b4b6e7669433ce"
+    },
+    {
+      "map_id": 955,
+      "file": "955.json.gz",
+      "cells": 412,
+      "visible_pairs": 1390,
+      "sha256": "c58e0715109d31c29ac3a3f1e152b6678be0045f4027219480273664a2f252be"
+    },
+    {
+      "map_id": 957,
+      "file": "957.json.gz",
+      "cells": 53,
+      "visible_pairs": 132,
+      "sha256": "11587fa1e253a9d2e0ae6605e6b90b5eea7a7b0e1d0e952251f5e8bdd253564b"
+    },
+    {
+      "map_id": 959,
+      "file": "959.json.gz",
+      "cells": 335,
+      "visible_pairs": 1052,
+      "sha256": "56c9577729670e78793d4e48109d0f1f9a550156b0bc500511d301ad25543fbb"
+    },
+    {
+      "map_id": 960,
+      "file": "960.json.gz",
+      "cells": 569,
+      "visible_pairs": 1814,
+      "sha256": "339fbdf684c04f3d65eefebc9c2ffa9613b04d5e6876cbf4dab742456d60318a"
+    },
+    {
+      "map_id": 961,
+      "file": "961.json.gz",
+      "cells": 118,
+      "visible_pairs": 362,
+      "sha256": "07cc5a910ba1b105ce1c0ea768a388663b22b01f904f7db68258e8c0c298b772"
+    },
+    {
+      "map_id": 962,
+      "file": "962.json.gz",
+      "cells": 77,
+      "visible_pairs": 246,
+      "sha256": "4e5790772c616477ac64f2f1d006f9738dfd7ab7e54073c4339d2054f6148e60"
+    },
+    {
+      "map_id": 963,
+      "file": "963.json.gz",
+      "cells": 423,
+      "visible_pairs": 1320,
+      "sha256": "7ac176be2d7224cae8c710bd0fecdc779eb8da40f4d747af9b14224102af42ad"
+    },
+    {
+      "map_id": 965,
+      "file": "965.json.gz",
+      "cells": 783,
+      "visible_pairs": 2672,
+      "sha256": "130b434cdf9e76aeb401a03041452caca2c8c3410b144340f98b23c8d60179b3"
+    },
+    {
+      "map_id": 967,
+      "file": "967.json.gz",
+      "cells": 694,
+      "visible_pairs": 2188,
+      "sha256": "3543615b8b741aa235d62985a2bbe495f60b7b3e497f3202f5d2f0b989d5a4bf"
+    },
+    {
+      "map_id": 968,
+      "file": "968.json.gz",
+      "cells": 207,
+      "visible_pairs": 676,
+      "sha256": "91fc8bc6bb8ff98ce241431a36e3d13283702387796013cbd31daefa51f29d35"
+    },
+    {
+      "map_id": 969,
+      "file": "969.json.gz",
+      "cells": 422,
+      "visible_pairs": 1402,
+      "sha256": "6ef77fa3f937581cb18cd66a302d4db8f497565d92db4d75fb3e3dc600b882ab"
+    },
+    {
+      "map_id": 970,
+      "file": "970.json.gz",
+      "cells": 328,
+      "visible_pairs": 1022,
+      "sha256": "62d5a3f1598cbaff4a1e17296bce13a8148eece2fc1b7fedb1e5946ee5342f75"
+    },
+    {
+      "map_id": 971,
+      "file": "971.json.gz",
+      "cells": 377,
+      "visible_pairs": 1278,
+      "sha256": "ba8529479f3a0a14d57953a79651ce6d356a7555c87bd2e656c4b4aa53a04566"
+    },
+    {
+      "map_id": 972,
+      "file": "972.json.gz",
+      "cells": 347,
+      "visible_pairs": 1199,
+      "sha256": "d60a55499f2fb06315283d9e437fd2ddb993cc74d51587f5f6a20723d6a585af"
+    },
+    {
+      "map_id": 973,
+      "file": "973.json.gz",
+      "cells": 371,
+      "visible_pairs": 1146,
+      "sha256": "5517a6023921dc93981ae33d4201d9bd98dba4dd51fdf16466cb56f7fcf793f7"
+    },
+    {
+      "map_id": 974,
+      "file": "974.json.gz",
+      "cells": 460,
+      "visible_pairs": 1534,
+      "sha256": "907819dab036d15b6ab27d330f9ee6af2a492036a8dc687937a1d3220ecb1f89"
+    },
+    {
+      "map_id": 975,
+      "file": "975.json.gz",
+      "cells": 425,
+      "visible_pairs": 1404,
+      "sha256": "52d09b9f21c61946617dc478ba87623f30e2e4f24483914c9b9bf0a9f47ea28b"
+    },
+    {
+      "map_id": 976,
+      "file": "976.json.gz",
+      "cells": 360,
+      "visible_pairs": 1196,
+      "sha256": "051a3defaf5a5abb260652d7140064d0a15e7bc8c1c8f26f1636839bc5546d8c"
+    },
+    {
+      "map_id": 977,
+      "file": "977.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "d0088b56278bd98df4aa8a0a15952f21898e4064be94c0ad9e435a61b315a791"
+    },
+    {
+      "map_id": 978,
+      "file": "978.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "ff585cf8ce954a03060745fba1a7b9813a6697f54cb081f293cb644c1fb5ee2b"
+    },
+    {
+      "map_id": 980,
+      "file": "980.json.gz",
+      "cells": 1835,
+      "visible_pairs": 5006,
+      "sha256": "95b5f0cf3f5e7aff2b9dbf1f3c53f0c925f750fb53e640f48bf8f9784438d8f8"
+    },
+    {
+      "map_id": 981,
+      "file": "981.json.gz",
+      "cells": 910,
+      "visible_pairs": 2478,
+      "sha256": "697efdb68101aad038c52a3e0125e380583b0c9fbd7517f1e5ea789f5f1aacd8"
+    },
+    {
+      "map_id": 982,
+      "file": "982.json.gz",
+      "cells": 99,
+      "visible_pairs": 356,
+      "sha256": "973ecf7c21831f3f9253bfd1ce44b21388e3ac821a578ad68d83dbfd421e57a2"
+    },
+    {
+      "map_id": 983,
+      "file": "983.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "c25907e855854ed0a0422576c6b1b9671a888b8f075cc70d6e856158f84bd6c3"
+    },
+    {
+      "map_id": 984,
+      "file": "984.json.gz",
+      "cells": 7529,
+      "visible_pairs": 29568,
+      "sha256": "b36b1173acb88c8360a884cfeca7e1f5497d9431ff31779261d3a18029074bb4"
+    },
+    {
+      "map_id": 985,
+      "file": "985.json.gz",
+      "cells": 135,
+      "visible_pairs": 462,
+      "sha256": "797a921759421084d9a7a0a5f3a0b180d6da80a6d3309271d9bcd09f1bb455f1"
+    },
+    {
+      "map_id": 986,
+      "file": "986.json.gz",
+      "cells": 1034,
+      "visible_pairs": 3152,
+      "sha256": "b9bb8f71b424aa62e3da42300210f6813f447afa72bd332e891a68ee8d52bacb"
+    },
+    {
+      "map_id": 987,
+      "file": "987.json.gz",
+      "cells": 1043,
+      "visible_pairs": 3515,
+      "sha256": "271636fdddda820c96a9e37e4fd84854966f9655407005055cb14cf55333147c"
+    },
+    {
+      "map_id": 988,
+      "file": "988.json.gz",
+      "cells": 312,
+      "visible_pairs": 882,
+      "sha256": "d78368c6fa97cfb551d8b4c625c225ffd23accc272f7cc43e98c3fd88dd81087"
+    },
+    {
+      "map_id": 989,
+      "file": "989.json.gz",
+      "cells": 480,
+      "visible_pairs": 1528,
+      "sha256": "5dbf71a62445de831c823de2b921e4eb2e8a036302c5e0c264485a317622a20d"
+    },
+    {
+      "map_id": 990,
+      "file": "990.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "9c6c93bedce72615f0158741f6d8f6168e8e40146f008d86605ddf98232c4ce4"
+    },
+    {
+      "map_id": 991,
+      "file": "991.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "422fbaebb750249eb315b2f0251f4ab0903bce99a5c82db7cdcf6f4967147e36"
+    },
+    {
+      "map_id": 992,
+      "file": "992.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "d887164be2bffcc82ef80d15be8ef07661da90ed32c5bb5a6a141a3ab43643d1"
+    },
+    {
+      "map_id": 993,
+      "file": "993.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1923ee59b2f4718759d4986b6579af20472fc80036b2bfacf7ce1ceacfeedd82"
+    },
+    {
+      "map_id": 994,
+      "file": "994.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "687d7588dfcdace1d2edfffcb17c7c528ef629c0f495bb16672c6d3349b3aff3"
+    },
+    {
+      "map_id": 995,
+      "file": "995.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "d32603d6f5e16a1bd0edbd9477775da576710c235071b8a80037659e3bfb98d5"
+    },
+    {
+      "map_id": 996,
+      "file": "996.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "77299430aef65985712259bdec166a8f12ab47068b545f06dec3ee3169327af9"
+    },
+    {
+      "map_id": 997,
+      "file": "997.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "ac2426e0585d2c99bc73a3c2ab19fe7f7535ebc72b5034b15f51631497d440dc"
+    },
+    {
+      "map_id": 998,
+      "file": "998.json.gz",
+      "cells": 111,
+      "visible_pairs": 334,
+      "sha256": "37831119a5ba8be0cbd09a21cfbf984f6077181c6595755350ea43a3310ac73e"
+    },
+    {
+      "map_id": 999,
+      "file": "999.json.gz",
+      "cells": 16792,
+      "visible_pairs": 59165,
+      "sha256": "a2359897c93b241c33ddd4899bd699cc6e2c935c3c7f345fda10199ed28ac3bc"
+    },
+    {
+      "map_id": 1000,
+      "file": "1000.json.gz",
+      "cells": 482,
+      "visible_pairs": 1649,
+      "sha256": "3d5932e10e1b635017c43abe649f196c9596d19c2e4e6a6b5affb522492d4bcb"
+    },
+    {
+      "map_id": 1001,
+      "file": "1001.json.gz",
+      "cells": 475,
+      "visible_pairs": 1354,
+      "sha256": "ee151bf2a6e2e0d544bbcfc6ca1497ef8ad5cba2374195c0bec90c914a908577"
+    },
+    {
+      "map_id": 1002,
+      "file": "1002.json.gz",
+      "cells": 1184,
+      "visible_pairs": 4034,
+      "sha256": "89d063a1dd57c8f8b78e4d4baaf049e0ea9db8371c7f73dd148e6ebab7ba09c7"
+    },
+    {
+      "map_id": 1003,
+      "file": "1003.json.gz",
+      "cells": 1938,
+      "visible_pairs": 6150,
+      "sha256": "bcf9e587310233131040d5293413f09ddf30417e12bc1f0ef58a0dd363ab280f"
+    },
+    {
+      "map_id": 1004,
+      "file": "1004.json.gz",
+      "cells": 3805,
+      "visible_pairs": 12890,
+      "sha256": "665cf9d6bb9ff60031bd53d56d5690cdbb162958e84b835b1dfbbf0e39f30e8d"
+    },
+    {
+      "map_id": 1005,
+      "file": "1005.json.gz",
+      "cells": 206,
+      "visible_pairs": 694,
+      "sha256": "d3f10e50636fdf605e22b4a3060aac041177918f3e80a92bc5faf74ccc480e4e"
+    },
+    {
+      "map_id": 1006,
+      "file": "1006.json.gz",
+      "cells": 714,
+      "visible_pairs": 2308,
+      "sha256": "a4056819dbdb1097cb10e089c8d09bbead48e2ae245eed6ac164c7c3d2ca8a7d"
+    },
+    {
+      "map_id": 1007,
+      "file": "1007.json.gz",
+      "cells": 570,
+      "visible_pairs": 1928,
+      "sha256": "66e3a0d97ac83d3d122d4cb63dbde176484bbc1d153ec8df21cb573fc53fc044"
+    },
+    {
+      "map_id": 1008,
+      "file": "1008.json.gz",
+      "cells": 246,
+      "visible_pairs": 684,
+      "sha256": "a7d96ec59ea05d828aeb4e2f4cf03c4e836e7a423e3383ed80d982d60495d051"
+    },
+    {
+      "map_id": 1009,
+      "file": "1009.json.gz",
+      "cells": 264,
+      "visible_pairs": 788,
+      "sha256": "b47e49995bfed147eb9c68ae72f44b4f061d58f800d39058c1ffb7518788d6f7"
+    },
+    {
+      "map_id": 1011,
+      "file": "1011.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "35ef3a35788830fc4d86fd7e5bc98cc9788e05df6a57ecf02815e212c22569a0"
+    },
+    {
+      "map_id": 1012,
+      "file": "1012.json.gz",
+      "cells": 4414,
+      "visible_pairs": 14621,
+      "sha256": "a0176a4ffecf23c5688d969f0161869568440d779e6ed004dedd945447b01a38"
+    },
+    {
+      "map_id": 1013,
+      "file": "1013.json.gz",
+      "cells": 115,
+      "visible_pairs": 332,
+      "sha256": "bcab87f42cdffc0649991866a977b5f7d9d6390a7641784d554a5edd837d859c"
+    },
+    {
+      "map_id": 1016,
+      "file": "1016.json.gz",
+      "cells": 1070,
+      "visible_pairs": 4056,
+      "sha256": "f5db207f734645bcaed5b106625903826fa2cf89a7ab1a9efde20f91f75fb52a"
+    },
+    {
+      "map_id": 1017,
+      "file": "1017.json.gz",
+      "cells": 2642,
+      "visible_pairs": 8766,
+      "sha256": "fdc5d57872f8ddccd467edee10b7d06197ec38c183dcd1b1b894fe53ecfa3ee7"
+    },
+    {
+      "map_id": 1018,
+      "file": "1018.json.gz",
+      "cells": 2327,
+      "visible_pairs": 7606,
+      "sha256": "06a36992508852be0fde54ab0471fba7d2d4763e3192f3a4c6046183e15faad0"
+    },
+    {
+      "map_id": 1019,
+      "file": "1019.json.gz",
+      "cells": 1996,
+      "visible_pairs": 6924,
+      "sha256": "7df72224dfd58505438a3f157d36ae257a6c096ff4e5c45ebe774dcc35a7af9e"
+    },
+    {
+      "map_id": 1020,
+      "file": "1020.json.gz",
+      "cells": 336,
+      "visible_pairs": 1094,
+      "sha256": "ed2a163eccd59647201e4efe54dbd7849ef69702fc0b10f055421e48b8c48a79"
+    },
+    {
+      "map_id": 1024,
+      "file": "1024.json.gz",
+      "cells": 154,
+      "visible_pairs": 518,
+      "sha256": "f295d0abbda1f1607408683b202b597d07531614a8f19c6cfdf1f1eaf4f44dd6"
+    },
+    {
+      "map_id": 1025,
+      "file": "1025.json.gz",
+      "cells": 316,
+      "visible_pairs": 912,
+      "sha256": "62e9aec0931facd18aaf4142310aa579f873ad8aab89fe58731d60cd40820d3d"
+    },
+    {
+      "map_id": 1026,
+      "file": "1026.json.gz",
+      "cells": 349,
+      "visible_pairs": 948,
+      "sha256": "14fd029bdbdc9cf0454f8b3c02e8c7969bee533b3334faaf1210c7e7ec689407"
+    },
+    {
+      "map_id": 1027,
+      "file": "1027.json.gz",
+      "cells": 581,
+      "visible_pairs": 1316,
+      "sha256": "fd21a37751b96c6a67db1b4f9151566eff268f9944c42539e6178131204ffc91"
+    },
+    {
+      "map_id": 1028,
+      "file": "1028.json.gz",
+      "cells": 112,
+      "visible_pairs": 292,
+      "sha256": "20892c18c47047f5ae695ed5733f04048376804459aa26a76fe8a88c9510e01f"
+    },
+    {
+      "map_id": 1029,
+      "file": "1029.json.gz",
+      "cells": 2037,
+      "visible_pairs": 6562,
+      "sha256": "44c15979eda4eac1a78879ffd7dd4cfd19c7fe7433a2b6589cd786eeb2579ea9"
+    },
+    {
+      "map_id": 1030,
+      "file": "1030.json.gz",
+      "cells": 618,
+      "visible_pairs": 1770,
+      "sha256": "5ad7c6d363e2e55bcf79db7a9ddcbaa8b6d19771beeabb998b59f372a786e5d2"
+    },
+    {
+      "map_id": 1031,
+      "file": "1031.json.gz",
+      "cells": 350,
+      "visible_pairs": 934,
+      "sha256": "f68e1aceb4f53522e00babe3aae474669b4ba863b886822a7a1379d21d54112e"
+    },
+    {
+      "map_id": 1032,
+      "file": "1032.json.gz",
+      "cells": 437,
+      "visible_pairs": 1118,
+      "sha256": "1dafc0b84ae9dccb8868c1822cbc74bfe63f0973c3bc1427cc8ffb5d156d6382"
+    },
+    {
+      "map_id": 1033,
+      "file": "1033.json.gz",
+      "cells": 1010,
+      "visible_pairs": 3290,
+      "sha256": "e05b7667ff5ea66cbd60e7f4e50aaf5352e127e07bb8e0d81bbd2382e969a3bc"
+    },
+    {
+      "map_id": 1034,
+      "file": "1034.json.gz",
+      "cells": 1065,
+      "visible_pairs": 3374,
+      "sha256": "01d0f5e487f36db35182dd194507d5ee30e17ffbee303a92ab1ecf9d169d3e78"
+    },
+    {
+      "map_id": 1035,
+      "file": "1035.json.gz",
+      "cells": 2771,
+      "visible_pairs": 8430,
+      "sha256": "7358b45cce4499bc123fc836f48ee553a1b47f07ceb1207c1070b61b95f3cdb5"
+    },
+    {
+      "map_id": 1036,
+      "file": "1036.json.gz",
+      "cells": 105,
+      "visible_pairs": 376,
+      "sha256": "c7f9053cc5c6a508932775b9d9d57df0c1e0ec132e191f84ce0965163d61c587"
+    },
+    {
+      "map_id": 1037,
+      "file": "1037.json.gz",
+      "cells": 2810,
+      "visible_pairs": 9430,
+      "sha256": "484c8705886ad8939369686b10c195d9af7c0e291385a43a5b8c9df61c43f19a"
+    },
+    {
+      "map_id": 1038,
+      "file": "1038.json.gz",
+      "cells": 8251,
+      "visible_pairs": 32428,
+      "sha256": "c32285dbb120952da081bd7fe1c03e7f9fe04f6a1fc773e923b896cd70f4c386"
+    },
+    {
+      "map_id": 1039,
+      "file": "1039.json.gz",
+      "cells": 96,
+      "visible_pairs": 308,
+      "sha256": "e8528f3c5dc97877c600cb2495bb000c22139a859393c130a0d494d3c1abd0ac"
+    },
+    {
+      "map_id": 1040,
+      "file": "1040.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "d2ac716f5cd9667f8d1160b71eb42529214204e92a2342674af94f8754911f89"
+    },
+    {
+      "map_id": 1042,
+      "file": "1042.json.gz",
+      "cells": 229,
+      "visible_pairs": 812,
+      "sha256": "a27ad48d8143fc105c5b08ed2c0f3399858f48c870c3e6196cf7fe3f8133a6e3"
+    },
+    {
+      "map_id": 1043,
+      "file": "1043.json.gz",
+      "cells": 267,
+      "visible_pairs": 942,
+      "sha256": "c87c19ccbb3536ac1fb7c5049d4c8f83cbe430b7c8e7f7c53d462074f767d831"
+    },
+    {
+      "map_id": 1044,
+      "file": "1044.json.gz",
+      "cells": 296,
+      "visible_pairs": 1066,
+      "sha256": "4a87f033769aacc8d91878d88094314d0e620e41880b18a463cd90562f857572"
+    },
+    {
+      "map_id": 1045,
+      "file": "1045.json.gz",
+      "cells": 359,
+      "visible_pairs": 1304,
+      "sha256": "2a709ae6c7d75b575ccbe765b9dab417d762ed8ac8a74060a1b07619ebd84ad5"
+    },
+    {
+      "map_id": 1046,
+      "file": "1046.json.gz",
+      "cells": 352,
+      "visible_pairs": 1240,
+      "sha256": "e401cf34180c3b27bb2358bf40e02d01325a6ce0cea21c01edecc645eaf1a2e6"
+    },
+    {
+      "map_id": 1047,
+      "file": "1047.json.gz",
+      "cells": 360,
+      "visible_pairs": 1312,
+      "sha256": "e4434ecb73da7d111c1e78f88868205ff564a6482e644b094e6ad649ee41915e"
+    },
+    {
+      "map_id": 1048,
+      "file": "1048.json.gz",
+      "cells": 169,
+      "visible_pairs": 562,
+      "sha256": "a4ee21dacbeb23e09acd6bcfb48e63d1d0f8512a9bd67fe028dd858587f39360"
+    },
+    {
+      "map_id": 1050,
+      "file": "1050.json.gz",
+      "cells": 241,
+      "visible_pairs": 866,
+      "sha256": "c7f822ce71ef5fd5ac061eee090cff3aa6852f32f6aea75ffc1b25452c65b03f"
+    },
+    {
+      "map_id": 1051,
+      "file": "1051.json.gz",
+      "cells": 112,
+      "visible_pairs": 370,
+      "sha256": "96e42d87dc8bac52000cb41ccc2ceaefbb56143da76dad81df81fa75ae61bb96"
+    },
+    {
+      "map_id": 1052,
+      "file": "1052.json.gz",
+      "cells": 210,
+      "visible_pairs": 752,
+      "sha256": "b5ade5df321e837b634f06236f507b4aeec4cc2c6271e87f82b973216a357394"
+    },
+    {
+      "map_id": 1053,
+      "file": "1053.json.gz",
+      "cells": 8000,
+      "visible_pairs": 26160,
+      "sha256": "d8c5f459201490be5532cbc80e23c5168027f985940460f5b49d472319469be6"
+    },
+    {
+      "map_id": 1054,
+      "file": "1054.json.gz",
+      "cells": 701,
+      "visible_pairs": 2434,
+      "sha256": "2f701218d13ba5e47c88af5c7c35ea7b880fc88721e179522abd992cae9ef66b"
+    },
+    {
+      "map_id": 1056,
+      "file": "1056.json.gz",
+      "cells": 221,
+      "visible_pairs": 786,
+      "sha256": "6e7359d60251bc6600bbc3ae193bf1453624627c1f8784f2911ba149bb20e153"
+    },
+    {
+      "map_id": 1057,
+      "file": "1057.json.gz",
+      "cells": 362,
+      "visible_pairs": 1162,
+      "sha256": "8e94b47d0a125867310172108c7c82b5b71ec3a3e8a5d677713b3d47dea79ddf"
+    },
+    {
+      "map_id": 1061,
+      "file": "1061.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "6ee277f96cabb585c06eeeeda807c394840593b459ddabae480713b023f17560"
+    },
+    {
+      "map_id": 1062,
+      "file": "1062.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "2870529b1de04b9b52f9af4795a69785ee0361b0a0afe9c3588819b7a9bba244"
+    },
+    {
+      "map_id": 1063,
+      "file": "1063.json.gz",
+      "cells": 1369,
+      "visible_pairs": 4266,
+      "sha256": "a08d36b1eeeaf196807b049a44806692942fb9f1c893d5363bad30fedd9a5b24"
+    },
+    {
+      "map_id": 1069,
+      "file": "1069.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "41e38dae68658e0b6b89026ebcdd088b0759a4648ce86d3c1018c92a77f56291"
+    },
+    {
+      "map_id": 1071,
+      "file": "1071.json.gz",
+      "cells": 710,
+      "visible_pairs": 1952,
+      "sha256": "3cb4e02ccf080a4bd658d7e7a86322fb54cc7f5e3acb88545072f49d745d1088"
+    },
+    {
+      "map_id": 1072,
+      "file": "1072.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "922da33265afd9c0e541cfc8620d4ec8b731173daf444a735b7afe23aad59e6c"
+    },
+    {
+      "map_id": 1073,
+      "file": "1073.json.gz",
+      "cells": 821,
+      "visible_pairs": 2642,
+      "sha256": "b3b03a40e16bcbb06183ee80fc74716d84ae250295134398b9b108f08a3ff15d"
+    },
+    {
+      "map_id": 1074,
+      "file": "1074.json.gz",
+      "cells": 1237,
+      "visible_pairs": 3875,
+      "sha256": "fdd2b7a7dcc2ba8afeee8bd44d73d26680022b641cafdbd30951888786bf1e65"
+    },
+    {
+      "map_id": 1075,
+      "file": "1075.json.gz",
+      "cells": 2688,
+      "visible_pairs": 9346,
+      "sha256": "98403595ec2a29bbe2be5774ca76a17cf6fcb49775e75a139527211cf6254495"
+    },
+    {
+      "map_id": 1076,
+      "file": "1076.json.gz",
+      "cells": 3148,
+      "visible_pairs": 9532,
+      "sha256": "77d64c1ed8984da35e4165a424168939e8da90010ac6276e1a6e47cbe4aed903"
+    },
+    {
+      "map_id": 1079,
+      "file": "1079.json.gz",
+      "cells": 1057,
+      "visible_pairs": 3584,
+      "sha256": "c082c6d0ce2d4a8a6b34c033e88f65f57aeb1da1334a639f6ba943c1e5d256c5"
+    },
+    {
+      "map_id": 1080,
+      "file": "1080.json.gz",
+      "cells": 1259,
+      "visible_pairs": 4096,
+      "sha256": "92629cff14caa1a18721b86483bdf18ec64e8431025ef1fd703ccffa64202b9e"
+    },
+    {
+      "map_id": 1081,
+      "file": "1081.json.gz",
+      "cells": 58,
+      "visible_pairs": 178,
+      "sha256": "e5d8670d7e1ab2baacf29254c84346c0dbf62329dbb64957e1eba3a5996859b7"
+    },
+    {
+      "map_id": 1082,
+      "file": "1082.json.gz",
+      "cells": 407,
+      "visible_pairs": 1384,
+      "sha256": "c5e88b2dc0bfc65fb8fbc550af2f15988d44ae67968215c0ce6d03295b103b19"
+    },
+    {
+      "map_id": 1083,
+      "file": "1083.json.gz",
+      "cells": 264,
+      "visible_pairs": 658,
+      "sha256": "cccd565713a5b71ee3cde304b4606f6e45e80e05b2f4449cb7ce70ba529474b2"
+    },
+    {
+      "map_id": 1084,
+      "file": "1084.json.gz",
+      "cells": 937,
+      "visible_pairs": 2896,
+      "sha256": "5f3bcb7b151fd401388441832bcd0b1afa86aa8a09aaedaa1ee9a0c2a2d35bcc"
+    },
+    {
+      "map_id": 1086,
+      "file": "1086.json.gz",
+      "cells": 1088,
+      "visible_pairs": 3880,
+      "sha256": "05fce9636911f4a8343ae99cd619d0ec1957a58a77aa4309c4947fbcf3980247"
+    },
+    {
+      "map_id": 1087,
+      "file": "1087.json.gz",
+      "cells": 671,
+      "visible_pairs": 2185,
+      "sha256": "cbae482b473d0b39a9208dc59e6e53b89b0a66c91731beb71bb22894eb81dd65"
+    },
+    {
+      "map_id": 1089,
+      "file": "1089.json.gz",
+      "cells": 167,
+      "visible_pairs": 300,
+      "sha256": "0df4706d2b2868ad5915fd0f0ccb8c51ed1b25ffd37b4b83d5b552a5529a0caf"
+    },
+    {
+      "map_id": 1090,
+      "file": "1090.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "cbbab2abdd58a98f44c7dfa62f80b1e59a2eec4da3389b8f53b0ba034367a8e0"
+    },
+    {
+      "map_id": 1091,
+      "file": "1091.json.gz",
+      "cells": 586,
+      "visible_pairs": 1980,
+      "sha256": "9a371904272b0988993f6577f7bf34ecb143ba98021f074d06a952d77232a26d"
+    },
+    {
+      "map_id": 1092,
+      "file": "1092.json.gz",
+      "cells": 987,
+      "visible_pairs": 3116,
+      "sha256": "d7b46f89c57668f2a67ddf419ceffd73e4e5404f0f451dbdb3b53fd09ed63082"
+    },
+    {
+      "map_id": 1093,
+      "file": "1093.json.gz",
+      "cells": 771,
+      "visible_pairs": 2306,
+      "sha256": "a37b0546bdb6f93fb7a36d9d580e47ebb2214aaa60336617d93633d3d6f57adc"
+    },
+    {
+      "map_id": 1094,
+      "file": "1094.json.gz",
+      "cells": 1998,
+      "visible_pairs": 5560,
+      "sha256": "c867c3ec51a16c4a22b43e211f934c51958b296a867079bd6bc67f6c602dbb19"
+    },
+    {
+      "map_id": 1095,
+      "file": "1095.json.gz",
+      "cells": 1339,
+      "visible_pairs": 4218,
+      "sha256": "262e3d3f81cc04f5fbbd7510141090b1c26114dc2e9a2f935195dbcd1ab487bc"
+    },
+    {
+      "map_id": 1096,
+      "file": "1096.json.gz",
+      "cells": 443,
+      "visible_pairs": 1317,
+      "sha256": "07fd79521dbebe2e96c08aeff8d4514089d643dc8de8d7d9145cfe44d2d1ec9f"
+    },
+    {
+      "map_id": 1097,
+      "file": "1097.json.gz",
+      "cells": 60,
+      "visible_pairs": 151,
+      "sha256": "3f955cb36d0dea8e753a6d2ae97eea8483a1fd42e4f896ac62baf9e41f57dfbc"
+    },
+    {
+      "map_id": 1098,
+      "file": "1098.json.gz",
+      "cells": 352,
+      "visible_pairs": 1088,
+      "sha256": "7ba0b5782d08d48a928de409ea1c23350db8be68fb8d21f5948c2e6e748036c2"
+    },
+    {
+      "map_id": 1099,
+      "file": "1099.json.gz",
+      "cells": 86,
+      "visible_pairs": 222,
+      "sha256": "2da8b2a696e7e655e6aa21b4d895de4154650d31adc181d3e1085582aebd57cd"
+    },
+    {
+      "map_id": 1100,
+      "file": "1100.json.gz",
+      "cells": 429,
+      "visible_pairs": 1377,
+      "sha256": "9571cbf5be0de03f83b33f144f99ebca6070b60884d7d1c61534ab33e9181798"
+    },
+    {
+      "map_id": 1101,
+      "file": "1101.json.gz",
+      "cells": 175,
+      "visible_pairs": 496,
+      "sha256": "81f9559950fc8b1b4360b4dcea9988aa0593a3412a4fcb7fa0279931d088be4f"
+    },
+    {
+      "map_id": 1102,
+      "file": "1102.json.gz",
+      "cells": 1139,
+      "visible_pairs": 3724,
+      "sha256": "248c6ff9d5da55efa6f84d688c28cd5f45cc53d3a810c0e9219547393dd197c8"
+    },
+    {
+      "map_id": 1103,
+      "file": "1103.json.gz",
+      "cells": 93,
+      "visible_pairs": 260,
+      "sha256": "59d826f519148e08fd2432e9b8badbfd261836c5a610d28e6c18f1b397e50a32"
+    },
+    {
+      "map_id": 1104,
+      "file": "1104.json.gz",
+      "cells": 176,
+      "visible_pairs": 594,
+      "sha256": "ceff609a830a46072c92b4705b3a98eea71e9df912f70714b7289ef355badc8f"
+    },
+    {
+      "map_id": 1105,
+      "file": "1105.json.gz",
+      "cells": 295,
+      "visible_pairs": 1052,
+      "sha256": "1d573f6e510faf69c473d072ae181e36db2113f08ede8760610afac8510927de"
+    },
+    {
+      "map_id": 1106,
+      "file": "1106.json.gz",
+      "cells": 215,
+      "visible_pairs": 744,
+      "sha256": "8722804ae493a1bafa645190bbab24151f5212f1f10f80ac8d5357f2106fc1f1"
+    },
+    {
+      "map_id": 1107,
+      "file": "1107.json.gz",
+      "cells": 212,
+      "visible_pairs": 726,
+      "sha256": "0c8dc114af4bddf452c61d44fb5dd340d04ad0024c21460b67024831cc7a5b69"
+    },
+    {
+      "map_id": 1108,
+      "file": "1108.json.gz",
+      "cells": 127,
+      "visible_pairs": 414,
+      "sha256": "92f1540a4f03786d732662d4afa384d042b452c93da260173e8886a0eb2de657"
+    },
+    {
+      "map_id": 1109,
+      "file": "1109.json.gz",
+      "cells": 318,
+      "visible_pairs": 1142,
+      "sha256": "383d5fd4bb9b3e2d27e1e54e9c70affb224455c37a719a35b9af3996389d545f"
+    },
+    {
+      "map_id": 1111,
+      "file": "1111.json.gz",
+      "cells": 173,
+      "visible_pairs": 570,
+      "sha256": "1a77da985de09102584bb2c3ac10170c6890b07a0be873b9062506e80fc3835e"
+    },
+    {
+      "map_id": 1112,
+      "file": "1112.json.gz",
+      "cells": 117,
+      "visible_pairs": 350,
+      "sha256": "8d62f25fb1a11d80b8ea67b5c07a5c413953d667f3cd736eb7cc204e5d6ec257"
+    },
+    {
+      "map_id": 1113,
+      "file": "1113.json.gz",
+      "cells": 238,
+      "visible_pairs": 844,
+      "sha256": "7d5ae47a37e3f40fd4a6d364804efcdf45ba8c752ee564976ed6cfac8ca851f2"
+    },
+    {
+      "map_id": 1114,
+      "file": "1114.json.gz",
+      "cells": 236,
+      "visible_pairs": 834,
+      "sha256": "1084f4ba423985d540ef83e8512a7fd7bc4c7419c1ffe98cf282e9732acbac10"
+    },
+    {
+      "map_id": 1115,
+      "file": "1115.json.gz",
+      "cells": 6521,
+      "visible_pairs": 25544,
+      "sha256": "19b8a503997fce3552161518ed306adf1f6e7fda44d160ee32971d03705b4b89"
+    },
+    {
+      "map_id": 1116,
+      "file": "1116.json.gz",
+      "cells": 9562,
+      "visible_pairs": 37476,
+      "sha256": "c613074aa55071b7e2c0eee9a660932eae7494206cf844f3c354d7116a11bbb2"
+    },
+    {
+      "map_id": 1117,
+      "file": "1117.json.gz",
+      "cells": 429,
+      "visible_pairs": 1377,
+      "sha256": "aedb965e2dc6cccbaa4be529bb41551ba8495ca6e39bcc13fa89f4f8c31f716f"
+    },
+    {
+      "map_id": 1118,
+      "file": "1118.json.gz",
+      "cells": 9611,
+      "visible_pairs": 34788,
+      "sha256": "e940264c4b06dac28be7d415f51031b0b2ad8e894c265bb0f6e3310ba0bf5b3f"
+    },
+    {
+      "map_id": 1119,
+      "file": "1119.json.gz",
+      "cells": 7445,
+      "visible_pairs": 23691,
+      "sha256": "cede3fa3f50104c8f8d09f48b8567509e428d45a347cc4dddeb2914b84240e39"
+    },
+    {
+      "map_id": 1120,
+      "file": "1120.json.gz",
+      "cells": 10290,
+      "visible_pairs": 34499,
+      "sha256": "39e5de400c66001400282fb4ec6e5a0bf562634b1356cb0017381aa223eaad13"
+    },
+    {
+      "map_id": 1121,
+      "file": "1121.json.gz",
+      "cells": 6131,
+      "visible_pairs": 20342,
+      "sha256": "29c13967bd49a952b7ca144eada130ef2026d562bf5dd1b2f886d834e8f34430"
+    },
+    {
+      "map_id": 1122,
+      "file": "1122.json.gz",
+      "cells": 9342,
+      "visible_pairs": 30677,
+      "sha256": "443eea54eafbbe2eb1812b40b4a80698c42addd3d5ec628760843c7d2bbe6f2f"
+    },
+    {
+      "map_id": 1123,
+      "file": "1123.json.gz",
+      "cells": 3294,
+      "visible_pairs": 9435,
+      "sha256": "f62fa57c96e16ac347ad3a7e1fdaad391badb34ab3f4367dfa04513838cc4c2e"
+    },
+    {
+      "map_id": 1124,
+      "file": "1124.json.gz",
+      "cells": 8367,
+      "visible_pairs": 24372,
+      "sha256": "e643ee3a1f911e0f6de1d79d32add10eea4e30b844d12d8854f379be3a9a772b"
+    },
+    {
+      "map_id": 1126,
+      "file": "1126.json.gz",
+      "cells": 827,
+      "visible_pairs": 2566,
+      "sha256": "27201193e53349d805234c8ee5810b258f1699194f99b037297d1111b0164a9e"
+    },
+    {
+      "map_id": 1127,
+      "file": "1127.json.gz",
+      "cells": 807,
+      "visible_pairs": 2724,
+      "sha256": "4afcbf3b65b176d0a2c7ea2f68c27dc6bd6f72cfede046aaae7cb193ae684f9d"
+    },
+    {
+      "map_id": 1128,
+      "file": "1128.json.gz",
+      "cells": 803,
+      "visible_pairs": 2622,
+      "sha256": "3dea161715a7e2ffc5a759d69a081bc14ae59db8d01b790b1a7c1e52b4680347"
+    },
+    {
+      "map_id": 1129,
+      "file": "1129.json.gz",
+      "cells": 478,
+      "visible_pairs": 1438,
+      "sha256": "002b66fb1bd1601344dee03dc586f8af90b604f4d0ce7d3392da1b12178c954e"
+    },
+    {
+      "map_id": 1130,
+      "file": "1130.json.gz",
+      "cells": 717,
+      "visible_pairs": 2338,
+      "sha256": "11618beceff53c011e0de17f7c1ca9cedd7ba12c8d90085cc13c4ead77312aeb"
+    },
+    {
+      "map_id": 1131,
+      "file": "1131.json.gz",
+      "cells": 603,
+      "visible_pairs": 1800,
+      "sha256": "45999df2fd99dc5ff51ba0facd49517b2c7cb0f72c31b6fd683773b1be015f1d"
+    },
+    {
+      "map_id": 1132,
+      "file": "1132.json.gz",
+      "cells": 1248,
+      "visible_pairs": 4132,
+      "sha256": "dc79f50c25db0d702254a25ea87d1b4c52527673bd7ebaee631c8f3663e9f40e"
+    },
+    {
+      "map_id": 1133,
+      "file": "1133.json.gz",
+      "cells": 585,
+      "visible_pairs": 1872,
+      "sha256": "2f52b6e0e6a7bfa30474ebccf85ff13ccb98c25d0cdbbb516f79efd5caef2dfb"
+    },
+    {
+      "map_id": 1134,
+      "file": "1134.json.gz",
+      "cells": 37157,
+      "visible_pairs": 124198,
+      "sha256": "74304d3bf0f4b0675b5edf4a5fc13c385bdd861174971b2faedcc4d7349c3068"
+    },
+    {
+      "map_id": 1135,
+      "file": "1135.json.gz",
+      "cells": 33766,
+      "visible_pairs": 112321,
+      "sha256": "f5d5d7fa1f473ad0ac987fbe92fe137da6f5cce936bb090eadb3b157b806b891"
+    },
+    {
+      "map_id": 1136,
+      "file": "1136.json.gz",
+      "cells": 34078,
+      "visible_pairs": 111138,
+      "sha256": "8559c266c3dc5ed4f2926d0244e76de6e5b3e1e39ddc7d5bb27231f62bc00f1f"
+    },
+    {
+      "map_id": 1137,
+      "file": "1137.json.gz",
+      "cells": 46036,
+      "visible_pairs": 152363,
+      "sha256": "cb7bc5040e07ddfa35115376037382821070837b5a6501aa3b4974940285a718"
+    },
+    {
+      "map_id": 1138,
+      "file": "1138.json.gz",
+      "cells": 404,
+      "visible_pairs": 1373,
+      "sha256": "00acf2f5af3f0439f5e8d02f48771db56f8402ffdda92b23273b580af2d0452b"
+    },
+    {
+      "map_id": 1139,
+      "file": "1139.json.gz",
+      "cells": 283,
+      "visible_pairs": 818,
+      "sha256": "7ec72ab3e4266b48faa4db47891714a5d6d4059899349594412bd0f97e5b9d83"
+    },
+    {
+      "map_id": 1140,
+      "file": "1140.json.gz",
+      "cells": 156,
+      "visible_pairs": 508,
+      "sha256": "965689e0920965ce4724671fdb06025654da5aa278b240a5116ffad7ef684cff"
+    },
+    {
+      "map_id": 1141,
+      "file": "1141.json.gz",
+      "cells": 342,
+      "visible_pairs": 1210,
+      "sha256": "6df8059b213a13cc40f9ada859156301df28ab7a938d8fd36fa6ee3d09e875e4"
+    },
+    {
+      "map_id": 1143,
+      "file": "1143.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3c47d51331138d3f69c92db01881e980bb93dc0c91b5a457623044b9d29ab633"
+    },
+    {
+      "map_id": 1144,
+      "file": "1144.json.gz",
+      "cells": 53,
+      "visible_pairs": 144,
+      "sha256": "e11d53cbbf1f3f55df293c3905f8fe72d273cd24df6db12aedc6fc0a502c8227"
+    },
+    {
+      "map_id": 1145,
+      "file": "1145.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "7c2400a05e1a1f3b9baa2b69ef002c73b206dfd065eabe512145871afbba3e75"
+    },
+    {
+      "map_id": 1146,
+      "file": "1146.json.gz",
+      "cells": 144,
+      "visible_pairs": 382,
+      "sha256": "872be3b8efa654483bb45e01cf3077cdf9205d31c75ad781c2b2adf8a9cf7c8b"
+    },
+    {
+      "map_id": 1147,
+      "file": "1147.json.gz",
+      "cells": 822,
+      "visible_pairs": 2680,
+      "sha256": "5a75d06b69b5e723be6f7c24b8e7007944d8287d5675e2d5d87d71fa18a4f753"
+    },
+    {
+      "map_id": 1149,
+      "file": "1149.json.gz",
+      "cells": 10,
+      "visible_pairs": 10,
+      "sha256": "40c11f98543cebeb77a8e12c40d4c7b4b9a7745bb67c34416d31f235afc164cd"
+    },
+    {
+      "map_id": 1150,
+      "file": "1150.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "da999363445a554c80853b3cb2920ebd4b1dc4620ca506446e875083736742b0"
+    },
+    {
+      "map_id": 1151,
+      "file": "1151.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "19e652e9b9e350dbb7ba56d83b03b5a0d92f6cfbdf70ed4008d65ea6090ae6bc"
+    },
+    {
+      "map_id": 1153,
+      "file": "1153.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "bcf1bde009c3956ed807ce071f4f4988c461bbf9ca2950cdea1f5f3b4430a6aa"
+    },
+    {
+      "map_id": 1154,
+      "file": "1154.json.gz",
+      "cells": 3338,
+      "visible_pairs": 7717,
+      "sha256": "a60fd5c19ac58d639ef843d6f324bdd0f2622a41f0ecd18e5e6e51813746d5e8"
+    },
+    {
+      "map_id": 1155,
+      "file": "1155.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1f7e0bd623827a9c2e941f15a82346c9c8515a28cce5ea6f2092a282b567daab"
+    },
+    {
+      "map_id": 1156,
+      "file": "1156.json.gz",
+      "cells": 6911,
+      "visible_pairs": 24046,
+      "sha256": "ec3c318f7f89a05b4743a4f7bf6ca7f6be50e16f40a956c8fc8b2b1635296732"
+    },
+    {
+      "map_id": 1157,
+      "file": "1157.json.gz",
+      "cells": 1230,
+      "visible_pairs": 4041,
+      "sha256": "696600468f40def7af6ff2f7ca0e0bc2cd311f08d1cba96b230a89852f22a34f"
+    },
+    {
+      "map_id": 1158,
+      "file": "1158.json.gz",
+      "cells": 34782,
+      "visible_pairs": 105030,
+      "sha256": "70a57927a529ecbc3f178ae6f890ec738ba53722c09dbd295e55be586545a6b0"
+    },
+    {
+      "map_id": 1159,
+      "file": "1159.json.gz",
+      "cells": 326,
+      "visible_pairs": 1094,
+      "sha256": "fa8d146878d7bf567f088e66f5999355a0a4177a849bb2a0d345687ad230ab59"
+    },
+    {
+      "map_id": 1160,
+      "file": "1160.json.gz",
+      "cells": 2856,
+      "visible_pairs": 10370,
+      "sha256": "c0d574af7f6d219ba7a455a2875e6f5fcf9a5e1547f169f73c8c58e656f5576c"
+    },
+    {
+      "map_id": 1161,
+      "file": "1161.json.gz",
+      "cells": 3657,
+      "visible_pairs": 12332,
+      "sha256": "d303e89019a2ce0a584112346536d81cfb79771f45225d6cb59d653aa21f9f6a"
+    },
+    {
+      "map_id": 1163,
+      "file": "1163.json.gz",
+      "cells": 16644,
+      "visible_pairs": 56172,
+      "sha256": "7f693bc11e31b350be47c23e6d8e593d1047547dc52865735c15ebb5aa6c033b"
+    },
+    {
+      "map_id": 1165,
+      "file": "1165.json.gz",
+      "cells": 8523,
+      "visible_pairs": 28408,
+      "sha256": "6592f95421f197a0c693a8ba4de40e5b4a133407a1d0f5b243113274139b1280"
+    },
+    {
+      "map_id": 1169,
+      "file": "1169.json.gz",
+      "cells": 15631,
+      "visible_pairs": 53959,
+      "sha256": "0b8843f81e75c1b0c679cf359d98cc3503e1e882a85c93af77d613f1583bfbce"
+    },
+    {
+      "map_id": 1179,
+      "file": "1179.json.gz",
+      "cells": 22954,
+      "visible_pairs": 74824,
+      "sha256": "e8ee7bb41f3d1fe66ef62a70d6166b5ec18158fe8713db77a2261dd3f19ac504"
+    },
+    {
+      "map_id": 1184,
+      "file": "1184.json.gz",
+      "cells": 10550,
+      "visible_pairs": 37544,
+      "sha256": "a8c6c858d00956f49337057f0573a6f3ea6a25e92cdd0fd22750c65aa9fafb6b"
+    },
+    {
+      "map_id": 1201,
+      "file": "1201.json.gz",
+      "cells": 57,
+      "visible_pairs": 107,
+      "sha256": "945b0dfb58849ed97dc6604f8c84af03ae45c6758eeec122876158765b113d31"
+    },
+    {
+      "map_id": 1202,
+      "file": "1202.json.gz",
+      "cells": 273,
+      "visible_pairs": 918,
+      "sha256": "6c9057ef79c33bfb062ab98e3448f5a70883feba53d9d77de103bad4d3cbae39"
+    },
+    {
+      "map_id": 1203,
+      "file": "1203.json.gz",
+      "cells": 4444,
+      "visible_pairs": 14532,
+      "sha256": "405642fc6020bc8327984747d23099a99817d65d132150856ea636722deb29f1"
+    },
+    {
+      "map_id": 1204,
+      "file": "1204.json.gz",
+      "cells": 326,
+      "visible_pairs": 1094,
+      "sha256": "81c6ac3cd5db193c8ad6b92b363493d90cdf23ae0e56eaedf7e7ab241bfd605f"
+    },
+    {
+      "map_id": 1206,
+      "file": "1206.json.gz",
+      "cells": 3730,
+      "visible_pairs": 12460,
+      "sha256": "7647e842bc5b6329fd3f8ddaea7a3cef0e10846b0917e373124a2428b3abd0ae"
+    },
+    {
+      "map_id": 1207,
+      "file": "1207.json.gz",
+      "cells": 5125,
+      "visible_pairs": 16220,
+      "sha256": "e097af2bf76b4e199f14af3bf82ca44a968828c30e86e77ffd604714db30283c"
+    },
+    {
+      "map_id": 1208,
+      "file": "1208.json.gz",
+      "cells": 5793,
+      "visible_pairs": 18721,
+      "sha256": "b28ea8ef921d26a39e828f59096a14ec3ff1a9294376c1efd098f29ded99e528"
+    },
+    {
+      "map_id": 1209,
+      "file": "1209.json.gz",
+      "cells": 6757,
+      "visible_pairs": 22307,
+      "sha256": "a5ebe6de6a86ab2960e53612a83a15a85d8ff502bdcb23912b633ec1156ed4c5"
+    },
+    {
+      "map_id": 1210,
+      "file": "1210.json.gz",
+      "cells": 5997,
+      "visible_pairs": 18915,
+      "sha256": "944260c508f888f18d2768b6b20b9a2c9f40cbd500cc2c81d953160cd1427371"
+    },
+    {
+      "map_id": 1211,
+      "file": "1211.json.gz",
+      "cells": 4318,
+      "visible_pairs": 9812,
+      "sha256": "f5401d27fdd460b59b646057b100954d0a335b0bb6c596ac9bda4c98ec223d70"
+    },
+    {
+      "map_id": 1212,
+      "file": "1212.json.gz",
+      "cells": 3080,
+      "visible_pairs": 7360,
+      "sha256": "46dcb47f825a3c9bd06b3d327df08bac3b64a3c79ffc65e898035387d3f621ea"
+    },
+    {
+      "map_id": 1213,
+      "file": "1213.json.gz",
+      "cells": 302,
+      "visible_pairs": 800,
+      "sha256": "f4131dc528df819d8c6f51985788bcfcb7c12ac16c1c3fca8a91a21272b636d1"
+    },
+    {
+      "map_id": 1214,
+      "file": "1214.json.gz",
+      "cells": 172,
+      "visible_pairs": 466,
+      "sha256": "97665f121829b43df5f0135033e94b604b3452d36267806dd73c05b29bf66440"
+    },
+    {
+      "map_id": 1215,
+      "file": "1215.json.gz",
+      "cells": 172,
+      "visible_pairs": 466,
+      "sha256": "b30e60832cd72f2826cb7c5db7a7a69ad27e9a79c75f157a3eb3823b775b249b"
+    },
+    {
+      "map_id": 1216,
+      "file": "1216.json.gz",
+      "cells": 302,
+      "visible_pairs": 800,
+      "sha256": "bbacb9f9ce055eae9d482a0b647930df04d7baf91efabe377af62d9e5d9e53c1"
+    },
+    {
+      "map_id": 1217,
+      "file": "1217.json.gz",
+      "cells": 3720,
+      "visible_pairs": 12404,
+      "sha256": "f78e660a95c62ba88e23c3af97d39a4fd649692367e91f9f55b1c7f09039a1ea"
+    },
+    {
+      "map_id": 1218,
+      "file": "1218.json.gz",
+      "cells": 4423,
+      "visible_pairs": 14432,
+      "sha256": "7470a3ad1c060deac4f6d5597bf8176fd64ec842bd74365dfb172d0dc3a8f3c7"
+    },
+    {
+      "map_id": 1219,
+      "file": "1219.json.gz",
+      "cells": 3730,
+      "visible_pairs": 12460,
+      "sha256": "ccfb17dd46d4fc6ec76734375b7d2ebd040cd69f18a5b673b15d28db2ab97c4b"
+    },
+    {
+      "map_id": 1220,
+      "file": "1220.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "053e011cc1724ce30d3a03121e153a72d22191f8f526fdbdcfc7c25d9d23fb24"
+    },
+    {
+      "map_id": 1221,
+      "file": "1221.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "663a6f7ecb2023598e880b24e38553fe766e149b5b282e0fb804356d7ae0f41b"
+    },
+    {
+      "map_id": 1222,
+      "file": "1222.json.gz",
+      "cells": 754,
+      "visible_pairs": 2590,
+      "sha256": "3773d5970aa59e07262faed17ad90785f8c7e0808bc10952f391945ee8c18440"
+    },
+    {
+      "map_id": 1223,
+      "file": "1223.json.gz",
+      "cells": 441,
+      "visible_pairs": 1364,
+      "sha256": "bcd287214c7656b6ee36d3c7a2cc3518034f6ef66c3b71a9f3b927e49d38d462"
+    },
+    {
+      "map_id": 1224,
+      "file": "1224.json.gz",
+      "cells": 1180,
+      "visible_pairs": 3817,
+      "sha256": "fe4cb83bee96b1b7a39ba4aec47c5dd13a1037995c242789f9843c4d067486fd"
+    },
+    {
+      "map_id": 1225,
+      "file": "1225.json.gz",
+      "cells": 358,
+      "visible_pairs": 1072,
+      "sha256": "c5d1168625dcdfb9612ae6033cd91f8634d0206215f03bb1b4e0892c0a159680"
+    },
+    {
+      "map_id": 1226,
+      "file": "1226.json.gz",
+      "cells": 536,
+      "visible_pairs": 1686,
+      "sha256": "bbfa65f1667d96b73e3029e8a2b115714e9b6c362e6e7d32f80cd900e4e98a91"
+    },
+    {
+      "map_id": 1227,
+      "file": "1227.json.gz",
+      "cells": 520,
+      "visible_pairs": 1554,
+      "sha256": "6dffddf44a1507ed558ed542239057229d33c97bd41d548f87912dc79d97255e"
+    },
+    {
+      "map_id": 1228,
+      "file": "1228.json.gz",
+      "cells": 458,
+      "visible_pairs": 1406,
+      "sha256": "0a1acd055ba7a1fdaf8aa128e5c7e629bf9ba4b713b1a2881f8b82964fab94a9"
+    },
+    {
+      "map_id": 1229,
+      "file": "1229.json.gz",
+      "cells": 2709,
+      "visible_pairs": 10452,
+      "sha256": "f211978cd38af6968e7c11fe113c6fa44a19af912984a4b617873998e95a976e"
+    },
+    {
+      "map_id": 1231,
+      "file": "1231.json.gz",
+      "cells": 2104,
+      "visible_pairs": 7499,
+      "sha256": "31ca2287568a960b83fb075b1342be91ce72101fc25df34e11ec9e532065a8ee"
+    },
+    {
+      "map_id": 1232,
+      "file": "1232.json.gz",
+      "cells": 100,
+      "visible_pairs": 346,
+      "sha256": "5611e6c06740cc4eb01a05f1c6ac77bb44b34fe639d0bf40687225ec1285200b"
+    },
+    {
+      "map_id": 1233,
+      "file": "1233.json.gz",
+      "cells": 151,
+      "visible_pairs": 498,
+      "sha256": "906134ae80f25004d0cc917c256d83efda7a84cd29a10c6b2336131edadeff0f"
+    },
+    {
+      "map_id": 1234,
+      "file": "1234.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "0cb6916245e0f750c8fc716791085e5b94a2ca29442a3da07b6c75ffce6086a5"
+    },
+    {
+      "map_id": 1235,
+      "file": "1235.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "33f1725f107874bda4f148dbce8a968ea8a05737c3cd6136e5b6eca1962268cd"
+    },
+    {
+      "map_id": 1236,
+      "file": "1236.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "7ea384ab8f836ae0fffd9ff45940f3f1f0b20149bbc860406b68621338eac15c"
+    },
+    {
+      "map_id": 1237,
+      "file": "1237.json.gz",
+      "cells": 198,
+      "visible_pairs": 620,
+      "sha256": "1b09709904ea2d40262ab251d6ef45d0625e71d1e3990847de39a1c97fec6db5"
+    },
+    {
+      "map_id": 1238,
+      "file": "1238.json.gz",
+      "cells": 189,
+      "visible_pairs": 524,
+      "sha256": "0b3cfa60c3591fc76dcde1e5279cec84930032a4629188a5a7de4eccb1c86e2d"
+    },
+    {
+      "map_id": 1239,
+      "file": "1239.json.gz",
+      "cells": 200,
+      "visible_pairs": 636,
+      "sha256": "bc37dca3137cdfbbfefb2e436622ef965f487b327e1846bff84f44825c1418aa"
+    },
+    {
+      "map_id": 1240,
+      "file": "1240.json.gz",
+      "cells": 197,
+      "visible_pairs": 548,
+      "sha256": "224d2fcd51bcaeda72066bcccd485788d201e4c3559f33e3386689ac66d7a72a"
+    },
+    {
+      "map_id": 1241,
+      "file": "1241.json.gz",
+      "cells": 209,
+      "visible_pairs": 648,
+      "sha256": "3df6a99ce974b98eb603d26d950a626e17dae1b418b4565d527c9e92d40ff8fe"
+    },
+    {
+      "map_id": 1242,
+      "file": "1242.json.gz",
+      "cells": 198,
+      "visible_pairs": 554,
+      "sha256": "c69d4de5f4e603808c544ef1b73b9f1d9317fbbc3b0c47bf8c7078dd0afa5766"
+    },
+    {
+      "map_id": 1243,
+      "file": "1243.json.gz",
+      "cells": 206,
+      "visible_pairs": 659,
+      "sha256": "5b1ce4111f988cf047fc85586e3e77410d9e996ace27350d0b2f7cb30cbb220a"
+    },
+    {
+      "map_id": 1244,
+      "file": "1244.json.gz",
+      "cells": 193,
+      "visible_pairs": 528,
+      "sha256": "9104dc141fbdedf37dd33cd7a043ea5b1937e579fe909319a18ad817a871766b"
+    },
+    {
+      "map_id": 1245,
+      "file": "1245.json.gz",
+      "cells": 612,
+      "visible_pairs": 1500,
+      "sha256": "96e9f4ddcdbeb07dd0e66158b9464cd0de339ad0249e78d55b14e61ccc919d83"
+    },
+    {
+      "map_id": 1246,
+      "file": "1246.json.gz",
+      "cells": 676,
+      "visible_pairs": 1700,
+      "sha256": "fa53f885081924a6ffe6fc3e89fef11e2143a9e3a9b66b9958bf77a62de7e54c"
+    },
+    {
+      "map_id": 1247,
+      "file": "1247.json.gz",
+      "cells": 634,
+      "visible_pairs": 1596,
+      "sha256": "5b69c006a0b2ea79cfe60c4314f3dc9298d5e2b0c182e3071a92a0fd5af3e606"
+    },
+    {
+      "map_id": 1248,
+      "file": "1248.json.gz",
+      "cells": 613,
+      "visible_pairs": 1520,
+      "sha256": "6c8bd9971420d28a80016eaaf0d51dba8de5a8b5eb3f4b59600f44791d9fc298"
+    },
+    {
+      "map_id": 1249,
+      "file": "1249.json.gz",
+      "cells": 506,
+      "visible_pairs": 1628,
+      "sha256": "2e301746bbd2b95bedb9e75ced4eec75aa129486a5654930dedb8c3073d464ab"
+    },
+    {
+      "map_id": 1250,
+      "file": "1250.json.gz",
+      "cells": 1403,
+      "visible_pairs": 4598,
+      "sha256": "5622053284b9fa966af188746a38d27a7c6eccfcb9e49315cca5b0e5458d3fcc"
+    },
+    {
+      "map_id": 1251,
+      "file": "1251.json.gz",
+      "cells": 29945,
+      "visible_pairs": 111040,
+      "sha256": "c9204a7ba0b9cbeb63d91dd5561de913f1cbbebc4df89d5eeb9693fcf0ad70cf"
+    },
+    {
+      "map_id": 1252,
+      "file": "1252.json.gz",
+      "cells": 27402,
+      "visible_pairs": 88776,
+      "sha256": "ff2968c6c5af903fa83dd4188a40b990098419a4f2927223f8aef5122f5b137d"
+    },
+    {
+      "map_id": 1253,
+      "file": "1253.json.gz",
+      "cells": 1260,
+      "visible_pairs": 2856,
+      "sha256": "46e26179ddb8dea660821c961cae28f71be53bab673b9d31186ca13c200f3cbf"
+    },
+    {
+      "map_id": 1254,
+      "file": "1254.json.gz",
+      "cells": 1061,
+      "visible_pairs": 3331,
+      "sha256": "226594384038a974969ae2b6f4356cd58a0d8cbd65a3a9aeba95b47269b00ffc"
+    },
+    {
+      "map_id": 1255,
+      "file": "1255.json.gz",
+      "cells": 607,
+      "visible_pairs": 1921,
+      "sha256": "ff51ecfa6da8cce8735aab6df0687b2bb2ca786b95ac5a51cdbfc85befb1af5b"
+    },
+    {
+      "map_id": 1256,
+      "file": "1256.json.gz",
+      "cells": 359,
+      "visible_pairs": 1274,
+      "sha256": "6a40a1235cedd3af07f61e51a70270caec326a639ac986ad27264873b14f0b14"
+    },
+    {
+      "map_id": 1257,
+      "file": "1257.json.gz",
+      "cells": 903,
+      "visible_pairs": 2840,
+      "sha256": "a7f4aa8bcfcd7d618876d48ca8002698b805bb55824e01c904735b94f4b0be77"
+    },
+    {
+      "map_id": 1258,
+      "file": "1258.json.gz",
+      "cells": 5776,
+      "visible_pairs": 21554,
+      "sha256": "acca6f70651da362b2166b12b02417cc7f449c629d167529ba681e17252fb547"
+    },
+    {
+      "map_id": 1259,
+      "file": "1259.json.gz",
+      "cells": 2079,
+      "visible_pairs": 6090,
+      "sha256": "6c997557ad81b46c4a6ae029a333aef4538062a66f0c61e0df892c62f8214eda"
+    },
+    {
+      "map_id": 1260,
+      "file": "1260.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "dcb542304e67214d17716e4dcc2c2139e56f04b1b52b85ffb52963f88c2ff4e9"
+    },
+    {
+      "map_id": 1261,
+      "file": "1261.json.gz",
+      "cells": 69,
+      "visible_pairs": 218,
+      "sha256": "c34c9001d633e9f0525706052a4523e14913b154dc2b9c160d5e214fc7302389"
+    },
+    {
+      "map_id": 1262,
+      "file": "1262.json.gz",
+      "cells": 2454,
+      "visible_pairs": 6782,
+      "sha256": "194db8f5eb0bc0c4f26685ef320fa1e145f79f05406fc3239e822298fd0e59f5"
+    },
+    {
+      "map_id": 1264,
+      "file": "1264.json.gz",
+      "cells": 24752,
+      "visible_pairs": 82338,
+      "sha256": "b5c1c39fb2def233c4796b7629b709d15cfbc8159bd0b715f2dbab0eb8337768"
+    },
+    {
+      "map_id": 1265,
+      "file": "1265.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "81808510a4ed1e13aee3b136eba9d6637d8c168fed8cac5ff5af005878cf87a0"
+    },
+    {
+      "map_id": 1266,
+      "file": "1266.json.gz",
+      "cells": 1334,
+      "visible_pairs": 4280,
+      "sha256": "d6f3b98d642ab74e6ce3851be32e621bdd466ad147c5131f1630cc95d4853402"
+    },
+    {
+      "map_id": 1267,
+      "file": "1267.json.gz",
+      "cells": 974,
+      "visible_pairs": 2736,
+      "sha256": "7f3a6a2215134100bcdff9a96c3d0ebd33821916572e972b746210ff85065e05"
+    },
+    {
+      "map_id": 1268,
+      "file": "1268.json.gz",
+      "cells": 1034,
+      "visible_pairs": 3483,
+      "sha256": "ea5c3a350ba6f6c5f05055cd80638f7b2b995a02d8e3ba494f129e85cc79f0db"
+    },
+    {
+      "map_id": 1269,
+      "file": "1269.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "a266d171153f2c08a1a2500bfcb86ab441a2bc1d72ea1820c78b0459ddc9005f"
+    },
+    {
+      "map_id": 1270,
+      "file": "1270.json.gz",
+      "cells": 1027,
+      "visible_pairs": 3410,
+      "sha256": "766e72efb8d9089cad69095b4344b79fd516d6002e49d5973ea6234b13cc95dc"
+    },
+    {
+      "map_id": 1271,
+      "file": "1271.json.gz",
+      "cells": 997,
+      "visible_pairs": 3430,
+      "sha256": "8e57a9ae3483236519bb1c10f359c06ef3555ffe34df367eee0c88f052b10792"
+    },
+    {
+      "map_id": 1272,
+      "file": "1272.json.gz",
+      "cells": 401,
+      "visible_pairs": 1038,
+      "sha256": "77e7c1e1da7d08c5df3c3fdb6d32469a239975d4becfa642e702ec97e825a573"
+    },
+    {
+      "map_id": 1273,
+      "file": "1273.json.gz",
+      "cells": 209,
+      "visible_pairs": 714,
+      "sha256": "f23ef64dbf5871748178b93b810232eca7bd6d91eaf77449791fa8261db8e78b"
+    },
+    {
+      "map_id": 1274,
+      "file": "1274.json.gz",
+      "cells": 303,
+      "visible_pairs": 964,
+      "sha256": "7ad4a4472823c7d2422389ce6e12c5cc7c613c488db1d86cbbd02f301ee6fe7d"
+    },
+    {
+      "map_id": 1275,
+      "file": "1275.json.gz",
+      "cells": 50427,
+      "visible_pairs": 173494,
+      "sha256": "fecdf6ea291dd1d56fec0284c5b199ffc4a4d511ac8ccabcfd94f837051d5d20"
+    },
+    {
+      "map_id": 1276,
+      "file": "1276.json.gz",
+      "cells": 25421,
+      "visible_pairs": 86691,
+      "sha256": "54ed893d611f7ea6a3418d00bd0cf973f20d5ff887a2c6edb6d26ac98b3c8378"
+    },
+    {
+      "map_id": 1277,
+      "file": "1277.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "893962812878d13e700350911c59cdaaea88111240db702ce9788a32493a31ff"
+    },
+    {
+      "map_id": 1278,
+      "file": "1278.json.gz",
+      "cells": 325,
+      "visible_pairs": 1164,
+      "sha256": "13e346854eb1a684bbd7da998024e8f706c177766f1076fccdb0ef528fa680ac"
+    },
+    {
+      "map_id": 1279,
+      "file": "1279.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "0c6e7136356aabfc85460316fb4cedd0a0ec2ff21760940c9ab2f14f5ab49eb5"
+    },
+    {
+      "map_id": 1280,
+      "file": "1280.json.gz",
+      "cells": 18057,
+      "visible_pairs": 64612,
+      "sha256": "ba2361f52c33a705f656c8c8bb5433042c916e471bacedc8182fd0bdd1b9a44b"
+    },
+    {
+      "map_id": 1281,
+      "file": "1281.json.gz",
+      "cells": 1753,
+      "visible_pairs": 5718,
+      "sha256": "6e1467996b1eac043d77a1173a1a596939021d941a4cfcf10c4275edbdbdc2f5"
+    },
+    {
+      "map_id": 1282,
+      "file": "1282.json.gz",
+      "cells": 1285,
+      "visible_pairs": 4383,
+      "sha256": "f253e917b656003a4fa5d3faaa9e260c33bef9c1147023d36650fd3d4061fa0b"
+    },
+    {
+      "map_id": 1283,
+      "file": "1283.json.gz",
+      "cells": 1628,
+      "visible_pairs": 5498,
+      "sha256": "99b757cded402405584385082bcad7ab4a5f1b2a83c20ada89c9baa7072433f2"
+    },
+    {
+      "map_id": 1284,
+      "file": "1284.json.gz",
+      "cells": 1567,
+      "visible_pairs": 5552,
+      "sha256": "d97ba41b4fcc1b2be4cf7fb1da8c206dc071859d310f0bcdf3ceeb7585b88b9c"
+    },
+    {
+      "map_id": 1285,
+      "file": "1285.json.gz",
+      "cells": 548,
+      "visible_pairs": 1860,
+      "sha256": "86a0f96fd5f40c009d3daa73660e66178baaa524f6aab02feeb81fba56b9a582"
+    },
+    {
+      "map_id": 1286,
+      "file": "1286.json.gz",
+      "cells": 511,
+      "visible_pairs": 1768,
+      "sha256": "7125e2d088be4304873739f2fa1a7cc1aaa25287d1a4b89ba44340fdff6f9cc6"
+    },
+    {
+      "map_id": 1287,
+      "file": "1287.json.gz",
+      "cells": 511,
+      "visible_pairs": 1768,
+      "sha256": "59f9d8c2fe421945558a073b70a44d6d3ccb35bb89aa2de2824aed0084ef6fac"
+    },
+    {
+      "map_id": 1288,
+      "file": "1288.json.gz",
+      "cells": 161,
+      "visible_pairs": 506,
+      "sha256": "1e4fbec3a605f47f5c76a4dd219fdc93ac34478efdd7f566351ec9179ad926c7"
+    },
+    {
+      "map_id": 1289,
+      "file": "1289.json.gz",
+      "cells": 125,
+      "visible_pairs": 378,
+      "sha256": "cdabf25be467d549e3010fd53ed9a5961430ee651f110811b6c2c4535618141f"
+    },
+    {
+      "map_id": 1290,
+      "file": "1290.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "daa2cc0e542e77f385748208aa15a81e5d7872cb43aa1373be0595b7c2325166"
+    },
+    {
+      "map_id": 1291,
+      "file": "1291.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "7fab4f65583a0c4cec3053b9929a459b08a66b8fd9d82b7fd4770993d9111d51"
+    },
+    {
+      "map_id": 1292,
+      "file": "1292.json.gz",
+      "cells": 2848,
+      "visible_pairs": 5782,
+      "sha256": "0ad992cf362ddd213657bd445dfbe1ea1ce9df78266d37ead104fbb497ff4445"
+    },
+    {
+      "map_id": 1293,
+      "file": "1293.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3dc06376a8d71915eff9c1b0d29770c795b18067b144178d783351e61802d0a1"
+    },
+    {
+      "map_id": 1294,
+      "file": "1294.json.gz",
+      "cells": 383,
+      "visible_pairs": 1319,
+      "sha256": "f860b93ab2392dd530ddbcfa6d02403995e337c69aa3ebcbd56fd4262dedbc33"
+    },
+    {
+      "map_id": 1295,
+      "file": "1295.json.gz",
+      "cells": 17894,
+      "visible_pairs": 61715,
+      "sha256": "3d2c19808bd30551285200afb5c27ffa7562481163e6911a112e4343fe04304c"
+    },
+    {
+      "map_id": 1296,
+      "file": "1296.json.gz",
+      "cells": 770,
+      "visible_pairs": 2510,
+      "sha256": "e11d3ccad233fba224972d50d4bb274fbfadc4dfddb25df4f36d9df56aebf89c"
+    },
+    {
+      "map_id": 1297,
+      "file": "1297.json.gz",
+      "cells": 9014,
+      "visible_pairs": 31598,
+      "sha256": "caf459724b17a7e20bb8cf838e345fb1c8209248d7f7830920f0a0d391441c53"
+    },
+    {
+      "map_id": 1298,
+      "file": "1298.json.gz",
+      "cells": 8228,
+      "visible_pairs": 28088,
+      "sha256": "923f149533cc3f2eae959ab689124aa5fc8672e016b8989fac3f588ac3b22f73"
+    },
+    {
+      "map_id": 1299,
+      "file": "1299.json.gz",
+      "cells": 185,
+      "visible_pairs": 628,
+      "sha256": "70f28f01ce21b156499336f6b7b544ecf67b913bd97471b1bf53bff960cc5fcb"
+    },
+    {
+      "map_id": 1300,
+      "file": "1300.json.gz",
+      "cells": 724,
+      "visible_pairs": 2410,
+      "sha256": "79b4c05f6ea7b5427738e22eed5fc3441ce44ab9e3c1178eb46dda8254c82d2f"
+    },
+    {
+      "map_id": 1301,
+      "file": "1301.json.gz",
+      "cells": 815,
+      "visible_pairs": 2770,
+      "sha256": "4c31e55f39791831b4b275f80c46c045261e0904ca5afc33c55de368a2b02e7f"
+    },
+    {
+      "map_id": 1302,
+      "file": "1302.json.gz",
+      "cells": 205,
+      "visible_pairs": 720,
+      "sha256": "9d65b19704a830c3bda54bb5bd654d9491a2552912b02c4097cf05ff7e118ec2"
+    },
+    {
+      "map_id": 1303,
+      "file": "1303.json.gz",
+      "cells": 225,
+      "visible_pairs": 796,
+      "sha256": "4f2ae961a97a1705dcaee7b5d949452211e23848c79862298b1bbecdc4abce04"
+    },
+    {
+      "map_id": 1304,
+      "file": "1304.json.gz",
+      "cells": 217,
+      "visible_pairs": 696,
+      "sha256": "780ab926309977df4312331bb7e3d30af8cb8e77e30d489b0f772fad4c0a41bc"
+    },
+    {
+      "map_id": 1305,
+      "file": "1305.json.gz",
+      "cells": 7177,
+      "visible_pairs": 24066,
+      "sha256": "754144ab30611842e4ee8c897b3b4407ccb5b41e8eea3fe01300d2a56e3571e8"
+    },
+    {
+      "map_id": 1306,
+      "file": "1306.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "68f4bf2ecce07227d66cb8f647e427e9da209ab4115cf6fbd1c73152f468016b"
+    },
+    {
+      "map_id": 1307,
+      "file": "1307.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "87073fda85c5edfe25ba416b05aa99059b18e5f213ec96a64025cb3bd9b378db"
+    },
+    {
+      "map_id": 1308,
+      "file": "1308.json.gz",
+      "cells": 765,
+      "visible_pairs": 2560,
+      "sha256": "f6bbac2e5b4e9dbfe972084db631010037b5e52befbdb53beffd1a4fba43249d"
+    },
+    {
+      "map_id": 1309,
+      "file": "1309.json.gz",
+      "cells": 9093,
+      "visible_pairs": 30426,
+      "sha256": "80d8c361e3c30093cd7ca52bebab1e59bef11833a30cc826a01356eb62272b61"
+    },
+    {
+      "map_id": 1310,
+      "file": "1310.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "c924cb4a002b674250ceb0664a7f80e79122b8d0f4d6fc23a936580ddce679e9"
+    },
+    {
+      "map_id": 1311,
+      "file": "1311.json.gz",
+      "cells": 81,
+      "visible_pairs": 216,
+      "sha256": "b74696f4858adfd1926ad38e3906f7ec8e07735535275337b87d2339de2cd085"
+    },
+    {
+      "map_id": 1312,
+      "file": "1312.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "887caa01a1aafd05470046351a8936e31be68947abc9bb7a092d740f5e398b65"
+    },
+    {
+      "map_id": 1313,
+      "file": "1313.json.gz",
+      "cells": 787,
+      "visible_pairs": 2698,
+      "sha256": "be27fba8bf09a5c6483b4f398f6c2752967e6334a6b6ab23ff308a1f1b845d44"
+    },
+    {
+      "map_id": 1314,
+      "file": "1314.json.gz",
+      "cells": 276,
+      "visible_pairs": 996,
+      "sha256": "a17ca94fb46aecce5c423aee49cf3177b5c3dbeb7b617e29f7d8b221f827d5e5"
+    },
+    {
+      "map_id": 1315,
+      "file": "1315.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "a37a5e86d88262bfd72bff858556ca1cedc7264dee1119e8b491293ffcf8194e"
+    },
+    {
+      "map_id": 1316,
+      "file": "1316.json.gz",
+      "cells": 271,
+      "visible_pairs": 970,
+      "sha256": "1221bfd232b16d9b6dae4b661bad9388d78dddd0ca394290ced2d723882af487"
+    },
+    {
+      "map_id": 1317,
+      "file": "1317.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "baa5d0dd3d4d3a0f67b5592446de7567283cfa0c39c7af6d64accb3cbaf06fbf"
+    },
+    {
+      "map_id": 1318,
+      "file": "1318.json.gz",
+      "cells": 279,
+      "visible_pairs": 980,
+      "sha256": "980a1c78a90651496a38819576398090bb7f9f88a40b60eefba49c0a77071745"
+    },
+    {
+      "map_id": 1319,
+      "file": "1319.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "24888f5765132a82ddf675f2956a2154ac0800446803cfe82c595d183487820e"
+    },
+    {
+      "map_id": 1320,
+      "file": "1320.json.gz",
+      "cells": 279,
+      "visible_pairs": 1002,
+      "sha256": "3f430ad2b93ee46b18305dfc0cdd64d5f1d63fde83429215199b2d6a5e066c1e"
+    },
+    {
+      "map_id": 1321,
+      "file": "1321.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1db619bed5607559d463b6fd1b18828f9cd3c011cd7b6416b84dc34258e25407"
+    },
+    {
+      "map_id": 1322,
+      "file": "1322.json.gz",
+      "cells": 274,
+      "visible_pairs": 958,
+      "sha256": "ddffbab8daed638fe1e9b30320fef513e96205fe28f6e722409e96ed9a7ec30c"
+    },
+    {
+      "map_id": 1323,
+      "file": "1323.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3906f31488d731fca506fccb2a39a22d1dc890c470f4c2c11df32528883b667c"
+    },
+    {
+      "map_id": 1324,
+      "file": "1324.json.gz",
+      "cells": 335,
+      "visible_pairs": 1196,
+      "sha256": "c5013f21f6f0517c0ce9ccb67b2c0b8cbd7958eee89e1ec4fcc759226c432748"
+    },
+    {
+      "map_id": 1325,
+      "file": "1325.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "6bd7a5e87e60d5ff105b34ee891e0111c0c7190825a629334190076241976311"
+    },
+    {
+      "map_id": 1326,
+      "file": "1326.json.gz",
+      "cells": 7907,
+      "visible_pairs": 26310,
+      "sha256": "b3c645d33c8f06143808a53bd64ac13bacd839e417673417c988141688e4531b"
+    },
+    {
+      "map_id": 1327,
+      "file": "1327.json.gz",
+      "cells": 49,
+      "visible_pairs": 28,
+      "sha256": "afa7faae4489fb0209e795360ebf4efd0ba35d39d2bb509d98fc5e57c527ca91"
+    },
+    {
+      "map_id": 1328,
+      "file": "1328.json.gz",
+      "cells": 748,
+      "visible_pairs": 2522,
+      "sha256": "900e62719e788a4989b0ccbb3071be2c61a6646ca0170384ba38af69dbcfb98d"
+    },
+    {
+      "map_id": 1329,
+      "file": "1329.json.gz",
+      "cells": 239,
+      "visible_pairs": 826,
+      "sha256": "b8f0197dfac9142f25449a6becaf530c8278914943b7a9fb644fe5975df465c1"
+    },
+    {
+      "map_id": 1330,
+      "file": "1330.json.gz",
+      "cells": 262,
+      "visible_pairs": 940,
+      "sha256": "5ff94a5b5831012c38c4817f94166c4d26e2a538539abadd416e8dc882238fdd"
+    },
+    {
+      "map_id": 1331,
+      "file": "1331.json.gz",
+      "cells": 1,
+      "visible_pairs": 0,
+      "sha256": "1ba865ca2ea66533d4157e5154996671300c77c17638f569be1ca8a51d05573d"
+    },
+    {
+      "map_id": 1332,
+      "file": "1332.json.gz",
+      "cells": 1187,
+      "visible_pairs": 3906,
+      "sha256": "85fcf07e69b9dbe6b4ee2396590601579810d7e53c81ccc42bac22716675d29c"
+    },
+    {
+      "map_id": 1333,
+      "file": "1333.json.gz",
+      "cells": 9120,
+      "visible_pairs": 27400,
+      "sha256": "32420c5bf28465f7d9c1668741776f7676078b5470b023b38566245658e2e344"
+    },
+    {
+      "map_id": 1334,
+      "file": "1334.json.gz",
+      "cells": 646,
+      "visible_pairs": 1793,
+      "sha256": "3a0c2b46460cc416e823a14c6fc75ae2218b16d93a3054fe9af1cb7a28df3544"
+    },
+    {
+      "map_id": 1335,
+      "file": "1335.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "72defa40adbc80c526105a8ce085abf1b15fb2a616d6f8e0bf81d2f84d6ba1ed"
+    },
+    {
+      "map_id": 1336,
+      "file": "1336.json.gz",
+      "cells": 734,
+      "visible_pairs": 2478,
+      "sha256": "d9e8c9331579a9c8c15384ceffd0d1e66fe6ee375b348bd5182af90df03316e0"
+    },
+    {
+      "map_id": 1337,
+      "file": "1337.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "608a29f9769e3d9833270d92ab94bf2d35ffc106d08cf942c9b38bdaf1f6a367"
+    },
+    {
+      "map_id": 1338,
+      "file": "1338.json.gz",
+      "cells": 8841,
+      "visible_pairs": 30218,
+      "sha256": "3c5cf988f65d6207806642bd2080955c1b119afe70de6d77330fb8c4e7145402"
+    },
+    {
+      "map_id": 1339,
+      "file": "1339.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e7e7a9d59e1bd01bf7362a6971a196e68dfb5de0a635fda6bba2e6713ed3caeb"
+    },
+    {
+      "map_id": 1340,
+      "file": "1340.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "e06306f334fce5b69fef59db56c1da89e230f5fbb0393a56e2beda7a5388ed8c"
+    },
+    {
+      "map_id": 1341,
+      "file": "1341.json.gz",
+      "cells": 902,
+      "visible_pairs": 3230,
+      "sha256": "a7e8aafb58ae36bc712c220b7fcccbc37397a87221b8e07304c958fe1bb6ebbb"
+    },
+    {
+      "map_id": 1342,
+      "file": "1342.json.gz",
+      "cells": 1124,
+      "visible_pairs": 3690,
+      "sha256": "a457250e8608e67677b20a8eabeaac075d5b5b8ec92c7fb8e50c6740725c760a"
+    },
+    {
+      "map_id": 1343,
+      "file": "1343.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "d5303a03bd83518e556ed293da58663c4ed06b250259a129ce27d66e829b9d4e"
+    },
+    {
+      "map_id": 1344,
+      "file": "1344.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "612e8e6e3c28f420baf4ae5e1ea63519b2da8bebd5c71fff95bdb07a6acacbfb"
+    },
+    {
+      "map_id": 1345,
+      "file": "1345.json.gz",
+      "cells": 304,
+      "visible_pairs": 1074,
+      "sha256": "687214aefe11b05c582f0820ce400abba050167e1a70e2f1606ac72ab554f938"
+    },
+    {
+      "map_id": 1346,
+      "file": "1346.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "4c6bb2d9acdbd8da79dc3a518e2ad76777fcaa64e2d8511f362ea3cc94cd30f5"
+    },
+    {
+      "map_id": 1347,
+      "file": "1347.json.gz",
+      "cells": 262,
+      "visible_pairs": 920,
+      "sha256": "ab78abaca465b1216276935d4a4415be21f7644355a41a3cc0d55f2c9124824b"
+    },
+    {
+      "map_id": 1348,
+      "file": "1348.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "56d3a7ec5ae31e66af6c3bceca109fe630a3eaff8fbf8cdf3183af91716c32df"
+    },
+    {
+      "map_id": 1349,
+      "file": "1349.json.gz",
+      "cells": 177,
+      "visible_pairs": 578,
+      "sha256": "aa93597c754f5f72f3262b0920513f5d2e0c38a792f29b54ba41e84249681d90"
+    },
+    {
+      "map_id": 1350,
+      "file": "1350.json.gz",
+      "cells": 210,
+      "visible_pairs": 714,
+      "sha256": "53b1079cac9c4db96256044954724e41ec9e5dc536e72291b04e9bed493c6d3c"
+    },
+    {
+      "map_id": 1351,
+      "file": "1351.json.gz",
+      "cells": 206,
+      "visible_pairs": 704,
+      "sha256": "b158e62c50f86c883e020ebb67dbc7cbd16c34e599f3348ce741eeba2843c49c"
+    },
+    {
+      "map_id": 1352,
+      "file": "1352.json.gz",
+      "cells": 250,
+      "visible_pairs": 802,
+      "sha256": "fb848c9fdb16e8e701659858874fd3c0d2470796bb5467f7a1a79591e078233d"
+    },
+    {
+      "map_id": 1353,
+      "file": "1353.json.gz",
+      "cells": 264,
+      "visible_pairs": 860,
+      "sha256": "29ff00019ac71fb9849f8f06bc8fc8aa95833dff1a07a132a69cb742911b1a80"
+    },
+    {
+      "map_id": 1354,
+      "file": "1354.json.gz",
+      "cells": 50,
+      "visible_pairs": 150,
+      "sha256": "e84a51d2ca8c2c668bf9fabba6b40392d0f18cd4274fdb9f73696d98eb81884e"
+    },
+    {
+      "map_id": 1355,
+      "file": "1355.json.gz",
+      "cells": 752,
+      "visible_pairs": 2526,
+      "sha256": "af42ab24fba2f16dba1937400086e50097700d5828c16df500944b303240ed11"
+    },
+    {
+      "map_id": 1356,
+      "file": "1356.json.gz",
+      "cells": 187,
+      "visible_pairs": 572,
+      "sha256": "5c0515dd46769d99b5018452103b504892988e187649170d7b211156ff4f5a6b"
+    },
+    {
+      "map_id": 1357,
+      "file": "1357.json.gz",
+      "cells": 1187,
+      "visible_pairs": 3906,
+      "sha256": "a7c9d940894ea754bba10322d32286f7ac9e4d54c4221e081c3fcb28378dd4a0"
+    },
+    {
+      "map_id": 1358,
+      "file": "1358.json.gz",
+      "cells": 8691,
+      "visible_pairs": 31316,
+      "sha256": "c820d6270fb0ddb55131cf5873d2698d9dc603e7a7b9ca80dc87e0b991364389"
+    },
+    {
+      "map_id": 1359,
+      "file": "1359.json.gz",
+      "cells": 8860,
+      "visible_pairs": 31724,
+      "sha256": "dc203b1f4785213250a170251cb15f03d26f6bdfeef1ffe8237ea9dda2ff8cf5"
+    },
+    {
+      "map_id": 1360,
+      "file": "1360.json.gz",
+      "cells": 2029,
+      "visible_pairs": 6326,
+      "sha256": "6c9e76fd1701a52d77d87e44774cfceb5fd33a214da5ae46ca259496c4ba19b2"
+    },
+    {
+      "map_id": 1361,
+      "file": "1361.json.gz",
+      "cells": 2434,
+      "visible_pairs": 8296,
+      "sha256": "11fabf14a18a959fa0d6463c71f85ce408ba4d9122734a8c65c9a45249578121"
+    },
+    {
+      "map_id": 1362,
+      "file": "1362.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "3f364f2ebac68a1f52063175405f843eb058eeb02c86d91514841f5ebb419a94"
+    },
+    {
+      "map_id": 1363,
+      "file": "1363.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "b6792f9ac0535b630023a77ee79b6cd7510754f3512861fb610b54ee131c536e"
+    },
+    {
+      "map_id": 1364,
+      "file": "1364.json.gz",
+      "cells": 9971,
+      "visible_pairs": 32708,
+      "sha256": "f75e952da68660c4a54b4f2f07f6446ba3f282e2f5cf8e66da54b8f32c28c8e9"
+    },
+    {
+      "map_id": 1365,
+      "file": "1365.json.gz",
+      "cells": 9286,
+      "visible_pairs": 31638,
+      "sha256": "25504d8c03582f9e5d2524bdf8e8f3f8f25cac0e89b953bdc13df1205e39915a"
+    },
+    {
+      "map_id": 1366,
+      "file": "1366.json.gz",
+      "cells": 575,
+      "visible_pairs": 1850,
+      "sha256": "8d90788e64f711360d7f14a15fa3d11193b11d78142ccd58c9e13d03eb95ea5f"
+    },
+    {
+      "map_id": 1367,
+      "file": "1367.json.gz",
+      "cells": 514,
+      "visible_pairs": 1678,
+      "sha256": "d6f32dc9a3900498b112b972031428fa6c69528f2581567de190f7b0de7f3111"
+    },
+    {
+      "map_id": 1368,
+      "file": "1368.json.gz",
+      "cells": 8180,
+      "visible_pairs": 27394,
+      "sha256": "e156f62d06fa6d4b46b5b7828ce8ef680077208e829d965ebdb8996fed270ab3"
+    },
+    {
+      "map_id": 1369,
+      "file": "1369.json.gz",
+      "cells": 963,
+      "visible_pairs": 2866,
+      "sha256": "407549e9f00b91ba29d579aa7cfad6c2bea1223cfe4c5cbd93fcc551204c7346"
+    },
+    {
+      "map_id": 1370,
+      "file": "1370.json.gz",
+      "cells": 1504,
+      "visible_pairs": 5048,
+      "sha256": "2ca2b0bf5382b644e4fdbcb226955c8401c98a23e120c2b879b5c29a8c62ddbe"
+    },
+    {
+      "map_id": 1371,
+      "file": "1371.json.gz",
+      "cells": 1236,
+      "visible_pairs": 3994,
+      "sha256": "4d13b32bad448d26883fc9a0d70b538451b9243c253fb432c08ffedb9d4cbdcb"
+    },
+    {
+      "map_id": 1372,
+      "file": "1372.json.gz",
+      "cells": 1529,
+      "visible_pairs": 5256,
+      "sha256": "273018a46d16e4f84191b47ee4284f8cefd62374405c188582c107a7bbcabc08"
+    },
+    {
+      "map_id": 1373,
+      "file": "1373.json.gz",
+      "cells": 1497,
+      "visible_pairs": 5236,
+      "sha256": "f2c7cb837c02cf49fb10c7c8065cc83b3ef6a752243819942d8bdd336f5c3b33"
+    },
+    {
+      "map_id": 1374,
+      "file": "1374.json.gz",
+      "cells": 33,
+      "visible_pairs": 72,
+      "sha256": "9c6b1a555514941dd201df44b7644fca7557bad80e69b8c653419a7d7b3ae8c7"
+    },
+    {
+      "map_id": 1375,
+      "file": "1375.json.gz",
+      "cells": 360,
+      "visible_pairs": 1066,
+      "sha256": "87611bfe9a3842ea5c2010a47262d2e294fc1dede4dd9e27b5c1f549686b368e"
+    },
+    {
+      "map_id": 1376,
+      "file": "1376.json.gz",
+      "cells": 684,
+      "visible_pairs": 2070,
+      "sha256": "9308716ba4e280c4200b9afb240826e7924bde465c10a0490e261f17fb8e0500"
+    },
+    {
+      "map_id": 1377,
+      "file": "1377.json.gz",
+      "cells": 114,
+      "visible_pairs": 288,
+      "sha256": "f08ad99f8ef24aaa75b03a52feda05d6bf77fddc358e79edbddaeb7792a0c0e1"
+    },
+    {
+      "map_id": 1378,
+      "file": "1378.json.gz",
+      "cells": 246,
+      "visible_pairs": 578,
+      "sha256": "431f6412c810a5fe2d2e798c50c4632620d46156395f7f2e66f405f7d9010a24"
+    },
+    {
+      "map_id": 1379,
+      "file": "1379.json.gz",
+      "cells": 269,
+      "visible_pairs": 716,
+      "sha256": "23bbf48aabee8f34b03a118826cf2cea519df54c32bd98be5b509da2e55a5b66"
+    },
+    {
+      "map_id": 1381,
+      "file": "1381.json.gz",
+      "cells": 237,
+      "visible_pairs": 808,
+      "sha256": "bdfc394dce5eddc1fb97cbf6b3eda71619ee55410d985402a5a7f9b385cafefd"
+    },
+    {
+      "map_id": 1382,
+      "file": "1382.json.gz",
+      "cells": 700,
+      "visible_pairs": 2376,
+      "sha256": "fa2d5f11058e8d7afc0211f41e4c87221398c9ceff4b4add0b058d48d45f5786"
+    },
+    {
+      "map_id": 1383,
+      "file": "1383.json.gz",
+      "cells": 942,
+      "visible_pairs": 3262,
+      "sha256": "e6f856c01915babe5a8bdb24aa58376e2f40abc8f6ae0cf414f8b6297de45f88"
+    },
+    {
+      "map_id": 1384,
+      "file": "1384.json.gz",
+      "cells": 35607,
+      "visible_pairs": 120953,
+      "sha256": "ab8e94876e91300385e5d38202b18321140abce6f357fbc6ed07239033345a81"
+    },
+    {
+      "map_id": 1385,
+      "file": "1385.json.gz",
+      "cells": 2317,
+      "visible_pairs": 7808,
+      "sha256": "24fb678e4d9964d739ea7c7f1158d5e97e622eaf29b0cc48093354f0fee4a651"
+    },
+    {
+      "map_id": 1386,
+      "file": "1386.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "7be447b7bbcf40ec1083460ef7a11b0c3a64c00fd457e73bddf435809e92ef7c"
+    },
+    {
+      "map_id": 1387,
+      "file": "1387.json.gz",
+      "cells": 362,
+      "visible_pairs": 1218,
+      "sha256": "17bea12602d52ff6cbdec05cf90eaed593c0d14f0e7cf73e58bb62643352821a"
+    },
+    {
+      "map_id": 1388,
+      "file": "1388.json.gz",
+      "cells": 339,
+      "visible_pairs": 1190,
+      "sha256": "e5b9158c2c5883a1f7195997aa79ab046cc01eb02a8bb9eca37f7f1efe6e1b72"
+    },
+    {
+      "map_id": 1389,
+      "file": "1389.json.gz",
+      "cells": 459,
+      "visible_pairs": 1479,
+      "sha256": "945cedd3f20059f2530c5ed0923f3582c7e95ce9ec926b2eed6d3cbbe8bddb2b"
+    },
+    {
+      "map_id": 1390,
+      "file": "1390.json.gz",
+      "cells": 8918,
+      "visible_pairs": 30804,
+      "sha256": "2e7e11ab84ad30b3f881d97f963c140d6f66b6dca5c08d542e468a1f7dc3b8bc"
+    },
+    {
+      "map_id": 1391,
+      "file": "1391.json.gz",
+      "cells": 1235,
+      "visible_pairs": 4030,
+      "sha256": "382840a4dccbbf925c572caaee60a6fa950d825557a6ff9578bb9e3f14b79ffd"
+    },
+    {
+      "map_id": 1393,
+      "file": "1393.json.gz",
+      "cells": 1698,
+      "visible_pairs": 4976,
+      "sha256": "3f861ca0ee51f6825fb6fdbbb1b094c27c895e43cb50d59dd4dd97b767fdacbb"
+    },
+    {
+      "map_id": 1394,
+      "file": "1394.json.gz",
+      "cells": 529,
+      "visible_pairs": 1754,
+      "sha256": "a2341302b3b93b4664ed86ac18670b95f45225059b2b6664b3b33e4e34e72f16"
+    },
+    {
+      "map_id": 1395,
+      "file": "1395.json.gz",
+      "cells": 702,
+      "visible_pairs": 2308,
+      "sha256": "d6e19f5c3e6b8c9b5576f1572ff0513e94be8e1673f7232b9f7514f826f76122"
+    },
+    {
+      "map_id": 1396,
+      "file": "1396.json.gz",
+      "cells": 1403,
+      "visible_pairs": 4730,
+      "sha256": "591d742cc65554fa07d5517801f86c2241218fdfc807254b816fec7b9bde83f2"
+    },
+    {
+      "map_id": 1397,
+      "file": "1397.json.gz",
+      "cells": 2933,
+      "visible_pairs": 9466,
+      "sha256": "53a97731c1f5c9559d3cb0336f8e8bdcae0f3bbe8bcf31626463859ca7cd34ec"
+    },
+    {
+      "map_id": 1398,
+      "file": "1398.json.gz",
+      "cells": 549,
+      "visible_pairs": 2000,
+      "sha256": "f087b487af9a815eaf028dac93938a6722e1d99d7f6fde1d2e6a97c7e17f6f23"
+    },
+    {
+      "map_id": 1399,
+      "file": "1399.json.gz",
+      "cells": 1534,
+      "visible_pairs": 4824,
+      "sha256": "62d36dcb2ec3d5b917f963db63acfc7cf839db6339cd5e7ccfe7fcaba51dcdc0"
+    },
+    {
+      "map_id": 1400,
+      "file": "1400.json.gz",
+      "cells": 1680,
+      "visible_pairs": 5908,
+      "sha256": "187943e3430019159d86c74bab0cb745a07604718a738c385ce0c36c4335deb7"
+    },
+    {
+      "map_id": 1401,
+      "file": "1401.json.gz",
+      "cells": 42761,
+      "visible_pairs": 149375,
+      "sha256": "fc9f72d6657ae6925906b40d72a70915f42d4ed0efb5659e86c0f2919a0a0f19"
+    },
+    {
+      "map_id": 1402,
+      "file": "1402.json.gz",
+      "cells": 853,
+      "visible_pairs": 3020,
+      "sha256": "f392d8bf605d045a7753297a2f10ac12c15d2da9d911646f4d4424705d190cff"
+    },
+    {
+      "map_id": 1403,
+      "file": "1403.json.gz",
+      "cells": 770,
+      "visible_pairs": 2320,
+      "sha256": "c3a05b908acfd901e4f008db3490cdfa99121908242241aa9ba05b965730044c"
+    },
+    {
+      "map_id": 1405,
+      "file": "1405.json.gz",
+      "cells": 770,
+      "visible_pairs": 2320,
+      "sha256": "704aecf6725628a052e4d98b9c14cfc095ba2d928bcbf4fa25a73eb4a69cc923"
+    },
+    {
+      "map_id": 1407,
+      "file": "1407.json.gz",
+      "cells": 1030,
+      "visible_pairs": 3452,
+      "sha256": "83ec9177ea1f4b3dd764e25cd6f5e6e100c44c761e2a28ef590a493ef03256b2"
+    },
+    {
+      "map_id": 1408,
+      "file": "1408.json.gz",
+      "cells": 612,
+      "visible_pairs": 1930,
+      "sha256": "58873763af87a6212b3a685518ebd0fa3ec7f73fb31069b0c32ac7e74b0ed2c4"
+    },
+    {
+      "map_id": 1409,
+      "file": "1409.json.gz",
+      "cells": 2658,
+      "visible_pairs": 9108,
+      "sha256": "a5bb47d1dad781e438e52ae87f7d60f2058be14203ad38b1ccf17e0a21e3f67e"
+    },
+    {
+      "map_id": 1410,
+      "file": "1410.json.gz",
+      "cells": 57,
+      "visible_pairs": 178,
+      "sha256": "c7f6f5eb4f7c4feec4f7fd3b0884e06a90e7ec5d6141a3b4f244955c997099e1"
+    },
+    {
+      "map_id": 1411,
+      "file": "1411.json.gz",
+      "cells": 424,
+      "visible_pairs": 1412,
+      "sha256": "3e804933688953bc5f211025e85f7a62f0293fd7a799f7fbf0105b9fdf39e99f"
+    },
+    {
+      "map_id": 1412,
+      "file": "1412.json.gz",
+      "cells": 662,
+      "visible_pairs": 2246,
+      "sha256": "aa7440876f07238887f7859ee4dc989728201dac85cb474ad3a56d845c282488"
+    },
+    {
+      "map_id": 1413,
+      "file": "1413.json.gz",
+      "cells": 629,
+      "visible_pairs": 2228,
+      "sha256": "bbc13da9e15de678740b18d81da54ca659420d88aba6e5809a7ea05aeb02be58"
+    },
+    {
+      "map_id": 1414,
+      "file": "1414.json.gz",
+      "cells": 441,
+      "visible_pairs": 1498,
+      "sha256": "3b29f9ca66c04dda7e77ebb2e94f9ef0416e83bccc62cb13b66d7d1753df019a"
+    },
+    {
+      "map_id": 1415,
+      "file": "1415.json.gz",
+      "cells": 809,
+      "visible_pairs": 2828,
+      "sha256": "04513f580bbe05455dd54e7bd4effb6f55aecf7335882663ccb9e2e505dd4c73"
+    },
+    {
+      "map_id": 1416,
+      "file": "1416.json.gz",
+      "cells": 1029,
+      "visible_pairs": 3354,
+      "sha256": "f1715e97ff0559471e9393d54b6a4b63b7c804548978ef67fd9dfb8e4d1dbac4"
+    },
+    {
+      "map_id": 1417,
+      "file": "1417.json.gz",
+      "cells": 851,
+      "visible_pairs": 2370,
+      "sha256": "bac3e5a0b25d82c8570f7c33b7c47293779b9a6c23a6e5d1bf487a62a4b1222c"
+    },
+    {
+      "map_id": 1418,
+      "file": "1418.json.gz",
+      "cells": 607,
+      "visible_pairs": 2092,
+      "sha256": "14323f95254ccbc2501463a8ddc25a614b62bf57e554de97144336e39fce9048"
+    },
+    {
+      "map_id": 1419,
+      "file": "1419.json.gz",
+      "cells": 659,
+      "visible_pairs": 2356,
+      "sha256": "9c4020b20c115b3ef9bec52276ad66dc9711e2a0d1eb025fdd77937426422355"
+    },
+    {
+      "map_id": 1420,
+      "file": "1420.json.gz",
+      "cells": 1120,
+      "visible_pairs": 3032,
+      "sha256": "d054733b6e8fb1aedba84b1061fa274562863f2a938e05f6e50a99d4d50f5c02"
+    },
+    {
+      "map_id": 1421,
+      "file": "1421.json.gz",
+      "cells": 183,
+      "visible_pairs": 500,
+      "sha256": "ae976fd767c83ecd5614faf8b55cb7297efc6b008ff7f16ebd6271938e252e54"
+    },
+    {
+      "map_id": 1422,
+      "file": "1422.json.gz",
+      "cells": 648,
+      "visible_pairs": 2004,
+      "sha256": "6db6aa8a4b19e5d4d102830096f1078ae50222d9ad0d0fa0ab600da6437c2715"
+    },
+    {
+      "map_id": 1423,
+      "file": "1423.json.gz",
+      "cells": 639,
+      "visible_pairs": 2015,
+      "sha256": "4314f7df6ca36ad5a54f485b3c12edf75b5635a95edb64d9fc1024d42894013b"
+    },
+    {
+      "map_id": 1424,
+      "file": "1424.json.gz",
+      "cells": 203,
+      "visible_pairs": 486,
+      "sha256": "08b7277ba5c51444348c7246554f809b1a8aba93ec03b81543f2b71eb2cc2130"
+    },
+    {
+      "map_id": 1425,
+      "file": "1425.json.gz",
+      "cells": 1051,
+      "visible_pairs": 3114,
+      "sha256": "4cb3b1ea5e5f912c56a382feba126ca5acf28b826fcc280c2615283d60613333"
+    },
+    {
+      "map_id": 1426,
+      "file": "1426.json.gz",
+      "cells": 174,
+      "visible_pairs": 422,
+      "sha256": "330f737a89cc066f558b606847a1e9c21fcca4635891ec95570a1eb2cd155173"
+    },
+    {
+      "map_id": 1427,
+      "file": "1427.json.gz",
+      "cells": 2605,
+      "visible_pairs": 7552,
+      "sha256": "bcd03423206f2065e5c392cf3e0cd07ac061e0b7b2ed1ec58d90cb872618b956"
+    },
+    {
+      "map_id": 1428,
+      "file": "1428.json.gz",
+      "cells": 310,
+      "visible_pairs": 774,
+      "sha256": "ce13c784ffb4f952dda7250612d36ab57d56600eb9e0431c2b2551f86f67a82c"
+    },
+    {
+      "map_id": 1429,
+      "file": "1429.json.gz",
+      "cells": 292,
+      "visible_pairs": 1062,
+      "sha256": "bede8a5bfa2e18a22472e0c36a4d1373056bc1aa9254fcc1715c32638717dba7"
+    },
+    {
+      "map_id": 1430,
+      "file": "1430.json.gz",
+      "cells": 311,
+      "visible_pairs": 882,
+      "sha256": "85464f9883d8978f562567a6a9891200a786120d2df8a144c0b264a068848dbb"
+    },
+    {
+      "map_id": 1431,
+      "file": "1431.json.gz",
+      "cells": 755,
+      "visible_pairs": 2250,
+      "sha256": "c42bbaa679f6368d31391a18e2424c74fb7086e9685b675a1ca9f4bfb9b236ee"
+    },
+    {
+      "map_id": 1435,
+      "file": "1435.json.gz",
+      "cells": 390,
+      "visible_pairs": 1326,
+      "sha256": "0083ec86ae39678866fc23d90f2d0b65f88787e18f6e86062c5faf22f6f579f1"
+    },
+    {
+      "map_id": 1436,
+      "file": "1436.json.gz",
+      "cells": 152,
+      "visible_pairs": 390,
+      "sha256": "a68ccabbcb40b4d3e17463fc126802b1efdf34ab2e631bd4369307cb0736718c"
+    },
+    {
+      "map_id": 1437,
+      "file": "1437.json.gz",
+      "cells": 81,
+      "visible_pairs": 200,
+      "sha256": "6cd24cf7f13a6907b027e9e689c00a4584f04544ec240f9516c26b8d57920ad2"
+    },
+    {
+      "map_id": 1438,
+      "file": "1438.json.gz",
+      "cells": 397,
+      "visible_pairs": 1216,
+      "sha256": "869eb05918d68b220053baaafb5ad8f75f25029e692cf4a51adb2b211b3a712e"
+    },
+    {
+      "map_id": 1439,
+      "file": "1439.json.gz",
+      "cells": 260,
+      "visible_pairs": 906,
+      "sha256": "6ce71794d8258356396c4907777b910743cdce95fc6826d5c2a7661a08f6a1bf"
+    },
+    {
+      "map_id": 1440,
+      "file": "1440.json.gz",
+      "cells": 1855,
+      "visible_pairs": 6396,
+      "sha256": "0dda7c2487faf4d91be61da88ca3889081dde087411a06a4fc3092867995ad11"
+    },
+    {
+      "map_id": 1441,
+      "file": "1441.json.gz",
+      "cells": 643,
+      "visible_pairs": 2208,
+      "sha256": "906ce45b675f24a6ee5592c19f281007040389a578aadf5ef3228518222d5e17"
+    },
+    {
+      "map_id": 1442,
+      "file": "1442.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "8e00a676a52d0f642a2c1223c27c4638279da7b19a09721f7f4c4166f01b6b52"
+    },
+    {
+      "map_id": 1443,
+      "file": "1443.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "54e17fd6e0b8f9ea2b5a8724c8d09b3abba7bb938a3207762c57a636a01d1cde"
+    },
+    {
+      "map_id": 1445,
+      "file": "1445.json.gz",
+      "cells": 643,
+      "visible_pairs": 2208,
+      "sha256": "a96bf3dd65fc76cb43658306fe0ed0db487d23a7799b2e8ff308d889f726a0ca"
+    },
+    {
+      "map_id": 1446,
+      "file": "1446.json.gz",
+      "cells": 1833,
+      "visible_pairs": 6042,
+      "sha256": "4a4352f683a095de19074edd44c443f7a9a4638c886753868f5667631889cedf"
+    },
+    {
+      "map_id": 1447,
+      "file": "1447.json.gz",
+      "cells": 257,
+      "visible_pairs": 664,
+      "sha256": "db6f0729c066db19f8e702821bebddc1ddf5cf9c699f61428e75720e70802a09"
+    },
+    {
+      "map_id": 1448,
+      "file": "1448.json.gz",
+      "cells": 16855,
+      "visible_pairs": 58611,
+      "sha256": "87e0326b2f233cd6cbb8bef33f8cff0727135b801afc9a7af5967ed5386487e3"
+    },
+    {
+      "map_id": 1449,
+      "file": "1449.json.gz",
+      "cells": 4812,
+      "visible_pairs": 16230,
+      "sha256": "bbd57139eb12a515e729f929ac69af3fb3170dcd7f241d6cd05672c53d1a0ac5"
+    },
+    {
+      "map_id": 1450,
+      "file": "1450.json.gz",
+      "cells": 709,
+      "visible_pairs": 2374,
+      "sha256": "b3dbec963f6b27a9f179f1310b0601893832156efeb074a8da65f85960c0d8f4"
+    },
+    {
+      "map_id": 1451,
+      "file": "1451.json.gz",
+      "cells": 700,
+      "visible_pairs": 2290,
+      "sha256": "baecdfff19626a98f8d1cbc5757ddd52bf3b2f5252ab066ea7a3d1eb096f7954"
+    },
+    {
+      "map_id": 1452,
+      "file": "1452.json.gz",
+      "cells": 1146,
+      "visible_pairs": 3804,
+      "sha256": "a9c6c2f39a38640d445c616e445e77524b57b9fd08b0c999e1f862d003a66aaf"
+    },
+    {
+      "map_id": 1453,
+      "file": "1453.json.gz",
+      "cells": 1586,
+      "visible_pairs": 4864,
+      "sha256": "c3353c832c946e0049296422f731638c71a4504b8fddafc6bd74466db63ee2fb"
+    },
+    {
+      "map_id": 1454,
+      "file": "1454.json.gz",
+      "cells": 945,
+      "visible_pairs": 3158,
+      "sha256": "3e10ddf4cea3c8d5d346ebdb091b5c655d31da41fd388a2fae3102935e629d7c"
+    },
+    {
+      "map_id": 1455,
+      "file": "1455.json.gz",
+      "cells": 1216,
+      "visible_pairs": 3986,
+      "sha256": "88267bf896c3f4d24bbedb105ff170ec6466cab54d5197edeef9643f7ac9f268"
+    },
+    {
+      "map_id": 1456,
+      "file": "1456.json.gz",
+      "cells": 486,
+      "visible_pairs": 1720,
+      "sha256": "ad64374c85394ba0ce80ba5baa8ad0a7eca5e85e3513901da8788e333fb427ae"
+    },
+    {
+      "map_id": 1457,
+      "file": "1457.json.gz",
+      "cells": 359,
+      "visible_pairs": 1274,
+      "sha256": "ef8a640de731186e245c1a81dff318b88278fb7e324f4c6e5c5f7044b4151150"
+    },
+    {
+      "map_id": 1458,
+      "file": "1458.json.gz",
+      "cells": 517,
+      "visible_pairs": 1552,
+      "sha256": "329f638d7f70ce04a586409db32c64dd81b12e3a87a80c8c7c304819464188a2"
+    },
+    {
+      "map_id": 1459,
+      "file": "1459.json.gz",
+      "cells": 1088,
+      "visible_pairs": 3880,
+      "sha256": "3114eae87dc40e1c4016d546a43c169ea7d70083db1a6ae6dc44f9b893e528a8"
+    },
+    {
+      "map_id": 1460,
+      "file": "1460.json.gz",
+      "cells": 864,
+      "visible_pairs": 3060,
+      "sha256": "600bc5f38f570a39c344d460937d36853908fc3e309dfc60ff02cccaad6edd89"
+    },
+    {
+      "map_id": 1461,
+      "file": "1461.json.gz",
+      "cells": 192,
+      "visible_pairs": 548,
+      "sha256": "f25866a566c069b8814eb4d5925edf1cc90f8e469ac177b4cf1316fd803e6ae5"
+    },
+    {
+      "map_id": 1462,
+      "file": "1462.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "0f662c9c7db08281ff943bd6ba94b47e5403f52fba94a4d4e2106d12636b9f7c"
+    },
+    {
+      "map_id": 1463,
+      "file": "1463.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "d35a220d469f1abd15aa9afec50ae44c8e6c4d8ec8137193a4aa80bef07faccd"
+    },
+    {
+      "map_id": 1464,
+      "file": "1464.json.gz",
+      "cells": 218,
+      "visible_pairs": 660,
+      "sha256": "2661795392e7b4c28e0ee5930fe6e33c935173176124ea48f5fd1b6d0b0b1e1c"
+    },
+    {
+      "map_id": 1465,
+      "file": "1465.json.gz",
+      "cells": 682,
+      "visible_pairs": 2356,
+      "sha256": "ccc8bf36121f2e1ea0d88cf2a4ad5b84d2151805ac25f113d0c1a7a648b475ad"
+    },
+    {
+      "map_id": 1471,
+      "file": "1471.json.gz",
+      "cells": 281,
+      "visible_pairs": 880,
+      "sha256": "b4e156f4fadf40fb3d04cee15fb1df31e093b0f44a48433d2700cd3517f44ab4"
+    },
+    {
+      "map_id": 1472,
+      "file": "1472.json.gz",
+      "cells": 282,
+      "visible_pairs": 880,
+      "sha256": "27f01226f1ad2fea3da65ed1dfd7ce0867f9c1949da59118766e9f7e321786a9"
+    },
+    {
+      "map_id": 1473,
+      "file": "1473.json.gz",
+      "cells": 281,
+      "visible_pairs": 880,
+      "sha256": "f5aa245e50d4f7dff26027f7efe0090c3583dc52eb41f28f524c851309096a7c"
+    },
+    {
+      "map_id": 1474,
+      "file": "1474.json.gz",
+      "cells": 323,
+      "visible_pairs": 918,
+      "sha256": "1e526af51aff1521a5725a0ea12048f003cd943e3292afda2b82e9426c5dc729"
+    },
+    {
+      "map_id": 1475,
+      "file": "1475.json.gz",
+      "cells": 323,
+      "visible_pairs": 918,
+      "sha256": "902dd1802d67caf11985481e07f02a79f10d570f0fb7b922490a8a4b732a4bff"
+    },
+    {
+      "map_id": 1476,
+      "file": "1476.json.gz",
+      "cells": 1667,
+      "visible_pairs": 5735,
+      "sha256": "133247c027553410cb49d1a7e97e8eef4266953b37ffb14335e998a13a13638e"
+    },
+    {
+      "map_id": 1477,
+      "file": "1477.json.gz",
+      "cells": 575,
+      "visible_pairs": 1850,
+      "sha256": "c186f583882c6b65ce52b0bf24b6dae9197fd8458192639eff5e2a682bd1dd5c"
+    },
+    {
+      "map_id": 1479,
+      "file": "1479.json.gz",
+      "cells": 460,
+      "visible_pairs": 1478,
+      "sha256": "a87f11b786cfba9342014687b9c10e7177bc2da0755d2a39f37754aa35177b07"
+    },
+    {
+      "map_id": 1480,
+      "file": "1480.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "ccd769e12b6bbad2e474928930496a7f1d3d8a06d41afd35f743e7a9d60541ed"
+    },
+    {
+      "map_id": 1481,
+      "file": "1481.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "61d757a7c9883d5aa5c3dbae7921f5a1ba1fbf829240728c930dc2b58d977772"
+    },
+    {
+      "map_id": 1482,
+      "file": "1482.json.gz",
+      "cells": 281,
+      "visible_pairs": 956,
+      "sha256": "f0d70cbda1a1d846bb2d9a886e16e6492ea0c998b93aec49431f02ee4b0489a9"
+    },
+    {
+      "map_id": 1483,
+      "file": "1483.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "0cabb061d63cd2d74cdaf2bcfd74929849da3e5d6d43dd8504e2b50863617bf1"
+    },
+    {
+      "map_id": 1484,
+      "file": "1484.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1cabaa0635657c678784f9426d913c3bf309df66489ea0529e4f22b145037213"
+    },
+    {
+      "map_id": 1485,
+      "file": "1485.json.gz",
+      "cells": 316,
+      "visible_pairs": 980,
+      "sha256": "c357dcfb34b0cb76f6086cf5d664d0784ddda1b2ec086f1db4364ce4ce5751a0"
+    },
+    {
+      "map_id": 1486,
+      "file": "1486.json.gz",
+      "cells": 0,
+      "visible_pairs": 0,
+      "sha256": "1e92ff97c9c9989fa19ff893ac8c25e5d6f1de290247f8a4dfb84d166e2248eb"
+    },
+    {
+      "map_id": 1487,
+      "file": "1487.json.gz",
+      "cells": 73,
+      "visible_pairs": 206,
+      "sha256": "ea630437006b40d2785fdf8ac60a196ba5266ccf90dce21de5e624f560584d1c"
+    },
+    {
+      "map_id": 1488,
+      "file": "1488.json.gz",
+      "cells": 1028,
+      "visible_pairs": 3444,
+      "sha256": "68f8bb4ae2e192c2e74969a915ebd00d523a19a53e57fb36ff9476490b39b93d"
+    },
+    {
+      "map_id": 1492,
+      "file": "1492.json.gz",
+      "cells": 46,
+      "visible_pairs": 132,
+      "sha256": "0b5ac28168c81a93f46ade32b707a70491c943f40738f5bf24cefd23e3aa7517"
+    }
+  ],
+  "limits": "No unexported maps, farther ray inference, or dynamic VD world blockers. Explicit actor footprints handled separately."
+}

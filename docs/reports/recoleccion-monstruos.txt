@@ -1,0 +1,60 @@
+Recolección general de monstruos — implementación local
+
+Los clics reales 19:41:21 y 19:41:27 del 3 de octubre enviaron13481.
+El servidor no respondió13597, por eso no comenzó la ocupación. No es una
+limitación de identificadores grandes: la identidad conserva i64 en el lector
+nativo, registro y solicitud13130; el jalató nuevo sí mostró menú contextual.
+
+Mensajes verificados en el cliente Java actual:
+-13481 resources.ActorCollectMonsterRequestMessage: campo1 acción int32,
+ campo2 monstruo int64. Los NPC negativos usan varint de diez bytes.
+-13597 cta: byte resultado, short tipo6, long actor propio, long duración
+ en milisegundos, long monstruo, int acción. Verificador Java ejecutado con
+ actor7 y NPC-4498523304664558568: campos coinciden.
+-13429 cro: byte2 termina; byte3 cancela; short tipo6. blG.dwm/l lo demuestra.
+-12471 inserta el recurso propio con UID reservado y notificación.
+12815/12954 corresponden a plantar;13220 corresponde a acciones de objetos.
+
+API wakfu_server.monster_collect.Harvests(store):
+begin(account,generation,char,body,monster,profession_level=...,reachable=...,
+quantity=...,cooldown_seconds=0) -> paquete13597.
+complete(account,generation,char,body,monster=...,profession_level=...)
+-> {applied,item,packets}; repetición sin ocupación no concede más recursos.
+cancel(char) en desplazamiento, pelea, cambio, desconexión y cancelación.
+El llamador debe resolver el monstruo disponible del registro del mapa y
+probar alcance con geometría nativa; no acepta una referencia enviada por UI.
+El target lleva id/ref/hp/map_id/instance_id. Flush de posición antes de begin.
+
+El catálogo nativo completo determina el ítem, profesión ckL, nivel mínimo
+csM, duración getDuration y criterio clT. Se soportan vacío, IsDead("target")
+y not IsDead("target"); otras expresiones fallan antes de conceder recursos.
+Cantidad/cooldown deben suministrarse como política local explícita: no se
+han demostrado las tasas oficiales. No se concede XP de oficio inventado.
+La profesión debe existir en el estado autoritativo, no basta un número de
+nivel enviado por el cliente. No se registran oficios ni se inventan niveles.
+
+La concesión física y el recibo idempotente se guardan juntos en una única
+transacción SQLite, utilizando el allocator existente. Inventario físico aún
+no usa Redis; equipos y grupos sí. Usa bolsillo base con capacidad comprobada,
+sin inferir compatibilidad de bolsas especializadas. Cada cosecha ocupa una
+unidad/slot nuevo: el apilamiento automático queda pendiente.
+
+Pruebas: inicio nativo, i64, lease/generación, duración, muerte del objetivo,
+criterio propio, cancelación, idempotencia, cooldown local, reconexión,
+capacidad y cambio de posición. No se reinició ni modificó servidor principal.
+La animación y concesión visual requieren integrar estos handlers y probar GUI.
+
+Ampliación de integración:
+- profession_store.level valida lease y selección; tabla por personaje/profesión
+ con nivel0 ausente. No almacena XP ni transforma ganancias en niveles.
+- resolve_target consulta únicamente grupos disponibles del mapa/instancia;
+ sobrescribe instance_id con la clave real del registro, nunca el valor0 del
+ constructor inicial del NPC.
+- Catálogo de acciones cacheado en memoria, sin releer gzip por cada clic.
+- Cantidad validada contra item-stack-rules nativo antes de iniciar ocupación.
+- Alcance nativo cXc.m: ala.c <=1, distancia Manhattan descontando los radios
+ de ambos actores. Altura permitida abs(z1-z2)<=beS.bvz(), cuyo valor base es4.
+ Requerir z idéntica limitaría escaleras legítimas. Una aristaSm real valida
+ adyacencia para los actores de radio0; actores mayores requieren radio propio
+ probado, no inferido a partir de su apariencia.
+Pruebas de integración de oficio y cosecha:9 correctas.

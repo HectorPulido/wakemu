@@ -1,0 +1,605 @@
+[
+  {
+    "format": 10,
+    "name": "FOR_LOCAL_CHARACTER_INFORMATION",
+    "template_sha256": "3eca46d406dcd9d29af999dfd5b2f0bdf7916a9067756c98e8d1ac93632bc46f",
+    "bytes": 10467,
+    "fully_consumed": true,
+    "sections": [
+      {
+        "name": "ID",
+        "class": "qt",
+        "start": 1,
+        "end": 9
+      },
+      {
+        "name": "IDENTITY",
+        "class": "qv",
+        "start": 9,
+        "end": 18
+      },
+      {
+        "name": "NAME",
+        "class": "qR",
+        "start": 18,
+        "end": 26
+      },
+      {
+        "name": "BREED",
+        "class": "pb",
+        "start": 26,
+        "end": 28
+      },
+      {
+        "name": "GUILD_BLAZON",
+        "class": "qh",
+        "start": 28,
+        "end": 36
+      },
+      {
+        "name": "GUILD_ID",
+        "class": "qj",
+        "start": 36,
+        "end": 44
+      },
+      {
+        "name": "HP",
+        "class": "qr",
+        "start": 44,
+        "end": 48
+      },
+      {
+        "name": "POSITION",
+        "class": "rE",
+        "start": 48,
+        "end": 86
+      },
+      {
+        "name": "APPEARANCE",
+        "class": "oW",
+        "start": 86,
+        "end": 204
+      },
+      {
+        "name": "SHORTCUT_INVENTORIES",
+        "class": "so",
+        "start": 204,
+        "end": 515
+      },
+      {
+        "name": "LANDMARK_INVENTORY",
+        "class": "qE",
+        "start": 515,
+        "end": 518
+      },
+      {
+        "name": "PHOENIX_PART",
+        "class": "rC",
+        "start": 518,
+        "end": 522
+      },
+      {
+        "name": "SPELL_INVENTORY",
+        "class": "sy",
+        "start": 522,
+        "end": 1240
+      },
+      {
+        "name": "INVENTORIES",
+        "class": "qB",
+        "start": 1240,
+        "end": 1456
+      },
+      {
+        "name": "BAGS",
+        "class": "oY",
+        "start": 1456,
+        "end": 4208
+      },
+      {
+        "name": "PROTO_TEMPORARY_INVENTORY",
+        "class": "rQ",
+        "start": 4208,
+        "end": 4210
+      },
+      {
+        "name": "BREED_SPECIFIC",
+        "class": "pd",
+        "start": 4210,
+        "end": 4211
+      },
+      {
+        "name": "RUNNING_EFFECTS",
+        "class": "sa",
+        "start": 4211,
+        "end": 4287
+      },
+      {
+        "name": "DIMENSIONAL_BAG_FOR_LOCAL_CLIENT",
+        "class": "pC",
+        "start": 4287,
+        "end": 4608
+      },
+      {
+        "name": "CHALLENGES",
+        "class": "pi",
+        "start": 4608,
+        "end": 4614
+      },
+      {
+        "name": "XP",
+        "class": "sG",
+        "start": 4614,
+        "end": 4622
+      },
+      {
+        "name": "XP_CHARACTERISTICS",
+        "class": "sI",
+        "start": 4622,
+        "end": 4626
+      },
+      {
+        "name": "NATION_ID",
+        "class": "qZ",
+        "start": 4626,
+        "end": 4630
+      },
+      {
+        "name": "CITIZEN_POINT",
+        "class": "qT",
+        "start": 4630,
+        "end": 4658
+      },
+      {
+        "name": "PASSEPORT_INFO",
+        "class": "rr",
+        "start": 4658,
+        "end": 4659
+      },
+      {
+        "name": "SOCIAL_STATES",
+        "class": "sr",
+        "start": 4659,
+        "end": 4661
+      },
+      {
+        "name": "PET",
+        "class": "rw",
+        "start": 4661,
+        "end": 4687
+      },
+      {
+        "name": "ACHIEVEMENTS",
+        "class": "oN",
+        "start": 4687,
+        "end": 9984
+      },
+      {
+        "name": "ACCOUNT_INFORMATION",
+        "class": "oJ",
+        "start": 9984,
+        "end": 10041
+      },
+      {
+        "name": "LOCK_TO_CLIENT",
+        "class": "qM",
+        "start": 10041,
+        "end": 10043
+      },
+      {
+        "name": "PERSONAL_EFFECTS",
+        "class": "rt",
+        "start": 10043,
+        "end": 10049
+      },
+      {
+        "name": "ANTI_ADDICTION",
+        "class": "oS",
+        "start": 10049,
+        "end": 10050
+      },
+      {
+        "name": "WORLD_PROPERTIES",
+        "class": "rK",
+        "start": 10050,
+        "end": 10055
+      },
+      {
+        "name": "VISIBILITY",
+        "class": "sE",
+        "start": 10055,
+        "end": 10056
+      },
+      {
+        "name": "OCCUPATION",
+        "class": "rn",
+        "start": 10056,
+        "end": 10057
+      },
+      {
+        "name": "SPELL_DECK",
+        "class": "st",
+        "start": 10057,
+        "end": 10334
+      },
+      {
+        "name": "DUNGEON_PROGRESSION",
+        "class": "pM",
+        "start": 10334,
+        "end": 10336
+      },
+      {
+        "name": "EQUIPMENT_APPEARANCE",
+        "class": "pO",
+        "start": 10336,
+        "end": 10445
+      },
+      {
+        "name": "COSMETICS",
+        "class": "pq",
+        "start": 10445,
+        "end": 10463
+      },
+      {
+        "name": "INDEX",
+        "class": "qx",
+        "start": 10463,
+        "end": 10465
+      },
+      {
+        "name": "CURRENT_MOVEMENT_PATH",
+        "class": "py",
+        "start": 10465,
+        "end": 10467
+      }
+    ]
+  },
+  {
+    "format": 5,
+    "name": "FOR_CHARACTER_LIST",
+    "template_sha256": "6de50d9932ae0be8dcbee826826707c25bcb6a517980c5ed0c45de9473ed13f3",
+    "bytes": 301,
+    "fully_consumed": true,
+    "sections": [
+      {
+        "name": "ID",
+        "class": "qt",
+        "start": 1,
+        "end": 9
+      },
+      {
+        "name": "IDENTITY",
+        "class": "qv",
+        "start": 9,
+        "end": 18
+      },
+      {
+        "name": "NAME",
+        "class": "qR",
+        "start": 18,
+        "end": 26
+      },
+      {
+        "name": "BREED",
+        "class": "pb",
+        "start": 26,
+        "end": 28
+      },
+      {
+        "name": "ACTIVE_EQUIPMENT_SHEET",
+        "class": "oQ",
+        "start": 28,
+        "end": 29
+      },
+      {
+        "name": "APPEARANCE",
+        "class": "oW",
+        "start": 29,
+        "end": 147
+      },
+      {
+        "name": "EQUIPMENT_APPEARANCE",
+        "class": "pO",
+        "start": 147,
+        "end": 256
+      },
+      {
+        "name": "CREATION_DATA",
+        "class": "pt",
+        "start": 256,
+        "end": 262
+      },
+      {
+        "name": "XP",
+        "class": "sG",
+        "start": 262,
+        "end": 270
+      },
+      {
+        "name": "CHARACTER_LIST_NATION_ID",
+        "class": "qZ",
+        "start": 270,
+        "end": 274
+      },
+      {
+        "name": "GUILD_ID",
+        "class": "qj",
+        "start": 274,
+        "end": 282
+      },
+      {
+        "name": "GUILD_BLAZON",
+        "class": "qh",
+        "start": 282,
+        "end": 290
+      },
+      {
+        "name": "GUILD_NAME",
+        "class": "qn",
+        "start": 290,
+        "end": 291
+      },
+      {
+        "name": "INSTANCE_ID",
+        "class": "qz",
+        "start": 291,
+        "end": 299
+      },
+      {
+        "name": "INDEX",
+        "class": "qx",
+        "start": 299,
+        "end": 301
+      }
+    ]
+  },
+  {
+    "format": 11,
+    "name": "FOR_REMOTE_CHARACTER_INFORMATION",
+    "template_sha256": "3aca4d4ab178c5a7c40f817db34b2000c94557efdf91279f51e0021af0332d10",
+    "bytes": 1173,
+    "fully_consumed": true,
+    "sections": [
+      {
+        "name": "ID",
+        "class": "qt",
+        "start": 1,
+        "end": 9
+      },
+      {
+        "name": "IDENTITY",
+        "class": "qv",
+        "start": 9,
+        "end": 18
+      },
+      {
+        "name": "NAME",
+        "class": "qR",
+        "start": 18,
+        "end": 26
+      },
+      {
+        "name": "BREED",
+        "class": "pb",
+        "start": 26,
+        "end": 28
+      },
+      {
+        "name": "GUILD_BLAZON",
+        "class": "qh",
+        "start": 28,
+        "end": 36
+      },
+      {
+        "name": "GUILD_ID",
+        "class": "qj",
+        "start": 36,
+        "end": 44
+      },
+      {
+        "name": "POSITION",
+        "class": "rE",
+        "start": 44,
+        "end": 82
+      },
+      {
+        "name": "APPEARANCE",
+        "class": "oW",
+        "start": 82,
+        "end": 200
+      },
+      {
+        "name": "PUBLIC_CHARACTERISTICS",
+        "class": "pl",
+        "start": 200,
+        "end": 797
+      },
+      {
+        "name": "FIGHT_PROPERTIES",
+        "class": "rK",
+        "start": 797,
+        "end": 798
+      },
+      {
+        "name": "FIGHT",
+        "class": "pW",
+        "start": 798,
+        "end": 808
+      },
+      {
+        "name": "EQUIPMENT_APPEARANCE",
+        "class": "pO",
+        "start": 808,
+        "end": 917
+      },
+      {
+        "name": "RUNNING_EFFECTS",
+        "class": "sa",
+        "start": 917,
+        "end": 993
+      },
+      {
+        "name": "WORLD_PROPERTIES",
+        "class": "rK",
+        "start": 993,
+        "end": 998
+      },
+      {
+        "name": "GROUP",
+        "class": "qd",
+        "start": 998,
+        "end": 1006
+      },
+      {
+        "name": "TEMPLATE",
+        "class": "gq",
+        "start": 1006,
+        "end": 1006
+      },
+      {
+        "name": "COLLECT",
+        "class": "gq",
+        "start": 1006,
+        "end": 1006
+      },
+      {
+        "name": "PET",
+        "class": "rw",
+        "start": 1006,
+        "end": 1032
+      },
+      {
+        "name": "CURRENT_MOVEMENT_PATH",
+        "class": "py",
+        "start": 1032,
+        "end": 1034
+      },
+      {
+        "name": "OCCUPATION",
+        "class": "rn",
+        "start": 1034,
+        "end": 1035
+      },
+      {
+        "name": "XP",
+        "class": "sG",
+        "start": 1035,
+        "end": 1043
+      },
+      {
+        "name": "XP_CHARACTERISTICS",
+        "class": "sI",
+        "start": 1043,
+        "end": 1047
+      },
+      {
+        "name": "NATION_ID",
+        "class": "qZ",
+        "start": 1047,
+        "end": 1051
+      },
+      {
+        "name": "CITIZEN_POINT",
+        "class": "qT",
+        "start": 1051,
+        "end": 1079
+      },
+      {
+        "name": "GUILD_REMOTE_INFO",
+        "class": "rV",
+        "start": 1079,
+        "end": 1099
+      },
+      {
+        "name": "NATION_SYNCHRO",
+        "class": "rk",
+        "start": 1099,
+        "end": 1126
+      },
+      {
+        "name": "SOCIAL_STATES",
+        "class": "sr",
+        "start": 1126,
+        "end": 1128
+      },
+      {
+        "name": "ACCOUNT_INFORMATION_REMOTE",
+        "class": "rS",
+        "start": 1128,
+        "end": 1151
+      },
+      {
+        "name": "COMPANION_CONTROLLER_ID",
+        "class": "gq",
+        "start": 1151,
+        "end": 1151
+      },
+      {
+        "name": "VISIBILITY",
+        "class": "sE",
+        "start": 1151,
+        "end": 1152
+      },
+      {
+        "name": "COSMETICS",
+        "class": "pq",
+        "start": 1152,
+        "end": 1170
+      },
+      {
+        "name": "DOWNSCALE_INFO",
+        "class": "pK",
+        "start": 1170,
+        "end": 1172
+      },
+      {
+        "name": "HERO",
+        "class": "qp",
+        "start": 1172,
+        "end": 1173
+      }
+    ]
+  },
+  {
+    "format": 28,
+    "name": "FOR_CHARACTER_POSITION_INFORMATION",
+    "template_sha256": "7701d2d7ece8ecee7e38cdc675ad861ebd4449f5cf6b586efcd5202e0349fc8e",
+    "bytes": 56,
+    "fully_consumed": true,
+    "sections": [
+      {
+        "name": "ID",
+        "class": "qt",
+        "start": 1,
+        "end": 9
+      },
+      {
+        "name": "IDENTITY",
+        "class": "qv",
+        "start": 9,
+        "end": 18
+      },
+      {
+        "name": "POSITION",
+        "class": "rE",
+        "start": 18,
+        "end": 56
+      }
+    ]
+  },
+  {
+    "format": 4,
+    "name": "INVENTORIES",
+    "template_sha256": "f8e80b1a8fdc5bc8952e315055f31164c134fcd91a4ec1e54d3b9191582e1df1",
+    "bytes": 2753,
+    "fully_consumed": true,
+    "sections": [
+      {
+        "name": "BAGS",
+        "class": "oY",
+        "start": 1,
+        "end": 2753
+      }
+    ]
+  }
+]

@@ -1,0 +1,24 @@
+
+2026-10-03 — Paseo de monstruos integrado en fuente, sin reinicio ni despliegue.
+El servidor inicia un hilo con STOPPING.wait aleatorio3–6segundos solo cuando
+el registro Redis soporta move_members. Radio configurable
+WAKFU_MONSTER_WANDER_RADIUS=20. Usa WORLD.snapshot(), misma instancia y
+aristas/alturas exportadas del cliente. Bloqueos groups→harvest evitan mover
+grupos en combate o en recolección y ocupan sus casillas. Cada paso se guarda
+por CAS en Redis antes de emitir13852nativo; SQLite mantiene lote20min.
+register_seed conserva coordenadas persistidas tras reinicio pero verifica
+identidad, estadísticas y roster. Native csR aceptó un NPC negativo propio.
+Pruebas:16pasan9opcionalesRedisomitidas; py_compile main correcto.
+Runtime anterior continúa: no se afirma que paseo esté ya desplegado o probadoGUI.
+
+Inicialización real al terminar colocación (fuente, sin reiniciar): Ready ahora trabaja sobre una copia privada y ejecuta innatas/pasivas con prepare_server_initialization antes de publicar el combate activo. Un fallo obligatorio conserva el combate original en colocación. Los snapshots iniciales preceden ACTION12514; después van los efectos de inicialización, la barrera13420 y el primer turno. Se reserva un identificador de acción propio. Pruebas pequeñas: 2 de atomicidad/duplicación/orden y 5 de mensajes de turnos pasan; compilación del servidor pasa. No se ha verificado todavía con la interfaz ni se ha desplegado.
+
+Reauditoría focal84casos (29 área anI/t-0-2 y55 HasStatearguments): hashes combat estables, rollback84/84. Los dos errores anteriores desaparecen; anI pasa a17 cambios actor+4 sin efecto+8 rechazos siguientes. HasState pasa a17 cambios actor+4 retención+8 sin efecto+26 rechazos siguientes (principal16 falta contenedor de estado único). Reportes JSON/CSV/comparativa/TXT guardados bajo docs/reports/combat-inventory/active-anI-hasstate*. No se afirma soporte completo ni validación GUI. Freeze liberado y proceso finalizado.
+
+Corrección general del contenedor de estado durante ejecución de hijos: eZk/Qe conservan objeto fyW, aunque un hijo sustituya el estado en manager. NativeRetainedRuntime y StateHandler conservan identidad/nivel por un scope efímero del iterador, incluyendo carriers instantáneos propios. Guard de UID ausente/ambiguo permanece fuera del scope. Factory conecta callback, sin cambios main.3pruebas aisladas PASS; focal16 real→16actor_state_changed, fuentes estables, rollback16/16. Reporte final active-state-container-focus-v2; sin GUI/reinicio, freeze liberado.
+
+Incidencia GUI Sangre5028 contenedor retirado: ordinary_container_type conectado al mismo objeto efímero nativo que retención/descriptores costes, por ContextVar aisladofight/hilo.5testsPASS. Focal5028nivel20hashstable/rollback2/2: error contenedor desaparece, siguiente bloqueo GetTriggeringEffectValue child330316982 en enemigo; celda vacía sin efecto. Fuente estable; noGUI ni reinicio. Freeze liberado.
+
+Perfil/optimizaciónlatencia fuente estable: coldserver_runtime contenedor9.734s porJSONestados/áreas, warm57–63ms. Validatedmergeddefinitions yregistry ahora readonlycached, sincontexts/RNG/outboxcompartidos; prewarm anteslisteners/health. BundleSacroactual5051:9.047spreload,17.9msinit19packets,5030/5033/5038preparan15–19ms y5028rechazaGetTriggeringEffectId19ms. Warmfactory64–126µs.13transaction+2staticcatalogtestsPASS/hashestable. Mainagregatimingsdispatch/prepare/commit/send/checkpoint para separar residuo trasdeploy. No reinicio/GUI; evidencia docs/reports/combat-runtime-performance.{json,txt}. Freeze liberado.
+
+Auditoría anillo2022 completa:2testsown tempSQLite/RedisMemory cnRsave→ACK12284→12393registro→reconnectRedis→batch1200PASS, bonosHP5/dominio5once; ring7→8 yduplicadoequippedrejectsinparcial. ProbeJARctU/fpi/fpoPASS conserva UIDrealowner/sheet0. Anillo2022confirmadoinventorychar7readonly; nootrosserializerbugsreproducidos. Logsrechazocriterioanteriorconfirmado; diskcontaineractualnoequivaleversiónloadedproceso. NoGUI/userDBwrites/restart. Evidencia docs/reports/ring-build-route.txt.

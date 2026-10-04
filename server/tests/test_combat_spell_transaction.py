@@ -1,0 +1,446 @@
+import struct
+import unittest
+from wakfu_server.combat_state import Actor, Fight
+from wakfu_server.spells import encode_deck
+from wakfu_server.spell_audit import catalog
+from wakfu_server.combat_conditions import ConditionContext
+from wakfu_server.combat_effect_dispatch import (
+    EffectDispatcher,
+    UnsupportedEffectExecution,
+)
+from wakfu_server.combat_spell_transaction import prepare_spell_transaction
+from wakfu_server.combat_damage_handler import (
+    NativeDamageHandler,
+    DamageExecutionContext,
+)
+
+
+class SpellTransactionTests(unittest.TestCase):
+    def setUp(self):
+        pc = Actor(7, 0, (0, 0, 0), 60, 6, 3, 10, 1, 3, True)
+        npc = Actor(-7, 1, (1, 0, 0), 20, 6, 3, 5, 1)
+        self.fight = Fight(
+            77,
+            [pc, npc],
+            {pc.position, npc.position},
+            {0: {pc.position}, 1: {npc.position}},
+        )
+        self.fight.ready(3)
+        for actor in self.fight.actors.values():
+            actor.spell_ap_cost_modifiers = (
+                {}
+            )  # Explicit bare fixture, no native modifiers.
+            actor.effect_stats = {92: 0, 97: 0, 100: 0}
+            actor.effect_maxima = {92: 0}
+            actor.effect_frozen = frozenset()
+            actor.physical_radius = 0
+        self.character = dict(id=7, breed=15, level=1)
+        self.body = struct.pack(">qqiih", 7, (7 << 32) | 6266, 1, 0, 0)
+
+    def factory(self, preview, plan):
+        packets = []
+        damage = NativeDamageHandler(
+            preview,
+            packets,
+            action_id=1,
+            allocate_uid=lambda: 99,
+            rng=lambda: 0.99,
+            context=lambda *args: DamageExecutionContext(
+                False, True, False, True, 11, False
+            ),
+        )
+        # This test resolver deliberately selects the previously audited normal
+        # branch. Production requires native target/variant/trigger resolution.
+        dispatcher = EffectDispatcher(
+            catalog()["effects"],
+            {5: damage},
+            resolve=lambda effect, invocation: (invocation,)
+            if effect["variant"] == 0 and invocation.reference in (339522, 339526)
+            else (),
+            condition_context=lambda _: ConditionContext({}, caster_target_distance=1),
+            probability_accepts=lambda probability, _: probability == 100,
+            group_cells=lambda *args: (),
+            actor_position=lambda uid: preview.actors[uid].position,
+        )
+        return dispatcher, packets
+
+    def execute(self, factory=None):
+        return prepare_spell_transaction(
+            self.body,
+            self.character,
+            self.fight,
+            3,
+            encode_deck([6266]),
+            wp_current=6,
+            action_id=1,
+            line_of_sight=lambda *args: True,
+            runtime_factory=factory or self.factory,
+        )
+
+    def test_real_native_spell_roots_share_cost_and_damage_transaction(self):
+        result = self.execute()
+        self.assertLess(result.fight.actors[-7].hp, 20)
+        self.assertEqual(result.fight.actors[7].ap, 2)
+        self.assertEqual([p[0] for p in result.packets], [12588, 12678, 12613])
+        self.assertEqual((self.fight.actors[7].ap, self.fight.actors[-7].hp), (6, 20))
+
+    def test_explicit_critical_branch_is_encoded_in_both_cast_notifications(self):
+        result = prepare_spell_transaction(
+            self.body,
+            self.character,
+            self.fight,
+            3,
+            encode_deck([6266]),
+            wp_current=6,
+            action_id=1,
+            line_of_sight=lambda *args: True,
+            runtime_factory=self.factory,
+            critical=True,
+        )
+        self.assertEqual(result.packets[0][1][39], 1)
+        self.assertEqual(result.packets[1][1][24], 1)
+        self.assertEqual(self.fight.actors[7].ap, 6)
+
+    def test_missing_handler_rolls_back_costs_and_damage(self):
+        def factory(preview, plan):
+            dispatcher, packets = self.factory(preview, plan)
+            dispatcher.handlers.clear()
+            return dispatcher, packets
+
+        with self.assertRaises(UnsupportedEffectExecution):
+            self.execute(factory)
+        self.assertEqual((self.fight.actors[7].ap, self.fight.actors[-7].hp), (6, 20))
+
+    def test_invalid_queued_packet_rejects_entire_cast(self):
+        self.fight.actors[7].effect_stats[100] = 1
+        self.fight.actors[-7].effect_stats[97] = 1
+
+        def factory(preview, plan):
+            dispatcher, packets = self.factory(preview, plan)
+            packets.append((12613, "not bytes"))
+            return dispatcher, packets
+
+        with self.assertRaises(ValueError):
+            self.execute(factory)
+        self.assertEqual((self.fight.actors[7].ap, self.fight.actors[-7].hp), (6, 20))
+        self.assertEqual(self.fight.actors[7].effect_stats[100], 1)
+        self.assertEqual(self.fight.actors[-7].effect_stats[97], 1)
+
+    def test_wp_effects_survive_transaction_and_costs_share_snapshot(self):
+        self.fight.actors[7].effect_stats.update({2: 6, 3: 3, 4: 6})
+
+        def factory(preview, plan):
+            dispatcher, packets = self.factory(preview, plan)
+            damage = dispatcher.handlers[5]
+
+            def gain_after_damage(effect, values, invocation):
+                result = damage(effect, values, invocation)
+                preview.actors[7].effect_stats[4] += 1
+                return result
+
+            dispatcher.handlers[5] = gain_after_damage
+            return dispatcher, packets
+
+        result = self.execute(factory)
+        self.assertEqual(result.wp_remaining, 7)
+        self.assertEqual(result.fight.actors[7].effect_stats[2], 2)
+        self.assertEqual(self.fight.actors[7].effect_stats[4], 6)
+
+    def test_inconsistent_wp_snapshot_rejects_before_runtime(self):
+        self.fight.actors[7].effect_stats[4] = 5
+        with self.assertRaisesRegex(ValueError, "WP snapshot"):
+            self.execute()
+        self.assertEqual(self.fight.actors[7].ap, 6)
+
+    def test_native_actor_snapshots_feed_real_spell_damage_and_resource_updates(self):
+        from wakfu_server.combat_actor_snapshot import (
+            build_player_snapshot,
+            build_npc_snapshot,
+        )
+        from wakfu_server.equipment_stats import effective_character
+        from wakfu_server.health import maximum
+
+        character = effective_character(
+            dict(
+                self.character,
+                hp=60,
+                max_hp=maximum(15, 1),
+                builds={},
+                inventory_items=[],
+            )
+        )
+        self.character = character
+        caster = self.fight.actors[7]
+        caster.max_hp = character["max_hp"]
+        for actor in self.fight.actors.values():
+            actor.effect_stats = actor.effect_maxima = actor.effect_minima = None
+            actor.effect_frozen = actor.physical_radius = None
+            actor.spell_ap_cost_modifiers = None
+        build_player_snapshot(
+            character, caster, wp_current=6, wp_maximum=6, running_effects=()
+        ).install(caster)
+        target = self.fight.actors[-7]
+        target.effective_level = 15
+        build_npc_snapshot(
+            dict(id=-7, ref=1740),
+            target,
+            wp_current=4,
+            wp_maximum=4,
+            running_effects=(),
+        ).install(target)
+        result = self.execute()
+        self.assertLess(result.fight.actors[-7].hp, 20)
+        self.assertEqual(
+            result.fight.actors[7].effect_stats[2], result.fight.actors[7].ap
+        )
+        self.assertEqual(
+            result.fight.actors[-7].effect_stats[1], result.fight.actors[-7].hp
+        )
+        self.assertEqual(self.fight.actors[-7].hp, 20)
+
+    def test_commit_prepares_all_actor_packets_and_updates_runtime(self):
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_spell_commit import commit_spell_transaction
+
+        runtime = RuntimeMessages(self.fight)
+        transaction = self.execute()
+        seen = []
+
+        def serialize(actor, fight):
+            self.assertIs(fight, transaction.fight)
+            seen.append(actor.id)
+            return b"owned-stats"
+
+        packets = commit_spell_transaction(
+            runtime, transaction, stats_serializer=serialize
+        )
+        self.assertEqual(set(seen), {7, -7})
+        self.assertIs(runtime.fight, transaction.fight)
+        self.assertEqual(runtime.action_id, 1)
+        self.assertEqual(
+            [opcode for opcode, _ in packets][-4:], [13420, 12873, 12873, 13420]
+        )
+
+    def test_serializer_failure_does_not_commit_damage_costs_or_action_id(self):
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_spell_commit import commit_spell_transaction
+
+        runtime = RuntimeMessages(self.fight)
+        transaction = self.execute()
+
+        def serialize(actor, fight):
+            if actor.id == -7:
+                raise ValueError("missing native data")
+            return b"owned-stats"
+
+        with self.assertRaises(ValueError):
+            commit_spell_transaction(runtime, transaction, stats_serializer=serialize)
+        self.assertIs(runtime.fight, self.fight)
+        self.assertEqual(
+            (runtime.action_id, self.fight.actors[7].ap, self.fight.actors[-7].hp),
+            (0, 6, 20),
+        )
+
+    def test_stale_transaction_rejects_after_resource_change_without_event(self):
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_spell_commit import commit_spell_transaction
+
+        runtime = RuntimeMessages(self.fight)
+        transaction = self.execute()
+        self.fight.spend(3, 7, ap=1)
+        with self.assertRaisesRegex(ValueError, "Combat changed"):
+            commit_spell_transaction(
+                runtime, transaction, stats_serializer=lambda *args: b"stats"
+            )
+        self.assertEqual((runtime.action_id, self.fight.actors[7].ap), (0, 5))
+
+    def native_server_fixture(self, breed, level, *, target_hp=200):
+        from wakfu_server.combat_actor_snapshot import (
+            build_player_snapshot,
+            build_npc_snapshot,
+        )
+        from wakfu_server.equipment_stats import effective_character
+        from wakfu_server.health import maximum
+
+        character = effective_character(
+            dict(
+                id=7,
+                breed=breed,
+                level=level,
+                hp=60,
+                max_hp=maximum(breed, level),
+                builds={},
+                inventory_items=[],
+            )
+        )
+        caster = Actor(
+            7, 0, (0, 0, 0), 60, 6, 3, 10, level, 3, True, max_hp=character["max_hp"]
+        )
+        target = Actor(-7, 1, (2, 0, 0), target_hp, 6, 3, 5, 1)
+        fight = Fight(
+            78,
+            [caster, target],
+            {(x, y, 0) for x in range(-5, 12) for y in range(-5, 6)},
+            {0: {caster.position}, 1: {target.position}},
+        )
+        fight.ready(3)
+        caster.direction = 0
+        target.direction = 3
+        build_player_snapshot(
+            character, caster, wp_current=6, wp_maximum=6, running_effects=()
+        ).install(caster)
+        monster = dict(id=-7, ref=5525)
+        build_npc_snapshot(
+            monster, target, wp_current=0, wp_maximum=0, running_effects=()
+        ).install(target)
+        fight.native_effect_uid_next = 1
+        # This fixture emits an explicitly empty QL obstacle table, as bootstrap does.
+        fight.native_obstacle_cells = frozenset()
+        return character, monster, fight
+
+    def test_server_entry_conditional_spell_damage_and_displacement_share_transaction(
+        self,
+    ):
+        import random
+        from wakfu_server.combat_server_spell import prepare_server_spell
+
+        character, monster, fight = self.native_server_fixture(2, 19)
+        body = struct.pack(">qqiih", 7, (7 << 32) | 7320, 2, 0, 0)
+        result = prepare_server_spell(
+            body,
+            character,
+            {-7: monster},
+            fight,
+            3,
+            encode_deck([7320]),
+            action_id=1,
+            line_of_sight=lambda *args: True,
+            critical=False,
+            rng=random.Random(1),
+        )
+        self.assertEqual(result.fight.actors[7].ap, 4)
+        self.assertLess(result.fight.actors[-7].hp, 200)
+        self.assertGreater(result.fight.actors[-7].position[0], 2)
+        self.assertEqual(
+            (fight.actors[7].ap, fight.actors[-7].hp, fight.actors[-7].position),
+            (6, 200, (2, 0, 0)),
+        )
+        self.assertGreaterEqual(sum(op == 12613 for op, _ in result.packets), 2)
+
+    def test_server_entry_native_transposition_swaps_and_keeps_original_until_commit(
+        self,
+    ):
+        import random
+        from wakfu_server.combat_server_spell import prepare_server_spell
+        from wakfu_server.combat_actor_snapshot import (
+            build_player_snapshot,
+            build_npc_snapshot,
+        )
+        from wakfu_server.equipment_stats import effective_character
+        from wakfu_server.health import maximum
+
+        character = effective_character(
+            dict(
+                id=7,
+                breed=11,
+                level=6,
+                hp=60,
+                max_hp=maximum(11, 6),
+                builds={},
+                inventory_items=[],
+            )
+        )
+        caster = Actor(
+            7, 0, (0, 0, 0), 60, 6, 3, 10, 6, 3, True, max_hp=character["max_hp"]
+        )
+        target = Actor(-7, 1, (2, 0, 0), 20, 6, 3, 5, 1)
+        fight = Fight(
+            78,
+            [caster, target],
+            {(x, y, 0) for x in range(-3, 8) for y in range(-3, 4)},
+            {0: {caster.position}, 1: {target.position}},
+        )
+        fight.ready(3)
+        caster.direction = 0
+        target.direction = 3
+        build_player_snapshot(
+            character, caster, wp_current=6, wp_maximum=6, running_effects=()
+        ).install(caster)
+        monster = dict(id=-7, ref=5525)
+        build_npc_snapshot(
+            monster, target, wp_current=0, wp_maximum=0, running_effects=()
+        ).install(target)
+        fight.native_effect_uid_next = 1
+        body = struct.pack(">qqiih", 7, (7 << 32) | 5043, 2, 0, 0)
+        result = prepare_server_spell(
+            body,
+            character,
+            {-7: monster},
+            fight,
+            3,
+            encode_deck([5043]),
+            action_id=1,
+            line_of_sight=lambda *args: True,
+            critical=False,
+            rng=random.Random(1),
+        )
+        self.assertEqual(result.fight.actors[7].position, (2, 0, 0))
+        self.assertEqual(result.fight.actors[-7].position, (0, 0, 0))
+        self.assertEqual(result.fight.actors[7].ap, 5)
+        self.assertEqual(result.wp_remaining, 5)
+        self.assertEqual(caster.position, (0, 0, 0))
+        self.assertEqual(target.position, (2, 0, 0))
+        self.assertEqual(caster.ap, 6)
+        self.assertEqual([op for op, _ in result.packets][:3], [12588, 12678, 12613])
+
+    def test_server_entry_executes_full_native_roots_without_spell_whitelist(self):
+        import random
+        from wakfu_server.combat_server_spell import prepare_server_spell
+        from wakfu_server.combat_actor_snapshot import (
+            build_player_snapshot,
+            build_npc_snapshot,
+        )
+        from wakfu_server.equipment_stats import effective_character
+        from wakfu_server.health import maximum
+
+        character = effective_character(
+            dict(
+                self.character,
+                hp=60,
+                max_hp=maximum(15, 1),
+                builds={},
+                inventory_items=[],
+            )
+        )
+        caster = self.fight.actors[7]
+        caster.max_hp = character["max_hp"]
+        for actor in self.fight.actors.values():
+            actor.effect_stats = actor.effect_maxima = actor.effect_minima = None
+            actor.effect_frozen = actor.physical_radius = None
+            actor.spell_ap_cost_modifiers = None
+            actor.direction = 0 if actor.controlled else 3
+        build_player_snapshot(
+            character, caster, wp_current=6, wp_maximum=6, running_effects=()
+        ).install(caster)
+        monster = dict(id=-7, ref=1740)
+        target = self.fight.actors[-7]
+        target.effective_level = 15
+        build_npc_snapshot(
+            monster, target, wp_current=4, wp_maximum=4, running_effects=()
+        ).install(target)
+        self.fight.native_effect_uid_next = 1
+        result = prepare_server_spell(
+            self.body,
+            character,
+            {-7: monster},
+            self.fight,
+            3,
+            encode_deck([6266]),
+            action_id=1,
+            line_of_sight=lambda *args: True,
+            critical=False,
+            rng=random.Random(1),
+        )
+        self.assertLess(result.fight.actors[-7].hp, 20)
+        self.assertEqual(self.fight.actors[-7].hp, 20)
+        self.assertEqual(result.fight.actors[7].ap, 2)

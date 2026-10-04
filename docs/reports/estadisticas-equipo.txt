@@ -1,0 +1,23 @@
+Estadísticas genéricas de equipo — 2026-10-03
+
+Módulo: server/wakfu_server/items/equipment_stats.py. Catálogo reproducible: server/protocol/item-equipment-effects.json, 12254 objetos con efectos del bdata instalado. Exportador offline: sniffer/java/ExportEquipmentEffects.java.
+
+Se evalúa la hoja seleccionada contra UID/propiedad/cantidad/nivel/slot mediante equipment.validate_sheet. El índice por defecto es0; aún no se persiste activación de otra hoja. No se otorgan objetos.
+
+Efectos soportados: eWN con parámetros nativos [valor,1,0] y eWQ escalar de un parámetro, sin criterios, disparadores ni máscara de otro objetivo. Se consultan los PC reales de los ejecutores, no se supone que genericID equivalga a statID. Otros efectos se devuelven en unsupported; no se inventan conversiones.
+
+Prueba nativa: amuleto2021, nivel del objeto6. Sus ejecutores reales eWN.C/eWQ.C evaluados offline dan PA+1, HP+6, FEROCITY+2 y DMG_IN_PERCENT+9. Identificadores de características: HP1, PA2, MP3, WP4, INIT35; crítico9 y dominio elemental general20 para este objeto. El recurso WP base debe proporcionarlo el llamador según raza/política comprobada.
+
+bonuses devuelve stats, unsupported, equipped_uids y build_index. combat_resources devuelve ap/mp/wp/initiative y el mapa de bonos nativos. effective_character calcula máximo base por raza/nivel más HP del equipo, preserva HP actual y lo limita al máximo: no aplica una curación al refrescar ni suma otra vez el max_hp efectivo almacenado. La persistencia SQLite y actualización de mensajes del cliente se integran por separado. Se debe usar el mismo máximo efectivo para daño, salida de combate, regeneración y reconexión.
+
+Límites: efectos porcentuales sobre máximos, efectos aleatorios, runas/encantamientos individuales, criterios dinámicos y efectos disparados no están evaluados. Los bonos de dominio se exponen como características; este módulo no garantiza por sí solo que el ejecutor de daño los use. El catálogo exporta stat_limit nativo para auditoría, sin imponer por conjetura límites adicionales. La operación de refresco no sustituye semántica nativa de ganar/perder HP al cambiar equipo.
+
+Aplicación a daño — helper independiente
+
+Se añadió equipment_damage.inputs para mantener crítico9 y mapas nativos reales, y equipment_damage.damage para la aritmética fau.fSy de contextos explícitos con ataque de frente. Este helper todavía no está conectado por sí solo al servidor. La auditoría encontró cuatro llamadas mitigate=lambda daño:daño y ejecutores que requieren bonos vacíos: mostrar una característica en el cliente no significa aplicarla al daño.
+
+Pruebas contra Java actual: fau con base80 y dominio general25 produce100; dominio tierra25 produce100; base100 contra resistencia tierra100 produce81. fau.ac(100,false)=0.81: la base0.8 es float32, luego se eleva y se redondea hacia arriba a dos decimales. La resistencia mínima multiplicativa es0.1. Esta fórmula no equivale a restar porcentajes lineales. Los identificadores de efecto y de elemento tienen espacios distintos: running-effect4 es agua, eVg4 es aire.
+
+UP.bt usa redondeo probabilístico de la fracción, no Math.round. El helper admite RNG autoritativo inyectado y reproduce operaciones float32. Para 80 con dominio9 el resultado es87 o88 según la fracción y la muestra. No se inventa un multiplicador crítico: el llamador debe proporcionar el daño base de la rama crítica real, el contexto y los indicadores del efecto. El helper aplica dominio crítico52/resistencia crítica95 si critical=True, pero no resuelve la selección ni sorteo de una rama crítica.
+
+Las bonificaciones de área/monoobjetivo/cercanía/distancia/berserk requieren indicadores reales del efecto y del estado. El llamador debe verificarlos. Se rechaza una geometría que no sea frontal; no se adivinan espalda/lateral, orientación, absorción de armadura, bloqueo ni daños indirectos que falten. El campo unsupported debe seguir visible para no tratar una configuración incompleta como un personaje sin bonos.

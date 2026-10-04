@@ -1,0 +1,7 @@
+Orientación general de combate — 2026-10-03
+
+Solicitud: coZ13655, servicio3, nueve bytes qactor+Bdirection. UI nativa dbl envía las cuatro direcciones cardinales aAS1/3/5/7 sin descontar recursos. Respuesta específica de combate: cvL13494, cabecera cvB(i32fight,i32action,i32sequence) y qactor+Bdirection,21 bytes. cjx encola aTU; aTU cambia la orientación/animación, no PA/MP. Se termina la operación con13420flush. No se utiliza el paquete de posición world13530.
+
+combat_orientation.apply(runtime,owner_id,body) exige actor propio vivo, turno actual, faseactive y ausencia de sincronización pendiente. Todas las validaciones ocurren antes de mutar facing o contador de acción. Permite giro con PA/MP0. Guarda actor.direction; los serializadores que refrescan estado deben conservar esa dirección para no revertir el giro. Retorna packets,event,direction para integración del handler.
+
+Tres pruebas verifican formato, cuatro orientaciones, coste cero, propiedad/turno/fase/ACK, formato inválido y agotamiento del contador. El decoder cvL real del JAR instalado acepta los cuatro paquetes propios de21 bytes con actor-7/fight3. No se afirma soporte de orientación en colocación: existe otro caller coZ, pero la política actualmente validada es solamente active.

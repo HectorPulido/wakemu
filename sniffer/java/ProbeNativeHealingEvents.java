@@ -1,0 +1,1 @@
+public class ProbeNativeHealingEvents {public static void main(String[]args){for(int kind:new int[]{25,251,253,258,259}){eXs heal=(eXs)eVi.fLJ().pS(kind);heal.bbx();heal.bby();System.out.println(kind+" "+heal.bbw());if(!heal.bbw().get(1))throw new AssertionError();}}}

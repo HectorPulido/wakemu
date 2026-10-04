@@ -1,0 +1,83 @@
+{
+  "modern_equipment": {
+    "ui": "deU19693/19743 -> bQP.g/bQQ.c -> fpY.v(slot)",
+    "request": "12772 cnR build sheet/equipment/deck/aptitudes",
+    "response": "12284 ctU build save response",
+    "equipment_proto": "ia ProtoEquipmentSheet: repeated field1 item(id ProtoEquipmentItem required field1 UID, required field2 position), optional field53 level",
+    "implemented": "Validate owned SQLite items, unique quantity-one units and positions, native allowed slots and minimum cmZ level before atomic character_builds save. Explicit empty sheet removes equipment selection and preserves inventory item.",
+    "limitations": [
+      "Native criteria evaluation is unavailable; items with criteria are rejected.",
+      "Additional slot occupations create native item clones; their identity semantics are not yet implemented and such items are rejected.",
+      "Passive equipment statistics and equipment combat effects are not yet applied."
+    ]
+  },
+  "bag_equipping": {
+    "request": "12656 cpK: itemUID:q, sourceContainer:q, destinationCharacter:q, destinationBagSlot:b",
+    "source": "dco checks fnp.d(item,character) and bFS.hH before constructing cpK",
+    "bag_removal": "13673 cpW, separate33byte request",
+    "warning": "Do not interpret12656 as modern weapon/armor build equipping.",
+    "implemented": "Bolsas propias ordinarias del catálogo nativo: capacidad y nivel mínimo, slots 1..3; UID conservado al retirar/equipar. Bolsa base2175 fija. Bolsa ocupada debe vaciarse antes de retirarla.",
+    "responses": {
+      "remove": "13172cxg(character:q,bag:q) then12471item insertion",
+      "equip": "12470 signed delta -1 then12919cwP(character:q,tgLength:i,tg20bytes)"
+    },
+    "initialization": "inventory_initialized per-character marker prevents removed containers from being re-created on reload.",
+    "limitations": [
+      "Bolsas con filtros de tipos de objetos o criterios de equipamiento todavía rechazadas.",
+      "Reemplazar directamente una bolsa equipada todavía rechazado."
+    ]
+  },
+  "legacy_equipment_transfer": {
+    "response": "13079 cAX: itemUID:q, position:b, containerUID:q",
+    "source": "cio invokes flV.a between fnZ equipment and a bag inventory",
+    "implementation": "Not emitted for modern cnR build equipment selection."
+  },
+  "owned_items": {
+    "insert": "12471 cxa: containerUID:q, position:h, protobufLength:i, kX ProtoItem, bool notification",
+    "item_proto": "kX required fields1 uniqueId:int64,2 refId:int32,3 qty:int32",
+    "remove": "12470 cwZ consumes UID:q and additive signed quantity delta:h (negative removes); observed extra two bytes are decoder-unused padding",
+    "seeding": "No runtime items granted by these changes.",
+    "move": "12804 cpR: transferencia completa27bytes o división37bytes con UID reservado. Persiste mover, intercambiar pilas incompatibles y fusionar pilas mínimas compatibles hasta máximo nativo. Cliente aplica optimistamente; sin ACK de inserción duplicado.",
+    "destroy": "12490 cpM: UID:q; destruye pila propia completa atómicamente; ACK12470 delta negativo. Rechaza UID extranjero, unidad seleccionada en builds y criterios nativos pendientes.",
+    "use": "12659: inventory_consumables.use ejecuta58 alimentos de curación neutra plana25 sin criterios, junto emote550/20019 identificado. HP y consumo de una unidad son atómicos; ACK12470 -1 y12436. Animación de comer queda pendiente del packet correcto.13220 yotrosconsumibles requieren ejecutores propios."
+  },
+  "uid_pool": {
+    "initialize": "13778 modo0 borra pool; initialize_pool invalida reservas sin consumir de cuenta/generación y mantiene ledger de requests consumidos.",
+    "replenish": "13589 cpQ cuerpo>qi characterID,selector0;13778modo1 agrega IDs. bGE solicita cuando consume el último UID.",
+    "persistence": "Allocador monotónico compartido grants/reservas; UID de división consumido con request exacto para idempotencia."
+  },
+  "native_catalogs": {
+    "item-action-rules.json": {
+      "sha256": "dc40109f809c02d69fe7614fba282a1a4ec27c526ff990566a09dc2c46745b92"
+    },
+    "inventory-bag-rules.json": {
+      "sha256": "1cf55527b4129b555e9665c86e1d8a2d64f6c7e1ffb8e32373aff4709c15cab3"
+    },
+    "item-stack-rules.json": {
+      "sha256": "7439c3a365476221da5941a9cd676931d50dc71d23c477ff00717447530a4318"
+    },
+    "item-equipment-rules.json": {
+      "sha256": "087c68161bb146fd14b92a0c720c940c78c2716db3942cd41c9951fc3199a0f5"
+    },
+    "item-healing-rules.json": {
+      "sha256": "3e9efde0688dcea798a1a7d130e264b9aca3c7d269db24072ae328782251d4d2"
+    }
+  },
+  "consumable_healing": {
+    "native_proof": "eVi generic25 -> eXs.fOA; objeto3864/efecto183201 nativo devuelve55. eXH550 -> eGj.Y -> bjo.a ejecuta script emotes/20019.",
+    "local_policy": "Rechaza consumo con salud completa, HP0, combate, posiciones objetivo, HP esperado obsoleto y builds con equipo cuyos modificadores aún no se calculan.",
+    "atomicity": "Una transacción SQLite modifica HP, baseline de regeneración y cantidad del UID propio.",
+    "limitations": [
+      "Criterios/efectos adicionales, resurrección y curación con modificadores de equipo todavía rechazados.",
+      "Animación de comer tiene helper12705 eXH550 nativo; verificación visual pendiente."
+    ],
+    "outside_animation": {
+      "opcode": 12705,
+      "client_class": "cBs",
+      "schema": "i32 actionId + i32 sequence(-1) + boolfalse + boolfalse + i32 effectClass550 + i16 iNlength + iN + tuple(i32actionId,i32sequence(-1),i64ownActorId)",
+      "helper": "inventory_animation.eating(actor_id,action_id,effect_uid,effect_id)",
+      "native_proof": "cBs decoder + iN/eXH accepted own payload; eXH.c invoked ownActor.Y(20019). Installed emotes/20019.lua calls AnimEmote-MangerPain. Official frame9194 confirms class550 world12705 shape.",
+      "limitation": "Native execution verified offline; full GUI/render pipeline still pending."
+    }
+  }
+}

@@ -1,0 +1,2 @@
+import java.nio.file.*;import java.util.*;import com.google.gson.*;
+public class ExportPlantGrounds{public static void main(String[]args)throws Exception{apw.bGL().dd("jar:file:"+Path.of("client/contents/bdata").toAbsolutePath()+"/%d.jar!/%d.bin");List<Object> rows=new ArrayList<>();apw.bGL().a(new aLp(),new apB<aLp>(){public void load(aLp g){rows.add(Map.of("ground_id",g.d(),"resources",g.coi(),"families",g.coj()));}});Files.writeString(Path.of("server/protocol/planting-grounds.json"),new Gson().toJson(rows));System.out.println(rows.size());}}

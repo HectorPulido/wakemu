@@ -1,0 +1,3125 @@
+{
+  "profession_ids": [
+    76,
+    40,
+    72,
+    71,
+    82,
+    73,
+    64,
+    75,
+    74,
+    79,
+    78,
+    77,
+    83,
+    80,
+    81
+  ],
+  "animations": [
+    {
+      "id": 64,
+      "animation": 61,
+      "name": "AnimInteraction-EteindreTorche",
+      "suffix": "desc.mru.skillLightOff",
+      "items": []
+    },
+    {
+      "id": 19,
+      "animation": 6,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.pickup",
+      "items": []
+    },
+    {
+      "id": 104,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.faufiler",
+      "items": []
+    },
+    {
+      "id": 141,
+      "animation": 60,
+      "name": "AnimEmoteMarket-PriereSolannelle",
+      "suffix": "desc.mru.skillLightOn",
+      "items": []
+    },
+    {
+      "id": 110,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.canon.incarnam",
+      "items": []
+    },
+    {
+      "id": 25,
+      "animation": 11,
+      "name": "AnimInteraction-Puiser",
+      "suffix": "desc.mru.well",
+      "items": []
+    },
+    {
+      "id": 99,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.receptacle.pom",
+      "items": []
+    },
+    {
+      "id": 115,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.well",
+      "items": []
+    },
+    {
+      "id": 119,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.desamorcer",
+      "items": []
+    },
+    {
+      "id": 122,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.canon.sufokia",
+      "items": []
+    },
+    {
+      "id": 129,
+      "animation": 11,
+      "name": "AnimEmote-Chatouille",
+      "suffix": "desc.mru.chatouiller",
+      "items": []
+    },
+    {
+      "id": 133,
+      "animation": 24,
+      "name": "AnimEmote-Bisou",
+      "suffix": "desc.mru.kiss",
+      "items": []
+    },
+    {
+      "id": 4,
+      "animation": 8,
+      "name": "AnimHache-Debut",
+      "suffix": "desc.mru.skillCut",
+      "items": []
+    },
+    {
+      "id": 92,
+      "animation": 33,
+      "name": "AnimCraft-Menuisier-Debut",
+      "suffix": "desc.mru.skillScier",
+      "items": []
+    },
+    {
+      "id": 2,
+      "animation": 10,
+      "name": "AnimFaux-Debut",
+      "suffix": "desc.mru.skillReap",
+      "items": []
+    },
+    {
+      "id": 23,
+      "animation": 7,
+      "name": "AnimMinage-Debut",
+      "suffix": "desc.mru.skillPickGem",
+      "items": []
+    },
+    {
+      "id": 18,
+      "animation": 39,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.skillMilk",
+      "items": []
+    },
+    {
+      "id": 24,
+      "animation": 7,
+      "name": "AnimHache-Debut",
+      "suffix": "desc.mru.skillPickaxe",
+      "items": []
+    },
+    {
+      "id": 83,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.read",
+      "items": []
+    },
+    {
+      "id": 95,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.deposer",
+      "items": []
+    },
+    {
+      "id": 148,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.use",
+      "items": []
+    },
+    {
+      "id": 142,
+      "animation": 61,
+      "name": "AnimInteraction-CoupdePied",
+      "suffix": "desc.mru.skillLightOff",
+      "items": []
+    },
+    {
+      "id": 155,
+      "animation": 58,
+      "name": "AnimStatique-Banc",
+      "suffix": "desc.mru.sit",
+      "items": []
+    },
+    {
+      "id": 156,
+      "animation": 58,
+      "name": "AnimStatique-Tabouret",
+      "suffix": "desc.mru.sit",
+      "items": []
+    },
+    {
+      "id": 179,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.foire.marabouf",
+      "items": []
+    },
+    {
+      "id": 32,
+      "animation": 23,
+      "name": "AnimCraft-Debut",
+      "suffix": "desc.mru.skillForge",
+      "items": []
+    },
+    {
+      "id": 163,
+      "animation": 11,
+      "name": "AnimStatique-Manege",
+      "suffix": "desc.mru.pay",
+      "items": []
+    },
+    {
+      "id": 52,
+      "animation": 11,
+      "name": "AnimEmote-Coucou",
+      "suffix": "desc.mru.MonsterInteraction",
+      "items": []
+    },
+    {
+      "id": 418,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.rushu.ub.door",
+      "items": []
+    },
+    {
+      "id": 180,
+      "animation": 5,
+      "name": "",
+      "suffix": "desc.mru.foire.fouet",
+      "items": []
+    },
+    {
+      "id": 185,
+      "animation": 11,
+      "name": "AnimStatique-Manege",
+      "suffix": "desc.mru.foire.manege",
+      "items": []
+    },
+    {
+      "id": 190,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.quest.corbeau.boat.search",
+      "items": []
+    },
+    {
+      "id": 191,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.quest.corbeau.boat.back",
+      "items": []
+    },
+    {
+      "id": 197,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.fightStart",
+      "items": []
+    },
+    {
+      "id": 202,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.retranscrire",
+      "items": []
+    },
+    {
+      "id": 207,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.levier.down",
+      "items": []
+    },
+    {
+      "id": 212,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.open.cage",
+      "items": []
+    },
+    {
+      "id": 217,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.hit",
+      "items": []
+    },
+    {
+      "id": 221,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.nowel.closed",
+      "items": []
+    },
+    {
+      "id": 229,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.nettoyer",
+      "items": []
+    },
+    {
+      "id": 223,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.fightFrizz",
+      "items": []
+    },
+    {
+      "id": 234,
+      "animation": 65,
+      "name": "",
+      "suffix": "desc.mru.dailyquest",
+      "items": []
+    },
+    {
+      "id": 238,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.crocheter",
+      "items": []
+    },
+    {
+      "id": 242,
+      "animation": 41,
+      "name": "",
+      "suffix": "desc.mru.jump",
+      "items": []
+    },
+    {
+      "id": 245,
+      "animation": 23,
+      "name": "AnimSort-MassueWotative",
+      "suffix": "desc.mru.destruct",
+      "items": []
+    },
+    {
+      "id": 249,
+      "animation": 11,
+      "name": "AnimMetier-RecolteSemence-Debut",
+      "suffix": "desc.mru.skillGather",
+      "items": []
+    },
+    {
+      "id": 255,
+      "animation": 5,
+      "name": "",
+      "suffix": "desc.mru.communicationCacterre",
+      "items": []
+    },
+    {
+      "id": 419,
+      "animation": 62,
+      "name": "",
+      "suffix": "desc.mru.rushu.ub.door",
+      "items": []
+    },
+    {
+      "id": 257,
+      "animation": 42,
+      "name": "",
+      "suffix": "desc.mru.inhibiteur",
+      "items": []
+    },
+    {
+      "id": 265,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.rob",
+      "items": []
+    },
+    {
+      "id": 268,
+      "animation": 42,
+      "name": "AnimReproduction-Debut",
+      "suffix": "desc.mru.empoisonner",
+      "items": []
+    },
+    {
+      "id": 271,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.comptoir.rang2",
+      "items": []
+    },
+    {
+      "id": 272,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.comptoir.rang3",
+      "items": []
+    },
+    {
+      "id": 270,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.comptoir.rang1",
+      "items": []
+    },
+    {
+      "id": 274,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.comptoir.rang1.astrubcity",
+      "items": []
+    },
+    {
+      "id": 275,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.comptoir.rang2.astrubcity",
+      "items": []
+    },
+    {
+      "id": 276,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.comptoir.rang3.astrubcity",
+      "items": []
+    },
+    {
+      "id": 277,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.comptoir.rang3.astrubland",
+      "items": []
+    },
+    {
+      "id": 45,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.skillGather",
+      "items": []
+    },
+    {
+      "id": 72,
+      "animation": 30,
+      "name": "AnimMetier-Peche-Debut",
+      "suffix": "desc.mru.skillFishing",
+      "items": []
+    },
+    {
+      "id": 50,
+      "animation": 11,
+      "name": "AnimEmote-Colere",
+      "suffix": "desc.mru.MonsterInteraction",
+      "items": []
+    },
+    {
+      "id": 39,
+      "animation": 40,
+      "name": "AnimCraft-Tricoter-Debut",
+      "suffix": "desc.mru.skillTailor",
+      "items": []
+    },
+    {
+      "id": 12,
+      "animation": 23,
+      "name": "AnimCraft-Forgeron-Debut",
+      "suffix": "desc.mru.skillForge",
+      "items": []
+    },
+    {
+      "id": 105,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.canon.amakna",
+      "items": []
+    },
+    {
+      "id": 0,
+      "animation": 11,
+      "name": "",
+      "suffix": "",
+      "items": []
+    },
+    {
+      "id": 55,
+      "animation": 11,
+      "name": "AnimEmote-Rire",
+      "suffix": "desc.mru.MonsterInteraction",
+      "items": []
+    },
+    {
+      "id": 106,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.canon.bonta",
+      "items": []
+    },
+    {
+      "id": 87,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.containerOpen",
+      "items": []
+    },
+    {
+      "id": 111,
+      "animation": 11,
+      "name": "AnimCraft-Cuisine-Debut",
+      "suffix": "desc.mru.polir",
+      "items": []
+    },
+    {
+      "id": 5,
+      "animation": 0,
+      "name": "AnimMetier-PlanterBouture-Debut",
+      "suffix": "desc.mru.skillPlant",
+      "items": []
+    },
+    {
+      "id": 120,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.warp.jump.puits",
+      "items": []
+    },
+    {
+      "id": 123,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.reparer",
+      "items": []
+    },
+    {
+      "id": 47,
+      "animation": 0,
+      "name": "AnimReproduction-Debut",
+      "suffix": "desc.mru.skillPlant",
+      "items": []
+    },
+    {
+      "id": 420,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.rushu.ub.reward",
+      "items": []
+    },
+    {
+      "id": 130,
+      "animation": 11,
+      "name": "AnimEmote-Victoire",
+      "suffix": "desc.mru.xmasGift",
+      "items": []
+    },
+    {
+      "id": 134,
+      "animation": 11,
+      "name": "AnimCraft-Tricoter-Debut",
+      "suffix": "desc.mru.tanneur",
+      "items": []
+    },
+    {
+      "id": 9,
+      "animation": 7,
+      "name": "AnimHache-Debut",
+      "suffix": "desc.mru.skillPickaxe",
+      "items": []
+    },
+    {
+      "id": 16,
+      "animation": 38,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.skillShear",
+      "items": []
+    },
+    {
+      "id": 100,
+      "animation": 11,
+      "name": "AnimMetier-Trappeur-Debut",
+      "suffix": "desc.mru.skillGather",
+      "items": []
+    },
+    {
+      "id": 143,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.exchange",
+      "items": []
+    },
+    {
+      "id": 144,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.tripot",
+      "items": []
+    },
+    {
+      "id": 149,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.canoon.zinit",
+      "items": []
+    },
+    {
+      "id": 157,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.recycle.machine",
+      "items": []
+    },
+    {
+      "id": 172,
+      "animation": 11,
+      "name": "AnimEmote-FeeArtifice",
+      "suffix": "desc.mru.foire.trool.zoo.pichon",
+      "items": []
+    },
+    {
+      "id": 164,
+      "animation": 5,
+      "name": "AnimEmote-HuerPasFan-Debut",
+      "suffix": "desc.mru.foire.trool.zoo.moogrr",
+      "items": []
+    },
+    {
+      "id": 165,
+      "animation": 11,
+      "name": "AnimEmoteMarket-LeverMain",
+      "suffix": "desc.mru.foire.trool.zoo.larve",
+      "items": []
+    },
+    {
+      "id": 170,
+      "animation": 5,
+      "name": "AnimEmote-Roter",
+      "suffix": "desc.mru.foire.trool.zoo.wapin",
+      "items": []
+    },
+    {
+      "id": 171,
+      "animation": 5,
+      "name": "AnimEmoteMarket-FiletBave",
+      "suffix": "desc.mru.foire.trool.zoo.bouftou",
+      "items": []
+    },
+    {
+      "id": 173,
+      "animation": 11,
+      "name": "AnimEmote-Renifle",
+      "suffix": "desc.mru.foire.trool.zoo.requin",
+      "items": []
+    },
+    {
+      "id": 174,
+      "animation": 5,
+      "name": "AnimEmote-Rire",
+      "suffix": "desc.mru.foire.trool.zoo.mandhal",
+      "items": []
+    },
+    {
+      "id": 169,
+      "animation": 11,
+      "name": "AnimEmote-AppelChien",
+      "suffix": "desc.mru.foire.trool.zoo.milimulou",
+      "items": []
+    },
+    {
+      "id": 167,
+      "animation": 5,
+      "name": "AnimEmote-Rire",
+      "suffix": "desc.mru.foire.trool.zoo.scaraboss",
+      "items": []
+    },
+    {
+      "id": 166,
+      "animation": 11,
+      "name": "AnimEmote-AppelChien",
+      "suffix": "desc.mru.foire.trool.zoo.mulou",
+      "items": []
+    },
+    {
+      "id": 168,
+      "animation": 11,
+      "name": "AnimEmote-Pointer",
+      "suffix": "desc.mru.foire.trool.zoo.scarabruni",
+      "items": []
+    },
+    {
+      "id": 181,
+      "animation": 70,
+      "name": "AnimCreuser-FoireDuTrool",
+      "suffix": "desc.mru.creuser",
+      "items": []
+    },
+    {
+      "id": 186,
+      "animation": 57,
+      "name": "",
+      "suffix": "desc.mru.read.panel",
+      "items": []
+    },
+    {
+      "id": 192,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.craft.almanax",
+      "items": []
+    },
+    {
+      "id": 198,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.buy.heavenworld",
+      "items": []
+    },
+    {
+      "id": 203,
+      "animation": 57,
+      "name": "",
+      "suffix": "desc.mru.observe",
+      "items": []
+    },
+    {
+      "id": 218,
+      "animation": 60,
+      "name": "AnimEmote-Applaudir",
+      "suffix": "desc.mru.skillLightOn",
+      "items": []
+    },
+    {
+      "id": 230,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.canoon",
+      "items": []
+    },
+    {
+      "id": 63,
+      "animation": 16,
+      "name": "",
+      "suffix": "desc.mru.addToFriendList",
+      "items": []
+    },
+    {
+      "id": 67,
+      "animation": 5,
+      "name": "",
+      "suffix": "desc.mru.parler",
+      "items": []
+    },
+    {
+      "id": 66,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.use",
+      "items": []
+    },
+    {
+      "id": 78,
+      "animation": 48,
+      "name": "AnimCraft-Alchimiste-Debut",
+      "suffix": "desc.mru.skillJus",
+      "items": []
+    },
+    {
+      "id": 84,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.giveMoney",
+      "items": []
+    },
+    {
+      "id": 107,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.canon.brakmar",
+      "items": []
+    },
+    {
+      "id": 8,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.skillGather",
+      "items": []
+    },
+    {
+      "id": 73,
+      "animation": 9,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.skillCut",
+      "items": []
+    },
+    {
+      "id": 101,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.bouee",
+      "items": []
+    },
+    {
+      "id": 97,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.naviguer",
+      "items": []
+    },
+    {
+      "id": 121,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.remonter.surface",
+      "items": []
+    },
+    {
+      "id": 112,
+      "animation": 11,
+      "name": "AnimCraft-Cuisine-Debut",
+      "suffix": "desc.mru.presser",
+      "items": []
+    },
+    {
+      "id": 77,
+      "animation": 23,
+      "name": "",
+      "suffix": "desc.mru.craftKamas",
+      "items": []
+    },
+    {
+      "id": 75,
+      "animation": 41,
+      "name": "AnimMetier-Pietiner-Debut",
+      "suffix": "desc.mru.skillTrample",
+      "items": []
+    },
+    {
+      "id": 74,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.skillGather",
+      "items": []
+    },
+    {
+      "id": 88,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.play",
+      "items": []
+    },
+    {
+      "id": 76,
+      "animation": 41,
+      "name": "AnimMetier-Pietiner-Debut",
+      "suffix": "desc.mru.skillTrample",
+      "items": []
+    },
+    {
+      "id": 135,
+      "animation": 11,
+      "name": "AnimEmote-Victoire",
+      "suffix": "desc.mru.event.pwak",
+      "items": []
+    },
+    {
+      "id": 71,
+      "animation": 0,
+      "name": "AnimMetier-PlanterBouture-Debut",
+      "suffix": "desc.mru.skillPlant",
+      "items": []
+    },
+    {
+      "id": 68,
+      "animation": 9,
+      "name": "AnimMetier-Taille-Debut",
+      "suffix": "desc.mru.skillPrune",
+      "items": []
+    },
+    {
+      "id": 82,
+      "animation": 11,
+      "name": "AnimCraft-Debut",
+      "suffix": "desc.mru.assemble",
+      "items": []
+    },
+    {
+      "id": 150,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.foire.zoo.exit",
+      "items": []
+    },
+    {
+      "id": 158,
+      "animation": 41,
+      "name": "",
+      "suffix": "desc.mru.defi.danse",
+      "items": []
+    },
+    {
+      "id": 145,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.zinit.phorreur",
+      "items": []
+    },
+    {
+      "id": 124,
+      "animation": 70,
+      "name": "AnimCreuser-Debut",
+      "suffix": "desc.mru.creuser",
+      "items": []
+    },
+    {
+      "id": 176,
+      "animation": 11,
+      "name": "AnimInteraction-AllumerTorche",
+      "suffix": "desc.mru.decrocher.ballon",
+      "items": []
+    },
+    {
+      "id": 175,
+      "animation": 11,
+      "name": "AnimInteraction-AllumerTorche",
+      "suffix": "desc.mru.accrocher.ballon",
+      "items": [
+        13685
+      ]
+    },
+    {
+      "id": 182,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.donjon.arcade",
+      "items": []
+    },
+    {
+      "id": 187,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.quest.boat.kabrok",
+      "items": []
+    },
+    {
+      "id": 193,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.almanax.stele.copy",
+      "items": []
+    },
+    {
+      "id": 199,
+      "animation": 42,
+      "name": "AnimReproduction-Debut",
+      "suffix": "desc.mru.erasePaint",
+      "items": []
+    },
+    {
+      "id": 208,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.trappeur.humanoide",
+      "items": []
+    },
+    {
+      "id": 213,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.consolider",
+      "items": []
+    },
+    {
+      "id": 214,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.open.present.nowel",
+      "items": []
+    },
+    {
+      "id": 224,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.crocheter.01",
+      "items": []
+    },
+    {
+      "id": 235,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.naviguer",
+      "items": []
+    },
+    {
+      "id": 225,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.crocheter.02",
+      "items": []
+    },
+    {
+      "id": 226,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.crocheter.03",
+      "items": []
+    },
+    {
+      "id": 227,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.crocheter.04",
+      "items": []
+    },
+    {
+      "id": 228,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.crocheter.05",
+      "items": []
+    },
+    {
+      "id": 239,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.choose",
+      "items": []
+    },
+    {
+      "id": 243,
+      "animation": 5,
+      "name": "",
+      "suffix": "desc.mru.password",
+      "items": []
+    },
+    {
+      "id": 421,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.osa.summons.1",
+      "items": []
+    },
+    {
+      "id": 258,
+      "animation": 11,
+      "name": "AnimSort-FlecheAbsorbante",
+      "suffix": "desc.mru.artefact.arcappwoche",
+      "items": []
+    },
+    {
+      "id": 46,
+      "animation": 41,
+      "name": "AnimMetier-Pietiner-Debut",
+      "suffix": "desc.mru.skillTrample",
+      "items": []
+    },
+    {
+      "id": 80,
+      "animation": 41,
+      "name": "AnimMetier-Pietiner-Debut",
+      "suffix": "desc.mru.skillTrample",
+      "items": []
+    },
+    {
+      "id": 44,
+      "animation": 42,
+      "name": "AnimMetier-RecolteSemence-Debut",
+      "suffix": "desc.mru.skillPickGem",
+      "items": []
+    },
+    {
+      "id": 85,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.voyager",
+      "items": []
+    },
+    {
+      "id": 34,
+      "animation": 44,
+      "name": "AnimCraft-Accessoiriste-Debut",
+      "suffix": "desc.mru.skillJewelry",
+      "items": []
+    },
+    {
+      "id": 108,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.presenter.passeport",
+      "items": []
+    },
+    {
+      "id": 90,
+      "animation": 24,
+      "name": "AnimEmote-Colere",
+      "suffix": "desc.mru.interpeller",
+      "items": []
+    },
+    {
+      "id": 136,
+      "animation": 45,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.nourrir",
+      "items": []
+    },
+    {
+      "id": 113,
+      "animation": 11,
+      "name": "AnimInteraction-pompage",
+      "suffix": "desc.mru.well",
+      "items": []
+    },
+    {
+      "id": 102,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.bateau.donjon",
+      "items": []
+    },
+    {
+      "id": 125,
+      "animation": 41,
+      "name": "AnimInteraction-CoupdePied",
+      "suffix": "desc.mru.shooter",
+      "items": []
+    },
+    {
+      "id": 89,
+      "animation": 14,
+      "name": "",
+      "suffix": "desc.mru.degager",
+      "items": []
+    },
+    {
+      "id": 3,
+      "animation": 9,
+      "name": "AnimMetier-Herboriste-Debut",
+      "suffix": "desc.mru.skillCut",
+      "items": []
+    },
+    {
+      "id": 151,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.pay",
+      "items": []
+    },
+    {
+      "id": 146,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.openWithKeySolo",
+      "items": []
+    },
+    {
+      "id": 177,
+      "animation": 5,
+      "name": "AnimEmote-Colere",
+      "suffix": "desc.mru.foire.trool.zoo.truche",
+      "items": []
+    },
+    {
+      "id": 183,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.foire.trool.irmalama",
+      "items": []
+    },
+    {
+      "id": 188,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.oeuf.chauffeuse",
+      "items": []
+    },
+    {
+      "id": 194,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.entrer",
+      "items": []
+    },
+    {
+      "id": 200,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.receptacle.heaven.world",
+      "items": []
+    },
+    {
+      "id": 215,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.derober",
+      "items": []
+    },
+    {
+      "id": 209,
+      "animation": 11,
+      "name": "AnimCreuser-Poup-Debut",
+      "suffix": "desc.mru.creuser",
+      "items": []
+    },
+    {
+      "id": 204,
+      "animation": 11,
+      "name": "AnimInteraction-Debut",
+      "suffix": "desc.mru.sortir",
+      "items": []
+    },
+    {
+      "id": 219,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.pickup",
+      "items": []
+    },
+    {
+      "id": 231,
+      "animation": 46,
+      "name": "AnimEmote-MangerPain",
+      "suffix": "desc.mru.eat",
+      "items": []
+    },
+    {
+      "id": 236,
+      "animation": 11,
+      "name": "AnimSort-GrandCoupdePoingdansleSol",
+      "suffix": "desc.mru.destruct",
+      "items": []
+    },
+    {
+      "id": 240,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.desamorcer",
+      "items": []
+    },
+    {
+      "id": 246,
+      "animation": 11,
+      "name": "AnimCreuser-Debut",
+      "suffix": "desc.mru.creuser",
+      "items": []
+    },
+    {
+      "id": 250,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.bworkball1",
+      "items": []
+    },
+    {
+      "id": 251,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.bworkball2",
+      "items": []
+    },
+    {
+      "id": 252,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.bworkball3",
+      "items": []
+    },
+    {
+      "id": 263,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.trappe",
+      "items": []
+    },
+    {
+      "id": 65,
+      "animation": 60,
+      "name": "AnimInteraction-AllumerTorche",
+      "suffix": "desc.mru.skillLightOn",
+      "items": []
+    },
+    {
+      "id": 267,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.deverrouiller",
+      "items": []
+    },
+    {
+      "id": 94,
+      "animation": 51,
+      "name": "",
+      "suffix": "desc.mru.zaap",
+      "items": []
+    },
+    {
+      "id": 422,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.osa.summons.2",
+      "items": []
+    },
+    {
+      "id": 7,
+      "animation": 6,
+      "name": "AnimCoupDePied-Debut",
+      "suffix": "desc.mru.skillCollect",
+      "items": []
+    },
+    {
+      "id": 70,
+      "animation": 11,
+      "name": "AnimCraft-Cuisine-Debut",
+      "suffix": "desc.mru.skillMoudre",
+      "items": []
+    },
+    {
+      "id": 69,
+      "animation": 46,
+      "name": "AnimCraft-Cuisine-Debut",
+      "suffix": "desc.mru.skillCuire",
+      "items": []
+    },
+    {
+      "id": 98,
+      "animation": 23,
+      "name": "AnimInteraction-Maillet-Debut",
+      "suffix": "desc.mru.maillet",
+      "items": []
+    },
+    {
+      "id": 103,
+      "animation": 33,
+      "name": "AnimCraft-Menuisier-Debut",
+      "suffix": "desc.mru.skillPeche",
+      "items": []
+    },
+    {
+      "id": 114,
+      "animation": 51,
+      "name": "",
+      "suffix": "desc.mru.zaap.shukrute",
+      "items": []
+    },
+    {
+      "id": 79,
+      "animation": 11,
+      "name": "AnimCraft-Menuisier-Debut",
+      "suffix": "desc.mru.skillPlane",
+      "items": []
+    },
+    {
+      "id": 118,
+      "animation": 60,
+      "name": "AnimInteraction-Fee-Debut",
+      "suffix": "desc.mru.add.torche",
+      "items": []
+    },
+    {
+      "id": 126,
+      "animation": 24,
+      "name": "",
+      "suffix": "desc.mru.attraper",
+      "items": []
+    },
+    {
+      "id": 116,
+      "animation": 11,
+      "name": "AnimInteraction-PoseBombe-Debut",
+      "suffix": "desc.mru.fissurer",
+      "items": []
+    },
+    {
+      "id": 127,
+      "animation": 24,
+      "name": "",
+      "suffix": "desc.mru.encourager",
+      "items": []
+    },
+    {
+      "id": 128,
+      "animation": 24,
+      "name": "",
+      "suffix": "desc.mru.fear",
+      "items": []
+    },
+    {
+      "id": 117,
+      "animation": 11,
+      "name": "AnimInteraction-PoseBombe-Debut",
+      "suffix": "desc.mru.exploser",
+      "items": []
+    },
+    {
+      "id": 131,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.descendre",
+      "items": []
+    },
+    {
+      "id": 132,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.monter",
+      "items": []
+    },
+    {
+      "id": 137,
+      "animation": 11,
+      "name": "AnimEmote-Pile",
+      "suffix": "desc.mru.piece",
+      "items": []
+    },
+    {
+      "id": 140,
+      "animation": 11,
+      "name": "AnimEmote-Face",
+      "suffix": "desc.mru.piece",
+      "items": []
+    },
+    {
+      "id": 138,
+      "animation": 11,
+      "name": "AnimEmote-AppelChien",
+      "suffix": "desc.mru.apprivoiser",
+      "items": []
+    },
+    {
+      "id": 139,
+      "animation": 11,
+      "name": "AnimEmote-Help",
+      "suffix": "desc.mru.help",
+      "items": []
+    },
+    {
+      "id": 147,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.openWithKey",
+      "items": []
+    },
+    {
+      "id": 154,
+      "animation": 68,
+      "name": "AnimEmote-ChiFouMi2",
+      "suffix": "desc.mru.mi",
+      "items": []
+    },
+    {
+      "id": 159,
+      "animation": 41,
+      "name": "AnimEmote-Danse-Plonge-Debut",
+      "suffix": "desc.mru.comportement.dopeul.requinou",
+      "items": []
+    },
+    {
+      "id": 153,
+      "animation": 69,
+      "name": "AnimEmote-ChiFouMi3",
+      "suffix": "desc.mru.fu",
+      "items": []
+    },
+    {
+      "id": 152,
+      "animation": 67,
+      "name": "AnimEmote-ChiFouMi1",
+      "suffix": "desc.mru.shi",
+      "items": []
+    },
+    {
+      "id": 178,
+      "animation": 11,
+      "name": "AnimEmote-Casino",
+      "suffix": "desc.mru.play",
+      "items": []
+    },
+    {
+      "id": 161,
+      "animation": 41,
+      "name": "AnimEmote-Danse-Regard-Debut",
+      "suffix": "desc.mru.comportement.dopeul.roublard",
+      "items": []
+    },
+    {
+      "id": 162,
+      "animation": 41,
+      "name": "AnimEmote-Danse-RonddeJambe-Debut",
+      "suffix": "desc.mru.comportement.dopeul.travlota",
+      "items": []
+    },
+    {
+      "id": 160,
+      "animation": 41,
+      "name": "AnimEmote-Danse-Vagues-Debut",
+      "suffix": "desc.mru.comportement.dopeul.slevtar",
+      "items": []
+    },
+    {
+      "id": 184,
+      "animation": 11,
+      "name": "AnimInteraction-AllumerTorche",
+      "suffix": "desc.mru.madame.pipi",
+      "items": []
+    },
+    {
+      "id": 189,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.meulou.experience",
+      "items": []
+    },
+    {
+      "id": 195,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.foire.love.boat",
+      "items": []
+    },
+    {
+      "id": 196,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.porte.groupe.sussoteur",
+      "items": []
+    },
+    {
+      "id": 201,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.administrateHavenWorld",
+      "items": []
+    },
+    {
+      "id": 205,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.copy.card",
+      "items": []
+    },
+    {
+      "id": 210,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.canon.astrub",
+      "items": []
+    },
+    {
+      "id": 206,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.open.chest",
+      "items": []
+    },
+    {
+      "id": 216,
+      "animation": 61,
+      "name": "AnimEmote-BouledeNeige",
+      "suffix": "desc.mru.skillLightOff",
+      "items": []
+    },
+    {
+      "id": 220,
+      "animation": 6,
+      "name": "",
+      "suffix": "desc.mru.pickup",
+      "items": []
+    },
+    {
+      "id": 222,
+      "animation": 35,
+      "name": "AnimEmote-Calmer",
+      "suffix": "desc.mru.heal",
+      "items": []
+    },
+    {
+      "id": 232,
+      "animation": 57,
+      "name": "AnimEmote-Danse-Twist-Debut",
+      "suffix": "desc.mru.use",
+      "items": []
+    },
+    {
+      "id": 237,
+      "animation": 41,
+      "name": "AnimInteraction-CoupdePied",
+      "suffix": "desc.mru.brake",
+      "items": []
+    },
+    {
+      "id": 41,
+      "animation": 77,
+      "name": "AnimCraft-Cuisine-Debut",
+      "suffix": "desc.mru.skillPrepa",
+      "items": []
+    },
+    {
+      "id": 241,
+      "animation": 41,
+      "name": "AnimInteraction-CoupdePied",
+      "suffix": "desc.mru.destruct",
+      "items": []
+    },
+    {
+      "id": 244,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.door.boss",
+      "items": []
+    },
+    {
+      "id": 247,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.descendre.soussol.alkatrool",
+      "items": []
+    },
+    {
+      "id": 248,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.monter.rdc.alkatrool",
+      "items": []
+    },
+    {
+      "id": 253,
+      "animation": 57,
+      "name": "",
+      "suffix": "desc.mru.observe",
+      "items": []
+    },
+    {
+      "id": 289,
+      "animation": 65,
+      "name": "",
+      "suffix": "desc.mru.kelba.port.hadibal",
+      "items": []
+    },
+    {
+      "id": 290,
+      "animation": 65,
+      "name": "",
+      "suffix": "desc.mru.kelba.port.convoi",
+      "items": []
+    },
+    {
+      "id": 259,
+      "animation": 28,
+      "name": "",
+      "suffix": "desc.mru.hardcoreModeOn",
+      "items": []
+    },
+    {
+      "id": 260,
+      "animation": 29,
+      "name": "",
+      "suffix": "desc.mru.hardcoreModeOff",
+      "items": []
+    },
+    {
+      "id": 256,
+      "animation": 42,
+      "name": "AnimReproduction-Fin",
+      "suffix": "desc.mru.verser",
+      "items": []
+    },
+    {
+      "id": 266,
+      "animation": 23,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.barricader",
+      "items": []
+    },
+    {
+      "id": 264,
+      "animation": 57,
+      "name": "AnimCoupDePied-Boucle",
+      "suffix": "desc.mru.inspection",
+      "items": []
+    },
+    {
+      "id": 278,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.comptoir.rang2.astrubland",
+      "items": []
+    },
+    {
+      "id": 279,
+      "animation": 31,
+      "name": "",
+      "suffix": "desc.mru.comptoir.rang1.astrubland",
+      "items": []
+    },
+    {
+      "id": 280,
+      "animation": 42,
+      "name": "AnimReproduction-Debut",
+      "suffix": "desc.mru.pour",
+      "items": []
+    },
+    {
+      "id": 281,
+      "animation": 11,
+      "name": "AnimCraft-Cuisine-Debut",
+      "suffix": "desc.mru.poseraffiche",
+      "items": []
+    },
+    {
+      "id": 282,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.fill",
+      "items": []
+    },
+    {
+      "id": 283,
+      "animation": 23,
+      "name": "AnimCraft-Menuisier-Debut",
+      "suffix": "desc.mru.inspection",
+      "items": []
+    },
+    {
+      "id": 269,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.artefact.astrub",
+      "items": []
+    },
+    {
+      "id": 284,
+      "animation": 51,
+      "name": "",
+      "suffix": "desc.mru.celeste.wakfu.use.up",
+      "items": []
+    },
+    {
+      "id": 254,
+      "animation": 11,
+      "name": "AnimCoupDePied-Boucle",
+      "suffix": "desc.mru.frapperporte",
+      "items": []
+    },
+    {
+      "id": 285,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.read.mercenaries",
+      "items": []
+    },
+    {
+      "id": 286,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.ddch4.sauver.pandora",
+      "items": []
+    },
+    {
+      "id": 287,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.ddch4.sauver.chad",
+      "items": []
+    },
+    {
+      "id": 288,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.fightStart",
+      "items": []
+    },
+    {
+      "id": 292,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.kokokolantha.archimonstre",
+      "items": []
+    },
+    {
+      "id": 296,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.descendre",
+      "items": []
+    },
+    {
+      "id": 293,
+      "animation": 62,
+      "name": "",
+      "suffix": "desc.mru.kokokolantha.chest",
+      "items": []
+    },
+    {
+      "id": 294,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.foreuse",
+      "items": []
+    },
+    {
+      "id": 295,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.zinit.penitenslek",
+      "items": []
+    },
+    {
+      "id": 300,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.entrer.universite",
+      "items": []
+    },
+    {
+      "id": 301,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.entrer.ecole.huppermagie",
+      "items": []
+    },
+    {
+      "id": 298,
+      "animation": 58,
+      "name": "",
+      "suffix": "desc.mru.finirlanuit",
+      "items": []
+    },
+    {
+      "id": 302,
+      "animation": 58,
+      "name": "",
+      "suffix": "desc.mru.dormir",
+      "items": []
+    },
+    {
+      "id": 303,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.fightStart",
+      "items": []
+    },
+    {
+      "id": 86,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.fouiller",
+      "items": []
+    },
+    {
+      "id": 304,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.fouiller",
+      "items": []
+    },
+    {
+      "id": 307,
+      "animation": 31,
+      "name": "AnimEmote-LirePlan",
+      "suffix": "desc.mru.read.message",
+      "items": []
+    },
+    {
+      "id": 306,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.ranger",
+      "items": []
+    },
+    {
+      "id": 324,
+      "animation": 79,
+      "name": "",
+      "suffix": "desc.mru.enterDungeon",
+      "items": []
+    },
+    {
+      "id": 233,
+      "animation": 35,
+      "name": "AnimEmote-Genoux-Debut",
+      "suffix": "desc.mru.pray",
+      "items": []
+    },
+    {
+      "id": 308,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.containerOpen",
+      "items": []
+    },
+    {
+      "id": 309,
+      "animation": 33,
+      "name": "",
+      "suffix": "desc.mru.next",
+      "items": []
+    },
+    {
+      "id": 310,
+      "animation": 34,
+      "name": "",
+      "suffix": "desc.mru.previous",
+      "items": []
+    },
+    {
+      "id": 311,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.heal",
+      "items": []
+    },
+    {
+      "id": 305,
+      "animation": 57,
+      "name": "",
+      "suffix": "desc.mru.inspection",
+      "items": []
+    },
+    {
+      "id": 319,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.activate",
+      "items": []
+    },
+    {
+      "id": 312,
+      "animation": 59,
+      "name": "",
+      "suffix": "desc.mru.seduce",
+      "items": []
+    },
+    {
+      "id": 291,
+      "animation": 35,
+      "name": "AnimInteraction-Ramasser",
+      "suffix": "desc.mru.receptacle.prison",
+      "items": []
+    },
+    {
+      "id": 299,
+      "animation": 58,
+      "name": "AnimEmote-Bailler",
+      "suffix": "desc.mru.attendre",
+      "items": []
+    },
+    {
+      "id": 313,
+      "animation": 17,
+      "name": "",
+      "suffix": "desc.mru.corrupt",
+      "items": []
+    },
+    {
+      "id": 314,
+      "animation": 14,
+      "name": "",
+      "suffix": "desc.mru.eliminate",
+      "items": []
+    },
+    {
+      "id": 315,
+      "animation": 24,
+      "name": "",
+      "suffix": "desc.mru.attraper",
+      "items": []
+    },
+    {
+      "id": 316,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.entrersas",
+      "items": []
+    },
+    {
+      "id": 317,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.entrercorpsusine",
+      "items": []
+    },
+    {
+      "id": 318,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.entrersasbureau",
+      "items": []
+    },
+    {
+      "id": 320,
+      "animation": 11,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.reparer",
+      "items": []
+    },
+    {
+      "id": 321,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.quest.sas.back",
+      "items": []
+    },
+    {
+      "id": 322,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.openAutomaticWithKey",
+      "items": []
+    },
+    {
+      "id": 323,
+      "animation": 57,
+      "name": "AnimEmote-GratteGratte",
+      "suffix": "desc.mru.observe",
+      "items": []
+    },
+    {
+      "id": 325,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.006.020",
+      "items": []
+    },
+    {
+      "id": 326,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.021.035",
+      "items": []
+    },
+    {
+      "id": 327,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.036.050",
+      "items": []
+    },
+    {
+      "id": 328,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.051.065",
+      "items": []
+    },
+    {
+      "id": 329,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.066.080",
+      "items": []
+    },
+    {
+      "id": 330,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.081.095",
+      "items": []
+    },
+    {
+      "id": 331,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.096.110",
+      "items": []
+    },
+    {
+      "id": 332,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.111.125",
+      "items": []
+    },
+    {
+      "id": 333,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.126.140",
+      "items": []
+    },
+    {
+      "id": 334,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.141.155",
+      "items": []
+    },
+    {
+      "id": 335,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.156.170",
+      "items": []
+    },
+    {
+      "id": 336,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.171.185",
+      "items": []
+    },
+    {
+      "id": 337,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.186.200",
+      "items": []
+    },
+    {
+      "id": 338,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest",
+      "items": []
+    },
+    {
+      "id": 339,
+      "animation": 23,
+      "name": "AnimHache-Debut",
+      "suffix": "desc.mru.hammer",
+      "items": []
+    },
+    {
+      "id": 364,
+      "animation": 23,
+      "name": "",
+      "suffix": "desc.mru.tribunal.accuser",
+      "items": []
+    },
+    {
+      "id": 341,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.jeteranneau",
+      "items": []
+    },
+    {
+      "id": 365,
+      "animation": 65,
+      "name": "",
+      "suffix": "desc.mru.temoignage",
+      "items": []
+    },
+    {
+      "id": 342,
+      "animation": 23,
+      "name": "AnimArtefact-Marteau",
+      "suffix": "desc.mru.destruct",
+      "items": []
+    },
+    {
+      "id": 343,
+      "animation": 6,
+      "name": "AnimInteraction-Ramasser",
+      "suffix": "desc.mru.pickup",
+      "items": []
+    },
+    {
+      "id": 363,
+      "animation": 2,
+      "name": "AnimInteraction-Tambour",
+      "suffix": "desc.mru.battleground.wapin",
+      "items": []
+    },
+    {
+      "id": 344,
+      "animation": 59,
+      "name": "",
+      "suffix": "desc.mru.ogrest.emeraude",
+      "items": []
+    },
+    {
+      "id": 349,
+      "animation": 59,
+      "name": "",
+      "suffix": "desc.mru.ogrest.ebene",
+      "items": []
+    },
+    {
+      "id": 347,
+      "animation": 59,
+      "name": "",
+      "suffix": "desc.mru.ogrest.turquoise",
+      "items": []
+    },
+    {
+      "id": 346,
+      "animation": 59,
+      "name": "",
+      "suffix": "desc.mru.ogrest.pourpre",
+      "items": []
+    },
+    {
+      "id": 348,
+      "animation": 59,
+      "name": "",
+      "suffix": "desc.mru.ogrest.ivoire",
+      "items": []
+    },
+    {
+      "id": 345,
+      "animation": 59,
+      "name": "",
+      "suffix": "desc.mru.ogrest.ocre",
+      "items": []
+    },
+    {
+      "id": 353,
+      "animation": 57,
+      "name": "",
+      "suffix": "desc.mru.loots.tower",
+      "items": []
+    },
+    {
+      "id": 354,
+      "animation": 57,
+      "name": "",
+      "suffix": "desc.mru.loots.tower.stasis",
+      "items": []
+    },
+    {
+      "id": 358,
+      "animation": 35,
+      "name": "AnimEmote-EncouragerFan-Debut",
+      "suffix": "desc.mru.hurler",
+      "items": []
+    },
+    {
+      "id": 356,
+      "animation": 57,
+      "name": "",
+      "suffix": "desc.mru.loots.towerElite.stasis",
+      "items": []
+    },
+    {
+      "id": 359,
+      "animation": 62,
+      "name": "AnimCueillette-Debut",
+      "suffix": "desc.mru.containerUnlock",
+      "items": []
+    },
+    {
+      "id": 352,
+      "animation": 19,
+      "name": "",
+      "suffix": "desc.mru.battleground.bonus.resource",
+      "items": []
+    },
+    {
+      "id": 351,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.battleground.bonus.pvm",
+      "items": []
+    },
+    {
+      "id": 350,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.battleground.bonus.pvp",
+      "items": []
+    },
+    {
+      "id": 355,
+      "animation": 57,
+      "name": "",
+      "suffix": "desc.mru.loots.towerElite",
+      "items": []
+    },
+    {
+      "id": 360,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.sortir",
+      "items": []
+    },
+    {
+      "id": 361,
+      "animation": 82,
+      "name": "",
+      "suffix": "desc.mru.enterDungeon",
+      "items": []
+    },
+    {
+      "id": 362,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.canon.riktus.prison",
+      "items": []
+    },
+    {
+      "id": 357,
+      "animation": 11,
+      "name": "AnimEmoteGuilde-Drapeau-Debut",
+      "suffix": "",
+      "items": []
+    },
+    {
+      "id": 366,
+      "animation": 9,
+      "name": "AnimMetier-Taille-Debut",
+      "suffix": "desc.mru.skillGather",
+      "items": []
+    },
+    {
+      "id": 368,
+      "animation": 4,
+      "name": "AnimInteraction-Debut",
+      "suffix": "desc.mru.rob",
+      "items": []
+    },
+    {
+      "id": 373,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.read.mercenaries.036.050",
+      "items": []
+    },
+    {
+      "id": 376,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.read.mercenaries.051.065",
+      "items": []
+    },
+    {
+      "id": 367,
+      "animation": 11,
+      "name": "AnimInteraction-Fee-Debut",
+      "suffix": "desc.mru.deposer",
+      "items": []
+    },
+    {
+      "id": 378,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.read.mercenaries.066.080",
+      "items": []
+    },
+    {
+      "id": 380,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.read.mercenaries.081.095",
+      "items": []
+    },
+    {
+      "id": 369,
+      "animation": 6,
+      "name": "AnimCoupDePied-Debut",
+      "suffix": "desc.mru.collect.goldenApple",
+      "items": []
+    },
+    {
+      "id": 370,
+      "animation": 11,
+      "name": "AnimEmote-Lunette",
+      "suffix": "desc.mru.sufokia.village.flaqueux",
+      "items": []
+    },
+    {
+      "id": 371,
+      "animation": 57,
+      "name": "",
+      "suffix": "desc.mru.sufokia.mercenary.flaqueux",
+      "items": []
+    },
+    {
+      "id": 372,
+      "animation": 62,
+      "name": "AnimInteraction-Debut",
+      "suffix": "desc.mru.evasion",
+      "items": []
+    },
+    {
+      "id": 374,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.read.mercenaries.096.110",
+      "items": []
+    },
+    {
+      "id": 375,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.read.mercenaries.156.170",
+      "items": []
+    },
+    {
+      "id": 381,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.read.mercenaries.141.155",
+      "items": []
+    },
+    {
+      "id": 379,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.read.mercenaries.126.140",
+      "items": []
+    },
+    {
+      "id": 377,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.read.mercenaries.111.125",
+      "items": []
+    },
+    {
+      "id": 382,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.toquer.porte.fhenisland",
+      "items": []
+    },
+    {
+      "id": 385,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.phorreur.02",
+      "items": []
+    },
+    {
+      "id": 383,
+      "animation": 11,
+      "name": "AnimEmoteMusique-Guitare-Bouncle2",
+      "suffix": "desc.mru.playGuitar",
+      "items": []
+    },
+    {
+      "id": 386,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.phorreur.03",
+      "items": []
+    },
+    {
+      "id": 384,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.phorreur.01",
+      "items": []
+    },
+    {
+      "id": 387,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.phorreur.04",
+      "items": []
+    },
+    {
+      "id": 388,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.phorreur.05",
+      "items": []
+    },
+    {
+      "id": 389,
+      "animation": 62,
+      "name": "",
+      "suffix": "desc.mru.phorreur.06",
+      "items": []
+    },
+    {
+      "id": 395,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.s1",
+      "items": []
+    },
+    {
+      "id": 391,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.orchestrion.exploration",
+      "items": []
+    },
+    {
+      "id": 392,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.orchestrion.fight",
+      "items": []
+    },
+    {
+      "id": 390,
+      "animation": 57,
+      "name": "",
+      "suffix": "desc.mru.orchestrion.playlist",
+      "items": []
+    },
+    {
+      "id": 393,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.use.intervention",
+      "items": []
+    },
+    {
+      "id": 394,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.201.215",
+      "items": []
+    },
+    {
+      "id": 396,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.s11",
+      "items": []
+    },
+    {
+      "id": 397,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.s21",
+      "items": []
+    },
+    {
+      "id": 398,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.s31",
+      "items": []
+    },
+    {
+      "id": 399,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.s41",
+      "items": []
+    },
+    {
+      "id": 400,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.t15",
+      "items": []
+    },
+    {
+      "id": 401,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.t25",
+      "items": []
+    },
+    {
+      "id": 402,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.t35",
+      "items": []
+    },
+    {
+      "id": 403,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.feca.armor.01",
+      "items": []
+    },
+    {
+      "id": 404,
+      "animation": 62,
+      "name": "",
+      "suffix": "desc.mru.feca.armor.02",
+      "items": []
+    },
+    {
+      "id": 405,
+      "animation": 63,
+      "name": "",
+      "suffix": "desc.mru.waves.fight",
+      "items": []
+    },
+    {
+      "id": 406,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.waves.examine",
+      "items": []
+    },
+    {
+      "id": 408,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.waves.fight.ultimate",
+      "items": []
+    },
+    {
+      "id": 407,
+      "animation": 63,
+      "name": "",
+      "suffix": "desc.mru.waves.fight.ultimate",
+      "items": []
+    },
+    {
+      "id": 409,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.sliptorium.quest.book",
+      "items": []
+    },
+    {
+      "id": 410,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.sliptorium.quest.book",
+      "items": []
+    },
+    {
+      "id": 411,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.sliptorium.quest.enigma",
+      "items": []
+    },
+    {
+      "id": 412,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.sliptorium.quest.book.1",
+      "items": []
+    },
+    {
+      "id": 413,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.sliptorium.quest.book.2",
+      "items": []
+    },
+    {
+      "id": 414,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.sacrier.arm.01",
+      "items": []
+    },
+    {
+      "id": 415,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.sacrier.arm.02",
+      "items": []
+    },
+    {
+      "id": 416,
+      "animation": 62,
+      "name": "",
+      "suffix": "desc.mru.sacrier.arm.03",
+      "items": []
+    },
+    {
+      "id": 417,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.216.230",
+      "items": []
+    },
+    {
+      "id": 424,
+      "animation": 18,
+      "name": "",
+      "suffix": "desc.mru.boss.ultime.milkar.open",
+      "items": []
+    },
+    {
+      "id": 425,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.boss.ultime.moon.open",
+      "items": []
+    },
+    {
+      "id": 211,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.canon.generic",
+      "items": []
+    },
+    {
+      "id": 426,
+      "animation": 13,
+      "name": "",
+      "suffix": "desc.mru.missmoches.open",
+      "items": []
+    },
+    {
+      "id": 427,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.dojo",
+      "items": []
+    },
+    {
+      "id": 428,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.iop.sword.anims.01",
+      "items": []
+    },
+    {
+      "id": 429,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.iop.sword.anims.02",
+      "items": []
+    },
+    {
+      "id": 430,
+      "animation": 35,
+      "name": "AnimEmote-Huss-Boucle",
+      "suffix": "desc.mru.offrande",
+      "items": []
+    },
+    {
+      "id": 431,
+      "animation": 62,
+      "name": "",
+      "suffix": "desc.mru.trool.start.dungeon",
+      "items": []
+    },
+    {
+      "id": 432,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.wabbit.dofus.use",
+      "items": []
+    },
+    {
+      "id": 433,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.talkasha.activate.mirror",
+      "items": []
+    },
+    {
+      "id": 434,
+      "animation": 35,
+      "name": "",
+      "suffix": "desc.mru.brume",
+      "items": []
+    },
+    {
+      "id": 435,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.crocobur",
+      "items": []
+    },
+    {
+      "id": 436,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.hunter.quest.231.245",
+      "items": []
+    },
+    {
+      "id": 438,
+      "animation": 70,
+      "name": "",
+      "suffix": "desc.mru.enutrof.digger.anims.02",
+      "items": []
+    },
+    {
+      "id": 437,
+      "animation": 70,
+      "name": "",
+      "suffix": "desc.mru.enutrof.digger.anims.01",
+      "items": []
+    },
+    {
+      "id": 440,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.activate.melotrool.mastersirix",
+      "items": []
+    },
+    {
+      "id": 439,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.activate.melotrool.eaton111",
+      "items": []
+    },
+    {
+      "id": 441,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.activate.melotrool.Omynona",
+      "items": []
+    },
+    {
+      "id": 442,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.activate.melotrool.Xander520",
+      "items": []
+    },
+    {
+      "id": 443,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.activate.melotrool.xXAcetozedXx",
+      "items": []
+    },
+    {
+      "id": 444,
+      "animation": 59,
+      "name": "",
+      "suffix": "desc.mru.nox.jugement",
+      "items": []
+    },
+    {
+      "id": 445,
+      "animation": 59,
+      "name": "",
+      "suffix": "desc.mru.nox.resonance",
+      "items": []
+    },
+    {
+      "id": 446,
+      "animation": 59,
+      "name": "",
+      "suffix": "desc.mru.nox.chatiment",
+      "items": []
+    },
+    {
+      "id": 447,
+      "animation": 59,
+      "name": "",
+      "suffix": "desc.mru.nox.ineluctable",
+      "items": []
+    },
+    {
+      "id": 449,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.nox.infos.artefacts",
+      "items": []
+    },
+    {
+      "id": 450,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.nox.ub.door",
+      "items": []
+    },
+    {
+      "id": 448,
+      "animation": 3,
+      "name": "",
+      "suffix": "desc.mru.nox.infos.eliacube",
+      "items": []
+    },
+    {
+      "id": 451,
+      "animation": 11,
+      "name": "",
+      "suffix": "desc.mru.neo.map",
+      "items": []
+    },
+    {
+      "id": 452,
+      "animation": 65,
+      "name": "",
+      "suffix": "desc.mru.informations",
+      "items": []
+    },
+    {
+      "id": 453,
+      "animation": 65,
+      "name": "",
+      "suffix": "desc.mru.informations.cire.momore",
+      "items": []
+    },
+    {
+      "id": 454,
+      "animation": 65,
+      "name": "",
+      "suffix": "desc.mru.informations.rushu",
+      "items": []
+    },
+    {
+      "id": 455,
+      "animation": 65,
+      "name": "",
+      "suffix": "desc.mru.informations.toross",
+      "items": []
+    },
+    {
+      "id": 456,
+      "animation": 65,
+      "name": "",
+      "suffix": "desc.mru.informations.horlogers",
+      "items": []
+    },
+    {
+      "id": 457,
+      "animation": 65,
+      "name": "",
+      "suffix": "desc.mru.informations.thalos.kyarrelmne",
+      "items": []
+    },
+    {
+      "id": 458,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.parler.chasseur.de.chaos",
+      "items": []
+    },
+    {
+      "id": 423,
+      "animation": 81,
+      "name": "",
+      "suffix": "desc.mru.osa.summons.3",
+      "items": []
+    },
+    {
+      "id": 486,
+      "animation": 19,
+      "name": "AnimEmote-Supplie-Debut",
+      "suffix": "desc.mru.ranch.monster.action.bury",
+      "items": []
+    },
+    {
+      "id": 485,
+      "animation": 19,
+      "name": "AnimEmote-Supplie-Debut",
+      "suffix": "desc.mru.ranch.monster.action.cry",
+      "items": []
+    },
+    {
+      "id": 469,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.test.on",
+      "items": []
+    },
+    {
+      "id": 470,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.test.off",
+      "items": []
+    },
+    {
+      "id": 471,
+      "animation": 51,
+      "name": "",
+      "suffix": "desc.mru.zaap",
+      "items": []
+    },
+    {
+      "id": 472,
+      "animation": 51,
+      "name": "",
+      "suffix": "desc.mru.zaap",
+      "items": []
+    },
+    {
+      "id": 473,
+      "animation": 51,
+      "name": "",
+      "suffix": "desc.mru.zaap",
+      "items": []
+    },
+    {
+      "id": 474,
+      "animation": 51,
+      "name": "",
+      "suffix": "desc.mru.zaap",
+      "items": []
+    },
+    {
+      "id": 487,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.cra.arbalest.anims.01",
+      "items": []
+    },
+    {
+      "id": 475,
+      "animation": 1,
+      "name": "",
+      "suffix": "desc.mru.ranch.monsteraction.test.0",
+      "items": []
+    },
+    {
+      "id": 462,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.10",
+      "items": []
+    },
+    {
+      "id": 464,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.05",
+      "items": []
+    },
+    {
+      "id": 467,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.08",
+      "items": []
+    },
+    {
+      "id": 465,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.06",
+      "items": []
+    },
+    {
+      "id": 468,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.09",
+      "items": []
+    },
+    {
+      "id": 461,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.02",
+      "items": []
+    },
+    {
+      "id": 463,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.04",
+      "items": []
+    },
+    {
+      "id": 466,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.07",
+      "items": []
+    },
+    {
+      "id": 460,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.01",
+      "items": []
+    },
+    {
+      "id": 476,
+      "animation": 37,
+      "name": "",
+      "suffix": "desc.mru.ranch.behavior.03",
+      "items": []
+    },
+    {
+      "id": 488,
+      "animation": 2,
+      "name": "",
+      "suffix": "desc.mru.cra.arbalest.anims.02",
+      "items": []
+    },
+    {
+      "id": 477,
+      "animation": 33,
+      "name": "AnimEmote-AppelChat",
+      "suffix": "desc.mru.ranch.monster.action.pet",
+      "items": []
+    },
+    {
+      "id": 478,
+      "animation": 16,
+      "name": "AnimEmote-Jonglage",
+      "suffix": "desc.mru.ranch.monster.action.play",
+      "items": []
+    },
+    {
+      "id": 479,
+      "animation": 77,
+      "name": "AnimEmote-AppelChat",
+      "suffix": "desc.mru.ranch.monster.action.treat",
+      "items": []
+    },
+    {
+      "id": 489,
+      "animation": 35,
+      "name": "",
+      "suffix": "desc.mru.s.emparer.du.dofus",
+      "items": []
+    },
+    {
+      "id": 481,
+      "animation": 19,
+      "name": "AnimEmote-AppelChat",
+      "suffix": "desc.mru.ranch.monster.action.bathe",
+      "items": []
+    },
+    {
+      "id": 482,
+      "animation": 18,
+      "name": "AnimEmote-Harpe-Debut",
+      "suffix": "desc.mru.ranch.monster.action.lullaby",
+      "items": []
+    },
+    {
+      "id": 483,
+      "animation": 3,
+      "name": "AnimEmote-Lire-Debut",
+      "suffix": "desc.mru.ranch.monster.action.book",
+      "items": []
+    },
+    {
+      "id": 459,
+      "animation": 35,
+      "name": "AnimEmote-AppelChien",
+      "suffix": "desc.mru.ranch.monster.action.call",
+      "items": []
+    },
+    {
+      "id": 480,
+      "animation": 9,
+      "name": "AnimEmote-AppelChat",
+      "suffix": "desc.mru.ranch.monster.action.brush",
+      "items": []
+    },
+    {
+      "id": 484,
+      "animation": 70,
+      "name": "AnimCreuser-Poup-Debut",
+      "suffix": "desc.mru.ranch.monster.action.bury",
+      "items": []
+    }
+  ],
+  "source": "installed aNq/aKL bdata, aZB/bah loaders"
+}

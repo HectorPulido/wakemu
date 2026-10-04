@@ -1,0 +1,159 @@
+import tempfile, unittest, json
+from pathlib import Path
+from wakfu_server.store import Store
+from wakfu_server.combat_state import Actor, Fight
+from wakfu_server.fight_checkpoint_store import Checkpoints
+
+
+class CheckpointTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Catalogue I/O is unrelated to the session lease under test. Load it
+        # before opening sessions so slow machines do not expire a fresh lease.
+        from wakfu_server.spell_audit import states_catalog
+
+        cls.state_catalog = states_catalog()
+
+    def test_cost_modifier_snapshot_preserves_unknown_empty_and_live_values(self):
+        actor = self.fight.actors[self.character]
+        rev = self.checkpoints.save(self.account, self.generation, self.fight)
+        snap = self.checkpoints.read(self.account, 77)["snapshot"]["actors"][
+            str(self.character)
+        ]
+        self.assertIsNone(snap["spell_ap_cost_modifiers"])
+        actor.spell_ap_cost_modifiers = {}
+        rev = self.checkpoints.save(
+            self.account, self.generation, self.fight, expected_revision=rev
+        )
+        snap = self.checkpoints.read(self.account, 77)["snapshot"]["actors"][
+            str(self.character)
+        ]
+        self.assertEqual(snap["spell_ap_cost_modifiers"], {})
+        actor.spell_ap_cost_modifiers = {8: -1, 11: 2}
+        self.checkpoints.save(
+            self.account, self.generation, self.fight, expected_revision=rev
+        )
+        snap = self.checkpoints.read(self.account, 77)["snapshot"]["actors"][
+            str(self.character)
+        ]
+        self.assertEqual(snap["spell_ap_cost_modifiers"], {"8": -1, "11": 2})
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.store = Store(Path(self.temp.name) / "world.db")
+        self.account = self.store.register("local", "testing-local")["id"]
+        self.character = self.store.create_character(self.account, "Own Hero")["id"]
+        self.generation = self.store.begin_session(self.account)
+        self.store.select_character(self.account, self.generation, self.character)
+        self.checkpoints = Checkpoints(self.store)
+        pc = Actor(self.character, 0, (0, 0, 0), 60, 6, 3, 10, 1, self.account, True)
+        npc = Actor(-200, 1, (1, 0, 0), 12, 6, 3, 5, 1)
+        self.fight = Fight(
+            77,
+            [pc, npc],
+            {pc.position, npc.position},
+            {0: {pc.position}, 1: {npc.position}},
+        )
+        self.fight.ready(self.account)
+
+    def test_owned_hp_resources_states_and_events_survive_reopen(self):
+        self.fight.apply_state(
+            self.character,
+            -200,
+            3442,
+            20,
+            catalog=self.state_catalog,
+            uid=901,
+        )
+        from wakfu_server.combat_state_ledger import StateTimeline
+
+        self.fight.apply_state(
+            self.character,
+            -200,
+            8913,
+            30,
+            catalog=self.state_catalog,
+            uid=902,
+            timeline=StateTimeline(1, self.character, 0, 0, "active"),
+        )
+        self.fight.actors[-200].combat_states = {
+            8913: dict(level=30, expires_at_caster_start=2)
+        }
+        revision = self.checkpoints.save(self.account, self.generation, self.fight)
+        self.fight.apply_damage(self.character, -200, 5)
+        revision = self.checkpoints.save(
+            self.account, self.generation, self.fight, expected_revision=revision
+        )
+        row = Checkpoints(self.store).read(self.account, 77)
+        npc = row["snapshot"]["actors"]["-200"]
+        self.assertEqual((npc["hp"], npc["max_hp"], npc["max_mp"]), (7, 12, 3))
+        self.assertEqual(npc["combat_states"]["8913"]["level"], 30)
+        running = npc["state_ledger"]["entries"][0]
+        self.assertEqual(
+            (
+                running["uid"],
+                running["reference"],
+                running["level"],
+                running["caster_id"],
+                running["target_id"],
+            ),
+            (901, 3442, 20, self.character, -200),
+        )
+        timer = npc["state_ledger"]["entries"][1]["timer"]
+        self.assertEqual(
+            timer, dict(actor_id=self.character, expiration_round=2, phase="start")
+        )
+        self.assertEqual(row["snapshot"]["events"][-1]["kind"], "damage")
+        json.dumps(row)
+        self.assertEqual(
+            self.checkpoints.end(
+                self.account, self.generation, 77, expected_revision=revision
+            ),
+            3,
+        )
+
+    def test_owned_effect_uid_sequence_and_payloads_are_checkpointed(self):
+        self.fight.native_effect_uid_next = 903
+        self.fight.state_wire_payloads[901] = "0102"
+        self.fight.owned_stat_effects[902] = dict(
+            uid=902,
+            state_uid=901,
+            target_id=self.character,
+            actual=1,
+            stat_id=2,
+            payload="0304",
+        )
+        self.checkpoints.save(self.account, self.generation, self.fight)
+        state = Checkpoints(self.store).read(self.account, 77)["snapshot"]
+        self.assertEqual(state["native_effect_uid_next"], 903)
+        self.assertEqual(state["state_wire_payloads"]["901"], "0102")
+        self.assertEqual(state["owned_stat_effects"]["902"]["state_uid"], 901)
+
+    def test_cas_foreign_account_and_replaced_generation_rejected(self):
+        revision = self.checkpoints.save(self.account, self.generation, self.fight)
+        with self.assertRaises(ValueError):
+            self.checkpoints.save(
+                self.account, self.generation, self.fight, expected_revision=0
+            )
+        with self.assertRaises(ValueError):
+            self.checkpoints.read(self.account + 1, 77)
+        new = self.store.begin_session(self.account)
+        with self.assertRaises(ValueError):
+            self.checkpoints.save(
+                self.account, self.generation, self.fight, expected_revision=revision
+            )
+        self.store.select_character(self.account, new, self.character)
+        with self.assertRaises(ValueError):
+            self.checkpoints.save(
+                self.account, new, self.fight, expected_revision=revision
+            )
+
+    def test_recovery_preserves_hp_and_does_not_resume_fight(self):
+        self.fight.apply_damage(self.character, -200, 5)
+        self.checkpoints.save(self.account, self.generation, self.fight)
+        self.assertEqual(self.checkpoints.recover_interrupted(), 1)
+        self.assertEqual(self.checkpoints.recover_interrupted(), 0)
+        row = self.checkpoints.read(self.account, 77)
+        self.assertEqual(row["status"], "aborted")
+        self.assertEqual(row["snapshot"]["actors"]["-200"]["hp"], 7)

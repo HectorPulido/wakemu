@@ -1,0 +1,141 @@
+"""Native eZX/Qi subscription selection; event production stays explicit.
+
+The integer delivery channel is a Qf/Qi byte, not an effect/event ID.
+Selection does not evaluate conditions, clone Qe, or execute its children.
+"""
+CHANNEL_MASK_INDEX = {1: 0, 2: 1, 3: 3, 4: 2, 5: 4, 6: 5}
+REVERSED_CHANNEL_MASK_INDEX = {10: 0, 20: 1, 30: 3, 40: 2, 60: 5}
+GLOBAL_CHANNEL_MASK_INDEX = {11: 0, 21: 1, 31: 3, 41: 2, 61: 5}
+
+
+def activation_order_key(*, priority, generic_effect, uid):
+    """eZY sorts queued listeners by priority descending, generic and UID ascending."""
+    if type(priority) is not int or not -(1 << 31) <= priority < (1 << 31):
+        raise ValueError("Native signed priority required")
+    if (
+        type(generic_effect) is not int
+        or type(uid) is not int
+        or not 0 < uid < (1 << 63)
+    ):
+        raise ValueError("Native listener definition and UID required")
+    return -priority, generic_effect, uid
+
+
+def subscription_actor_ids(
+    *,
+    target_code,
+    caster_code,
+    original_caster,
+    original_target,
+    manager_actor,
+    source_caster,
+    source_target,
+    source_present,
+):
+    """Actual eZR.l/m enum rebinding, preserving native nullable actor IDs."""
+    if type(source_present) is not bool:
+        raise ValueError("Explicit native event source presence required")
+    if not source_present:
+        return original_caster, original_target
+    if type(target_code) is not int or target_code not in range(6):
+        raise ValueError("Missing native Qd target selector")
+    if caster_code is not None and (
+        type(caster_code) is not int or caster_code not in range(6)
+    ):
+        raise ValueError("Unknown native Qb caster selector")
+    target = (
+        original_target,
+        original_target,
+        manager_actor,
+        original_caster,
+        source_caster,
+        source_target,
+    )[target_code]
+    caster = (
+        original_caster
+        if caster_code is None
+        else (
+            original_caster,
+            original_caster,
+            manager_actor,
+            original_target,
+            source_caster,
+            source_target,
+        )[caster_code]
+    )
+    return caster, target
+
+
+def subscription_selection(
+    *,
+    masks,
+    event_ids,
+    channel,
+    global_subscription,
+    reversed_subscription,
+    flags,
+    source_present,
+    source_suppresses_level_one=False,
+    source_suppresses_all=False,
+    source_is_self=False,
+    source_parent_is_self=False,
+    source_suppressed=False,
+):
+    """Return activate/remove/None according to eZX.b + Qi.a/b.
+
+    Inputs describe an already existing source running effect. Callers must
+    obtain real event IDs from the native caller, never from effect IDs.
+    """
+    if type(channel) is not int or len(masks) != 7:
+        raise ValueError("Native channel and seven subscription masks required")
+    if any(
+        type(x) is not bool
+        for x in (
+            global_subscription,
+            reversed_subscription,
+            source_present,
+            source_suppresses_level_one,
+            source_suppresses_all,
+            source_is_self,
+            source_parent_is_self,
+            source_suppressed,
+        )
+    ):
+        raise ValueError("Explicit native event source flags required")
+    if any(type(x) is not int or x < 0 for x in event_ids):
+        raise ValueError("Native event IDs must be nonnegative integers")
+    if source_present and (
+        source_suppresses_all
+        or source_is_self
+        or source_parent_is_self
+        or source_suppressed
+    ):
+        return None
+    if source_present and source_suppresses_level_one and 1 not in flags:
+        return None
+    mapping = (
+        GLOBAL_CHANNEL_MASK_INDEX
+        if global_subscription
+        else (
+            REVERSED_CHANNEL_MASK_INDEX if reversed_subscription else CHANNEL_MASK_INDEX
+        )
+    )
+    index = mapping.get(channel)
+    if index is None or not set(masks[index] or ()).intersection(event_ids):
+        return None
+    return "remove" if index == 2 else "activate"
+
+
+def validate_group_registration_flags(flags, *, active):
+    """Flags1 affects eZX event selection only;17 requires native fight mode.
+
+    Jar-wide reference audit finds eVl.rwy consumed only by eZX, outside
+    registration/execution arithmetic. Unknown flags remain rejected.
+    """
+    if type(active) is not bool or any(type(x) is not int for x in flags):
+        raise ValueError("Explicit native group flags/combat context required")
+    unknown = set(flags) - {1, 17}
+    if unknown:
+        raise ValueError(f"Unaudited native group execution flags: {sorted(unknown)}")
+    if not active:
+        raise ValueError("Native group execution requires active combat")

@@ -1,0 +1,4 @@
+
+2026-10-03 — Alcance del análisis de las capturas
+El inventario de capturas cuenta 11.153 paquetes únicos y 181 tipos de mensaje/dirección. El diccionario inicial reconocía 41. Se revisó el código Java de los otros 140: 139 tienen notas adicionales y uno sigue sin resolver; no quedan mensajes pendientes de esa primera revisión de código.
+Esto NO significa que los 181 mensajes estén completamente decodificados, que todas sus condiciones sean conocidas o que estén implementados. Siguen pendientes bloques binarios anidados, áreas de efectos, aplicación y eliminación de efectos y visibilidad de combates ajenos, entre otros. Los archivos server/protocol/event-coverage.json y unknown-message-map.json distinguen evidencia de código, mapeo, implementación y pruebas.

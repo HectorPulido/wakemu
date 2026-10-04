@@ -1,0 +1,4861 @@
+{
+  "application_opcode": 13497,
+  "client_jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+  "effects": {
+    "100": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 100,
+      "fixed_stat_id": 27,
+      "fixed_stat_name": "RES_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": "NORMAL",
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1010": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1010,
+      "fixed_stat_id": 97,
+      "fixed_stat_name": "ARMOR",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1011": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1011,
+      "fixed_stat_id": 97,
+      "fixed_stat_name": "ARMOR",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1050": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1050,
+      "fixed_stat_id": 106,
+      "fixed_stat_name": "AOE_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1051": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1051,
+      "fixed_stat_id": 105,
+      "fixed_stat_name": "SINGLE_TARGET_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1052": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1052,
+      "fixed_stat_id": 103,
+      "fixed_stat_name": "MELEE_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1053": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1053,
+      "fixed_stat_id": 104,
+      "fixed_stat_name": "RANGED_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1054": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1054,
+      "fixed_stat_id": 102,
+      "fixed_stat_name": "NON_CRIT_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1055": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1055,
+      "fixed_stat_id": 107,
+      "fixed_stat_name": "BERSERK_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1056": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1056,
+      "fixed_stat_id": 52,
+      "fixed_stat_name": "CRITICAL_BONUS",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1057": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1057,
+      "fixed_stat_id": 105,
+      "fixed_stat_name": "SINGLE_TARGET_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1058": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1058,
+      "fixed_stat_id": 106,
+      "fixed_stat_name": "AOE_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1059": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1059,
+      "fixed_stat_id": 103,
+      "fixed_stat_name": "MELEE_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1060": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1060,
+      "fixed_stat_id": 104,
+      "fixed_stat_name": "RANGED_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1061": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1061,
+      "fixed_stat_id": 107,
+      "fixed_stat_name": "BERSERK_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1062": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1062,
+      "fixed_stat_id": 95,
+      "fixed_stat_name": "CRITICAL_RES",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1063": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1063,
+      "fixed_stat_id": 17,
+      "fixed_stat_name": "RES_BACKSTAB",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1064": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1064,
+      "fixed_stat_id": 12,
+      "fixed_stat_name": "LEADERSHIP",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1067": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1067,
+      "fixed_stat_id": 101,
+      "fixed_stat_name": "INDIRECT_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1075": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1075,
+      "fixed_stat_id": 102,
+      "fixed_stat_name": "NON_CRIT_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1081": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1081,
+      "fixed_stat_id": 101,
+      "fixed_stat_name": "INDIRECT_DMG",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1085": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1085,
+      "fixed_stat_id": 111,
+      "fixed_stat_name": "HUPPERMAGE_RESOURCE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1086": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1086,
+      "fixed_stat_id": 111,
+      "fixed_stat_name": "HUPPERMAGE_RESOURCE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1087": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1087,
+      "fixed_stat_id": 112,
+      "fixed_stat_name": "HUPPERMAGE_RESOURCE_COST_MODIFIER_CONSUME",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1088": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1088,
+      "fixed_stat_id": 112,
+      "fixed_stat_name": "HUPPERMAGE_RESOURCE_COST_MODIFIER_CONSUME",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1090": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1090,
+      "fixed_stat_id": 113,
+      "fixed_stat_name": "HUPPERMAGE_RESOURCE_COST_MODIFIER_GENERATE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1091": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1091,
+      "fixed_stat_id": 113,
+      "fixed_stat_name": "HUPPERMAGE_RESOURCE_COST_MODIFIER_GENERATE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1094": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1094,
+      "fixed_stat_id": 114,
+      "fixed_stat_name": "FINAL_HEAL_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "1095": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 1095,
+      "fixed_stat_id": 114,
+      "fixed_stat_name": "FINAL_HEAL_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "120": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 120,
+      "fixed_stat_id": 20,
+      "fixed_stat_name": "DMG_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "122": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 122,
+      "fixed_stat_id": 21,
+      "fixed_stat_name": "DMG_FIRE_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "123": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 123,
+      "fixed_stat_id": 23,
+      "fixed_stat_name": "DMG_EARTH_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "124": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 124,
+      "fixed_stat_id": 22,
+      "fixed_stat_name": "DMG_WATER_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "125": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 125,
+      "fixed_stat_id": 24,
+      "fixed_stat_name": "DMG_AIR_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "126": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 126,
+      "fixed_stat_id": 48,
+      "fixed_stat_name": "FINAL_DMG_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "127": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 127,
+      "fixed_stat_id": 49,
+      "fixed_stat_name": "FINAL_RES_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "128": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 128,
+      "fixed_stat_id": 49,
+      "fixed_stat_name": "FINAL_RES_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "129": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 129,
+      "fixed_stat_id": 48,
+      "fixed_stat_name": "FINAL_DMG_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "130": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 130,
+      "fixed_stat_id": 20,
+      "fixed_stat_name": "DMG_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "132": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 132,
+      "fixed_stat_id": 21,
+      "fixed_stat_name": "DMG_FIRE_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "133": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 133,
+      "fixed_stat_id": 23,
+      "fixed_stat_name": "DMG_EARTH_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "134": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 134,
+      "fixed_stat_id": 22,
+      "fixed_stat_name": "DMG_WATER_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "135": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 135,
+      "fixed_stat_id": 24,
+      "fixed_stat_name": "DMG_AIR_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "149": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 149,
+      "fixed_stat_id": 52,
+      "fixed_stat_name": "CRITICAL_BONUS",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "150": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 150,
+      "fixed_stat_id": 9,
+      "fixed_stat_name": "FEROCITY",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "151": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 151,
+      "fixed_stat_id": 10,
+      "fixed_stat_name": "FUMBLE_RATE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "160": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 160,
+      "fixed_stat_id": 11,
+      "fixed_stat_name": "RANGE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "161": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 161,
+      "fixed_stat_id": 11,
+      "fixed_stat_name": "RANGE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "162": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 162,
+      "fixed_stat_id": 33,
+      "fixed_stat_name": "PROSPECTION",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "163": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 163,
+      "fixed_stat_id": 33,
+      "fixed_stat_name": "PROSPECTION",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "166": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 166,
+      "fixed_stat_id": 36,
+      "fixed_stat_name": "WISDOM",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "167": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 167,
+      "fixed_stat_id": 36,
+      "fixed_stat_name": "WISDOM",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "168": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 168,
+      "fixed_stat_id": 9,
+      "fixed_stat_name": "FEROCITY",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "169": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 169,
+      "fixed_stat_id": 10,
+      "fixed_stat_name": "FUMBLE_RATE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "171": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 171,
+      "fixed_stat_id": 35,
+      "fixed_stat_name": "INIT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "172": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 172,
+      "fixed_stat_id": 35,
+      "fixed_stat_name": "INIT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "173": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 173,
+      "fixed_stat_id": 7,
+      "fixed_stat_name": "TACKLE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "174": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 174,
+      "fixed_stat_id": 7,
+      "fixed_stat_name": "TACKLE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "175": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 175,
+      "fixed_stat_id": 8,
+      "fixed_stat_name": "DODGE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "176": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 176,
+      "fixed_stat_id": 8,
+      "fixed_stat_name": "DODGE",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "177": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 177,
+      "fixed_stat_id": 86,
+      "fixed_stat_name": "WILLPOWER",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "178": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 178,
+      "fixed_stat_id": 86,
+      "fixed_stat_name": "WILLPOWER",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "180": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 180,
+      "fixed_stat_id": 16,
+      "fixed_stat_name": "BACKSTAB_BONUS",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "181": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 181,
+      "fixed_stat_id": 16,
+      "fixed_stat_name": "BACKSTAB_BONUS",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "182": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 182,
+      "fixed_stat_id": 120,
+      "fixed_stat_name": "ARMOR_GIVEN",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "183": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 183,
+      "fixed_stat_id": 120,
+      "fixed_stat_name": "ARMOR_GIVEN",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "184": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 184,
+      "fixed_stat_id": 12,
+      "fixed_stat_name": "LEADERSHIP",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "185": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 185,
+      "fixed_stat_id": 121,
+      "fixed_stat_name": "ARMOR_RECEIVED",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "186": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 186,
+      "fixed_stat_id": 121,
+      "fixed_stat_name": "ARMOR_RECEIVED",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "193": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 193,
+      "fixed_stat_id": 4,
+      "fixed_stat_name": "WP",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "194": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 194,
+      "fixed_stat_id": 4,
+      "fixed_stat_name": "WP",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "235": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": true,
+      "effect_class": 235,
+      "fixed_stat_id": null,
+      "fixed_stat_name": null,
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "236": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": true,
+      "effect_class": 236,
+      "fixed_stat_id": null,
+      "fixed_stat_name": null,
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "26": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 26,
+      "fixed_stat_id": 18,
+      "fixed_stat_name": "HEAL_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "27": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 27,
+      "fixed_stat_id": 18,
+      "fixed_stat_name": "HEAL_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "33": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 33,
+      "fixed_stat_id": 2,
+      "fixed_stat_name": "AP",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "37": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 37,
+      "fixed_stat_id": 2,
+      "fixed_stat_name": "AP",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "38": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": true,
+      "effect_class": 38,
+      "fixed_stat_id": null,
+      "fixed_stat_name": null,
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "39": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": true,
+      "effect_class": 39,
+      "fixed_stat_id": null,
+      "fixed_stat_name": null,
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "40": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": true,
+      "effect_class": 40,
+      "fixed_stat_id": null,
+      "fixed_stat_name": null,
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "400": {
+      "additional_fields": {},
+      "dynamic_stat": false,
+      "effect_class": 400,
+      "fixed_stat_id": null,
+      "operation": "none",
+      "parameter_contract": {
+        "current_stat_change": false,
+        "evaluation_level": 0,
+        "parameterless_status": -1,
+        "parameterless_status_policy": "preserve_existing_status",
+        "signed_byte_cast": true,
+        "status_parameter_index": 0
+      },
+      "runner": "eXE",
+      "source_guards": []
+    },
+    "43": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 43,
+      "fixed_stat_id": 3,
+      "fixed_stat_name": "MP",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "44": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 44,
+      "fixed_stat_id": 3,
+      "fixed_stat_name": "MP",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "46": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": true,
+      "effect_class": 46,
+      "fixed_stat_id": null,
+      "fixed_stat_name": null,
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "70": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 70,
+      "fixed_stat_id": 32,
+      "fixed_stat_name": "RES_HEAL_PER_THOUSAND",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "71": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 71,
+      "fixed_stat_id": 17,
+      "fixed_stat_name": "RES_BACKSTAB",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "72": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 72,
+      "fixed_stat_id": 32,
+      "fixed_stat_name": "RES_HEAL_PER_THOUSAND",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "80": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 80,
+      "fixed_stat_id": 27,
+      "fixed_stat_name": "RES_IN_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "82": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 82,
+      "fixed_stat_id": 28,
+      "fixed_stat_name": "RES_FIRE_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "83": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 83,
+      "fixed_stat_id": 29,
+      "fixed_stat_name": "RES_WATER_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "84": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 84,
+      "fixed_stat_id": 30,
+      "fixed_stat_name": "RES_EARTH_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "85": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 85,
+      "fixed_stat_id": 31,
+      "fixed_stat_name": "RES_AIR_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "875": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 875,
+      "fixed_stat_id": 87,
+      "fixed_stat_name": "BLOCK",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "876": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 876,
+      "fixed_stat_id": 87,
+      "fixed_stat_name": "BLOCK",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "90": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 90,
+      "fixed_stat_id": 27,
+      "fixed_stat_name": "RES_IN_PERCENT",
+      "limit_policy": "RESISTANCE_CAP",
+      "limit_policy_requires_owned_stack": true,
+      "native_limit_policy": "RESISTANCE_CAP",
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "918": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 918,
+      "fixed_stat_id": 90,
+      "fixed_stat_name": "DMG_STASIS_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "92": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 92,
+      "fixed_stat_id": 30,
+      "fixed_stat_name": "RES_EARTH_PERCENT",
+      "limit_policy": "RESISTANCE_CAP",
+      "limit_policy_requires_owned_stack": true,
+      "native_limit_policy": "RESISTANCE_CAP",
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "93": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 93,
+      "fixed_stat_id": 28,
+      "fixed_stat_name": "RES_FIRE_PERCENT",
+      "limit_policy": "RESISTANCE_CAP",
+      "limit_policy_requires_owned_stack": true,
+      "native_limit_policy": "RESISTANCE_CAP",
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "94": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 94,
+      "fixed_stat_id": 29,
+      "fixed_stat_name": "RES_WATER_PERCENT",
+      "limit_policy": "RESISTANCE_CAP",
+      "limit_policy_requires_owned_stack": true,
+      "native_limit_policy": "RESISTANCE_CAP",
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "95": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 95,
+      "fixed_stat_id": 31,
+      "fixed_stat_name": "RES_AIR_PERCENT",
+      "limit_policy": "RESISTANCE_CAP",
+      "limit_policy_requires_owned_stack": true,
+      "native_limit_policy": "RESISTANCE_CAP",
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "96": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 96,
+      "fixed_stat_id": 30,
+      "fixed_stat_name": "RES_EARTH_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": "NORMAL",
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "97": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 97,
+      "fixed_stat_id": 28,
+      "fixed_stat_name": "RES_FIRE_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": "NORMAL",
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "98": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 98,
+      "fixed_stat_id": 29,
+      "fixed_stat_name": "RES_WATER_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": "NORMAL",
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "988": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 988,
+      "fixed_stat_id": 95,
+      "fixed_stat_name": "CRITICAL_RES",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": null,
+      "operation": "gain_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWQ",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "actor_kind": 5,
+          "bypass_flag": 21,
+          "bypass_flag_name": "COMPANION_ALLOWED_PROSPECTION_BUFF",
+          "native_method": "eWQ.fMy",
+          "predicate": "companion_prospection_requires_flag",
+          "stat_id": 33
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    },
+    "99": {
+      "additional_fields": {
+        "requested": 25,
+        "stat_id": 12
+      },
+      "dynamic_stat": false,
+      "effect_class": 99,
+      "fixed_stat_id": 31,
+      "fixed_stat_name": "RES_AIR_PERCENT",
+      "limit_policy": "NORMAL",
+      "limit_policy_requires_owned_stack": false,
+      "native_limit_policy": "NORMAL",
+      "operation": "lose_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "dynamic_stat_index": 2,
+        "percent_index": 1,
+        "percent_true_value": 1,
+        "supported_counts": [
+          1,
+          2,
+          3
+        ],
+        "trigger_copy_value": -1,
+        "unsupported_counts": [
+          4,
+          5
+        ]
+      },
+      "percent_default": false,
+      "runner": "eWR",
+      "source_guards": [
+        {
+          "native_method": "eWW.fMy",
+          "predicate": "target_has_selected_characteristic"
+        },
+        {
+          "native_method": "eWR.fMy",
+          "predicate": "target_property_blocks_stat",
+          "property_id": 4,
+          "property_name": "IMMUNE_TO_MP_LOSS",
+          "stat_id": 3
+        }
+      ],
+      "zero_initial_amount_rejected": true
+    }
+  },
+  "removal_opcode": 13560,
+  "source": "Installed wakfu-client.jar eVi/eWQ/eWR/eXE registry, offline reflection"
+}

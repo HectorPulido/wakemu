@@ -1,0 +1,34 @@
+"""Native cvx12514 transition into ACTION, not a client-side phase override.
+
+Initial combat has no timeline bonus effects, queued timed events or permanent
+zones. Their native typed zero-count encodings are included, never empty blobs.
+"""
+import struct, time
+
+
+def action_transition(
+    fight_id, *, timestamp_ms=None, duration_seconds=0, bonus_period=3
+):
+    if type(fight_id) is not int or not 0 < fight_id < 2**31:
+        raise ValueError("Invalid fight identity")
+    if type(duration_seconds) is not int or not 0 <= duration_seconds < 2**31:
+        raise ValueError("Invalid phase duration")
+    if type(bonus_period) is not int or not 0 < bonus_period < 2**31:
+        raise ValueError("Bonus period must be positive")
+    timestamp_ms = int(time.time() * 1000) if timestamp_ms is None else timestamp_ms
+    # feI/feN dNH is a positive turn period, not a round.
+    # Native fem.fYD uses fez.fYU()==3. Empty bonus collections are local policy.
+    bonuses = struct.pack(">iBBB", bonus_period, 0, 0, 0)
+    # TG/TC: affected-member set i16count; two i32 event-map counts.
+    timed = struct.pack(">hii", 0, 0, 0)
+    # fdA.eI: i16 map entry count (permanent zone descriptors).
+    zones = struct.pack(">h", 0)
+    body = (
+        struct.pack(">iBiqi", fight_id, 2, duration_seconds, timestamp_ms, len(bonuses))
+        + bonuses
+    )
+    body += b"\x00"  # no feb(q actor,q reference,i effect) entries.
+    body += (
+        struct.pack(">i", len(timed)) + timed + struct.pack(">i", len(zones)) + zones
+    )
+    return 12514, body

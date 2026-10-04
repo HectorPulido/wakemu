@@ -1,0 +1,39 @@
+{
+  "position_authority": "Single Python process Positions current state; SQLite generation/owned-location CAS at batch flush",
+  "sqlite_batch_interval_seconds": 2,
+  "durability_barriers": [
+    "non-movement transactional requests",
+    "character switch",
+    "session takeover",
+    "map transition",
+    "own haven-bag entry: outside position only",
+    "logout before deleting lease",
+    "shutdown before and after draining workers"
+  ],
+  "health_tick": {
+    "read_only_noops": [
+      "full HP",
+      "zero HP",
+      "coefficient zero",
+      "unchanged integer HP"
+    ],
+    "changed_hp": "Re-read session/HP/baseline under BEGIN IMMEDIATE; compare expected HP; update HP and persisted last_ms only",
+    "fraction_baseline": "initial_hp and started_ms unchanged across ticks",
+    "clock": "Persistent highwater last applied change, plus volatile process observation highwater for skipped ticks",
+    "snapshot": "id,account_id,breed,level,hp,max_hp,xp,kamas; no inventory hydration"
+  },
+  "failure_policy": {
+    "sqlite_failure": "Pending positions remain authoritative and dirty; lifecycle does not delete lease or exit until flush succeeds",
+    "stale_generation": "Evicted after SQLite lease check; cannot update replacement character state; reported explicitly",
+    "crash_without_external_journal": "May lose latest unflushed interval, unlike graceful shutdown",
+    "multi_process": "Current LIVE lease and Positions lock are process-local. Redis payload mirroring alone does not make multiple writers safe."
+  },
+  "redis_scaling_requirements": [
+    "Use atomic compare-generation ownership/fencing for movement writes and lease refresh",
+    "Version each buffered snapshot and CAS delete only acknowledged versions after SQLite commit",
+    "Recovery validates persistent SQLite lease/account/character and baseline location before applying",
+    "A new login must fence all old process owners, not merely replace its local LIVE entry",
+    "Maintain per-character single writer or distribute ownership explicitly; retain SQLite CAS as final guard",
+    "If Redis is durability authority, configure persistence and test crash recovery; optional lossy cache is a different policy"
+  ]
+}

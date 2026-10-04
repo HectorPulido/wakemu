@@ -1,0 +1,144 @@
+"""Native flat equipment bonuses from the owned selected equipment sheet.
+
+Only unconditional eWN maximum+current and scalar eWQ effects are evaluated.
+Other effects remain explicitly reported, never converted to invented bonuses.
+"""
+import json
+from wakfu_server.paths import DATA_ROOT
+from wakfu_server.equipment import validate_sheet
+from wakfu_server.health import maximum
+
+CATALOG = {
+    item["reference"]: item
+    for item in json.loads((DATA_ROOT / "item-equipment-effects.json").read_text())[
+        "items"
+    ]
+}
+
+
+def _flat(effect):
+    values = effect["values"]
+    if (
+        effect["effect_criteria"]
+        or effect["has_triggers"]
+        or effect["target_mask"] != 0
+    ):
+        return None
+    if effect["stat_id"] < 0 or not values or values[0] == -2:
+        return None  # native triggering-effect copy sentinel
+    if (
+        effect["runner"] == "eWN"
+        and effect["parameter_count"] == 3
+        and values[1:] == [1, 0]
+    ):
+        return effect["stat_id"], values[0]
+    if effect["runner"] == "eWQ" and effect["parameter_count"] == 1 and values[0] != -1:
+        return effect["stat_id"], values[0]
+    return None
+
+
+def bonuses(character, *, build_index=None):
+    # Current runtime has no persisted sheet activation; default sheet0 is
+    # explicit. A future activation caller must supply its authoritative index.
+    index = (
+        character.get("active_build_index", 0) if build_index is None else build_index
+    )
+    if type(index) is not int or not 0 <= index <= 2:
+        raise ValueError("Invalid active equipment sheet")
+    saved = character.get("builds", {}).get(index, {})
+    blob = bytes.fromhex(saved.get("equipment", ""))
+    selected = validate_sheet(character, blob)
+    owned = {item["uid"]: item for item in character.get("inventory_items", [])}
+    stats, unsupported, uids = {}, [], []
+    for entry in selected:
+        item = owned[entry["uid"]]
+        uids.append(item["uid"])
+        template = CATALOG.get(item["reference"])
+        if template is None:
+            unsupported.append(
+                dict(
+                    uid=item["uid"],
+                    reference=item["reference"],
+                    reason="missing-effect-template",
+                )
+            )
+            continue
+        for effect in template["effects"]:
+            flat = _flat(effect)
+            if flat is None:
+                unsupported.append(
+                    dict(
+                        uid=item["uid"],
+                        reference=item["reference"],
+                        effect_id=effect["id"],
+                        generic=effect["generic"],
+                        reason="unsupported-native-effect",
+                    )
+                )
+                continue
+            stat, delta = flat
+            stats[stat] = stats.get(stat, 0) + delta
+    from .aptitudes import bonuses as aptitude_bonuses
+
+    aptitudes = aptitude_bonuses(character, build_index=index)
+    for stat, delta in aptitudes["stats"].items():
+        stats[stat] = stats.get(stat, 0) + delta
+    return dict(
+        stats=stats,
+        percentages=aptitudes["percentages"],
+        unsupported=unsupported + aptitudes["unsupported"],
+        equipped_uids=uids,
+        build_index=index,
+    )
+
+
+def effective_character(character, *, build_index=None):
+    result = dict(character)
+    evaluated = bonuses(character, build_index=build_index)
+    base = maximum(character["breed"], character["level"])
+    flat = base + evaluated["stats"].get(1, 0)
+    percentage = evaluated["percentages"].get(1, 0)
+    # fff.aYU uses Java integer division toward zero.
+    effective = max(
+        1,
+        flat + (abs(flat * percentage) // 100) * (1 if flat * percentage >= 0 else -1),
+    )
+    result.update(
+        base_max_hp=base,
+        max_hp=effective,
+        hp=min(effective, max(0, character.get("hp", base))),
+        equipment_stats=evaluated["stats"],
+        equipment_unsupported=evaluated["unsupported"],
+    )
+    return result
+
+
+def combat_resources(
+    character,
+    *,
+    wp=None,
+    base_ap=None,
+    base_mp=None,
+    base_initiative=0,
+    build_index=None
+):
+    from .breed_resources import base_resources
+
+    native = base_resources(character)
+    wp = native["WP"] if wp is None else wp
+    base_ap = native["AP"] if base_ap is None else base_ap
+    base_mp = native["MP"] if base_mp is None else base_mp
+    if any(type(value) is not int or value < 0 for value in (wp, base_ap, base_mp)):
+        raise ValueError("Invalid base combat resources")
+    if type(base_initiative) is not int:
+        raise ValueError("Invalid base initiative")
+    evaluated = bonuses(character, build_index=build_index)
+    stats = evaluated["stats"]
+    return dict(
+        ap=max(0, base_ap + stats.get(2, 0)),
+        mp=max(0, base_mp + stats.get(3, 0)),
+        wp=max(0, wp + stats.get(4, 0)),
+        initiative=base_initiative + stats.get(35, 0),
+        stats=stats,
+        unsupported=evaluated["unsupported"],
+    )

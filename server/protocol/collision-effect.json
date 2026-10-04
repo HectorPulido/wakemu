@@ -1,0 +1,45 @@
+{
+  "definition_dispellable": false,
+  "effect_class": 55,
+  "event_caster_code": null,
+  "event_execution_count": -1,
+  "event_global_subscription": false,
+  "event_priority": 0,
+  "event_reverse_subscription": false,
+  "event_suppresses_level_one": false,
+  "event_target_code": null,
+  "maximum_level": 2147483647,
+  "minimum_level": 0,
+  "native_definition_class": "eVI",
+  "native_effect_flags": [],
+  "native_execution_mode": 2,
+  "native_timing_definition": {
+    "clock_on_caster": false,
+    "clock_on_target": true,
+    "esr": false,
+    "ryE": 0,
+    "ryF": 0.0,
+    "ryG": false,
+    "ryH": 0,
+    "ryI": 0.0
+  },
+  "owner_on_caster": false,
+  "parameter_count": 1,
+  "parameters": [
+    1.0,
+    0.0
+  ],
+  "probability": 100.0,
+  "reference": -13,
+  "subscription": false,
+  "target_masks": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "variant": 0
+}

@@ -1,0 +1,27 @@
+Revisión focal de áreas anI y condición HasState
+
+84 casos originales, 31 hechizos activos. Fuente idéntica antes y después; rollback preservado en 84/84.
+Se usa terreno1134 y constructor real create_placement con tabla QL propia verificada. No hubo GUI ni reinicios.
+
+Unaudited effect area: anI/t-0-2: 29 casos
+{'cast_rejected': 8, 'actor_state_changed': 17, 'no_effect_observed': 4}
+Siguientes rechazos:
+  4: Unaudited effect area: anE/forme à base de points
+  2: Unsupported native numeric predicate: GetTriggeringContainerStateId
+  2: No handler for native effect class 865
+
+Unsupported HasState arguments: 55 casos
+{'actor_state_changed': 17, 'cast_rejected': 26, 'no_effect_observed': 8, 'retention_changed': 4}
+Siguientes rechazos:
+  16: Missing unique native state effect container
+  4: Spell target has no verified line of sight
+  2: No handler for native effect class 315
+  2: Unsupported native numeric predicate: GetFightersWithBreedInRange
+  2: No handler for native effect class 1013
+
+Los dos errores originales desaparecen en esta muestra; esto no acredita todos los hechizos de ninguna clase.
+actor_state_changed acredita cambios de actor en la transacción privada; retention_changed sólo retención propia.
+no_effect_observed no implica mecánica completa ni juego exitoso. Todos los resultados mantienen gameplay_verified=false.
+El conjunto usa prepare_spell_transaction y factory compartida. No conecta todavía el nuevo hook RelativeGroupAuthority de prepare_server_spell; un fallo relativo futuro requeriría contrastar esa entrada.
+Variantes self mantienen la puerta LOS real; los cuatro rechazos LOS son límite de los casos, no un bug demostrado.
+Informes anteriores completos preservados; comparar sólo por hechizo/nivel/variante.

@@ -1,0 +1,1443 @@
+{
+  "reference_url": "https://github.com/WakBox/WakBox-Evolution",
+  "reference_commit": "bacde4702ed871c639ea81f2179f1619beb42c0b",
+  "reference_client_version": "1.54.0",
+  "current_captured_version": "1.93.2",
+  "opcode_correspondences": [
+    {
+      "service": "auth",
+      "old_name": "CMSG_CLIENT_VERSION",
+      "old_opcode": 7,
+      "current_opcode": 33,
+      "direction": "out",
+      "current_class": "cmP",
+      "change": "same version body; frame widened"
+    },
+    {
+      "service": "auth",
+      "old_name": "SMSG_CLIENT_VERSION_RESULT",
+      "old_opcode": 8,
+      "current_opcode": 23,
+      "direction": "in",
+      "current_class": "Ns",
+      "change": "same accepted flag and version bytes"
+    },
+    {
+      "service": "auth",
+      "old_name": "SMSG_CLIENT_IP",
+      "old_opcode": 110,
+      "current_opcode": 309,
+      "direction": "in",
+      "current_class": "Nq",
+      "change": "four-byte seed/IP-like payload; semantics must not assume IP"
+    },
+    {
+      "service": "auth",
+      "old_name": "CMSG_PUBLIC_KEY_REQUEST",
+      "old_opcode": 1033,
+      "current_opcode": 574,
+      "direction": "out",
+      "current_class": "cmO",
+      "change": "same empty body; route byte differs by service"
+    },
+    {
+      "service": "auth",
+      "old_name": "SMSG_PUBLIC_KEY",
+      "old_opcode": 1034,
+      "current_opcode": 400,
+      "direction": "in",
+      "current_class": "cmZ",
+      "change": "same i64 challenge plus DER public key"
+    },
+    {
+      "service": "auth",
+      "old_name": "CMSG_CLIENT_AUTH",
+      "old_opcode": 1026,
+      "current_opcode": 584,
+      "direction": "out",
+      "current_class": "cmL",
+      "change": "RSA blob container retained; credentials now use launcher token flow"
+    },
+    {
+      "service": "auth",
+      "old_name": "SMSG_CLIENT_AUTH_RESULT",
+      "old_opcode": 1027,
+      "current_opcode": 472,
+      "direction": "in",
+      "current_class": "cmV",
+      "change": "account structure substantially expanded"
+    },
+    {
+      "service": "auth",
+      "old_name": "CMSG_REALMS_REQUEST",
+      "old_opcode": 1035,
+      "current_opcode": 402,
+      "direction": "out",
+      "current_class": "cmN",
+      "change": "empty body retained"
+    },
+    {
+      "service": "auth",
+      "old_name": "SMSG_REALMS_LIST",
+      "old_opcode": 1036,
+      "current_opcode": 453,
+      "direction": "in",
+      "current_class": "cmY",
+      "change": "realm concept retained; more metadata"
+    },
+    {
+      "service": "auth",
+      "old_name": "CMSG_AUTH_TOKEN_REQUEST",
+      "old_opcode": 1211,
+      "current_opcode": 575,
+      "direction": "out",
+      "current_class": "cmS",
+      "change": "second field now bool presence plus optional i64"
+    },
+    {
+      "service": "auth",
+      "old_name": "SMSG_AUTH_TOKEN_RESULT",
+      "old_opcode": 1212,
+      "current_opcode": 466,
+      "direction": "in",
+      "current_class": "cnd",
+      "change": "result plus str32 ticket retained"
+    },
+    {
+      "service": "world",
+      "old_name": "CMSG_AUTH_TOKEN",
+      "old_opcode": 1213,
+      "current_opcode": 426,
+      "direction": "out",
+      "current_class": "cmG",
+      "change": "str32 ticket now followed by str32 machine identifier"
+    },
+    {
+      "service": "world",
+      "old_name": "SMSG_CLIENT_AUTH_RESULT",
+      "old_opcode": 1025,
+      "current_opcode": 457,
+      "direction": "in",
+      "current_class": "cmU",
+      "change": "success plus u16 account block retained; block contents changed"
+    },
+    {
+      "service": "world",
+      "old_name": "CMSG_CHAR_SELECT",
+      "old_opcode": 2049,
+      "current_opcode": 23664,
+      "direction": "out",
+      "current_class": "cDR",
+      "change": "i64 id plus str32 name retained"
+    },
+    {
+      "service": "world",
+      "old_name": "SMSG_CHAR_LIST",
+      "old_opcode": 2048,
+      "current_opcode": 23548,
+      "direction": "in",
+      "current_class": "cEk",
+      "change": "character count retained; each character block length widened u16 to u32; extra records"
+    },
+    {
+      "service": "world",
+      "old_name": "SMSG_CHAR_SELECT",
+      "old_opcode": 2050,
+      "current_opcode": 23082,
+      "direction": "in",
+      "current_class": "cEi",
+      "change": "single result byte retained"
+    },
+    {
+      "service": "world",
+      "old_name": "SMSG_CHARACTER_INFORMATION",
+      "old_opcode": 4098,
+      "current_opcode": 12666,
+      "direction": "in",
+      "current_class": "csY",
+      "change": "reserved i64 id list plus three u32 blobs; inner serialized fields changed"
+    },
+    {
+      "service": "world",
+      "old_name": "SMSG_CHARACTER_ENTER_WORLD",
+      "old_opcode": 4100,
+      "current_opcode": 13974,
+      "direction": "in",
+      "current_class": "csW",
+      "change": "four u16-sized outer blocks retained; protector subrecords expanded"
+    },
+    {
+      "service": "world",
+      "old_name": "CMSG_CHAR_MOVEMENT",
+      "old_opcode": 4113,
+      "current_opcode": 13331,
+      "direction": "out",
+      "current_class": "cnl",
+      "change": "new leading i32 movement mode; path layout retained"
+    },
+    {
+      "service": "world",
+      "old_name": "SMSG_UPDATE_POSITION",
+      "old_opcode": 4127,
+      "current_opcode": 13530,
+      "direction": "in",
+      "current_class": "csQ",
+      "change": "new trailing i32 movement mode"
+    },
+    {
+      "service": "world",
+      "old_name": "CMSG_CLIENT_LANGUAGE",
+      "old_opcode": 13001,
+      "current_opcode": 13003,
+      "direction": "out",
+      "current_class": "cpo",
+      "change": "two-byte language retained for current es sample; variable UTF-8 length now supported by serializer"
+    },
+    {
+      "service": "world",
+      "old_name": "CMSG_CHAT_MESSAGE",
+      "old_opcode": 3153,
+      "current_opcode": 12366,
+      "direction": "out",
+      "current_class": "cmy",
+      "change": "current str16 vs old str8"
+    },
+    {
+      "service": "world",
+      "old_name": "CMSG_PRIVATE_MESSAGE",
+      "old_opcode": 3155,
+      "current_opcode": 13917,
+      "direction": "out",
+      "current_class": "cmv",
+      "change": "recipient str8 retained; message str16 vs old str8"
+    },
+    {
+      "service": "world",
+      "old_name": "CMSG_TRADE_MESSAGE",
+      "old_opcode": 3159,
+      "current_opcode": 13074,
+      "direction": "out",
+      "current_class": "cmx",
+      "change": "current str16 vs old str8"
+    },
+    {
+      "service": "world",
+      "old_name": "CMSG_RECRUIT_MESSAGE",
+      "old_opcode": 3167,
+      "current_opcode": 13188,
+      "direction": "out",
+      "current_class": "cmw",
+      "change": "language prefix plus str16 text; old handler empty"
+    }
+  ],
+  "old_proto_files": 14,
+  "current_proto_files": 48,
+  "old_proto_messages": 61,
+  "current_proto_messages": 220,
+  "common_proto_messages": 53,
+  "identical_common_proto_messages": 36,
+  "protobuf_name_comparison": "Legacy WakfuProto package prefix normalized; type names otherwise preserved",
+  "proto_comparison": [
+    {
+      "message": "AccountConnectionMessage",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "AccountDisconnectionMessage",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "AddRewardsMessage",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [
+        {
+          "number": 1,
+          "old": {
+            "name": "rewards",
+            "type": 11,
+            "label": 3,
+            "type_name": ".AddRewardsMessage.RewardsEntry",
+            "default": ""
+          },
+          "current": {
+            "name": "rewards",
+            "type": 11,
+            "label": 3,
+            "type_name": ".AddRewardsMessage.RewardsAccountContainer",
+            "default": ""
+          }
+        }
+      ],
+      "changed_existing_field_layouts": [
+        {
+          "number": 1,
+          "old": {
+            "name": "rewards",
+            "type": 11,
+            "label": 3,
+            "type_name": ".AddRewardsMessage.RewardsEntry",
+            "default": ""
+          },
+          "current": {
+            "name": "rewards",
+            "type": 11,
+            "label": 3,
+            "type_name": ".AddRewardsMessage.RewardsAccountContainer",
+            "default": ""
+          }
+        }
+      ],
+      "identical_fields": false
+    },
+    {
+      "message": "CompositionInfo",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "CompositionInfo.InfoByCharacterIdEntry",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "CompositionInfoData",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ConsultRewardsMessage",
+      "added_fields": [
+        {
+          "number": 2,
+          "name": "characterId",
+          "type": 3,
+          "label": 1,
+          "type_name": "",
+          "default": ""
+        }
+      ],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": false
+    },
+    {
+      "message": "ConsultRewardsResultMessage",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ConsumeRewardMessage",
+      "added_fields": [
+        {
+          "number": 4,
+          "name": "characterId",
+          "type": 3,
+          "label": 1,
+          "type_name": "",
+          "default": ""
+        }
+      ],
+      "removed_fields": [],
+      "changed_fields": [
+        {
+          "number": 2,
+          "old": {
+            "name": "containerId",
+            "type": 3,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          },
+          "current": {
+            "name": "containerId",
+            "type": 9,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          }
+        },
+        {
+          "number": 3,
+          "old": {
+            "name": "rewardId",
+            "type": 3,
+            "label": 1,
+            "type_name": "",
+            "default": ""
+          },
+          "current": {
+            "name": "rewardId",
+            "type": 9,
+            "label": 1,
+            "type_name": "",
+            "default": ""
+          }
+        }
+      ],
+      "changed_existing_field_layouts": [
+        {
+          "number": 2,
+          "old": {
+            "name": "containerId",
+            "type": 3,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          },
+          "current": {
+            "name": "containerId",
+            "type": 9,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          }
+        },
+        {
+          "number": 3,
+          "old": {
+            "name": "rewardId",
+            "type": 3,
+            "label": 1,
+            "type_name": "",
+            "default": ""
+          },
+          "current": {
+            "name": "rewardId",
+            "type": 9,
+            "label": 1,
+            "type_name": "",
+            "default": ""
+          }
+        }
+      ],
+      "identical_fields": false
+    },
+    {
+      "message": "ConsumeRewardResultMessage",
+      "added_fields": [
+        {
+          "number": 3,
+          "name": "characterId",
+          "type": 3,
+          "label": 1,
+          "type_name": "",
+          "default": ""
+        }
+      ],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": false
+    },
+    {
+      "message": "IdentificationMessage",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "LevelsByBonus",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoBag",
+      "added_fields": [
+        {
+          "number": 7,
+          "name": "lockedItemUids",
+          "type": 3,
+          "label": 3,
+          "type_name": "",
+          "default": ""
+        },
+        {
+          "number": 8,
+          "name": "bindType",
+          "type": 5,
+          "label": 1,
+          "type_name": "",
+          "default": "0"
+        }
+      ],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": false
+    },
+    {
+      "message": "ProtoBagItem",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoBuildSheet",
+      "added_fields": [
+        {
+          "number": 8,
+          "name": "permanent",
+          "type": 8,
+          "label": 1,
+          "type_name": "",
+          "default": "false"
+        }
+      ],
+      "removed_fields": [
+        {
+          "number": 4,
+          "name": "spellDeckIndex",
+          "type": 5,
+          "label": 2,
+          "type_name": "",
+          "default": ""
+        },
+        {
+          "number": 5,
+          "name": "aptitudeSheetIndex",
+          "type": 5,
+          "label": 2,
+          "type_name": "",
+          "default": ""
+        },
+        {
+          "number": 6,
+          "name": "equipmentSheetIndex",
+          "type": 5,
+          "label": 2,
+          "type_name": "",
+          "default": ""
+        }
+      ],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": false
+    },
+    {
+      "message": "ProtoBuildSheetSet",
+      "added_fields": [
+        {
+          "number": 4,
+          "name": "previousSheetIndex",
+          "type": 5,
+          "label": 1,
+          "type_name": "",
+          "default": "-2"
+        }
+      ],
+      "removed_fields": [
+        {
+          "number": 3,
+          "name": "automaticSheet",
+          "type": 11,
+          "label": 2,
+          "type_name": ".ProtoBuildSheet",
+          "default": ""
+        }
+      ],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": false
+    },
+    {
+      "message": "ProtoCharacterBags",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoCompanionInfo",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoDimensionalBagCategoryFee",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoDimensionalBagCraftFee",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoDownscalingHP",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoDownscalingHPCharacter",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoDungeon",
+      "added_fields": [
+        {
+          "number": 8,
+          "name": "minLevel",
+          "type": 5,
+          "label": 2,
+          "type_name": "",
+          "default": ""
+        }
+      ],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": false
+    },
+    {
+      "message": "ProtoDungeonEntry",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoDungeonProgression",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoEquipmentAccount",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoEquipmentInventory",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoEquipmentSet",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [
+        {
+          "number": 1,
+          "old": {
+            "name": "sheets",
+            "type": 11,
+            "label": 3,
+            "type_name": ".ProtoEquipmentSheet",
+            "default": ""
+          },
+          "current": {
+            "name": "sheets",
+            "type": 11,
+            "label": 3,
+            "type_name": ".ProtoEquipmentSet.SheetsEntry",
+            "default": ""
+          }
+        }
+      ],
+      "changed_existing_field_layouts": [
+        {
+          "number": 1,
+          "old": {
+            "name": "sheets",
+            "type": 11,
+            "label": 3,
+            "type_name": ".ProtoEquipmentSheet",
+            "default": ""
+          },
+          "current": {
+            "name": "sheets",
+            "type": 11,
+            "label": 3,
+            "type_name": ".ProtoEquipmentSet.SheetsEntry",
+            "default": ""
+          }
+        }
+      ],
+      "identical_fields": false
+    },
+    {
+      "message": "ProtoEquipmentSheet",
+      "added_fields": [],
+      "removed_fields": [
+        {
+          "number": 51,
+          "name": "index",
+          "type": 5,
+          "label": 1,
+          "type_name": "",
+          "default": ""
+        },
+        {
+          "number": 52,
+          "name": "name",
+          "type": 9,
+          "label": 1,
+          "type_name": "",
+          "default": ""
+        }
+      ],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": false
+    },
+    {
+      "message": "ProtoEquipmentSheet.ProtoEquipmentItem",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoFriend",
+      "added_fields": [
+        {
+          "number": 3,
+          "name": "tag",
+          "type": 9,
+          "label": 1,
+          "type_name": "",
+          "default": ""
+        }
+      ],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": false
+    },
+    {
+      "message": "ProtoFriendInfoForClient",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoFriendLists",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoFriendListsForClient",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoItem",
+      "added_fields": [],
+      "removed_fields": [
+        {
+          "number": 53,
+          "name": "rentInfo",
+          "type": 11,
+          "label": 1,
+          "type_name": ".ProtoRentInfo",
+          "default": ""
+        }
+      ],
+      "changed_fields": [
+        {
+          "number": 52,
+          "old": {
+            "name": "gems",
+            "type": 11,
+            "label": 1,
+            "type_name": ".ProtoGems",
+            "default": ""
+          },
+          "current": {
+            "name": "shard",
+            "type": 11,
+            "label": 1,
+            "type_name": ".ProtoShard",
+            "default": ""
+          }
+        }
+      ],
+      "changed_existing_field_layouts": [
+        {
+          "number": 52,
+          "old": {
+            "name": "gems",
+            "type": 11,
+            "label": 1,
+            "type_name": ".ProtoGems",
+            "default": ""
+          },
+          "current": {
+            "name": "shard",
+            "type": 11,
+            "label": 1,
+            "type_name": ".ProtoShard",
+            "default": ""
+          }
+        }
+      ],
+      "identical_fields": false
+    },
+    {
+      "message": "ProtoItemBind",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoItemElements",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoItemXp",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoMergedItems",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoPartyInstanceInfo",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoPartyInstanceInfoEntry",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [
+        {
+          "number": 1,
+          "old": {
+            "name": "index",
+            "type": 5,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          },
+          "current": {
+            "name": "index",
+            "type": 3,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          }
+        }
+      ],
+      "changed_existing_field_layouts": [
+        {
+          "number": 1,
+          "old": {
+            "name": "index",
+            "type": 5,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          },
+          "current": {
+            "name": "index",
+            "type": 3,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          }
+        }
+      ],
+      "identical_fields": false
+    },
+    {
+      "message": "ProtoPet",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "ProtoTemporaryInventory",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "RankingInfo",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "RankingInfo.TeamsEntry",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "Rewards",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "RewardsContainer",
+      "added_fields": [
+        {
+          "number": 5,
+          "name": "otherRewards",
+          "type": 11,
+          "label": 3,
+          "type_name": ".BaseReward",
+          "default": ""
+        },
+        {
+          "number": 6,
+          "name": "uuid",
+          "type": 9,
+          "label": 1,
+          "type_name": "",
+          "default": ""
+        }
+      ],
+      "removed_fields": [],
+      "changed_fields": [
+        {
+          "number": 1,
+          "old": {
+            "name": "id",
+            "type": 3,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          },
+          "current": {
+            "name": "OLD_id",
+            "type": 3,
+            "label": 1,
+            "type_name": "",
+            "default": ""
+          }
+        },
+        {
+          "number": 2,
+          "old": {
+            "name": "description",
+            "type": 11,
+            "label": 2,
+            "type_name": ".ContainerDescription",
+            "default": ""
+          },
+          "current": {
+            "name": "description",
+            "type": 11,
+            "label": 2,
+            "type_name": ".ContainerMetadata",
+            "default": ""
+          }
+        },
+        {
+          "number": 3,
+          "old": {
+            "name": "reward",
+            "type": 11,
+            "label": 3,
+            "type_name": ".RewardsContainer.RewardEntry",
+            "default": ""
+          },
+          "current": {
+            "name": "itemReward",
+            "type": 11,
+            "label": 3,
+            "type_name": ".ItemReward",
+            "default": ""
+          }
+        }
+      ],
+      "changed_existing_field_layouts": [
+        {
+          "number": 1,
+          "old": {
+            "name": "id",
+            "type": 3,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          },
+          "current": {
+            "name": "OLD_id",
+            "type": 3,
+            "label": 1,
+            "type_name": "",
+            "default": ""
+          }
+        },
+        {
+          "number": 2,
+          "old": {
+            "name": "description",
+            "type": 11,
+            "label": 2,
+            "type_name": ".ContainerDescription",
+            "default": ""
+          },
+          "current": {
+            "name": "description",
+            "type": 11,
+            "label": 2,
+            "type_name": ".ContainerMetadata",
+            "default": ""
+          }
+        },
+        {
+          "number": 3,
+          "old": {
+            "name": "reward",
+            "type": 11,
+            "label": 3,
+            "type_name": ".RewardsContainer.RewardEntry",
+            "default": ""
+          },
+          "current": {
+            "name": "itemReward",
+            "type": 11,
+            "label": 3,
+            "type_name": ".ItemReward",
+            "default": ""
+          }
+        }
+      ],
+      "identical_fields": false
+    },
+    {
+      "message": "Sheet",
+      "added_fields": [],
+      "removed_fields": [
+        {
+          "number": 1,
+          "name": "index",
+          "type": 5,
+          "label": 2,
+          "type_name": "",
+          "default": ""
+        },
+        {
+          "number": 2,
+          "name": "name",
+          "type": 9,
+          "label": 2,
+          "type_name": "",
+          "default": ""
+        },
+        {
+          "number": 5,
+          "name": "categoryPoints",
+          "type": 11,
+          "label": 3,
+          "type_name": ".CategoryPoints",
+          "default": ""
+        }
+      ],
+      "changed_fields": [
+        {
+          "number": 3,
+          "old": {
+            "name": "level",
+            "type": 5,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          },
+          "current": {
+            "name": "level",
+            "type": 5,
+            "label": 1,
+            "type_name": "",
+            "default": ""
+          }
+        }
+      ],
+      "changed_existing_field_layouts": [
+        {
+          "number": 3,
+          "old": {
+            "name": "level",
+            "type": 5,
+            "label": 2,
+            "type_name": "",
+            "default": ""
+          },
+          "current": {
+            "name": "level",
+            "type": 5,
+            "label": 1,
+            "type_name": "",
+            "default": ""
+          }
+        }
+      ],
+      "identical_fields": false
+    },
+    {
+      "message": "SheetSet",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [
+        {
+          "number": 2,
+          "old": {
+            "name": "sheets",
+            "type": 11,
+            "label": 3,
+            "type_name": ".Sheet",
+            "default": ""
+          },
+          "current": {
+            "name": "sheets",
+            "type": 11,
+            "label": 3,
+            "type_name": ".SheetSet.SheetsEntry",
+            "default": ""
+          }
+        }
+      ],
+      "changed_existing_field_layouts": [
+        {
+          "number": 2,
+          "old": {
+            "name": "sheets",
+            "type": 11,
+            "label": 3,
+            "type_name": ".Sheet",
+            "default": ""
+          },
+          "current": {
+            "name": "sheets",
+            "type": 11,
+            "label": 3,
+            "type_name": ".SheetSet.SheetsEntry",
+            "default": ""
+          }
+        }
+      ],
+      "identical_fields": false
+    },
+    {
+      "message": "Status",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "Status.StatusEntry",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    },
+    {
+      "message": "TeamInfo",
+      "added_fields": [
+        {
+          "number": 9,
+          "name": "teamScore",
+          "type": 3,
+          "label": 1,
+          "type_name": "",
+          "default": ""
+        },
+        {
+          "number": 10,
+          "name": "waveReached",
+          "type": 5,
+          "label": 1,
+          "type_name": "",
+          "default": ""
+        },
+        {
+          "number": 11,
+          "name": "monstersDefeated",
+          "type": 5,
+          "label": 1,
+          "type_name": "",
+          "default": ""
+        }
+      ],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": false
+    },
+    {
+      "message": "Wrapper",
+      "added_fields": [],
+      "removed_fields": [],
+      "changed_fields": [],
+      "changed_existing_field_layouts": [],
+      "identical_fields": true
+    }
+  ],
+  "old_only_proto_messages": [
+    "AddRewardsMessage.RewardsEntry",
+    "CategoryPoints",
+    "ContainerDescription",
+    "ProtoGems",
+    "ProtoGems.ProtoGem",
+    "ProtoRentInfo",
+    "Reward",
+    "RewardsContainer.RewardEntry"
+  ],
+  "current_only_proto_messages": [
+    "ActorCollectMonsterRequestMessage",
+    "ActorCollectRequestMessage",
+    "AddRewardsMessage.RewardsAccountContainer",
+    "AdditionalDatas",
+    "BaseReward",
+    "Cell",
+    "Chest",
+    "ClearRewardsMessage",
+    "Compartment",
+    "CompartmentCell",
+    "CompartmentCells",
+    "Compartments",
+    "ConsumeAllRewardsMessage",
+    "ContainerMetadata",
+    "Emote",
+    "Emotes",
+    "ExecutionParameters",
+    "FightLoot",
+    "FightMonster",
+    "FightPlayer",
+    "FightReport",
+    "FightTeam",
+    "FightTime",
+    "Furniture",
+    "FurnitureInventory",
+    "GameSpecificData",
+    "History",
+    "History.HistoryEntry",
+    "History.MoneyHistory",
+    "IdentificationResultMessage",
+    "InventoryContent",
+    "InventoryContent.InventoryElement",
+    "ItemReward",
+    "Path",
+    "Point",
+    "ProtoAccountInventory",
+    "ProtoAccountItem",
+    "ProtoActiveItems",
+    "ProtoAppearance",
+    "ProtoArtisanInformations",
+    "ProtoBattleground",
+    "ProtoBattlegroundList",
+    "ProtoBattlegroundTeam",
+    "ProtoCosmeticCategory",
+    "ProtoCosmeticInventory",
+    "ProtoCosmeticInventory.CosmeticCategoriesEntry",
+    "ProtoCosmeticItem",
+    "ProtoCosmeticItems",
+    "ProtoCosmeticItemsWithCategories",
+    "ProtoCosmeticItemsWithCategories.CosmeticCategoriesEntry",
+    "ProtoCosmeticPreset",
+    "ProtoCosmeticPreset.ItemByPositionEntry",
+    "ProtoCosmeticPresetsInventory",
+    "ProtoCosmeticPresetsInventory.ActivePresetsEntry",
+    "ProtoCraft",
+    "ProtoCraftCounter",
+    "ProtoCraftFees",
+    "ProtoCraftFees.ExceptionFeesEntry",
+    "ProtoCraftFees.StepFeesEntry",
+    "ProtoCraftInventory",
+    "ProtoCraftInventory.CraftsEntry",
+    "ProtoCraftService",
+    "ProtoCraftService.CraftDirectives",
+    "ProtoCraftService.CraftDirectivesEntry",
+    "ProtoEquipmentSet.SheetsEntry",
+    "ProtoGuildBonus",
+    "ProtoGuildInfos",
+    "ProtoGuildMember",
+    "ProtoGuildMemberInfos",
+    "ProtoGuildModel",
+    "ProtoGuildRank",
+    "ProtoGuildRankInfos",
+    "ProtoGuildStorage",
+    "ProtoHavenWorldLight",
+    "ProtoHavenWorldLightList",
+    "ProtoHistoryElement",
+    "ProtoHistorySearchResult",
+    "ProtoItemWithPosition",
+    "ProtoItemWithPositionList",
+    "ProtoMarketEntry",
+    "ProtoMarketOffer",
+    "ProtoMarketOfferSearchResult",
+    "ProtoMarketPurchase",
+    "ProtoMarketPurchaseSearchResult",
+    "ProtoMarketSale",
+    "ProtoMarketSaleSearchResult",
+    "ProtoMarketSearchResult",
+    "ProtoPagination",
+    "ProtoPlayerInfos",
+    "ProtoPlayerInfos.CraftsLevelEntry",
+    "ProtoPublicCraft",
+    "ProtoRecipe",
+    "ProtoResource",
+    "ProtoResourcePartition",
+    "ProtoRunningEffect",
+    "ProtoSecureCraftInformations",
+    "ProtoSecureCraftInformations.CraftsEntry",
+    "ProtoSeller",
+    "ProtoShard",
+    "ProtoShard.ProtoAdditionalGems",
+    "ProtoShard.ProtoShardSlot",
+    "ProtoStepCraftFee",
+    "PvpInventory",
+    "RewardTier",
+    "SavagePvpStealReport",
+    "SavagePvpStealReportEntry",
+    "SheetSet.SheetsEntry",
+    "SpecificTargetData",
+    "Spells",
+    "SpellsInventory",
+    "SteleInformation",
+    "SteleReward",
+    "Transportation",
+    "TravelDetails",
+    "Tutorial",
+    "WorldConfigurationChangeMessage",
+    "WorldConnectionErrorMessage",
+    "WorldConnectionMessage",
+    "WorldServerGroupMessage",
+    "WorldStatusMessage",
+    "XpInfo",
+    "channel.ChannelMessage",
+    "channel.ChannelMessageCreatedEvt",
+    "channel.ChannelMessageList",
+    "channel.CreateChannelMessageCmd",
+    "channel.ListChannelMessagesCmd",
+    "friend_invite.CreateFriendInviteCmd",
+    "friend_invite.CreateFriendInviteCmd.RecipientUserNameAndTag",
+    "friend_invite.DeleteFriendInviteCmd",
+    "friend_invite.FriendInvite",
+    "friend_invite.FriendInviteCreatedEvt",
+    "friend_invite.FriendInviteDeletedEvt",
+    "friend_invite.FriendInviteList",
+    "transport.Frame",
+    "transport.Frame.Payload",
+    "transport.Frame.Request",
+    "transport.Frame.Response",
+    "user.CreateUserBlockedUserCmd",
+    "user.CreateUserFriendGroupCmd",
+    "user.DeleteUserBlockedUserCmd",
+    "user.DeleteUserFriendCmd",
+    "user.DeleteUserFriendGroupCmd",
+    "user.EndpointProperties",
+    "user.EndpointProperties.MetadataEntry",
+    "user.Friend",
+    "user.Friend.Group",
+    "user.FriendGroupList",
+    "user.FriendList",
+    "user.ListUserBlockedUsersCmd",
+    "user.ListUserFriendGroupsCmd",
+    "user.ListUserFriendInvitesCmd",
+    "user.ListUserFriendsCmd",
+    "user.UpdateUserEndpointPropertiesCmd",
+    "user.UpdateUserFriendCmd",
+    "user.UpdateUserStatusCmd",
+    "user.User",
+    "user.UserBlockedUserCreatedEvt",
+    "user.UserBlockedUserDeletedEvt",
+    "user.UserEndpointPropertiesUpdatedEvt",
+    "user.UserFriendCreatedEvt",
+    "user.UserFriendDeletedEvt",
+    "user.UserFriendGroupCreatedEvt",
+    "user.UserFriendGroupDeletedEvt",
+    "user.UserFriendUpdatedEvt",
+    "user.UserList",
+    "user.UserPresenceUpdatedEvt",
+    "user.UserStatusUpdatedEvt"
+  ],
+  "descriptor_extraction_errors": []
+}

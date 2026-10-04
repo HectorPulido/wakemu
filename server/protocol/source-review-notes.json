@@ -1,0 +1,1253 @@
+{
+  "jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+  "review_scope": "Every remaining observed opcode class and its actual source callers were inspected. reviewed_unresolved explicitly means source inspected without a trustworthy gameplay label, not fully mapped.",
+  "reviews": {
+    "in:318": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "sincronizar_compartimentos_cofre",
+      "review_evidence": "ciH sends compartment collection to bmK chest manager and refreshes cYz UI; bmK diagnostics explicitly say Chest/compartment",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cxt": "33380e26b5120567ad93f22a3e08c64651de4316515e75f3cc8ae255083b1e08",
+        "ciH": "d930a68a75a38e6d47c46c640d5f7e22e49661faf5b792cc756d55138caad67e"
+      },
+      "wire_headers": []
+    },
+    "in:518": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "resultado_seleccion_mundo",
+      "review_evidence": "cgY displays error.worldSelection and deleteUnderModeration error according to cne status",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cne": "84acc4c92293724df39737f2d0970c9b42f0008cf8dc1e68db3b88df5ce9c242",
+        "cgY": "fc835cf8d149fb6d2bb6cc712cdd13980a2748051dbc405c37534f087745f83e"
+      },
+      "wire_headers": []
+    },
+    "in:569": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "conteo_personajes_por_servidor",
+      "review_evidence": "cnb decodes eHY, whose countByServer field is consumed by cgU world/account selection",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cnb": "06fc2622b2c0ecd4b2abc415939e3f4108e76d66d2241c7e77b8a8023e734256",
+        "cgU": "cc7d6d3492f916c2490a143cc60ec0f841735c57795e8134320ac36dfb2845ed"
+      },
+      "wire_headers": []
+    },
+    "in:630": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "lista_amigos",
+      "review_evidence": "chc logs Received FriendListMessage and iterates fa friend protobuf collection",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "NT": "26bb1516f326a480c2aec92cf959a812fea9fec49c6b0b1309b46bf2b35bbb5f",
+        "chc": "7c2f5cd321f927b8a60ae1a0beef5df79d5259bd081b8516555c5c0f2e9b0761"
+      },
+      "wire_headers": []
+    },
+    "in:752": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "solicitud_chat_moderador",
+      "review_evidence": "chc applies hasModeratorChatRequest boolean to UI",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "NW": "5a71a0f4d6f7f13ee2f832577d6007a7ae287b6efcb75330ad217956f2bad0ab",
+        "chc": "7c2f5cd321f927b8a60ae1a0beef5df79d5259bd081b8516555c5c0f2e9b0761"
+      },
+      "wire_headers": []
+    },
+    "in:778": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "error_propiedad_mundo",
+      "review_evidence": "chc calls aOw.aW(short), whose message key is error.worldPropertyType.<code>",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "Op": "662ad85f454b575d1869eb12d80062850bba4379ae86689ef47438ce55af8d68",
+        "chc": "7c2f5cd321f927b8a60ae1a0beef5df79d5259bd081b8516555c5c0f2e9b0761"
+      },
+      "wire_headers": []
+    },
+    "in:1029": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "sincronizar_variables_globales",
+      "review_evidence": "cid iterates cDd map and applies ffV variable manager; ffV validates values against declared variable type",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cDd": "16d6bf27f52f54284db7418d62644cef09069b32d9c835302f68b1d6c2c3acb3",
+        "cid": "c3d0636c977a4616269e7bef8093c6cf10076e48865182ba548f3653a89a23f8"
+      },
+      "wire_headers": []
+    },
+    "in:12088": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "modificar_ocupacion",
+      "review_evidence": "clf queues aVl with literal fcl.OCCUPATION_MODIFICATION; chT dispatches occupation payload according to occupation type",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cyN": "f512dcaff9141926656e61a6caeb8980ea11b381954b0530fe6e7945534124a5",
+        "chT": "7ec3f40e03fcdc8029a867c06d93b8c4efe4588c9731647dd3693e7fbd7da5aa",
+        "clf": "8cce9d2a0045a41b146944ce2c573693a7b67d5ecf97cb2314d25e6edb2dd61d",
+        "cyM": "6a3cc0d3c48e9150b8216747e5092e71a16dfb44f5ac68059bef6b0084fd6265",
+        "aVl": "f6c75416178ff1d644f504b00cc3397f7423fb9ed734bc0dd537dd8da09e8b36"
+      },
+      "wire_headers": []
+    },
+    "in:12230": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "inicio_recoleccion_recurso",
+      "review_evidence": "chT explicit COLLECT START diagnostic, obtains bOm resource at x/y and starts collection occupation",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cyJ": "faa6c88d110b5fcaf45c7e18edff0c758c4bfd84013691a7b8d7acc74b4b8604",
+        "chT": "7ec3f40e03fcdc8029a867c06d93b8c4efe4588c9731647dd3693e7fbd7da5aa"
+      },
+      "wire_headers": []
+    },
+    "in:12233": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "fin_colocacion_combate",
+      "review_evidence": "ckU queues ckV using fcl.END_PLACEMENT then executes fight action queue",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cvk": "0387a6dd7325e3c4ab8da307a308868a150ca085de561d96bfd69e058220e4ff",
+        "ckU": "9ef6deca4101988491f709d65aa523156ce5c19ac0fc2f30ef75839e88d1d0ca"
+      },
+      "wire_headers": [
+        {
+          "class": "cvk",
+          "bytes": 4,
+          "fields": [
+            "i32 fight_id (cuQ.bri)"
+          ],
+          "evidence": "cvk.dp -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:12238": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "finalizar_combate",
+      "review_evidence": "cvF.eIc returns fcl.FIGHT_END; ckc/cli queue aUH fight-end action, including spectator departure",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cvF": "4cd38bddb812ff40d0b0cff169da0e93c40ba23aff688898a4b884a5da817c0e",
+        "ckc": "ede4a9a8dad509d5a904fcb04416ecb3f510465610f4aefadd3b6d832563ae0b",
+        "cli": "ec14e2b2e58a5697cc6fc9d519f36b65e3f8be69c084e1f4b2cde50f6e376827",
+        "ckK": "d506e6a8ce62ffb6e009cf8b6bd9d799882860cf1406a70ca217676e2c282df2"
+      },
+      "wire_headers": [
+        {
+          "class": "cvF",
+          "bytes": 12,
+          "fields": [
+            "i32 fight_id (cuQ.bri)",
+            "i32 action_id (cvB.dIy)",
+            "i32 mzn (cvB.mzn)"
+          ],
+          "evidence": "cvF.dp -> cvB.fl -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:12266": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "aprender_emote",
+      "review_evidence": "cgN adds emote to bdn and bOY shortcut inventory; logs emote.learnt or error.emote.alreadyKnown",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cuF": "808286811fe9ade6434f56e750f9444b4e6aef420649423045375683e8780e29",
+        "cgN": "5fb5896f75f4446782f74d7cebd7ad70bf751ca2c42911f85063cb7a022e786c"
+      },
+      "wire_headers": []
+    },
+    "in:12317": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "recompensas_pendientes",
+      "review_evidence": "ciu parses AZ reward protobuf, stores aTJ pending rewards and displays pending.rewards.notification",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cAB": "5b2dd000ee61833a8d6775e9f9050dc023f98880e54252845675a70a9537ed88",
+        "ciu": "14c9eaab059c0de61ec2f5ad1422040c70f16209ba773403a287003e7211e8ec"
+      },
+      "wire_headers": []
+    },
+    "in:12318": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "recentrar_sector_mapa",
+      "review_evidence": "csV -> cdE.em(x,y): Ve.qb/qc convert world coordinates to chunk coordinates, compare against center cdz.qa(4), shift adjacent sectors with cdz.KD or rebuild via p(x,y,false). Verified world sector recenter operation.",
+      "reviewed_schema": "i32 world_x + i32 world_y",
+      "source_disassembly_sha256": {
+        "csV": "55bbb214af0e7e52aa5bd9feb600beb9efd6dda6b520c34f20572dbec3000f14",
+        "cgN": "5fb5896f75f4446782f74d7cebd7ad70bf751ca2c42911f85063cb7a022e786c"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-extra.txt",
+          "sha256": "5e5b3535621cd9aa0f6921e9733e63102f3a2f01318de900c4a25cbbd631fa1b"
+        }
+      ]
+    },
+    "in:12344": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "actualizar_elemento_interactivo",
+      "review_evidence": "cEY deserializes cwL state into bEG interactive element; cjI/cjH queue fcl.INTERACTIVE_ELEMENT_UPDATE during fights",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cwL": "68ee3b319cd7cb972c4c41a1e0d490389b5706ec7c5e2beb03d9a3d56f70b835",
+        "cEY": "598cca1a81fab84e7a6bf21e341abcdf143c836ffec7d4974224bfdd3be1cf1a",
+        "cjI": "b83c441a237af367c927eea304dd580b26b76687bcb2d05034b4fa08d02971c1",
+        "cjH": "07c0e95fede8dcec7e5de08e618c6c71ca469249e613b4afc77ab7070e4099c4",
+        "cwK": "1c2c3bddd19028f6bd9fbd782fd6ae5f2db4aa546b356c365134692c0955ec63"
+      },
+      "wire_headers": []
+    },
+    "in:12379": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "resultado_puntuacion_pvp",
+      "review_evidence": "cik updates fxQ PvP state and emits explicit PVP score/ranking and pvp.extraction.notification",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "czQ": "5c89e2c2579a1a86c48dc5412dede3ea40168ea99a74aabfb2879e06271d797e",
+        "cik": "7c34d1c62577c61288b6e781bc8f4b4d306e3c4ed725c01b7a091f6e8fa08c62"
+      },
+      "wire_headers": []
+    },
+    "in:12421": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "accion_npc_sobre_personaje",
+      "review_evidence": "cEZ resolves source bje NPC, target bjo character and bly action, applies animation and queues aUT",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cyl": "e9eb50554310c7581e28e949747dd83dc1731f7d9d0d45b052f5b520d3efe7c9",
+        "cEZ": "42e81e64c4d06a69785478a9c3de4ce56a7e2740dc7d5a33f1185eb08d10a9e7"
+      },
+      "wire_headers": []
+    },
+    "in:12436": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "sincronizar_salud_regeneracion",
+      "review_evidence": "csX -> aUP schedules literal fcl.rTp=HEALTH_SYNC; biB.dsU()->biu.dm(value,huZ), biu.Da updates fff.on health, bic.dm stores huZ as regeneration-rate coefficient, jq computes round(rate*elapsed/ifX). Exact coefficient normalization unspecified.",
+      "reviewed_schema": "i64 actor_id + i32 health + i32 regeneration_coefficient",
+      "source_disassembly_sha256": {
+        "csX": "284432ba6dfdba94da6b748205ae254437fc909a2630e53963a550408dd9d128",
+        "cgN": "5fb5896f75f4446782f74d7cebd7ad70bf751ca2c42911f85063cb7a022e786c",
+        "aUP": "be8a4dd862aa09df7f40281c2028b56575ed0260d9faf09d35871cd264a8053a"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-gauge-stat.txt",
+          "sha256": "bdaf43887fe72db1658c601fd2287ecb9fe0fa835aa8a21830e5e66716bddde5"
+        },
+        {
+          "path": ".runtime/local/unresolved-stat.txt",
+          "sha256": "94b23dacf24682f14b314561da7ca625075a0bc9890d4822b6187c641f3cf1f4"
+        }
+      ]
+    },
+    "in:12471": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "insertar_objeto_inventario",
+      "review_evidence": "chK decodes fnR item, resolves character inventory/container and destination slot from cxa",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cxa": "bf805e3ca031c2eca7b4f11a4c5807594e2ee1fcbef7f5cf0a939a11147e9ce0",
+        "chK": "46ba927a694bcc3aa5123bb5092271b8fbcfb0d4bfb372b48506c4e62171fd13"
+      },
+      "wire_headers": []
+    },
+    "in:12588": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "lanzar_hechizo",
+      "review_evidence": "cwa.eIc returns literal fcl.SPELL_CAST; cjN queues aVm with spell yy and actor/position parameters",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cwa": "fd16cbec37204ca5fa73d23a7dc9216e407b1c522f6a2d55d2b8bc308437ed00",
+        "cjN": "0e8f1ae0e4030adac6418b6d6f13c01bb0554e9b1f1b16d2a13765e86a4af4ba",
+        "clg": "e74a42ba5e1e439db1625f80e45b64bf7cc5e75c62b33430046127fb89adefe4",
+        "bvd": "b7d2fa93c533b27519cbd6e20d462f3df26c7c253d745a7b65b702af73674033"
+      },
+      "wire_headers": [
+        {
+          "class": "cwa",
+          "bytes": 12,
+          "fields": [
+            "i32 fight_id (cuQ.bri)",
+            "i32 action_id (cvB.dIy)",
+            "i32 mzn (cvB.mzn)"
+          ],
+          "evidence": "cwa.dp -> cvB.fl -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:12634": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "resultado_montar",
+      "review_evidence": "cin resolves eGg enum with MOUNT_DEAD/MOUNT_DISABLED/OK etc and sets bjo.gj(true) if valid",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cym": "6a3cc0d3c48e9150b8216747e5092e71a16dfb44f5ac68059bef6b0084fd6265",
+        "cin": "0ecfa20e4ea0250b30459bae2c9f0cb3c32ac48e2db59f832edc20a5a5bc7393"
+      },
+      "wire_headers": []
+    },
+    "in:12678": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "notificacion_lanzar_hechizo",
+      "review_evidence": "cwb.eIc returns literal fcl.SPELL_CAST_NOTIFICATION; cjO creates aVn which logs fight.spellCast and critical results",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cwb": "c4d5c8a7f7410ea3df2c11b2a1c07264450fccd7dc72014eb009f3bcbdde05c2",
+        "cjO": "8fd5365d61d2cd8d36723c19129b00b7c275d1826cd7756601912e5e2d120f8d"
+      },
+      "wire_headers": [
+        {
+          "class": "cwb",
+          "bytes": 12,
+          "fields": [
+            "i32 fight_id (cuQ.bri)",
+            "i32 action_id (cvB.dIy)",
+            "i32 mzn (cvB.mzn)"
+          ],
+          "evidence": "cwb.dp -> cvB.fl -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:12705": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "ejecutar_efecto_catalogo",
+      "review_evidence": "cBs.eOd returns fAp.tEl literal EFFECT_EXECUTION. ciu clones eVi.pS(effectID) as eZR and applies eZR.ds(nestedbytes). eVi definitions have explicit effect descriptions (Gain PA etc). This is effect execution dispatch, not script engine. Nested effect bytes and trailing triplet semantics remain opaque.",
+      "reviewed_schema": "i32 dIy + i32 mzn + bool mEW + bool mzM + i32 effect_id + i16 bloblength + effect-specific bytes + repeated(i32,i32,i64)",
+      "source_disassembly_sha256": {
+        "cBs": "37c2cb60f3f6989e91909bec21ffe01cdf1e472eb127f913f7a9911b3ecc132a",
+        "ciu": "14c9eaab059c0de61ec2f5ad1422040c70f16209ba773403a287003e7211e8ec"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-script-final.txt",
+          "sha256": "c10bca1fef431021a8a6ec11ca79f37bff597110bec29a68bb6cb35e063a4240"
+        },
+        {
+          "path": ".runtime/local/unresolved-final-headers.txt",
+          "sha256": "be6c33b99422dc7622629f71f1893c8f4d3552ff92de20540a64a118f94a95bd"
+        }
+      ]
+    },
+    "in:12755": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "informe_resultados_combate",
+      "review_evidence": "cvJ.eIc returns literal fcl.FIGHT_REPORT; cju queues aUI report with ji protobuf and fight context",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cvJ": "be3f14a82a66de17a0e265b1ad0b02f62e6962e4e8be63375ffd64b69aca750d",
+        "cju": "6a5b5db06084acacf599635300fa254d6afbaaa480370d90b197ddba2234756b"
+      },
+      "wire_headers": [
+        {
+          "class": "cvJ",
+          "bytes": 12,
+          "fields": [
+            "i32 fight_id (cuQ.bri)",
+            "i32 action_id (cvB.dIy)",
+            "i32 mzn (cvB.mzn)"
+          ],
+          "evidence": "cvJ.dp -> cvB.fl -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:12815": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "inicio_plantacion",
+      "review_evidence": "chT explicit PLANT START diagnostic, creates bme planting occupation and verifies destination resource tile",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cyK": "c6972a2f9b94db7c5d57e5aa105e3f2c8560272cdc58aa884dc79ccd16c612e5",
+        "chT": "7ec3f40e03fcdc8029a867c06d93b8c4efe4588c9731647dd3693e7fbd7da5aa"
+      },
+      "wire_headers": []
+    },
+    "in:12847": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "crear_combate",
+      "review_evidence": "ckf explicitly queues fcl.FIGHT_CREATION and ckP reconstructs fight type, teams, map and actors",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cvb": "39ccfeb6ced24b4250f06c5729afd045a0dddbe766ecadd7edf7609507d10786",
+        "ckf": "2953a361226923dacd2fc7d947d70fe856a6e273d5d08459c8bfe2fde8456981",
+        "ckP": "16561b87ad8950e657f052df91b1279cd118d36bb8f1228da6f5d3cf68b9e1c9",
+        "cva": "2f477ab76d450b60e31fb06fe97df5c7ec43b298ab9afd1eeffe6994ede5104c",
+        "buK": "8d7ffb1467daaa9201251d224835fa3ed16c1b419ac9eb063a0a1c07ba02103e",
+        "aVK": "fe475611e4383d33f50c3fed223fcaf31aef920dfed43d67215bd544c291f0d5"
+      },
+      "wire_headers": [
+        {
+          "class": "cvb",
+          "bytes": 4,
+          "fields": [
+            "i32 fight_id (cuQ.bri)"
+          ],
+          "evidence": "cvb.dp -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:12852": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "sincronizar_inventarios",
+      "review_evidence": "chK passes cwQ container map to bJk and checks item duplication/count/position consistency",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cwQ": "3af4160452487035f2f86a371454fd7220ea3b28695c9e796e230a68d22e72ce",
+        "chK": "46ba927a694bcc3aa5123bb5092271b8fbcfb0d4bfb372b48506c4e62171fd13"
+      },
+      "wire_headers": []
+    },
+    "in:12873": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "actualizar_entidad_combatiente",
+      "review_evidence": "cjU schedules cuU actor binary body application through big.a(payload,false); nested entity blocks remain opaque",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cuU": "459a51bdd7c7497ebd2bd980d8ee30d696134c3f2355db1b5134d2432aec4489",
+        "cjU": "6a5b5db06084acacf599635300fa254d6afbaaa480370d90b197ddba2234756b"
+      },
+      "wire_headers": []
+    },
+    "in:12877": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "activar_efecto_visual_ogrest",
+      "review_evidence": "ctW bool+long -> ciu compares long to biB.arM, aHu.clear then yG(42) if true/-1 false. aHu.yG42 -> chp adds abb, tint cda and aHv.chv shader whose literal name is ogrest. Thus toggles visual Ogrest effect for matching world context, not account presence.",
+      "reviewed_schema": "bool enabled + i64 world_context_id (matching biB.arM)",
+      "source_disassembly_sha256": {
+        "ctW": "88f3f969ba71b9aff0fafdbf36144d8b18ba18db6dec0742cfce61a97dcafef9",
+        "ciu": "14c9eaab059c0de61ec2f5ad1422040c70f16209ba773403a287003e7211e8ec"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-account-state.txt",
+          "sha256": "07778337509074e892f74285372922a1ced6002d25f37db7b005834827b67bc6"
+        }
+      ]
+    },
+    "in:12892": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "inicio_ejecucion_acciones_combate",
+      "review_evidence": "ckA queues aUA with literal fcl.START_ACTION, preparing fight action execution",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cvz": "512b53743e09b1d22ef3fd0afd09ddf05decc97f60d0698f3a274979db5c125a",
+        "ckA": "18fc1ae4193fd5a8fc310f51c8ffa00a33e6b18ef21c33595001f1b95e3046cd"
+      },
+      "wire_headers": [
+        {
+          "class": "cvz",
+          "bytes": 4,
+          "fields": [
+            "i32 fight_id (cuQ.bri)"
+          ],
+          "evidence": "cvz.dp -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:12916": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "ganar_experiencia_oficio",
+      "review_evidence": "cux -> chh.a(eTo,cux) -> eTo.D(craftId,long). Default eTm.D literal [CRAFT] Adding xp; concrete eTe.D invokes eTa.qJ(delta), adds to ban XP, clamps with eTD level200 curve. Therefore long is XP gain delta, not absolute progression.",
+      "reviewed_schema": "i32 profession_id + i64 xp_gain",
+      "source_disassembly_sha256": {
+        "cux": "4ac6875b273cfba8ecf13a5f870d5226ccdba648c5f71d2b193461ad275667b7",
+        "chh": "93822585b0e9dea6be949bb307cf9705667aba803a5f0220a6fd53b83defb1df"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-professions.txt",
+          "sha256": "1e6d51968651ea628876fb175d3c482c16962ac72e2f38f20fcec40dbc8c0361"
+        },
+        {
+          "path": ".runtime/local/unresolved-profession-xp.txt",
+          "sha256": "9f60477837274ab4cc3ea94ba7210351d4d2fcb9c4c004b2528fefce69ead313"
+        }
+      ]
+    },
+    "in:12919": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "sincronizar_inventario_personaje",
+      "review_evidence": "chK resolves owner and passes cwP inventory map to bJk; handles duplication/count/bad-position errors",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cwP": "3c18a7f8ec93e82c7a23a7ee3ebc5e2a6275195c0104672f725b0c3b832f6360",
+        "chK": "46ba927a694bcc3aa5123bb5092271b8fbcfb0d4bfb372b48506c4e62171fd13"
+      },
+      "wire_headers": []
+    },
+    "in:12954": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "resultado_plantacion_semilla",
+      "review_evidence": "cAZ boolean -> cgN.a success -> dev.eXh, failure warning; dev current item action casts bIi, whose foI.sKQ literal SEED_ACTION says planting item. dev.eXh calls profession RI successful plantation and creates planted entity; handler consumes one seed via bJt.d(item,1). Prefix long/int purpose not proven; preserved Java field names.",
+      "reviewed_schema": "i64 mEI + i32 eiT + bool success",
+      "source_disassembly_sha256": {
+        "cAZ": "c3b7454913c3c17014a085b9bc6ad3c2d41ff726c448f8c6ccd755930cde8b71",
+        "cgN": "5fb5896f75f4446782f74d7cebd7ad70bf751ca2c42911f85063cb7a022e786c"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-legality.txt",
+          "sha256": "c3b7454913c3c17014a085b9bc6ad3c2d41ff726c448f8c6ccd755930cde8b71"
+        },
+        {
+          "path": ".runtime/local/unresolved-last-actions.txt",
+          "sha256": "56340181b63f337ebaab89faec97494b39792f78c0c84eaade516a155bfc83c8"
+        }
+      ]
+    },
+    "in:13026": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "liberar_acciones_combate_diferidas",
+      "review_evidence": "cuX.dp reads only cuQ.fj fight_id. ckJ finds fight in ckL.mmC, queues stored callbacks mmD..mmO through aUb.a(fight,action), removes all retained entries and invokes aUb.m(buS.FW(fight)). This is release of deferred combat initialization actions; no claim of ACK/delivery ordering guarantee beyond code.",
+      "reviewed_schema": "i32 fight_id",
+      "source_disassembly_sha256": {
+        "cuX": "4ac6875b273cfba8ecf13a5f870d5226ccdba648c5f71d2b193461ad275667b7",
+        "ckJ": "861e7c73a3aebf8fde99db3e34142ee56aa1c7689be772d5eb4f6958c7b7eb2d"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-fight-sync.txt",
+          "sha256": "875e37e0073455f7f69698d198a23a9acb716ee8ce7f54518d17e0a4c9c6c537"
+        }
+      ]
+    },
+    "in:13060": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "actualizar_atributos_actor",
+      "review_evidence": "cgN applies csP byte-key pairs to actor attributes through a(big,byte,int)/b(big,byte,int), then refreshes actor",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "csP": "e55afad93640de226885f0a15823df92d7a8940129f3fce6aebf5e153a88a860",
+        "cgN": "5fb5896f75f4446782f74d7cebd7ad70bf751ca2c42911f85063cb7a022e786c"
+      },
+      "wire_headers": []
+    },
+    "in:13091": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "incorporar_combatiente",
+      "review_evidence": "cjs queues aVH using literal fcl.JOIN_FIGHT; ckT creates/updates actor in fight and assigns team",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cvg": "33a722b2ce0b35246780322b1f33216982f036728bba49d8bc53d1895166ea42",
+        "cjs": "6a854ee31792b04094e2435df6b95495269abf9d48550882530af3f74543899e",
+        "ckT": "a6bdb0d90cd9d0a0efe27b2ba75d8f1cfdb2418bb9f214e7a3b1072c04dde3a3"
+      },
+      "wire_headers": [
+        {
+          "class": "cvg",
+          "bytes": 4,
+          "fields": [
+            "i32 fight_id (cuQ.bri)"
+          ],
+          "evidence": "cvg.dp -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:13100": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "desbloquear_vistas_merkasaco",
+      "review_evidence": "chf applies fn/list unlock data to bkK/bob and emits chat.notify.dimensionalBagViewUnlocked",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cuk": "f110ceb70c8dfba8d3c70ffbed3d5e3af0e99a5103ca30288c1feb580fae1da8",
+        "chf": "9bcf8508a67850f265f6bef4ac0dab1ef78e8f1ee734679a1bde3632071c8af0"
+      },
+      "wire_headers": []
+    },
+    "in:13136": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "actualizar_mazo_hechizos",
+      "review_evidence": "cmm constructs fzd and applies character/build index plus active/passive reference lists, then refreshes spells UI",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cBc": "abd6ef771d4bbfbef535104391091a4035377af99f17b95a9ce5bda017997705",
+        "cmm": "d7ee20c2c5adef5042a3e83b6de8b1e9fd66e79344d517c2c9f0640d93f365f9"
+      },
+      "wire_headers": []
+    },
+    "in:13205": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "reiniciar_logro",
+      "review_evidence": "cEJ -> bdM.By resets bdD achievement and its objectives",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "ctv": "2b6391b6f87156f7b09e785cefd4b6baf89ea9be04b86acefec7df1a042a6843",
+        "cEJ": "4e7d31dbe16481b410d923a9b243d5a52d36c29b100d82df1f651e42dc127dbc"
+      },
+      "wire_headers": []
+    },
+    "in:13256": {
+      "semantic_status": "reviewed_unresolved",
+      "semantic_action": "unresolved",
+      "review_evidence": "ctB.dp verifies zero bytes; no handler references found beyond cgD factory. Empty message confirmed but gameplay purpose unresolved.",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "ctB": "a666c503b10d4f38f6615f086d88da3c9bc39a52ad9efaa70e1ab97bac6849cc"
+      },
+      "wire_headers": []
+    },
+    "in:13295": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "actualizar_variable_logro",
+      "review_evidence": "cEM -> bdM.o(int,long), whose variable map is queried by achievement context",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cty": "aa2c3c85cf3f6c2c3a8ac98fa0c931af528f0cc1f6cd78e7bf2866203870a423",
+        "cEM": "1979cbc5e1bd6130d2cc00457f8ab21442ae9a2f954d0749b9e136176a16b9b0"
+      },
+      "wire_headers": []
+    },
+    "in:13312": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "activar_logro",
+      "review_evidence": "cEC -> bdM.Bt(int), with literal Achievement activated in bdM constant-pool",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cto": "e33bfca341b6cde2a92ee72a97eb5a258696ea3b38bca0f4fc37914d64c8c7d7",
+        "cEC": "9da4f940e4ea5f5f4e31bacb5e69e920138d6069a49bac6923d2cd78652c6cc6"
+      },
+      "wire_headers": []
+    },
+    "in:13369": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "lista_regalos_personaje",
+      "review_evidence": "chr updates bwC gift records and playerGift UI; playerGift.error.capReached flag",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cwj": "58493b7d71c32523d6b8236483512b257c0a743845ceaa06d42abcf9b871b927",
+        "chr": "8d71545404238d9f0f9564609afff5a796682b1413febc695db62236b116e94a"
+      },
+      "wire_headers": []
+    },
+    "in:13371": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "seguir_logro",
+      "review_evidence": "cEG -> bdM.r(id,bool) adds/removes achievement from tracked list",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cts": "2492f9a13d5f7181864c4b328cb3f876e2e316ab8bd411d117be240a47f969ce",
+        "cEG": "2a83282b06119b2a74fc21458b299368d5ec51fec32e72f924b4926a846580c0"
+      },
+      "wire_headers": []
+    },
+    "in:13396": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "asignar_xp_actor_legacy",
+      "review_evidence": "cgN resolves actor and calls bjo.jG(xp); current XP derives level through MP.aXu.cS; handler comments deprecated GameActionPlayScript path",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cBw": "bcc351504922ce87bf4a0da7a2735f105ca085d20fb221bab707d9a80a19d9fa",
+        "cgN": "5fb5896f75f4446782f74d7cebd7ad70bf751ca2c42911f85063cb7a022e786c"
+      },
+      "wire_headers": []
+    },
+    "in:13411": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "ejecutar_evento_escenario",
+      "review_evidence": "cio passes scenarioId/eventId/actorIDs/flag to ahp; ahp resolves scenario scripts and event_<id>_<id>",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cAS": "3ceb3ad4ae2a16a6732133452dec9c7c7641af255f9521fa53fc15659dcf5a54",
+        "cio": "740c60cdaa0879ae60d0712006d0e01fd77c676b534dcf6aa8fbf1bd6ff3180c"
+      },
+      "wire_headers": []
+    },
+    "in:13421": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "habilitar_accion_recurso_para_actor",
+      "review_evidence": "cyg -> cFc -> bje.u(id,bool) modifies disallowed-ID set; bje.Ds(id) queries inverted membership. cXc.eVy checks bje.Ds(boq.d resource action ID) to enable harvesting/resource contextual action. Integer previously named fight_id was misleading; it is resource action ID.",
+      "reviewed_schema": "i64 actor_id + i32 resource_action_id + bool enabled",
+      "source_disassembly_sha256": {
+        "cyg": "efd336eae1cae3de8e0c5b55ce7fef6e57b7cb0ec5cb6b321106e9b67283bbce",
+        "cFc": "14eaee29169b303b2d5f2929200b726bcaa734731998b866ae63b07b575c773f"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-fighter-flag.txt",
+          "sha256": "910c444f7ab7997904288966be7c3d1207e42b9acd2ad879493cd619ee4f45cb"
+        }
+      ]
+    },
+    "in:13422": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "completar_logro",
+      "review_evidence": "cEE -> bdM.q(id,time) completes achievement, emits Achievement unlocked with server time and refreshes objective notifications",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "ctq": "1c9c6750b85d5e83d6b5de07b50de78dae72103032a42c56164a935eacaf107c",
+        "cEE": "b9a414b4c61e04cad58cc535253b1f1bb13461a844d388c5a91c76edfcec5919"
+      },
+      "wire_headers": []
+    },
+    "in:13477": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "nuevo_turno_mesa_combate",
+      "review_evidence": "cwc.eIc returns literal fcl.NEW_TABLE_TURN; ckB/clm/clh queue aVd table-turn action",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cwc": "7b779113c3ab132f39669f9018fc990c9409b6e7c7d03b755436876104d752de",
+        "ckB": "97d724d1ec453bf04c9579941fb4a27db36631f8a040f02a0d19d5d46ed8dc9a",
+        "clm": "2e34b61c2d4baac6b07db20de8d419698fd07c65c57f26d558a8ed98216387b5",
+        "clh": "13286acce2ee6b84442e3cb82293730c8246c2e9ac648d583eae08fa758edae2"
+      },
+      "wire_headers": [
+        {
+          "class": "cwc",
+          "bytes": 12,
+          "fields": [
+            "i32 fight_id (cuQ.bri)",
+            "i32 action_id (cvB.dIy)",
+            "i32 mzn (cvB.mzn)"
+          ],
+          "evidence": "cwc.dp -> cvB.fl -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:13509": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "usar_objeto_combate",
+      "review_evidence": "cvO.eIc returns literal fcl.ITEM_USE; cjz/ckY resolve inventory item and apply bve action",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cvO": "a817221334e5f488aa8333648362c0143a329fada5f70735cce534319672dfba",
+        "cjz": "27271f9d3f8d3594d24030d8f7a8a07a154a62316096850bb05a79738fcc65e9",
+        "ckY": "e045d2b4ab576b82d9e42978b34077bece0a41984a33151d61b26105ffe3fdf4",
+        "bve": "074e098c800643197a586e44baf231d17ba7dfe2d6ea39b50cf534755610cfd9"
+      },
+      "wire_headers": [
+        {
+          "class": "cvO",
+          "bytes": 12,
+          "fields": [
+            "i32 fight_id (cuQ.bri)",
+            "i32 action_id (cvB.dIy)",
+            "i32 mzn (cvB.mzn)"
+          ],
+          "evidence": "cvO.dp -> cvB.fl -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:13574": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "modificar_medidor_wakfu_stasis",
+      "review_evidence": "cte -> cgN.a + cgQ queues literal fcl.rTE=WAKFU_GAUGE_MODIFICATION; bjo.Dp writes fzY gauge signed integer, including +/-10000 endpoints.",
+      "reviewed_schema": "i64 actor_id + i32 gauge_value",
+      "source_disassembly_sha256": {
+        "cte": "d9e1228115a85de74ec16ab72a9d7a46f96477232d548db558c2a8989ec341f4",
+        "cgN": "5fb5896f75f4446782f74d7cebd7ad70bf751ca2c42911f85063cb7a022e786c"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-cgN.txt",
+          "sha256": "5fb5896f75f4446782f74d7cebd7ad70bf751ca2c42911f85063cb7a022e786c"
+        },
+        {
+          "path": ".runtime/local/unresolved-bjo.txt",
+          "sha256": "5b2cbe7b2e84ae279cd25cb8f529ba97d73a8b54b62a7e0f9495a617cd18d502"
+        },
+        {
+          "path": ".runtime/local/unresolved-fzY.txt",
+          "sha256": "ea8cfbdf7d5f520884ec76409fb520356b8be49b81fe204f258ad96878f786c6"
+        }
+      ]
+    },
+    "in:13597": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "inicio_recoleccion_monstruo",
+      "review_evidence": "chT explicit COLLECT MONSTER START diagnostic; resolves actor and monster and starts corresponding occupation",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cta": "82e62389135296e65eba9423f6aa4b0e8b7d4d9e5bdb6c578108715ddd6b04ee",
+        "chT": "7ec3f40e03fcdc8029a867c06d93b8c4efe4588c9731647dd3693e7fbd7da5aa"
+      },
+      "wire_headers": []
+    },
+    "in:13613": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "ganancia_xp_y_hechizos",
+      "review_evidence": "ckr handles fight/end XP report fCs; aVf uses fcl.XP_GAIN and aVr uses fcl.SKILL_OR_SPELL_XP_GAIN",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cvu": "5f135a3328ec2ef1200e838cc67baa18e777bd04bf46de89c44fdee7aac1bfb7",
+        "ciu": "14c9eaab059c0de61ec2f5ad1422040c70f16209ba773403a287003e7211e8ec",
+        "ckr": "abc6b9280fcf211222ab238ba76ee6618234623fddae5785b174ebc99f5f3719",
+        "aVf": "28a8c6b97103460f3e86fd201e691f6a119777828947aa02f6985f0e427eb058",
+        "aVr": "573fe679c5c99a4aa040956aa29f8ed2b8409cdc785bb70df5065f0e3b608fe0"
+      },
+      "wire_headers": []
+    },
+    "in:13652": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "sincronizar_posiciones_combate_lote",
+      "review_evidence": "cvq -> cla queues literal fcl.rSP MOVE_CHARACTER aUs plus fcl.rTb TAUNT for nonlocal actors, stores positions buU. aUs.fe(flag) true forces direct big.b(x,y,z) with temporary graphics state; false may animate unless config/state disallows. Identified batch relocation operation and force-immediate flag.",
+      "reviewed_schema": "i32 fight_id + i16 count + count*(i64 actor_id,i32 x,i32 y,i16 z) + bool force_immediate; captured frames contain four trailing zero padding bytes ignored by Java, preserved by decoder",
+      "source_disassembly_sha256": {
+        "cvq": "895bc60928465c5cf67f188c41f1e484c9e749ac8577a09c54c5838945cb9300",
+        "cla": "29dca47baf01ae17520e71c0ff02986b3ddb2335c99220a6db20319f40db2820"
+      },
+      "wire_headers": [
+        {
+          "class": "cvq",
+          "bytes": 4,
+          "fields": [
+            "i32 fight_id (cuQ.bri)"
+          ],
+          "evidence": "cvq.dp -> cuQ.fj; source reviewed against current JAR"
+        }
+      ],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-move-batch.txt",
+          "sha256": "dde4049b3263574523fecfa4f90b563274dcaf7e7c92605e759b77df1eb862e9"
+        },
+        {
+          "path": ".runtime/local/unresolved-final-headers.txt",
+          "sha256": "be6c33b99422dc7622629f71f1893c8f4d3552ff92de20540a64a118f94a95bd"
+        }
+      ]
+    },
+    "in:13664": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "crear_elementos_interactivos_dinamicos",
+      "review_evidence": "cET iterates cwG template/state/instance positions, deserializes bEG and inserts each into cdE world manager",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cwG": "df8d0d9fc149ce40d48523acc4817b442eba4e11c67437962bd27420244c467c",
+        "cET": "00e4e7bb31f5460ad4af3528774e673324c5007ecb4b102784985c541380f161"
+      },
+      "wire_headers": []
+    },
+    "in:13735": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "fase_animacion_interaccion_actor",
+      "review_evidence": "cBk actor/id/flag -> beS.t(id,!flag) -> fyB.aae(id) animation definition -> bPh.a(start)/bPh.b(end). Start uses fyA.gtE animation; end strips -Debut and appends literal -Fin. ID is definition in fyB catalog; no claim that every ID is an emote.",
+      "reviewed_schema": "i64 actor_id + i32 animation_definition_id + bool ending; captured frames contain four trailing zero padding bytes ignored by Java, preserved by decoder",
+      "source_disassembly_sha256": {
+        "cBk": "892d0e7a48d748edf59ef61f74aff4a320f0565dfa55b1f72cf32d80144353b9",
+        "cFV": "52c6e58569d0f10ed0d637f944f7e50bedce0d122a266f3670ed64880a67d0e1"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-actor-modifier.txt",
+          "sha256": "c9ab41c40a773415e932e5d8f23198838f375c9ec0d26bae1db27b00cb50dd27"
+        },
+        {
+          "path": ".runtime/local/unresolved-appearance-definition.txt",
+          "sha256": "38517ed4d8971fb5cf2356000cea1b2e5e5135742f5c5fe38e3c23dd493264f6"
+        }
+      ]
+    },
+    "in:13753": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "sincronizar_burbuja_combate",
+      "review_evidence": "ckM reconstructs buG fight-bubble type/team/context and schedules related look/animation/taunt actions",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cuY": "b80542b3a9afa50c939c4a6ba8150e91179b3fbbd6d07fcebaded2c6f3a9edef",
+        "ckM": "5e181f5b698b12a904b5690fae439e2e0a6cdc237dd66db75a937771d116b594"
+      },
+      "wire_headers": [
+        {
+          "class": "cuY",
+          "bytes": 4,
+          "fields": [
+            "i32 fight_id (cuQ.bri)"
+          ],
+          "evidence": "cuY.dp -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:13778": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "reponer_reserva_uids_cliente",
+      "review_evidence": "cwX first byte0 means clear UID reserve; chK calls bGE.removeAll then ln for each q UID. bGE.baX pops reserved UID and requests cpQ when empty; diagnostic literal Clients UID list is empty. Therefore reserved identifiers, not inventory records.",
+      "reviewed_schema": "i8 reset_mode (0 clears) + i8 count + count*i64 reserved_uid",
+      "source_disassembly_sha256": {
+        "cwX": "bdbebc4ee176362d15c078829dbfa28c96cde70ddd9d5e54c06cd14e5f527580",
+        "chK": "46ba927a694bcc3aa5123bb5092271b8fbcfb0d4bfb372b48506c4e62171fd13"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-inventory-manager.txt",
+          "sha256": "7629baef56d492b8bba378bd4534e3552bc6a03d51cb8cf47881416fafa70989"
+        },
+        {
+          "path": ".runtime/local/unresolved-cwX-handler.txt",
+          "sha256": "46ba927a694bcc3aa5123bb5092271b8fbcfb0d4bfb372b48506c4e62171fd13"
+        }
+      ]
+    },
+    "in:13808": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "accion_area_efecto",
+      "review_evidence": "cvD.eIc returns literal fcl.EFFEC_AREA_ACTION; cjo queues aTX with actor/effect-area parameters",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cvD": "de376904ab680a2231d12cca41f10f6eebda5a87ce08b50da3fc9c449bda81b2",
+        "cjo": "8fd5365d61d2cd8d36723c19129b00b7c275d1826cd7756601912e5e2d120f8d"
+      },
+      "wire_headers": [
+        {
+          "class": "cvD",
+          "bytes": 12,
+          "fields": [
+            "i32 fight_id (cuQ.bri)",
+            "i32 action_id (cvB.dIy)",
+            "i32 mzn (cvB.mzn)"
+          ],
+          "evidence": "cvD.dp -> cvB.fl -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:13832": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "completar_objetivo_logro",
+      "review_evidence": "cEH -> bdM.Br(int) sets bdS objective complete and emits Achievement objective completed",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "ctt": "2ff9a992595f484f8929ed4e2f45dafd1a8f7270df82f08d06e8f155a0fffd21",
+        "cEH": "af837075846e44af4444d14a1cb0b020d868f6854dca682d5647153e77bde65d"
+      },
+      "wire_headers": []
+    },
+    "in:13879": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "actualizar_inventario_objetos_mision",
+      "review_evidence": "chG obtains fmz QuestItemInventory and applies fmK operations through fmA visitor",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cwN": "78b744e5c927832a17ef3bf9380506f4766743f06d041a486eeebf59331f1375",
+        "chG": "b650a6f0c27f7ca63070c02a1735623f11ffcab950995bafb2dd84a9857158fa"
+      },
+      "wire_headers": []
+    },
+    "in:13887": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "fijar_posicion_combatiente",
+      "review_evidence": "cjD queues aVk with literal fcl.SET_POSITION and actor/aBn position",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cvQ": "895bc60928465c5cf67f188c41f1e484c9e749ac8577a09c54c5838945cb9300",
+        "cjD": "56c2991c69e4d35eb596e95d98d1fa901769bfdfb86384a861aaaa545463ecef"
+      },
+      "wire_headers": [
+        {
+          "class": "cvQ",
+          "bytes": 4,
+          "fields": [
+            "i32 fight_id (cuQ.bri)"
+          ],
+          "evidence": "cvQ.dp -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:13912": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "sincronizar_efectos_combatiente",
+      "review_evidence": "cjW uses fcl.EFFECT_SYNCHRONISATION, applies effect bytes and refreshes actor effect lists",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cuV": "53838059d281f7ee72cf6e91811a4fd0b2d9d9e94d477fbf152c9d43bb3215b7",
+        "cjW": "e57017cd0d06849b29601c1e18a10bbe4df31e5cb73616242c9bbdf1ab627eb8"
+      },
+      "wire_headers": []
+    },
+    "in:13928": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "desmontar",
+      "review_evidence": "cin resolves actor, sets bjo.gj(false) and applies exit animation",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cyn": "f512dcaff9141926656e61a6caeb8980ea11b381954b0530fe6e7945534124a5",
+        "cin": "0ecfa20e4ea0250b30459bae2c9f0cb3c32ac48e2db59f832edc20a5a5bc7393"
+      },
+      "wire_headers": []
+    },
+    "in:13970": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "combatiente_habla",
+      "review_evidence": "cvR.eIc returns literal fcl.FIGHTER_SPEAK; cjE queues aUL localized phrase/chat action",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cvR": "b044a1a5469a1b7c650015c7a417e5fbbbc3f0df57fde0a2b8241bb0176b7d9d",
+        "cjE": "6cd7d805017e5dd1f2e75b0c3a167a73b8db4db75c3a1639dc5341bb4ab57b54"
+      },
+      "wire_headers": [
+        {
+          "class": "cvR",
+          "bytes": 12,
+          "fields": [
+            "i32 fight_id (cuQ.bri)",
+            "i32 action_id (cvB.dIy)",
+            "i32 mzn (cvB.mzn)"
+          ],
+          "evidence": "cvR.dp -> cvB.fl -> cuQ.fj; source reviewed against current JAR"
+        }
+      ]
+    },
+    "in:13989": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "inicio_artesania",
+      "review_evidence": "chh resolves craft station bFA and recipe eTx, creates blQ craft occupation and schedules client animation/progress",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cuv": "53838059d281f7ee72cf6e91811a4fd0b2d9d9e94d477fbf152c9d43bb3215b7",
+        "chh": "93822585b0e9dea6be949bb307cf9705667aba803a5f0220a6fd53b83defb1df"
+      },
+      "wire_headers": []
+    },
+    "in:14303": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "sincronizar_precios_promedio_mercado",
+      "review_evidence": "cDs -> bJj.C(map), bGl property literal marketAveragePrice calls bJj.aZ(fnR); keys item reference, five-slot values indexed by fnR.ggJ. fCV.fa uses java.util.zip.InflaterOutputStream (zlib).",
+      "reviewed_schema": "zlib compressed repeated i32 item_reference + i8 five-slot presence mask + i64 prices for present bits",
+      "source_disassembly_sha256": {
+        "cDs": "ef086577a39453480fbb5123c409cc4ff6d104afce1d88b7d9c7dbac98397e76",
+        "chK": "46ba927a694bcc3aa5123bb5092271b8fbcfb0d4bfb372b48506c4e62171fd13"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-map-manager.txt",
+          "sha256": "0b6e6054287ed4782a46e922ea1157dbd448f5cd0c655be656c9e5a8e5b15922"
+        },
+        {
+          "path": ".runtime/local/unresolved-prices-ui.txt",
+          "sha256": "9132960813e5966ecf46ee000ffeedd2dd0e45fff6b5bfda2f27958a8bbfc6ca"
+        }
+      ]
+    },
+    "in:15529": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "sincronizar_mazmorras_realizadas_mes",
+      "review_evidence": "cCJ -> ciS -> bpX.a(actor,set); bpU.dEV uses bpX.B(actor,iTl) for literal hasBeenDoneThisMonth. bpU is dungeon reward UI, confirming per-actor dungeon completion IDs.",
+      "reviewed_schema": "i64 actor_id + i16 count + count*i32 dungeon_id",
+      "source_disassembly_sha256": {
+        "cCJ": "2b764903336be79db95673bed2819996d736d9eb0245a04d1b98c19726943baf",
+        "ciS": "f783d2fb2aa879a79564f59368e0493a1cd9a1adcf23fe4cfd749d106a2cf29f"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-actor-set.txt",
+          "sha256": "7e2a4088aa911e642578b5269d605ccb3b8507d02452de48a0689174a855db5f"
+        },
+        {
+          "path": ".runtime/local/unresolved-set-consumer.txt",
+          "sha256": "d0c6f4657949beb9848d6ad1bc3023203692feead30639155fbd93c0458f1b54"
+        }
+      ]
+    },
+    "in:15548": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "actualizar_estado_serializado_personaje",
+      "review_evidence": "cyo -> ciu confirms UID against current biB.Sn or retrieves same-account character fkK.aA(accountUID,characterUID); queues ciy if absent; applies biB.as(blob) and compares biB.Xt before/after, emitting btC on change. This is a serialized character entity update, not an account blob; nested entity fields remain opaque.",
+      "reviewed_schema": "i64 character_id + i16 length + serialized character entity blob",
+      "source_disassembly_sha256": {
+        "cyo": "d0893429a1d89019c93ff15911b0a829a2dd6a704e8c511628c80ddc49bd0631",
+        "ciu": "14c9eaab059c0de61ec2f5ad1422040c70f16209ba773403a287003e7211e8ec"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-cyo.txt",
+          "sha256": "d0893429a1d89019c93ff15911b0a829a2dd6a704e8c511628c80ddc49bd0631"
+        }
+      ]
+    },
+    "in:15984": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "sincronizar_estado_serializado_naciones",
+      "review_evidence": "cyq loop nationID/i32length/blob -> chP resolves frp.XH(nationID), creates frk.XE if absent, invokes frk.j(blob). chP.eg reads first blob byte as fsm ordinal; verified literal subtypes include GOVERNMENT,DIPLOMACY,LAWS,ECONOMY,SURVEY and initialization groups. Nested frk state remains opaque; this identifies operation without pretending full nested decoding.",
+      "reviewed_schema": "repeated i32 nation_id + i32 length + nested nation update bytes (first byte fsm ordinal)",
+      "source_disassembly_sha256": {
+        "cyq": "23288ae7ffb4bf3e1f7e42b626f57f87cfa46b9af354811e143aeb826709d72d",
+        "chP": "d013bb9b54b933181e07e97c053454a5e048318d4908791c8599b2563f11b590"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-politics.txt",
+          "sha256": "9b9f9054f2b4a5a935f9cd675b1d34f5f4469a1ca5af421a4e17a68e75b5dc30"
+        },
+        {
+          "path": ".runtime/local/unresolved-nation-subtypes.txt",
+          "sha256": "116a337e14df400eafaa1d673be601af14c9eda337dd2b56a038dae3b52ac555"
+        }
+      ]
+    },
+    "in:22731": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "clase_companero_gratis",
+      "review_evidence": "aZq applies cEs short to eSH FreeCompanionManager free-companion breed",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cEs": "28889521c53142cd31afadc8914cbe547aedbc344ac66815d5ffa95bef501345",
+        "aZq": "10e284eebab716894765fcc3bde586dd150e866023748d1df7a3358effadde6a"
+      },
+      "wire_headers": []
+    },
+    "in:23992": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "actualizar_ranuras_personaje_adicionales",
+      "review_evidence": "cEl byte -> biz -> bkg.b: ine=byte; inf=eEI.j(eEL.oZT)+ine, literal eEL.oZT=FREE_CHARACTER_SLOTS (default5). UI maxCharacterCount exposes inf and characterCountText shows ing/inf. Therefore byte is additional slots, not total count or status.",
+      "reviewed_schema": "i8 additional_character_slots",
+      "source_disassembly_sha256": {
+        "cEl": "279399d277cbca26e920ef49e48b64758aae209d646f637422d4bc2bf5e267a6",
+        "cgY": "fc835cf8d149fb6d2bb6cc712cdd13980a2748051dbc405c37534f087745f83e"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-selection-byte.txt",
+          "sha256": "fef6ea3930b05c2a2eb4431dc3c0e47f41a3d7e283cd1cc69038394dfdf8d605"
+        },
+        {
+          "path": ".runtime/local/unresolved-slots-enum.txt",
+          "sha256": "7f0ec32faac6615147093daf3012a4c9e7c227f558a189718f90836fb817f936"
+        }
+      ]
+    },
+    "out:12656": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "mover_objeto_a_equipo",
+      "review_evidence": "dco creates cpK for item UID/container UID/character/destination equipment position",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cpK": "3b66905bb202a95caae821be3eb6f632f28669f7712bb67fa2c1edfba5b674ca",
+        "dco": "acefb9b3c2966e85490bffcfae37fb61bfd7070bae20a001a198c0261df7ebed"
+      },
+      "wire_headers": []
+    },
+    "out:12962": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "actualizar_tutoriales_cuenta",
+      "review_evidence": "bRC sends cnG set of IDs and boolean to update fzS tutorial account data",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cnG": "9d854b69e35327d27a650564ea4579b33a601f000b6d682b09d23085aef95049",
+        "bRC": "fb31dc38493029fd5159f6e4c7728f10f35459c0784de2c37e1c412bbc676580"
+      },
+      "wire_headers": []
+    },
+    "out:13130": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "iniciar_combate_con_objetivo",
+      "review_evidence": "cWi.run fight invitation/start path -> biB.as(big) -> coP targetUID/targetxyz. Boolean set only from bWD.lzc literal AUTO_LOCK_FIGHTS_KEY(autoLockFights), not duel mode.",
+      "reviewed_schema": "i64 target_id + i32 x + i32 y + i16 z + bool auto_lock",
+      "source_disassembly_sha256": {
+        "coP": "bc506a0c9736ab41fac9f7a9e83b02aa96597e1ea51d0591b3e8f266bb67730b",
+        "biB": "2d7c5ba1bc3a645a7dd5d8fe41c61be95155fc6c76210e4ca0add646fc78b7f1"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-player-interaction.txt",
+          "sha256": "2d7c5ba1bc3a645a7dd5d8fe41c61be95155fc6c76210e4ca0add646fc78b7f1"
+        },
+        {
+          "path": ".runtime/local/unresolved-last-actions.txt",
+          "sha256": "56340181b63f337ebaab89faec97494b39792f78c0c84eaade516a155bfc83c8"
+        }
+      ]
+    },
+    "out:13220": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "ejecutar_accion_catalogo_objeto",
+      "review_evidence": "cqd serializes bHu.d(action type), itemUID, action payload. Verified bHH.aP(fnR) passes fnR.LV() to jW -> cqd; bHu subclasses represent foI item actions, including LEARN_FURNITURE/USE/LEARN_COSMETIC families. Nested body differs by selected item action and remains opaque, not uniformly coordinates.",
+      "reviewed_schema": "i32 item_action_id + i64 item_uid + action-specific bytes",
+      "source_disassembly_sha256": {
+        "cqd": "0a3cb4ecd690730b4ebe546eac485b776939dc9b790c2e33fcbdf5b6ca963243",
+        "bHu": "281b9b90c952a07306ee72ec5a8c3e31f96914652761372338cf71a2c6f8c505"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-outgoing-actions.txt",
+          "sha256": "1ee6a08fd250ac62384dbe538d30a8ed950621ca659e708abe2d6da7d95f9378"
+        },
+        {
+          "path": ".runtime/local/unresolved-action-family.txt",
+          "sha256": "f4baf979479a9f413c4e1a660f1dd0a81f243cb35cfc96c2b671a86811281474"
+        }
+      ]
+    },
+    "out:13222": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "ejecutar_accion_catalogo_npc",
+      "review_evidence": "cnT sends bje.Sn targetUID + bly.Sn actionUID + bly subclass body; blz/blA/blB/blF/blE i(bje) call jW(target.Sn), cXb contextual menu runs bly action. blA explicitly logs dialogue action. Current subclasses examined aF true/no bytes and DN0. Specific menu action determined by catalog UID, not packet family alone.",
+      "reviewed_schema": "i64 npc_id + i64 action_id + action-specific bytes (current examined subclasses empty)",
+      "source_disassembly_sha256": {
+        "cnT": "8c514cf094afd9ed96dd2165b5c2c35eacd2097a9b107d2cd97ac2472b31d530",
+        "bly": "7e02d3321b0928cd3b8ef3c361e038fa8cab7785b3ba5abf1be4a0a60a30329b"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-outgoing-actions.txt",
+          "sha256": "1ee6a08fd250ac62384dbe538d30a8ed950621ca659e708abe2d6da7d95f9378"
+        },
+        {
+          "path": ".runtime/local/unresolved-action-family.txt",
+          "sha256": "f4baf979479a9f413c4e1a660f1dd0a81f243cb35cfc96c2b671a86811281474"
+        }
+      ]
+    },
+    "out:13260": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "usar_hechizo_fuera_combate",
+      "review_evidence": "dbk creates cpm with actor UID, bPO spell UID and target coordinates",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cpm": "f5aee4e483f5600f47c050e41850b63f802279c67049d7f68b68ce575029417d",
+        "dbk": "7268dacfa336c851c71fae8e9116fefbb4aa961838180a27babd80ffbb8a5dc0"
+      },
+      "wire_headers": []
+    },
+    "out:13498": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "solicitar_emote",
+      "review_evidence": "bdo creates literal com.ankamagames.wakfu.client.chat.console.command.EmoteCommand linked to its ID; bdq.a(bdo,long) sends cnn.LS(bdo.d) and cnn.fe(targetUID). cnn default target=-1. Thus catalog is emotes, not unspecified interaction.",
+      "reviewed_schema": "i32 emote_id + i64 target_id (default -1)",
+      "source_disassembly_sha256": {
+        "cnn": "14b405899c02a0928e60e8f327ec4aecee42b2f2ba6451348b13742a9b17e134",
+        "bdq": "4beec415ead61e5c1bcdf13a8bf693b67e3c204996b2d9ff8d1d9e07393ccd56"
+      },
+      "wire_headers": [],
+      "additional_source_evidence": [
+        {
+          "path": ".runtime/local/unresolved-outgoing-actions.txt",
+          "sha256": "1ee6a08fd250ac62384dbe538d30a8ed950621ca659e708abe2d6da7d95f9378"
+        },
+        {
+          "path": ".runtime/local/unresolved-emote-request.txt",
+          "sha256": "4beec415ead61e5c1bcdf13a8bf693b67e3c204996b2d9ff8d1d9e07393ccd56"
+        }
+      ]
+    },
+    "out:23481": {
+      "semantic_status": "source_reviewed",
+      "semantic_action": "solicitar_nombres_personaje",
+      "review_evidence": "cZo.eYP requests cDV when random-name suggestion queue has fewer than five names",
+      "reviewed_schema": "See current Java codec call evidence; nested bodies remain opaque unless decode_body implements them.",
+      "source_disassembly_sha256": {
+        "cDV": "068194653021b16656710bc4839beecab3a6cdd5082eed185cb954d121583de5",
+        "cZo": "23ac8d04403b39a7d1b5d81b08657f9ce2a17c595281f18b71c2d0d2302f4973"
+      },
+      "wire_headers": []
+    }
+  }
+}
