@@ -16,6 +16,7 @@ from .combat_state_timing import StateTimingDefinition, schedule_state_timer
 from .combat_state_handler import StateCarrierContext
 from .combat_stat_handler import StatExecutionContext
 from .combat_effect_timing import schedule_effect_timer
+from .combat_native_container import resolve_state_container
 
 
 def native_time_payload(timer=None, *, realtime_remaining=-1):
@@ -77,7 +78,19 @@ def native_state_timeline(fight, clock_actor_id):
     if fight.phase != "active" or fight.current is None:
         raise ValueError("Native timing requires an active actor turn")
     order = tuple(fight.order)
-    eligible = {identity for identity, member in fight.actors.items() if member.hp > 0}
+    records = getattr(fight, "native_summon_registrations", {})
+    excluded = set()
+    for identity, row in records.items():
+        if identity not in fight.actors or row.get("actor_id") != identity:
+            raise ValueError("Stale native summoned timeline registration")
+        # fbX.C excludes NOT_PRESENT_IN_TIMELINE114 from fem/Tc insertion.
+        if 114 in row["fight_properties"]:
+            excluded.add(identity)
+    eligible = {
+        identity
+        for identity, member in fight.actors.items()
+        if member.hp > 0 and identity not in excluded
+    }
     deferred = getattr(fight, "_resolution_depth", 0) > 0
     if (
         len(set(order)) != len(order)
@@ -91,13 +104,13 @@ def native_state_timeline(fight, clock_actor_id):
         raise ValueError("Missing authoritative native round")
     if not 0 <= fight.turn_index < len(order) or order[fight.turn_index] != actor.id:
         raise ValueError("Inconsistent native current actor index")
-    if clock_actor_id not in order:
+    if clock_actor_id not in order and clock_actor_id not in excluded:
         raise ValueError("Missing state clock actor")
     return StateTimeline(
         actor.turn_count,
         actor.id,
         fight.turn_index,
-        order.index(clock_actor_id),
+        order.index(clock_actor_id) if clock_actor_id in order else -1,
         "active",
     )
 
@@ -121,8 +134,30 @@ class NativeEffectTimingProvider:
         self, preview, plan, effect, invocation, reference, requested_level
     ):
         native_definition_timing(effect, invocation.level)
+        return self.direct_state_reference(
+            preview,
+            invocation,
+            reference,
+            requested_level,
+            critical=bool(effect["variant"] & 1),
+        )
+
+    def direct_state_reference(
+        self, preview, invocation, reference, requested_level, *, critical
+    ):
+        """eWu direct carrier application, with explicit applicator critical flag.
+
+        Its state clock comes from fyW, independent of the applicator's PK clock.
+        The caller must attest its native synthetic PK and PL separately.
+        """
+        if type(critical) is not bool:
+            raise ValueError("Explicit native direct applicator critical flag required")
         definition = self.catalog["states"][str(reference)]
-        target = preview.actors[invocation.target_id]
+        from .combat_state_managers import state_manager
+
+        target = state_manager(preview, invocation.target_id)
+        if target is None:
+            raise ValueError("Missing actual native state target manager")
         matching = [
             existing_state_from_definition(
                 dict(
@@ -150,7 +185,14 @@ class NativeEffectTimingProvider:
             if definition["clock_actor"] == "caster"
             else invocation.target_id
         )
-        timeline = native_state_timeline(preview, clock)
+        if getattr(target, "native_is_area", False) and clock == target.id:
+            if profile["duration"] > 0:
+                raise ValueError("Timed area state clock is unaudited")
+            # Zero/indefinite carriers retain no turn timer (fyW duration<=0).
+            # The active boundary exists, but no area timeline slot is invented.
+            timeline = native_state_timeline(preview, invocation.caster_id)
+        else:
+            timeline = native_state_timeline(preview, clock)
         timing = StateTimingDefinition(
             definition["duration_base"],
             definition["duration_per_level"],
@@ -174,7 +216,7 @@ class NativeEffectTimingProvider:
             False,
             timeline,
             invocation.base_uid,
-            bool(effect["variant"] & 1),
+            critical,
             False,
             False,
             0,
@@ -206,17 +248,14 @@ class NativeEffectTimingProvider:
                 timeline=timeline,
             )
         if invocation.state_uid:
-            entries = [
-                entry
-                for actor in preview.actors.values()
-                for entry in actor.state_ledger.entries
-                if entry.uid == invocation.state_uid
-            ]
-            if len(entries) != 1:
-                raise ValueError("Missing unique retained parent state carrier")
-            retained = True
-        # eZR.Ty mode0 returns true; mode2 uses its own en duration. A state-owned
-        # characteristic remains available for explicit carrier-child removal.
+            # Qe.bfq retains the actual fyW owner during its synchronous
+            # iterator, including instant states and replaced sibling states.
+            # Use the same execution-local resolver as damage and retention;
+            # it still rejects unknown UIDs after the call has returned.
+            resolve_state_container(preview, invocation.state_uid)
+        # Qe.bfq preserves PL identity but does not override eZR.Ty.
+        # Instant Ty=false state children must not be undone when the carrier
+        # is replaced (e.g. Concentration grants PW before decreasing itself).
         return StatExecutionContext(
             True, True, None, retained, native_time_payload(timer), timer
         )

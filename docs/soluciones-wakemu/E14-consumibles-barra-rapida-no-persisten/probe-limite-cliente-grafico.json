@@ -1,0 +1,14 @@
+{
+  "status": "GUI attempt incomplete",
+  "agent": "/root/luna_ui_recursos",
+  "observed": [
+    "World loaded; inventory opened; tooltip Semilla de cardo, quantity5",
+    "Before drag, inspector57231 refused connection; agent ps47211 and lsof57231 found no process/listener",
+    "No drag performed, no reconnect performed"
+  ],
+  "private_screenshot": ".runtime/local/review-continuacion-20261004/shortcuts/audit-builds-worldbar-before.png",
+  "limits": [
+    "Does not prove packet12091 submission or persistence after reconnect",
+    "Client termination cause not established"
+  ]
+}

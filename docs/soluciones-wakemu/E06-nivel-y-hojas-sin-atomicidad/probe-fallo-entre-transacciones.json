@@ -1,0 +1,17 @@
+{
+  "before": {
+    "level": 1,
+    "xp": 0,
+    "hp": 50,
+    "max_hp": 50
+  },
+  "after": {
+    "level": 50,
+    "xp": 8809696,
+    "hp": 50,
+    "max_hp": 50
+  },
+  "error": "audit injected health failure",
+  "scope": "Disposable SQLite; health initialization failure injected before serialization; no spells or live players.",
+  "source_sha256": "5b51d23e177d615a87822cded39319e2b5cdfa571de6379ae576005c40f6741e"
+}

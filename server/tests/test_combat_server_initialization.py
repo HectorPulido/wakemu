@@ -75,6 +75,89 @@ class ServerInitializationTests(unittest.TestCase):
                 )
         self.assertEqual(snapshot(self.fight), before)
 
+    def test_real_sacro_start_passive_applies_state_3231_without_forcing_child(self):
+        fixture = fixture_module.SpellTransactionTests()
+        character, monster, fight = fixture.native_server_fixture(11, 20)
+        deck = encode_deck((), [5051])
+        before = snapshot(fight)
+        installed, _ = prepare_server_initialization(
+            character,
+            {monster["id"]: monster},
+            fight,
+            3,
+            deck,
+            action_id=1,
+            rng=Random(7),
+        )
+        self.assertFalse(installed.native_start_event_delivered)
+        self.assertNotIn(
+            3231, {s.reference for s in installed.actors[7].state_ledger.entries}
+        )
+        started, packets = prepare_server_initialization(
+            character,
+            {monster["id"]: monster},
+            fight,
+            3,
+            deck,
+            action_id=1,
+            rng=Random(7),
+            fight_start=True,
+        )
+        self.assertTrue(started.native_start_event_delivered)
+        self.assertIn(
+            3231, {s.reference for s in started.actors[7].state_ledger.entries}
+        )
+        self.assertTrue(packets)
+        self.assertEqual(snapshot(fight), before)
+
+    def test_real_iop_start_passive_changes_hp_maximum_without_forcing_child(self):
+        fixture = fixture_module.SpellTransactionTests()
+        character, monster, fight = fixture.native_server_fixture(8, 20)
+        deck = encode_deck((), [4795])
+        before = snapshot(fight)
+        installed, _ = prepare_server_initialization(
+            character,
+            {monster["id"]: monster},
+            fight,
+            3,
+            deck,
+            action_id=1,
+            rng=Random(7),
+        )
+        started, packets = prepare_server_initialization(
+            character,
+            {monster["id"]: monster},
+            fight,
+            3,
+            deck,
+            action_id=1,
+            rng=Random(7),
+            fight_start=True,
+        )
+        self.assertTrue(started.native_start_event_delivered)
+        self.assertGreater(started.actors[7].max_hp, installed.actors[7].max_hp)
+        self.assertTrue(packets)
+        self.assertEqual(snapshot(fight), before)
+
+    def test_start_failure_discards_initialization_and_uid_changes(self):
+        before = snapshot(self.fight)
+        with patch(
+            "wakfu_server.combat_start_events.deliver_fight_start",
+            side_effect=ValueError("Native start child unavailable"),
+        ):
+            with self.assertRaisesRegex(ValueError, "start child unavailable"):
+                prepare_server_initialization(
+                    self.character,
+                    self.monsters,
+                    self.fight,
+                    3,
+                    self.deck,
+                    action_id=1,
+                    rng=Random(7),
+                    fight_start=True,
+                )
+        self.assertEqual(snapshot(self.fight), before)
+
     def test_common_factory_combines_catalog_and_keeps_passive_deck_owned(self):
         factory, adapter = server_runtime(
             self.character,

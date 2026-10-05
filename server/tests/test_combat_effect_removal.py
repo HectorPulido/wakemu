@@ -51,6 +51,26 @@ class EffectRemovalTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.removal(**args)
 
+    def test_child_removal_preserves_container_and_execution_metadata(self):
+        from wakfu_server.combat_effects import _integer, _varint
+
+        # Removing a child must keep its state-container identity. Rebuilding
+        # a minimal proto would lose PL even when UID/owner remain correct.
+        timing = _integer(2, 0) + _integer(5, 1)
+        for container_type in (1, 3, 11, 12):
+            with self.subTest(container_type=container_type):
+                original = (
+                    self.payload()
+                    + _integer(9, container_type)
+                    + _integer(10, (3442 << 16) | 20)
+                    + b"\x5a"
+                    + _varint(len(timing))
+                    + timing
+                )
+                removed = self.removal(running_effect_payload=original)
+                self.assertEqual(removed[18:-16], original)
+                self.assertEqual(struct.unpack(">qq", removed[-16:]), (-33, 1234))
+
     def test_refuses_truncated_and_invalid_bounds(self):
         for args in [
             dict(running_effect_payload=self.payload()[:-1]),

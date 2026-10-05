@@ -1,0 +1,55 @@
+{
+  "scope": "Fixture offline de position_context, no población real de la instancia",
+  "no_counts_argument": {
+    "region": 66601,
+    "plant_counts": [
+      [
+        1,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        10,
+        0
+      ]
+    ]
+  },
+  "counts_argument_7": {
+    "region": 66601,
+    "plant_counts": [
+      [
+        1,
+        7
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        10,
+        0
+      ]
+    ]
+  },
+  "production_caller": "send_planting_context passes no monster_counts or plant_counts",
+  "weather_fixture": {
+    "mwN": 12345,
+    "mwO": 17,
+    "bJZ": 1.0,
+    "mwP": 2.0,
+    "mwQ": 3.0,
+    "mwR": 4.0,
+    "mwS": 5.0,
+    "mwT": 6.0,
+    "weather_id": 2
+  },
+  "source_hashes": {
+    "server/local_game_server.py": "5a7983a9b26a78d3b707d9f4837f077798f30faf3f372013e04bad75bd1b286f",
+    "server/wakfu_server/maps/planting_context.py": "707de24e1d5d4f3477f7d749ae777dd748657da69a12e77934d338859779772c",
+    "server/wakfu_server/maps/planting_cells.py": "d6147546995591d3687dbebe325ce1df23f22c6a03bd4db345432576616ab1ac",
+    "server/wakfu_server/storage/global_tasks.py": "cb5b91243fff63ea0b35581b7edc52b42ccf7b57846c1c8071c71bfbb87ed2f1"
+  }
+}

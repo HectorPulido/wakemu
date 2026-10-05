@@ -12,6 +12,7 @@ COPY protocol/item-equipment-rules.json ./protocol/
 COPY protocol/item-equipment-effects.json ./protocol/
 COPY protocol/rii-test-arena.json ./protocol/
 COPY protocol/combat-maps ./protocol/combat-maps
+COPY protocol/forced-transitions ./protocol/forced-transitions
 COPY protocol/combat-los ./protocol/combat-los
 COPY protocol/seed-actions.json protocol/plant-resources.json protocol/ecology-regions.json ./protocol/
 COPY protocol/planting-grounds.json protocol/profession-actions.json ./protocol/

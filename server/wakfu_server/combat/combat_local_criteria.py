@@ -17,8 +17,8 @@ def parse_local_criterion(source):
     if len(source) > 32768:
         raise LocalCriterionSyntax("Native criterion exceeds restricted size")
     try:
-        tokens = [
-            t.string
+        lexical = [
+            t
             for t in tokenize.generate_tokens(io.StringIO(source).readline)
             if t.type
             not in (
@@ -28,6 +28,32 @@ def parse_local_criterion(source):
                 tokenize.INDENT,
                 tokenize.DEDENT,
             )
+        ]
+        # Native eQb decimal integers accept leading zeroes (GetDate(06,...)).
+        # Python tokenize splits 06 into adjacent NUMBER tokens; join only
+        # physically adjacent decimal digits, never strings or spaced numbers.
+        normalized = []
+        for token in lexical:
+            if (
+                normalized
+                and token.type == tokenize.NUMBER
+                and token.string.isascii()
+                and token.string.isdigit()
+                and normalized[-1].type == tokenize.NUMBER
+                and normalized[-1].string.isascii()
+                and normalized[-1].string.isdigit()
+                and normalized[-1].end == token.start
+            ):
+                previous = normalized.pop()
+                token = previous._replace(
+                    string=previous.string + token.string, end=token.end
+                )
+            normalized.append(token)
+        tokens = [
+            str(int(t.string, 10))
+            if t.type == tokenize.NUMBER and t.string.isascii() and t.string.isdigit()
+            else t.string
+            for t in normalized
         ]
         if len(tokens) > 4096:
             raise LocalCriterionSyntax(
@@ -108,6 +134,11 @@ def parse_local_criterion(source):
                 bindings[name] = tree
                 require(";")
                 continue
+            # eQd.fGv accepts a terminator on the final predicate too.
+            # Preserve the one-predicate contract: no following statement or
+            # empty extra statement is admitted after that terminator.
+            if pos < len(tokens) and tokens[pos] == ";":
+                pos += 1
             if pos != len(tokens):
                 raise LocalCriterionSyntax("Only one final native predicate allowed")
             return tree

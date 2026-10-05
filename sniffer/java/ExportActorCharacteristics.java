@@ -34,10 +34,11 @@ public class ExportActorCharacteristics {
             ffx atMaximum=new ffx(base,r.cqO());
             for(ffw s:ffw.values())maximumCheck.put(""+(s.aKg()&255),value(atMaximum.e(s)));
             monsters.put(""+r.d(),Map.of("base_level",r.cqN(),"maximum_level",r.cqO(),
-                "physical_radius",(int)(byte)r.csa(),"curves",stats,"at_base_level",check,"at_maximum_level",maximumCheck));
+                "physical_radius",(int)(byte)r.csa(),"native_los_height",(int)(byte)r.css(),"curves",stats,"at_base_level",check,"at_maximum_level",maximumCheck));
         }catch(Exception e){throw new RuntimeException(e);}}});
         Map<String,Object> result=Map.of("source","Native ffh/fff; bbo.b(aMb), ffC and ffx; radius aMb.csa->blj->eGC.bcL",
-            "characteristics",definitions,"npc_profiles",monsters,"default_actor_radius",(int)eGE.pIq.bcL());
+            "characteristics",definitions,"npc_profiles",monsters,"default_actor_radius",(int)eGE.pIq.bcL(),
+            "default_actor_los_height",(int)eGE.pIq.bcK());
         try(var stream=new GZIPOutputStream(Files.newOutputStream(output))){stream.write(new Gson().toJson(result).getBytes(java.nio.charset.StandardCharsets.UTF_8));}
         System.out.println("Exported "+definitions.size()+" characteristics and "+monsters.size()+" NPC profiles to "+output);
     }

@@ -1,0 +1,11 @@
+Criterios generales de tipo de área
+
+IsOnEffectAreaType: lexer271→eOs. Dos argumentos(stringselector,longtype), tercer boolean opcional. Únicamente 'target' ignorando mayúsculas selecciona destinatario; los demás seleccionan caster. Requiere eGj, no acepta aBn como sustituto del actor. Convierte longtype a int y valida enumfbp. Escanea Qs.bdm por aeV; si owned=true compara propietarioPV con el actor seleccionado (no necesariamente caster). Qq.d verifica geometría XY. Ausencia de actor/contexto/tipo inválido retorna nativo-1 (false).
+
+GetEffectAreaCountInRange: lexer117→eJW. selector,type,min,max,owned opcional. Caster eII.b(false) siempre ancla filtro propiedad/exclusión propio; 'target' puede ser actor o aBn. Centroausente devuelve0; Qs contexto desconocido no equivale a vacío. Filtra aeV exacto(long), excluye fuenteQq propia, opcionalowner==caster, ala.c XY inclusivo. max<0 ignora ambos límites. No filtraHP ni equipo.
+
+Helpers existentes combat_effect_area_queries estaban implementados pero no conectados a ambos criterios. Se añadieron camposConditionContext/parser/evaluación/callbacks de adapter sin atajos de clase. La autoridad usa exclusivamente el registro de áreas propio; estados/actores ficticios no se agregan.
+
+ProbeNativeAreaPredicates:11casos nativosPASS y tiposfbp exportados[0..9,12..16,18..20].33pruebas condiciones/consultas+45regresiones(adapterincluido)PASS. Before2018/2019 confirma ocho rechazos actuales. Resultadoentradafinal se anota tras foco coordinado. No reinicios ni confirmaciónGUI.
+
+Foco final active-area-type-count-current.json:2018(9/200) y2019(3/200), ocho casos normales sobre monstruo1367/115 nativo: cuatro enemy cambian actores; cuatro empty_cell no muestran efecto. Ninguno rechaza; source_stable=true y rollback_preserved=true en las ocho filas. No se transforma 'sin efecto observado' en éxito completo. Para comprobar reacciones que requieren áreas existentes se necesitan fixtures de creación/posición y GUI adicionales, conservando las precondiciones originales.

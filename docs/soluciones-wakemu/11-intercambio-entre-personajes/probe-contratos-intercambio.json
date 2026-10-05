@@ -1,0 +1,37 @@
+{
+  "scope": "Encoders nativos offline con valores sintéticos; no intercambio live",
+  "frames": [
+    {
+      "opcode": 13140,
+      "frame_hex": "0000000f0333540000000000003039",
+      "body_hex": "0000000000003039"
+    },
+    {
+      "opcode": 13037,
+      "frame_hex": "000000190332ed000000000001093200000000000001c80002",
+      "body_hex": "000000000001093200000000000001c80002"
+    },
+    {
+      "opcode": 12781,
+      "frame_hex": "000000170331ed00000000000001c80000000000000032",
+      "body_hex": "00000000000001c80000000000000032"
+    },
+    {
+      "opcode": 13406,
+      "frame_hex": "0000000f03345e00000000000001c8",
+      "body_hex": "00000000000001c8"
+    },
+    {
+      "opcode": 12027,
+      "frame_hex": "0000000f032efb00000000000001c8",
+      "body_hex": "00000000000001c8"
+    }
+  ],
+  "item_exchange_criterion": "fnE.sGH.name() = EXCHANGE",
+  "source_hashes": {
+    "server/local_game_server.py": "5a7983a9b26a78d3b707d9f4837f077798f30faf3f372013e04bad75bd1b286f",
+    "server/wakfu_server/items/inventory_move.py": "26517d520a9db01ac30c06f2290082b451c99df7bd7491ee8d1388b8b698c1c4",
+    "server/wakfu_server/items/inventory_items.py": "e7fefe3fb04fa7e99d25ce51245602081a8bf495bb5aa66e20e1527ba877ace0",
+    "server/protocol_codec.py": "b2dd77d93bf8a04b73f033296f7d4dda3c4c85c427acbb179f7a85e394708f2c"
+  }
+}

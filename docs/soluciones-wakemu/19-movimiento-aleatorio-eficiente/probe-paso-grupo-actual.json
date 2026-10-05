@@ -1,0 +1,39 @@
+{
+  "method": "plan actual ejecutado con dos miembros y dos aristas sintéticas válidas",
+  "origin": [
+    {
+      "id": -1,
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "id": -2,
+      "x": 0,
+      "y": 1,
+      "z": 0
+    }
+  ],
+  "destination": [
+    {
+      "id": -1,
+      "x": 1,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "id": -2,
+      "x": 1,
+      "y": 1,
+      "z": 0
+    }
+  ],
+  "packet_count": 2,
+  "movement_steps_per_packet": 1,
+  "without_players": null,
+  "limits": [
+    "No benchmark ni zona real",
+    "plan elige candidato válido sin sorteo de probabilidad; caller actual intervalo común 3–6 segundos",
+    "No prueba 25% ni número aleatorio de pasos: no implementados en estas rutas"
+  ]
+}

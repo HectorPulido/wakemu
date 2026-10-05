@@ -1,0 +1,60 @@
+{
+  "scope": "Native descriptor and synthetic encoder/parser only, no client GUI or gameplay writes",
+  "bootstrap": {
+    "section": "PROTO_TEMPORARY_INVENTORY",
+    "outer_length": "signed i16 byte length",
+    "protobuf": "lP / ProtoTemporaryInventory",
+    "items_field": 1,
+    "ProtoItem_fields": {
+      "uniqueId": 1,
+      "refId": 2,
+      "qty": 3,
+      "pet": 50,
+      "xp": 51,
+      "shard": 52,
+      "companionInfo": 54,
+      "bind": 55,
+      "elements": 56,
+      "mergedItems": 57,
+      "mimiSymbicSkinRefId": 58
+    },
+    "native_parse": {
+      "initialized": true,
+      "items": 1,
+      "uid": 12345,
+      "ref": 27083,
+      "qty": 3
+    },
+    "consumer": "biT.zm -> fmH.a(fmE,bytes,character) -> lP.bR -> fox.y(kX) -> fmE.cd"
+  },
+  "single_claim": {
+    "opcode": 13993,
+    "category": 3,
+    "body_format": ">qh b q h",
+    "body_bytes": 21,
+    "fields": [
+      "item_uid",
+      "quantity",
+      "destination_type",
+      "destination_uid",
+      "destination_position"
+    ],
+    "native_frame_hex": "0000001c0336a9000000000000303900030000000000000109320002",
+    "limit": "Fixture sets destination_type0; observed drag UI leaves default -1. Resolve enum/branch before choosing type."
+  },
+  "bulk_transfer": {
+    "opcode": 12294,
+    "body": "i64 source character + i64 destination character + i16 uid count + count*i64 item uid",
+    "consumer": "deX gets source/destination biB.Sn and item UIDs"
+  },
+  "clear_request": {
+    "opcode": 12561,
+    "body_bytes": 0,
+    "limit": "deX sends after confirmation callback; do not equate with harmless window dismissal without tracing full callback semantics"
+  },
+  "dispatcher_handlers_found": [],
+  "source_sha256": {
+    "server/local_game_server.py": "f865afac27a37c217bfd7c07d2253139588074280e5bd1df8e873a0f3633570b",
+    "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+  }
+}

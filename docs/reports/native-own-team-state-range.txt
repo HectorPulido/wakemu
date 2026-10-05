@@ -1,0 +1,38 @@
+GetOwnTeamStateCountInRange — conteo por equipo del caster del estado
+
+Evidencia actual
+6466, niveles15/200, enemigo/celda: cuatro rechazos exactos del predicado en
+active-own-team-state-range-before.json. Fuente estable y rollback4/4.
+No se eligió por número de definiciones ni por el inventario viejo.
+
+Contrato original
+Lexer eQb144 → parser eQd → eKS. eKS hereda eLr y pone pZW=true.
+eLr busca los carriers eZk registrados en Qf y filtra la afiliación bcM
+DEL CASTER Qe.bbb cuando pZW=true. El portador del estado puede estar en el
+equipo contrario y sigue contando. Caster null o no-amO queda excluido.
+Conserva referencia exacta, nivel exacto opcional, filtro caster opcional,
+selección in-play y rango eKn (incluida huella); no suma niveles ni todos los
+carriers: cuenta cada candidato que tiene al menos uno que cumpla.
+Los managers Qq se examinan aparte como en GetStateCountInRange.
+Bytecode privado: .runtime/local/native-own-team-state-range-eKS.txt y
+native-state-range-eLr-current.txt. Probe: sniffer/java/ProbeNativeOwnTeamStateRange.java.
+
+Implementación
+ConditionContext tiene own_team_state_range_query; el parser comparte la
+firma acreditada de eLr. RuntimeAdapter filtra carriers registrados usando
+su caster_id y afiliación efectiva del actor real del combate, luego reutiliza
+range_count/area_state_count. No se infiere equipo por el portador. Caster
+nulo queda fuera; caster registrado sin afiliación disponible rechaza en vez
+de convertir datos desconocidos en cero. No main, carrier ni IDs modificados.
+
+Validación inicial
+Probe original9PASS: seis combinaciones de receptores/casters (propio/enemigo/
+nulo), más nivel1/nivel2/caster de consulta nulo.36 pruebas Python pasan,
+incluyendo equipo del caster, referencia/nivel exactos, managers de área,
+callback independiente del conteo común y desconocidos rechazados.
+Foco final: cuatro variantes dejan de rechazar el criterio y alcanzan el
+siguiente bloqueo315, effect331619, zona781/GLYPH con propiedad10010. Fuente
+estable y rollback4/4. Reporte active-own-team-state-range-current.json.
+El handler de área rechaza explícitamente propiedades no acreditadas; no se
+quitó ese guard ni se afirmó funcionamiento completo de6466. Este informe
+separa soporte del conteo de la creación/semántica de esa área.

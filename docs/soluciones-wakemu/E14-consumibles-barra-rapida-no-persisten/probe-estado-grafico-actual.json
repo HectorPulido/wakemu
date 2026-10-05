@@ -1,0 +1,27 @@
+{
+  "observed_utc": "2026-10-05 02:51:36",
+  "agent": "/root/luna_ui_recursos",
+  "client_pid": 33556,
+  "inspector_port": 58915,
+  "server_listener": 15566,
+  "character": "Audit Builds",
+  "position": [
+    -4,
+    -2,
+    0
+  ],
+  "canvas_reported": [
+    1500,
+    950
+  ],
+  "screenshot_pixels": [
+    2016,
+    1248
+  ],
+  "inventory_open": true,
+  "visible_seed_stack_quantity": 5,
+  "shortcut_visible_assignment": false,
+  "limit": "Inventario oculta parte de barra; nombre semilla acreditado en tooltip previo, no vuelto a consultar",
+  "next_test": "Despejar barra y verificar bloqueo antes de nuevo arrastre",
+  "source_private_screenshot": ".runtime/local/review-continuacion-20261004/shortcuts/current-state.png"
+}

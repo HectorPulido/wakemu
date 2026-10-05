@@ -17,6 +17,24 @@ class NativeNpcAttackTests(unittest.TestCase):
         self.fight.ready(9)
         self.monster = dict(id=-200, ref=5525, level=1, map_id=1134, wp=6)
         self.character = dict(id=7, account_id=9, breed=15, level=1, map_id=1134)
+        from wakfu_server.combat_actor_snapshot import (
+            build_player_snapshot,
+            build_npc_snapshot,
+        )
+
+        self.character.update(
+            hp=60, max_hp=self.pc.max_hp, builds={}, inventory_items=[]
+        )
+        self.pc.direction = 0
+        self.npc.direction = 3
+        build_player_snapshot(
+            self.character, self.pc, wp_current=6, wp_maximum=6, running_effects=()
+        ).install(self.pc)
+        build_npc_snapshot(
+            self.monster, self.npc, wp_current=6, wp_maximum=6, running_effects=()
+        ).install(self.npc)
+        self.fight.native_effect_uid_next = 1
+        self.fight.native_obstacle_cells = frozenset()
 
     def run_attack(self, **changes):
         kwargs = dict(
@@ -50,7 +68,7 @@ class NativeNpcAttackTests(unittest.TestCase):
     def test_codec_failure_no_mutation(self):
         before = len(self.fight.events)
         with self.assertRaises(ValueError):
-            self.run_attack(effect_uid=0)
+            self.run_attack(action_id=0)
         self.assertEqual(
             (self.pc.hp, self.npc.ap, len(self.fight.events)), (60, 3, before)
         )
@@ -60,3 +78,34 @@ class NativeNpcAttackTests(unittest.TestCase):
             self.run_attack(target_running_effects=None)
         with self.assertRaises(ValueError):
             ability(dict(ref=2, level=4))
+
+    def test_native_armor_absorption_precedes_hp_and_updates_packets(self):
+        self.pc.effect_stats[97] = 7
+        hp = self.pc.hp
+        result = self.run_attack()
+        self.assertEqual(self.pc.hp, hp)
+        self.assertEqual(self.pc.effect_stats[97], 2)
+        self.assertEqual(result["damage"], 0)
+        self.assertTrue(any(opcode == 12613 for opcode, payload in result["packets"]))
+        self.assertIn(struct.pack(">Bi", 97, 2), result["snapshots"][7])
+
+    def test_exhausted_armor_spills_to_hp_without_changing_attack_costs(self):
+        self.pc.effect_stats[97] = 2
+        hp, ap, mp = self.pc.hp, self.npc.ap, self.npc.mp
+        result = self.run_attack()
+        self.assertEqual((self.pc.hp, self.pc.effect_stats[97]), (hp - 3, 0))
+        self.assertEqual((self.npc.ap, self.npc.mp), (ap, mp))
+        self.assertEqual(result["damage"], 3)
+        self.assertTrue(any(e["kind"] == "damage" for e in result["events"]))
+
+    def test_late_animation_failure_rolls_back_native_resources_and_uid(self):
+        from wakfu_server.fight_checkpoint_store import snapshot
+
+        before = snapshot(self.fight)
+        with patch(
+            "wakfu_server.combat_npc_attack.attack_packets",
+            side_effect=ValueError("codec failure"),
+        ):
+            with self.assertRaisesRegex(ValueError, "codec failure"):
+                self.run_attack()
+        self.assertEqual(snapshot(self.fight), before)

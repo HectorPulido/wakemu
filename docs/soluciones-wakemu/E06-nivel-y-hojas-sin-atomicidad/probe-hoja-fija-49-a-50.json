@@ -1,0 +1,23 @@
+{
+  "cases": [
+    {
+      "sheet_level": 49,
+      "outcome": "Invalid aptitude sheet level",
+      "persisted": {
+        "level": 50,
+        "hp": 540,
+        "max_hp": 540
+      }
+    },
+    {
+      "sheet_level": -1,
+      "outcome": "success",
+      "persisted": {
+        "level": 50,
+        "hp": 550,
+        "max_hp": 550
+      }
+    }
+  ],
+  "scope": "Disposable SQLite; aptitude blob validated at49; inserted directly to avoid unrelated deck serialization. No spells or GUI."
+}

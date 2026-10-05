@@ -1,0 +1,109 @@
+Auditoría de hechizos adicionales de clase
+
+Corazón Sanguíneo: referencia nativa6065; traducción original content.3.6065.
+Ruta: Sacrógrito11 → innata3702 (Berserker) →316660 → grant649/316664 →6065.
+Condición original: not HasEffectWithActionId("caster",933) and GetInstanceId()<>862.
+Sangre Tatuada5051 menciona6065 en su descripción, pero no es el origen del otorgamiento identificado.
+
+El inventario base tiene722 hechizos. Su catálogo de nombres repite esos722; no incluye todos los nombres del cliente.
+La clausura de grants exportada tiene167 referencias. Se identificaron91 extras fuera del inventario con una ruta estructural desde hechizos o innatas de clase.
+No se evaluaron condiciones ni se probó disponibilidad/ejecución. Hay70 referencias de efectos no presentes en los catálogos recorridos y otras familias de transformación no auditadas:91 no es una garantía de exhaustividad.
+
+Corazón Sanguíneo: ramas4840 (curación25,9318/400,resistencia a curas72 y retirada321) y9312 (maxHP/grupo1047→armadura1013 y consumo9312/9316/9314).
+Familias y bindings existen; el comportamiento integral sigue pendiente. Hace falta una fila6065 independiente, prueba con estados/cargas propios y comprobación GUI. No se marca implementado.
+
+Extras faltantes del inventario (referencia, nombre, razas con ruta):
+911: La Superpoderosa — razas 10
+926: La Vudul — razas 10
+2027: Llamada del Compañero — razas 3
+2038: Perfórserker — razas 3
+2063: Excavación — razas 3
+3909: Robo de Tiempo — razas 5
+4603: Doble — razas 4
+4604: Invisibilidad — razas 4
+4678: Portal — razas 18
+4682: Exaltación — razas 18
+4718: Tonel — razas 12
+4807: Baliza de Destrucción — razas 9
+5046: Mártir — razas 11
+5182: Trampa de Repulsión — razas 4
+5183: Trampa de Atracción — razas 4
+5184: Trampa de Teletransportación — razas 4
+5186: Quitar una Trampa — razas 4
+5345: Esfera — razas 5
+5573: Corazón de Luz — razas 19
+5574: Fuego Fatuo — razas 19
+5578: Ciclo Elemental — razas 19
+6065: Corazón Sanguíneo — razas 11
+6283: Presa — razas 15
+6286: Wauwau — razas 15
+6349: Desbalizaje — razas 9
+6405: Deuda — razas 3
+6495: Detonación — razas 13
+6847: Karcham — razas 12
+6848: Chamrak — razas 12
+6855: Uginikántropo — razas 15
+6856: Perseguidor — razas 15
+6923: Steamerator — razas 16
+6924: Cañonero — razas 16
+7008: Microbot — razas 16
+7009: Armadura de la Paz — razas 1
+7052: Teletransportación — razas 1
+7081: Máscara Sáikopat — razas 14
+7082: Máscara Eskérdikat — razas 14
+7083: Máscara Zobal — razas 14
+7226: Máscara Sáikopat II — razas 14
+7227: Re-tirada — razas 6
+7348: Invocación — razas 2
+7349: Forma Dracónica — razas 2
+7350: Jamajam — razas 2
+7351: Intercambio Astral — razas 2
+7352: Aura lunar — razas 2
+7353: Aura Solar — razas 2
+7354: Motivación Estrellada — razas 2
+7355: Nova — razas 2
+7700: Torreta — razas 16
+7752: Tiro Preciso — razas 9
+7792: Baliza de Contacto — razas 9
+7793: Baliza de Alineamiento — razas 9
+7794: Distorsión — razas 5
+7807: Flecha Luminosa — razas 9
+7813: Portal Celestial — razas 18
+7904: Ardid — razas 13
+7905: Tymobot — razas 13
+7906: Dinamita — razas 13
+7938: El Gatallón — razas 6
+7939: El Dios Uginak — razas 6
+7940: Los Bebestias de Zurcarák — razas 6
+7941: El Ermitaño Peludo — razas 6
+7942: La Luna Peluda — razas 6
+7943: Los Dados Caprichosos — razas 6
+7944: El Miaumiau Negro — razas 6
+7945: La Rueda de la Fortuna — razas 6
+7946: El Miaucrificio — razas 6
+7947: El Dios Zurcarák — razas 6
+7948: Desventura — razas 6
+7949: Desdicha — razas 6
+7950: Destino de Zurcarák — razas 6
+7953: Salto del Felino — razas 6
+7977: Contra Natura — razas 7
+7978: Cunejo — razas 7
+7979: Repulsión — razas 7
+7989: El Universo — razas 6
+8137: Semilla — razas 10
+8402: Borrasca — razas 8
+8403: Uppercut — razas 8
+8404: Salto — razas 8
+8405: Estandarte de Valentía — razas 8
+8505: Trampa de repulsión II — razas 4
+8506: Trampa de atracción II — razas 4
+8507: Trampa de teletransportación II — razas 4
+8559: Espíritu Enmascarado — razas 14
+8586: Corte — razas 11
+8587: Venganza — razas 11
+8591: Toneportación — razas 12
+8592: Ebriedad — razas 12
+8593: Armadura Ardiente — razas 11
+
+Evidencia reproducible: docs/reports/audit-class-extra-spells.py; detalle de rutas en class-extra-spells-audit.json; árbol6065 en heart-blood-native-audit.json.
+Validación: JSON parseado, IDs únicos, todas las filas con ruta y grant6065=316664 comprobados. Motor, builders, inventario generado y runtime sin cambios.

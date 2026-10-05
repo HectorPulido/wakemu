@@ -1,0 +1,16 @@
+Seguimiento de lanzamientos
+
+El archivo cast-evidence-index.csv reúne la última prueba estable guardada
+para cada combinación de hechizo, nivel y escenario. Cada fila señala el
+reporte original para consultar qué se comprobó y por qué falló.
+
+No es una lista de hechizos terminados. Una prueba de servidor que cambia
+vida o estados no demuestra que el cliente permita seleccionar el ataque,
+ni que todas sus variantes funcionen. Los resultados son históricos:
+los cambios posteriores necesitan una nueva prueba.
+
+Los archivos originales no se borran ni se modifican al generar este índice.
+Los reportes sin fecha o cuyas fuentes cambiaron durante la ejecución no
+reemplazan una prueba estable. Las pruebas en cliente se registran aparte.
+
+Regenerar: python3 server/tools/build_cast_evidence_index.py

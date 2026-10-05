@@ -40,6 +40,34 @@ class NativeHealingParametersTests(unittest.TestCase):
             0,
         )
 
+    def test_negative_base_survives_parameters_then_native_fat_clamps(self):
+        parameters = interpret_healing_parameters(
+            [-1, 0], 1, hp_context={}, rng=lambda: 0
+        )
+        self.assertEqual(parameters["base"], -1)
+        self.assertEqual(
+            healing_amount(
+                -1,
+                1,
+                {},
+                {},
+                critical=False,
+                single_target=True,
+                area=False,
+                melee=True,
+                berserk=False,
+                coefficient_mask=3,
+                additional_mastery=0,
+                additional_final=0,
+                rng=lambda: 0,
+            ),
+            1,
+        )
+        from wakfu_server.combat_value_transfer import apply_context_value
+        from wakfu_server.combat_effects import _integer
+
+        self.assertEqual(apply_context_value(1, _integer(6, 12) + _integer(9, 1)), 12)
+
     def test_undead_explicit_native_flags(self):
         ctx = dict(
             critical_variant=True,

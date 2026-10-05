@@ -190,23 +190,24 @@ class NativeRetainedGroupTests(unittest.TestCase):
         from wakfu_server.combat_effect_dispatch import run_effect_transaction
 
         original = deepcopy(self.preview)
-        unsupported = next(
-            int(reference) for reference, effect in self.effects.items()
-            if effect["effect_class"] == 949
-            and effect["variant"] == 0
-            and effect["area_class"] == "anD"
-            and effect["criteria"] in ("", "True")
-            and not any(effect["target_masks"])
-            and effect["minimum_level"] <= 1 <= effect["maximum_level"]
-        )
-        with self.assertRaisesRegex(ValueError, "No handler for native effect class 949"):
+
+        def missing_later_handler(preview):
+            dispatcher, _ = self.factory(preview)
+            # Explicitly omit one runner in this fixture. The rollback contract
+            # must not depend on a production family remaining unsupported.
+            dispatcher.handlers.pop(421)
+            return dispatcher
+
+        with self.assertRaisesRegex(
+            ValueError, "No handler for native effect class 421"
+        ):
             run_effect_transaction(
                 self.preview,
                 [
                     EffectInvocation(308265, 1, 7, 7, (0, 0, 0)),
-                    EffectInvocation(unsupported, 1, 7, 7, (0, 0, 0)),
+                    EffectInvocation(308271, 1, 7, 7, (0, 0, 0)),
                 ],
-                lambda p: self.factory(p)[0],
+                missing_later_handler,
             )
         self.assertEqual(
             self.preview.native_owned_group_effects, original.native_owned_group_effects

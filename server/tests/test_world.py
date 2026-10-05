@@ -3,6 +3,27 @@ from wakfu_server.world import World
 
 
 class WorldTests(unittest.TestCase):
+    def test_failed_delivery_reports_cause_before_shutdown(self):
+        order = []
+
+        class Peer:
+            def shutdown(self, how):
+                order.append(("shutdown", how))
+
+        def fail(peer, opcode, body):
+            raise BrokenPipeError(32, "closed")
+
+        world = World(
+            lambda c: b"",
+            lambda c: b"",
+            fail,
+            delivery_failure=lambda peer, opcode, error: order.append(
+                ("failure", opcode, error.errno)
+            ),
+        )
+        world._send(Peer(), 13852, b"world movement")
+        self.assertEqual(order, [("failure", 13852, 32), ("shutdown", 2)])
+
     def setUp(self):
         self.messages = []
         self.world = World(

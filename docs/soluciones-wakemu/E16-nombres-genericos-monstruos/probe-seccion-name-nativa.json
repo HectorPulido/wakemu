@@ -1,0 +1,27 @@
+{
+  "class": "qR",
+  "format": "u16 longitud UTF-8 + bytes",
+  "cases": [
+    {
+      "source": null,
+      "decoded": "",
+      "bytes": 2
+    },
+    {
+      "source": "",
+      "decoded": "",
+      "bytes": 2
+    },
+    {
+      "source": "Grupo local",
+      "decoded": "Grupo local",
+      "bytes": 13
+    },
+    {
+      "source": "Jalató",
+      "decoded": "Jalató",
+      "bytes": 9
+    }
+  ],
+  "limit": "Aceptación del codec no demuestra fallback de raza en nombre visible; observer/presentación pendientes"
+}

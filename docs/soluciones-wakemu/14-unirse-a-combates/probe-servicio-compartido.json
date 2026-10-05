@@ -1,0 +1,11 @@
+{
+  "command": "PYTHONPATH=server python3 -m unittest tests.test_combat_shared",
+  "passed": 12,
+  "scope": "Unit tests of Registry with synthetic actor payload/bootstrap, not live native client",
+  "sha256": {
+    "server/wakfu_server/combat/combat_shared.py": "31c60f3ffda7ebea2911c3a5299343963c0899bbf1892f3cc30a546b4c2a2202",
+    "server/wakfu_server/combat/combat_multiplayer_wire.py": "7013ef1aaed99bfe99939882fb7c5c38813e91be12a697ba9bb32dde9f8149d9",
+    "server/tests/test_combat_shared.py": "9b4755f7eb1507f677f570ed7d7182973bc0a23c4efec4bb9040709f2aacc580",
+    "server/local_game_server.py": "206aa88bf486e30345437024f9943151ca29e7599057c2ed6f10152cb7be2fc5"
+  }
+}

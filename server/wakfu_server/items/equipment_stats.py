@@ -1,6 +1,8 @@
 """Native flat equipment bonuses from the owned selected equipment sheet.
 
-Only unconditional eWN maximum+current and scalar eWQ effects are evaluated.
+Only native passive equipment effects (eHi.a: aZD==0, fKP==false) feed
+characteristics. Active item actions remain separately reported; unconditional
+eWN maximum+current and scalar eWQ passives are evaluated.
 Other effects remain explicitly reported, never converted to invented bonuses.
 """
 import json
@@ -24,7 +26,11 @@ def _flat(effect):
         or effect["target_mask"] != 0
     ):
         return None
-    if effect["stat_id"] < 0 or not values or values[0] == -2:
+    if (
+        effect["stat_id"] < 0
+        or not values
+        or (values[0] == -2 and effect["runner"] != "eWQ")
+    ):
         return None  # native triggering-effect copy sentinel
     if (
         effect["runner"] == "eWN"
@@ -34,6 +40,8 @@ def _flat(effect):
         return effect["stat_id"], values[0]
     if effect["runner"] == "eWQ" and effect["parameter_count"] == 1 and values[0] != -1:
         return effect["stat_id"], values[0]
+    if effect["runner"] == "eWQ" and effect["parameter_count"] == 1 and values[0] == -1:
+        return effect["stat_id"], 0  # Native fresh equipment context has no fLP source.
     return None
 
 
@@ -49,7 +57,7 @@ def bonuses(character, *, build_index=None):
     blob = bytes.fromhex(saved.get("equipment", ""))
     selected = validate_sheet(character, blob)
     owned = {item["uid"]: item for item in character.get("inventory_items", [])}
-    stats, unsupported, uids = {}, [], []
+    stats, unsupported, uids, active_effects = {}, [], [], []
     for entry in selected:
         item = owned[entry["uid"]]
         uids.append(item["uid"])
@@ -64,6 +72,35 @@ def bonuses(character, *, build_index=None):
             )
             continue
         for effect in template["effects"]:
+            # eHi.a never registers these in the actor's passive equipment
+            # context. Keep identity for the separate item action executor;
+            # do not turn weapon attacks into bonuses or unsupported passives.
+            variant = effect.get("native_variant")
+            active = effect.get("native_active_effect")
+            if (
+                type(variant) is int
+                and type(active) is bool
+                and (variant != 0 or active)
+            ):
+                active_effects.append(
+                    dict(
+                        uid=item["uid"],
+                        reference=item["reference"],
+                        effect_id=effect["id"],
+                        generic=effect["generic"],
+                        native_variant=variant,
+                        native_active_effect=active,
+                    )
+                )
+                continue
+            if effect["generic"] in (1068, 1069):
+                from .inventory_elements import bonuses as selected_bonuses
+
+                elemental = selected_bonuses(item, effect)
+                if elemental is not None:
+                    for stat, delta in elemental.items():
+                        stats[stat] = stats.get(stat, 0) + delta
+                    continue
             flat = _flat(effect)
             if flat is None:
                 unsupported.append(
@@ -88,6 +125,7 @@ def bonuses(character, *, build_index=None):
         percentages=aptitudes["percentages"],
         unsupported=unsupported + aptitudes["unsupported"],
         equipped_uids=uids,
+        active_effects=active_effects,
         build_index=index,
     )
 

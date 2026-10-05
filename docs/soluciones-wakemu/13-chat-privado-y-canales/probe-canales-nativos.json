@@ -1,0 +1,95 @@
+{
+  "scope": "Encoder nativo offline, decoder actual del servidor y World con peers sintéticos; no prueba de envío en UI a jugadores",
+  "requests": [
+    {
+      "opcode": 12366,
+      "synthetic_frame_hex": "0000001203304e000950727565626120c3b1",
+      "body_hex": "000950727565626120c3b1",
+      "decoded": {
+        "text": "Prueba ñ"
+      }
+    },
+    {
+      "opcode": 13074,
+      "synthetic_frame_hex": "00000012033312000950727565626120c3b1",
+      "body_hex": "000950727565626120c3b1",
+      "decoded": {
+        "text": "Prueba ñ"
+      }
+    },
+    {
+      "opcode": 13744,
+      "synthetic_frame_hex": "0000001a0335b000000000000001c8000950727565626120c3b1",
+      "body_hex": "00000000000001c8000950727565626120c3b1",
+      "decoded": {
+        "error": "17 undecoded bytes"
+      }
+    },
+    {
+      "opcode": 13702,
+      "synthetic_frame_hex": "00000012033586000950727565626120c3b1",
+      "body_hex": "000950727565626120c3b1",
+      "decoded": {
+        "text": "Prueba ñ"
+      }
+    },
+    {
+      "opcode": 13188,
+      "synthetic_frame_hex": "0000001303338404000950727565626120c3b1",
+      "body_hex": "04000950727565626120c3b1",
+      "decoded": {
+        "language_id": 4,
+        "text": "Prueba ñ"
+      }
+    },
+    {
+      "opcode": 13831,
+      "synthetic_frame_hex": "0000001303360704000950727565626120c3b1",
+      "body_hex": "04000950727565626120c3b1",
+      "decoded": {
+        "language_id": 4,
+        "text": "Prueba ñ"
+      }
+    },
+    {
+      "opcode": 13224,
+      "synthetic_frame_hex": "0000001a0333a800000000000001c8000950727565626120c3b1",
+      "body_hex": "00000000000001c8000950727565626120c3b1",
+      "decoded": {
+        "group_id": 456,
+        "text": "Prueba ñ"
+      }
+    },
+    {
+      "opcode": 13917,
+      "synthetic_frame_hex": "0000001b03365d084175646974446f73000950727565626120c3b1",
+      "body_hex": "084175646974446f73000950727565626120c3b1",
+      "decoded": {
+        "recipient": "AuditDos",
+        "text": "Prueba ñ"
+      }
+    }
+  ],
+  "response_scope_probe": {
+    "local_hex": "094175646974436861740604000000000000303901000950727565626120c3b1",
+    "synthetic_channel7_hex": "00000007094175646974436861740604000000000000303901000950727565626120c3b1",
+    "recipients": [
+      [
+        "one",
+        674
+      ],
+      [
+        "two",
+        674
+      ]
+    ],
+    "scope": "World aislado con peers sintéticos; no envío a jugadores"
+  },
+  "native_response_decoders": "674 y762(channel7 sintético) aceptados; UTF8 e identidad de personaje preservados",
+  "source_hashes": {
+    "server/protocol_codec.py": "b2dd77d93bf8a04b73f033296f7d4dda3c4c85c427acbb179f7a85e394708f2c",
+    "server/local_game_server.py": "5a7983a9b26a78d3b707d9f4837f077798f30faf3f372013e04bad75bd1b286f",
+    "server/wakfu_server/wire.py": "53c52ffa187cb26da84cc75b042377f388118136076959fafa737e15a976e556",
+    "server/wakfu_server/maps/world.py": "b41d86cdcc95c6f7c69fe78389bfffecf172294ca613d88735feaaa6602c479a"
+  }
+}

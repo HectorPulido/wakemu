@@ -1,0 +1,13 @@
+IsObstacle: consulta de obstáculos dinámicos, no suelo
+
+Lexer329→eOp. Firma cero argumentos o un stringselector. eII.a admite caster(default),target,triggeringCaster,triggeringTarget,casterController,eventTarget; desconocido esnull. eOp puede usar fallback ePy.fyI si arg3 es ese proveedor; esta entrada genérica no fabrica ese proveedor. Exige eHg.dnz y fbX.bad (QI). bcL<=0 consultaQI.V(x,y); radio positivo recorre[X-r,X+r)×[Y-r,Y+r), límite superior excluido. Retorna verdadero si QK encontrado tienebcP o bcQ. No usaHP,Z ni walkability.
+
+big.bcP: verdadero para aliado de la vista localdnS; sino visible=(no18 && (6 || no5)). eGj.bcQ: visible && no54. ffe5=INVISIBLE,6=INVISIBLE_REVEALED,18=INVISIBLE_SUPERIOR,54=DONT_BLOCK_LOS. dnS deriva pertenencia al mismo combate/afiliación del jugador de la vista (más rama específicabvZ de acompañantes). La autoridad ordinaria de esta entrada pertenece a actoresbig registrados; no transforma desconocidos en visibles.
+
+Implementación con viewer_id explícito por adapter/ConditionContext; server_runtime pasa character.id del solicitante, no variable global. Soporta otra vista creando el adapter con otroviewer_id. Reconstruye QI dinámico desde roster propio, posiciones, footprintsbcl y propiedadesactuales; QI registra límites inclusivos aunque eOp consulta excluyeupper. No filtra muertos porHP ni infiere ocupación del suelo. Afiliación signedbyte real, no IDsdecuenta.
+
+Límites exactos: ausencia de viewer, QI estático incompleto/poblado sinflags, claseQK desconocida o overlap con resultadosbcP/bcQ distintos rechazan explícitamente. Si todos los QK posibles de un overlap dan igualbool, no hace falta inventar ordenTrove. eventTarget requiere ePH explícito todavía. Ramas ePy fallback y acompañantebvZ específico requieren autoridad adicional cuando se incorporen esas clases; no se afirman cubiertas por actorordinario.
+
+ProbeNativeIsObstacle:6ramas consultaQI y32combinaciones de flags nativasPASS.44regresiones condiciones/adapter/helperPASS. Before5592/6914 confirma8rechazos actuales. Resultadofocalfinal se registra después de ventana coordinada. Sin reinicios ni claimGUI.
+
+Foco final active-is-obstacle-current.json: ocho casos normales5592(35/200) y6914(11/200), seis actor_state_changed y dos empty_cell sin efecto observado. Cero rechazos, source_stable=true y rollback_preserved=true en las ocho filas. Las dos variantes sin efecto no se presentan como hechizo verificado. Entrada real server_runtime usa viewer_id explícito del character propio del solicitante. Fuentes congeladas para despliegue coordinado; no reinicié ni comprobé GUI.

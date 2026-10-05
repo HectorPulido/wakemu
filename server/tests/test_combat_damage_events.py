@@ -33,6 +33,7 @@ class NativeDamageEventsTests(unittest.TestCase):
             (3, (0, 2, 8)),
             (4, (0, 2, 6)),
             (5, (0, 2, 7)),
+            (1083, (0, 2, 11)),
         ):
             self.assertEqual(self.events(kind), expected)
 

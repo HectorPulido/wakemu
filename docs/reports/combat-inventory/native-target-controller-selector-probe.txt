@@ -1,0 +1,13 @@
+mask=4398046511104 matches=false -> INVALID
+mask=4398046511104 matches=true -> VALID
+mask=4398046511104 matches=false -> INVALID
+mask=35184372088832 matches=false -> INVALID
+mask=35184372088832 matches=false -> INVALID
+mask=35184372088832 matches=true -> VALID
+bit34 summon=false own=true -> VALID
+bit34 summon=false own=false -> VALID
+bit34 summon=true own=true -> INVALID
+bit34 summon=true own=false -> VALID
+bit14 baG=false -> INVALID
+bit14 baG=true -> VALID
+PASS fcE42/45 object identity,34 own summon exclusion,14 corpse; big unregistered relations resolve self

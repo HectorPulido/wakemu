@@ -1,0 +1,395 @@
+{
+  "source": "Installed GeneratedMessageV3 static descriptors; no copied client files",
+  "models": [
+    {
+      "model": "guild",
+      "native_name": "ProtoGuildModel",
+      "fields": [
+        {
+          "number": 1,
+          "name": "guildId",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "level",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "blazon",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 5,
+          "name": "name",
+          "type": "STRING",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 6,
+          "name": "description",
+          "type": "STRING",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 7,
+          "name": "message",
+          "type": "STRING",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 8,
+          "name": "currentGuildPoints",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 9,
+          "name": "totalGuildPoints",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 10,
+          "name": "weeklyPointsLimit",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 11,
+          "name": "earnedPointsLimit",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 12,
+          "name": "lastEarningPointWeek",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 13,
+          "name": "ranks",
+          "type": "MESSAGE",
+          "repeated": true,
+          "required": false
+        },
+        {
+          "number": 14,
+          "name": "members",
+          "type": "MESSAGE",
+          "repeated": true,
+          "required": false
+        },
+        {
+          "number": 15,
+          "name": "bonuses",
+          "type": "MESSAGE",
+          "repeated": true,
+          "required": false
+        }
+      ]
+    },
+    {
+      "model": "rank",
+      "native_name": "ProtoGuildRank",
+      "fields": [
+        {
+          "number": 1,
+          "name": "id",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "name",
+          "type": "STRING",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "authorizations",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 4,
+          "name": "position",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        }
+      ]
+    },
+    {
+      "model": "bonus",
+      "native_name": "ProtoGuildBonus",
+      "fields": [
+        {
+          "number": 1,
+          "name": "id",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "activationDate",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "buyDate",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        }
+      ]
+    },
+    {
+      "model": "member",
+      "native_name": "ProtoGuildMember",
+      "fields": [
+        {
+          "number": 1,
+          "name": "id",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "ownerId",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "guildPoints",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 4,
+          "name": "rank",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 5,
+          "name": "xp",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 6,
+          "name": "isConnected",
+          "type": "BOOL",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 7,
+          "name": "smiley",
+          "type": "BYTES",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 8,
+          "name": "sex",
+          "type": "BYTES",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 9,
+          "name": "breedId",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 10,
+          "name": "nationId",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 11,
+          "name": "name",
+          "type": "STRING",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 12,
+          "name": "saveDate",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 13,
+          "name": "serializedLanguages",
+          "type": "BYTES",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 14,
+          "name": "accountCommunityId",
+          "type": "BYTES",
+          "repeated": false,
+          "required": true
+        }
+      ]
+    },
+    {
+      "model": "member2",
+      "native_name": "ProtoGuildMember",
+      "fields": [
+        {
+          "number": 1,
+          "name": "id",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 2,
+          "name": "ownerId",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 3,
+          "name": "guildPoints",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 4,
+          "name": "rank",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 5,
+          "name": "xp",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 6,
+          "name": "isConnected",
+          "type": "BOOL",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 7,
+          "name": "smiley",
+          "type": "BYTES",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 8,
+          "name": "sex",
+          "type": "BYTES",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 9,
+          "name": "breedId",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 10,
+          "name": "nationId",
+          "type": "INT32",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 11,
+          "name": "name",
+          "type": "STRING",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 12,
+          "name": "saveDate",
+          "type": "INT64",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 13,
+          "name": "serializedLanguages",
+          "type": "BYTES",
+          "repeated": false,
+          "required": true
+        },
+        {
+          "number": 14,
+          "name": "accountCommunityId",
+          "type": "BYTES",
+          "repeated": false,
+          "required": true
+        }
+      ]
+    }
+  ],
+  "native_consumer_probe": {
+    "guild_id": 456,
+    "level": 1,
+    "name": "Audit Guild",
+    "body_bytes": 34,
+    "native_jU_initialized": true,
+    "fgL_fK_decoded": true,
+    "members": 0,
+    "ranks": 0,
+    "bonuses": 0
+  },
+  "source_sha256": "dcb7be5305ed04e0904714e4257aeaf9a562f35fa54185ebf95f154630fc6fc0",
+  "limits": [
+    "Empty members/ranks only tests parsing, not valid functional guild",
+    "No network carrier, durable store or live membership proven",
+    "Member ownerId semantics and date units pending consumer tracing"
+  ]
+}

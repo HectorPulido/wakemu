@@ -1,0 +1,33 @@
+Requisito de validación previa a despliegue de combate
+
+Usar fuentes finales congeladas, una sola carga de catálogos. El comando no
+abre cliente ni escribe cuentas, Redis o SQLite:
+
+WAKFU_COMBAT_START_EVENTS=1 WAKFU_NATIVE_AREA_CALLBACKS=1 PYTHONPATH=server \
+  python3 server/tools/audit_ready_start.py --turn-cycle \
+  --legal-passive-levels --output \
+  docs/reports/combat-inventory/ready-deployment-gate-current.json
+
+Cobertura:18razas×niveles1/20/200 sin pasiva, innatas nativas completas;
+cada pasiva individual al mínimo legal y200, además nivel20 si disponible.
+Los activos son los seis primeros disponibles según catálogo actual,
+no un deck proveniente de otro jugador. Vida y recursos propios nativos,
+terreno real1134; no equipo. No afirmar que cubre todos los equipos ni
+combinaciones simultáneas de pasivas.
+
+Entrada real prepare_ready→prepare_server_initialization(fight_start=True).
+--turn-cycle conecta prepare_server_turn_end/start con los flags indicados,
+avanza dos límites de turno por RuntimeMessages con el ACK pendiente real,
+conservando orden/recursos y sin fabricar eventos ni normalizar ACK.
+Si cambia precondición (p.ej. combate finalizado), se informa expresamente.
+
+Bloqueos de Ready y lifecycle_failed se separan. Se conservan efecto/familia,
+ancestros, trazas, etapa, source/RNG rollback por fallos de límites de turno.
+Los snapshots originales deben conservarse. Fuente y herramienta deben
+mantener hashes; deployment_gate_passed sólo admite casos finalizados sin
+rechazos y trazas completas. Esto es validación offline de entrada/ciclo,
+no prueba GUI ni éxito de todos los hechizos, objetivos o equipos.
+
+Pruebas ligeras: planificador garantiza matriz/levels legales/deduplicación;
+Ready failedinitialize posterior a mutación no compromete estado parcial;
+Ready duplicado no reaplica. 3tests PASS.

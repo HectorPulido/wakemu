@@ -1,5 +1,6 @@
 """Native eWx1013 armor: coefficients, mastery, cap and eWQ ownership."""
 import math
+from dataclasses import replace
 from .combat_parameters import parameter_value, _float32
 from .combat_damage_parameters import damage_mastery_context
 from .combat_stat_handler import StatExecutionContext, _current, _bounds, _write
@@ -21,16 +22,21 @@ def _scaled(value, bonus):
     return max(-(1 << 31), min((1 << 31) - 1, math.floor(result)))
 
 
-def armor_amount(effect, level, source, target, *, capped_player):
+def armor_amount(effect, level, source, target, *, capped_player, additional_final=0):
     raw = effect["parameters"]
     if len(raw) < 2 or len(raw) % 2:
         raise ValueError("Invalid native armor parameter pairs")
     values = [parameter_value(raw, i, level) for i in range(len(raw) // 2)]
     mode = values[1] if len(values) > 1 else 3
-    if mode not in range(4) or type(capped_player) is not bool:
+    if (
+        mode not in range(4)
+        or type(capped_player) is not bool
+        or type(additional_final) is not int
+        or not -(1 << 31) <= additional_final < (1 << 31)
+    ):
         raise ValueError("Unknown native armor coefficient/context")
     flags = set(effect["native_effect_flags"])
-    if flags - {4, 17, 22, 23, 24}:
+    if flags - {3, 4, 5, 6, 17, 22, 23, 24}:
         raise ValueError("Unaudited native armor flags")
     source_stats, target_stats = source.effect_stats, target.effect_stats
     if (
@@ -73,7 +79,10 @@ def armor_amount(effect, level, source, target, *, capped_player):
             for identity in ids:
                 total = _i32(total + source_stats.get(identity, 0))
             value = _scaled(value, total)
-    # Fresh eWx.rBA=0; event-modified/cloned rBA needs its own snapshot.
+    # eWx.C applies SW(mode) after coefficients/mastery, before the cap.
+    # fNk resets this transient faq accumulator; mode0 ignores it entirely.
+    if mode != 0:
+        value = _scaled(value, additional_final)
     maximum = (1 << 31) - 1
     if (
         capped_player
@@ -88,21 +97,26 @@ def armor_amount(effect, level, source, target, *, capped_player):
 
 
 class NativeArmorHandler:
-    def __init__(self, fight, packets, *, action_id, allocate_uid, context, authority):
+    def __init__(
+        self, fight, packets, *, action_id, allocate_uid, context, authority, rng=None
+    ):
         self.fight, self.packets, self.action_id = fight, packets, action_id
         self.allocate_uid, self.context, self.authority = (
             allocate_uid,
             context,
             authority,
         )
+        self.event_lifecycle = None
+        self.prepared = {}
+        self.final_modifiers = {}
+        self.runner_amounts = {}
+        self.rng = rng
 
-    def __call__(self, effect, values, invocation):
+    def _calculate(self, effect, invocation, *, additional_final=0):
         source = self.fight.actors[invocation.caster_id]
         target = self.fight.actors[invocation.target_id]
         if self.fight.phase != "active" or self.fight.current is None or target.hp <= 0:
             raise ValueError("Invalid native armor fight/target")
-        if invocation.native_running_uid is not None:
-            raise ValueError("Armor event clone requires authoritative rBA snapshot")
         self.authority(self.fight, source)
         target_authority = self.authority(self.fight, target)
         context = self.context(effect, invocation)
@@ -112,57 +126,132 @@ class NativeArmorHandler:
         ):
             raise ValueError("Unverified native armor application guards")
         if not context.executable:
-            return False
+            return context, None
         amount = armor_amount(
             effect,
             invocation.level,
             source,
             target,
             capped_player=target_authority.is_player,
+            additional_final=additional_final,
         )
+        return context, amount
+
+    def prepare(self, effect, values, invocation):
+        if self.event_lifecycle is None:
+            return invocation
+        from .combat_final_modifier import NativeFinalModifier
+
+        uid = self.allocate_uid()
+        invocation = replace(invocation, native_running_uid=uid)
+        modifier = NativeFinalModifier(uid, 1013)
+        from .combat_trigger_value_modifier import NativeRunnerAmount
+
+        runner = NativeRunnerAmount(uid, 1013, rng=self.rng)
+        self.runner_amounts[uid] = runner
+        self.final_modifiers[uid] = modifier
+        self.event_lifecycle.phase(
+            effect,
+            invocation,
+            uid=uid,
+            value=0,
+            channel=1,
+            final_modifier=modifier,
+            runner_modifier=runner,
+        )
+        self.prepared[uid] = self._calculate(
+            effect, invocation, additional_final=modifier.value
+        )
+        amount = self.prepared[uid][1]
+        if amount is not None:
+            runner.set_calculated(amount["requested"])
+        return invocation
+
+    def __call__(self, effect, values, invocation):
+        uid = invocation.native_running_uid
+        if uid is None:
+            # Qe.k/fNk clones enter without original preparation; rBA resets0.
+            context, amount = self._calculate(effect, invocation)
+        else:
+            if uid not in self.prepared:
+                raise ValueError("Missing prepared native armor running effect")
+            context, amount = self.prepared.pop(uid)
+        modifier = self.final_modifiers.pop(uid, None)
+        runner = self.runner_amounts.pop(uid, None)
+        if amount is None:
+            return False
         if amount["requested"] == 0:
             return False  # eWW.bbH/fMz before application and UID ownership.
+        if uid is None:
+            uid = self.allocate_uid()
+            if self.event_lifecycle is not None:
+                from .combat_final_modifier import NativeFinalModifier
+
+                modifier = NativeFinalModifier(uid, 1013)
+                from .combat_trigger_value_modifier import NativeRunnerAmount
+
+                runner = NativeRunnerAmount(
+                    uid, 1013, rng=self.rng, value=amount["requested"]
+                )
+        if self.event_lifecycle is not None:
+            self.event_lifecycle.phase(
+                effect,
+                invocation,
+                uid=uid,
+                value=amount["requested"],
+                channel=2,
+                final_modifier=modifier,
+                runner_modifier=runner,
+            )
+        source = self.fight.actors[invocation.caster_id]
+        target = self.fight.actors[invocation.target_id]
         minimum, maximum = _bounds(target, 97)
         result = apply_current_stat(
             family="eWQ",
             current=_current(target, 97),
             minimum=minimum,
             maximum=maximum,
-            requested=amount["requested"],
+            requested=amount["requested"] if runner is None else runner.value,
             percent=False,
             executable=True,
             frozen=97 in target.effect_frozen,
             source_guards_verified=True,
             limit_policy="NORMAL",
         )
-        uid = self.allocate_uid()
-        payload = owned_effect_payload(
-            uid=uid,
-            base_uid=invocation.base_uid,
-            generic_effect=invocation.reference,
-            caster_id=source.id,
-            target_id=target.id,
-            value=result["actual"],
-            stat_id=97,
-            requested=amount["requested"],
-            timing_payload=context.timing_payload,
-        )
-        from .combat_effect_removal import _identity_fields
+        if runner is not None:
+            runner.set_applied(result["actual"])
 
-        messages = {}
-        _identity_fields(payload, messages=messages)
-        # Merge the native eWx AdditionalDatas19 room into the existing eWW fields.
-        additional = (
-            _integer(12, 97)
-            + _integer(19, amount["room"])
-            + _integer(25, amount["requested"])
-        )
-        from .combat_stat_effects import _varint
+        def make_payload(value):
+            payload = owned_effect_payload(
+                uid=uid,
+                base_uid=invocation.base_uid,
+                generic_effect=invocation.reference,
+                caster_id=source.id,
+                target_id=target.id,
+                value=value,
+                stat_id=97,
+                requested=amount["requested"],
+                timing_payload=context.timing_payload,
+            )
+            from .combat_effect_removal import _identity_fields
 
-        old = b"\x42" + _varint(len(messages[8])) + messages[8]
-        payload = payload.replace(
-            old, b"\x42" + _varint(len(additional)) + additional, 1
-        )
+            messages = {}
+            _identity_fields(payload, messages=messages)
+            # Merge the native eWx AdditionalDatas19 room into the existing eWW fields.
+            additional = (
+                _integer(12, 97)
+                + _integer(19, amount["room"])
+                + _integer(25, amount["requested"])
+            )
+            from .combat_stat_effects import _varint
+
+            old = b"\x42" + _varint(len(messages[8])) + messages[8]
+            payload = payload.replace(
+                old, b"\x42" + _varint(len(additional)) + additional, 1
+            )
+            return payload
+
+        payload = make_payload(result["actual"])
         _write(self.fight, source.id, target, 97, result["current"])
         if context.retained:
             self.fight.owned_stat_effects[uid] = dict(
@@ -178,17 +267,43 @@ class NativeArmorHandler:
                 state_uid=invocation.state_uid,
                 timer=None if context.timer is None else dict(vars(context.timer)),
             )
-        self.packets.append(
-            (
-                13497,
-                owned_effect_application(
-                    self.fight.id,
-                    self.action_id,
-                    effect_class=1013,
-                    target_id=target.id,
-                    uid=uid,
-                    running_effect_payload=payload,
-                ),
+        if runner is None or not runner.notification_suppressed:
+            self.packets.append(
+                (
+                    13497,
+                    owned_effect_application(
+                        self.fight.id,
+                        self.action_id,
+                        effect_class=1013,
+                        target_id=target.id,
+                        uid=uid,
+                        running_effect_payload=payload,
+                    ),
+                )
             )
-        )
+        if context.retained and self.event_lifecycle is not None:
+            register = getattr(self.event_lifecycle, "register_applied", None)
+            if callable(register):
+                register(effect, invocation, uid)
+        if runner is not None:
+            runner.finish_application()
+        if self.event_lifecycle is not None:
+            for channel in (3, 4):
+                self.event_lifecycle.phase(
+                    effect,
+                    invocation,
+                    uid=uid,
+                    value=result["actual"] if runner is None else runner.value,
+                    channel=channel,
+                    final_modifier=modifier,
+                    runner_modifier=runner,
+                )
+        from .combat_runner_callbacks import notify_runner_value
+
+        final_value = result["actual"] if runner is None else runner.value
+        if context.retained:
+            row = self.fight.owned_stat_effects[uid]
+            row["actual"] = final_value
+            row["payload"] = make_payload(final_value).hex()
+        notify_runner_value(invocation, final_value)
         return True

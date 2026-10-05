@@ -103,7 +103,7 @@ def response_messages(character, index, *, wp, status=0):
     return packets
 
 
-def rejection_messages(character, index, *, wp, status):
+def rejection_response(character, index, *, status):
     """Return the prior authoritative sheet alongside a failed save status.
 
     cER reads has_data independently of eQQ success, so an unsuccessful
@@ -115,7 +115,7 @@ def rejection_messages(character, index, *, wp, status):
         raise ValueError("Expected failed native build status")
     saved = character.get("builds", {})
     if index != 0 and index not in saved:
-        return [(12284, response(character, index, status))]
+        return response(character, index, status)
     canonical = character
     if index not in saved:
         default = next(
@@ -138,6 +138,27 @@ def rejection_messages(character, index, *, wp, status):
     # Keep the four authoritative blobs while substituting the error byte.
     body = response(canonical, index)
     body = body[:12] + struct.pack(">b", status) + body[13:]
+    return body
+
+
+def blocked_save_messages(character, request_body):
+    """Reject an owned save during combat and restore its prior native sheet.
+
+    Only the build ACK is sent: an outside-combat actor progression snapshot
+    would overwrite authoritative combat resources. No persistence is mutated.
+    """
+    actor_id, index, _ = decode(request_body)
+    if actor_id != character["id"]:
+        raise ValueError("Build request belongs to another character")
+    if type(index) is not int or not 0 <= index <= 2:
+        raise ValueError("Invalid build index")
+    return [(12284, rejection_response(character, index, status=2))]
+
+
+def rejection_messages(character, index, *, wp, status):
+    body = rejection_response(character, index, status=status)
+    if not body[13]:
+        return [(12284, body)]
     from wakfu_server.inventory_items import equipment_inventory
     from wakfu_server.combat_lifecycle import outside_progression
 

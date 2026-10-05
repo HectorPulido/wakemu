@@ -2,6 +2,7 @@
 from copy import deepcopy
 import json
 from .combat_state_timing import StateTimer
+from .combat_state_managers import state_managers
 from .combat_stat_handler import NativeStatHandler
 from .combat_effect_removal import running_effect_removal
 from .paths import DATA_ROOT
@@ -135,6 +136,12 @@ def prepare_timed_expiration(
         set(preview.owned_stat_effects)
         | set(preview.state_wire_payloads)
         | set(preview.native_owned_group_effects)
+        | set(getattr(preview, "native_owned_area_effects", {}))
+        | {
+            entry.uid
+            for manager in state_managers(preview)
+            for entry in manager.state_ledger.entries
+        }
     )
     preview.native_retained_records = {
         uid: row for uid, row in preview.native_retained_records.items() if uid in live

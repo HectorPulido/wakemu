@@ -1,0 +1,87 @@
+Desplazamiento forzado con alturas — mapa 1134
+
+Causa: el manejador buscaba únicamente casillas con la altura Z anterior.
+El cliente faz.B no conserva Z: busca la superficie de origen con VA.a,
+consulta Sm y elige la PRIMERA superficie indicada por Sm.boE[0].
+Su constructor usa bcK (altura física del actor), bcL (radio físico) y
+bvz (capacidad de salto). eGj.bvz devuelve 4 para la creación ordinaria
+acreditada. Estas reglas difieren de las aristas de caminar exportadas
+con Sm(3,0,2,true). No se ha cambiado la autoridad LOS.
+
+Fuentes: .runtime/local/native-forced-path-faz.txt, método B(int,short)
+y constructor; perfil nativo eGH.bcK en native-actor-characteristics.
+ExportForcedCombatTransitions.java consulta las columnas VB/Vy del cliente,
+conserva el primer destino de Sm y registra también consultas bloqueadas.
+Cada archivo identifica mapa, altura, radio, salto y SHA256 del mapa cliente.
+Se exportó únicamente mapa 1134, radio 0, alturas 1–25 y salto 4.
+
+El servidor consulta esa política usando mapa y altura física explícitos.
+Después valida pertenencia al terreno del combate, obstáculos y ocupación.
+No utiliza las aristas de caminar para negar un salto forzado ya acreditado.
+Una consulta desconocida o una política ausente rechaza con motivo explícito.
+Los fixtures antiguos sin identidad de mapa conservan la regla plana anterior;
+no reciben permiso implícito para cambiar de altura.
+
+Colisiones: sigue pendiente el ejecutor de pérdida PA/eventos de colisión.
+Se rechazan antes de gastar UID, emitir paquete o modificar posición.
+Se valida la ruta completa: si el segundo paso colisiona después de una
+transición válida, tampoco queda aplicado el primero.
+
+Validación: PYTHONPATH=server:server/tests python3 -m unittest
+ test_combat_forced_terrain test_combat_displacement
+17 pruebas pasan. Incluyen subida (-15,-5,-1) → (-15,-4,0) con alturas
+3/4/6, política desconocida, consulta bloqueada nativa, ocupación y rollback.
+La entrada común del hechizo Atracción5030 a niveles20/200 está registrada
+por audit_native_pull en attraction-5030-native-height-focal.json.
+No es una confirmación GUI ni un despliegue; no se reiniciaron servicios.
+
+Ampliación pendiente: otros mapas requieren exportación propia, nunca el
+catálogo1134 reutilizado. Para evitar repetir25 tablas por mapa, conviene
+agrupar cada consulta origen/vecino por destino y una máscara de alturas.
+Esto conserva orden nativo y bloqueos; se medirá1134 antes de exportar934.
+
+Medición compacta1134 (sin cambiar motor ni runtime):
+148628 consultas explícitas; 150687 resultados distintos entre25alturas.
+Las25tablas suman18173543bytes; compactadas452276bytes (97.51%menos).
+Cada consulta guarda [x,y,z,dx,dy,[[máscara_de_alturas,Z_destino_o_null]]].
+Se compararon las148628consultas de CADA una de las25políticas originales
+mediante SHA256 normalizado: equivalencia25/25, sin omitir bloqueos.
+Conversión17.79s; verificación8.63s; lectura/descompresión/JSON0.136s.
+Resultado provisional .runtime/local/forced-compact/1134.json.gz;
+medidas públicas forced-terrain-compact-benchmark.json.
+
+El índice existente acredita934mapas exportables y27archivos nativos
+ilegibles. Sus1748547superficies suman47.06veces las37157del mapa1134.
+Extrapolar esa cantidad da~21.3MBgzip totales, NO934×el tamaño1134.
+Es una estimación: densidad, compresión y variantes dealtura pueden cambiar.
+Convertir25tablas existentes así costaría~14min por superficie extrapolada;
+conviene exportar directamente el formato compacto desdeJava y no generar
+primero tablas repetidas. El tiempo del exportador nativo completo todavía
+no está medido. No se exportaron934mapas en esta tarea.
+
+Ampliación general completada en fuentes:
+ExportCompactForcedTransitions.java exportó directamente 934 mapas, por
+lotes de 100, usando el algoritmo Sm original. Cada archivo se publicó con
+reemplazo atómico después de pasar las validaciones del lector Python.
+El índice forced-transitions/index.json registra 934 archivos completados,
+ningún fallo nuevo y los 27 archivos nativos previamente ilegibles.
+Se conservaron las tablas antiguas de 1134 para compatibilidad.
+
+Totales medidos: 6.994.188 consultas, 21.671.597 bytes comprimidos.
+Tiempo de exportación nativa acumulado: 22,002 segundos; validación y
+publicación: 32,19 segundos. Los datos se leen desde el volumen protocol.
+El proceso del juego que ya estaba abierto conserva el módulo antiguo;
+la nueva lectura requiere cargar esta versión del servidor. No se reinició.
+
+Prueba de equivalencia del lector compacto: las 148.628 consultas de cada
+una de las 25 alturas coinciden exactamente con sus tablas originales.
+Pruebas automatizadas: 20 pasan, incluyendo el formato antiguo, índices
+inmutables compartidos, máscaras incompletas o solapadas y colisiones.
+Entrada común con el lector compacto: Atracción 5030, niveles 20 y 200,
+mueve a (-15,-4,0); rollback original intacto y fuentes estables.
+Reporte: attraction-5030-compact-height-focal.json.
+
+Límites: radio físico distinto de cero, salto distinto de 4, alturas fuera
+1–25 y los archivos nativos ilegibles requieren su propia autoridad.
+La respuesta con pérdida PA/eventos de colisión continúa sin implementarse;
+las colisiones rechazan sin aplicar parcialmente la ruta.

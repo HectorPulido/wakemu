@@ -18,7 +18,9 @@ def damage_effect_level(*, context_override, container_level):
     return ((level + 32768) % 65536) - 32768
 
 
-def interpret_damage_parameters(parameters, level, *, hp_context, rng):
+def interpret_damage_parameters(
+    parameters, level, *, hp_context, rng, allow_signed_base=False
+):
     """Evaluate eVE parameter pairs at eXt.fRR's authoritative level.
 
     far1..6 use HP1 only (exclude virtual HP92). hp_context supplies
@@ -62,7 +64,10 @@ def interpret_damage_parameters(parameters, level, *, hp_context, rng):
                 raise ValueError("Missing authoritative percent rounding sample")
             floor += sample < amount - floor
         base = floor
-    if not 0 <= base < (1 << 31):
+    if type(allow_signed_base) is not bool:
+        raise ValueError("Explicit signed parameter policy required")
+    minimum = -(1 << 31) if allow_signed_base else 0
+    if not minimum <= base < (1 << 31):
         raise ValueError("Unsupported negative damage parameter result")
     return dict(base=base, coefficient_mask=mask, base_kind=kind, level=level)
 

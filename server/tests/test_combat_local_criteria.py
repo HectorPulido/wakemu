@@ -15,6 +15,33 @@ from wakfu_server.combat_local_criteria import (
 
 
 class LocalCriteriaTests(unittest.TestCase):
+    def test_final_native_semicolon_preserves_all_aliases_and_rejects_extra_predicate(
+        self,
+    ):
+        context = ConditionContext({})
+        self.assertTrue(evaluate_condition("a = 1; b = a + 2; b == 3;", context))
+        self.assertTrue(evaluate_condition("True;", context))
+        for source in ("a = 1; True; False", "True;;"):
+            with self.assertRaises(UnknownCondition):
+                evaluate_condition(source, context)
+        report = json.loads(
+            (
+                Path(__file__).resolve().parents[2]
+                / "docs/reports/combat-inventory/ready-eca-deferred-runner-focal.json"
+            ).read_text()
+        )
+        source = (
+            report["rows"][0]["reason"]
+            .removeprefix("Unsupported native criterion: ")
+            .removesuffix(": Only one final native predicate allowed")
+        )
+        root = parse_local_criterion(source)
+        calls = [node for node in ast.walk(root) if isinstance(node, ast.Call)]
+        self.assertEqual(
+            sum(node.func.id == "HasEffectWithSpecificId" for node in calls), 13
+        )
+        self.assertEqual(sum(node.func.id == "GetStateLevel" for node in calls), 1)
+
     def test_native_alias_binding_before_reassignment_and_long_overflow(self):
         c = ConditionContext({})
         self.assertTrue(evaluate_condition("a = 1; b = a; a = 2; b == 1 and a == 2", c))
@@ -51,7 +78,7 @@ class LocalCriteriaTests(unittest.TestCase):
             )
         )
 
-    def test_real_eniripsa6967_cost_all_four_decks_and_remaining_unknown(self):
+    def test_real_feca6967_cost_all_four_decks_and_missing_authority(self):
         audit = json.loads(
             (
                 Path(__file__).resolve().parents[2]
@@ -93,7 +120,7 @@ class LocalCriteriaTests(unittest.TestCase):
             )
             self.assertTrue(evaluate_condition(assignment + f"cost == {cost}", c))
             with self.assertRaisesRegex(
-                UnknownCondition, "GetSpecificEffectAreaCountInRange"
+                UnknownCondition, "Missing authoritative target cell"
             ):
                 evaluate_condition(source, c)
 

@@ -1,0 +1,1595 @@
+{
+  "source": "Installed eVi prototypes; literal bcd overrides only. null is dynamic, not false.",
+  "effects": {
+    "-1": {
+      "runner": "eZN",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1": {
+      "runner": "eXt",
+      "owner": "eXt",
+      "bcd_constant": true
+    },
+    "100": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1000": {
+      "runner": "eWK",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1001": {
+      "runner": "eWZ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1002": {
+      "runner": "eZw",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1003": {
+      "runner": "eWV",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1008": {
+      "runner": "eYS",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1010": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1011": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1012": {
+      "runner": "eXi",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1013": {
+      "runner": "eWx",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1014": {
+      "runner": "eXa",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1020": {
+      "runner": "eYw",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "1021": {
+      "runner": "eXV",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1030": {
+      "runner": "eYV",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1031": {
+      "runner": "eXY",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1032": {
+      "runner": "eXY",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1033": {
+      "runner": "eXY",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1038": {
+      "runner": "eWh",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1041": {
+      "runner": "eXM",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1042": {
+      "runner": "eXi",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1044": {
+      "runner": "eWC",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1047": {
+      "runner": "eYs",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "1049": {
+      "runner": "eZy",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1050": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1051": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1052": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1053": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1054": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1055": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1056": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1057": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1058": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1059": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1060": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1061": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1062": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1063": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1064": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1065": {
+      "runner": "eZe",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1066": {
+      "runner": "eZg",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1067": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1068": {
+      "runner": "eZO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1069": {
+      "runner": "eZP",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1070": {
+      "runner": "eWj",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1072": {
+      "runner": "eYf",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1074": {
+      "runner": "eYu",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "1075": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1076": {
+      "runner": "eYx",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1077": {
+      "runner": "eZz",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1078": {
+      "runner": "eZA",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1079": {
+      "runner": "eYh",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1080": {
+      "runner": "eYi",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1081": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1083": {
+      "runner": "eXt",
+      "owner": "eXt",
+      "bcd_constant": true
+    },
+    "1084": {
+      "runner": "eXs",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1085": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1086": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1087": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1088": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1089": {
+      "runner": "fad",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1090": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1091": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1093": {
+      "runner": "eZJ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1094": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1095": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1098": {
+      "runner": "eWO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1099": {
+      "runner": "eWE",
+      "owner": "eWE",
+      "bcd_constant": true
+    },
+    "1100": {
+      "runner": "eYo",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "1101": {
+      "runner": "eYq",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "1102": {
+      "runner": "eYp",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "1103": {
+      "runner": "eYB",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "1104": {
+      "runner": "eYj",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1105": {
+      "runner": "eYl",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "120": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1200": {
+      "runner": "eYY",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1201": {
+      "runner": "eWS",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1202": {
+      "runner": "eWT",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1203": {
+      "runner": "fae",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "122": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "123": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "124": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "125": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "126": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "127": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "128": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "129": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "130": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "1300": {
+      "runner": "eXC",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "132": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "133": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "134": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "135": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "149": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "150": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "151": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "16": {
+      "runner": "eYO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "160": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "161": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "162": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "163": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "166": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "167": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "168": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "169": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "171": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "172": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "173": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "174": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "175": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "176": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "177": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "178": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "180": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "181": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "182": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "183": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "184": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "185": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "186": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "191": {
+      "runner": "eWN",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "192": {
+      "runner": "eWO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "193": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "194": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "196": {
+      "runner": "eXO",
+      "owner": "eXO",
+      "bcd_constant": true
+    },
+    "2": {
+      "runner": "eXt",
+      "owner": "eXt",
+      "bcd_constant": true
+    },
+    "20": {
+      "runner": "eWN",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "2000": {
+      "runner": "eXx",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "2001": {
+      "runner": "eXx",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "2002": {
+      "runner": "eXx",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "2003": {
+      "runner": "eXx",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "2004": {
+      "runner": "eXx",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "2005": {
+      "runner": "eXy",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "2006": {
+      "runner": "eXx",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "2007": {
+      "runner": "eXx",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "2008": {
+      "runner": "eXx",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "207": {
+      "runner": "eWD",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "21": {
+      "runner": "eWO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "235": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "236": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "24": {
+      "runner": "eXv",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "25": {
+      "runner": "eXs",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "250": {
+      "runner": "eWM",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "251": {
+      "runner": "eXs",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "253": {
+      "runner": "eXs",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "258": {
+      "runner": "eXs",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "259": {
+      "runner": "eXs",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "26": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "27": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "272": {
+      "runner": "eYP",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "28": {
+      "runner": "eXc",
+      "owner": "eXc",
+      "bcd_constant": true
+    },
+    "3": {
+      "runner": "eXt",
+      "owner": "eXt",
+      "bcd_constant": true
+    },
+    "30": {
+      "runner": "eWf",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "300": {
+      "runner": "eXK",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "301": {
+      "runner": "eXJ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "302": {
+      "runner": "eZC",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "303": {
+      "runner": "eWF",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "304": {
+      "runner": "eWu",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "305": {
+      "runner": "eXq",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "307": {
+      "runner": "eZl",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "308": {
+      "runner": "eYW",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "309": {
+      "runner": "eZc",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "31": {
+      "runner": "eWN",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "310": {
+      "runner": "eZk",
+      "owner": "eZk",
+      "bcd_constant": null
+    },
+    "311": {
+      "runner": "eYM",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "313": {
+      "runner": "eYK",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "314": {
+      "runner": "eYQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "315": {
+      "runner": "eYQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "316": {
+      "runner": "eZF",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "317": {
+      "runner": "eYL",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "32": {
+      "runner": "eWO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "320": {
+      "runner": "eYG",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "321": {
+      "runner": "eZi",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "324": {
+      "runner": "eZr",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "325": {
+      "runner": "eYH",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "327": {
+      "runner": "eVX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "328": {
+      "runner": "eVY",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "33": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "330": {
+      "runner": "eYg",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "331": {
+      "runner": "eXp",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "332": {
+      "runner": "eZG",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "333": {
+      "runner": "eZE",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "334": {
+      "runner": "eWB",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "338": {
+      "runner": "eYJ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "339": {
+      "runner": "eYQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "340": {
+      "runner": "eZD",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "341": {
+      "runner": "eXR",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "342": {
+      "runner": "eXB",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "344": {
+      "runner": "eZa",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "345": {
+      "runner": "eYC",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "347": {
+      "runner": "eZt",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "349": {
+      "runner": "eYk",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "350": {
+      "runner": "eWv",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "351": {
+      "runner": "eZj",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "352": {
+      "runner": "eYA",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "358": {
+      "runner": "eYI",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "37": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "38": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "39": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "4": {
+      "runner": "eXt",
+      "owner": "eXt",
+      "bcd_constant": true
+    },
+    "40": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "400": {
+      "runner": "eXE",
+      "owner": "eXE",
+      "bcd_constant": true
+    },
+    "401": {
+      "runner": "eZh",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "402": {
+      "runner": "eXG",
+      "owner": "eXE",
+      "bcd_constant": true
+    },
+    "41": {
+      "runner": "eWN",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "42": {
+      "runner": "eWO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "421": {
+      "runner": "eXe",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "422": {
+      "runner": "eXk",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "426": {
+      "runner": "eYZ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "43": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "430": {
+      "runner": "eZL",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "435": {
+      "runner": "eZK",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "438": {
+      "runner": "eYe",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "44": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "443": {
+      "runner": "eZH",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "446": {
+      "runner": "eXZ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "447": {
+      "runner": "eWt",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "449": {
+      "runner": "eWw",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "450": {
+      "runner": "eYb",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "451": {
+      "runner": "eWs",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "452": {
+      "runner": "eXX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "46": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "47": {
+      "runner": "eZb",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "48": {
+      "runner": "eVZ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "5": {
+      "runner": "eXt",
+      "owner": "eXt",
+      "bcd_constant": true
+    },
+    "55": {
+      "runner": "eVZ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "550": {
+      "runner": "eXH",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "56": {
+      "runner": "eWO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "560": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "561": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "562": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "563": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "565": {
+      "runner": "eXr",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "566": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "568": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "569": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "57": {
+      "runner": "eWO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "570": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "571": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "572": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "573": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "574": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "575": {
+      "runner": "eWX",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "635": {
+      "runner": "eXP",
+      "owner": "eXP",
+      "bcd_constant": true
+    },
+    "636": {
+      "runner": "eXP",
+      "owner": "eXP",
+      "bcd_constant": true
+    },
+    "637": {
+      "runner": "eXP",
+      "owner": "eXP",
+      "bcd_constant": true
+    },
+    "638": {
+      "runner": "eXP",
+      "owner": "eXP",
+      "bcd_constant": true
+    },
+    "649": {
+      "runner": "eWn",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "666": {
+      "runner": "eWl",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "667": {
+      "runner": "eXf",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "668": {
+      "runner": "eWL",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "70": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "71": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "72": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "80": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "802": {
+      "runner": "eXA",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "803": {
+      "runner": "eWH",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "808": {
+      "runner": "eWq",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "813": {
+      "runner": "eYU",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "814": {
+      "runner": "eXg",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "816": {
+      "runner": "eWY",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "817": {
+      "runner": "eYc",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "819": {
+      "runner": "eWN",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "82": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "820": {
+      "runner": "eWO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "83": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "830": {
+      "runner": "eXw",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "832": {
+      "runner": "eXj",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "839": {
+      "runner": "eZp",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "84": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "842": {
+      "runner": "eYQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "843": {
+      "runner": "eXU",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "844": {
+      "runner": "eYr",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "85": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "859": {
+      "runner": "eWz",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "865": {
+      "runner": "eYy",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "875": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "876": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "877": {
+      "runner": "eWV",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "90": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "909": {
+      "runner": "eYd",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "910": {
+      "runner": "eYv",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "911": {
+      "runner": "eXT",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "912": {
+      "runner": "eYt",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "913": {
+      "runner": "eYn",
+      "owner": "eYg",
+      "bcd_constant": true
+    },
+    "915": {
+      "runner": "eXn",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "917": {
+      "runner": "eXt",
+      "owner": "eXt",
+      "bcd_constant": true
+    },
+    "918": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "92": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "923": {
+      "runner": "eXm",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "93": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "932": {
+      "runner": "eXd",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "933": {
+      "runner": "eWG",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "934": {
+      "runner": "eXl",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "935": {
+      "runner": "eXS",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "937": {
+      "runner": "eYa",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "94": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "949": {
+      "runner": "eXL",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "95": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "950": {
+      "runner": "eYO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "951": {
+      "runner": "eYO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "952": {
+      "runner": "eYO",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "96": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "965": {
+      "runner": "eWo",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "97": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "979": {
+      "runner": "eWp",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "98": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "982": {
+      "runner": "eXW",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "983": {
+      "runner": "eYP",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "986": {
+      "runner": "eZI",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "987": {
+      "runner": "eWg",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "988": {
+      "runner": "eWQ",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "99": {
+      "runner": "eWR",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "991": {
+      "runner": "eWN",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "993": {
+      "runner": "eWI",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "994": {
+      "runner": "eZq",
+      "owner": "eZR",
+      "bcd_constant": null
+    },
+    "999": {
+      "runner": "eYm",
+      "owner": "eYg",
+      "bcd_constant": true
+    }
+  }
+}

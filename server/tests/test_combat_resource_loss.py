@@ -34,6 +34,54 @@ class ResourceLossTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "RNG"):
             self.plan()
 
+    def test_forced_value_follows_calculation_without_rewriting_native_status(self):
+        from wakfu_server.combat_value_transfer import transfer_value_context
+
+        plan = self.plan(
+            target_willpower=100, value_context=transfer_value_context(b"", 2)
+        )
+        self.assertEqual((plan.calculated, plan.actual, plan.after), (2, 2, 4))
+        self.assertEqual((plan.calculation_status, plan.event_override), (3, 58))
+        self.assertEqual(plan.state_5227_parameters, (5227, 0, 20, 0, 100, 0))
+        clamped = self.plan(
+            caster_willpower=100, value_context=transfer_value_context(b"", 10)
+        )
+        self.assertEqual(
+            (clamped.calculated, clamped.actual, clamped.after), (10, 6, 0)
+        )
+        self.assertEqual(
+            (clamped.calculation_status, clamped.event_override), (0, None)
+        )
+
+    def test_negative_forced_value_restores_its_signed_actual_delta(self):
+        from wakfu_server.combat_value_transfer import transfer_value_context
+
+        plan = self.plan(
+            current=3,
+            target_willpower=100,
+            value_context=transfer_value_context(b"", -2),
+        )
+        self.assertEqual((plan.calculated, plan.actual, plan.after), (-2, -2, 5))
+        self.assertIsNone(plan.state_5227_parameters)
+        self.assertEqual(
+            remove_resource_loss(
+                current=5, minimum=0, maximum=6, actual=plan.actual, frozen=False
+            ),
+            3,
+        )
+        bounded = self.plan(
+            current=5,
+            target_willpower=100,
+            value_context=transfer_value_context(b"", -2),
+        )
+        self.assertEqual((bounded.actual, bounded.after), (-1, 6))
+        self.assertEqual(
+            remove_resource_loss(
+                current=6, minimum=0, maximum=6, actual=bounded.actual, frozen=False
+            ),
+            5,
+        )
+
     def test_willpower_same_actor_and_flag30(self):
         self.assertEqual(self.plan(caster_willpower=100).actual, 1)
         self.assertEqual(self.plan(target_willpower=100).actual, 0)

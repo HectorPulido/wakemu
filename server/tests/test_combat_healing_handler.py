@@ -9,6 +9,123 @@ from wakfu_server.combat_effect_removal import _identity_fields
 
 
 class HealingHandlerTests(unittest.TestCase):
+    def test_live_trigger_value_changes_application_and_wire(self):
+        class Events:
+            def phase(_, effect, invocation, **data):
+                if data["channel"] == 2:
+                    data["runner_modifier"].mutate(1, 7, True)
+
+        self.handler.event_lifecycle = Events()
+        target = self.fight.actors[self.invocation.target_id]
+        before = target.hp
+        self.assertTrue(self.handler(self.effect, {}, self.invocation))
+        self.assertEqual(_identity_fields(self.packets[0][1][19:])[4], 7)
+        self.assertEqual(target.hp - before, 7)
+
+    def test_runner_callback_after_lifecycle_includes_virtual_healing(self):
+        from dataclasses import replace
+        from wakfu_server.combat_runner_callbacks import runner_value_scope
+
+        order = []
+
+        class Events:
+            def phase(_, effect, invocation, **data):
+                order.append(data["channel"])
+
+        self.handler.event_lifecycle = Events()
+        with runner_value_scope(lambda inv, value: order.append(("h", value))) as token:
+            self.assertTrue(
+                self.handler(
+                    self.effect, {}, replace(self.invocation, native_value_scope=token)
+                )
+            )
+        self.assertEqual(order, [2, 3, 4, ("h", 25)])
+        self.assertEqual(self.fight.actors[-7].hp, 100)  # HP alone gained10.
+
+    def test_transferred_heal_overrides_calculation_before_clamping(self):
+        from dataclasses import replace
+        from wakfu_server.combat_value_transfer import transfer_value_context
+
+        invocation = replace(
+            self.invocation, native_context_hex=transfer_value_context(b"", 7).hex()
+        )
+        self.assertTrue(self.handler(self.effect, {}, invocation))
+        target = self.fight.actors[-7]
+        self.assertEqual((target.hp, target.effect_stats[92]), (97, 5))
+        self.assertEqual(_identity_fields(self.packets[0][1][19:])[4], 7)
+
+    def test_negative_native_base_with_transfer_reaches_wire_and_callback(self):
+        from dataclasses import replace
+        from wakfu_server.combat_value_transfer import transfer_value_context
+        from wakfu_server.combat_runner_callbacks import runner_value_scope
+
+        values = []
+        invocation = replace(
+            self.invocation, native_context_hex=transfer_value_context(b"", 7).hex()
+        )
+        effect = dict(self.effect, parameters=[-1, 0])
+        with runner_value_scope(lambda inv, value: values.append(value)) as token:
+            self.assertTrue(
+                self.handler(effect, {}, replace(invocation, native_value_scope=token))
+            )
+        self.assertEqual(self.fight.actors[-7].hp, 97)
+        self.assertEqual(values, [7])
+        self.assertEqual(_identity_fields(self.packets[0][1][19:])[4], 7)
+
+    def test_light_healing_uses_highest_elemental_mastery_and_common_consumption(self):
+        source = self.fight.actors[7]
+        source.effect_stats.update({21: 100, 22: 300, 109: 10000})
+        effect = dict(self.effect, effect_class=1084, parameters=[5, 0])
+        self.assertTrue(self.handler(effect, {}, self.invocation))
+        target = self.fight.actors[-7]
+        self.assertEqual((target.hp, target.effect_stats[92]), (100, 15))
+        self.assertEqual(_identity_fields(self.packets[0][1][19:])[4], 20)
+
+    def test_life_steal_native_bonus_resistance_and_actual_consumption(self):
+        from dataclasses import replace
+        from wakfu_server.combat_value_transfer import transfer_value_context
+
+        source = self.fight.actors[7]
+        target = self.fight.actors[-7]
+        source.effect_stats[53] = 50
+        target.effect_stats[32] = 200
+        inv = replace(
+            self.invocation, native_context_hex=transfer_value_context(b"", 10).hex()
+        )
+        self.assertTrue(
+            self.handler(
+                dict(effect_class=24, parameters=[0, 0], native_effect_flags=[29]),
+                {},
+                inv,
+            )
+        )
+        self.assertEqual(target.hp, 100)
+        self.assertEqual(target.effect_stats[92], 7)  # actual12:HP10+virtual2.
+        self.assertEqual(_identity_fields(self.packets[0][1][19:])[4], 12)
+
+    def test_native_ko_and_direct_loss_flags_do_not_change_living_heal(self):
+        from dataclasses import replace
+
+        self.context = replace(self.context, target_ko=False)
+        effect = dict(self.effect, native_effect_flags=[4, 15, 34])
+        self.assertTrue(self.handler(effect, {}, self.invocation))
+        self.assertEqual(self.fight.actors[-7].hp, 100)
+        self.assertEqual(_identity_fields(self.packets[0][1][19:])[4], 25)
+
+    def test_ko_unknown_and_undead_branch_remain_guarded(self):
+        from dataclasses import replace
+
+        effect = dict(self.effect, native_effect_flags=[4, 15, 34])
+        with self.assertRaisesRegex(ValueError, "KO healing authority"):
+            self.handler(effect, {}, self.invocation)
+        self.context = replace(self.context, target_ko=True)
+        with self.assertRaisesRegex(ValueError, "KO healing lifecycle"):
+            self.handler(effect, {}, self.invocation)
+        self.context = replace(self.context, target_ko=False, undead=True)
+        with self.assertRaisesRegex(ValueError, "undead conversion"):
+            self.handler(effect, {}, self.invocation)
+        self.assertEqual(self.fight.actors[-7].hp, 90)
+
     def setUp(self):
         pc = Actor(7, 0, (0, 0, 0), 100, 6, 3, 10, 1, 3, True)
         npc = Actor(-7, 1, (1, 0, 0), 90, 6, 3, 5, 1, max_hp=100)

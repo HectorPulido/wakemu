@@ -1,0 +1,662 @@
+{
+  "objective": "Revisar exhaustivamente todos los issues 0–34 y adicionales; cotejo técnico, reproducciones aisladas y propuestas de servidor sin implementar fixes.",
+  "ui_delegation": "Luna, reasoning low; root no interactúa con UI.",
+  "spells": "Excluidos; otra sesión.",
+  "goal_tool_status": "active",
+  "issues": [
+    {
+      "issue": "00-rendimiento-y-redis",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-sql-redis-actual.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "01-semillas-sin-refresco",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-cotejo-cooldown-actual.json",
+        "probe-extraccion-repetida-monstruo.json",
+        "probe-plan-consulta-cooldown.json"
+      ],
+      "complete": false,
+      "remaining_evidence": [
+        "Activación de modo plantar y operación real en UI",
+        "Cantidad visual/SQL antes/después en éxito/fallo/cancelación",
+        "Última unidad y callback repetido"
+      ]
+    },
+    {
+      "issue": "02-maduracion-de-monstruos",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-registro-tareas-poblacion.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "03-reproduccion-sin-respawn",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-registro-tareas-poblacion.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "04-probabilidad-de-plantacion",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-rama-exito-actual.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "05-permisos-y-recoleccion-de-cardo",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-propiedad-recursos.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "06-etapas-completas-de-cardo",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-etapas-nativas.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "07-wakfu-y-stasis",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-jauge-personal-nativa.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "08-experiencia-de-oficios",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-autoridad-cuenta-oficios.json",
+        "probe-bootstrap-completo-vs-secure.json",
+        "probe-carrier-craft-cuenta.json",
+        "probe-curva-y-delta-nativos.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "09-experiencia-de-combate",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-fuentes-dofus.json",
+        "probe-recibos-y-generacion.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "10-drops-y-kamas",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-fuentes-loot-y-resumen.json",
+        "probe-inventario-temporal-nativo.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "11-intercambio-entre-personajes",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-contratos-intercambio.json",
+        "probe-inventario-bilateral-rechazado.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "12-duelos-pvp",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-consentimiento-y-cancelacion.json",
+        "probe-solicitud-desafio-nativa.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "13-chat-privado-y-canales",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-avisos-chat-nativos.json",
+        "probe-canales-nativos.json",
+        "probe-capturas-canales-manuales.json",
+        "probe-chat-local-manual.json",
+        "probe-chat-manual-dos-clientes.json",
+        "probe-identificadores-canales.json",
+        "probe-respuesta-privada-y-consumidor.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "14-unirse-a-combates",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-servicio-compartido.json",
+        "probe-solicitud-nativa-join.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "15-grupos-de-jugadores",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-invitaciones-y-cupo.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "16-espectadores-y-marcadores",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-entrada-espectador.json",
+        "probe-envelope-combate-externo.json",
+        "probe-salida-espectador.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "17-aptitudes-y-calculo-de-estadisticas",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-cobertura-bonus-actual.json",
+        "probe-reversibilidad.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "18-orientacion-en-colocacion",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-fases-orientacion.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "19-movimiento-aleatorio-eficiente",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-paso-grupo-actual.json",
+        "probe-regresion-movimiento-actual.json",
+        "probe-ruta-multipaso-nativa.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "20-poblacion-inicial-y-zonas-activas",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-zona-sin-jugadores.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "21-conexion-remota-y-configuracion",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-anuncio-endpoint.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "22-identificacion-elementos-y-encantamiento",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-engastes-nativos.json",
+        "probe-identificacion-nativa.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "23-bolso-sadida-apilado",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-sadida-stack-actual.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "24-nacion-y-pasaporte-neutral",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-carriers-actuales.json",
+        "probe-intento-gui-pasaporte.json",
+        "probe-seleccion-segundo-personaje.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "25-brechas-dimensionales",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-definiciones-oleadas.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "26-insertar-y-retirar-merkagemas",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-insercion-retirada-nativas.json",
+        "probe-respuestas-merkagemas.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "27-clima-por-zona",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-clima-y-ecologia.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "28-bonus-de-area",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "../27-clima-por-zona/probe-clima-y-ecologia.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "29-mazmorras-e-instancias",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-contexto-ui-y-retorno.json",
+        "probe-cotejo-construccion-actores-mazmorra.json",
+        "probe-dificultad-recompensas.json",
+        "probe-escalado-estadisticas-enciclopedia.json",
+        "probe-hijos-escalado-recompensa.json",
+        "probe-plantillas-instancia.json",
+        "probe-puertas-salas.json",
+        "probe-rechazo-accesos.json",
+        "probe-runner-escalado-nivel-hijos.json",
+        "probe-semantica-catalogo-monstruos.json"
+      ],
+      "complete": false,
+      "remaining_evidence": [
+        "Composición por sala",
+        "Vida/daño/resistencias",
+        "Recorrido real de instancia y party",
+        "Reglas de derrota/reentrada",
+        "Selector y actualización de UI durante instancia"
+      ]
+    },
+    {
+      "issue": "30-mesas-de-oficio-y-crafting",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-catalogo-recetas.json",
+        "probe-presencia-ruta-mesas.json",
+        "probe-solicitudes-crafting.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "31-diversidad-de-celdas-de-colocacion",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-terreno-real-actual.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "32-roles-admin-y-comandos",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-api-sin-autorizacion-actual.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "33-rendicion-y-retorno-al-mundo",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-flags-retorno-actual.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "34-builds-personalizadas",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-carriers-actuales.json",
+        "probe-edicion-secundaria-salud.json",
+        "probe-persistencia-seleccion.json",
+        "probe-politica-nativa.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "E01-corrupcion-sqlite",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-backups-solo-lectura.json",
+        "probe-respaldo-copia-privada.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "E02-resincronizacion-inventario-invalida",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [],
+      "complete": false
+    },
+    {
+      "issue": "E03-api-test-sin-autenticacion",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-auth-http.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "E04-activar-build-sin-handler",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [],
+      "complete": false
+    },
+    {
+      "issue": "E05-seleccion-build-y-deck-cero",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-seleccion-estadisticas-actual.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "E06-nivel-y-hojas-sin-atomicidad",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-cas-redis-y-rollback-sql.json",
+        "probe-fallo-entre-transacciones.json",
+        "probe-hoja-fija-49-a-50.json",
+        "probe-recompensa-hoja-fija.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "E07-borrado-de-build-sin-handler",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-contrato-borrado-nativo.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "E08-limite-de-builds-inconsistente",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [],
+      "complete": false
+    },
+    {
+      "issue": "E09-sql-redundante-con-redis",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-lecturas-actuales.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "E10-equipment-set-omite-build-nueva",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-rutas-actuales.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "E11-test-desplazamiento-sin-terreno-exportado",
+      "status": "excluded_other_session",
+      "user_answers_present": true,
+      "post_answer_review": false,
+      "executed_probe_artifacts": [
+        "probe-consulta.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "E12-curacion-al-alternar-aptitudes",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-cero-hp.json",
+        "probe-revalidacion-journal.json",
+        "probe-revalidacion-sqlite.json"
+      ],
+      "complete": false
+    },
+    {
+      "issue": "E15-gremios",
+      "status": "audit_in_progress",
+      "user_answers_present": false,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "../13-chat-privado-y-canales/probe-canales-nativos.json",
+        "probe-confirmacion-creacion.json",
+        "probe-creacion-contrato-nativo.json",
+        "probe-cupo-miembros.json",
+        "probe-decoder-actual.json",
+        "probe-emblema-y-utf8.json",
+        "probe-hierarchie-rangs.json",
+        "probe-informacion-remota-gremio.json",
+        "probe-modelo-gremio-protobuf.json",
+        "probe-permisos-y-rangos.json",
+        "probe-reordenacion-y-borrado-rangos.json",
+        "probe-seccion-local-gremio.json",
+        "probe-transporte-deltas.json",
+        "probe-validador-nombre.json"
+      ],
+      "complete": false,
+      "remaining_evidence": [
+        "Creación: requisitos, coste, nombre, emblema y contratos nativos",
+        "Esquema y persistencia con reconexión/reinicio aislado",
+        "Miembros, invitaciones, rangos, permisos, liderazgo y disolución",
+        "Progresión y bonus aplicables a la versión",
+        "Interfaz y chat con dos personajes de auditoría"
+      ],
+      "scope": "Sistema completo de gremios"
+    },
+    {
+      "issue": "E14-consumibles-barra-rapida-no-persisten",
+      "status": "audit_in_progress",
+      "user_answers_present": false,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-arrastre-grafico-no-confirmado.json",
+        "probe-autenticacion-aislada.json",
+        "probe-bootstrap-vacio.json",
+        "probe-coleccion-nativa.json",
+        "probe-consumidor-restauracion.json",
+        "probe-descriptor-consumible-nativo.json",
+        "probe-estado-grafico-actual.json",
+        "probe-limite-cliente-grafico.json"
+      ],
+      "complete": false,
+      "remaining_evidence": [
+        "Captura GUI de asignación de semillas/pan mediante Luna low",
+        "Timing real de12091 y reconexión autenticada",
+        "Estado durable y respuesta del servidor actual"
+      ]
+    },
+    {
+      "issue": "E13-canales-de-chat",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "../13-chat-privado-y-canales/probe-canales-nativos.json"
+      ],
+      "complete": false,
+      "remaining_evidence": [
+        "Matriz de todos los canales con autorización, routing y recepción real"
+      ]
+    },
+    {
+      "issue": "E16-nombres-genericos-monstruos",
+      "status": "audit_in_progress",
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-catalogo-nombres-servidor.json",
+        "probe-jerarquia-getname.json",
+        "probe-nombre-en-spawn.json",
+        "probe-nombres-por-referencia.json",
+        "probe-seccion-name-nativa.json"
+      ],
+      "complete": false,
+      "remaining_evidence": [
+        "Catálogo localizado y lengua negociada del personaje",
+        "Grupo mixto: nombres individuales visibles",
+        "Reconexión/retorno de combate e idiomas"
+      ]
+    },
+    {
+      "issue": "E17-monturas-y-dragopavos",
+      "status": "audit_in_progress",
+      "complete": false,
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-monturas-nativo-y-servidor.json"
+      ],
+      "remaining_evidence": [
+        "Carrier PET en caliente y estado montado inicial",
+        "Protobuf item rico y operaciones de alimentación/cosméticos",
+        "Recorrido GUI y observadores tras implementación"
+      ]
+    },
+    {
+      "issue": "E18-ia-tactica-enemigos",
+      "status": "audit_in_progress",
+      "complete": false,
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-ia-actual-y-fuentes.json"
+      ],
+      "remaining_evidence": [
+        "Autoridad NPC genérica y preview",
+        "Orientación/altura/coordination en corpus real",
+        "Latencia concurrente y ejecución con clientes"
+      ]
+    },
+    {
+      "issue": "E19-logros",
+      "status": "audit_in_progress",
+      "complete": false,
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "executed_probe_artifacts": [
+        "probe-logros-catalogo-y-wire.json"
+      ],
+      "remaining_evidence": [
+        "Flags, clasificación exacta del diario y fuentes alternativas de dependencias (listas115 vacías)",
+        "Reglas/productores de objetivos sin criterio, incluyendo cadena4228 y entrenamiento8539",
+        "Contrato completo de activación/recompensas y parámetros, tipo17",
+        "Validación real de progreso, premio, reconexión y recuperación"
+      ]
+    }
+  ],
+  "priority_deepening": "29: composición exacta de salas y dificultades/multiplicadores; además34 de prioridad alta",
+  "final_readme_prioritization": "Pending after exhaustive audit: impact, effort, dependencies, integrity risk, quick wins and structural changes."
+}

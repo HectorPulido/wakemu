@@ -51,7 +51,7 @@ class NativeStateHandlerTests(unittest.TestCase):
             (entry.reference, entry.level, entry.caster_id, entry.uid),
             (3442, 20, 7, 200),
         )
-        self.assertEqual(self.packets[0][0], 13497)
+        self.assertEqual(self.packets[0][0], 12613)
         proto = bytes.fromhex(self.fight.state_wire_payloads[200])
         fields = _identity_fields(proto)
         self.assertEqual((fields[1], fields[2]), (200, 100))
@@ -63,7 +63,7 @@ class NativeStateHandlerTests(unittest.TestCase):
     def test_accumulation_replaces_only_original_owned_carrier(self):
         self.apply()
         self.apply()
-        self.assertEqual([p[0] for p in self.packets], [13497, 13560, 13497])
+        self.assertEqual([p[0] for p in self.packets], [12613, 13560, 12613])
         self.assertEqual(set(self.fight.state_wire_payloads), {201})
         entry = self.fight.actors[7].state_ledger.entries[0]
         self.assertEqual((entry.uid, entry.level), (201, 40))

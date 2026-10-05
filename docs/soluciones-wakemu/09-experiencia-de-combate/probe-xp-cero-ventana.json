@@ -1,0 +1,65 @@
+{
+  "scope": "Auditoría read-only; ejecución offline de la curva nativa, sin GUI ni cambios de DB/servidor/cliente",
+  "database": ".runtime/local/world.sqlite3",
+  "database_read": "SQLite mode=ro&immutable=1; no archivos WAL/SHM presentes al consultar; no certifica cuál instancia alimentaba la captura",
+  "character": {
+    "id": 20,
+    "name": "Prueba Yopuka",
+    "level": 200,
+    "xp": 59929868921
+  },
+  "native_methods": {
+    "total": "biB.dpo -> fCo.dpo -> fCp.tLy",
+    "window": "bkO.eH: xpRatio/currentExperience -> MZ.cU(total); denominador MZ.N(level)",
+    "curve": "MP.aXu"
+  },
+  "cases": [
+    {
+      "level": 100,
+      "total": 203111249,
+      "native_level": 100,
+      "within_level": 0,
+      "level_span": 10806456
+    },
+    {
+      "level": 100,
+      "total": 203111372,
+      "native_level": 100,
+      "within_level": 123,
+      "level_span": 10806456
+    },
+    {
+      "level": 199,
+      "total": 57020666658,
+      "native_level": 199,
+      "within_level": 0,
+      "level_span": 2909202263
+    },
+    {
+      "level": 199,
+      "total": 57020666781,
+      "native_level": 199,
+      "within_level": 123,
+      "level_span": 2909202263
+    },
+    {
+      "level": 200,
+      "total": 59929868921,
+      "native_level": 200,
+      "within_level": 0,
+      "level_span": 3063832942
+    },
+    {
+      "level": 200,
+      "total": 59929869044,
+      "native_level": 200,
+      "within_level": 123,
+      "level_span": 3063832942
+    }
+  ],
+  "limitations": [
+    "No captura de paquetes de la sesión del usuario",
+    "No se afirma que toda XP cero sea correcta",
+    "Servidor valida niveles únicamente 1–200; curva nativa declara máximo 246: divergencia que requiere auditoría separada de límites y desbloqueos"
+  ]
+}

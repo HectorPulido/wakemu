@@ -1,0 +1,30 @@
+{
+  "method": "Native apw/aNh loader; offline own installation",
+  "recipes": 5449,
+  "ingredient_rows": 34049,
+  "product_rows": 5449,
+  "example": {
+    "recipe_id": 2047,
+    "profession_id": 40,
+    "level": 0,
+    "raw_time": 1000,
+    "ingredients": [
+      {
+        "item_id": 2279,
+        "quantity": 1,
+        "unresolved_extra": 1
+      },
+      {
+        "item_id": 2340,
+        "quantity": 5,
+        "unresolved_extra": 0
+      }
+    ],
+    "product": {
+      "item_id": 8047,
+      "quantity": 4
+    }
+  },
+  "live_crafting_verified": false,
+  "private_probe_sha256": "c7fb7780e24e0d64dc5b6b9f2ab31ad805e200438100b638ac3203a5a799b5cf"
+}

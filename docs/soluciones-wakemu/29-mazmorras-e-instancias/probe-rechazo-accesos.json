@@ -1,0 +1,17 @@
+{
+  "scope": "Invocación directa del resolver actual con proximidad aceptada para aislar criterios/contexto; no transporte GUI",
+  "cases": [
+    {
+      "case": "entrada_normal",
+      "outcome": "Unsupported native teleporter access criterion"
+    },
+    {
+      "case": "puerta_interior",
+      "outcome": "Unsupported native teleporter access criterion"
+    },
+    {
+      "case": "puerta_instanciada",
+      "outcome": "Unsupported native teleporter mode or instance"
+    }
+  ]
+}

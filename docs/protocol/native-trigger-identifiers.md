@@ -11,3 +11,9 @@
 `ProbeNativeTriggerIdentifiers.java` ejecuta los getters reales: fuente nula, `fLP`, prioridad`fSd`, referencia short negativa, acción400 frente definición987654, profundidad0/2 y valor firmado-25. PASS. Cinco pruebas del evaluador verifican esas distinciones y roundtrip del evento. No se agregaron eventos de inicio de combate por inferencia.
 
 `GetTriggeringEffectId` token/classeeLM devuelve `source.eZR.aZE()` (reference de definición). No devuelveUID ni familiaawM. El parámetro de profundidad comparte semánticaeLK: default1, positiva consulta la misma fuente, no positiva-1. NativeEventSource.generic_effect ya contiene lareference auditada; se publica mediante campo explícito triggering_effect_reference_id. Prueba Java contrasta definición987654/acción400 y verifica profundidad1/2/0/-1/fuenteausente; una sexta prueba Python cubre datos desconocidos y separación deUID123. PASS.
+
+GetTriggeringEffectCaster (token 175) se traduce a eKl("triggeringCaster"). eII.aW resuelve la fuente real eZR; eKl devuelve eHg.Sn firmado, o -1 si falta fuente/lanzador o no es eHg. El adaptador usa la identidad de la fuente y el roster autorizado; una referencia sin resolver sigue rechazándose. ProbeNativeTriggerCaster.java ejecuta fuente nula, lanzador nulo e identidad -99 contra clases originales: PASS. Ocho pruebas de identificadores y seis de adaptador pasan.
+
+GetTriggeringContainerType lee eVo.aZY: fyW devuelve 1 aunque su discriminador de serialización cmZ sea 3. Sin fuente o con contenedor nulo devuelve 0; tipos desconocidos conservan rechazo explícito.
+
+GetTriggeringEffectTarget (token178) usa eLN, no eKl: exige una instancia eGj, devuelve PV.Sn, y devuelve -1 para fuente/objetivo nulos o PV no eGj. Probe original acredita que un proxy eHg/PV no basta, mientras eGj con UID12345 sí devuelve12345. Regresión del adaptador separa los actores de la fuente de los del listener rebindeado y rechaza identidades sin autoridad.

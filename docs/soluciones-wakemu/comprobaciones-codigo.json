@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-04",
+  "scope": "Probes de solo lectura y serializers en memoria; no mutaciones de servidor/DB.",
+  "checks": [
+    {
+      "check": "SQL antes de overlay",
+      "result": "CONFIRMADO",
+      "detail": "store.character hidrata SQL antes del journal."
+    },
+    {
+      "check": "Selección no cargada",
+      "result": "CONFIRMADO",
+      "detail": "La carga no reconstruye este campo desde almacenamiento."
+    },
+    {
+      "check": "POST de comandos antes de auth",
+      "result": "CONFIRMADO",
+      "detail": "La ruta de comandos retorna antes de la guarda común."
+    },
+    {
+      "check": "GET de sesiones antes de auth",
+      "result": "CONFIRMADO",
+      "detail": "La lectura de sesiones también elude la guarda común."
+    },
+    {
+      "check": "Guardar sí tiene ruta",
+      "result": "CONFIRMADO",
+      "detail": "Guardado y activación son operaciones diferentes."
+    },
+    {
+      "check": "Activación sin ruta explícita",
+      "result": "CONFIRMADO",
+      "detail": "Ausencia cotejada con el rechazo observado en vivo; no se afirma la respuesta pendiente."
+    },
+    {
+      "check": "Borrado sin ruta explícita",
+      "result": "CONFIRMADO",
+      "detail": "No hubo recorrido gráfico completo de borrado."
+    },
+    {
+      "check": "Deck fijo persiste",
+      "result": "CONFIRMADO",
+      "detail": "Ready/cast siguen consultando 0; otros consumidores ya admiten active_build_index."
+    },
+    {
+      "check": "Metadata y equipo inconsistentes",
+      "result": "CONFIRMADO",
+      "detail": "Personaje sin builds guardadas: metadata=[0, 1], equipo=[0]."
+    },
+    {
+      "check": "Activa anunciada fija",
+      "result": "CONFIRMADO",
+      "detail": "Metadata usa 0, independiente de una activación persistida."
+    },
+    {
+      "check": "equipment_set no añade índices",
+      "result": "CONFIRMADO",
+      "detail": "Índice 2 guardado; salida conserva solo [0]. Caso de bytes, no creación gráfica."
+    },
+    {
+      "check": "Orientación exige active",
+      "result": "CONFIRMADO",
+      "detail": "La ruta actual rechaza colocación."
+    },
+    {
+      "check": "Abandono exige continuación verdadera",
+      "result": "CONFIRMADO",
+      "detail": "El bool retornado para flag 0 activa este rechazo."
+    },
+    {
+      "check": "Crecimiento vegetal limitado",
+      "result": "CONFIRMADO",
+      "detail": "El scheduler revisado no recorre una cadena general de etapas."
+    },
+    {
+      "check": "Tareas de mundo deshabilitadas",
+      "result": "CONFIRMADO",
+      "detail": "Activar la configuración tampoco implementa callbacks ausentes."
+    },
+    {
+      "check": "Flush builds/grupos 1200",
+      "result": "CONFIRMADO",
+      "detail": "No significa que toda lectura sea Redis primero ni que posiciones usen este intervalo."
+    }
+  ]
+}

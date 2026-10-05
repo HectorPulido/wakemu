@@ -25,6 +25,24 @@ def _participant(account_id, character, runtime):
     return actor
 
 
+def placement_runtime(fight, runtime):
+    """Provide the missing message FSM for an owned pre-Ready cancellation.
+
+    Ready initialization is transactional and may fail before a RuntimeMessages
+    exists. Cancelling placement must not depend on successful initialization.
+    Existing active runtimes retain their counters and pending continuations.
+    """
+    if runtime is not None:
+        if runtime.fight is not fight:
+            raise ValueError("Abandon runtime disagrees with authoritative fight")
+        return runtime
+    if fight is None or fight.phase != "placement":
+        raise ValueError("Missing abandon message runtime outside placement")
+    from .combat_runtime_messages import RuntimeMessages
+
+    return RuntimeMessages(fight)
+
+
 def prepare(store, account_id, generation, character, runtime, body):
     """Persist local abort HP, send cleanup and await native12925 callback."""
     if body != b"":
@@ -51,7 +69,10 @@ def prepare(store, account_id, generation, character, runtime, body):
     if not winners or max(len(winners), len(losers)) > 127:
         raise ValueError("Unsupported abandon team layout")
     payload = planned._prefix() + b"\x00"
-    for identities in (winners, losers, []):
+    # ckc routes eIl (second list) through buH.W into jqB; aUH
+    # derives its loss presentation flag from !jqB.contains(own actor).
+    # The first list is therefore losers, the second winners.
+    for identities in (losers, winners, []):
         payload += struct.pack(">b", len(identities)) + b"".join(
             struct.pack(">q", identity) for identity in identities
         )
@@ -80,8 +101,10 @@ def return_to_world(
         or runtime.fight.winner is not None
     ):
         raise ValueError("No owned abandon continuation")
-    if not combat_results.continuation(runtime.fight.id, body):
-        raise ValueError("Abandon continuation must confirm native loss")
+    # huO is a client presentation result, not authority to reverse the
+    # already persisted abort. Accept either native boolean after validating
+    # the fight ID and owned abort; this also recovers old reversed-list ends.
+    combat_results.continuation(runtime.fight.id, body)
     if runtime.abandon_returned:
         saved = combat_health.persist(
             store, account_id, generation, character, runtime.fight, reason="abort"

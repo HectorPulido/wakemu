@@ -1,0 +1,23 @@
+{
+  "native_action": "CHARACTER_CAST_DUEL_FIGHT_ACTION(8) -> cWi.run, fcz.DUEL",
+  "opcode": 12117,
+  "class": "coS",
+  "category": 3,
+  "body_layout": "i64 target_id + i32 x + i32 y + i16 z + byte autolock + byte mode",
+  "fixture_frame": "0000001b032f550000000000003039fffffffc0000000000000001",
+  "fixture": {
+    "target": 12345,
+    "x": -4,
+    "y": 0,
+    "z": 0,
+    "autolock": false,
+    "default_mode_byte": 1
+  },
+  "dispatcher_handler_present": false,
+  "dispatcher_sha256": "4965d10df88cd40e54eb8ef01578f19d48330fb467117e05cac8d40927f333c1",
+  "limits": [
+    "Mode byte semantics beyond native default1 remain unverified.",
+    "Server invitation/accept/refuse responses not yet traced.",
+    "No live duel or spell tests."
+  ]
+}

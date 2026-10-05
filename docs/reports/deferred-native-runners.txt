@@ -1,0 +1,25 @@
+Registro central de ejecutores suscritos fuera de grupos
+=======================================================
+El nativo Qe.d desvía los efectos suscritos a Qf antes de cálculo/criterio.
+El servidor ya disponía de ese flujo, pero tres guards lo restringían a
+familias de grupos. Los guards ahora comparten un registro explícito de
+capacidades auditadas; se admiten eXe/421 (disipación) y eWZ/1001 (copia),
+además del eXE/400 existente. No se aplica el efecto al instalar el listener.
+
+Esquema comprobado con ProbeNativeDeferredRunner.java, ejecutado con JDK21
+contra client/lib: eXe y eXE heredan eZR sin AdditionalDatas; eWZ constructor
+inicializa pJt=-1 y ddL=0, y b(iP) escribe em/ek (campos12/10). Los tres
+conservan valor0, ejecuciónfalse y estado-1. Los tiempos proceden del mismo
+proveedor nativo; no se reemplazan por duraciones inventadas. El flujo común
+conserva UID/PL, máscaras, propietario, conteo de eventos y eliminación.
+
+Pruebas: 3 tests de codec y diferimiento (sin llamar handler, criterios ni
+probabilidad al instalar) PASS; 5 resolver PASS. Regresión Ready26 anterior:
+se supera359569/421 y se llega a359859/304, cuyo criterio de13 asignaciones
+rechaza «Only one final native predicate allowed». Hashes estables y rollback
+26/26. No se acredita Ready completo ni ejecución de todos los eventos.
+No se reiniciaron servicios ni se tocó el cliente del usuario.
+
+Fuente: combat_subscription_runners.py, combat_state_handler.py,
+combat_retained_runtime.py, combat_effect_resolver.py. Factory no modificado.
+Reporte: docs/reports/combat-inventory/ready-eca-deferred-runner-focal.json.

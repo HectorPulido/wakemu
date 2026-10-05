@@ -22,6 +22,7 @@ class SnapshotWireTests(unittest.TestCase):
             mp=2,
             max_mp=3,
             initiative=10,
+            native_obstacle_id=101,
             effect_stats=values,
             effect_minima={k: 0 for k in values},
             effect_base_minima={k: 0 for k in values},
@@ -97,3 +98,43 @@ class SnapshotWireTests(unittest.TestCase):
         actor.effect_base_maxima[1] = 100
         actor.effect_base_minima[3] = -1
         self.assertEqual(self.decode(snapshot_characteristics(actor))[3][1], -1)
+
+    def test_class_resource_updates_reach_both_native_player_sections(self):
+        # These are distinct native characteristics, not aliases of WP or a
+        # state level. Serializing a refresh must not cache the initial zero.
+        from wakfu_server.combat_actor_snapshot import native_actor_catalog
+
+        definitions = native_actor_catalog()["characteristics"]
+        for resource, value in ((67, 35), (50, 35), (111, 35), (117, 25), (123, 4)):
+            with self.subTest(resource=resource):
+                actor = self.actor()
+                actor.effect_base_maxima[1] = 100
+                row = definitions[str(resource)]
+                actor.effect_stats[resource] = 0
+                actor.effect_minima[resource] = row["minimum"]
+                actor.effect_base_minima[resource] = row["minimum"]
+                actor.effect_maxima[resource] = row["maximum"]
+                actor.effect_base_maxima[resource] = row["maximum"]
+                actor.effect_percentages[resource] = 0
+                character = dict(
+                    id=1,
+                    account_id=2,
+                    breed=8,
+                    level=20,
+                    map_id=1,
+                    x=1,
+                    y=2,
+                    z=0,
+                    hp=80,
+                    max_hp=120,
+                )
+                for current in (0, value):
+                    actor.effect_stats[resource] = current
+                    data = actual_actor_stats(
+                        character, actor, 77, wp_current=3, wp_maximum=6
+                    )
+                    first = self.decode(data, 39)
+                    second = self.decode(data, 39 + 2 + 17 * len(first) + 4)
+                    self.assertEqual(first[resource][0], current)
+                    self.assertEqual(second[resource], first[resource])
+                    self.assertEqual(first[4][0], 3)

@@ -35,6 +35,10 @@ class Actor:
     # Initialized only for a verified fresh actor before passive execution.
     spell_ap_cost_modifiers: dict | None = None
     physical_radius: int | None = None
+    native_obstacle_id: int | None = None  # QK.bcN byte, distinct from fcb team/bcM.
+    native_los_height: int | None = (
+        None  # Exact eGH.bcK creation profile; unknown is not zero.
+    )
 
     def __post_init__(self):
         if any(
@@ -70,6 +74,9 @@ class Fight:
         self.actors = {a.id: a for a in actors}
         if len(self.actors) != len(actors) or {a.team for a in actors} != {0, 1}:
             raise ValueError("Fight requires unique actors on both teams")
+        from .combat_obstacle_ids import assign_obstacle_ids
+
+        assign_obstacle_ids(actors)
         initial_order(
             fight_id,
             [
@@ -91,8 +98,17 @@ class Fight:
             raise ValueError("Invalid placement terrain")
         self.edges = None if valid_edges is None else set(valid_edges)
         self.phase = "placement"
+        self.native_spell_usage = {}
         self.native_start_event_delivered = False
+        self.native_turn_event_deliveries = {}
+        self.native_table_turn = (
+            0  # SU initial timeline before native13477 starts round1.
+        )
         self.winner = None
+        self.native_los_ignored_affiliations = frozenset()  # QI.biO freshly empty.
+        self.native_walk_ignored_affiliations = frozenset()  # QI.biN freshly empty.
+        self.native_timeline_policy = "feq"  # initial_order is the native feq policy.
+        self.native_base_turn_order = None
         self.order = []
         self.turn_index = 0
         self.turn_id = 0
@@ -103,11 +119,18 @@ class Fight:
         self.native_effect_uid_next = (
             None  # Authoritative runtime initializes the owned UID sequence.
         )
+        self.native_owned_area_effects = {}
         self.native_owned_group_effects = {}
         self.native_retained_records = {}
+        self.native_owned_state_containers = (
+            {}
+        )  # Actual PL facts held by retained children.
         self.native_retained_order = []
         self.native_retained_tracking = not any(a.state_ledger.entries for a in actors)
         self.owned_stat_effects = {}
+        self.native_retired_area_managers = {}  # Actual removed Qq/Qf objects.
+        self.native_active_spell_id = None  # Fresh fight: native PZ absent.
+        self.native_spell_grants = {}  # Native temporary fyR spell UID pool.
         self.state_wire_payloads = {}  # UID -> original owned carrier payload hex
         self._check_positions()
 
@@ -120,6 +143,9 @@ class Fight:
             set(self.state_wire_payloads)
             | set(self.owned_stat_effects)
             | set(self.native_owned_group_effects)
+            | set(getattr(self, "native_owned_area_effects", {}))
+            | set(getattr(self, "native_effect_areas", {}))
+            | set(getattr(self, "native_retired_area_managers", {}))
         )
         occupied.update(
             entry.uid
@@ -312,7 +338,17 @@ class Fight:
 
     def _advance(self):
         self._event("turn_ended", actor_id=self.current.id, turn_id=self.turn_id)
-        self.turn_index = (self.turn_index + 1) % len(self.order)
+        next_index = (self.turn_index + 1) % len(self.order)
+        if (
+            next_index == 0
+            and getattr(self, "native_base_turn_order", None) is not None
+        ):
+            # Tc.bhP -> SX.bid -> feq.b restores the base list each round.
+            self.order = [
+                uid for uid in self.native_base_turn_order if self.actors[uid].hp > 0
+            ]
+            self.native_base_turn_order = None
+        self.turn_index = next_index
         self.turn_id += 1
         self._begin_turn()
 
@@ -374,6 +410,11 @@ class Fight:
             self._resolution_depth -= 1
             if self._resolution_depth == 0 and self.phase == "active":
                 self._settle_deaths()
+
+            if self._resolution_depth == 0:
+                from .combat_hud_resource import sync_hud_resources
+
+                sync_hud_resources(self)
 
     def _settle_deaths(self):
         old_order = tuple(self.order)
@@ -440,9 +481,16 @@ class Fight:
         The ledger returns child effects, including instant states. This method
         records the application but does not claim those effects were executed.
         """
-        source = self.actors.get(source_id)
-        target = self.actors.get(target_id)
-        if self.phase != "active" or source is None or target is None or target.hp <= 0:
+        from .combat_state_managers import state_manager
+
+        source = state_manager(self, source_id)
+        target = state_manager(self, target_id)
+        if (
+            self.phase != "active"
+            or source is None
+            or target is None
+            or (not getattr(target, "native_is_area", False) and target.hp <= 0)
+        ):
             raise ValueError("Invalid state source, target or fight phase")
         change = target.state_ledger.apply(
             catalog,

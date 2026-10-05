@@ -1,0 +1,40 @@
+Familia352/eYA: grupo nativo de simetría
+
+El registro eVi vincula352 con eYA, que hereda la ejecución y serialización eYg.
+Su C sustituye el cálculo de parámetros de eYg: no límite, probabilidad relativa,
+rebind ni contador de éxitos. El primer parámetro igual a1 toma la celda como
+pivote y al caster como punto; cualquier otro valor invierte esa selección.
+Segundo parámetro0 gira90 grados,2 gira270; ausencia y otros valores giran180.
+Se conserva el overflow int32 original. QI.R debe contener la columna resultante,
+QI.X proporciona su altura. Centro ausente impide aplicación; columna ambigua
+rechaza por falta de autoridad. Los hijos se ejecutan ordenados sobre el área
+del padre con objetivo nulo y caster original, mediante el grupo común.
+No se desplaza un actor por el mero hecho de calcular la simetría.
+
+El codec es Qe/eZR heredado sin AdditionalDatas de eYA. Se conserva el anchor
+original en el grupo retenido; el cliente reconstruye su centro al ejecutar C.
+Propiedad/timers, UID, ámbito de contenedor y eliminación siguen la infraestructura
+común de grupos. No se fabrican eventos ni se modifica una raza específica.
+
+Validación:
+ProbeNativeSymmetry.java:6 casos contra el JAR original, incluyendo tres giros,
+altura, columna ausente, overflow y igualdad de bytes eYA/eYg. Los bytes del grupo
+Python con target nulo/anchor(2,-3,4)/UID901 coinciden exactamente con eYA original.
+Seis regresiones propias pasan (pivotes, default, guard de columna, orden/caster,
+codec y rollback de un hijo que falla después de una modificación previa).
+Las cuatro primeras más diez pruebas de dispatcher pasaron14/14; tras añadir
+codec/rollback, las seis propias volvieron a pasar.
+
+active-critical-symmetry352-current.json: cuatro escenarios críticos de772 y6491,
+niveles legales/200, pasan a actor_state_changed. Hashes estables, rollback4/4.
+772 produce daño y desplazamiento;6491 desplazamiento. Esto acredita esos
+escenarios y no todos los posibles contextos del hechizo ni una validación GUI.
+
+Archivos: combat_symmetry_group.py, combat_effect_groups.py,
+combat_group_cells vía callback en combat_ordinary_authority.py,
+combat_effect_dispatch.py, combat_subscription_runners.py, prueba/probe propios.
+No cambios en conditions/runtime_adapter/facing. No reinicio ni despliegue.
+
+Comandos:
+PYTHONPATH=server:server/tests python3 -m unittest test_combat_symmetry_group test_combat_effect_dispatch
+python3 server/tools/audit_active_spells.py --from-report docs/reports/combat-inventory/active-critical-stable-current.json --reason 'No handler for native effect class 352' --critical --output docs/reports/combat-inventory/active-critical-symmetry352-current.json

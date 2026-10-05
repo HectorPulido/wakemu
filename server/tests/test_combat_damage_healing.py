@@ -39,6 +39,32 @@ ABSORPTION = dict(
 
 
 class CommonArithmeticTests(unittest.TestCase):
+    def test_damage_auxiliary_fields_obey_native_coefficient_mask(self):
+        from wakfu_server.combat_damage_healing import damage_amount
+
+        context = dict(
+            DAMAGE_CONTEXT, additional_mastery=100, additional_resistance=100
+        )
+
+        def calculate(mask, ctx):
+            return damage_amount(
+                100,
+                2,
+                {},
+                {},
+                arithmetic_context=ctx,
+                coefficient_mask=mask,
+                rng=lambda: 0.99,
+            )
+
+        self.assertEqual(calculate(0, context), 100)
+        self.assertEqual(calculate(1, context), 200)
+        baseline_resisted = calculate(2, context)
+        self.assertLess(baseline_resisted, 100)
+        self.assertEqual(
+            baseline_resisted, calculate(3, dict(context, additional_mastery=0))
+        )
+
     def test_healing_resistance_uses_actual_heal_and_explicit_guards(self):
         context = dict(
             target_max_hp=1000,

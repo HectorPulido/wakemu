@@ -39,6 +39,53 @@ def md(value):
     return str(value).replace("|", "\\|").replace("\n", " ")
 
 
+def literal_handler_families(tree):
+    """Registered routes, including conditional routes; never gameplay coverage."""
+    families = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if (
+                    isinstance(target, ast.Subscript)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id == "handlers"
+                    and isinstance(target.slice, ast.Constant)
+                    and type(target.slice.value) is int
+                ):
+                    families.add(target.slice.value)
+        if not (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "handlers"
+            and node.func.attr == "update"
+            and len(node.args) == 1
+        ):
+            continue
+        value = node.args[0]
+        if isinstance(value, ast.Dict):
+            families.update(
+                key.value
+                for key in value.keys
+                if isinstance(key, ast.Constant) and type(key.value) is int
+            )
+        elif isinstance(value, ast.DictComp) and len(value.generators) == 1:
+            generator = value.generators[0]
+            if (
+                isinstance(value.key, ast.Name)
+                and isinstance(generator.target, ast.Name)
+                and value.key.id == generator.target.id
+                and not generator.ifs
+            ):
+                try:
+                    keys = ast.literal_eval(generator.iter)
+                except (ValueError, TypeError):
+                    continue
+                if isinstance(keys, (tuple, list, set)):
+                    families.update(key for key in keys if type(key) is int)
+    return families
+
+
 def main(output=OUT):
     output.mkdir(parents=True, exist_ok=True)
     spell_data = read(PROTOCOL / "spells.json")["spells"]
@@ -68,6 +115,28 @@ def main(output=OUT):
             + "\n"
         )
     review = read(review_path)
+    extra_audit_path = ROOT / "docs/reports/class-extra-spells-audit.json"
+    extra_audit = read(extra_audit_path) if extra_audit_path.exists() else {}
+    extra_rows = []
+    for extra in extra_audit.get("extras", []):
+        note = review.get("spells", {}).get(str(extra["id"]), {})
+        extra_rows.append(
+            {
+                "id": extra["id"],
+                "name": extra["name"],
+                "breeds": sorted({link["breed"] for link in extra["links"]}),
+                "grant_paths": extra["links"],
+                "tree_exported": extra["tree_exported"],
+                "review_status": note.get("status", "Sin revisión individual"),
+                "game_verified": note.get("game_verified", False),
+                "owner": note.get("owner", "Pendiente"),
+                "next_test": note.get(
+                    "next",
+                    "Probar desbloqueo y lanzamiento extra mediante entrada común; efectos, costes, límites y sincronización.",
+                ),
+                "review": note,
+            }
+        )
     effects = dict(state_data["effects"])
     for key, value in tree["effects"].items():
         if key in effects and effects[key] != value:
@@ -77,9 +146,9 @@ def main(output=OUT):
     runtime_source = re.sub(r"\s+", "", ast.unparse(ast.parse(source.read_text())))
     # Fail instead of silently reporting obsolete registration when factory changes.
     for marker in (
-        "range(1,6)",
+        "foreffect_classinDAMAGE_FAMILIES",
         "HEAL_ELEMENTS",
-        "('eWQ','eWR','eXE')",
+        "('eWQ','eWR','eXE','eYO')",
         "handlers[304]=state",
         "handlers[321]=",
     ):
@@ -92,18 +161,26 @@ def main(output=OUT):
     ).read_text()
     heal_tree = ast.parse(heal_source)
     heal_ids = None
+    damage_ids = None
     for node in ast.walk(heal_tree):
         if isinstance(node, ast.Assign) and any(
             isinstance(t, ast.Name) and t.id == "HEAL_ELEMENTS" for t in node.targets
         ):
             heal_ids = set(ast.literal_eval(node.value))
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "DAMAGE_FAMILIES" for t in node.targets
+        ):
+            damage_ids = set(ast.literal_eval(node.value))
     if heal_ids is None:
         raise ValueError("Missing healing family declaration")
+    if damage_ids is None:
+        raise ValueError("Missing damage family declaration")
     registered = (
-        set(range(1, 6))
+        damage_ids
         | heal_ids
         | set(map(int, registry))
         | {304, 321, 330, 844, 999}
+        | literal_handler_families(ast.parse(source.read_text()))
     )
     # Dispel requires the proven server-owned retained population. Registration
     # does not imply arbitrary captured/native populations can be removed.
@@ -112,6 +189,10 @@ def main(output=OUT):
     dispatch_source = (
         ROOT / "server/wakfu_server/combat/combat_effect_dispatch.py"
     ).read_text()
+    if 'effect["effect_class"] == 949' in dispatch_source:
+        registered.add(949)
+    if 'effect["effect_class"] == 1076' in dispatch_source:
+        registered.add(1076)
     group_sets = []
     for node in ast.walk(ast.parse(dispatch_source)):
         if isinstance(node, ast.Compare) and any(
@@ -128,6 +209,11 @@ def main(output=OUT):
         if any(330 in s for s in group_sets)
         else set()
     )
+    # These groups execute directly in the dispatcher rather than through its
+    # handler dictionary. Registration is still only partial code coverage.
+    registered.update(dispatch_groups & {341, 352, 1103})
+    if 'effect["effect_class"] == 865' in dispatch_source:
+        registered.add(865)
     if "1047:native_hp_group_level" in runtime_source and 1047 in dispatch_groups:
         registered.add(1047)
     if "handlers[1065]=NativeSpellCostHandler" in runtime_source:
@@ -268,13 +354,13 @@ def main(output=OUT):
         notes = review.get("families", {}).get(str(family), {})
         module = (
             "combat_effect_dispatch.py"
-            if family in (330, 844, 999)
+            if family in (330, 844, 949, 999, 1076)
             else "combat_state_handler.py"
             if family == 304
             else "combat_state_decurse.py"
             if family == 321
             else "combat_damage_handler.py"
-            if family in range(1, 6)
+            if family in damage_ids
             else "combat_healing_handler.py"
             if family in heal_ids
             else "combat_stat_handler.py"
@@ -316,6 +402,9 @@ def main(output=OUT):
                 "dependencies": sorted(map(int, dependencies)),
                 "families_without_entry": sorted(set(families) - wired),
                 "missing_definitions": sorted(missing),
+                "current_validation": review.get("states", {})
+                .get(key, {})
+                .get("current_validation", ""),
                 "review": review.get("states", {}).get(key, {}),
             }
         )
@@ -375,6 +464,8 @@ def main(output=OUT):
     inputs.extend([review_path, Path(__file__).resolve()])
     if names_path.exists():
         inputs.append(names_path)
+    if extra_audit_path.exists():
+        inputs.append(extra_audit_path)
     sources = {
         (
             str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else p.name
@@ -394,8 +485,11 @@ def main(output=OUT):
             "spell_families": len(spell_families),
             "registered_spell_families": len(spell_families & registered),
             "individual_game_verified": sum(r["game_verified"] is True for r in rows),
+            "class_linked_extras": len(extra_rows),
         },
         "spells": rows,
+        "extra_spells": extra_rows,
+        "extra_audit_limits": extra_audit.get("limitations", []),
         "families": family_rows,
         "states": state_rows,
         "effects": effect_rows,
@@ -404,6 +498,21 @@ def main(output=OUT):
     }
     (output / "inventory.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    )
+    csv_write(
+        output / "hechizos-extra.csv",
+        extra_rows,
+        [
+            "id",
+            "name",
+            "breeds",
+            "grant_paths",
+            "tree_exported",
+            "review_status",
+            "game_verified",
+            "owner",
+            "next_test",
+        ],
     )
     csv_write(
         output / "hechizos.csv",
@@ -456,6 +565,7 @@ def main(output=OUT):
             "dependencies",
             "families_without_entry",
             "missing_definitions",
+            "current_validation",
             "review",
         ],
     )
@@ -512,6 +622,44 @@ def main(output=OUT):
                     "",
                 ]
             )
+        class_extras = [row for row in extra_rows if breed in row["breeds"]]
+        if class_extras:
+            parts.extend(
+                [
+                    "## Hechizos extra otorgados",
+                    "",
+                    "Rutas explícitas identificadas; no se afirma que todas las transformaciones estén cubiertas. El estado de revisión es independiente del catálogo normal.",
+                    "",
+                    "| ID | Nombre | Revisión | Probado jugando |",
+                    "|---|---|---|---|",
+                ]
+            )
+            for row in class_extras:
+                parts.append(
+                    "| "
+                    + " | ".join(
+                        md(value)
+                        for value in (
+                            row["id"],
+                            row["name"],
+                            row["review_status"],
+                            "Sí" if row["game_verified"] else "Pendiente",
+                        )
+                    )
+                    + " |"
+                )
+            parts.append("")
+            for row in class_extras:
+                parts.extend(
+                    [
+                        f"### {row['name']} ({row['id']}, extra)",
+                        "",
+                        f"- Responsable: {row['owner']}. Estado: {row['review_status']}.",
+                        f"- Siguiente prueba: {row['next_test']}",
+                        f"- Evidencia: {row['review'].get('evidence', []) or 'Sin prueba individual registrada'}.",
+                        "",
+                    ]
+                )
         (class_dir / f"{breed}.md").write_text("\n".join(parts) + "\n")
         class_lines.append(
             f"| [{title}](clases/{breed}.md) | {sum(r['kind']=='active' for r in spells)} | {sum(r['kind']=='passive' for r in spells)} | {sum(r['game_verified'] is True for r in spells)} |"
@@ -539,9 +687,11 @@ def main(output=OUT):
         "",
         f"Hay **{summary['spells']} hechizos de clase**: {summary['active']} activos y {summary['passive']} pasivos. Incluye **{summary['states']} estados**, **{summary['effects']} definiciones de efectos** y **{len(family_rows)} familias** contando los estados.",
         "",
+        f"Además se siguen **{len(extra_rows)} hechizos extra** otorgados por estados, innatas y otras rutas explícitas en [hechizos-extra.csv](hechizos-extra.csv). Sus rutas y revisión individual figuran en inventory.json. Esta lista todavía no acredita cobertura exhaustiva de transformaciones ni referencias dinámicas; no se incluyen en las cifras de ejecución del catálogo normal.",
+        "",
         f"**{summary['registered_spell_families']} de {summary['spell_families']} familias de los árboles de hechizos tienen ruta de ejecución registrada. Esto NO es el porcentaje de hechizos terminados.** La implementación tiene límites; las pasivas necesitan además sus eventos e instalación. Hechizos con prueba individual completa registrada: **{summary['individual_game_verified']}**. Las victorias previas no se convierten automáticamente en pruebas completas de cada hechizo.",
         "",
-        "El código nuevo no se marca como cargado ni probado jugando. El reinicio solicitado sigue pendiente de autorización.",
+        "Que una ruta exista en código no demuestra que esté cargada ni probada jugando. Consultar el reporte de progreso para conocer el último despliegue y sus verificaciones.",
         "",
         "## Cómo evitar repetir trabajo",
         "",

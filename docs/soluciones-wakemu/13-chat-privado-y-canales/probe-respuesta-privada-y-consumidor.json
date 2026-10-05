@@ -1,0 +1,37 @@
+{
+  "native_consumer": "chc",
+  "private_response": {
+    "opcode": 720,
+    "class": "Oi",
+    "layout": "signed byte recipient UTF8 length; recipient name; i64 recipient ID; NQ sender payload",
+    "synthetic_parser_passed": true,
+    "recipient_name": "AuditRecipient",
+    "recipient_id": 67890,
+    "sender_id": 12345,
+    "text": "Prueba ñ"
+  },
+  "response_762": {
+    "class": "NP",
+    "selector": "eEY.PB(i32), followed by language authorization and aOd.c(eEY)",
+    "not_aOd_id": true
+  },
+  "specific_responses": {
+    "local": 674,
+    "trade": 626,
+    "party": 606,
+    "guild": 743,
+    "recruitment": 769,
+    "community": 655
+  },
+  "limits": [
+    "No response injected into clients; synthetic parser acceptance does not prove UI echo.",
+    "Recipient-name byte is signed in Oi parser; do not inherit unsigned 255 limit without validation.",
+    "Recipient ID semantics and visual echo with differing account/character IDs remain unverified."
+  ],
+  "sender_identity_verified": {
+    "getter_chain": "biB.cBt -> aTx.cWy -> aTJ.xl -> eDn.aEo",
+    "native_field_label": "AccountInformations.m_account_id",
+    "proposed_NQ_sender_identity": "account_id with identity flag false",
+    "live_audit_ids_collide": true
+  }
+}

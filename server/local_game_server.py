@@ -17,8 +17,16 @@ import os
 import subprocess
 import time
 import uuid
+
+SERVER_BOOT_ID = uuid.uuid4().hex
 from wakfu_server.request_diagnostics import (
-    RequestTrace, current_request, request_context, state_summary, redact, exception_frames, safe_snapshot,
+    RequestTrace,
+    current_request,
+    request_context,
+    state_summary,
+    redact,
+    exception_frames,
+    safe_snapshot,
 )
 from protocol_codec import Reader, decode_body
 from wakfu_server.store import Store
@@ -150,9 +158,9 @@ COMBAT_TEST_WP = (
 )
 from wakfu_server.breed_resources import live_wp
 
-COMBAT_TEST_CRITICAL_BRANCH = os.environ.get("WAKFU_COMBAT_CRITICAL_BRANCH", "normal")
-if COMBAT_TEST_CRITICAL_BRANCH not in ("normal", "critical"):
-    raise ValueError("WAKFU_COMBAT_CRITICAL_BRANCH must be normal or critical")
+COMBAT_TEST_CRITICAL_BRANCH = os.environ.get("WAKFU_COMBAT_CRITICAL_BRANCH", "auto")
+if COMBAT_TEST_CRITICAL_BRANCH not in ("auto", "normal", "critical"):
+    raise ValueError("WAKFU_COMBAT_CRITICAL_BRANCH must be auto, normal or critical")
 MONSTER_RESPAWN_SECONDS = float(
     os.environ.get("WAKFU_LOCAL_MONSTER_RESPAWN_SECONDS", "0")
 )
@@ -321,11 +329,20 @@ def write_records(rows):
 def record(**fields):
     active = current_request()
     event = fields.get("event", "")
-    if active is not None and (event.endswith("_rejected") or event.endswith("_failed")):
+    if active is not None and (
+        event.endswith("_rejected") or event.endswith("_failed")
+    ):
         active.rejection(event, fields.get("reason", fields.get("detail", "")))
         fields["state_at_rejection"] = safe_snapshot(active.snapshot)
-    row = redact({"time": datetime.now(timezone.utc).isoformat(),
-                  **request_context(), **fields})
+    row = redact(
+        {
+            "time": datetime.now(timezone.utc).isoformat(),
+            "server_boot_id": SERVER_BOOT_ID,
+            "server_pid": os.getpid(),
+            **request_context(),
+            **fields,
+        }
+    )
     if active is not None and not active.closed:
         active.append(row)
         if event == "unexpected_request_exception":
@@ -351,14 +368,26 @@ def receive(connection, count, on_idle=None):
 
 def send(connection, service, opcode, body):
     connection.sendall(struct.pack(">IH", 6 + len(body), opcode) + body)
-    record(service=service, direction="out", opcode=opcode, bytes=len(body),
-           target_connection_id=getattr(connection, "trace_id", None))
+    record(
+        service=service,
+        direction="out",
+        opcode=opcode,
+        bytes=len(body),
+        target_connection_id=getattr(connection, "trace_id", None),
+    )
 
 
 WORLD = World(
     lambda character: wire.spawn_player(PLAYER_TEMPLATE, character),
     wire.remove_player,
     lambda peer, opcode, body: send(peer, "world", opcode, body),
+    delivery_failure=lambda peer, opcode, error: record(
+        event="world_delivery_failed_before_shutdown",
+        target_connection_id=getattr(peer, "trace_id", None),
+        opcode=opcode,
+        error=type(error).__name__,
+        errno=error.errno,
+    ),
 )
 
 
@@ -600,8 +629,12 @@ def session(raw, peer, service, context):
             return
         checkpoint_started = time.monotonic()
         try:
-            record(event="persistence_stage", domain="fight_checkpoint",
-                   stage="save_started", fight_id=fight.id)
+            record(
+                event="persistence_stage",
+                domain="fight_checkpoint",
+                stage="save_started",
+                fight_id=fight.id,
+            )
             checkpoint_revision = CHECKPOINTS.save(
                 account_id,
                 generation,
@@ -609,8 +642,13 @@ def session(raw, peer, service, context):
                 expected_revision=checkpoint_revision,
                 runtime=fight_messages,
             )
-            record(event="persistence_stage", domain="fight_checkpoint",
-                   stage="save_committed", fight_id=fight.id, revision=checkpoint_revision)
+            record(
+                event="persistence_stage",
+                domain="fight_checkpoint",
+                stage="save_committed",
+                fight_id=fight.id,
+                revision=checkpoint_revision,
+            )
             if status is not None:
                 checkpoint_revision = CHECKPOINTS.end(
                     account_id,
@@ -620,8 +658,11 @@ def session(raw, peer, service, context):
                     status=status,
                 )
                 checkpoint_terminal = True
-            record(event="combat_checkpoint_timing", fight_id=fight.id,
-                   elapsed_ms=round((time.monotonic() - checkpoint_started) * 1000, 3))
+            record(
+                event="combat_checkpoint_timing",
+                fight_id=fight.id,
+                elapsed_ms=round((time.monotonic() - checkpoint_started) * 1000, 3),
+            )
         except ValueError as error:
             # A replaced login cannot overwrite the current generation's state.
             record(
@@ -637,7 +678,9 @@ def session(raw, peer, service, context):
             if actor.hp == 0 and actor.id not in getattr(
                 fight_messages, "_reported_deaths", set()
             ):
-                for message_id, payload in death_messages(fight_messages, actor.id):
+                for message_id, payload in fight_messages.prepare_delivery(
+                    death_messages(fight_messages, actor.id)
+                ):
                     send(connection, service, message_id, payload)
         metadata = {
             character["id"]: dict(
@@ -666,7 +709,7 @@ def session(raw, peer, service, context):
         )
         if fight.winner == fight.actors[character["id"]].team:
             COMBAT_GROUPS.finish(group_lease, defeated=True)
-        for message_id, payload in result["packets"]:
+        for message_id, payload in fight_messages.prepare_delivery(result["packets"]):
             send(connection, service, message_id, payload)
         if result["reward"] is not None:
             record(
@@ -679,6 +722,32 @@ def session(raw, peer, service, context):
             )
         send(connection, service, *fight_messages._flush())
         record(event="combat_finished", fight_id=fight.id, winner=fight.winner)
+
+    def area_boundary_provider(preview, **boundary):
+        from wakfu_server.combat_server_spell import prepare_server_turn_start
+        from wakfu_server.spells import default_deck
+
+        stored = character.get("builds", {}).get(0, {}).get("deck")
+        deck = bytes.fromhex(stored) if stored else default_deck(character)
+        return prepare_server_turn_start(
+            character,
+            TEST_MONSTERS_BY_ID,
+            preview,
+            deck,
+            native_events=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
+            area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0") == "1",
+            **boundary,
+        )
+
+    def area_movement_provider(preview, **boundary):
+        from wakfu_server.combat_area_transaction import prepare_area_movement
+        from wakfu_server.spells import default_deck
+
+        stored = character.get("builds", {}).get(0, {}).get("deck")
+        deck = bytes.fromhex(stored) if stored else default_deck(character)
+        return prepare_area_movement(
+            character, TEST_MONSTERS_BY_ID, preview, deck, **boundary
+        )
 
     def pass_test_monster_turn():
         # A bounded local policy: approach, one audited attack, then end turn.
@@ -698,11 +767,18 @@ def session(raw, peer, service, context):
                     monster, actor, fight.id, wp_current=0, wp_maximum=0, direction=3
                 ),
                 direction=3,
+                area_provider=area_movement_provider
+                if os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0") == "1"
+                else None,
             )
+            packets = fight_messages.prepare_delivery(packets)
             for message_id, payload in packets:
                 send(connection, service, message_id, payload)
             if packets:
                 record(event="combat_monster_movement", fight_id=fight.id, plan=plan)
+            if fight.phase == "finished":
+                complete_test_fight()
+                return
             from wakfu_server.combat_npc_attack import execute as npc_attack
             from wakfu_server.combat_wire import actor_state
 
@@ -722,27 +798,23 @@ def session(raw, peer, service, context):
                     caster_bonuses={},
                     target_bonuses={},
                     mitigate=lambda damage, element, source, target, state: damage,
+                    monsters=TEST_MONSTERS_BY_ID,
                 )
-                for message_id, payload in result["packets"]:
-                    send(
-                        connection,
-                        service,
-                        message_id,
-                        fight_messages._prefix() + payload[12:],
-                    )
-                send(connection, service, *fight_messages._flush())
+                delivery = list(result["packets"])
+                delivery.append(fight_messages._flush())
                 for actor_id, stats in result["snapshots"].items():
-                    send(
-                        connection,
-                        service,
-                        12873,
-                        actor_state(12873, fight.id, actor_id, stats),
+                    delivery.append(
+                        (12873, actor_state(12873, fight.id, actor_id, stats))
                     )
-                send(connection, service, *fight_messages._flush())
+                delivery.append(fight_messages._flush())
+                packets = fight_messages.prepare_delivery(delivery)
+                for message_id, payload in packets:
+                    send(connection, service, message_id, payload)
                 record(
                     event="combat_monster_attack",
                     fight_id=fight.id,
                     damage=result["damage"],
+                    native_actions=packets.native_actions,
                 )
             except ValueError as error:
                 record(
@@ -762,6 +834,8 @@ def session(raw, peer, service, context):
                 fight.current.id, fight.turn_id
             ):
                 send(connection, service, message_id, payload)
+            if fight.phase == "finished":
+                complete_test_fight()
 
     def execute_test_command(text):
         nonlocal character, position, movement_state
@@ -871,13 +945,27 @@ def session(raw, peer, service, context):
             if renew:
                 last_session_renewal = now
             if fight_messages is not None and fight is not None:
-                expired_packets = fight_messages.expire_current_once()
+                (
+                    expired_packets,
+                    expiry_error,
+                ) = fight_messages.expire_current_or_recover(
+                    account_id, now_ms=int(time.time() * 1000)
+                )
+                if expiry_error is not None:
+                    record(
+                        event="combat_turn_expiry_rejected",
+                        fight_id=fight.id,
+                        actor_id=character["id"],
+                        reason=expiry_error,
+                    )
                 for message_id, payload in expired_packets:
                     send(connection, service, message_id, payload)
                 if expired_packets:
                     checkpoint_fight()
                     record(
-                        event="combat_turn_expired",
+                        event="combat_turn_expiry_recovered"
+                        if expiry_error is not None
+                        else "combat_turn_expired",
                         fight_id=fight.id,
                         actor_id=character["id"],
                     )
@@ -960,12 +1048,16 @@ def session(raw, peer, service, context):
                 body = frame[3:]
                 request_received_at = time.monotonic()
                 from wakfu_server.combat_diagnostics import combat_diagnostic_scope
+
                 active_request = RequestTrace(
-                    sink=record, opcode=opcode, service=service,
+                    sink=record,
+                    opcode=opcode,
+                    service=service,
                     connection_id=connection_trace_id,
                     snapshot=lambda: state_summary(character, fight, fight_messages),
                     effect_scope=combat_diagnostic_scope(record)
-                    if fight is not None or opcode in (13130, 12523, 13260) else None,
+                    if fight is not None or opcode in (13130, 12523, 13260)
+                    else None,
                     flush=write_records,
                 )
                 record(
@@ -1000,10 +1092,31 @@ def session(raw, peer, service, context):
                     12870,
                     12363,
                 ):
+                    if opcode == 12772:
+                        # The client edits builds optimistically. Restore the
+                        # prior sheet while preserving combat resources; a
+                        # silent discard looks like a lost save on reconnect.
+                        try:
+                            packets = builds.blocked_save_messages(character, body)
+                        except (ValueError, UnicodeError) as error:
+                            record(
+                                event="build_rejected",
+                                actor_id=character["id"],
+                                reason=str(error),
+                            )
+                        else:
+                            for message_id, message_body in packets:
+                                send(connection, service, message_id, message_body)
+                            record(
+                                event="build_rejected",
+                                actor_id=character["id"],
+                                reason="Build editing is unavailable during combat",
+                            )
                     record(
                         event="combat_world_action_rejected",
                         actor_id=character["id"],
                         opcode=opcode,
+                        reason="World action is unavailable during combat",
                     )
                     continue
                 # 14689 is an auxiliary request, not a mandatory world-ready
@@ -1099,6 +1212,14 @@ def session(raw, peer, service, context):
                             with LOCK:
                                 previous = LIVE.pop(account_id, None)
                         if previous:
+                            record(
+                                event="session_replaced_before_shutdown",
+                                account_id=account_id,
+                                target_connection_id=getattr(
+                                    previous[1], "trace_id", None
+                                ),
+                                replacement_connection_id=connection_trace_id,
+                            )
                             try:
                                 previous[1].shutdown(socket.SHUT_RDWR)
                             except OSError:
@@ -1494,6 +1615,16 @@ def session(raw, peer, service, context):
                         record(
                             event="combat_test_attack_rejected",
                             actor_id=character["id"],
+                            reason="Fight or inventory session is already active",
+                        )
+                        send(
+                            connection,
+                            service,
+                            674,
+                            wire.chat(
+                                dict(character, name="Consola local"),
+                                "No puedes iniciar otro combate con una sesión de combate o inventario activa.",
+                            ),
                         )
                         continue
                     try:
@@ -1529,6 +1660,7 @@ def session(raw, peer, service, context):
                             initialize_fight_snapshots,
                         )
 
+                        initialization_warnings = []
                         initialize_fight_snapshots(
                             candidate,
                             characters={character["id"]: character},
@@ -1544,6 +1676,24 @@ def session(raw, peer, service, context):
                                 identity: () for identity in candidate.actors
                             },
                             initial_effect_uid=1,
+                            dev_skip_unsupported=os.environ.get(
+                                "WAKFU_DEV_SKIP_UNSUPPORTED_INITIALIZATION", "0"
+                            )
+                            == "1",
+                            initialization_warnings=initialization_warnings,
+                        )
+                        from wakfu_server.combat_forced_terrain import prewarm_map
+
+                        warm_started = time.monotonic()
+                        forced_terrain_loaded = prewarm_map(character["map_id"])
+                        record(
+                            event="combat_forced_terrain_ready",
+                            fight_id=candidate.id,
+                            map_id=character["map_id"],
+                            available=forced_terrain_loaded,
+                            elapsed_ms=round(
+                                (time.monotonic() - warm_started) * 1000, 3
+                            ),
                         )
                         # Match the directions published by placement actor serializers.
                         for participant in candidate.actors.values():
@@ -1587,6 +1737,26 @@ def session(raw, peer, service, context):
                             )
                         for message_id, payload in packets:
                             send(connection, service, message_id, payload)
+                        from wakfu_server.combat_initialization_policy import (
+                            warning_text,
+                        )
+
+                        for warning in initialization_warnings:
+                            record(
+                                event="combat_initialization_effect_skipped",
+                                fight_id=fight.id,
+                                development_fallback=True,
+                                **warning,
+                            )
+                            send(
+                                connection,
+                                service,
+                                674,
+                                wire.chat(
+                                    dict(character, name="Consola local"),
+                                    warning_text(warning),
+                                ),
+                            )
                         record(
                             event="combat_test_placement_started",
                             actor_id=character["id"],
@@ -1601,6 +1771,19 @@ def session(raw, peer, service, context):
                             actor_id=character["id"],
                             reason=str(error),
                         )
+                        from wakfu_server.combat_initialization_policy import (
+                            safe_rejection_text,
+                        )
+
+                        send(
+                            connection,
+                            service,
+                            674,
+                            wire.chat(
+                                dict(character, name="Consola local"),
+                                safe_rejection_text(error),
+                            ),
+                        )
                 elif opcode == 12806 and fight is not None:
                     from wakfu_server.combat_bootstrap import placement_positions
 
@@ -1613,6 +1796,19 @@ def session(raw, peer, service, context):
                             event="combat_test_placement_rejected",
                             actor_id=character["id"],
                             reason=str(error),
+                        )
+                        from wakfu_server.combat_initialization_policy import (
+                            safe_rejection_text,
+                        )
+
+                        send(
+                            connection,
+                            service,
+                            674,
+                            wire.chat(
+                                dict(character, name="Consola local"),
+                                safe_rejection_text(error),
+                            ),
                         )
                 elif opcode == 12523 and fight is not None:
                     from wakfu_server.combat_runtime_messages import RuntimeMessages
@@ -1667,6 +1863,7 @@ def session(raw, peer, service, context):
                             from wakfu_server.combat_ready import prepare_ready
                             from wakfu_server.combat_server_spell import (
                                 prepare_server_initialization,
+                                prepare_server_turn_end,
                             )
                             from wakfu_server.spells import default_deck
 
@@ -1689,9 +1886,33 @@ def session(raw, peer, service, context):
                                     account_id,
                                     deck,
                                     action_id=action_id,
+                                    fight_start=os.environ.get(
+                                        "WAKFU_COMBAT_START_EVENTS", "1"
+                                    )
+                                    == "1",
                                 ),
                                 stats_serializer=current_combat_stats,
                                 effects_serializer=actor_effects,
+                                turn_start_provider=area_boundary_provider
+                                if (
+                                    os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0")
+                                    == "1"
+                                    or os.environ.get("WAKFU_COMBAT_START_EVENTS", "1")
+                                    == "1"
+                                )
+                                else None,
+                                turn_end_provider=(
+                                    lambda preview, **boundary: prepare_server_turn_end(
+                                        character,
+                                        TEST_MONSTERS_BY_ID,
+                                        preview,
+                                        deck,
+                                        **boundary,
+                                    )
+                                )
+                                if os.environ.get("WAKFU_COMBAT_START_EVENTS", "1")
+                                == "1"
+                                else None,
                             )
                             fight = candidate
                             if candidate_messages is None:
@@ -1704,21 +1925,40 @@ def session(raw, peer, service, context):
                                 actor_id=character["id"],
                                 fight_id=fight.id,
                             )
-                            pass_test_monster_turn()
+                            if fight.phase == "finished":
+                                complete_test_fight()
+                            else:
+                                pass_test_monster_turn()
                     except ValueError as error:
                         record(
                             event="combat_test_ready_rejected",
                             actor_id=character["id"],
                             reason=str(error),
                         )
+                        from wakfu_server.combat_initialization_policy import (
+                            safe_rejection_text,
+                        )
+
+                        send(
+                            connection,
+                            service,
+                            674,
+                            wire.chat(
+                                dict(character, name="Consola local"),
+                                safe_rejection_text(error),
+                            ),
+                        )
                 elif opcode == 13260 and fight_messages is not None:
+                    from wakfu_server.combat_cast import decode_cast
                     from wakfu_server.combat_execute import execute_adjacent_cast
                     from wakfu_server.combat_wire import actor_state
                     from wakfu_server.combat_death import death_messages
                     from wakfu_server.combat_results import finish_messages
                     from wakfu_server.spells import default_deck
 
+                    cast_request = {}
                     try:
+                        cast_request = decode_cast(body)
                         if fight_messages.awaiting_ack is not None:
                             raise ValueError("Previous turn is not synchronized")
                         deck_hex = character["builds"].get(0, {}).get("deck")
@@ -1741,9 +1981,9 @@ def session(raw, peer, service, context):
                             if deck_hex
                             else default_deck(character),
                             action_id=fight_messages.action_id + 1,
-                            # Existing test environment chooses the normal cast branch.
-                            # Native critical roll remains a separate pending requirement.
-                            critical=COMBAT_TEST_CRITICAL_BRANCH == "critical",
+                            critical=None
+                            if COMBAT_TEST_CRITICAL_BRANCH == "auto"
+                            else COMBAT_TEST_CRITICAL_BRANCH == "critical",
                             line_of_sight=lambda source, target, state: authoritative_visible(
                                 character["map_id"],
                                 source,
@@ -1763,6 +2003,9 @@ def session(raw, peer, service, context):
                             stats_serializer=lambda actor, state: current_combat_stats(
                                 actor
                             ),
+                            diagnostic=lambda **details: record(
+                                event="combat_commit_stage", **details
+                            ),
                         )
                         cast_commit_finished = time.monotonic()
                         fight = transaction.fight
@@ -1770,19 +2013,51 @@ def session(raw, peer, service, context):
                             send(connection, service, message_id, payload)
                         record(
                             event="combat_cast",
-                            dispatch_ms=round((cast_prepare_started - request_received_at) * 1000, 3),
-                            prepare_ms=round((cast_prepare_finished - cast_prepare_started) * 1000, 3),
-                            commit_ms=round((cast_commit_finished - cast_prepare_finished) * 1000, 3),
-                            send_ms=round((time.monotonic() - cast_commit_finished) * 1000, 3),
+                            native_actions=packets.native_actions,
+                            dispatch_ms=round(
+                                (cast_prepare_started - request_received_at) * 1000, 3
+                            ),
+                            prepare_ms=round(
+                                (cast_prepare_finished - cast_prepare_started) * 1000, 3
+                            ),
+                            commit_ms=round(
+                                (cast_commit_finished - cast_prepare_finished) * 1000, 3
+                            ),
+                            send_ms=round(
+                                (time.monotonic() - cast_commit_finished) * 1000, 3
+                            ),
                             actor_id=character["id"],
                             spell_id=transaction.plan["spell_id"],
+                            critical_decision=transaction.plan.get("critical_decision"),
+                            costs=transaction.plan["costs"],
+                            resources_before={
+                                "ap": transaction.source_state["actors"][
+                                    str(transaction.plan["actor_id"])
+                                ]["ap"],
+                                "mp": transaction.source_state["actors"][
+                                    str(transaction.plan["actor_id"])
+                                ]["mp"],
+                                "wp": transaction.source_state["actors"][
+                                    str(transaction.plan["actor_id"])
+                                ]["effect_stats"].get("4"),
+                            },
+                            resources_after={
+                                "ap": fight.actors[transaction.plan["actor_id"]].ap,
+                                "mp": fight.actors[transaction.plan["actor_id"]].mp,
+                                "wp": fight.actors[
+                                    transaction.plan["actor_id"]
+                                ].effect_stats.get(4),
+                            },
                             outcomes=transaction.outcomes,
                         )
                         result = {"events": transaction.events}
                         for event in result["events"]:
                             if event["kind"] == "death":
-                                for message_id, payload in death_messages(
-                                    fight_messages, event["actor_id"]
+                                for (
+                                    message_id,
+                                    payload,
+                                ) in fight_messages.prepare_delivery(
+                                    death_messages(fight_messages, event["actor_id"])
                                 ):
                                     send(connection, service, message_id, payload)
                         if fight.phase == "finished":
@@ -1791,86 +2066,265 @@ def session(raw, peer, service, context):
                         record(
                             event="combat_cast_rejected",
                             actor_id=character["id"],
+                            spell_uid=cast_request.get("spell_uid"),
+                            target=cast_request.get("target"),
                             reason=str(error),
                         )
+                        from wakfu_server.combat_initialization_policy import (
+                            safe_rejection_text,
+                        )
+
+                        send(
+                            connection,
+                            service,
+                            674,
+                            wire.chat(
+                                dict(character, name="Consola local"),
+                                safe_rejection_text(error),
+                            ),
+                        )
                 elif opcode == 12889 and fight_messages is not None:
-                    from wakfu_server.combat_melee import execute_unarmed
+                    from wakfu_server.combat_melee import prepare_server_unarmed
                     from wakfu_server.combat_wire import actor_state
                     from wakfu_server.combat_death import death_messages
+                    from wakfu_server.combat_weapon import (
+                        decode_request,
+                        prepare_server_weapon,
+                    )
 
                     try:
                         if fight_messages.awaiting_ack is not None:
                             raise ValueError("Previous turn is not synchronized")
-                        # Owned equipment is empty; build validation rejects unowned item IDs.
-                        result = execute_unarmed(
-                            body,
-                            character,
-                            TEST_MONSTERS_BY_ID,
-                            fight,
-                            account_id,
-                            unarmed=True,
-                            wp_current=live_wp(fight, character["id"])[0],
-                            wp_maximum=live_wp(fight, character["id"])[1],
-                            action_id=fight_messages.action_id + 1,
-                            effect_uid=secrets.randbelow(2**60) + 1,
-                            critical_chance=0,
-                            caster_running_effects=(),
-                            target_running_effects=(),
-                            caster_bonuses={},
-                            target_bonuses={},
-                            mitigate=lambda damage, element, source, target, state: damage,
+                        from wakfu_server.combat_spell_commit import (
+                            commit_spell_transaction,
                         )
-                        for message_id, payload in result["packets"]:
-                            send(
-                                connection,
-                                service,
-                                message_id,
-                                fight_messages._prefix() + payload[12:],
+                        from wakfu_server.combat_los import authoritative_visible
+                        from wakfu_server.spells import default_deck
+
+                        request = decode_request(body)
+                        record(event="combat_weapon_request", **request)
+                        if request["item_uid"] == -1:
+                            from wakfu_server.equipment import validate_sheet
+
+                            selected = character["builds"].get(
+                                character.get("active_build_index", 0), {}
                             )
-                        send(connection, service, *fight_messages._flush())
-                        for actor_id, stats in result["snapshots"].items():
-                            send(
-                                connection,
-                                service,
-                                12873,
-                                actor_state(12873, fight.id, actor_id, stats),
+                            if any(
+                                row["slot"] == 15
+                                for row in validate_sheet(
+                                    character,
+                                    bytes.fromhex(selected.get("equipment", "")),
+                                )
+                            ):
+                                raise ValueError(
+                                    "Unarmed action requires the owned weapon slot to be empty"
+                                )
+                            unarmed_prepare_started = time.monotonic()
+                            transaction = prepare_server_unarmed(
+                                body,
+                                character,
+                                TEST_MONSTERS_BY_ID,
+                                fight,
+                                account_id,
+                                unarmed=True,
+                                wp_current=live_wp(fight, character["id"])[0],
+                                wp_maximum=live_wp(fight, character["id"])[1],
+                                action_id=fight_messages.action_id + 1,
+                                effect_uid=secrets.randbelow(2**60) + 1,
+                                critical_chance=0,
+                                caster_running_effects=(),
+                                target_running_effects=(),
+                                caster_bonuses={},
+                                target_bonuses={},
+                                mitigate=lambda damage, element, source, target, state: damage,
                             )
-                        send(connection, service, *fight_messages._flush())
+                            unarmed_prepare_finished = time.monotonic()
+                            packets = commit_spell_transaction(
+                                fight_messages,
+                                transaction,
+                                stats_serializer=lambda actor, state: current_combat_stats(
+                                    actor
+                                ),
+                                diagnostic=lambda **details: record(
+                                    event="combat_commit_stage", **details
+                                ),
+                            )
+                            unarmed_commit_finished = time.monotonic()
+                            fight = transaction.fight
+                            for message_id, payload in packets:
+                                send(connection, service, message_id, payload)
+                                if message_id in (13509, 12613):
+                                    (
+                                        delivered_fight,
+                                        delivered_action,
+                                    ) = struct.unpack_from(">ii", payload)
+                                    record(
+                                        event="combat_melee_delivery",
+                                        fight_id=delivered_fight,
+                                        action_id=delivered_action,
+                                        opcode=message_id,
+                                        actor_id=character["id"],
+                                        item_uid=request["item_uid"],
+                                        target=request["target"],
+                                    )
+                            result = {"events": transaction.events, "damage": None}
+                            record(
+                                event="combat_unarmed",
+                                actor_id=character["id"],
+                                costs=transaction.plan["costs"],
+                                prepare_ms=round(
+                                    (unarmed_prepare_finished - unarmed_prepare_started)
+                                    * 1000,
+                                    3,
+                                ),
+                                commit_ms=round(
+                                    (unarmed_commit_finished - unarmed_prepare_finished)
+                                    * 1000,
+                                    3,
+                                ),
+                                send_ms=round(
+                                    (time.monotonic() - unarmed_commit_finished) * 1000,
+                                    3,
+                                ),
+                            )
+                        else:
+                            deck_hex = character["builds"].get(0, {}).get("deck")
+                            weapon_prepare_started = time.monotonic()
+                            transaction = prepare_server_weapon(
+                                body,
+                                character,
+                                TEST_MONSTERS_BY_ID,
+                                fight,
+                                account_id,
+                                bytes.fromhex(deck_hex)
+                                if deck_hex
+                                else default_deck(character),
+                                action_id=fight_messages.action_id + 1,
+                                critical=None
+                                if COMBAT_TEST_CRITICAL_BRANCH == "auto"
+                                else COMBAT_TEST_CRITICAL_BRANCH == "critical",
+                                line_of_sight=lambda source, target, state: authoritative_visible(
+                                    character["map_id"],
+                                    source,
+                                    target,
+                                    state,
+                                    blocking_footprints={
+                                        a.id: {a.position[:2]}
+                                        for a in state.actors.values()
+                                        if a.hp > 0
+                                    },
+                                ),
+                            )
+                            weapon_prepare_finished = time.monotonic()
+                            packets = commit_spell_transaction(
+                                fight_messages,
+                                transaction,
+                                stats_serializer=lambda actor, state: current_combat_stats(
+                                    actor
+                                ),
+                                diagnostic=lambda **details: record(
+                                    event="combat_commit_stage", **details
+                                ),
+                            )
+                            weapon_commit_finished = time.monotonic()
+                            fight = transaction.fight
+                            for message_id, payload in packets:
+                                send(connection, service, message_id, payload)
+                            result = {"events": transaction.events, "damage": None}
+                            record(
+                                event="combat_weapon",
+                                actor_id=character["id"],
+                                item_uid=request["item_uid"],
+                                slot=request["slot"],
+                                target=request["target"],
+                                item_reference=transaction.plan["item_reference"],
+                                item_level=transaction.plan["evaluation_level"],
+                                critical_decision=transaction.plan.get(
+                                    "critical_decision"
+                                ),
+                                costs=transaction.plan["costs"],
+                                prepare_ms=round(
+                                    (weapon_prepare_finished - weapon_prepare_started)
+                                    * 1000,
+                                    3,
+                                ),
+                                commit_ms=round(
+                                    (weapon_commit_finished - weapon_prepare_finished)
+                                    * 1000,
+                                    3,
+                                ),
+                                send_ms=round(
+                                    (time.monotonic() - weapon_commit_finished) * 1000,
+                                    3,
+                                ),
+                                outcomes=transaction.outcomes,
+                            )
                         record(
                             event="combat_melee",
+                            native_actions=packets.native_actions,
                             actor_id=character["id"],
                             damage=result["damage"],
                         )
                         for event in result["events"]:
                             if event["kind"] == "death":
-                                for message_id, payload in death_messages(
-                                    fight_messages, event["actor_id"]
+                                for (
+                                    message_id,
+                                    payload,
+                                ) in fight_messages.prepare_delivery(
+                                    death_messages(fight_messages, event["actor_id"])
                                 ):
                                     send(connection, service, message_id, payload)
                         if fight.phase == "finished":
                             complete_test_fight()
                     except ValueError as error:
+                        try:
+                            rejected_weapon = decode_request(body)
+                        except ValueError:
+                            rejected_weapon = {}
                         record(
                             event="combat_melee_rejected",
+                            item_uid=rejected_weapon.get("item_uid"),
+                            slot=rejected_weapon.get("slot"),
+                            target=rejected_weapon.get("target"),
                             actor_id=character["id"],
                             reason=str(error),
                         )
-                elif opcode == 13952 and fight_messages is not None:
-                    from wakfu_server.combat_abandon import prepare as prepare_abandon
+                        from wakfu_server.combat_initialization_policy import (
+                            safe_rejection_text,
+                        )
+
+                        send(
+                            connection,
+                            service,
+                            674,
+                            wire.chat(
+                                dict(character, name="Consola local"),
+                                safe_rejection_text(error),
+                            ),
+                        )
+                elif opcode == 13952 and loaded:
+                    from wakfu_server.combat_abandon import (
+                        prepare as prepare_abandon,
+                        placement_runtime,
+                    )
 
                     try:
+                        abandon_messages = placement_runtime(fight, fight_messages)
                         abandoned = prepare_abandon(
                             STORE,
                             account_id,
                             generation,
                             character,
-                            fight_messages,
+                            abandon_messages,
                             body,
                         )
+                        fight_messages = abandon_messages
                         character.update(abandoned["character"])
                         if abandoned["applied"]:
                             checkpoint_fight("aborted")
-                        for message_id, payload in abandoned["packets"]:
+                        for message_id, payload in fight_messages.prepare_delivery(
+                            abandoned["packets"]
+                        ):
                             send(connection, service, message_id, payload)
                         record(
                             event="combat_abandoned_waiting_return",
@@ -1883,6 +2337,19 @@ def session(raw, peer, service, context):
                             event="combat_abandon_rejected",
                             actor_id=character["id"],
                             reason=str(error),
+                        )
+                        from wakfu_server.combat_initialization_policy import (
+                            safe_rejection_text,
+                        )
+
+                        send(
+                            connection,
+                            service,
+                            674,
+                            wire.chat(
+                                dict(character, name="Consola local"),
+                                safe_rejection_text(error),
+                            ),
                         )
                 elif opcode == 12925 and fight_messages is not None:
                     from wakfu_server.combat_lifecycle import return_to_world
@@ -1996,7 +2463,9 @@ def session(raw, peer, service, context):
 
                     try:
                         oriented = orient_actor(fight_messages, account_id, body)
-                        for message_id, payload in oriented["packets"]:
+                        for message_id, payload in fight_messages.prepare_delivery(
+                            oriented["packets"]
+                        ):
                             send(connection, service, message_id, payload)
                         checkpoint_fight()
                         record(
@@ -2027,9 +2496,15 @@ def session(raw, peer, service, context):
                                 wp_maximum=live_wp(fight, character["id"])[1],
                             ),
                             direction=3,
+                            area_provider=area_movement_provider
+                            if os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0") == "1"
+                            else None,
                         )
+                        packets = fight_messages.prepare_delivery(packets)
                         for message_id, payload in packets:
                             send(connection, service, message_id, payload)
+                        if fight.phase == "finished":
+                            complete_test_fight()
                         record(
                             event="combat_movement",
                             actor_id=character["id"],
@@ -2048,12 +2523,49 @@ def session(raw, peer, service, context):
                             account_id, actor_id, actor_turn
                         ):
                             send(connection, service, message_id, payload)
+                        if fight.phase == "finished":
+                            complete_test_fight()
                     except ValueError as error:
                         record(
                             event="combat_test_end_turn_rejected",
                             actor_id=character["id"],
                             reason=str(error),
                         )
+                        from wakfu_server.combat_initialization_policy import (
+                            safe_rejection_text,
+                        )
+
+                        send(
+                            connection,
+                            service,
+                            674,
+                            wire.chat(
+                                dict(character, name="Consola local"),
+                                safe_rejection_text(error),
+                            ),
+                        )
+                        # Only an owned, still-active turn may be reannounced.
+                        # Stale or foreign requests must not clear another
+                        # actor's native synchronization barrier.
+                        current = fight.current
+                        if (
+                            fight.phase == "active"
+                            and current is not None
+                            and current.controlled
+                            and current.owner_id == account_id
+                            and fight_messages.awaiting_ack is None
+                        ):
+                            for message_id, payload in fight_messages.recover(
+                                account_id,
+                                struct.pack(">i", fight.id),
+                                now_ms=int(time.time() * 1000),
+                            ):
+                                send(connection, service, message_id, payload)
+                            record(
+                                event="combat_turn_rejection_recovered",
+                                fight_id=fight.id,
+                                actor_id=current.id,
+                            )
                 elif opcode == 13332 and fight_messages is not None:
                     try:
                         for message_id, payload in fight_messages.recover(
@@ -2065,6 +2577,13 @@ def session(raw, peer, service, context):
                             actor_id=character["id"],
                             fight_id=fight.id,
                         )
+                        # Recovery supersedes the outstanding turn ACK. A
+                        # server-controlled actor otherwise has no remaining
+                        # packet that can trigger its bounded turn policy.
+                        if fight.phase == "finished":
+                            complete_test_fight()
+                        else:
+                            pass_test_monster_turn()
                     except ValueError as error:
                         record(
                             event="combat_recovery_rejected",
@@ -2077,7 +2596,10 @@ def session(raw, peer, service, context):
                             body
                         ):
                             send(connection, service, message_id, payload)
-                        pass_test_monster_turn()
+                        if fight.phase == "finished":
+                            complete_test_fight()
+                        else:
+                            pass_test_monster_turn()
                     except ValueError as error:
                         record(
                             event="combat_test_turn_ack_rejected",
@@ -2111,9 +2633,6 @@ def session(raw, peer, service, context):
                             STORE, account_id, generation, character["id"], body
                         )
                         saved = result["character"]
-                        record(event="persistence_stage", domain="build",
-                               stage="journal_committed" if STORE.build_journal is not None else "sqlite_committed",
-                               build_index=index)
                         character = (
                             bag_session.refresh(character, saved)
                             if bag_session is not None and bag_session.owns(character)
@@ -2149,9 +2668,6 @@ def session(raw, peer, service, context):
                             in_fight=fight is not None,
                         )
                         saved = result["character"]
-                        record(event="persistence_stage", domain="build",
-                               stage="journal_committed" if STORE.build_journal is not None else "sqlite_committed",
-                               build_index=index)
                         character = (
                             bag_session.refresh(character, saved)
                             if bag_session is not None and bag_session.owns(character)
@@ -2196,9 +2712,6 @@ def session(raw, peer, service, context):
                             STORE, account_id, generation, character["id"], body
                         )
                         saved = result["character"]
-                        record(event="persistence_stage", domain="build",
-                               stage="journal_committed" if STORE.build_journal is not None else "sqlite_committed",
-                               build_index=index)
                         character = (
                             bag_session.refresh(character, saved)
                             if bag_session is not None and bag_session.owns(character)
@@ -2229,9 +2742,6 @@ def session(raw, peer, service, context):
                             STORE, account_id, generation, character["id"], body
                         )
                         saved = result["character"]
-                        record(event="persistence_stage", domain="build",
-                               stage="journal_committed" if STORE.build_journal is not None else "sqlite_committed",
-                               build_index=index)
                         character = (
                             bag_session.refresh(character, saved)
                             if bag_session is not None and bag_session.owns(character)
@@ -2243,9 +2753,6 @@ def session(raw, peer, service, context):
                         send(connection, service, *equipment_inventory(character))
                     except ValueError as error:
                         saved = STORE.character(account_id, character["id"])
-                        record(event="persistence_stage", domain="build",
-                               stage="journal_committed" if STORE.build_journal is not None else "sqlite_committed",
-                               build_index=index)
                         character = (
                             bag_session.refresh(character, saved)
                             if bag_session is not None and bag_session.owns(character)
@@ -2384,15 +2891,26 @@ def session(raw, peer, service, context):
                             "Build character does not belong to this session"
                         )
                     try:
-                        record(event="persistence_stage", domain="build",
-                               stage="save_started", build_index=index,
-                               backend="redis" if STORE.build_journal is not None else "sqlite")
+                        record(
+                            event="persistence_stage",
+                            domain="build",
+                            stage="save_started",
+                            build_index=index,
+                            backend="redis"
+                            if STORE.build_journal is not None
+                            else "sqlite",
+                        )
                         saved = STORE.save_build(
                             account_id, generation, request_id, index, blobs
                         )
-                        record(event="persistence_stage", domain="build",
-                               stage="journal_committed" if STORE.build_journal is not None else "sqlite_committed",
-                               build_index=index)
+                        record(
+                            event="persistence_stage",
+                            domain="build",
+                            stage="journal_committed"
+                            if STORE.build_journal is not None
+                            else "sqlite_committed",
+                            build_index=index,
+                        )
                         character = (
                             bag_session.refresh(character, saved)
                             if bag_session is not None and bag_session.owns(character)
@@ -2410,9 +2928,6 @@ def session(raw, peer, service, context):
                             else 2
                         )
                         saved = STORE.character(account_id, request_id)
-                        record(event="persistence_stage", domain="build",
-                               stage="journal_committed" if STORE.build_journal is not None else "sqlite_committed",
-                               build_index=index)
                         character = (
                             bag_session.refresh(character, saved)
                             if bag_session is not None and bag_session.owns(character)
@@ -2790,22 +3305,56 @@ def session(raw, peer, service, context):
                         record(
                             event="chat", actor_id=character["id"], characters=len(text)
                         )
+                else:
+                    record(
+                        event="request_rejected",
+                        opcode=opcode,
+                        reason="No handler for this opcode in the current session state",
+                        loaded=loaded,
+                        authenticated=account_id is not None,
+                    )
                 checkpoint_fight()
                 active_request.finish()
                 active_request = None
     except (EOFError, OSError, ValueError) as error:
+        if active_request is not None:
+            active_request.rejection("request_disconnected", str(error))
         record(
             event="disconnected",
             connection_id=connection_trace_id,
             service=service,
             error=type(error).__name__,
             detail=str(error),
+            traceback=exception_frames(error),
+            state_at_disconnect=safe_snapshot(
+                lambda: state_summary(character, fight, fight_messages)
+            ),
+            native_action_id=None
+            if fight_messages is None
+            else fight_messages.native_action_id,
+            logical_action_id=None
+            if fight_messages is None
+            else fight_messages.action_id,
         )
+        if active_request is not None:
+            active_request.finish(
+                status="invalid_request"
+                if isinstance(error, ValueError)
+                else "disconnected"
+            )
+            active_request = None
     except Exception as error:
-        record(event="unexpected_request_exception", service=service,
-               connection_id=connection_trace_id,
-               exception_type=type(error).__name__, traceback=exception_frames(error),
-               state_at_failure=safe_snapshot(lambda: state_summary(character, fight, fight_messages)))
+        record(
+            event="unexpected_request_exception",
+            service=service,
+            connection_id=connection_trace_id,
+            exception_type=type(error).__name__,
+            reason=redact(str(error)),
+            traceback=exception_frames(error),
+            state_at_failure=safe_snapshot(
+                lambda: state_summary(character, fight, fight_messages)
+            ),
+        )
         if active_request is not None:
             active_request.finish(status="unexpected_error")
             active_request = None
@@ -3015,11 +3564,18 @@ def respawn_monsters():
 
 def main():
     if COMBAT_TEST:
+        from wakfu_server.combat_module_loading import preload_combat_modules
         from wakfu_server.combat_server_spell import prewarm_runtime_catalogs
+
         started = time.monotonic()
+        module_info = preload_combat_modules()
         static_info = prewarm_runtime_catalogs()
-        record(event="combat_catalogs_ready", elapsed_ms=round(
-            (time.monotonic() - started) * 1000, 3), **static_info)
+        record(
+            event="combat_catalogs_ready",
+            elapsed_ms=round((time.monotonic() - started) * 1000, 3),
+            **static_info,
+            **module_info,
+        )
     record(
         event="position_backend_ready",
         backend="redis" if POSITION_RECOVERY is not None else "memory",

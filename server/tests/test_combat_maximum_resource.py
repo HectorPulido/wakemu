@@ -55,6 +55,30 @@ class MaximumResourceTests(unittest.TestCase):
             self.invocation,
         )
 
+    def test_native_hp_maximum_and_current_restore_without_cap_metadata(self):
+        actor = self.actor
+        for name, value in (
+            ("effect_stats", 60),
+            ("effect_maxima", 60),
+            ("effect_base_maxima", 60),
+            ("effect_minima", 0),
+            ("effect_base_minima", 0),
+            ("effect_percentages", 0),
+        ):
+            getattr(actor, name)[1] = value
+        self.handler(
+            dict(effect_class=20, parameters=[25.0, 0.0, 1.0, 0.0, 1.0, 0.0]),
+            [],
+            self.invocation,
+        )
+        self.assertEqual((actor.hp, actor.max_hp), (85, 85))
+        self.assertEqual((actor.effect_stats[1], actor.effect_maxima[1]), (85, 85))
+        from wakfu_server.combat_maximum_resource import remove_maximum_resource
+
+        remove_maximum_resource(self.handler, 101)
+        self.assertEqual((actor.hp, actor.max_hp), (60, 60))
+        self.assertEqual([p[0] for p in self.packets], [13497, 13560])
+
     def test_mp_boost_and_expiration(self):
         self.assertTrue(self.apply())
         self.assertEqual((self.actor.mp, self.actor.max_mp), (4, 4))

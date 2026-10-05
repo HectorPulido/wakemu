@@ -4,6 +4,7 @@ Existing stat/carrier ownership proves those entries only. The caller must
 supply native iteration order and attest the full retained-effect population;
 this module never infers completeness from the currently implemented families.
 """
+from .combat_state_managers import state_manager, state_managers
 from dataclasses import dataclass
 from .combat_effect_removal import _identity_fields, running_effect_removal
 
@@ -11,7 +12,7 @@ from .combat_effect_removal import _identity_fields, running_effect_removal
 @dataclass(frozen=True)
 class RetainedEffect:
     uid: int
-    target_id: int
+    target_id: int | None
     effect_class: int
     generic_effect: int
     owner_uid: int | None = None
@@ -20,6 +21,8 @@ class RetainedEffect:
     definition_dispellable: bool | None = None
     container_present: bool | None = None
     container_type: int | None = None
+    container_id: int | None = None
+    container_kind: str | None = None
     container_is_spell: bool | None = None
     spell_protected: bool | None = None
     state_unremovable: bool | None = None
@@ -81,7 +84,10 @@ class NativeRetainedEffectView:
             if entry.uid in self.by_uid:
                 raise ValueError("Duplicate native retained effect UID")
             if (
-                entry.target_id not in fight.actors
+                (
+                    entry.target_id is not None
+                    and state_manager(fight, entry.target_id) is None
+                )
                 or type(entry.effect_class) is not int
                 or entry.effect_class <= 0
             ):
@@ -91,6 +97,9 @@ class NativeRetainedEffectView:
             ):
                 raise ValueError("Invalid native retained generic definition ID")
             self.by_uid[entry.uid] = entry
+        from .combat_pending_state import pending_state_uids
+
+        pending = pending_state_uids(fight)
         known = {}
         for uid, row in fight.owned_stat_effects.items():
             fields = _identity_fields(bytes.fromhex(row["payload"]))
@@ -101,8 +110,10 @@ class NativeRetainedEffectView:
                 generic,
                 row.get("state_uid"),
             )
-        for actor in fight.actors.values():
+        for actor in state_managers(fight):
             for state in actor.state_ledger.entries:
+                if state.uid in pending:
+                    continue  # Actual eZk iterator precedes its Qf registration.
                 payload = fight.state_wire_payloads.get(state.uid)
                 if payload is None:
                     raise ValueError("Missing native carrier wire ownership")
@@ -113,13 +124,39 @@ class NativeRetainedEffectView:
                 known[state.uid] = (actor.id, 310, generic, None)
         for uid, row in getattr(fight, "native_owned_group_effects", {}).items():
             fields = _identity_fields(bytes.fromhex(row["payload"]))
+            if row["target_id"] is None:
+                from .combat_subscription_runners import GROUP_SUBSCRIPTION_FAMILIES
+
+                entry = self.by_uid.get(uid)
+                caster = fields.get(6)
+                if caster is not None and caster >= (1 << 63):
+                    caster -= 1 << 64
+                if (
+                    entry is None
+                    or row["effect_class"] not in GROUP_SUBSCRIPTION_FAMILIES
+                    or 7 in fields
+                    or caster not in fight.actors
+                    or entry.manager_id != caster
+                ):
+                    raise ValueError("Unverified native cell group manager")
             known[uid] = (
                 row["target_id"],
                 row["effect_class"],
                 fields.get(3),
                 row.get("state_uid"),
             )
-        if set(fight.state_wire_payloads) - set(known):
+        for uid, row in getattr(fight, "native_owned_area_effects", {}).items():
+            fields = _identity_fields(bytes.fromhex(row["payload"]))
+            entry = self.by_uid.get(uid)
+            if (
+                entry is None
+                or entry.manager_id != row["caster_id"]
+                or fields.get(6) != row["caster_id"] & ((1 << 64) - 1)
+                or 7 in fields
+            ):
+                raise ValueError("Unverified native area effect manager")
+            known[uid] = (None, 315, fields.get(3), row.get("state_uid"))
+        if set(fight.state_wire_payloads) - set(known) - pending:
             raise ValueError("Orphan native state payload")
         for uid, identity in known.items():
             entry = self.by_uid.get(uid)
@@ -137,10 +174,24 @@ class NativeRetainedEffectView:
                     "Native retained metadata disagrees with owned identity"
                 )
         for entry in self.entries:
-            if entry.owner_uid is not None and entry.owner_uid not in self.by_uid:
-                raise ValueError(
-                    "Native retained child owner missing from complete view"
-                )
+            if (
+                entry.target_id is None
+                and entry.uid not in getattr(fight, "native_owned_group_effects", {})
+                and entry.uid not in getattr(fight, "native_owned_area_effects", {})
+            ):
+                raise ValueError("Target-less retained entry lacks owned cell group")
+            if (
+                entry.owner_uid is not None
+                and entry.owner_uid not in self.by_uid
+                and entry.owner_uid not in pending
+            ):
+                from .combat_native_container import owned_state_container
+
+                owner = owned_state_container(fight, entry.owner_uid)
+                if entry.container_present is not True or entry.container_type != 1:
+                    raise ValueError(
+                        "Native retained child owner lacks actual PL authority"
+                    )
         self.known = known
 
 
@@ -179,6 +230,16 @@ class NativeRetainedRemoval:
             if entry is None:
                 raise ValueError("Missing owned native removal identity")
             active.add(uid)
+            if entry.effect_class == 802:
+                from .combat_movement_link import movement_link_removal_dependencies
+
+                for dependent in movement_link_removal_dependencies(
+                    self.fight, entry, self.view.entries
+                ):
+                    # Counter-manager PL removal can meet the original active
+                    # removal again; ownership cycles below still reject.
+                    if dependent not in active:
+                        visit(dependent)
             for child in self.view.entries:
                 if child.owner_uid == uid:
                     visit(child.uid)
@@ -210,7 +271,9 @@ class NativeRetainedRemoval:
         return plan
 
 
-def register_owned_removals(removal, *, stat_handler, packets, action_id):
+def register_owned_removals(
+    removal, *, stat_handler, packets, action_id, area_events=None
+):
     """Wire existing stat reversal and carrier cleanup to the same preview.
 
     Children are removed by the generic ownership plan, including families
@@ -255,9 +318,51 @@ def register_owned_removals(removal, *, stat_handler, packets, action_id):
             validate=validate,
         )
 
+    def area_validate(entry):
+        row = fight.native_owned_area_effects[entry.uid]
+        from .combat_effect_area import remove_owned_hour_area
+
+        area = getattr(fight, "native_effect_areas", {}).get(row["area_uid"])
+        if (
+            area is not None
+            and area.get("native_hour_contract") is not True
+            and area.get("native_area_contract") != "faY"
+        ):
+            raise ValueError("Unaudited area removal callbacks")
+        return running_effect_removal(
+            fight.id,
+            action_id,
+            effect_class=315,
+            target_id=row["caster_id"],
+            uid=entry.uid,
+            running_effect_payload=bytes.fromhex(row["payload"]),
+        )
+
+    def area_remove(uid):
+        row = fight.native_owned_area_effects[uid]
+        payload = area_validate(removal.view.by_uid[uid])
+        if row["executed"] and not row["keep_after"]:
+            from .combat_effect_area import remove_owned_hour_area
+
+            row["removing"] = True
+            try:
+                remove_owned_hour_area(fight, row["area_uid"], callbacks=area_events)
+            finally:
+                row.pop("removing", None)
+        del fight.native_owned_area_effects[uid]
+        packets.append((13560, payload))
+
+    if getattr(fight, "native_owned_area_effects", {}):
+        removal.register(
+            315,
+            exists=lambda uid: uid in fight.native_owned_area_effects,
+            remove=area_remove,
+            validate=area_validate,
+        )
+
     def carrier_exists(uid):
         return uid in fight.state_wire_payloads and any(
-            e.uid == uid for a in fight.actors.values() for e in a.state_ledger.entries
+            e.uid == uid for a in state_managers(fight) for e in a.state_ledger.entries
         )
 
     def carrier_remove(uid):
@@ -270,7 +375,7 @@ def register_owned_removals(removal, *, stat_handler, packets, action_id):
             uid=uid,
             running_effect_payload=bytes.fromhex(fight.state_wire_payloads[uid]),
         )
-        if fight.actors[entry.target_id].state_ledger.remove(uid) is None:
+        if state_manager(fight, entry.target_id).state_ledger.remove(uid) is None:
             raise ValueError("Missing owned native carrier")
         del fight.state_wire_payloads[uid]
         packets.append((13560, packet))

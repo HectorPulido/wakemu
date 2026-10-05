@@ -130,11 +130,21 @@ def validate_group_registration_flags(flags, *, active):
     """Flags1 affects eZX event selection only;17 requires native fight mode.
 
     Jar-wide reference audit finds eVl.rwy consumed only by eZX, outside
-    registration/execution arithmetic. Unknown flags remain rejected.
+    registration/execution arithmetic. Flags14/26 are handled by the native
+    target ordering resolver before execution; single-target event clones have
+    no target list to reorder. Flag3 is consumed only by aJs zone preview,
+    with no execution arithmetic/event effect. Flag15 is the KO bypass in eZR.bcd; eYg overrides bcd to true
+    regardless of that flag, so it changes no group arithmetic. Actor KO
+    eligibility still needs authoritative runtime support. Unknown flags remain rejected.
+    Flag5 is eZR.aZB source level-one event suppression, already preserved
+    by Ordinary*Events and the shared eZX replay guard; it does not block
+    group arithmetic or child execution.
+    Flag16 is executed by the shared child-level/eVt transmission contract;
+    registration preserves it for that later execution step.
     """
     if type(active) is not bool or any(type(x) is not int for x in flags):
         raise ValueError("Explicit native group flags/combat context required")
-    unknown = set(flags) - {1, 17}
+    unknown = set(flags) - {1, 3, 5, 14, 15, 16, 17, 26}
     if unknown:
         raise ValueError(f"Unaudited native group execution flags: {sorted(unknown)}")
     if not active:

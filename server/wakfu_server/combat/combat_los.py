@@ -53,6 +53,10 @@ def _resolve(map_id, source, target):
 
 
 def static_visible(map_id, source, target):
+    if (DATA_ROOT / "native-los-topology" / f"{map_id}.json.gz").is_file():
+        from .combat_native_los_ray import static_ray
+
+        return static_ray(map_id, tuple(source), tuple(target))[0]
     catalog, pair = _resolve(map_id, source, target)
     return pair in catalog["visible"]
 
@@ -63,20 +67,60 @@ def authoritative_visible(map_id, source, target, fight, *, blocking_footprints)
     Every living actor needs a footprint; empty explicitly means nonblocking.
     Original endpoint handling is encoded in native probes, never guessed.
     """
-    catalog, pair = _resolve(map_id, source, target)
-    if pair not in catalog["visible"]:
-        return False
     alive = {a.id for a in fight.actors.values() if a.hp > 0}
     if set(blocking_footprints) != alive:
         raise ValueError("LOS requires explicit footprints of every living actor")
-    probes = catalog["probes"][pair]
     permitted = {(cell[0], cell[1]) for cell in fight.walkable}
-    if not probes <= permitted:
-        return False
     blocked = set()
-    for cells in blocking_footprints.values():
+    ignored = getattr(fight, "native_los_ignored_affiliations", frozenset())
+    if not isinstance(ignored, frozenset) or any(
+        type(v) is not int or not -128 <= v <= 127 for v in ignored
+    ):
+        raise ValueError("Invalid native QI ignored affiliations")
+    for identity, cells in blocking_footprints.items():
+        if fight.actors[identity].native_obstacle_id in ignored:
+            continue
         for cell in cells:
             if len(cell) != 2 or any(type(n) is not int for n in cell):
                 raise ValueError("Invalid blocking footprint")
             blocked.add(tuple(cell))
-    return not bool(probes & blocked)
+    if (DATA_ROOT / "native-los-topology" / f"{map_id}.json.gz").is_file():
+        from .combat_native_los_ray import cast_rays
+
+        sources = [
+            actor
+            for actor in fight.actors.values()
+            if actor.hp > 0 and tuple(actor.position) == tuple(source)
+        ]
+        targets = [
+            actor
+            for actor in fight.actors.values()
+            if actor.hp > 0 and tuple(actor.position) == tuple(target)
+        ]
+        if len(sources) != 1 or len(targets) > 1:
+            raise ValueError(
+                "Native cast LOS requires unique source/target actor context"
+            )
+        source_height = getattr(sources[0], "native_los_height", None)
+        # fcr null target uses offset6; signed height0 also produces max(6,0).
+        target_height = (
+            0 if not targets else getattr(targets[0], "native_los_height", None)
+        )
+        rays = cast_rays(
+            map_id,
+            tuple(source),
+            tuple(target),
+            source_height=source_height,
+            target_height=target_height,
+        )
+        return any(
+            visible and probes <= permitted and not probes & blocked
+            for visible, probes in rays
+        )
+    # Preserve existing exported ray evidence on maps whose complete Vz
+    # columns have not been exported; missing pairs continue to fail closed.
+    catalog, pair = _resolve(map_id, source, target)
+    if pair not in catalog["visible"]:
+        return False
+    probes = catalog["probes"][pair]
+    return probes <= permitted and not bool(probes & blocked)

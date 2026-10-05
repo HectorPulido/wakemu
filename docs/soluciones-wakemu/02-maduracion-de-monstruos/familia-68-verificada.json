@@ -1,0 +1,64 @@
+{
+  "family_id": 68,
+  "source": "server/protocol/monsters.json",
+  "members": [
+    {
+      "ref": 2,
+      "name": "Jalatín negro",
+      "family_id": 68,
+      "min_level": 4,
+      "max_level": 8
+    },
+    {
+      "ref": 39,
+      "name": "Jalatín blanco",
+      "family_id": 68,
+      "min_level": 4,
+      "max_level": 8
+    },
+    {
+      "ref": 1,
+      "name": "Jalató",
+      "family_id": 68,
+      "min_level": 8,
+      "max_level": 12
+    },
+    {
+      "ref": 41,
+      "name": "Jalalínea",
+      "family_id": 68,
+      "min_level": 10,
+      "max_level": 14
+    },
+    {
+      "ref": 3,
+      "name": "Jefe de guerra jalató",
+      "family_id": 68,
+      "min_level": 14,
+      "max_level": 18
+    },
+    {
+      "ref": 4085,
+      "name": "Jalató dominante",
+      "family_id": 68,
+      "min_level": 18,
+      "max_level": 23
+    },
+    {
+      "ref": 44,
+      "name": "Jalató Real",
+      "family_id": 68,
+      "min_level": 23,
+      "max_level": 28
+    },
+    {
+      "ref": 4086,
+      "name": "Jalabujero el Abandonado",
+      "family_id": 68,
+      "min_level": 23,
+      "max_level": 28
+    }
+  ],
+  "is_boss_present": false,
+  "warning": "El nombre y el nivel no sustituyen una clasificación autoritativa de jefes."
+}

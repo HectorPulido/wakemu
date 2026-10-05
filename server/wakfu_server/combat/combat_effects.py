@@ -4,6 +4,7 @@ The caller supplies authoritative post-mitigation damage; selecting conditional
 spell effect branches and computing mitigation belongs to the combat engine.
 """
 import struct
+from .combat_damage_healing import DAMAGE_FAMILIES
 
 # Native bdata group children, normal variants. This is identification, not a
 # blanket promise that each conditional branch applies to every cast.
@@ -48,7 +49,7 @@ def direct_damage(
         base_uid = uid
     if type(base_uid) is not int or not 0 <= base_uid < (1 << 63):
         raise ValueError("Invalid native damage base UID")
-    if element not in range(1, 6):
+    if element not in DAMAGE_FAMILIES:
         raise ValueError("Unknown native damage element")
     if (
         type(damage) is not int

@@ -21,5 +21,9 @@ def create(store, account_id, generation, body):
             "Nombre: 3–24 letras, espacios o guiones.": 103,
             "Máximo cinco personajes por cuenta.": 104,
         }.get(str(error), 101)
+        if str(error).startswith("Máximo ") and str(error).endswith(
+            " personajes por cuenta."
+        ):
+            status = 104
         return status, None
     return 0, character

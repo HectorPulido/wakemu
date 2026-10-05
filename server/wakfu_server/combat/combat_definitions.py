@@ -3,8 +3,8 @@ from .combat_parameters import parameter_value, _float32
 
 
 def effect_profile(definition, level):
-    if type(level) is not int or not 0 <= level <= 32767:
-        raise ValueError("Invalid effect level")
+    if type(level) is not int or not -32768 <= level <= 32767:
+        raise ValueError("Effect level must be a native signed short")
     return dict(
         parameters=[
             parameter_value(definition["parameters"], index, level)

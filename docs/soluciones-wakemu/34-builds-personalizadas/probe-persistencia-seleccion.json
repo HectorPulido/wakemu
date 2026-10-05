@@ -1,0 +1,18 @@
+{
+  "scope": "Fresh isolated SQLite schema; source inspection for Redis journal",
+  "characters_has_active_build_index": false,
+  "character_build_columns": [
+    "character_id",
+    "build_index",
+    "sheet",
+    "equipment",
+    "deck",
+    "aptitudes"
+  ],
+  "selection_handler_13776_present": false,
+  "journal_flush_has_build_delete_sql": false,
+  "hashes": {
+    "server/wakfu_server/storage/store.py": "0fc7584c5ecc51cf0e11f843a671ded53aba1ed9fd8674a01312137b43c157c2",
+    "server/wakfu_server/storage/build_journal.py": "345f0d271da99387165e049bea25fd4521d2e241bddf08cfb05bfb92a848116b"
+  }
+}

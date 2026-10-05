@@ -1,0 +1,63 @@
+{
+  "observed_at": "2026-10-04T22:44:06.393540+00:00",
+  "server_api": "http://127.0.0.1:18091",
+  "sessions": [
+    {
+      "character_id": 1,
+      "name": "Audit Builds",
+      "account_id": 1
+    },
+    {
+      "character_id": 2,
+      "name": "Audit Multi Dos",
+      "account_id": 2
+    }
+  ],
+  "second_account_prepared": true,
+  "second_character_id": 2,
+  "second_profile": "audit-multi-dos-isolated-20261004",
+  "second_client_inspector_port": 65380,
+  "second_world_entry_verified": true,
+  "multiplayer_interactions_executed": false,
+  "prepared_map": 879,
+  "requested_positions": {
+    "Audit Builds": [
+      -3,
+      0,
+      0
+    ],
+    "Audit Multi Dos": [
+      -4,
+      0,
+      0
+    ]
+  },
+  "first_reposition_status_at_observation": "persisted",
+  "second_level_saved": 100,
+  "second_level_full_client_refresh_verified": false,
+  "database_observed_at": "2026-10-04T22:52:19.187097+00:00",
+  "database_characters": [
+    {
+      "id": 1,
+      "name": "Audit Builds",
+      "level": 100,
+      "map_id": 879,
+      "instance_id": 0,
+      "x": -3,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "id": 2,
+      "name": "Audit Multi Dos",
+      "level": 100,
+      "map_id": 879,
+      "instance_id": 0,
+      "x": -4,
+      "y": 0,
+      "z": 0
+    }
+  ],
+  "second_gui_world_entry_verified_by_luna": true,
+  "second_gui_initial_level": 1
+}

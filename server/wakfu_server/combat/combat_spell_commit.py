@@ -4,23 +4,38 @@ Call on the owning session thread. No network sends occur here; caller sends
 returned packets and handles death/results after accepting the new fight.
 """
 import struct
+import time
 from .combat_spell_transaction import SpellTransaction
 from .combat_wire import actor_state
-from .fight_checkpoint_store import snapshot
+from .combat_geometry_snapshot import source_snapshot
 
 
-def commit_spell_transaction(runtime, transaction, *, stats_serializer):
+def commit_spell_transaction(
+    runtime, transaction, *, stats_serializer, diagnostic=None
+):
+    def stage(name, started, **details):
+        if diagnostic is not None:
+            diagnostic(
+                phase=name,
+                elapsed_ms=round((time.monotonic() - started) * 1000, 3),
+                fight_id=runtime.fight.id,
+                action_id=transaction.action_id,
+                **details
+            )
+
     if not isinstance(transaction, SpellTransaction) or not callable(stats_serializer):
         raise ValueError("Missing prepared spell transaction or serializer")
     if runtime.awaiting_ack is not None or runtime.pending:
         raise ValueError("Previous combat action is not synchronized")
     if transaction.action_id != runtime.action_id + 1:
         raise ValueError("Prepared spell action sequence is stale")
+    started = time.monotonic()
     if (
         transaction.fight.id != runtime.fight.id
-        or snapshot(runtime.fight) != transaction.source_state
+        or source_snapshot(runtime.fight) != transaction.source_state
     ):
         raise ValueError("Combat changed after preparing the spell")
+    stage("validate_source", started)
     expected = struct.pack(">iii", runtime.fight.id, transaction.action_id, -1)
     for opcode, payload in transaction.packets:
         if not isinstance(payload, bytes) or payload[:12] != expected:
@@ -28,14 +43,19 @@ def commit_spell_transaction(runtime, transaction, *, stats_serializer):
     packets = list(transaction.packets)
     packets.append(runtime._flush())
     for actor in transaction.fight.actors.values():
+        started = time.monotonic()
         stats = stats_serializer(actor, transaction.fight)
+        stage("serialize_actor", started, actor_id=actor.id)
         packets.append(
             (12873, actor_state(12873, transaction.fight.id, actor.id, stats))
         )
     packets.append(runtime._flush())
     # Serialization callbacks cannot invalidate the original source silently.
-    if snapshot(runtime.fight) != transaction.source_state:
+    started = time.monotonic()
+    if source_snapshot(runtime.fight) != transaction.source_state:
         raise ValueError("Combat changed while serializing the spell")
+    stage("revalidate_source", started)
+    delivery = runtime.prepare_delivery(packets)
     runtime.fight = transaction.fight
     runtime.action_id = transaction.action_id
-    return tuple(packets)
+    return delivery

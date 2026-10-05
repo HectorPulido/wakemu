@@ -1,0 +1,31 @@
+{
+  "native_classes": [
+    "so",
+    "sq",
+    "yv",
+    "yw",
+    "yu"
+  ],
+  "encoded_bytes": 30,
+  "bar_type": 0,
+  "bars": [
+    {
+      "number": 0,
+      "entries": 0
+    },
+    {
+      "number": 1,
+      "entries": 0
+    },
+    {
+      "number": 2,
+      "entries": 1,
+      "slot": 3,
+      "shortcut_type": 1,
+      "reference": 4275
+    }
+  ],
+  "roundtrip_passed": true,
+  "empty_0000_decodes_zero_bars": true,
+  "scope": "Offline native codecs; no entity integration, GUI, or real assignment."
+}

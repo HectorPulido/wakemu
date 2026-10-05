@@ -1,0 +1,28 @@
+{
+  "scope": "Native creation acknowledgement decoder offline; no server creation",
+  "opcode": 1000,
+  "class": "OK",
+  "body": "signed i8 UTF8 byte count + UTF8 guild name",
+  "executed_results": [
+    {
+      "name": "Audit Guild",
+      "body_bytes": 12,
+      "decoded": true
+    },
+    {
+      "name": "Audit ñ",
+      "body_bytes": 9,
+      "decoded": true
+    },
+    {
+      "prefix_byte": 128,
+      "exception": "NegativeArraySizeException"
+    }
+  ],
+  "consumer": "chs1000 shows notification.guildCreateText and closes dbA creation controller; does not hydrate guild object in this branch",
+  "source_sha256": "41cfa3b377d07f5dcd8dedd6146167b9c318bc2c647aecc049599116b3e78ee5",
+  "limits": [
+    "No guild ID, members, ranks, permissions or durability in this acknowledgement",
+    "Shared group messages1030/1184/1057/1072/1049/1199 need type-specific tracing; presence in chs does not make all guild-specific"
+  ]
+}

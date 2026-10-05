@@ -27,6 +27,11 @@ def base_resources(character):
     return dict(values)
 
 
+def playable_breeds():
+    """Exact native player classes, excluding the nonplayable SOUL enum."""
+    return frozenset(_catalog())
+
+
 def live_wp(fight, actor_id):
     actor = fight.actors[actor_id]
     if actor.effect_stats is None or actor.effect_maxima is None:

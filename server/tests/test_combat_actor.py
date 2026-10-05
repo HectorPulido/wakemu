@@ -56,6 +56,7 @@ class CombatActorTests(unittest.TestCase):
             max_mp=3,
             initiative=0,
             team=0,
+            native_obstacle_id=0,
             position=(-11, -8, -1),
         )
         b = actual_actor_stats(self.character(), actor, 123, wp_current=4, wp_maximum=6)
@@ -85,6 +86,7 @@ class CombatActorTests(unittest.TestCase):
             max_mp=3,
             initiative=0,
             team=1,
+            native_obstacle_id=1,
             position=(2, 0, 0),
         )
         b = actual_monster_actor_stats(monster, actor, 123, wp_current=0, wp_maximum=6)

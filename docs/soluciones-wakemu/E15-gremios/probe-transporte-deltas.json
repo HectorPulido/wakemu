@@ -1,0 +1,37 @@
+{
+  "opcode": 15367,
+  "class": "cDh",
+  "body": "i64 guild_id + i32 count + repeated(i32 payload_length + i8 kind + payload)",
+  "delta_kinds": {
+    "0": "ADD_MEMBER",
+    "1": "REMOVE_MEMBER",
+    "2": "MODIFY_MEMBER",
+    "3": "ADD_BONUS",
+    "4": "REMOVE_BONUS",
+    "5": "MODIFY_BONUS",
+    "6": "ADD_RANK",
+    "7": "REMOVE_RANK",
+    "8": "MODIFY_RANK",
+    "9": "MOVE_RANK",
+    "10": "GUILD_POINTS",
+    "11": "GUILD_LEVEL",
+    "12": "DESCRIPTION",
+    "13": "MESSAGE",
+    "14": "NAME",
+    "15": "BLAZON"
+  },
+  "executed_fixture": {
+    "guild": 456,
+    "member_removed": 999,
+    "kind": 1,
+    "body_bytes": 25,
+    "native_decode": true
+  },
+  "consumer": "clo selects loaded fhV models whose Sn equals message Ya; applies ordered deltas via bwU/fhl.a",
+  "limits": [
+    "Loaded matching model is prerequisite; deltas cannot initialize missing guild state",
+    "No native revision/sequence field in this envelope; server must manage version/order without inserting unsupported bytes",
+    "No real member removed; offline transport decode only"
+  ],
+  "source_sha256": "950c2bd973ae7e660b40d9eec6ea01103e89c72a01bed5c6aad05187958409f9"
+}

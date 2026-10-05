@@ -14,7 +14,7 @@ from .combat_stat_effects import owned_effect_payload, owned_effect_application
 from .combat_effects import _integer, _varint
 from .combat_effect_removal import running_effect_removal
 
-FAMILIES = {31: (2, 16), 41: (3, 8), 191: (4, None)}
+FAMILIES = {20: (1, None), 31: (2, 16), 41: (3, 8), 191: (4, None)}
 
 
 def _int32(value):
@@ -72,9 +72,9 @@ def _write(actor, stat, current, raw, maximum):
     actor.effect_stats[stat] = current
     actor.effect_maxima[stat] = maximum
     actor.effect_base_maxima[stat] = raw
-    if stat in (2, 3):
-        setattr(actor, {2: "ap", 3: "mp"}[stat], current)
-        setattr(actor, {2: "max_ap", 3: "max_mp"}[stat], maximum)
+    if stat in (1, 2, 3):
+        setattr(actor, {1: "hp", 2: "ap", 3: "mp"}[stat], current)
+        setattr(actor, {1: "max_hp", 2: "max_ap", 3: "max_mp"}[stat], maximum)
 
 
 class NativeMaximumResourceHandler:
@@ -123,7 +123,7 @@ class NativeMaximumResourceHandler:
             actor, stat
         )
         flags = effect.get("native_effect_flags")
-        if not isinstance(flags, list):
+        if cap is not None and not isinstance(flags, (list, tuple)):
             raise ValueError("Missing native maximum effect flags")
         if cap is not None and 17 not in flags:
             amount = min(_int32(cap - raw), amount)

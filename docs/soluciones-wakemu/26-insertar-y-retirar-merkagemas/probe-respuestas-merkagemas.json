@@ -1,0 +1,34 @@
+{
+  "scope": "Executed native parsers on synthetic bodies, not UI or inventory mutation",
+  "cases": [
+    {
+      "opcode": 12234,
+      "body_hex": "000000000000303902",
+      "parsed": {
+        "uid": 12345,
+        "room": 2
+      }
+    },
+    {
+      "opcode": 12451,
+      "body_hex": "0000000000010932040201",
+      "parsed": {
+        "destination": 67890,
+        "slot": 4,
+        "room": 2,
+        "selector": true
+      }
+    },
+    {
+      "opcode": 13565,
+      "body_hex": "01000203",
+      "parsed": {
+        "primary_source": true,
+        "primary_target": false,
+        "source": 2,
+        "target": 3
+      }
+    }
+  ],
+  "empty_body_all": "BufferUnderflowException"
+}

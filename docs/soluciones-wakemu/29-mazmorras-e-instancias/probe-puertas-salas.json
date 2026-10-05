@@ -1,0 +1,599 @@
+{
+  "scope": "Lectura de catálogo nativo exportado y código; no recorrido GUI ni composición acreditada",
+  "source": "server/protocol/native-generic-teleporters.json",
+  "sha256": "1a2dfe4af93aff64032fca2ef6a36ad3d086f9fb17d0ed9729665fb5d73ba345",
+  "doors": [
+    {
+      "map_id": 1086,
+      "id": 26843,
+      "definition_id": 2268,
+      "x": 4.0,
+      "y": -11.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2505,
+          "map_id": 527,
+          "x": -245,
+          "y": -89,
+          "z": 0,
+          "direction": 3,
+          "criterion": "",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 1086,
+      "id": 26845,
+      "definition_id": 2269,
+      "x": 0.0,
+      "y": -27.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2506,
+          "map_id": 1086,
+          "x": 152,
+          "y": -10,
+          "z": 0,
+          "direction": 7,
+          "criterion": "not IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        },
+        {
+          "destination_id": 4761,
+          "map_id": 1459,
+          "x": 170,
+          "y": 8,
+          "z": 0,
+          "direction": 7,
+          "criterion": "IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 1086,
+      "id": 26849,
+      "definition_id": 2272,
+      "x": 152.0,
+      "y": -9.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2509,
+          "map_id": 1086,
+          "x": 0,
+          "y": -26,
+          "z": 0,
+          "direction": 3,
+          "criterion": "not IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        },
+        {
+          "destination_id": 4760,
+          "map_id": 1459,
+          "x": 36,
+          "y": -8,
+          "z": 0,
+          "direction": 3,
+          "criterion": "IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 1086,
+      "id": 26844,
+      "definition_id": 2268,
+      "x": 148.0,
+      "y": -167.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2505,
+          "map_id": 527,
+          "x": -245,
+          "y": -89,
+          "z": 0,
+          "direction": 3,
+          "criterion": "",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 1086,
+      "id": 26850,
+      "definition_id": 2273,
+      "x": 150.0,
+      "y": -26.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2510,
+          "map_id": 1086,
+          "x": 151,
+          "y": -149,
+          "z": 0,
+          "direction": 7,
+          "criterion": "not IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        },
+        {
+          "destination_id": 4763,
+          "map_id": 1459,
+          "x": 169,
+          "y": -113,
+          "z": 0,
+          "direction": 7,
+          "criterion": "IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 1086,
+      "id": 26853,
+      "definition_id": 2274,
+      "x": 151.0,
+      "y": -148.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2511,
+          "map_id": 1086,
+          "x": 150,
+          "y": -25,
+          "z": 0,
+          "direction": 3,
+          "criterion": "not IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        },
+        {
+          "destination_id": 4762,
+          "map_id": 1459,
+          "x": 168,
+          "y": -7,
+          "z": 0,
+          "direction": 3,
+          "criterion": "IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 1459,
+      "id": 35279,
+      "definition_id": 2269,
+      "x": 36.0,
+      "y": -9.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2506,
+          "map_id": 1086,
+          "x": 152,
+          "y": -10,
+          "z": 0,
+          "direction": 7,
+          "criterion": "not IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        },
+        {
+          "destination_id": 4761,
+          "map_id": 1459,
+          "x": 170,
+          "y": 8,
+          "z": 0,
+          "direction": 7,
+          "criterion": "IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 1459,
+      "id": 35278,
+      "definition_id": 2268,
+      "x": 40.0,
+      "y": 7.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2505,
+          "map_id": 527,
+          "x": -245,
+          "y": -89,
+          "z": 0,
+          "direction": 3,
+          "criterion": "",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 1459,
+      "id": 35281,
+      "definition_id": 2273,
+      "x": 168.0,
+      "y": -8.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2510,
+          "map_id": 1086,
+          "x": 151,
+          "y": -149,
+          "z": 0,
+          "direction": 7,
+          "criterion": "not IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        },
+        {
+          "destination_id": 4763,
+          "map_id": 1459,
+          "x": 169,
+          "y": -113,
+          "z": 0,
+          "direction": 7,
+          "criterion": "IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 1459,
+      "id": 35282,
+      "definition_id": 2274,
+      "x": 169.0,
+      "y": -112.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2511,
+          "map_id": 1086,
+          "x": 150,
+          "y": -25,
+          "z": 0,
+          "direction": 3,
+          "criterion": "not IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        },
+        {
+          "destination_id": 4762,
+          "map_id": 1459,
+          "x": 168,
+          "y": -7,
+          "z": 0,
+          "direction": 3,
+          "criterion": "IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 1459,
+      "id": 35283,
+      "definition_id": 2268,
+      "x": 166.0,
+      "y": -131.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2505,
+          "map_id": 527,
+          "x": -245,
+          "y": -89,
+          "z": 0,
+          "direction": 3,
+          "criterion": "",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 1459,
+      "id": 35280,
+      "definition_id": 2272,
+      "x": 170.0,
+      "y": 9.0,
+      "z": 0.0,
+      "destinations": [
+        {
+          "destination_id": 2509,
+          "map_id": 1086,
+          "x": 0,
+          "y": -26,
+          "z": 0,
+          "direction": 3,
+          "criterion": "not IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        },
+        {
+          "destination_id": 4760,
+          "map_id": 1459,
+          "x": 36,
+          "y": -8,
+          "z": 0,
+          "direction": 3,
+          "criterion": "IsNeoServer()",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    },
+    {
+      "map_id": 527,
+      "id": 26842,
+      "definition_id": 2267,
+      "x": -245.0,
+      "y": -90.0,
+      "z": 2.0,
+      "destinations": [
+        {
+          "destination_id": 2504,
+          "map_id": 1086,
+          "x": 4,
+          "y": -12,
+          "z": 0,
+          "direction": 7,
+          "criterion": "not IsNeoServer()",
+          "display_reference": 324,
+          "cyZ": 91,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": false,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        },
+        {
+          "destination_id": 4759,
+          "map_id": 1459,
+          "x": 40,
+          "y": 6,
+          "z": 0,
+          "direction": 7,
+          "criterion": "IsNeoServer()",
+          "display_reference": 324,
+          "cyZ": 199,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": false,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ]
+    }
+  ]
+}

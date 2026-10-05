@@ -1,0 +1,11 @@
+Asignación nativa de características eYO — fuente y validación
+
+El exportador eVi reconoce todas las instancias exactas eYO del registro: familias16,950,951,952 para vida, PA, PM y PW. El manejador se selecciona por runner y fixed_stat_id exportados, sin ramas por hechizo o raza.
+
+Contrato eYO.C: cero parámetros copia el actual del caster durante aplicación; uno asigna valor; dos habilita asignación del máximo únicamente si el segundo es1; tres convierte valor en porcentaje del máximo efectivo del objetivo si el tercero es1. Producto Java int32, float32 y redondeo estocástico UP.bt con RNG transaccional. PA.or asigna máximo bruto acotado por mínimo bruto; PA.on acota actual contra mínimo y máximo efectivo (o tope duro si expandible). Se mantienen snapshots bruto/efectivo, porcentajes y bounds explícitos. Un snapshot ausente o congelado no acreditado permanece rechazado.
+
+AdditionalDatas: il.r→campo17 setMaximum; il.s→campo18 percent. Valor exterior conserva el valor calculado, no delta solicitado reinterpretado. Aplicación13497 y retirada13560 conservan UID, base, referencia, timing y ownership. eYO.bbR no revierte la asignación: retirada elimina únicamente el efecto poseído, sin restaurar antiguos recursos.
+
+Validación:3 pruebas unitarias incluyen límites, porcentaje, máximos, campos protobuf y retirada sin reversión. ProbeNativeForcedResource ejecuta setters reales fff/eYO y acredita clamps/retirada. Auditoría por entrada Ready real con evento inicial:25/25 casos Hupper originalmente bloqueados por952 ahora ready_started, fuente estable y original sin mutación25/25. Informe docs/reports/combat-inventory/ready-forced-characteristic-focal.json. Esto acredita inicialización de esos casos; no todas las acciones de clase ni gameplay completo.
+
+No se reiniciaron servicios ni se usó GUI. Se conservan rechazos de autoridad desconocida; no se inventan snapshots ni máximos.

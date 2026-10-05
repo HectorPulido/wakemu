@@ -1,0 +1,19 @@
+{
+  "scope": "Native parser executed; consumer switch inspected, no live notification",
+  "opcode": 349,
+  "class": "NE",
+  "cases": [
+    {
+      "body_hex": "0064",
+      "code": 100,
+      "parsed": true,
+      "localization": "error.chat.channelNotFound"
+    },
+    {
+      "body_hex": "008c",
+      "code": 140,
+      "parsed": true,
+      "localization": "error.chat.generalError"
+    }
+  ]
+}

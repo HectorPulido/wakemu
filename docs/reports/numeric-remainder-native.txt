@@ -1,0 +1,9 @@
+Resto numérico nativo — expresión413114
+
+La condición413114 aplica (GetFightCurrentTableTurn() % 2) para alternar estados según la vuelta global. El parser eQd crea alI para %. alI.bDl devuelve false, por lo que evaluaciones normales/comparaciones usan e(), que convierte operandos a double y ejecuta drem. Constantes se pliegan igualmente en alv double. No es módulo matemático Python: el resto conserva el signo del dividendo. Se implementa ast.Mod mediante math.fmod y se marca expresión no integral para composición de condicionales.
+
+ProbeNativeRemainder compara parser JAR con seis casos de signo/operandos fraccionarios y un condicional nativo, exit0 PASS. Dos pruebas Python pasan y25 condiciones previas pasan. Las pruebas utilizan agrupaciones explícitas propias de expresiones del catálogo. Permanece rechazo explícito divisor cero/nonfinite, para no afirmar soporte de esas semánticas aún no conectado.
+
+No se reiniciaron servicios ni se operó GUI.
+
+Focal Ready por entrada común:26 Eca alcanzan el hijo359840 familia341, cuyo manejador aún falta. La expresión413114 deja de rechazar. Rollback26/26; fuente estable. Informe docs/reports/combat-inventory/ready-eca-remainder-focal.json. Esto no acredita Ready completo.

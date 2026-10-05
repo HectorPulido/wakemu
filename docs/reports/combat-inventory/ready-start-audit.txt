@@ -1,0 +1,41 @@
+Auditoría de Ready con evento nativo de inicio y vida llena
+
+Casos: 464; entradas aceptadas: 328; rechazadas: 136.
+54 casos básicos:18 razas, niveles1/20/200. Otros410 casos prueban cada pasiva disponible individualmente en20/200.
+39 básicos aceptan el inicio;15 rechazan. Todas las464 peleas originales permanecen intactas.
+Hashes de fuentes/catálogos antes y después idénticos.
+
+Ruta: create_placement con geometría1134 -> snapshots propios -> prepare_ready -> prepare_server_initialization(fight_start=True).
+Vida al máximo, sin equipo ni aptitudes elegidas; deck de activos legales y una pasiva cuando corresponde.
+RNG controlada; actor NPC Wonejo propio. No sockets, GUI ni personajes reales.
+
+Bloqueos básicos:
+Raza 2, nivel 1: efecto 326935, familia 1001: Subscribed effect requires native event delivery
+Raza 2, nivel 20: efecto 326935, familia 1001: Subscribed effect requires native event delivery
+Raza 2, nivel 200: efecto 326935, familia 1001: Subscribed effect requires native event delivery
+Raza 6, nivel 1: efecto 359211, familia 649: Unsupported native numeric predicate: GetRealLevel
+Raza 6, nivel 20: efecto 359211, familia 649: Unsupported native numeric predicate: GetRealLevel
+Raza 6, nivel 200: efecto 359211, familia 649: Unsupported native numeric predicate: GetRealLevel
+Raza 7, nivel 1: efecto 367635, familia 649: Unsupported native numeric predicate: GetRealLevel
+Raza 7, nivel 20: efecto 367635, familia 649: Unsupported native numeric predicate: GetRealLevel
+Raza 7, nivel 200: efecto 367635, familia 649: Unsupported native numeric predicate: GetRealLevel
+Raza 14, nivel 1: efecto 164046, familia 1001: Subscribed effect requires native event delivery
+Raza 14, nivel 20: efecto 164046, familia 1001: Subscribed effect requires native event delivery
+Raza 14, nivel 200: efecto 164046, familia 1001: Subscribed effect requires native event delivery
+Raza 19, nivel 1: efecto 175863, familia 952: No handler for native effect class 952
+Raza 19, nivel 20: efecto 175863, familia 952: No handler for native effect class 952
+Raza 19, nivel 200: efecto 175863, familia 952: No handler for native effect class 952
+
+Familias/condiciones comunes por frecuencia:
+54 casos; familia 649: Unsupported native numeric predicate: GetRealLevel
+49 casos; familia 1001: Subscribed effect requires native event delivery
+25 casos; familia 952: No handler for native effect class 952
+3 casos; familia 330: Unsupported native predicate: IsChallenger
+2 casos; familia 330: unsupported operand type(s) for &=: 'NoneType' and 'int'
+2 casos; familia 41: Missing native maximum effect flags
+1 casos; familia 949: Subscribed effect requires native event delivery
+
+Interpretación: ready_started acredita que esta entrada retorna paquetes y conserva rollback; no demuestra soporte completo de la raza/pasiva.
+El JSON distingue cambios del actor, estados aplicados, registros suscritos, efectos sin resultado y condiciones que no se cumplen.
+Los rechazos preservan referencia, familia, nivel y cadena de ancestros del primer fallo; las condiciones falsas no se convierten en errores.
+Esta auditoría cubre vida llena; no todas las combinaciones de equipo, estados previos, daño, combate PvP ni vida herida.

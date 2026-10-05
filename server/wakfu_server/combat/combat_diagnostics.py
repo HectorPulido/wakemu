@@ -3,9 +3,23 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 
 _trace = ContextVar("combat_diagnostic_trace", default=None)
-_FIELDS = frozenset({"effect_reference", "effect_class", "level", "caster_id",
-    "target_id", "cell", "state_uid", "ancestors", "status", "reason",
-    "exception_type", "elapsed_ms", "criteria"})
+_FIELDS = frozenset(
+    {
+        "effect_reference",
+        "effect_class",
+        "level",
+        "caster_id",
+        "target_id",
+        "cell",
+        "state_uid",
+        "ancestors",
+        "status",
+        "reason",
+        "exception_type",
+        "elapsed_ms",
+        "criteria",
+    }
+)
 
 
 @contextmanager
@@ -18,8 +32,11 @@ def combat_diagnostic_scope(sink, *, limit=256):
         yield
     finally:
         _trace.reset(token)
-        sink(event="combat_effect_trace_summary", effects_logged=trace["emitted"],
-             effects_omitted=trace["dropped"])
+        sink(
+            event="combat_effect_trace_summary",
+            effects_logged=trace["emitted"],
+            effects_omitted=trace["dropped"],
+        )
 
 
 def diagnostics_enabled():

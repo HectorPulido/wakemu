@@ -1,0 +1,200 @@
+{
+  "scope": "Offline enum roundtrip and native request encoding",
+  "permissions": [
+    {
+      "name": "ADD_MEMBER",
+      "bit": 1,
+      "mask": 2,
+      "native_flag": false
+    },
+    {
+      "name": "REMOVE_MEMBER",
+      "bit": 2,
+      "mask": 4,
+      "native_flag": true
+    },
+    {
+      "name": "CHANGE_MEMBER_RANK",
+      "bit": 3,
+      "mask": 8,
+      "native_flag": true
+    },
+    {
+      "name": "EDIT_RANK",
+      "bit": 4,
+      "mask": 16,
+      "native_flag": true
+    },
+    {
+      "name": "REMOVE_CHEST_ITEM",
+      "bit": 5,
+      "mask": 32,
+      "native_flag": false
+    },
+    {
+      "name": "CHANGE_GUILD_DESCRIPTION",
+      "bit": 6,
+      "mask": 64,
+      "native_flag": false
+    },
+    {
+      "name": "CHANGE_GUILD_MESSAGE",
+      "bit": 7,
+      "mask": 128,
+      "native_flag": false
+    },
+    {
+      "name": "REMOVE_CHEST_MONEY",
+      "bit": 8,
+      "mask": 256,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_HAVEN_WORLD",
+      "bit": 9,
+      "mask": 512,
+      "native_flag": false
+    },
+    {
+      "name": "BUY_BONUS",
+      "bit": 10,
+      "mask": 1024,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_GUILD_CHEST_1",
+      "bit": 11,
+      "mask": 2048,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_GUILD_CHEST_2",
+      "bit": 12,
+      "mask": 4096,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_GUILD_CHEST_3",
+      "bit": 13,
+      "mask": 8192,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_GUILD_CHEST_4",
+      "bit": 14,
+      "mask": 16384,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_HOUSE_CHEST_1",
+      "bit": 15,
+      "mask": 32768,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_HOUSE_CHEST_2",
+      "bit": 16,
+      "mask": 65536,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_HOUSE_CHEST_3",
+      "bit": 17,
+      "mask": 131072,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_HOUSE_CHEST_4",
+      "bit": 18,
+      "mask": 262144,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_HOUSE_CHEST_5",
+      "bit": 19,
+      "mask": 524288,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_HOUSE_CHEST_6",
+      "bit": 20,
+      "mask": 1048576,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_HOUSE_CHEST_7",
+      "bit": 21,
+      "mask": 2097152,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_HOUSE_CHEST_8",
+      "bit": 22,
+      "mask": 4194304,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_MANSION_CHEST_1",
+      "bit": 23,
+      "mask": 8388608,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_MANSION_CHEST_2",
+      "bit": 24,
+      "mask": 16777216,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_MANSION_CHEST_3",
+      "bit": 25,
+      "mask": 33554432,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_MANSION_CHEST_4",
+      "bit": 26,
+      "mask": 67108864,
+      "native_flag": false
+    },
+    {
+      "name": "MANAGE_COLLECT_CHEST",
+      "bit": 27,
+      "mask": 134217728,
+      "native_flag": false
+    }
+  ],
+  "requests": [
+    {
+      "opcode": 15194,
+      "category": 6,
+      "meaning": "create rank",
+      "body": "i8 UTF8 length + name + i64 authorizations",
+      "fixture_body_bytes": 19
+    },
+    {
+      "opcode": 14088,
+      "category": 6,
+      "meaning": "remove rank",
+      "body": "i64 rank_id",
+      "fixture_body_bytes": 8
+    },
+    {
+      "opcode": 14815,
+      "category": 6,
+      "meaning": "modify rank",
+      "body": "i64 rank_id + i64 authorizations + i8 UTF8 length + name",
+      "fixture_body_bytes": 27
+    }
+  ],
+  "ui_limits": {
+    "maximum_rank_count": 15,
+    "rank_name_java_length_max": 16
+  },
+  "source_sha256": "40fa4549940ad81e33c5cd9d8671c64662dd202747308e8c155d611ffc3b484c",
+  "limits": [
+    "native_flag true requires hierarchy-check semantics tracing",
+    "No real rank creation or permissions enforced by server in this probe",
+    "No chest treasury or haven-world operation executed"
+  ]
+}

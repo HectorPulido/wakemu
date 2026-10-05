@@ -18,7 +18,17 @@ def decode_request(body):
     return actor_id, path
 
 
-def apply_client(runtime, owner_id, body, stats_serializer, *, direction):
+def apply_client(
+    runtime, owner_id, body, stats_serializer, *, direction, area_provider=None
+):
+    if area_provider is not None:
+        return _with_areas(
+            runtime,
+            area_provider,
+            lambda candidate: apply_client(
+                candidate, owner_id, body, stats_serializer, direction=direction
+            ),
+        )
     if runtime.awaiting_ack is not None:
         raise ValueError("Waiting for previous turn synchronization")
     actor_id, path = decode_request(body)
@@ -47,8 +57,16 @@ def apply_client(runtime, owner_id, body, stats_serializer, *, direction):
     return [animation, runtime._flush(), refresh], event
 
 
-def apply_ai(runtime, stats_serializer, *, direction):
+def apply_ai(runtime, stats_serializer, *, direction, area_provider=None):
     """Plan and commit one server movement; attacking remains explicit policy."""
+    if area_provider is not None:
+        return _with_areas(
+            runtime,
+            area_provider,
+            lambda candidate: apply_ai(
+                candidate, stats_serializer, direction=direction
+            ),
+        )
     from .combat_ai import plan
     import copy
 
@@ -76,3 +94,32 @@ def apply_ai(runtime, stats_serializer, *, direction):
     actor.direction = direction
     runtime.action_id += 1
     return [animation, runtime._flush(), refresh], result
+
+
+def _with_areas(runtime, provider, operation):
+    from copy import deepcopy
+    from .combat_area_boundary import adopt_runtime
+
+    candidate = deepcopy(runtime)
+    actor = candidate.fight.current
+    if actor is None:
+        raise ValueError("No active area movement actor")
+    identity, origin = actor.id, tuple(actor.position)
+    packets, result = operation(candidate)
+    event = result.get("event", result)
+    path = event.get("path", ())
+    if path:
+        preview, callbacks = provider(
+            candidate.fight,
+            actor_id=identity,
+            action_id=candidate.action_id + 1,
+            path=path,
+            origin=origin,
+        )
+        candidate.fight = preview
+        candidate.action_id += 1
+        packets = list(packets) + list(callbacks)
+        if callbacks:
+            packets.append(candidate._flush())
+    adopt_runtime(runtime, candidate)
+    return packets, result

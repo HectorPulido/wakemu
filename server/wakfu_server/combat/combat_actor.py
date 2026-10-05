@@ -39,6 +39,7 @@ def actor_stats(
     team=0,
     *,
     wp,
+    obstacle_id=None,
     ap=6,
     mp=3,
     direction=0,
@@ -103,7 +104,10 @@ def actor_stats(
         direction,
         0,
     )
-    fight = struct.pack(">iBBBBbB", fight_id, 0, 0, 0, 0, team, 0)
+    obstacle = team if obstacle_id is None else obstacle_id
+    if type(obstacle) is not int or not 0 <= obstacle <= 126:
+        raise ValueError("Invalid native obstacle byte")
+    fight = struct.pack(">iBBBBbB", fight_id, 0, 0, 0, 0, obstacle, 0)
     return (
         b"\x03"
         + struct.pack(">q", character_xp(character))
@@ -125,7 +129,13 @@ def actor_effects():
 
 
 def monster_actor_stats(
-    actor, fight_id, team=None, direction=0, *, characteristics_payload=None
+    actor,
+    fight_id,
+    team=None,
+    direction=0,
+    *,
+    characteristics_payload=None,
+    obstacle_id=None
 ):
     """NPC eHj format2; public stats use sP, not the player's pl section."""
     identity = actor["id"]
@@ -158,7 +168,10 @@ def monster_actor_stats(
     position = struct.pack(
         ">iihqBB", actor["x"], actor["y"], actor["z"], actor["map_id"], direction, 0
     )
-    fight = struct.pack(">iBBBBbB", fight_id, 0, 0, 0, 0, team, 0)
+    obstacle = team if obstacle_id is None else obstacle_id
+    if type(obstacle) is not int or not 0 <= obstacle <= 126:
+        raise ValueError("Invalid native obstacle byte")
+    fight = struct.pack(">iBBBBbB", fight_id, 0, 0, 0, 0, obstacle, 0)
     return (
         b"\x02"
         + position
@@ -196,6 +209,7 @@ def actual_actor_stats(
         current,
         fight_id,
         team=actor.team,
+        obstacle_id=actor.native_obstacle_id,
         characteristics_payload=snapshot,
         ap=actor.ap,
         mp=actor.mp,
@@ -240,6 +254,7 @@ def actual_monster_actor_stats(
     return monster_actor_stats(
         current,
         fight_id,
+        obstacle_id=actor.native_obstacle_id,
         direction=getattr(actor, "direction", direction),
         characteristics_payload=snapshot,
     )

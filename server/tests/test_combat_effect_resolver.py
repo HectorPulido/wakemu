@@ -12,9 +12,14 @@ from wakfu_server.combat_effect_targets import UnsupportedTargetSelector
 
 
 class NativeResolverTests(unittest.TestCase):
+    def test_removal_only_mask_does_not_defer_initial_application(self):
+        self.effect["target_masks"][2] = [6, 7, 8]
+        selected = self.resolver(self.effect, self.invocation)
+        self.assertEqual([inv.target_id for inv in selected], [1, 2, 3])
+
     def setUp(self):
         self.actors = [
-            SimpleNamespace(id=i, team=t, position=p, hp=10)
+            SimpleNamespace(id=i, team=t, position=p, hp=10, physical_radius=0)
             for i, t, p in [(1, 0, (0, 0, 0)), (2, 0, (1, 0, 9)), (3, 1, (-1, 0, 0))]
         ]
         self.native = {

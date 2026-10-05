@@ -35,7 +35,7 @@ class AbandonTests(unittest.TestCase):
             self.assertEqual(result["packets"][0][1][12], 0)
             self.assertEqual(
                 result["packets"][0][1][13:],
-                struct.pack(">bqbqb", 1, -200, 1, c["id"], 0),
+                struct.pack(">bqbqb", 1, c["id"], 1, -200, 0),
             )
             self.assertEqual((f.phase, f.winner), ("finished", None))
             self.assertFalse(
@@ -47,7 +47,7 @@ class AbandonTests(unittest.TestCase):
                 )
             with self.assertRaises(ValueError):
                 combat_abandon.return_to_world(
-                    s, a, g, result["character"], r, struct.pack(">iB", 7, 0), wp=6
+                    s, a, g, result["character"], r, struct.pack(">iB", 7, 2), wp=6
                 )
             returned = combat_abandon.return_to_world(
                 s, a, g, result["character"], r, struct.pack(">iB", 7, 1), wp=6
@@ -58,7 +58,7 @@ class AbandonTests(unittest.TestCase):
             )
             self.assertFalse(
                 combat_abandon.return_to_world(
-                    s, a, g, returned["character"], r, struct.pack(">iB", 7, 1), wp=6
+                    s, a, g, returned["character"], r, struct.pack(">iB", 7, 0), wp=6
                 )["applied"]
             )
             with s.connection() as db:
@@ -68,6 +68,80 @@ class AbandonTests(unittest.TestCase):
                 self.assertEqual(
                     db.execute("SELECT COUNT(*) FROM fight_health_exits").fetchone()[0],
                     1,
+                )
+
+    def test_rejected_ready_without_message_runtime_can_abandon_and_return(self):
+        from wakfu_server.combat_ready import prepare_ready
+
+        with tempfile.TemporaryDirectory() as directory:
+            s, a, g, c, fight, unused = self.setup(directory)
+
+            def rejected(preview, action_id):
+                raise ValueError("Unsupported HasStateFromUser actor selector")
+
+            with self.assertRaisesRegex(ValueError, "HasStateFromUser"):
+                prepare_ready(
+                    fight,
+                    a,
+                    True,
+                    initialize=rejected,
+                    stats_serializer=lambda actor: b"",
+                    effects_serializer=lambda: b"",
+                )
+            self.assertEqual(fight.phase, "placement")
+            runtime = combat_abandon.placement_runtime(fight, None)
+            done = combat_abandon.prepare(s, a, g, c, runtime, b"")
+            delivery = runtime.prepare_delivery(done["packets"])
+            self.assertEqual([op for op, _ in delivery], [12238, 13420])
+            self.assertEqual(fight.phase, "finished")
+            returned = combat_abandon.return_to_world(
+                s,
+                a,
+                g,
+                done["character"],
+                runtime,
+                struct.pack(">iB", fight.id, 1),
+                wp=6,
+            )
+            self.assertTrue(returned["applied"])
+            self.assertTrue(runtime.abandon_returned)
+            self.assertEqual(returned["character"]["hp"], c["hp"])
+
+    def test_runtime_recovery_does_not_replace_active_counters_or_accept_foreign_fight(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as directory:
+            s, a, g, c, fight, runtime = self.setup(directory)
+            runtime.native_action_id = 37
+            self.assertIs(combat_abandon.placement_runtime(fight, runtime), runtime)
+            self.assertEqual(runtime.native_action_id, 37)
+            with self.assertRaisesRegex(ValueError, "disagrees"):
+                combat_abandon.placement_runtime(object(), runtime)
+            fight.ready(a)
+            with self.assertRaisesRegex(ValueError, "outside placement"):
+                combat_abandon.placement_runtime(fight, None)
+            with self.assertRaisesRegex(ValueError, "outside placement"):
+                combat_abandon.placement_runtime(None, None)
+
+    def test_legacy_client_win_presentation_still_returns_owned_abort(self):
+        # Clients already cleaned by the old reversed lists legitimately send
+        # huO=false. Outcome remains an abort, never a rewarded victory.
+        with tempfile.TemporaryDirectory() as directory:
+            s, a, g, c, f, r = self.setup(directory)
+            prepared = combat_abandon.prepare(s, a, g, c, r, b"")
+            returned = combat_abandon.return_to_world(
+                s, a, g, prepared["character"], r, struct.pack(">iB", f.id, 0), wp=6
+            )
+            self.assertTrue(returned["applied"])
+            self.assertEqual((f.phase, f.winner), ("finished", None))
+            self.assertTrue(r.abandon_returned)
+            with s.connection() as db:
+                self.assertEqual(
+                    db.execute("SELECT COUNT(*) FROM fight_rewards").fetchone()[0], 0
+                )
+            with self.assertRaises(ValueError):
+                combat_abandon.return_to_world(
+                    s, a + 1, g, c, r, struct.pack(">iB", f.id, 0), wp=6
                 )
 
     def test_active_damage_survives_abort_and_invalid_request_is_nonmutating(self):

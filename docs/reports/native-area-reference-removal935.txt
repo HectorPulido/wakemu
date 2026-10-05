@@ -1,0 +1,13 @@
+Familia935/eXS: retirar todas las áreas de una referencia
+
+Registro eVi935→eXS. C(Qe) obtiene parámetro0 aSg=int y conserva0 si no hay parámetros. c(Qe,bool) requiere bbs/PN, toma Qs.bdm, copia coincidencias Qq.bct()==aSg a HashSet y llama Qs.a(Qq,bfr) para cada una. No filtra propietario, celda, removibilidadbcF ni interpreta-1 como comodín. No retira automáticamente el padre315: Qs.a primero desregistra y emite10011 con el caster real como destinatario. Si las máscaras faV.rLR reaccionan, siguen la ruta de retirada del padre acreditada por el contrato anterior.
+
+Implementación: handler935 separado, notificación13497 con referencia como valor y contexto/clocks reales, callback10011 con caster explícito y uso común de Qs-unregister/retirada reentrante. Las áreas de otros dueños con igual referencia se retiran conforme al original. El orden entre coincidencias sigue el registro propio; no se afirma reproducir el orden no garantizado del HashSet de objetos Java. Se rechaza retención persistente del runner935 hasta que esa rama tenga contrato propio.
+
+ProbeNativeArea935: PASS contra el JAR para781(two matches),999(one),-1(none), bcFfalse y caster original. Proto eXS exportado byteidéntico al group_payload propio: UID999, genérico300001, valor781, caster7, target ausente, TimeDatas completo. En celda, el encabezado identifica el manager caster sin fabricar target7 dentro del proto.
+
+25 pruebas de referencia/callback/843/máscaras/codec/retención pasan. Incluyen retirada después de unregister, coincidencias de distinto dueño y celda, sin comodín-1, ausencia de callback antes de mutar, y bytes nativos.
+
+Entrada común actual: ocho casos7321/8479 niveleslegales/200 con callbacks1 y monstruo1367 nivel115 nativo terminan2actor_state_changed+6retention_changed. Source_stable=true; originales preservados. Antes cuatro de esos casos rechazaban935. Reporte combat-inventory/active-area-reference935-current.json. No prueba GUI ni afirmación de hechizo completo; no reinicio.
+
+Evidencia bytecode .runtime/local/native-area-removal935-eXS.txt y registro .runtime/local/native-critical-eVi.txt. No hardcode por hechizo ni productor10010 inventado.

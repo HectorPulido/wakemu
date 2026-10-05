@@ -1,0 +1,50 @@
+{
+  "method": "Bytecode inspection and private ItemIdentificationProbe native codec execution. No client/server code modifications.",
+  "native_jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+  "requests": [
+    {
+      "operation": "initial roll/identification",
+      "opcode": 13787,
+      "class": "cpY",
+      "body": "i64 item_uid",
+      "body_bytes": 8,
+      "frame_hex": "0000000f0335db0000000000003039",
+      "producer": "cZI.d/cKS.sendRollRequest -> internal19306 -> dcu -> cpY"
+    },
+    {
+      "operation": "element selection",
+      "opcode": 12487,
+      "class": "cpZ",
+      "body": "i64 item_uid + byte damage_mask + byte resistance_mask",
+      "body_bytes": 10,
+      "frame_hex": "000000110330c700000000000030391608",
+      "producer": "cZI.a(fnR,byte,byte) -> cpZ"
+    }
+  ],
+  "response": {
+    "opcode": 13766,
+    "class": "cxh",
+    "body": "i32 status ordinal + i64 uid + byte flag (zero gives eKa=true) + i32 element_blob_length + vR element_blob + i32 slot_blob_length + fpK slot_blob",
+    "statuses": {
+      "0": "OK",
+      "1": "NO_ENOUGH_SPACE",
+      "2": "TOO_HIGH_LEVEL"
+    },
+    "test": {
+      "decoded": true,
+      "status": "OK",
+      "uid": 12345,
+      "elements_present": true,
+      "sockets_present": false,
+      "bytes": 23,
+      "truncated": "BufferUnderflowException"
+    }
+  },
+  "overlay": "cQi UnidentifiedItem visible binds slotsIdentificationNeeded; bGl maps it to fnR.ghe(); identificationNeeded = ghe() OR ghf()",
+  "server_dispatch": "13787 and12487 absent in inspected local_game_server.py",
+  "limitations": [
+    "No graphical reproduction or successful server identification",
+    "Slot serialization/distribution, charges/refunds and sublimations still require deeper inspection",
+    "One proven UI overlay; not every inventory renderer audited"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "scope": "Fixture SQLite WAL temporal; no base del proyecto",
+  "sqlite_version": "3.51.0",
+  "reader_during_writer_value": 0,
+  "second_writer_different_row_before_commit": "database is locked",
+  "values_after_sequential_commits": [
+    [
+      1,
+      1
+    ],
+    [
+      2,
+      1
+    ]
+  ],
+  "limit": "Demuestra semántica de bloqueo, no mide carga real ni causa histórica de corrupción"
+}

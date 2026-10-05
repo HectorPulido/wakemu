@@ -1,0 +1,38 @@
+{
+  "native_invite": {
+    "opcode": 13179,
+    "class": "cve",
+    "layout": "i64 initiator character ID + byte mode",
+    "parser_fixture_passed": true
+  },
+  "native_consent": {
+    "opcode": 13520,
+    "class": "coR",
+    "category": 3,
+    "layout": "i64 initiator character ID + byte accepted + byte autolock",
+    "refuse_frame": "000000110334d000000000000030390000",
+    "accept_frame": "000000110334d000000000000030390100"
+  },
+  "native_cancellation": {
+    "opcode": 12708,
+    "class": "cvd",
+    "layout": "byte reason",
+    "codes": {
+      "0": "unknownError",
+      "1": "playerRefused",
+      "2": "playerNotFound",
+      "3": "anotherInvitation",
+      "4": "initiatorCancelled",
+      "5": "noPendingFight",
+      "6": "initiatorNotAvailable",
+      "7": "fightCreationImpossible"
+    },
+    "parser_codes_0_7_passed": true
+  },
+  "consumer": "ckR invite/dialog/callback; ckQ cancellation",
+  "limits": [
+    "No live dialog test or server changes.",
+    "No invitation nonce in13520; stale same-pair replies require server-side guard.",
+    "Timeout-specific reason not found; do not invent code8."
+  ]
+}

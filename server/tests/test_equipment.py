@@ -51,4 +51,6 @@ class EquipmentTests(unittest.TestCase):
             blob = proto_field(
                 10, proto_field(8, 1000) + proto_field(16, rule["slots"][0])
             )
-            self.assertEqual(validate_sheet(char, blob), [dict(uid=1000,slot=rule["slots"][0])])
+            self.assertEqual(
+                validate_sheet(char, blob), [dict(uid=1000, slot=rule["slots"][0])]
+            )

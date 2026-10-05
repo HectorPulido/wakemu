@@ -3,12 +3,13 @@ import threading
 
 
 class World:
-    def __init__(self, spawn, remove, deliver):
+    def __init__(self, spawn, remove, deliver, *, delivery_failure=None):
         self.lock = threading.RLock()
         self.players = {}
         self.spawn = spawn
         self.remove = remove
         self.deliver = deliver
+        self.delivery_failure = delivery_failure
 
     @staticmethod
     def location(character):
@@ -24,7 +25,12 @@ class World:
     def _send(self, peer, opcode, body):
         try:
             self.deliver(peer, opcode, body)
-        except OSError:
+        except OSError as error:
+            if self.delivery_failure is not None:
+                try:
+                    self.delivery_failure(peer, opcode, error)
+                except Exception:
+                    pass  # Diagnostics must not prevent existing socket cleanup.
             # Its connection worker owns lease cleanup and departure notification.
             try:
                 peer.shutdown(2)

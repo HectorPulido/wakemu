@@ -31,8 +31,10 @@ def decode_group_mode(
         raise UnsupportedEffectGroup("Unknown class330 parameter variant")
     if len(parameters) >= 3 and raw_target_parameter is None:
         raise UnsupportedEffectGroup("class330 target/cell mode requires raw So(2)")
-    if raw_target_parameter is not None and raw_target_parameter not in (0, 1):
-        raise UnsupportedEffectGroup("Unknown class330 target mode")
+    # eYg.bbA compares So(2) with1, it does not validate a0/1 enum.
+    # Other values have bbA=false/bbB=false: fresh Qe selection remains
+    # blocked by native_group_route, but an already-bound state listener
+    # still runs eYg.a's non-bbA (cell) child branch.
     rebind = ((parameters[5] + 128) % 256) - 128 if len(parameters) >= 6 else 0
     # fPP only recognizes1/2; other native bytes leave actors unchanged.
     return EffectGroupMode(
@@ -115,3 +117,32 @@ def execute_ordered_group(
             successes += int(bool(execute_child(invocation)))
             calls.append(invocation)
     return tuple(calls)
+
+
+NATIVE_CELL_GROUP_FAMILIES = frozenset((330, 844, 910, 912, 913, 999, 1020, 1047, 1103))
+
+
+def native_group_route(effect):
+    """Actual inherited eYg.bbA/bbB, including neither-flag values.
+
+    Qe.a fresh targeting does not execute when both flags are false. A bound
+    carrier uses Qe.d separately; this helper does not invent its actor scope.
+    """
+    if effect.get("effect_class") in (345, 352):
+        return "cell"  # eYA.bbA=false / bbB=true, independent of So(2).
+    if effect.get("effect_class") not in NATIVE_CELL_GROUP_FAMILIES:
+        return None
+    count = effect.get("parameter_count")
+    if type(count) is not int or count < 0:
+        raise UnsupportedEffectGroup("Missing native group parameter count")
+    if count < 3:
+        return "actors"
+    parameters = effect.get("parameters")
+    if not isinstance(parameters, (tuple, list)) or len(parameters) < 5:
+        raise UnsupportedEffectGroup("Missing raw native group So(2)")
+    raw = parameters[4]
+    return "cell" if raw == 0 else "actors" if raw == 1 else "none"
+
+
+def native_group_cell_mode(effect):
+    return native_group_route(effect) == "cell"

@@ -1,0 +1,9 @@
+{
+  "scope": "Executed native enum and encoder; no live entry",
+  "native_action": "ATTEND_FIGHT",
+  "action_class": "cWf",
+  "request_class": "coL",
+  "opcode": 13413,
+  "fight_id": 456,
+  "frame_hex": "0000000b033465000001c8"
+}

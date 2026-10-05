@@ -132,6 +132,11 @@ def transfer(store, account_id, generation, character_id, body):
         if other is not None and not merge and clone is not None:
             raise ValueError("Native partial transfer cannot swap incompatible items")
         if merge:
+            from .inventory_elements import hydrate, masks
+
+            source_item, target_item = hydrate(db, [dict(item), dict(other)])
+            if masks(source_item) != masks(target_item):
+                raise ValueError("Native element selections differ; units cannot merge")
             if (
                 other["character_id"] != character_id
                 or not 1 <= other["quantity"] <= rule["maximum"]
@@ -199,6 +204,10 @@ def transfer(store, account_id, generation, character_id, body):
                 (destination["uid"], position, item["uid"]),
             )
         if clone is not None:
+            from .inventory_elements import copy as copy_elements
+
+            if not merge:
+                copy_elements(db, item["uid"], clone)
             db.execute(
                 "UPDATE inventory_reserved_uids SET used_request=? WHERE uid=?",
                 (body, clone),

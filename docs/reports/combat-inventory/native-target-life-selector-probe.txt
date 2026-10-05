@@ -1,0 +1,23 @@
+identity=-7 baF=false mask=16 -> INVALID
+identity=-7 baF=false mask=1099511627776 -> INVALID
+identity=-7 baF=false mask=1099511627792 -> INVALID
+identity=-7 baF=true mask=16 -> INVALID
+identity=-7 baF=true mask=1099511627776 -> VALID
+identity=-7 baF=true mask=1099511627792 -> INVALID
+identity=0 baF=false mask=16 -> INVALID
+identity=0 baF=false mask=1099511627776 -> INVALID
+identity=0 baF=false mask=1099511627792 -> INVALID
+identity=0 baF=true mask=16 -> INVALID
+identity=0 baF=true mask=1099511627776 -> VALID
+identity=0 baF=true mask=1099511627792 -> INVALID
+identity=7 baF=false mask=16 -> VALID
+identity=7 baF=false mask=1099511627776 -> INVALID
+identity=7 baF=false mask=1099511627792 -> INVALID
+identity=7 baF=true mask=16 -> VALID
+identity=7 baF=true mask=1099511627776 -> VALID
+identity=7 baF=true mask=1099511627792 -> VALID
+native life=NONE baF=false baG=false baK=false
+native life=IN_PLAY baF=true baG=false baK=false
+native life=OFF_PLAY baF=false baG=true baK=false
+native life=OUT_OF_PLAY baF=false baG=false baK=true
+PASS fcE16 positive identity; fcE40 baF; fdy sax only

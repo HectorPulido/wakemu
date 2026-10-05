@@ -1,0 +1,11 @@
+# Productor legítimo del estado7134
+
+El probe `ProbeNativeStateProducers 7134` recorre las178337 definiciones aNw y evalúa el primer parámetro304 en nivel1. Encuentra326514 y326824. El segundo pertenece a326823, suscripción1002 del propioestado7134, por lo que no inicializa un actor que aún no lo tiene. El grafo del primero es326384→326388→328349→326514 y pertenece al hechizo nativo7348. La metadata4143 conserva esos nodos originales.
+
+7348 tiene criterio de lanzamiento `IsSpellInDeck(7340)`.7340 es pasiva Osamodas desbloqueada65; la vía no es legal en nivel15 con el catálogo actual. Antes de aplicar7134,7348 ejecuta creación324 según `GetSpaceInSymbiot()<10`, o307/ref5347 cuando el espacio>=10, y comprueba las invocaciones existentes. No es lícito omitir esa creación y aplicar304 directamente sobre el PC.
+
+`audit_native_setup_spell.py` valida deck real, instala innatas/pasivas y evento inicial normal, hiere al caster con daño normal y ejecuta el grafo7348 en una copia privada. Es auditoría de raíces originales, NO petición cliente autorizada ni grant ficticio. Con WAKFU_NATIVE_GRANTED_CAST=1 (catálogo4143 habilitado) el nivel200 se detiene en327525/307 por `GetSpaceInSymbiot` desconocido; rollback y fuentesestables. Nivel15 registra indisponibilidad legal de7340. Reporte native-state7134-setup-audit.json.
+
+El criterio nativo es token382→eLm. eLm resuelve caster, exige eHP y su manager eHR, y devuelve eHR.fxp. Este método cuenta exclusivamente slotsnull entre los diez índices0..9. Ausencia de caster/eHP/manager devuelve−1. No cuenta actores invocados del combate. El estado actual del servidor no conserva ese manager de capturas/simbionte de manera autoritativa; tratarlo como diezvacíos sería inventar un dato. Bytecode en .runtime/local/native-GetSpaceInSymbiot.txt y native-symbiot-manager.txt.
+
+Próximo requisito común: representar/exportar el manager eHR y sus diezslots desde la creación/capturas persistidas, conectar el criterio y la familia324 que invoca una criatura capturada, y acreditar selección del nuevo actor antes de304. El307alternativo no permite omitir el manager: su criterio consulta igualmentefxp. Por eso este resultado no acredita la curación25 de7310 sobre una invocación ni fuerza7134 sobre el caster; la entrada herida7310 previa conserva el criteriofalse nativo.

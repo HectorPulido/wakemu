@@ -1,0 +1,100 @@
+{
+  "scope": "Disposable SQLite service calls, no GUI",
+  "reference": 12493,
+  "rule": {
+    "reference": 12493,
+    "capacity": 10,
+    "accepted_types": [],
+    "minimum_level": 1,
+    "has_equip_criteria": false
+  },
+  "cases": [
+    {
+      "quantity": 3,
+      "target_slot": 2,
+      "accepted": false,
+      "error": "Unavailable or unsupported owned bag item",
+      "recovery_opcode": 13713,
+      "recovery_body_bytes": 74,
+      "inventory_unchanged": true,
+      "remaining_item_quantities": [
+        3
+      ],
+      "equipped_bags": [
+        {
+          "reference": 2175,
+          "capacity": 30,
+          "kind": 0
+        },
+        {
+          "reference": 2603,
+          "capacity": 4,
+          "kind": 1
+        }
+      ]
+    },
+    {
+      "quantity": 1,
+      "target_slot": 2,
+      "accepted": true,
+      "response_opcodes": [
+        12470,
+        12919
+      ],
+      "inventory_unchanged": false,
+      "remaining_item_quantities": [],
+      "equipped_bags": [
+        {
+          "reference": 2175,
+          "capacity": 30,
+          "kind": 0
+        },
+        {
+          "reference": 2603,
+          "capacity": 4,
+          "kind": 1
+        },
+        {
+          "reference": 12493,
+          "capacity": 10,
+          "kind": 2
+        }
+      ]
+    },
+    {
+      "quantity": 1,
+      "target_slot": 1,
+      "accepted": false,
+      "error": "Bag slot occupied; native replacement not implemented",
+      "recovery_opcode": 13713,
+      "recovery_body_bytes": 74,
+      "inventory_unchanged": true,
+      "remaining_item_quantities": [
+        1
+      ],
+      "equipped_bags": [
+        {
+          "reference": 2175,
+          "capacity": 30,
+          "kind": 0
+        },
+        {
+          "reference": 2603,
+          "capacity": 4,
+          "kind": 1
+        }
+      ]
+    }
+  ],
+  "source_sha256": {
+    "server/wakfu_server/items/inventory_bags.py": "0b3941c3787bb05c4ee0c0a45a8a796121d982e16b80a591351d2b21ded7ffca",
+    "server/wakfu_server/items/inventory_move.py": "26517d520a9db01ac30c06f2290082b451c99df7bd7491ee8d1388b8b698c1c4",
+    "server/local_game_server.py": "f865afac27a37c217bfd7c07d2253139588074280e5bd1df8e873a0f3633570b",
+    "server/protocol/inventory-bag-rules.json": "1cf55527b4129b555e9665c86e1d8a2d64f6c7e1ffb8e32373aff4709c15cab3"
+  },
+  "tests": {
+    "count": 3,
+    "result": "OK",
+    "command": "PYTHONPATH=server python3 -m unittest discover -s server/tests -p test_inventory_bags.py"
+  }
+}

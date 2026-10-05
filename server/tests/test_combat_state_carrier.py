@@ -31,9 +31,9 @@ class StateCarrierTests(unittest.TestCase):
             7, 8, uid=2345, target_id=-33, running_effect_payload=payload
         )
         self.assertEqual(
-            struct.unpack(">iiiih", applied[:18]), (7, 8, -1, 310, len(payload))
+            struct.unpack(">iiiBih", applied[:19]), (7, 8, -1, 0, 310, len(payload))
         )
-        self.assertEqual(applied[18:], payload)
+        self.assertEqual(applied[19:], payload)
         removed = running_effect_removal(
             7,
             9,
@@ -42,7 +42,26 @@ class StateCarrierTests(unittest.TestCase):
             effect_class=310,
             running_effect_payload=payload,
         )
-        self.assertEqual(removed[18:-16], payload)
+        from wakfu_server.combat_effect_removal import state_unapplication_payload
+
+        self.assertEqual(removed[18:-16], state_unapplication_payload(payload))
+        self.assertTrue(removed[18:-16].endswith(b"\x5a\x02\x08\x01"))
+
+    def test_removal_forces_notification_only_and_preserves_native_timing(self):
+        from wakfu_server.combat_effect_removal import state_unapplication_payload
+
+        timing = bytes.fromhex("080010ff011a0608091001180020132801")
+        payload = state_carrier_payload(
+            **dict(self.parameters(), timing_payload=timing)
+        )
+        removed = state_unapplication_payload(payload)
+        expected_timing = b"\x08\x01" + timing[2:]
+        self.assertEqual(removed, payload[: -len(timing)] + expected_timing)
+        self.assertEqual(state_unapplication_payload(removed), removed)
+        applied = state_carrier_application(
+            7, 8, uid=2345, target_id=-33, running_effect_payload=payload
+        )
+        self.assertEqual(applied[19:], payload)
 
     def test_distinct_parent_uid_and_explicit_clocks(self):
         params = self.parameters()

@@ -1,0 +1,35 @@
+{
+  "scope": "Pure current-code build validation and carriers, empty deck; no spell execution",
+  "index_validation": {
+    "0": "accepted",
+    "1": "accepted",
+    "2": "accepted",
+    "3": "Invalid build index",
+    "24": "Invalid build index"
+  },
+  "requested_active_index": 2,
+  "build_set_active_field": 0,
+  "build_set_sheet_indices": [
+    0,
+    1
+  ],
+  "equipment_registry_indices": [
+    0
+  ],
+  "hashes": {
+    "server/wakfu_server/items/builds.py": "dc8c5378a1c63d0752f70c653394504c8e77340fe1854fa5d79460faa96a27f8",
+    "server/local_game_server.py": "206aa88bf486e30345437024f9943151ca29e7599057c2ed6f10152cb7be2fc5"
+  },
+  "existing_saved_build_case": {
+    "saved_indices": [
+      2
+    ],
+    "active_index_in_character": 2,
+    "active_field_serialized": 0,
+    "sheet_indices": [
+      0,
+      1,
+      2
+    ]
+  }
+}

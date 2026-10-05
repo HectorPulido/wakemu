@@ -1,0 +1,114 @@
+{
+  "scope": "Disposable SQLite; same synthetic living creature; clock advanced by native duration3s; no GUI or source fixes",
+  "cases": [
+    {
+      "cooldown_seconds": 0,
+      "events": [
+        {
+          "iteration": 1,
+          "started": true,
+          "completed": true
+        },
+        {
+          "iteration": 2,
+          "started": true,
+          "completed": true
+        },
+        {
+          "iteration": 3,
+          "started": true,
+          "completed": true
+        }
+      ],
+      "receipt_count": 3,
+      "item_ref": 7361,
+      "action_id": 3724,
+      "total_quantity": 3,
+      "same_monster_id": true
+    },
+    {
+      "cooldown_seconds": 10,
+      "events": [
+        {
+          "iteration": 1,
+          "started": true,
+          "completed": true
+        },
+        {
+          "iteration": 2,
+          "started": true,
+          "completed": false,
+          "error": "Local monster harvest cooldown"
+        },
+        {
+          "iteration": 3,
+          "started": true,
+          "completed": false,
+          "error": "Local monster harvest cooldown"
+        }
+      ],
+      "receipt_count": 1,
+      "item_ref": 7361,
+      "action_id": 3724,
+      "total_quantity": 1,
+      "same_monster_id": true
+    }
+  ],
+  "source_sha256": {
+    "server/wakfu_server/maps/monster_collect.py": "568203257d3bff28b133424641d1097e147b1e1f24a577c0c2cdad1de3fd6553",
+    "server/local_game_server.py": "f865afac27a37c217bfd7c07d2253139588074280e5bd1df8e873a0f3633570b"
+  },
+  "initial_probe_note": "The existing fixture used action3723 yielding wool2246. Reran with native seed action3724 yielding7361; results below are the seed-specific run.",
+  "initial_material_cases": [
+    {
+      "cooldown_seconds": 0,
+      "events": [
+        {
+          "iteration": 1,
+          "started": true,
+          "completed": true
+        },
+        {
+          "iteration": 2,
+          "started": true,
+          "completed": true
+        },
+        {
+          "iteration": 3,
+          "started": true,
+          "completed": true
+        }
+      ],
+      "receipt_count": 3,
+      "item_ref": 2246,
+      "total_quantity": 3,
+      "same_monster_id": true
+    },
+    {
+      "cooldown_seconds": 10,
+      "events": [
+        {
+          "iteration": 1,
+          "started": true,
+          "completed": true
+        },
+        {
+          "iteration": 2,
+          "started": true,
+          "completed": false,
+          "error": "Local monster harvest cooldown"
+        },
+        {
+          "iteration": 3,
+          "started": true,
+          "completed": false,
+          "error": "Local monster harvest cooldown"
+        }
+      ],
+      "receipt_count": 1,
+      "item_ref": 2246,
+      "total_quantity": 1,
+      "same_monster_id": true
+    }
+  ]
+}

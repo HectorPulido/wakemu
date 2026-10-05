@@ -37,8 +37,21 @@ class OrdinaryAuthorityTests(unittest.TestCase):
         self.assertEqual(p.deck_spell_ids, frozenset({6266}))
         self.assertTrue(npc.targeting["bEe"])
         self.assertFalse(npc.targeting["dTE"])
+        self.assertTrue(p.targeting["baF"])
+        self.assertTrue(npc.targeting["baF"])
+        self.assertEqual(p.targeting["dpu_id"], 7)
+        self.assertEqual(p.targeting["dpr_id"], 7)
+        self.assertEqual(npc.targeting["dpu_id"], -7)
+        self.assertEqual(npc.targeting["dpr_id"], -7)
 
-    def test_active_fight_affiliation_target_mask_uses_serialized_team(self):
+    def test_selector_life_uses_owned_creation_and_departure_registration(self):
+        actor = self.preview.actors[-7]
+        actor.hp = 0
+        self.assertIsNone(self.authority(self.preview, actor).targeting["baF"])
+        self.preview.events.append(dict(kind="death", actor_id=actor.id))
+        self.assertFalse(self.authority(self.preview, actor).targeting["baF"])
+
+    def test_active_fight_target_mask_uses_native_obstacle_id_not_affiliation(self):
         from wakfu_server.combat_effect_targets import select_native_effect_targets
 
         source = self.preview.actors[7]
@@ -48,7 +61,10 @@ class OrdinaryAuthorityTests(unittest.TestCase):
         }
         effect = dict(fixtures.definition(5, [1]))
         effect["native_target_selector"] = {"class": "fcE", "mask": 1 | (1 << 50)}
-        self.assertEqual(contexts[target.id]["bcN"], target.team)
+        # eGn/eGz stores pW.Uj as the obstacle byte; bcM affiliation is
+        # separate. The fixture deliberately has team1 and obstacle2.
+        self.assertEqual(contexts[target.id]["bcN"], target.native_obstacle_id)
+        self.assertNotEqual(contexts[target.id]["bcN"], target.team)
         selected = select_native_effect_targets(
             effect, source, target.position, (target,), native_context=contexts
         )

@@ -1,0 +1,116 @@
+[
+  {
+    "stage": 1,
+    "raw_cvA": 306,
+    "raw_cvB": 3,
+    "raw_cvC": 0,
+    "raw_cvD": 0,
+    "raw_bBK": 0,
+    "raw_cvE": 0,
+    "actions": [
+      {
+        "action": 329,
+        "raw_ckL": 72,
+        "raw_cvF": 0,
+        "raw_csM": 0,
+        "raw_cvG": 1,
+        "raw_csN": 46,
+        "duration": 3000,
+        "criteria": "",
+        "item_reference": 0,
+        "raw_cmI": 0.0
+      }
+    ]
+  },
+  {
+    "stage": 2,
+    "raw_cvA": 374,
+    "raw_cvB": 3,
+    "raw_cvC": 0,
+    "raw_cvD": 0,
+    "raw_bBK": 0,
+    "raw_cvE": 0,
+    "actions": [
+      {
+        "action": 201,
+        "raw_ckL": 72,
+        "raw_cvF": 0,
+        "raw_csM": 0,
+        "raw_cvG": 1,
+        "raw_csN": 3,
+        "duration": 3000,
+        "criteria": "",
+        "item_reference": 2504,
+        "raw_cmI": 1.5
+      }
+    ]
+  },
+  {
+    "stage": 3,
+    "raw_cvA": 125,
+    "raw_cvB": 3,
+    "raw_cvC": 0,
+    "raw_cvD": 0,
+    "raw_bBK": 0,
+    "raw_cvE": 0,
+    "actions": [
+      {
+        "action": 203,
+        "raw_ckL": 72,
+        "raw_cvF": 0,
+        "raw_csM": 0,
+        "raw_cvG": 1,
+        "raw_csN": 3,
+        "duration": 3000,
+        "criteria": "",
+        "item_reference": 2504,
+        "raw_cmI": 1.5
+      },
+      {
+        "action": 100,
+        "raw_ckL": 72,
+        "raw_cvF": 2,
+        "raw_csM": 0,
+        "raw_cvG": 1,
+        "raw_csN": 8,
+        "duration": 3000,
+        "criteria": "",
+        "item_reference": 4275,
+        "raw_cmI": 1.5
+      }
+    ]
+  },
+  {
+    "stage": 4,
+    "raw_cvA": 2126,
+    "raw_cvB": 3,
+    "raw_cvC": 0,
+    "raw_cvD": 0,
+    "raw_bBK": 0,
+    "raw_cvE": 0,
+    "actions": [
+      {
+        "action": 1475,
+        "raw_ckL": 72,
+        "raw_cvF": 0,
+        "raw_csM": 0,
+        "raw_cvG": 1,
+        "raw_csN": 3,
+        "duration": 3000,
+        "criteria": "",
+        "item_reference": 11447,
+        "raw_cmI": 15.0
+      }
+    ]
+  },
+  {
+    "stage": 16,
+    "raw_cvA": 375,
+    "raw_cvB": 0,
+    "raw_cvC": 0,
+    "raw_cvD": 0,
+    "raw_bBK": 0,
+    "raw_cvE": 0,
+    "actions": []
+  }
+]

@@ -1,0 +1,54 @@
+{
+  "cases": [
+    {
+      "guild_id": 0,
+      "body_hex": "0000000000000000000950727565626120c3b1",
+      "actual": {
+        "error": "17 undecoded bytes",
+        "type": "ValueError"
+      },
+      "expected": {
+        "guild_id": 0,
+        "text": "Prueba \u00f1"
+      }
+    },
+    {
+      "guild_id": 456,
+      "body_hex": "00000000000001c8000950727565626120c3b1",
+      "actual": {
+        "error": "17 undecoded bytes",
+        "type": "ValueError"
+      },
+      "expected": {
+        "guild_id": 456,
+        "text": "Prueba \u00f1"
+      }
+    },
+    {
+      "guild_id": 281474976710663,
+      "body_hex": "0001000000000007000950727565626120c3b1",
+      "actual": {
+        "error": "16 undecoded bytes",
+        "type": "ValueError"
+      },
+      "expected": {
+        "guild_id": 281474976710663,
+        "text": "Prueba \u00f1"
+      }
+    },
+    {
+      "guild_id": -1,
+      "body_hex": "ffffffffffffffff000950727565626120c3b1",
+      "actual": {
+        "error": "Truncated or invalid length",
+        "type": "ValueError"
+      },
+      "expected": {
+        "guild_id": -1,
+        "text": "Prueba \u00f1"
+      }
+    }
+  ],
+  "codec_sha256": "b2dd77d93bf8a04b73f033296f7d4dda3c4c85c427acbb179f7a85e394708f2c",
+  "scope": "Native layout verified with javap cms; synthetic requests to current Python decoder, no GUI."
+}

@@ -3,7 +3,7 @@
 Delivery phases are Qe.L channels, not event IDs. Death/turn/state lifecycle
 notifications are distinct native callers and are deliberately not fabricated.
 """
-ELEMENT_EVENT_IDS = {1: None, 2: 5, 3: 8, 4: 6, 5: 7}
+ELEMENT_EVENT_IDS = {1: None, 2: 5, 3: 8, 4: 6, 5: 7, 917: 9, 1083: 11}
 FLAG_EVENT_IDS = {4: 2215, 22: 2216, 23: 2218, 24: 2217}
 
 

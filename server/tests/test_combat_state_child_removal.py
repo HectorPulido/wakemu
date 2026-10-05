@@ -96,15 +96,18 @@ class StateChildRemovalTests(unittest.TestCase):
         self.assertEqual(set(self.fight.owned_stat_effects), {203})
         self.assertEqual(self.fight.owned_stat_effects[203]["state_uid"], 202)
         self.assertEqual(self.fight.owned_stat_effects[203]["actual"], 20)
-        classes = [struct.unpack(">i", data[12:16])[0] for opcode, data in self.packets]
+        classes = [
+            struct.unpack(">i", data[13:17] if opcode == 12613 else data[12:16])[0]
+            for opcode, data in self.packets
+        ]
         self.assertEqual(
             list(zip([opcode for opcode, data in self.packets], classes)),
             [
-                (13497, 310),
+                (12613, 310),
                 (13497, 120),
                 (13560, 120),
                 (13560, 310),
-                (13497, 310),
+                (12613, 310),
                 (13497, 120),
             ],
         )

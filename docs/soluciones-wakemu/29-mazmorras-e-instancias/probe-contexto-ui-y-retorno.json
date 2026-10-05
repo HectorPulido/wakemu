@@ -1,0 +1,63 @@
+{
+  "scope": "Fixtures sintéticos offline; no GUI de mazmorra real",
+  "context": {
+    "type": "ProtoDungeon",
+    "fields": {
+      "1": "maxLevel",
+      "2": "difficultyLevel",
+      "3": "isDifficultyAvailable",
+      "4": "canIncreaseDifficulty",
+      "5": "isfightInProgress",
+      "6": "isCompetitiveCancelled",
+      "7": "allowedIds repeated int64",
+      "8": "minLevel"
+    },
+    "synthetic_hex": "08641003180120002800300038b9604055",
+    "roundtrip": {
+      "maxLevel": 100,
+      "minLevel": 85,
+      "difficultyLevel": 3,
+      "isDifficultyAvailable": true,
+      "canIncreaseDifficulty": false,
+      "allowedIds": [
+        12345
+      ]
+    },
+    "current_server_non_dungeon_hex": "0800100218002001280030004000"
+  },
+  "progression": {
+    "type": "ProtoDungeonProgression",
+    "synthetic_hex": "0a04085a1003",
+    "pair": {
+      "key": 90,
+      "value": 3
+    },
+    "semantics": "Dificultad/progreso personal de mazmorra usado para coronas; no sala actual de una instancia"
+  },
+  "update": {
+    "opcode": 12520,
+    "class": "cuD",
+    "consumer": "cja -> bjo.dtI().fS(dungeon_id,difficulty)",
+    "body_layout": "i64 character_id + i32 dungeon_definition_id + i32 difficulty",
+    "synthetic_hex": "00000000000030390000005a00000003",
+    "decoded": [
+      12345,
+      90,
+      3
+    ],
+    "negative_control": "15 bytes -> BufferUnderflowException"
+  },
+  "tests": {
+    "command": "PYTHONPATH=server python3 -m unittest tests.test_combat_lifecycle tests.test_combat_health tests.test_player_death tests.test_combat_abandon",
+    "count": 10,
+    "result": "OK",
+    "scope": "Combate individual, salud/resultado/abandonar. No acredita salas ni parties."
+  },
+  "source_hashes": {
+    "server/local_game_server.py": "5a7983a9b26a78d3b707d9f4837f077798f30faf3f372013e04bad75bd1b286f",
+    "server/wakfu_server/maps/native_transports.py": "ed621d00d7d45834893fa7f27c28b0eb8b6153a67ecf0f255b01ce52690c12cd",
+    "server/wakfu_server/maps/generic_transports.py": "904b0ad9183890073e063a3fa86be443650bf1896e45b9460a72dae1727b1dab",
+    "server/wakfu_server/combat/combat_lifecycle.py": "4d79dcf6b5ddb55e4fdaa219ec7eeff9f936cea2e15eb9c015efd30d7d06822c",
+    "server/wakfu_server/combat/combat_health.py": "e7145add957e7fac203e90c25350fb943d9f1b0730847cde08e912fd87c5b730"
+  }
+}

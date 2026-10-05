@@ -1,0 +1,17 @@
+{
+  "scope": "Offline native bytecode inspection; no client modification or spell execution",
+  "evidence": {
+    "dungeon-aKU-current.txt": "a24303b27c42abf3d8a28e04f8bceada33b8ab3d63166083e979d8193bddc91c",
+    "dungeon-content-loader.txt": "9740731c80474f7b4c5a75cedda625d985bf2df3bb820fc8e0f6461076f71477",
+    "dungeon-bpU.txt": "d0c6f4657949beb9848d6ad1bc3023203692feead30639155fbd93c0458f1b54"
+  },
+  "findings": [
+    "aKU.cno returns int[] eiQ, passed intact by bam.a(aKU) to bpN and separately filtered through monster registry blk.bG(short).",
+    "bpU.e(int,String) iterates bpN.cno and resolves each entry using blj.DL(int) for monster-name search.",
+    "This identifies monster references used by dungeon catalogue search. This path does not encode room index, spawn count, level or position.",
+    "aKU.cnl nonzero takes alternate byX registration path and returns before normal bpN registration; variants must not be flattened as independent identical dungeons."
+  ],
+  "limits": [
+    "No room composition is inferred from catalogue membership. Other data sources and runtime population remain to be investigated."
+  ]
+}

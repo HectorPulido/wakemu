@@ -9,17 +9,24 @@ services:
       redis:
         condition: service_healthy
     environment:
+      WAKFU_AI_URL: ${WAKFU_AI_URL:-http://ai:8090}
+      WAKFU_REDIS_URL: ${WAKFU_REDIS_URL:-redis://redis:6379/0}
+      WAKFU_EXTERNAL_SCHEDULER: '1'
+      #
       WAKFU_ALL_ZAAPS: ${WAKFU_ALL_ZAAPS:-1}
       WAKFU_ADVERTISE_HOST: ${WAKFU_ADVERTISE_HOST:-127.0.0.1}
       WAKFU_ADVERTISE_WORLD_PORT: ${WAKFU_ADVERTISE_WORLD_PORT:-15556}
       WAKFU_ALL_DRAGOS: ${WAKFU_ALL_DRAGOS:-1}
       WAKFU_OPEN_PLANTING: ${WAKFU_OPEN_PLANTING:-1}
       WAKFU_PLANT_GROWTH_SECONDS: ${WAKFU_PLANT_GROWTH_SECONDS:-30}
-      WAKFU_AI_URL: ${WAKFU_AI_URL:-http://ai:8090}
-      WAKFU_REDIS_URL: ${WAKFU_REDIS_URL:-redis://redis:6379/0}
       WAKFU_POSITION_FLUSH_SECONDS: ${WAKFU_POSITION_FLUSH_SECONDS:-2}
-      WAKFU_EXTERNAL_SCHEDULER: '1'
       WAKFU_ENABLE_COMBAT_TEST: ${WAKFU_ENABLE_COMBAT_TEST:-1}
+      WAKFU_COMBAT_START_EVENTS: ${WAKFU_COMBAT_START_EVENTS:-1}
+      # Development fallback: omit unsupported equipment effects with chat/log diagnostics.
+      WAKFU_DEV_SKIP_UNSUPPORTED_INITIALIZATION: ${WAKFU_DEV_SKIP_UNSUPPORTED_INITIALIZATION:-1}
+      WAKFU_NATIVE_GRANTED_CAST: ${WAKFU_NATIVE_GRANTED_CAST:-1}
+      WAKFU_NATIVE_AREA_CALLBACKS: ${WAKFU_NATIVE_AREA_CALLBACKS:-1}
+      WAKFU_MAX_CHARACTERS: ${WAKFU_MAX_CHARACTERS:-24}
       WAKFU_COMBAT_TEST_GROUP_SIZE: ${WAKFU_COMBAT_TEST_GROUP_SIZE:-2}
       WAKFU_LOCAL_MONSTER_RESPAWN_SECONDS: ${WAKFU_LOCAL_MONSTER_RESPAWN_SECONDS:-0}
       # Empty uses the native breed resource; a number is an explicit test override.
@@ -45,6 +52,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+      start_period: 120s
   cron:
     build:
       context: ./server

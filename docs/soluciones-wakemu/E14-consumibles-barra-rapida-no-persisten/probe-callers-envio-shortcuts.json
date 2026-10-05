@@ -1,0 +1,27 @@
+{
+  "method": "Escaneo ASM exacto bOY.ekn()V y javap dirigido",
+  "callers": [
+    "civ.b",
+    "dcQ.fgc",
+    "bya.B",
+    "biB.a",
+    "aTx.g"
+  ],
+  "dcQ_fgc_order": [
+    "Personaje actual no null -> dpp().ekn()",
+    "Limpieza y pantalla charactersLoading.progress",
+    "csM solicitud posterior"
+  ],
+  "limits": [
+    "No demuestra temporizador ni envío inmediato por arrastre",
+    "No se ejecutó transición/reconexión con acceso asignado",
+    "Faltan contextos completos de civ/biB/aTx"
+  ],
+  "additional_context": {
+    "civ.b": "Filtra evento interno aAo; si personaje no null llama ekn y retorna false",
+    "aAo.d": "-2147483648, evento interno; no opcode de red utilizable",
+    "biB.a(fcb)": "drd() seguido de ekn antes de delegar a bjo.a(fcb)",
+    "aTx.g(biB)": "Llama ekn y devuelve true; caller/lambda de cierre aún pendiente",
+    "bya.B(biB)": "Condicionado por fkH.gdy(); ekn precede limpieza de UI"
+  }
+}

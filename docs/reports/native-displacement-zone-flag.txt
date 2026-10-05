@@ -1,0 +1,27 @@
+Desplazamientos y bandera3 DONT_DISPLAY_ZONE
+
+La bandera nativa eVl.rwA tiene código3 y nombre DONT_DISPLAY_ZONE; su texto
+indica que no muestra la zona del efecto en el cliente. Escaneo de referencias
+simbólicas en todas las clases del JAR: sólo aJs y el propio enum usan rwA.
+aJs.a(List<eVo>,big,aBn,short) descarta ese efecto de la previsualización de
+zonas al recibir la bandera. No cambia coordenadas, trayectoria, costes ni
+aritmética. Evidencia bytecode privado native-displacement-flag-enum.txt y
+native-displacement-flag3-aJs.txt.
+
+El guard común NativeDisplacementHandler admite3 preservando la definición,
+sin condición por hechizo/raza. La geometría y el codec existentes permanecen
+obligatorios; flags no acreditados todavía rechazan. No se elimina la bandera
+del catálogo ni se presenta una zona que el cliente eligió ocultar.
+
+Validación:15 pruebas de desplazamiento pasan. La prueba nueva compara posición,
+paquetes nativos y secuencia UID con/sin3 y exige equivalencia exacta. El guard
+unknown16 conserva rechazo y posición original. ProbeNativeDisplacementZoneFlag
+verifica enum y endpoints eXK/eXJ originales con/sin3: tres comprobaciones PASS.
+El probe aísla cálculo de endpoint; no pretende simular render ni GUI completa.
+
+Focal de entrada común: active-displacement-flag3-current.json, hechizo7225
+contra enemigo a nivel90 y200, con inicialización y terreno reales. Ambos
+resultan actor_state_changed, sin rechazo y con cambios más allá del coste.
+Paquetes de efectos:13497/12613/13497/13497/13497. Hashes antes/después estables,
+original conservado y sin gasto original2/2. Proceso terminó exit0. No verificado
+jugando ni reiniciado el servicio; fuente entregada para auditoría de raíz.

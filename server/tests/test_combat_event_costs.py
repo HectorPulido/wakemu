@@ -55,20 +55,25 @@ class EventCostTests(unittest.TestCase):
         self.assertEqual(self.context_calls, [])
 
     def test_state_container_is_not_a_source_spell_and_unknown_is_not_absence(self):
-        retention = SimpleNamespace(
-            plan={"spell_id": 6260, "evaluation_level": 1},
-            container=lambda inv: (
-                {"container_present": True, "container_type": 3},
-                123,
-            ),
-        )
-        descriptor = source_cost_descriptor(retention, self.inv)
-        self.assertEqual(
-            descriptor["spell_context"], dict(present=True, container_type=3)
-        )
-        self.assertEqual(
-            self.authority(dict(effect_class=910), self.inv, descriptor), descriptor
-        )
+        for kind in (1, 3):  # fyW state and faV area, respectively.
+            with self.subTest(container_type=kind):
+                retention = SimpleNamespace(
+                    plan={"spell_id": 6260, "evaluation_level": 1},
+                    container=lambda inv: (
+                        {"container_present": True, "container_type": kind},
+                        123,
+                    ),
+                )
+                descriptor = source_cost_descriptor(retention, self.inv)
+                self.assertEqual(
+                    descriptor["spell_context"], dict(present=True, container_type=kind)
+                )
+                self.assertEqual(
+                    self.authority(dict(effect_class=910), self.inv, descriptor),
+                    descriptor,
+                )
+                self.assertNotIn("spell_id", descriptor["spell_context"])
+        self.assertEqual(self.context_calls, [])
         with self.assertRaises(ValueError):
             self.authority(dict(effect_class=910), self.inv, {"runner_class": "other"})
 

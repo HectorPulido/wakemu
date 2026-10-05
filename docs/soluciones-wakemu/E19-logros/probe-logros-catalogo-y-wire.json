@@ -1,0 +1,425 @@
+{
+  "date": "2026-10-05",
+  "scope": "Offline native catalog and codec probes; static server review. No GUI, live completion, implementation, DB changes or Dofus execution.",
+  "counts": {
+    "TYPE": 19,
+    "VAR": 396,
+    "CAT": 481,
+    "ACH": 3278,
+    "FLAGS": 3278,
+    "OBJ": 6029,
+    "REWARD": 5593,
+    "DEP": 297
+  },
+  "objective_rows_with_both_client_criteria_empty": 5021,
+  "reward_types": {
+    "1": "GIVE_PET_EQUIPMENT",
+    "2": "GIVE_PLAYER_TITLE",
+    "3": "GIVE_PLAYER_EMOTE",
+    "4": "GIVE_PLAYER_LANDMARK",
+    "5": "GIVE_PLAYER_ITEM",
+    "6": "GIVE_PLAYER_XP",
+    "7": "GIVE_PLAYER_APTITUDE_POINTS",
+    "8": "SPELLS_RESTAT",
+    "9": "APPLY_STATE_EFFECTS",
+    "10": "LEARN_RECIPE",
+    "11": "GIVE_KAMAS",
+    "12": "GIVE_GUILD_POINTS",
+    "13": "GIVE_PLAYER_XP_IN_PERCENT",
+    "14": "VALIDATE_STEAM_ACHIEVEMENT",
+    "15": "REGISTER_ZAAP",
+    "16": "GIVE_PLAYER_SPELL",
+    "17": "GIVE_PLAYER_XP_PER_MOB_XP",
+    "18": "REGISTER_DRAGO",
+    "19": "GIVE_PLAYER_COSMETIC"
+  },
+  "reward_type_counts": {
+    "5": 2796,
+    "6": 1405,
+    "2": 349,
+    "3": 14,
+    "17": 574,
+    "11": 380,
+    "10": 2,
+    "12": 3,
+    "15": 38,
+    "18": 22,
+    "16": 4,
+    "4": 6
+  },
+  "selected": {
+    "4228": {
+      "name": "Madera de jefe",
+      "definition": [
+        "4228",
+        "69",
+        "true",
+        "",
+        "",
+        "0",
+        "0"
+      ],
+      "objectives": [
+        {
+          "id": 8716,
+          "name": "Completar el logro Despacho de los mercenarios - Mercenario abnegado",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 8717,
+          "name": "Completar el logro Meta-logro: Misiones automáticas, 6 a 20",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 8718,
+          "name": "Completar el logro Astrub, la ciudad de los mercenarios",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 8723,
+          "name": "Completar el logro Zone of Beginners",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 8724,
+          "name": "Completar el logro Entrenado por Gúltar",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 8725,
+          "name": "Completar la misión Primera prima (misión de Ruel)",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        }
+      ],
+      "rewards": [
+        {
+          "id": 7936,
+          "type": 5,
+          "flag_ckk": false,
+          "parameters": [
+            16942,
+            1
+          ]
+        }
+      ]
+    },
+    "3976": {
+      "name": "Entrenado por Gúltar",
+      "definition": [
+        "3976",
+        "69",
+        "true",
+        "not GetBooleanSystemConfiguration(\"beta.mode\")",
+        "",
+        "0",
+        "0"
+      ],
+      "objectives": [
+        {
+          "id": 8539,
+          "name": "Entrenar 5 veces con Tristepin",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        }
+      ],
+      "rewards": [
+        {
+          "id": 7050,
+          "type": 2,
+          "flag_ckk": false,
+          "parameters": [
+            520
+          ]
+        },
+        {
+          "id": 7051,
+          "type": 5,
+          "flag_ckk": false,
+          "parameters": [
+            14168,
+            10
+          ]
+        }
+      ]
+    },
+    "177": {
+      "name": "Zone of Beginners",
+      "definition": [
+        "177",
+        "69",
+        "true",
+        "",
+        "",
+        "0",
+        "0"
+      ],
+      "objectives": [
+        {
+          "id": 345,
+          "name": "Ir a ver al maestro Búhoss en el centro de Astrub",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 420,
+          "name": "Ir a ver a B. Tóven en Astrub",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 388,
+          "name": "Descubrir el sótano de la taberna de Astrub",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 346,
+          "name": "Visitar la mazmorra Tofullero",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 997,
+          "name": "Visitar la mazmorra Larventura",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 444,
+          "name": "Visitar la mazmorra Pastos de los Jalatós",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 8719,
+          "name": "Entrar en la arena de Zurcalia",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        },
+        {
+          "id": 8762,
+          "name": "Entrar en el Bibliotemplo",
+          "criterion": "",
+          "activation_criterion": "",
+          "listeners": []
+        }
+      ],
+      "rewards": [
+        {
+          "id": 234,
+          "type": 2,
+          "flag_ckk": false,
+          "parameters": [
+            97
+          ]
+        }
+      ]
+    },
+    "2175": {
+      "name": "Astrub, la ciudad de los mercenarios",
+      "definition": [
+        "2175",
+        "69",
+        "true",
+        "",
+        "",
+        "0",
+        "0"
+      ],
+      "objectives": [
+        {
+          "id": 4300,
+          "name": "Terminar la misión principal de Astrub",
+          "criterion": "",
+          "activation_criterion": ""
+        }
+      ]
+    },
+    "2152": {
+      "name": "Astrub, la ciudad de los mercenarios",
+      "definition": [
+        "2152",
+        "298",
+        "true",
+        "False\\r\\nand IsAchievementActive(2152)",
+        "False",
+        "1",
+        "0"
+      ],
+      "objectives": [
+        {
+          "id": 4271,
+          "name": "Llevarle el merkasako al abuelito Ditocas",
+          "criterion": "",
+          "activation_criterion": ""
+        }
+      ]
+    },
+    "2461": {
+      "name": "Despacho de los mercenarios - Mercenario abnegado",
+      "definition": [
+        "2461",
+        "339",
+        "true",
+        "",
+        "",
+        "0",
+        "0"
+      ],
+      "objectives": [
+        {
+          "id": 4867,
+          "name": "Terminar todos los contratos de los mercenarios de la ciudad de Astrub",
+          "criterion": "",
+          "activation_criterion": ""
+        },
+        {
+          "id": 4868,
+          "name": "Terminar todos los contratos de los mercenarios de los alrededores de Astrub",
+          "criterion": "",
+          "activation_criterion": ""
+        },
+        {
+          "id": 4869,
+          "name": "Terminar todos los contratos de los mercenarios de las alcantarillas de Astrub",
+          "criterion": "",
+          "activation_criterion": ""
+        }
+      ]
+    },
+    "2996": {
+      "name": "Meta-logro: Misiones automáticas, 6 a 20",
+      "definition": [
+        "2996",
+        "642",
+        "true",
+        "",
+        "",
+        "0",
+        "0"
+      ],
+      "objectives": [
+        {
+          "id": 6278,
+          "name": "Completar el logro \"Invasiones en cadena I\"",
+          "criterion": "",
+          "activation_criterion": ""
+        },
+        {
+          "id": 6277,
+          "name": "Completar el logro A la carrera I",
+          "criterion": "",
+          "activation_criterion": ""
+        },
+        {
+          "id": 6281,
+          "name": "Completar el logro \"Misión Solitaria I\"",
+          "criterion": "",
+          "activation_criterion": ""
+        },
+        {
+          "id": 6276,
+          "name": "Completar el logro \"Archimonstruos de calidad I\"",
+          "criterion": "",
+          "activation_criterion": ""
+        },
+        {
+          "id": 6274,
+          "name": "Completar el logro \"Yo soy el más fuerte I\"",
+          "criterion": "",
+          "activation_criterion": ""
+        },
+        {
+          "id": 6275,
+          "name": "Completar el logro Hordas furiosas I",
+          "criterion": "",
+          "activation_criterion": ""
+        },
+        {
+          "id": 6280,
+          "name": "Completar el logro \"De la mano I\"",
+          "criterion": "",
+          "activation_criterion": ""
+        },
+        {
+          "id": 6279,
+          "name": "Completar el logro \"Los locos del clic I\"",
+          "criterion": "",
+          "activation_criterion": ""
+        }
+      ]
+    },
+    "3974": {
+      "name": "Primera prima",
+      "definition": [
+        "3974",
+        "679",
+        "true",
+        "IsAchievementActive(3974)",
+        "GetRealLevel() >= 15 and IsAchievementComplete(3973)",
+        "15",
+        "0"
+      ],
+      "objectives": [
+        {
+          "id": 8459,
+          "name": "Hablar con Ruel ante el tribunal",
+          "criterion": "",
+          "activation_criterion": ""
+        }
+      ]
+    }
+  },
+  "native_wire_probe": [
+    "default sectionBytes=21 blobBytes=18 compressed=false remaining=0 variable=0",
+    "snapshot variable695=49",
+    "incremental opcode=13295 variable695=50",
+    "compressedRoundTrip=true",
+    "restore achievement4228 active=true completed=true objective8716=true tracked={4228}",
+    "request opcode=13175 encoded=0000000c0333770000108401",
+    "request opcode=12533 encoded=0000000b0330f500001084",
+    "request opcode=13397 encoded=0000000b03345500001084"
+  ],
+  "source_sha256": {
+    "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+    "client/contents/bdata/1.jar": "a40b77575b015bee15fcfcaac700c6fa6f7417f52438121d61e86add825b6ad8",
+    "client/contents/bdata/2.jar": "bf8c9304eab33876116b42533cb3927dcb709134e625cbe634b899696df98b76",
+    "client/contents/bdata/3.jar": "7c3a6a50e0cad375c99fa3b207d5ebaecd1cbcc71927ac2b75ea4f5ee52f4c8b",
+    "client/contents/bdata/115.jar": "533840407a60bcaabf19f3125655a1fe1cf4572942f20789a2b2f1ee6f9d02b5",
+    "client/contents/scripts/scripts.jar": "99fbfc7ac49e916d36846fa051e322c0c252cb51c52e5359f4b107b8dedfb2c4",
+    "client/contents/i18n/i18n_es.jar": "7a1e3247388f5e771e31f2ea1e4db7a2c7dc48d4108b71dae04789e7966ce7c8",
+    "server/wakfu_server/wire.py": "53c52ffa187cb26da84cc75b042377f388118136076959fafa737e15a976e556",
+    "server/protocol/entity-defaults.json": "c9db0599fe76d39285b084fa6ff70a09db3913f9b84af7b3e45eddbee331e770",
+    "server/local_game_server.py": "dceb23040feabd028ad683f58629ae5c332eb1cfc77a1aea71ef3a1849226719"
+  },
+  "private_reproduction_sources": [
+    ".runtime/local/AchievementCatalogAudit.java",
+    ".runtime/local/AchievementWireAudit.java"
+  ],
+  "complete": false,
+  "achievement_list_115": {
+    "records_read_by_apw": 0,
+    "binary_size_bytes": 24,
+    "note": "Present archive, no list records returned by current native loader; cannot use it as dependency graph for4228."
+  }
+}

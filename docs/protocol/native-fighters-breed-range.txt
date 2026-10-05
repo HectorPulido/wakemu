@@ -1,0 +1,16 @@
+GetFightersWithBreedInRange: contrato encontrado en el cliente instalado.
+
+Lexer: token 129. Parser eQb: construye eKt.
+Constructor eKt: tres argumentos (radio numérico, selector textual, raza numérica).
+La raza se evalúa mediante alP y se compara con eGj.aXA sobre fbX.fUQ.
+No se filtra por equipo en eKt: incluye todos los combatientes de esa raza.
+
+La base eKn exige contexto de combate. Resuelve el centro por selector;
+si target es una celda aBn usa esa celda, aunque no haya actor sobre ella.
+Si falta el centro devuelve cero. Filtra la propiedad ffe.sem antes de contar.
+Radio <= 0 cuenta toda la colección filtrada, sin comprobar distancias.
+Radio positivo compara ala.c(combatiente, centro) con límites inclusivos 0..radio.
+No se puede reemplazar ese filtro por HP > 0 sin acreditar equivalencia.
+
+Evidencia: bytecode eKt/eKn original. Implementación y probe de equivalencia
+pendientes al crear esta nota. No es prueba de hechizo completo en juego.

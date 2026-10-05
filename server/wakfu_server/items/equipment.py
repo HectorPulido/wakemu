@@ -54,6 +54,7 @@ def validate_sheet(character, blob):
         used.add(uid)
         result.append(dict(uid=uid, slot=slot))
     from .equipment_conditions import catalog, evaluate
+
     conditions = catalog()
     for row in result:
         item = owned[row["uid"]]
@@ -61,6 +62,8 @@ def validate_sheet(character, blob):
         if by_action is None:
             raise ValueError("Missing native equipment condition catalog")
         criterion = by_action.get("EQUIP")
-        if criterion and not evaluate(criterion, item=item, selected=result, owned=owned):
+        if criterion and not evaluate(
+            criterion, item=item, selected=result, owned=owned
+        ):
             raise ValueError("Native equipment EQUIP criteria are not satisfied")
     return result

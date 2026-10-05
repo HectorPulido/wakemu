@@ -1,0 +1,15 @@
+{
+  "method": "Executed native eTa.fJj -> eTa.a and eTa.fJl -> eTa.d",
+  "initial_xp": 150,
+  "full_dh_restored_xp": 150,
+  "secure_gg_restored_xp": 75,
+  "native_consumer": "eTe.a(du,boolean) clears professions and loads dh via eTa.a; eTe.a(gk,boolean) loads gg via eTa.d",
+  "limits": [
+    "Outer own-character bootstrap carrier and full protobuf layout not yet revalidated.",
+    "cuy12818 secureCraft is not evidence of full XP synchronization."
+  ],
+  "harness_failures": [
+    "First compile used nonexistent dh.Dz.",
+    "Descriptor reflection attempted generated getXp absent in obfuscated class; roundtrip probe succeeded after removing reflection."
+  ]
+}

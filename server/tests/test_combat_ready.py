@@ -1,4 +1,5 @@
 import unittest
+import struct
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_ready import prepare_ready
 
@@ -49,7 +50,9 @@ class ReadyTests(unittest.TestCase):
         def initialize(preview, action):
             calls.append(action)
             preview.native_class_initializations = {100: {"breed": 8}}
-            return preview, ((12613, b"innate"),)
+            return preview, (
+                (12613, struct.pack(">iii", preview.id, action, -1) + b"innate"),
+            )
 
         preview, messages, packets = self.run_ready(fight, initialize)
         ops = [op for op, _ in packets]

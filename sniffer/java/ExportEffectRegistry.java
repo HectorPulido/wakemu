@@ -49,6 +49,14 @@ public class ExportEffectRegistry {
                 Map.of("stat_id",ffw.sgE.aKg()&255,"property_id",ffe.sdB.aKg()&255,"property_name",ffe.sdB.name())));
             row.put("source_guards",guards);
             row.put("limit_policy_requires_owned_stack",limit==fap.rJR);
+        } else if(runner.getClass()==eYO.class) {
+            PC stat=((eYO)runner).fNI();
+            if(stat==null || stat.aZn()!=0)throw new IllegalStateException("Non-numeric forced characteristic");
+            row.put("operation","set_current");row.put("fixed_stat_id",stat.aKg()&255);
+            row.put("fixed_stat_name",stat.toString());row.put("dynamic_stat",false);
+            row.put("parameter_contract",Map.of("supported_counts",List.of(0,1,2,3),"amount_index",0,"set_maximum_index",1,"percent_index",2));
+            row.put("additional_fields",Map.of("set_maximum",17,"percent",18));
+            row.put("removal_reverts",false);
         } else if(entry.d()==400 && runner.getClass()==eXE.class) {
             row.put("operation","none");row.put("fixed_stat_id",null);row.put("dynamic_stat",false);
             row.put("parameter_contract",Map.of("status_parameter_index",0,"evaluation_level",0,
@@ -66,7 +74,7 @@ public class ExportEffectRegistry {
                 throw new IllegalStateException("Duplicate registry effect class"+entry.d());
         }
         Map<String,Object> result=new LinkedHashMap<>();
-        result.put("source","Installed wakfu-client.jar eVi/eWQ/eWR/eXE registry, offline reflection");
+        result.put("source","Installed wakfu-client.jar eVi/eWQ/eWR/eXE/eYO registry, offline reflection");
         result.put("client_jar_sha256",HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(Path.of("client/lib/wakfu-client.jar")))));
         result.put("application_opcode",13497);result.put("removal_opcode",13560);
         result.put("effects",entries);

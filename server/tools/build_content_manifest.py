@@ -22,6 +22,7 @@ CATALOGS = {
     "item-equipment-effects.json": "items",
     "rii-test-arena.json": None,
     "combat-maps/index.json": None,
+    "forced-transitions/index.json": None,
     "combat-los/index.json": None,
     "item-stack-rules.json": "items",
     "item-action-rules.json": "items",

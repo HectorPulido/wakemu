@@ -25,6 +25,31 @@ def effect(kind, parameters=(), *, criteria="", children=()):
 
 
 class EffectDispatchTests(unittest.TestCase):
+    def test_native_actor_group_passes_target_coordinates_preserving_selector(self):
+        selected = []
+        effects = {"90": effect(330, children=(91,)), "91": effect(400)}
+
+        def resolve(definition, invocation):
+            selected.append(invocation)
+            return (invocation,)
+
+        dispatcher = EffectDispatcher(
+            effects,
+            {400: lambda *args: True},
+            resolve=resolve,
+            condition_context=lambda inv: ConditionContext({}),
+            probability_accepts=lambda *args: True,
+            group_cells=lambda *args: (),
+            actor_position=lambda identity: (identity, 1, 2),
+        )
+        dispatcher.execute(
+            EffectInvocation(90, 20, 7, 8, (0, 0, 0), native_explicit_target=True)
+        )
+        child = next(inv for inv in selected if inv.reference == 91)
+        self.assertEqual(child.target_id, 8)
+        self.assertFalse(child.native_explicit_target)
+        self.assertEqual(child.cell, (8, 1, 2))
+
     def test_relative_authority_selects_children_and_bypasses_second_probability(self):
         from types import SimpleNamespace
 
@@ -39,6 +64,10 @@ class EffectDispatchTests(unittest.TestCase):
             begin_group=lambda *args: None,
             finish_group=lambda *args: None,
             child_context=lambda *args, **kwargs: bytes.fromhex("08001000"),
+            child_level_context=lambda *args, default_level, **kwargs: (
+                default_level,
+                bytes.fromhex("08001000"),
+            ),
             probability_bypassed=lambda invocation: invocation.native_context_hex
             is not None
             and invocation.native_context_hex.endswith("08011000"),
@@ -57,6 +86,52 @@ class EffectDispatchTests(unittest.TestCase):
         self.assertTrue(dispatcher.execute(EffectInvocation(90, 1, 7, -7, (1, 0, 0))))
         self.assertEqual(rolls, [90])
         self.assertEqual([inv.reference for inv in calls], [91])
+
+    def test_random_group_uses_native_selector_and_bypasses_child_probability(self):
+        from types import SimpleNamespace
+        from wakfu_server.combat_effect_removal import _identity_fields
+
+        effects = {
+            "90": effect(341, (1, 1, 1), children=(91, 92)),
+            "91": effect(400),
+            "92": effect(400),
+        }
+        rolls, calls = [], []
+
+        def bypass(inv):
+            return (
+                inv.native_context_hex is not None
+                and _identity_fields(
+                    bytes.fromhex(inv.native_context_hex), integer_fields=(1, 2, 4)
+                )[1]
+                == 1
+            )
+
+        retention = SimpleNamespace(
+            is_subscription=lambda *a: False,
+            begin_group=lambda *a: None,
+            finish_group=lambda *a: None,
+            child_level_context=lambda *a, default_level, **k: (
+                default_level,
+                bytes.fromhex("080010002000"),
+            ),
+            probability_bypassed=bypass,
+        )
+        dispatcher = EffectDispatcher(
+            effects,
+            {400: lambda effect, values, inv: calls.append(inv) is None},
+            resolve=lambda e, i: (i,),
+            condition_context=lambda i: ConditionContext({}),
+            probability_accepts=lambda p, i: rolls.append(i.reference) is None,
+            group_cells=lambda *a: (),
+            actor_position=lambda i: (0, 0, 0),
+            group_retention=retention,
+            random_group_children=lambda e, v, i, c: (92,),
+        )
+        self.assertTrue(dispatcher.execute(EffectInvocation(90, 1, 7, -7, (1, 0, 0))))
+        self.assertEqual(rolls, [90])
+        self.assertEqual([i.reference for i in calls], [92])
+        self.assertEqual(calls[0].target_id, -7)
 
     def setUp(self):
         pc = Actor(7, 0, (0, 0, 0), 60, 6, 3, 10, 1, 3, True)

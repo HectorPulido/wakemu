@@ -1,14 +1,14 @@
 """Native owned eZk310 carrier, distinct from its eWu304 applying parent.
 
-Wire proof: ProbeStateCarrier.java native eZk.a/bca; cvY13497/cjL applies
-an already evaluated running effect. Scheduling values remain explicit native
+Wire proof: ProbeStateCarrier.java native eZk.a/bca; cvX12613/cjK/aVo retains the already evaluated carrier without
+executing its children again; cvY13497/aTR cannot retain eZk.aZN()==false. Scheduling values remain explicit native
 inputs rather than inferred turns; server clock policy belongs to the ledger.
 """
 import struct
 from .combat_effects import _integer, _varint
 from .combat_effect_removal import running_effect_removal, STATE_CARRIER_EFFECT_CLASS
 
-STATE_CARRIER_APPLICATION_OPCODE = 13497
+STATE_CARRIER_APPLICATION_OPCODE = 12613
 
 
 def state_carrier_payload(
@@ -108,7 +108,11 @@ def state_carrier_payload(
 def state_carrier_application(
     fight_id, action_id, *, uid, target_id, running_effect_payload, sequence=-1
 ):
-    """13497/cvY application of an owned carrier310 with synchronized UID."""
+    """Native cvX12613, eIK=false: retain evaluated carrier without child gameplay.
+
+    RuntimeMessages.prepare_delivery allocates a distinct cvB action ID before
+    queuing. The carrier UID/baseUID and stored removal payload stay unchanged.
+    """
     validated = running_effect_removal(
         fight_id,
         action_id,
@@ -117,5 +121,7 @@ def state_carrier_application(
         target_id=target_id,
         running_effect_payload=running_effect_payload,
         sequence=sequence,
+        notify_unapplication=False,
     )
-    return validated[:-16]  # cvY has cvZ's exact prefix/proto, without removal IDs.
+    prefix = validated[:-16]
+    return prefix[:12] + b"\x00" + prefix[12:]

@@ -13,6 +13,90 @@ from wakfu_server.combat_event_replay import NativeEventSource
 
 
 class TriggerIdentifierTests(unittest.TestCase):
+    def test_container_type_known_null_present_and_unknown(self):
+        for source, expected in (
+            (None, 0),
+            ({"native_container": {"present": False}}, 0),
+            ({"native_container": {"present": True, "type": 11}}, 11),
+            ({"native_container": {"present": True, "type": 1}}, 1),
+            ({"native_container": {"present": True, "type": 3}}, 3),
+        ):
+            self.assertTrue(
+                evaluate_condition(
+                    f"GetTriggeringContainerType() == {expected}", self.context(source)
+                )
+            )
+        for source in (
+            {},
+            {"native_container": {"present": True}},
+            {"native_container": {"present": True, "type": 99}},
+        ):
+            with self.assertRaises(UnknownCondition):
+                evaluate_condition(
+                    "GetTriggeringContainerType() == 0", self.context(source)
+                )
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition(
+                "GetTriggeringContainerType(1) == 11", self.context(None)
+            )
+
+    def test_triggering_caster_uses_source_identity_and_null_sentinel(self):
+        self.assertTrue(
+            evaluate_condition("GetTriggeringEffectCaster() == -1", self.context(None))
+        )
+        for identity in (7, -99, (1 << 62)):
+            context = ConditionContext(
+                {}, triggering_effect_present=True, triggering_effect_caster_id=identity
+            )
+            self.assertTrue(
+                evaluate_condition(
+                    f"GetTriggeringEffectCaster() == {identity}", context
+                )
+            )
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition("GetTriggeringEffectCaster() == 0", self.context({}))
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition("GetTriggeringEffectCaster(1) == -1", self.context(None))
+
+    def test_same_trigger_caster_requires_proven_object_identity_and_no_arguments(self):
+        for same in (False, True):
+            context = ConditionContext({}, triggering_caster_is_same=same)
+            self.assertEqual(
+                evaluate_condition(
+                    "GetTriggeringEffectCasterIsSameAsCaster()", context
+                ),
+                same,
+            )
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition(
+                "GetTriggeringEffectCasterIsSameAsCaster()", ConditionContext({})
+            )
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition(
+                "GetTriggeringEffectCasterIsSameAsCaster(1)",
+                ConditionContext({}, triggering_caster_is_same=True),
+            )
+
+    def test_triggering_target_identity_is_separate_from_caster(self):
+        context = ConditionContext(
+            {},
+            triggering_effect_present=True,
+            triggering_effect_caster_id=7,
+            triggering_effect_target_id=-99,
+        )
+        self.assertTrue(
+            evaluate_condition(
+                "GetTriggeringEffectCaster() <> GetTriggeringEffectTarget()", context
+            )
+        )
+        self.assertTrue(
+            evaluate_condition("GetTriggeringEffectTarget() == -1", self.context(None))
+        )
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition("GetTriggeringEffectTarget() == -1", self.context({}))
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition("GetTriggeringEffectTarget(1) == -1", self.context(None))
+
     def context(self, source):
         return ConditionContext({}, **condition_identifiers(source))
 
@@ -57,7 +141,7 @@ class TriggerIdentifierTests(unittest.TestCase):
     def test_source_fyw_signed_short_and_real_event_roundtrip(self):
         class Retention:
             def container(self, invocation):
-                return {"container_present": True, "container_type": 3}, (
+                return {"container_present": True, "container_type": 1}, (
                     40000 << 16
                 ) | 200
 
@@ -77,7 +161,7 @@ class TriggerIdentifierTests(unittest.TestCase):
             False,
             False,
             True,
-            **fields
+            **fields,
         )
         event.validate()
         c = self.context(asdict(event))
@@ -101,18 +185,38 @@ class TriggerIdentifierTests(unittest.TestCase):
         )
 
     def test_source_value_signed_and_absence_not_unknown_zero(self):
-        self.assertTrue(evaluate_condition('GetTriggeringEffectValue() == 0', self.context(None)))
-        self.assertTrue(evaluate_condition('GetTriggeringEffectValue() == -25',self.context({'value':-25})))
+        self.assertTrue(
+            evaluate_condition("GetTriggeringEffectValue() == 0", self.context(None))
+        )
+        self.assertTrue(
+            evaluate_condition(
+                "GetTriggeringEffectValue() == -25", self.context({"value": -25})
+            )
+        )
         with self.assertRaises(UnknownCondition):
-            evaluate_condition('GetTriggeringEffectValue() == 0',self.context({}))
+            evaluate_condition("GetTriggeringEffectValue() == 0", self.context({}))
         with self.assertRaises(ValueError):
-            self.context({'value':1 << 31})
+            self.context({"value": 1 << 31})
 
     def test_source_definition_id_is_not_uid_or_action(self):
-        c = self.context({'generic_effect':987654,'effect_action_id':400,'uid':123})
-        self.assertTrue(evaluate_condition('GetTriggeringEffectId() == 987654 and GetTriggeringEffectId(2) == 987654 and GetTriggeringEffectActionId() == 400',c))
-        for depth in (0,-1):
-            self.assertTrue(evaluate_condition(f'GetTriggeringEffectId({depth}) == -1 and GetTriggeringEffectActionId({depth}) == -1',c))
-        self.assertTrue(evaluate_condition('GetTriggeringEffectId() == -1',self.context(None)))
+        c = self.context(
+            {"generic_effect": 987654, "effect_action_id": 400, "uid": 123}
+        )
+        self.assertTrue(
+            evaluate_condition(
+                "GetTriggeringEffectId() == 987654 and GetTriggeringEffectId(2) == 987654 and GetTriggeringEffectActionId() == 400",
+                c,
+            )
+        )
+        for depth in (0, -1):
+            self.assertTrue(
+                evaluate_condition(
+                    f"GetTriggeringEffectId({depth}) == -1 and GetTriggeringEffectActionId({depth}) == -1",
+                    c,
+                )
+            )
+        self.assertTrue(
+            evaluate_condition("GetTriggeringEffectId() == -1", self.context(None))
+        )
         with self.assertRaises(UnknownCondition):
-            evaluate_condition('GetTriggeringEffectId() == 0',self.context({}))
+            evaluate_condition("GetTriggeringEffectId() == 0", self.context({}))

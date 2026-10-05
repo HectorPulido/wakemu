@@ -58,6 +58,44 @@ class NativeDisplacementTests(unittest.TestCase):
             effect, None, EffectInvocation(reference, level, 7, target, cell)
         )
 
+    def stair_fixture(self):
+        self.preview.actors[7].position = (-15, -3, 0)
+        self.preview.actors[-7].position = (-15, -5, -1)
+        self.preview.actors[-7].native_los_height = 4
+        self.preview.walkable = {(-15, -3, 0), (-15, -4, 0), (-15, -5, -1)}
+        self.authority.monsters[-7]["map_id"] = 1134
+        # Native short-form pull stops adjacent to caster (eXK/faz), unlike
+        # the three-parameter direction5 fixture which deliberately pulls on.
+        self.effects["326690"] = deepcopy(self.effects["326690"])
+        self.effects["326690"]["parameters"] = self.effects["326690"]["parameters"][:4]
+        self.effects["326690"]["parameter_count"] = 2
+
+    def test_native_pull_climbs_verified_surface_without_flat_walk_edge(self):
+        self.stair_fixture()
+        self.preview.edges = frozenset()
+        self.execute(326690, cell=(-15, -3, 0))
+        self.assertEqual(self.preview.actors[-7].position, (-15, -4, 0))
+
+    def test_native_height_transition_collision_preserves_position_uid_packets(self):
+        self.stair_fixture()
+        self.preview.actors[8].position = (-15, -4, 0)
+        with self.assertRaisesRegex(ValueError, "collision"):
+            self.execute(326690, cell=(-15, -3, 0))
+        self.assertEqual(self.preview.actors[-7].position, (-15, -5, -1))
+        self.assertEqual(self.preview.native_effect_uid_next, 200)
+        self.assertEqual(self.packets, [])
+
+    def test_later_collision_rolls_back_earlier_valid_height_transition(self):
+        self.stair_fixture()
+        effect = self.effects["326690"]
+        effect["parameters"] += [5, 0]
+        effect["parameter_count"] = 3
+        with self.assertRaisesRegex(ValueError, "collision"):
+            self.execute(326690, cell=(-15, -3, 0))
+        self.assertEqual(self.preview.actors[-7].position, (-15, -5, -1))
+        self.assertEqual(self.preview.native_effect_uid_next, 200)
+        self.assertEqual(self.packets, [])
+
     def test_native_additional_exact_jar_bytes(self):
         self.assertEqual(
             displacement_additional(302, destination=(-2, 3, -1)).hex(),
@@ -90,6 +128,40 @@ class NativeDisplacementTests(unittest.TestCase):
         self.execute(358000)
         self.assertEqual(self.preview.actors[-7].position, (5, 0, 0))
         self.assertEqual(self.preview.actors[-7].ap, 6)
+
+    def test_resolver_order_flags_preserve_displacement_and_unknown_rejection(self):
+        effect = deepcopy(self.effects["358000"])
+        for flag in (3, 5, 14, 26):
+            with self.subTest(flag=flag):
+                self.preview.actors[-7].position = (4, 0, 0)
+                effect["native_effect_flags"] = [flag]
+                self.handler(
+                    effect, None, EffectInvocation(358000, 1, 7, -7, (4, 0, 0))
+                )
+                self.assertEqual(self.preview.actors[-7].position, (5, 0, 0))
+                self.assertEqual(effect["native_effect_flags"], [flag])
+        effect["native_effect_flags"] = [16]
+        before = self.preview.actors[-7].position
+        with self.assertRaisesRegex(ValueError, "Unhandled native displacement flags"):
+            self.handler(effect, None, EffectInvocation(358000, 1, 7, -7, (4, 0, 0)))
+        self.assertEqual(self.preview.actors[-7].position, before)
+
+    def test_zone_preview_flag_changes_neither_geometry_nor_native_packet(self):
+        results = []
+        for flags in ([], [3]):
+            self.setUp()
+            effect = deepcopy(self.effects["358000"])
+            effect["native_effect_flags"] = flags
+            self.handler(effect, None, EffectInvocation(358000, 1, 7, -7, (4, 0, 0)))
+            results.append(
+                (
+                    self.preview.actors[-7].position,
+                    tuple(self.packets),
+                    self.preview.native_effect_uid_next,
+                )
+            )
+            self.assertEqual(effect["native_effect_flags"], flags)
+        self.assertEqual(results[0], results[1])
 
     def test_real_caster_teleport_and_swap_without_actor_fabrication(self):
         self.execute(349548, target=None, cell=(2, 2, 0))

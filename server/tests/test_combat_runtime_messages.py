@@ -34,6 +34,38 @@ class RuntimeMessageTests(unittest.TestCase):
         wire.end_turn(1, 100, 2)
         self.assertEqual(wire.expire_current_once(), [])
 
+    def test_rejected_expiry_recovers_same_turn_and_rearms_without_partial_commit(self):
+        from wakfu_server.combat_conditions import UnknownCondition
+        from wakfu_server.combat_geometry_snapshot import source_snapshot
+
+        fight, _ = self.state()
+        now = [0.0]
+        calls = []
+
+        def reject(candidate, **boundary):
+            calls.append(boundary["actor_id"])
+            candidate.current.hp -= 5
+            candidate.current.ap = 0
+            raise UnknownCondition("unverified native predicate")
+
+        wire = RuntimeMessages(fight, clock=lambda: now[0], turn_end_provider=reject)
+        wire.turn_started()
+        before = source_snapshot(fight)
+        now[0] = 31.0
+        packets, error = wire.expire_current_or_recover(1, now_ms=31000)
+        self.assertEqual(error, "unverified native predicate")
+        self.assertEqual([op for op, _ in packets], [12053, 13482, 13420])
+        self.assertEqual(source_snapshot(fight), before)
+        self.assertEqual((fight.turn_id, fight.current.id), (1, 100))
+        self.assertIsNone(wire.awaiting_ack)
+        self.assertEqual(wire.pending, [])
+        self.assertEqual(wire.turn_deadline, 61.0)
+        self.assertEqual(wire.expire_current_or_recover(1, now_ms=31000), ([], None))
+        self.assertEqual(calls, [100])
+        with self.assertRaises(UnknownCondition):
+            wire.end_turn(1, 100, 1)
+        self.assertEqual(source_snapshot(fight), before)
+
     def test_dead_or_terminal_actor_cannot_expire(self):
         fight, _ = self.state()
         now = [0.0]

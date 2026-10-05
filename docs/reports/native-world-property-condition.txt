@@ -1,0 +1,39 @@
+HasWorldProperty — propiedades del actor y fallback nativo
+
+Lexer201 → eMW. No consulta la casilla ni el mapa. Resuelve caster por defecto
+con eII.b; el segundo string sólo cambia a target si equalsIgnoreCase("target").
+Un string distinto mantiene caster. Firmas: propiedad numérica sola, propiedad
+más edad mínima en segundos, o propiedad más stringselector. ID se estrecha a
+byte firmado y se busca en eHQ; ID sin enum o actor nulo da sentinel-1/falso.
+
+Actor.i(eHQ) y, cuando existe eHQ.fxg(), Actor.i(ffe) están unidos por OR.
+Catálogo completo native-world-properties.json exporta nombres/IDs/fallbacks
+originales. Propiedades afectadas43 BOSS,49 ULTIMATE_BOSS,99 RAID_BOSS no tienen
+fallback fight. No se usa NPC=Boss ni whitelist de referencias.
+
+La autoridad de producción ya dispone de OrdinaryActorAuthority.world_properties:
+snapshot vivo si existe, en otro caso datos nativos propios del jugador/monstruo.
+El adaptador conserva esos datos separados de fight_properties. Ausencia de
+snapshot/catalogauthority no implica false: rechaza. Sólo propiedades ausentes
+en una población completa son falsas. Alias target nulo requiere confirmación.
+
+Edad opcional: eMW compara System.currentTimeMillis - eHC.b(actorUID,eHQ)
+con segundos*1000, ambos con aritmética signedlong. eHC getter devuelve cero
+para entrada ausente en su mapa completo. El helper exige ledger completo
+world_property_since_ms y reloj explícito; no inventa cero por falta de ledger.
+El adaptador suministra reloj real y snapshot opcional native_world_property_since_ms.
+Ledger aún desconocido para una propiedad presente con edad rechaza; propiedades
+realmente ausentes no necesitan timestamps. Se soportan IDs/edades enteros
+constantes; otras expresiones numéricas permanecen limitadas explícitamente.
+
+Validación39tests de criteria/worldproperties/adapter PASS. ProbeNativeWorldProperty
+llama eMW/eII originales; diez comprobaciones PASS: bosspresente/ausente,
+bytewrapping, target/case, stringinválido=caster, fallbackIMMORTAL12, actornulo,
+targetnulo, ledgerdefecto0 y duración que todavía no se cumple. Proxies únicamente
+suministran hechos actor.i y Sn; no pretenden probar render ni productor remoto.
+
+Focal crítico actual8casos: active-critical-world-property-current.json.
+4822niveles3/200 ejecuta cambios reales. Los seis de7317/2014/6258 pasan el
+criterio WorldProperty y llegan al siguiente guard numérico no implementado:
+GetEffectTargetOriginalController. Hashes estables y rollback8/8. Proceso47000
+termina exit0; no validación GUI ni reinicio. Fuente entregada a raíz para full.

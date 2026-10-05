@@ -67,11 +67,48 @@ def prepare_spell_cast(
         raise ValueError("Caster is not the owned active actor")
     uid = request["spell_uid"]
     spell_id = uid & 0xFFFFFFFF
-    if uid != (actor_id << 32) | spell_id:
-        raise ValueError("Spell UID belongs to another actor")
-    deck = validate_deck(deck_blob, character["breed"], character["level"])
-    if spell_id not in deck["active"]:
-        raise ValueError("Spell is absent from current deck")
+    from .combat_spell_grant import granted_spells
+
+    temporary = granted_spells(fight, actor_id).get(spell_id)
+    granted = uid == spell_id and temporary is not None and temporary["uid"] == uid
+    if not granted:
+        if uid != (actor_id << 32) | spell_id:
+            raise ValueError("Spell UID belongs to another actor or expired grant")
+        deck = validate_deck(deck_blob, character["breed"], character["level"])
+        if spell_id not in deck["active"]:
+            raise ValueError("Spell is absent from current deck")
+    evaluation_level = temporary["level"] if granted else actor.effective_level
+    if granted:
+        from .combat_native_spell_casting import enabled
+
+        if not enabled():
+            raise ValueError("Native temporary spell casting is not enabled")
+        from .combat_conditional_costs import ConditionalCostContext
+        from .combat_native_spell_casting import definition as native_definition
+
+        context = (
+            conditional_context(request, fight)
+            if callable(conditional_context)
+            else None
+        )
+        snapshot = getattr(actor, "spell_ap_cost_modifiers", None)
+        if isinstance(context, ConditionalCostContext):
+            context, snapshot = context.conditions, context.ap_modifiers_by_category
+        rule = native_definition(spell_id, evaluation_level, context, snapshot)
+        costs, roots = rule["costs"], rule["roots"]
+        return _validate_target(
+            request,
+            actor,
+            fight,
+            wp,
+            costs,
+            rule,
+            roots,
+            evaluation_level,
+            line_of_sight,
+            spell_id,
+            context,
+        )
     effective = dict(character, level=actor.effective_level)
     costs = base_costs(effective, spell_id)
     from .combat_conditional_costs import (
@@ -119,16 +156,59 @@ def prepare_spell_cast(
         raise ValueError("Missing native spell definition or unsupported level")
     minimum, maximum, roots = definition["levels"][actor.effective_level - 1]
     rule = dict(definition, minimum=minimum, maximum=maximum)
+    return _validate_target(
+        request,
+        actor,
+        fight,
+        wp,
+        costs,
+        rule,
+        roots,
+        evaluation_level,
+        line_of_sight,
+        spell_id,
+        context,
+    )
+
+
+def _validate_target(
+    request,
+    actor,
+    fight,
+    wp,
+    costs,
+    rule,
+    roots,
+    evaluation_level,
+    line_of_sight,
+    spell_id,
+    context=None,
+):
+    if actor.ap < costs["ap"] or actor.mp < costs["mp"] or wp < costs["wp"]:
+        raise ValueError("Insufficient authoritative spell resources")
     target_cell = request["target"]
     if target_cell not in fight.walkable:
         raise ValueError("Spell target is outside verified terrain")
     dx, dy = target_cell[0] - actor.position[0], target_cell[1] - actor.position[1]
     distance = abs(dx) + abs(dy)
     if not rule["minimum"] <= distance <= rule["maximum"]:
-        raise ValueError("Spell target is outside native range")
+        # fcj.a(PV,eVo,min,max,allowSelf,x,y) allows distance0 even outside
+        # the range, only when the condition-selected fyP.cwE permits it.
+        from .combat_self_cast import allows_self
+
+        if distance != 0 or not allows_self(spell_id, context):
+            raise ValueError("Spell target is outside native range")
     if rule["linear"] and dx != 0 and dy != 0:
         raise ValueError("Spell requires a straight line")
-    if rule["line_of_sight"] and not line_of_sight(actor.position, target_cell, fight):
+    # Native fcj -> fcr cast LOS tests height-adjusted rays. At the same
+    # XYZ it succeeds without dynamic probes, even when the bare Sf ray
+    # catalog has no visible zero-length pair. This is a cast policy, not a
+    # fabricated static/dynamic LOS catalog entry.
+    if (
+        rule["line_of_sight"]
+        and tuple(actor.position) != tuple(target_cell)
+        and not line_of_sight(actor.position, target_cell, fight)
+    ):
         raise ValueError("Spell target has no verified line of sight")
     target = next(
         (a for a in fight.actors.values() if a.hp > 0 and a.position == target_cell),
@@ -136,13 +216,19 @@ def prepare_spell_cast(
     )
     if rule["free_cell"] and target is not None:
         raise ValueError("Spell requires an unoccupied target cell")
+    from .combat_spell_usage import validate_usage
+
+    usage = validate_usage(
+        fight, actor, spell_id, evaluation_level, target_cell, context
+    )
     return dict(
         request,
+        native_usage=usage,
         spell_id=spell_id,
         costs=costs,
         target_id=None if target is None else target.id,
         effect_ids=tuple(roots),
-        evaluation_level=actor.effective_level,
+        evaluation_level=evaluation_level,
     )
 
 

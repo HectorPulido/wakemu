@@ -72,6 +72,34 @@ class BuildTests(unittest.TestCase):
             [12284],
         )
 
+    def test_combat_blocked_save_restores_prior_deck_without_resource_packets(self):
+        saved = self.store.save_build(
+            self.account, self.generation, self.character["id"], 0, self.blobs
+        )
+        changed = {**self.blobs, "deck": b"optimistic invalid edit"}
+        body = struct.pack(">q", saved["id"]) + b"".join(
+            struct.pack(">I", len(changed[key])) + changed[key] for key in builds.KEYS
+        )
+        packets = builds.blocked_save_messages(saved, body)
+        self.assertEqual([op for op, _ in packets], [12284])
+        r = Reader(packets[0][1])
+        self.assertEqual(
+            (r.number("q"), r.number("i"), r.number("b"), r.number("B")),
+            (saved["id"], 0, 2, 1),
+        )
+        values = [r.take(r.number("I")) for _ in range(4)]
+        r.finish()
+        from wakfu_server.spells import default_deck
+
+        self.assertEqual(values[2], default_deck(saved))
+        self.assertEqual(
+            self.store.character(self.account, saved["id"])["builds"], saved["builds"]
+        )
+        with self.assertRaises(ValueError):
+            builds.blocked_save_messages(
+                saved, struct.pack(">q", saved["id"] + 1) + body[8:]
+            )
+
     def test_session_replacement_and_other_account_cannot_mutate_build(self):
         other = self.store.register("second", "local-other-password")["id"]
         foreign = self.store.begin_session(other)

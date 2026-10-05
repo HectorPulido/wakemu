@@ -106,6 +106,25 @@ class NativeConditionsTests(unittest.TestCase):
                     ConditionContext({"caster": ConditionActor(is_player=True)}),
                 )
 
+    def test_state_from_user_triggering_target_known_null_or_owned_actor(self):
+        criterion = 'HasStateFromUser(7134, "triggeringTarget")'
+        context = ConditionContext(
+            {"caster": ConditionActor(actor_id=10)},
+            state_actor_query=lambda selector: None,
+        )
+        self.assertFalse(evaluate_condition(criterion, context))
+        context = ConditionContext(
+            {"caster": ConditionActor(actor_id=10)},
+            state_actor_query=lambda selector: ConditionActor(
+                state_sources=((7134, 10),)
+            ),
+        )
+        self.assertTrue(evaluate_condition(criterion, context))
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition(
+                criterion, ConditionContext({"caster": ConditionActor(actor_id=10)})
+            )
+
     def test_state_source_uses_first_matching_effect_not_any_source(self):
         def context(sources):
             return ConditionContext(

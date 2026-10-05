@@ -4,7 +4,15 @@ from .combat_runtime_messages import RuntimeMessages
 
 
 def prepare_ready(
-    fight, owner_id, ready, *, initialize, stats_serializer, effects_serializer
+    fight,
+    owner_id,
+    ready,
+    *,
+    initialize,
+    stats_serializer,
+    effects_serializer,
+    turn_end_provider=None,
+    turn_start_provider=None
 ):
     if fight.phase == "active":
         if owner_id not in fight.ready_owners:
@@ -21,7 +29,12 @@ def prepare_ready(
         for actor in preview.actors.values()
     }
     preview, initialization = initialize(preview, 1)
-    messages = RuntimeMessages(preview, stats_serializer=stats_serializer)
+    messages = RuntimeMessages(
+        preview,
+        stats_serializer=stats_serializer,
+        turn_end_provider=turn_end_provider,
+        turn_start_provider=turn_start_provider,
+    )
     messages.action_id = 1  # reserve the transaction's native action identifier
     packets = messages.combat_started(payloads, initialization_packets=initialization)
     return preview, messages, tuple(packets)

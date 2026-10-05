@@ -1,0 +1,31 @@
+{
+  "ui_agent": "/root/luna_ui_recursos",
+  "profile": "audit-builds-isolated-20261004",
+  "client_pid": 33556,
+  "inspector_port": 58915,
+  "character": "Audit Builds",
+  "level": 100,
+  "position": [
+    -4,
+    -2,
+    0
+  ],
+  "item": "Semilla de cardo",
+  "quantity_before": 5,
+  "attempt_utc": "2026-10-05 01:34:51",
+  "drag": [
+    1172,
+    310,
+    922,
+    914
+  ],
+  "inspector_result": "ok",
+  "visible_assignment_confirmed": false,
+  "quantity_after": 5,
+  "server_log_opcode12091_matches": 0,
+  "limits": [
+    "Inspector ok does not prove accepted shortcut assignment",
+    "No reconnect attempted; persistence loss not reproduced",
+    "Quantity staying5 is expected when assigning shortcut, not a failure by itself"
+  ]
+}

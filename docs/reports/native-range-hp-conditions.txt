@@ -1,0 +1,26 @@
+Condiciones comunes: vida total y enemigos en rango
+
+Fuentes nativas
+GetTotalHpInPercent: eQb167 -> eLB. Exige un string; target sin distinguir mayúsculas selecciona objetivo, cualquier otro string selecciona lanzador. Ausencia nativa de actor devuelve -1. Suma HP ffw.sgC(1) y VIRTUAL_HP ffw.shL(92), suma int32, división y multiplicación float32. Máximo cero devuelve cero; no redondea ni limita a100.
+GetEnnemyCountInRange: eQb55 -> eKf/eKn. Formas: (max), (max,selector), (min,max,selector[,alineados[,LOS]]). eKf filtra afiliación diferente, fdy.baF estado sax y excluye barril cargado3794; eKn excluye propiedad ffe.sem42. Distancia Manhattan reduce cada eje por radio físico del candidato. Máximo no positivo cuenta todo el roster filtrado e ignora mínimo/alineación/LOS. LOS usa Sf nativo; no equivalencia entre transitable y transparente.
+
+Pruebas nativas
+ProbeTotalHp.java ejecutó eLB real sobre actores proxy:81+10 sobre101+20 =75.20661163330078;1/3=33.333335876464844; actor ausente=-1; máximo cero=0.
+ProbeRangeAlgorithm.java ejecutó el algoritmo eKn real con candidatos explícitos: huella física, filtros42, máximo no positivo, objetivo celda y alineación. El probe no acredita por sí solo membresía eKf: ésta procede de bytecode fdD/fdy.
+Evidencia privada generada: .runtime/local/native-{total-hp-condition,enemy-range-condition,range-count-parent,range-filters,range-distance,range-membership,range-roster,condition-source-resolution}.txt.
+
+Integración autoritativa
+NativeServerRuntimeAdapter consulta roster y propiedades actuales del preview, no caches mutables. OrdinaryActorAuthority acredita creación exacta y RegisteredSummonAuthority conserva registros explícitos. native_in_play procede de creación fdy sax y eventos autoritativos de muerte; una resurrección o actor con HP cero sin lifecycle acreditado permanece desconocido. Valores HP y VIRTUAL_HP requieren snapshot completo. Centros triggering/controller sin autoridad específica permanecen desconocidos. Los mapas/rayos sin evidencia Sf rechazan, no se consideran despejados.
+
+Validación
+PYTHONPATH=server python3 -m unittest discover -s server/tests -p test_combat_range_conditions.py :4PASS.
+PYTHONPATH=server python3 -m unittest discover -s server/tests -p test_combat_runtime_adapter.py :6PASS.
+Focal28 de primeros bloqueos de active-native-start-current: sources estables;2actor_state_changed,26cast_rejected. Nuevos primeros bloqueos:16GetStateCountInRange,8GetTriggeringEffectCaster,2GetAlliesCountInRange. Ninguno permanece rechazado por las dos funciones aquí implementadas. Reporte docs/reports/combat-inventory/active-range-hp-predicates-focal.json.
+No se reiniciaron servicios ni se validó GUI durante esta tarea. Esto acredita avance de entrada común y rollback del reporte; no afirma soporte completo de esos hechizos.
+
+Ampliación: aliados y estados en rango
+GetAlliesCountInRange: token37 -> eJp/eKn. Mismas formas de rango y sexto booleano opcional de inPlay (por defecto true). Filtra misma afiliación bcM, excluye ffe.sfE=114 y barril3794 cargado; no excluye al propio lanzador. El booleano false admite actores fuera de inPlay. La exclusión42 y geometría siguen procediendo de eKn.
+GetStateCountInRange: token78 -> eLr/eKn. Formas (máximo,selector,estado), opcional nivel entero exacto o booleano inPlay o string selector de autor; un quinto string permite combinar nivel/inPlay con autor. Nivel negativo omite comparación de nivel. No es umbral: nivel1 no coincide con nivel2. El estado y los filtros adicionales se evalúan durante construcción con contexto nulo; la implementación admite constantes acreditadas, sin fingir resolver filtros dinámicos. Cuenta una vez cada objeto que tenga algún carrier eZk coincidente, no la suma de niveles ni el número de carriers.
+El roster de eLr es fUQ (inPlay) o fVf (todos) más objetos Qq de Qs. No exige misma afiliación ni excluye barriles/114. Filtra42 y distancia heredada. Registro Qf se valida con native_retained_condition_effects; estados pendientes de aplicación quedan fuera, tal como el iterator nativo previo a registro. Qq: solo se admite autoridad de los hour propios sin efectos/callbacks (manager vacío); otras poblaciones de estados de áreas siguen desconocidas. No se inventa una colección vacía para áreas arbitrarias.
+ProbeNativeStateRange.java usa eLr real y eZV/Qf con carrier eZk3442: coincidencia de referencia y nivel exacto1; rechazo referencia3443/nivel2. Verifica además constructor eJp booleano6 y propiedad114 real. Compilación y ejecución Java PASS.
+Pruebas actuales:7range,25conditions y6runtimeadapter PASS. Focal18 stable=True:2actor_state_changed (7087),16avanzan a No handler for native effect class1093. Reporte active-state-allies-range-focal.json. Se preservó el rollback original de la entrada de auditoría; esto no acredita soporte completo de las16variantes restantes ni validación GUI.

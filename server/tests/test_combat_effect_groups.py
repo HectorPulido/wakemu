@@ -52,6 +52,9 @@ class NativeEffectGroupTests(unittest.TestCase):
 
     def test_target_mode_uses_raw_parameter_not_level_evaluated(self):
         self.assertTrue(decode_group_mode((0, 0, 0), raw_target_parameter=1).on_target)
+        self.assertFalse(
+            decode_group_mode((0, 0, 10), raw_target_parameter=10).on_target
+        )
         with self.assertRaises(UnsupportedEffectGroup):
             decode_group_mode((0, 0, 0))
 

@@ -31,9 +31,12 @@ class HealingExecutionContext:
     resistance_minimum: int
     resistance_maximum: int
     flags_verified: bool
+    target_ko: bool | None = None
 
 
 class NativeHealingHandler:
+    native_runner_value_verified = True
+
     def __init__(
         self, fight, packets, *, action_id, allocate_uid, context, rng, emit_events=None
     ):
@@ -45,8 +48,10 @@ class NativeHealingHandler:
         self.emit_events = emit_events
         self.event_lifecycle = None
         self.prepared = {}
+        self.final_modifiers = {}
+        self.runner_modifiers = {}
 
-    def _calculate(self, effect, invocation):
+    def _calculate(self, effect, invocation, *, additional_final=0):
         source = self.fight.actors.get(invocation.caster_id)
         target = self.fight.actors.get(invocation.target_id)
         if (
@@ -84,19 +89,50 @@ class NativeHealingHandler:
         if flags is None:
             raise ValueError("Missing native healing effect flags")
         flags = frozenset(flags)
-        if any(type(flag) is not int for flag in flags) or flags - {
+        allowed_flags = {
             4,
             5,
             6,
+            15,
             17,
             22,
             23,
             24,
             33,
-        }:
+            34,
+        }
+        if effect["effect_class"] == 24:
+            allowed_flags.add(
+                29
+            )  # LIFE_STEAL_HEAL_EFFECT marker; no arithmetic consumer.
+        if any(type(flag) is not int for flag in flags) or flags - allowed_flags:
             raise ValueError("Unhandled native healing flags")
+        if 15 in flags:
+            # eZR.bcd removes Qe.bbJ's PV.baK veto; it does not prove a
+            # revival lifecycle. Ordinary authority explicitly supplies baK.
+            if type(context.target_ko) is not bool:
+                raise ValueError("Missing native KO healing authority")
+            if context.target_ko:
+                raise ValueError("Native KO healing lifecycle is not implemented")
+        # eVl34 is consumed by eXt.fOG, not eXs. Undead conversion remains
+        # guarded: eXs replaces PK with its synthetic definition before eXt.
         if context.bypass_undead != (33 in flags):
             raise ValueError("Undead bypass context conflicts with native flag33")
+        if effect["effect_class"] == 24:
+            from .combat_life_steal import life_steal_amount
+
+            # eXv.fOC ignores the eXs mastery/final-modifier fields. It reads
+            # SQ before its bonus/resistance arithmetic and replaces SQ afterward.
+            amount = life_steal_amount(
+                effect["parameters"],
+                invocation.level,
+                source_stats,
+                target_stats,
+                None
+                if invocation.native_context_hex is None
+                else bytes.fromhex(invocation.native_context_hex),
+            )
+            return context, amount
         parameters = interpret_healing_parameters(
             effect["parameters"],
             invocation.level,
@@ -127,9 +163,21 @@ class NativeHealingHandler:
                 critical=context.critical,
                 coefficient_mask=parameters["coefficient_mask"],
                 additional_mastery=context.additional_mastery,
-                additional_final=context.additional_final,
+                additional_final=(
+                    (context.additional_final + additional_final + (1 << 31))
+                    % (1 << 32)
+                )
+                - (1 << 31),
                 rng=self.rng,
             ),
+        )
+        from .combat_value_transfer import apply_context_value
+
+        amount = apply_context_value(
+            amount,
+            None
+            if invocation.native_context_hex is None
+            else bytes.fromhex(invocation.native_context_hex),
         )
         return context, amount
 
@@ -139,8 +187,26 @@ class NativeHealingHandler:
             return invocation
         uid = self.allocate_uid()
         invocation = replace(invocation, native_running_uid=uid)
-        self.event_lifecycle.phase(effect, invocation, uid=uid, value=0, channel=1)
-        self.prepared[uid] = self._calculate(effect, invocation)
+        from .combat_final_modifier import NativeFinalModifier
+
+        modifier = NativeFinalModifier(uid, effect["effect_class"])
+        self.final_modifiers[uid] = modifier
+        from .combat_trigger_value_modifier import NativeRunnerAmount
+
+        runner = NativeRunnerAmount(uid, effect["effect_class"], rng=self.rng)
+        self.runner_modifiers[uid] = runner
+        self.event_lifecycle.phase(
+            effect,
+            invocation,
+            uid=uid,
+            value=0,
+            channel=1,
+            final_modifier=modifier,
+            runner_modifier=runner,
+        )
+        self.prepared[uid] = self._calculate(
+            effect, invocation, additional_final=modifier.value
+        )
         return invocation
 
     def __call__(self, effect, values, invocation):
@@ -151,15 +217,29 @@ class NativeHealingHandler:
             if uid not in self.prepared:
                 raise ValueError("Missing native prepared healing running effect")
             context, amount = self.prepared.pop(uid)
+        modifier = self.final_modifiers.pop(uid, None)
+        runner = self.runner_modifiers.pop(uid, None)
         if amount is None:
             return False
         if uid is None:
             uid = self.allocate_uid()
+        if runner is None:
+            from .combat_trigger_value_modifier import NativeRunnerAmount
+
+            runner = NativeRunnerAmount(uid, effect["effect_class"], rng=self.rng)
+        runner.set_calculated(amount)
         if self.event_lifecycle is not None:
             # bbJ:L2 follows accepted criteria/probability, precedes consumption.
             self.event_lifecycle.phase(
-                effect, invocation, uid=uid, value=amount, channel=2
+                effect,
+                invocation,
+                uid=uid,
+                value=amount,
+                channel=2,
+                final_modifier=modifier,
+                runner_modifier=runner,
             )
+        amount = runner.value
         source = self.fight.actors[invocation.caster_id]
         target = self.fight.actors[invocation.target_id]
         source_stats, target_stats = _snapshot(source), _snapshot(target)
@@ -199,14 +279,32 @@ class NativeHealingHandler:
         self.fight.apply_effect_healing(source.id, target.id, result["hp_gain"])
         target_stats[92] = result["target_virtual_hp"]
         target_stats[32] = result["target_heal_resistance"]
-        self.packets.append((12613, packet))
+        runner.set_applied(result["value"])
+        if not runner.notification_suppressed:
+            self.packets.append((12613, packet))
+        runner.finish_application()
         if self.event_lifecycle is not None:
             self.event_lifecycle.phase(
-                effect, invocation, uid=uid, value=result["value"], channel=3
+                effect,
+                invocation,
+                uid=uid,
+                value=result["value"],
+                channel=3,
+                final_modifier=modifier,
+                runner_modifier=runner,
             )
             self.event_lifecycle.phase(
-                effect, invocation, uid=uid, value=result["value"], channel=4
+                effect,
+                invocation,
+                uid=uid,
+                value=result["value"],
+                channel=4,
+                final_modifier=modifier,
+                runner_modifier=runner,
             )
         elif self.emit_events is not None:
             self.emit_events(effect, invocation, packet)
+        from .combat_runner_callbacks import notify_runner_value
+
+        notify_runner_value(invocation, runner.value)
         return True

@@ -83,9 +83,13 @@ def execute(
     target_running_effects,
     caster_bonuses,
     target_bonuses,
-    mitigate
+    mitigate,
+    monsters=None,
+    rng=None,
 ):
     rule = ability(monster)
+    if type(effect_uid) is not int or not 0 < effect_uid < (1 << 63) - 1:
+        raise ValueError("Invalid authoritative NPC running UID")
     actor = fight.current
     target = fight.actors.get(target_id)
     if (
@@ -128,22 +132,66 @@ def execute(
         monster["map_id"], actor.position, target.position
     ):
         raise ValueError("Attack is outside native adjacent range/LOS")
-    damage = mitigate(5, 3, actor, target, fight)
-    if type(damage) is not int or not 0 <= damage < (1 << 31):
-        raise ValueError("Invalid authoritative NPC damage")
+    # The owned native spell runs through the same eXt dispatcher as player
+    # casts. The old direct-HP primitive skipped armor and lifecycle events.
+    from .combat_server_spell import server_runtime
+    from .combat_effect_dispatch import EffectInvocation
+    from .spells import default_deck
+
     preview = deepcopy(fight)
-    npc = preview.actors[actor.id]
-    pc = preview.actors[target.id]
+    npc, pc = preview.actors[actor.id], preview.actors[target.id]
     previous = len(preview.events)
-    dealt = preview.apply_damage(npc.id, pc.id, damage)
-    packets = attack_packets(
-        fight.id,
-        action_id,
-        monster,
-        pc.position,
-        effect_uid=effect_uid,
+    if preview.native_effect_uid_next is None:
+        if type(effect_uid) is not int or not 0 < effect_uid < (1 << 63) - 1:
+            raise ValueError("Invalid authoritative NPC running UID")
+        preview.native_effect_uid_next = effect_uid
+    deck_hex = character.get("builds", {}).get(0, {}).get("deck")
+    deck = bytes.fromhex(deck_hex) if deck_hex else default_deck(character)
+    factory, adapter = server_runtime(
+        character,
+        monsters or {monster["id"]: monster},
+        deck,
+        action_id=action_id,
+        critical=False,
+        rng=rng,
+        compiled=npc_runtime_catalog(),
+    )
+    plan = dict(
+        actor_id=npc.id,
+        spell_id=rule["spell_id"],
+        evaluation_level=rule["spell_level"],
         target_id=pc.id,
-        damage=dealt,
+        target=pc.position,
+        costs={k: rule[k] for k in ("ap", "mp", "wp")},
+    )
+    dispatcher, effect_packets = factory(preview, plan)
+    before_hp = pc.hp
+    with preview.effect_resolution():
+        for reference in npc_spell_catalog()["spells"][str(rule["spell_id"])]["levels"][
+            rule["spell_level"] - 1
+        ][2]:
+            dispatcher.execute(
+                EffectInvocation(
+                    reference,
+                    rule["spell_level"],
+                    npc.id,
+                    pc.id,
+                    pc.position,
+                    native_explicit_target=True,
+                )
+            )
+    dealt = before_hp - pc.hp
+    packets = (
+        attack_packets(
+            fight.id,
+            action_id,
+            monster,
+            pc.position,
+            effect_uid=effect_uid,
+            target_id=pc.id,
+            damage=0,
+        )[:2]
+        + effect_packets
     )
     snapshots = {
         npc.id: actual_monster_actor_stats(
@@ -180,4 +228,27 @@ def execute(
         packets=packets,
         snapshots=snapshots,
         events=preview.events[previous:],
+    )
+
+
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
+def npc_spell_catalog():
+    import json
+    from .paths import DATA_ROOT
+
+    return json.loads((DATA_ROOT / "native-npc-spell-effect-trees.json").read_text())
+
+
+@lru_cache(maxsize=1)
+def npc_runtime_catalog():
+    from .combat_server_spell import compiled_runtime_catalog
+    from .combat_static_catalogs import CompiledEffects
+    from .combat_effect_runtime import _merge_effects
+
+    base = compiled_runtime_catalog()
+    return CompiledEffects(
+        _merge_effects(base.source_effects, npc_spell_catalog()), base.source_states
     )

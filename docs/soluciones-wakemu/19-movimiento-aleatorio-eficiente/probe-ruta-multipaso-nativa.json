@@ -1,0 +1,33 @@
+{
+  "native_class": "aAT",
+  "method": "eY(ByteBuffer) + aWH ejecutados",
+  "cases": [
+    {
+      "steps": 0,
+      "path_bytes": 11
+    },
+    {
+      "steps": 1,
+      "path_bytes": 12
+    },
+    {
+      "steps": 3,
+      "path_bytes": 14
+    },
+    {
+      "steps": 255,
+      "path_bytes": 266
+    }
+  ],
+  "header": "i32x,i32y,i16z,u8steps",
+  "step": "direction3bits + signed_delta_z5bits",
+  "height_deltas_used": [
+    15,
+    -16
+  ],
+  "limits": [
+    "Formato admite hasta255 por contador; no es tamaño recomendado de wander",
+    "No geometría real ni animación/endpoint verificados",
+    "No se ejecutaron hechizos"
+  ]
+}

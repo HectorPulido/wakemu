@@ -10,7 +10,7 @@ from .combat_damage_parameters import (
     interpret_damage_flags,
     damage_mastery_context,
 )
-from .combat_damage_healing import damage_amount, consume_damage
+from .combat_damage_healing import damage_amount, consume_damage, DAMAGE_FAMILIES
 from .combat_effects import direct_damage
 
 
@@ -52,6 +52,8 @@ def _snapshot(actor):
 
 
 class NativeDamageHandler:
+    native_runner_value_verified = True
+
     def __init__(
         self,
         fight,
@@ -69,8 +71,10 @@ class NativeDamageHandler:
         self.block_after_calculation = block_after_calculation
         self.event_lifecycle = None
         self.prepared = {}
+        self.final_modifiers = {}
+        self.runner_modifiers = {}
 
-    def _calculate(self, effect, invocation):
+    def _calculate(self, effect, invocation, *, additional_final=0, runner=None):
         source = self.fight.actors.get(invocation.caster_id)
         target = self.fight.actors.get(invocation.target_id)
         if (
@@ -79,7 +83,7 @@ class NativeDamageHandler:
             or target.hp <= 0
             or self.fight.phase != "active"
             or self.fight.current is None
-            or effect["effect_class"] not in range(1, 6)
+            or effect["effect_class"] not in DAMAGE_FAMILIES
         ):
             raise ValueError("Invalid native damage actors or fight")
         source_stats, target_stats = _snapshot(source), _snapshot(target)
@@ -111,7 +115,12 @@ class NativeDamageHandler:
             executable=context.executable,
             actors_present=True,
         )
-        unknown = set(interpreted["unhandled_flags"]) - {4, 5, 6, 17, 22, 23, 24}
+        # eXt.bcd overrides eZR and always permits the KO gate. Flag15
+        # (CAN_BE_EXECUTED_ON_KO) therefore adds no arithmetic or eligibility
+        # change to this runner. Owned KO/revival lifecycle remains guarded.
+        # eVl.rwA (3) is DONT_DISPLAY_ZONE, consumed only by aJs
+        # client zone preview. eXt calculation/gates and wire remain identical.
+        unknown = set(interpreted["unhandled_flags"]) - {3, 4, 5, 6, 15, 17, 22, 23, 24}
         if unknown:
             raise ValueError(f"Unsupported native damage flags: {sorted(unknown)}")
         if not context.executable:
@@ -150,6 +159,11 @@ class NativeDamageHandler:
                 critical=context.critical,
                 front=context.front if effect["native_localization_enabled"] else True,
                 indirect=interpreted["indirect"],
+                additional_final=additional_final,
+                additional_mastery=0 if runner is None else runner.additional_mastery,
+                additional_resistance=0
+                if runner is None
+                else runner.additional_resistance,
                 ignore_resistance_cap=context.ignore_resistance_cap,
                 localization=context.localization
                 if effect["native_localization_enabled"]
@@ -162,6 +176,14 @@ class NativeDamageHandler:
             if type(blocked) is not bool:
                 raise ValueError("Unknown native post-calculation BLOCK result")
             context = replace(context, blocked=blocked)
+        from .combat_value_transfer import apply_context_value
+
+        amount = apply_context_value(
+            amount,
+            None
+            if invocation.native_context_hex is None
+            else bytes.fromhex(invocation.native_context_hex),
+        )
         return context, interpreted, amount
 
     def prepare(self, effect, values, invocation):
@@ -169,16 +191,28 @@ class NativeDamageHandler:
             return invocation
         uid = self.allocate_uid()
         invocation = replace(invocation, native_running_uid=uid)
+        from .combat_final_modifier import NativeFinalModifier
+
+        modifier = NativeFinalModifier(uid, effect["effect_class"])
+        self.final_modifiers[uid] = modifier
+        from .combat_trigger_value_modifier import NativeRunnerAmount
+
+        runner = NativeRunnerAmount(uid, effect["effect_class"], rng=self.rng)
+        self.runner_modifiers[uid] = runner
         self.event_lifecycle.phase(
             effect,
             invocation,
             uid=uid,
+            final_modifier=modifier,
+            runner_modifier=runner,
             value=0,
             channel=1,
             blocked=False,
             localization="FRONT",
         )
-        self.prepared[uid] = self._calculate(effect, invocation)
+        self.prepared[uid] = self._calculate(
+            effect, invocation, additional_final=modifier.value, runner=runner
+        )
         return invocation
 
     def __call__(self, effect, values, invocation):
@@ -189,20 +223,30 @@ class NativeDamageHandler:
             if uid not in self.prepared:
                 raise ValueError("Missing prepared native damage running effect")
             context, interpreted, amount = self.prepared.pop(uid)
+        modifier = self.final_modifiers.pop(uid, None)
+        runner = self.runner_modifiers.pop(uid, None)
         if amount is None:
             return False
         if uid is None:
             uid = self.allocate_uid()
+        if runner is None:
+            from .combat_trigger_value_modifier import NativeRunnerAmount
+
+            runner = NativeRunnerAmount(uid, effect["effect_class"], rng=self.rng)
+        runner.set_calculated(amount)
         if self.event_lifecycle is not None:
             self.event_lifecycle.phase(
                 effect,
                 invocation,
                 uid=uid,
+                final_modifier=modifier,
+                runner_modifier=runner,
                 value=amount,
                 channel=2,
                 blocked=context.blocked,
                 localization=context.localization or "FRONT",
             )
+        amount = runner.value
         source = self.fight.actors[invocation.caster_id]
         target = self.fight.actors[invocation.target_id]
         source_stats, target_stats = _snapshot(source), _snapshot(target)
@@ -234,12 +278,17 @@ class NativeDamageHandler:
         source_stats[100] = result["source_barrier"]
         target_stats[97] = result["target_armor"]
         target_stats[92] = result["target_virtual_hp"]
-        self.packets.append((12613, packet))
+        runner.set_applied(result["value"])
+        if not runner.notification_suppressed:
+            self.packets.append((12613, packet))
+        runner.finish_application()
         if self.event_lifecycle is not None:
             self.event_lifecycle.phase(
                 effect,
                 invocation,
                 uid=uid,
+                final_modifier=modifier,
+                runner_modifier=runner,
                 value=result["value"],
                 channel=3,
                 blocked=context.blocked,
@@ -249,9 +298,14 @@ class NativeDamageHandler:
                 effect,
                 invocation,
                 uid=uid,
+                final_modifier=modifier,
+                runner_modifier=runner,
                 value=result["value"],
                 channel=4,
                 blocked=context.blocked,
                 localization=context.localization or "FRONT",
             )
+        from .combat_runner_callbacks import notify_runner_value
+
+        notify_runner_value(invocation, runner.value)
         return True

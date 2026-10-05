@@ -4,6 +4,8 @@ import com.jogamp.opengl.GL;
 import com.sun.net.httpserver.HttpServer;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.Channel;
+import java.util.concurrent.ConcurrentHashMap;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Frame;
@@ -100,6 +102,18 @@ public final class CaptureAgent {
    out.put("fight_phase",String.valueOf(call(fight,"dLv")));
    Object ownPlayer=call(call(Class.forName("aTx"),"cWt"),"cWu");
    out.put("own_player_fight",String.valueOf(call(ownPlayer,"doI")));
+   Object ownFighter=call(fight,"rj",((Number)call(ownPlayer,"Sn")).longValue());
+   Map<String,Object> resources=new LinkedHashMap<>();
+   if(ownFighter!=null){
+    resources.put("id",call(ownFighter,"Sn"));
+    for(String stat:new String[]{"sgC","shQ","shL","shH"}){
+     Object definition=field(Class.forName("ffw"),stat);
+     resources.put(stat+".id",call(definition,"aKg"));
+     resources.put(stat+".current",call(ownFighter,"c",definition));
+     resources.put(stat+".maximum",call(call(ownFighter,"e",definition),"aYU"));
+    }
+   }
+   out.put("own_fighter_resources",resources);
    out.put("actor_fight",String.valueOf(call(actor,"doI")));
    out.put("actor_id",call(actor,"Xi"));out.put("actor_owned",call(actor,"doz"));out.put("actor_position",String.valueOf(call(actor,"baM")));
    out.put("actor_mp",call(actor,"c",field(Class.forName("ffw"),"sgE")));
@@ -150,17 +164,52 @@ public final class CaptureAgent {
         }
     }
 
+    private static final ConcurrentHashMap<String, String> firstClose = new ConcurrentHashMap<>();
+
+    public static void observeLifecycle(Object context, String kind, Object failure) {
+        try {
+            ChannelHandlerContext ctx = context instanceof ChannelHandlerContext ? (ChannelHandlerContext) context : null;
+            Channel channel = ctx != null ? ctx.channel() : (Channel) field(context, "this$0");
+            LinkedHashMap<String, Object> event = new LinkedHashMap<>();
+            event.put("event", "channel_lifecycle");
+            event.put("kind", kind);
+            String channelId = channel.id().asLongText();
+            event.put("channel", channelId);
+            event.put("local", String.valueOf(channel.localAddress()));
+            event.put("remote", String.valueOf(channel.remoteAddress()));
+            event.put("stage", ctx != null ? ctx.name() : context.getClass().getName());
+            event.put("thread", Thread.currentThread().getName());
+            if (kind.contains("close") || kind.contains("disconnect")) {
+                String previous = firstClose.putIfAbsent(channelId, kind);
+                event.put("first_close", previous == null);
+                event.put("first_close_kind", previous == null ? kind : previous);
+            }
+            if (failure instanceof Throwable error) event.put("exception_type", error.getClass().getName());
+            // No exception messages, object strings, payloads or frame locals.
+            List<String> frames = new ArrayList<>();
+            for (StackTraceElement frame : Thread.currentThread().getStackTrace()) {
+                if (frames.size() == 40) break;
+                frames.add(frame.getClassName() + "." + frame.getMethodName() + ":" + frame.getLineNumber());
+            }
+            event.put("stack", frames);
+            append(event);
+        } catch (Throwable ignored) {
+            // Diagnostic recording must never alter channel behavior.
+        }
+    }
+
     public static void premain(String directory, Instrumentation instrumentation) throws Exception {
         Path base = Path.of(directory);
         Files.createDirectories(base);
         sessionDir = base.resolve(Instant.now().toString().replace(':', '-') + "-" + UUID.randomUUID().toString().substring(0, 8));
         Files.createDirectory(sessionDir, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
         output = Files.newBufferedWriter(sessionDir.resolve("events.jsonl"));
-        append(new LinkedHashMap<>(Map.of("event", "capture_start", "scope", "Netty pipeline bytes and message classes; includes repeated stages and TLS ciphertext/plaintext")));
+        append(new LinkedHashMap<>(Map.of("event", "capture_start", "lifecycle_version", 2, "scope", "Netty pipeline bytes and message classes; includes repeated stages and TLS ciphertext/plaintext")));
         instrumentation.addTransformer(new ClassFileTransformer() {
             @Override
             public byte[] transform(ClassLoader loader, String name, Class<?> clazz, ProtectionDomain domain, byte[] data) {
-                if (!"io/netty/channel/AbstractChannelHandlerContext".equals(name)) return null;
+                boolean unsafe = "io/netty/channel/AbstractChannel$AbstractUnsafe".equals(name);
+                if (!unsafe && !"io/netty/channel/AbstractChannelHandlerContext".equals(name)) return null;
                 ClassReader reader = new ClassReader(data);
                 ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
                 reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
@@ -169,6 +218,31 @@ public final class CaptureAgent {
                         MethodVisitor target = super.visitMethod(access, method, desc, signature, exceptions);
                         boolean incoming = method.equals("invokeChannelRead") && desc.equals("(Ljava/lang/Object;)V");
                         boolean outgoing = method.equals("invokeWrite0") && desc.equals("(Ljava/lang/Object;Lio/netty/channel/ChannelPromise;)V");
+                        String lifecycle = null;
+                        if (method.equals("invokeClose") && desc.equals("(Lio/netty/channel/ChannelPromise;)V")) lifecycle = "close_requested";
+                        if (method.equals("invokeDisconnect") && desc.equals("(Lio/netty/channel/ChannelPromise;)V")) lifecycle = "disconnect_requested";
+                        if (method.equals("invokeChannelInactive") && desc.equals("()V")) lifecycle = "inactive";
+                        if (method.equals("invokeExceptionCaught") && desc.equals("(Ljava/lang/Throwable;)V")) lifecycle = "exception";
+                        if (unsafe) {
+                            lifecycle = null;
+                            if (method.equals("close") && desc.startsWith("(Lio/netty/channel/ChannelPromise;")) lifecycle = "unsafe_close";
+                            if (method.equals("doClose0") && desc.equals("(Lio/netty/channel/ChannelPromise;)V")) lifecycle = "transport_close";
+                            if (method.equals("closeForcibly") && desc.equals("()V")) lifecycle = "unsafe_close_forcibly";
+                            if (method.equals("disconnect") && desc.equals("(Lio/netty/channel/ChannelPromise;)V")) lifecycle = "unsafe_disconnect";
+                        }
+                        if (lifecycle != null) {
+                            final String kind = lifecycle;
+                            return new MethodVisitor(Opcodes.ASM8, target) {
+                                @Override public void visitCode() {
+                                    super.visitCode();
+                                    visitVarInsn(Opcodes.ALOAD, 0);
+                                    visitLdcInsn(kind);
+                                    if (kind.equals("exception")) visitVarInsn(Opcodes.ALOAD, 1);
+                                    else visitInsn(Opcodes.ACONST_NULL);
+                                    visitMethodInsn(Opcodes.INVOKESTATIC, "CaptureAgent", "observeLifecycle", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/Object;)V", false);
+                                }
+                            };
+                        }
                         if (!incoming && !outgoing) return target;
                         return new MethodVisitor(Opcodes.ASM8, target) {
                             @Override public void visitCode() {
@@ -485,6 +559,53 @@ public final class CaptureAgent {
                         Map<String,Object> diagnostic = new LinkedHashMap<>();
                         SwingUtilities.invokeAndWait(() -> diagnostic.putAll(equipmentDiagnostic()));
                         response = (JSON.toJson(diagnostic) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                    case "/combat-actor" -> {
+                        Map<?,?> input=JSON.fromJson(new String(exchange.getRequestBody().readNBytes(512),java.nio.charset.StandardCharsets.UTF_8),Map.class);
+                        long identity=Long.parseLong(String.valueOf(input.get("actor_id")));
+                        Map<String,Object> diagnostic=new LinkedHashMap<>();
+                        SwingUtilities.invokeAndWait(() -> {
+                            diagnostic.put("time",Instant.now().toString());
+                            try {
+                                Object fight=call(call(Class.forName("dba"),"fcm"),"cXY");
+                                Object fighter=call(fight,"rj",identity);
+                                diagnostic.put("fight",String.valueOf(fight));
+                                if(fighter==null)throw new IllegalStateException("Combat actor absent");
+                                diagnostic.put("id",call(fighter,"Sn"));
+                                diagnostic.put("position",List.of(call(fighter,"getWorldX"),call(fighter,"getWorldY"),call(fighter,"getAltitude")));
+                                Map<String,Object> stats=new LinkedHashMap<>();
+                                for(Object definition:(Object[])call(Class.forName("ffw"),"values")){
+                                    stats.put(String.valueOf(call(definition,"aKg")),call(fighter,"c",definition));
+                                }
+                                diagnostic.put("stats",stats);
+                                // Read the actual retained manager, not delivery packets.
+                                // eZk carriers can be observed without being registered.
+                                try {
+                                    Object manager=call(fighter,"drJ");
+                                    java.util.Iterator<?> retained=(java.util.Iterator<?>)call(manager,"iterator");
+                                    List<Map<String,Object>> effects=new ArrayList<>();
+                                    while(retained.hasNext()) {
+                                        Object effect=retained.next();
+                                        Map<String,Object> entry=new LinkedHashMap<>();
+                                        entry.put("runner",effect.getClass().getName());
+                                        entry.put("uid",call(effect,"LV"));
+                                        entry.put("effect_class",call(effect,"d"));
+                                        entry.put("value",call(effect,"getValue"));
+                                        if(Class.forName("eZk").isInstance(effect)) {
+                                            Object definition=call(effect,"fQW");
+                                            entry.put("state_id",call(definition,"guI"));
+                                            entry.put("state_level",call(definition,"cmZ"));
+                                        }
+                                        effects.add(entry);
+                                    }
+                                    diagnostic.put("running_effects",effects);
+                                }catch(Throwable error){diagnostic.put("running_effects_error",error.toString());}
+                                // Combat eGj does not expose the visual actor getDirection.
+                                // Read only the proven characteristic getter here.
+                                diagnostic.put("maximum_hp",call(call(fighter,"e",field(Class.forName("ffw"),"sgC")),"aYU"));
+                            }catch(Throwable error){diagnostic.put("error",error.toString());}
+                        });
+                        response=(JSON.toJson(diagnostic)+"\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     }
                     case "/combat-diagnostic" -> {
                         Map<String,Object> diagnostic = new LinkedHashMap<>();

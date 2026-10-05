@@ -14,11 +14,11 @@ def interpret_healing_parameters(parameters, level, *, hp_context, rng):
     """Native eXs expects 1..3 evaluated parameters (2..6 base/growth items).
 
     p0 base, p1 coefficient mask(default3), p2 signed-byte far(default0).
-    Deliberately reject negative results/unknown mask bits until supported by
-    the caller: native eXs clamps negative computed healing at consumption.
+    Signed p0 is preserved: native fat.fSy clamps the computed result to1
+    before eZR applies a later context override. Unknown mask bits reject.
     """
     return interpret_damage_parameters(
-        parameters, level, hp_context=hp_context, rng=rng
+        parameters, level, hp_context=hp_context, rng=rng, allow_signed_base=True
     )
 
 

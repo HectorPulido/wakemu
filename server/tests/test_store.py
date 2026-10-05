@@ -16,6 +16,23 @@ class StoreTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    def test_native_playable_classes_include_huppermage_but_not_soul(self):
+        character = self.store.create_character(self.a, "Hupper Test", breed=19)
+        self.assertEqual(character["breed"], 19)
+        for breed in (17, 0, 20, True):
+            with self.assertRaises(ValueError):
+                self.store.create_character(self.a, "Invalid Breed", breed=breed)
+
+    def test_configured_selection_capacity_keeps_account_isolation_and_limit(self):
+        expanded = Store(self.store.path, lambda: self.now, max_characters=24)
+        names = ["Character " + chr(ord("A") + index) for index in range(24)]
+        for name in names:
+            expanded.create_character(self.a, name)
+        self.assertEqual(len(expanded.characters(self.a)), 24)
+        self.assertEqual(expanded.characters(self.b), [])
+        with self.assertRaisesRegex(ValueError, "Máximo 24"):
+            expanded.create_character(self.a, "One Extra")
+
     def test_signed_appearance_survives_reopen_without_losing_costume_colors(self):
         appearance = {
             "skinColor": -6720193,

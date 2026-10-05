@@ -1,0 +1,10 @@
+{
+  "awarded": true,
+  "persisted_level": 50,
+  "kamas": 17,
+  "hp": 540,
+  "max_hp": 540,
+  "receipts": 1,
+  "subsequent_effective_stats_error": "Invalid aptitude sheet level",
+  "scope": "Synthetic already-finished fight, disposable SQLite; no spells, turn execution, GUI or return12925."
+}

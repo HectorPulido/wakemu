@@ -1,0 +1,12 @@
+IsChallenger: clase nativa, no afiliación del equipo
+
+Token300 -> eNC. Sin argumento selecciona target; una cadena puede elegir
+caster/target mediante eII.a. Comprueba eHg.a(PLAYER_CHARACTER) o
+ eHg.a(COMPANION). No compara equipos, propietario ni el ID del hechizo.
+El proveedor ordinario sólo acredita PC bjo y NPC propio; companions futuros
+requieren una autoridad que declare su tipo, no una inferencia por equipo.
+Los contextos sin tipo acreditado conservan UnknownCondition.
+
+ProbeNativeIsChallenger.java: defaulttargetNPCfalse, explicitcasterPCtrue,
+companiontrue y targetnullfalse, contra el JAR instalado.3testsPythonPASS.
+FocalReady posterior se guarda separado del reporte original.

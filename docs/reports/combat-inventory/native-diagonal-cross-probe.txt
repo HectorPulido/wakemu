@@ -1,0 +1,6 @@
+parameters=[1] native=crossDiag-h1b1-g1d1 isotropic=true offsets=[0, 0][-1, 1][1, -1][-1, -1][1, 1]
+parameters=[2, 1] native=crossDiag-h2b2-g1d1 isotropic=true offsets=[0, 0][-1, 1][1, -1][-1, -1][-2, -2][1, 1][2, 2]
+parameters=[1, 2, 3, 4] native=crossDiag-h1b3-g4d2 isotropic=true offsets=[0, 0][-1, 1][-2, 2][-3, 3][-4, 4][1, -1][2, -2][-1, -1][1, 1][2, 2][3, 3]
+parameters=[0] native=crossDiag-h0b0-g0d0 isotropic=true offsets=[0, 0]
+parameters=[-1] native=crossDiag-h-1b-1-g-1d-1 isotropic=true offsets=[0, 0]
+PASS native anx point lists; descriptions;8 orientations; arbitrary Z

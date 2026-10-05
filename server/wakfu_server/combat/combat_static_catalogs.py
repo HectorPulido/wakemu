@@ -11,6 +11,7 @@ class ImmutableCatalog(dict):
     Assets are process-lifetime immutable sources. Keeping unused level export
     arrays lazy avoids copying the entire state catalogue during startup.
     """
+
     def __init__(self, source):
         dict.__init__(self, source)
         self._source = source
@@ -42,7 +43,9 @@ class ImmutableCatalog(dict):
     def _readonly(self, *args, **kwargs):
         raise TypeError("Native static catalog is read-only")
 
-    __setitem__ = __delitem__ = clear = pop = popitem = setdefault = update = __ior__ = _readonly
+    __setitem__ = (
+        __delitem__
+    ) = clear = pop = popitem = setdefault = update = __ior__ = _readonly
 
     def __deepcopy__(self, memo):
         return self
@@ -58,15 +61,18 @@ def _freeze(value):
 
 @lru_cache(maxsize=1)
 def characteristic_registry():
-    return ImmutableCatalog(json.loads(
-        (DATA_ROOT / 'effect-characteristic-registry.json').read_text()))
+    return ImmutableCatalog(
+        json.loads((DATA_ROOT / "effect-characteristic-registry.json").read_text())
+    )
 
 
 class CompiledEffects:
     def __init__(self, effects, state_catalog):
         from .combat_effect_runtime import _merge_effects
         from .combat_native_area_metadata import merge_native_point_areas
+
         self.source_effects = effects
         self.source_states = state_catalog
-        self.effects = ImmutableCatalog(merge_native_point_areas(
-            _merge_effects(effects, state_catalog)))
+        self.effects = ImmutableCatalog(
+            merge_native_point_areas(_merge_effects(effects, state_catalog))
+        )

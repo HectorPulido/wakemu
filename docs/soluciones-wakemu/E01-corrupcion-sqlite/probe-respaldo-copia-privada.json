@@ -1,0 +1,13 @@
+{
+  "source": "world.pre-journal-recovery-20261004T054049Z.sqlite3",
+  "read_version": 2,
+  "write_version": 2,
+  "source_sha256": "61c93b7b8dff4f4a40815829c9b327cd57e29090f5b3c9ff80d684049dfb02c1",
+  "companions_present": false,
+  "copy_journal_mode": "wal",
+  "copy_quick_check": [
+    "ok"
+  ],
+  "copy_foreign_key_violation_count": 12,
+  "source_unchanged": true
+}

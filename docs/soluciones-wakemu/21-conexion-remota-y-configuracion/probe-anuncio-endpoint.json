@@ -1,0 +1,58 @@
+{
+  "cases": [
+    {
+      "host": "127.0.0.1",
+      "port": "15556",
+      "accepted": true,
+      "advertised_host": "127.0.0.1",
+      "advertised_port": 15556,
+      "port_count": 1
+    },
+    {
+      "host": "192.0.2.50",
+      "port": "25556",
+      "accepted": true,
+      "advertised_host": "192.0.2.50",
+      "advertised_port": 25556,
+      "port_count": 1
+    },
+    {
+      "host": "example.org",
+      "port": "15556",
+      "accepted": false,
+      "error": "Expected 4 octets in 'example.org'"
+    },
+    {
+      "host": "::1",
+      "port": "15556",
+      "accepted": false,
+      "error": "Expected 4 octets in '::1'"
+    },
+    {
+      "host": "0.0.0.0",
+      "port": "15556",
+      "accepted": false,
+      "error": "Invalid advertised game endpoint"
+    },
+    {
+      "host": "224.0.0.1",
+      "port": "15556",
+      "accepted": false,
+      "error": "Invalid advertised game endpoint"
+    },
+    {
+      "host": "127.0.0.1",
+      "port": "0",
+      "accepted": false,
+      "error": "Invalid advertised game endpoint"
+    },
+    {
+      "host": "127.0.0.1",
+      "port": "65536",
+      "accepted": false,
+      "error": "Invalid advertised game endpoint"
+    }
+  ],
+  "source_sha256": "f865afac27a37c217bfd7c07d2253139588074280e5bd1df8e873a0f3633570b",
+  "scope": "AST extraction of actual pure functions; synthetic realm; no sockets or server startup, no native Java decoder."
+}

@@ -1,0 +1,278 @@
+[
+  {
+    "issue": "00-rendimiento-y-redis",
+    "answer": "1. Latencia esperada: La minima posible, no hay una latencia objetivo\n2. Los 20 segundos eran un ejemplo (por ejemplo en combate o al luchar)\n3. Hay que revisar que dominios tenemos, pero en si hay que tocar la base de datos lo menos posible, podemos usar como ejemplo la arquitectura de este server de dofus: /Users/hectorpulido/dofus/ai-service\n4. Podemos persistir en disco redis cada cierto tiempo usando un hilo alterno para no relentizar nada, tambien agregar sistemas de graceful shutdown",
+    "answer_file_sha256": "655a6d7ba5eb5ae518cd00b8fd2ec5b7a30979087c22a72b1143e6b0094735c5",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "01-semillas-sin-refresco",
+    "answer": "1. Debes hacer esto en un cliente, yo reproduje el error pero es mejor que tu captures todo\n2. x2\n3. Si cancelas no gastas, si consumes, gastas, simple y unviersal",
+    "answer_file_sha256": "bcfd6883bc5bd5db2172df78711b5a218ea338e171c9a7404340b0c6198f48d7",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "02-maduracion-de-monstruos",
+    "answer": "1. en server/protocol/monsters.json, revisar el family id, y revisar si hay algun is_boss\nEjemplo, la familia 68 es la familia de los jalatos, al plantar debe salir un jalatin que son los monstruos de nivel mas bajo, y deben crecer a jalato que es el siguiente escalon (revisa por nivel), luego a jalato de guerra, este es un proceso no determinista, es decir el jalato se puede quedar como jalato y cada escalon es mas dificil de subir que el anterior. Importante darle al jefe de mazmorra MUY poca posibilidad, por ejemplo el jalato real, que solo salga uno de cada muchisimas veces.\n2. Tiempos de maduracion constante, configurable, pero que cada monstruo tenga una posibilidad de subir de tipo aleatoria, y que vaya bajando a medida de que suba el nivel.\n3. Revisa si eso existe, si no, hay que eliminar el mob y cambiarlo de tipo\nImportante: este proceso solo ocurre si hay gente en el mapa",
+    "answer_file_sha256": "c101e9d341b6cb965beae61a65581697f2f6acee9cb875a6414167ab6c306859",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "03-reproduccion-sin-respawn",
+    "answer": "1. Familia es importante, madurez va por nivel, sexo ignoremoslo, y probabilidad 5% de posibilidades de subir de nivel cada cierto tiempo por ejemplo, pero depende del nivel actual vs el nivel del proximo monstruo\n2. maximo 8 miembros, cada que un mob se reproduce hay posibilidad de subir en 1 al mob y posibilidad de generar un nuevo mob (para esto puedes usar la idea de las semillas)\n3. Eliminar el respawn, no debe haber respawn artificial",
+    "answer_file_sha256": "6d4e32d69a84a3c6558f605c687601e2c473321e864de7f0d1b6e901d18b33d4",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "04-probabilidad-de-plantacion",
+    "answer": "1. La probabilidad si no estoy mal depende del nivel del peletero/herbolario/leñador, va desde 1%, 25%, 50%, 75% y 100%\n2. N/A, es importante no modificar el cliente\n3. Si falla no hay xp y se consume la semilla, si lo logra, hay xp y se consume la semilla, si se cancela no hay xp ni se consume.\nImportante: Para la formula, inventemos algo, plantar debe dar poca xp, recolectar un poco mas, craftear depende del numero de casillas de la receta, y todo modificable desde la db",
+    "answer_file_sha256": "aca3faaca7786a791c825161e930842ce14affc538ade07f1fae80ec4a82ffbf",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "05-permisos-y-recoleccion-de-cardo",
+    "answer": "1. Debes hacer esto en un cliente, yo reproduje el error pero es mejor que tu captures todo\n2. No hay tal politica por ahora\n3. Revisa Java y el codigo del servidor",
+    "answer_file_sha256": "2c788267fcc2c13233b31a817f28a2f75960164d03d06db7f85a6d4c3789fc98",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "06-etapas-completas-de-cardo",
+    "answer": "1. el tiempo de etapas son constantes (igual que las plantaciones) y configurable, las etapas, hay que revisar el codigo y los fixtures que tenemos\n2. Hay que buscar en el cdoigo y en internet\n3. Cada etapa da cosas distintas, hay que revisar el codigo",
+    "answer_file_sha256": "1fe3a3a875cf76585de1aa43aab35535e1dd4af21de95c1123c6ffbf9be9589f",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "07-wakfu-y-stasis",
+    "answer": "1. Hay que hacer una formula que sea modificable en la db, lo unico que hay que tener en cuenta es que al matar mobs en \"peligro de extincion\" de la zona, de stasis, al igual que plantar cosas cuando hay sobreproduccion. mantener el equilibrio debe darte wakfu.\n2. Hay que revisar esto en el codigo y en internet.\n3. Lo mismo que en la regla 1, si plantas cuando hay sobrepoblacion, stasis, si plantas cuando hay equilibro o peligro de extincion wakfu",
+    "answer_file_sha256": "e39d4473027e2833a936b4800b2cb87db3a79cfb955fce982e346abcd03d6c1e",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "08-experiencia-de-oficios",
+    "answer": "1. hablamos un poco de esto en: docs/soluciones-wakemu/04-probabilidad-de-plantacion/FALTANTES.md, hay que hacer que la curva tenga un multiplicador modificable\n2. igual hablamos de eso en 04\n3. Revisa el codigo",
+    "answer_file_sha256": "835181894c1d7a91d8afd2744b6be03ec14fac51f8f66ecef82c41a149913c03",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "09-experiencia-de-combate",
+    "answer": "1. Fijemos como lo hace dofus y clonemos eso, importante mantener en la base de datos un multiplicador\n2. Revisar codigo e intenrnet\n3. Revisar codigo y solucionar",
+    "answer_file_sha256": "e82c76ada3dada95fe1f8b5bdb2d7ae03cf9afd2f10a61abbb010487f0e70793",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "10-drops-y-kamas",
+    "answer": "1. igual que 09, revisemos dofus\n3. busquemos en internet como lo hace el juego original y que hacer",
+    "answer_file_sha256": "b76f2663c4a1ec6c27a3424b7d1178b724ee9dec272659f67ca7dc2c24fe21ec",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "11-intercambio-entre-personajes",
+    "answer": "Revisa todo. Nada que decidir",
+    "answer_file_sha256": "3502c6bb1dda23748a40c367116f7a0f580d62e8c9daf565e203ccffbadc9ca4",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "12-duelos-pvp",
+    "answer": "1. Revisa todo. Nada que decidir\n2. en los desafios al salir se te rellena la vida, no hay teletransportacion, xp o duelo\n3. el que se desconecta pierde, pero queda en el mismo mapa, posicion etc. estos desafios son amistosos",
+    "answer_file_sha256": "a5b3835f74550c54b64080a3e7171e82ddc6f97e9d03cc40045d8bacdad355ed",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "13-chat-privado-y-canales",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "9a076db7ccb7c6bf7ec5c35c12475d5e12b6e6d2fac07f98c031240b767603ee",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "14-unirse-a-combates",
+    "answer": "1. Revisa todo. Nada que decidir\n3. hablamos de eso en 10 y 9",
+    "answer_file_sha256": "6d5d3fc86eddd0a9a51882d1b1d1b31eb69e930cd5b76b0f609ac2574b522e30",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "15-grupos-de-jugadores",
+    "answer": "1 y 2. Revisa todo. Nada que decidir\n3. Revisa codigo e internet",
+    "answer_file_sha256": "96a7b7a9b61ad03207641f17af17e98a143edd1bf2d8229d97be8116e24f01a7",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "16-espectadores-y-marcadores",
+    "answer": "1, 2. Revisa todo. Nada que decidir\n3. todo debe ser visible en tiempo real, no hay replay desde el principio",
+    "answer_file_sha256": "55cf82fd21fe6de9cceeffd306595f5e300dbabab9d4200b7f40385d4dc3cc9f",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "17-aptitudes-y-calculo-de-estadisticas",
+    "answer": "Revisa todo. Nada que decidir",
+    "answer_file_sha256": "d0a3bbdb20575767f98449f725b12e11ccfa3dcb2293e0c11d7f2915464c2d08",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "18-orientacion-en-colocacion",
+    "answer": "Revisa todo. Nada que decidir",
+    "answer_file_sha256": "1caa6053fcf45a58a37ee639bbf167bc39bab342cca161d2f0ed1a8dbd027df8",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "19-movimiento-aleatorio-eficiente",
+    "answer": "1. de 1 a 5 pasos en un rango con cierta posibiloidad\n2. Creo que eso ya esta funcionando\n3. Minimo impacto posible",
+    "answer_file_sha256": "f2c2479d30aac2a77531be62bac6b505200fe720bd7a7587358de7885f9dd268",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "20-poblacion-inicial-y-zonas-activas",
+    "answer": "1. un par de mobs, unicamente cuando incia el servidor, no hay una politica de refresco\n2. Hay que buscar una forma muy eficiente de ver cuando hay gente en una zona\n3. Revisa todo. Nada que decidir\nCreo que hay informacion dentro del juego de que zona suele tener que monstruos",
+    "answer_file_sha256": "6066c2fc2d2dc55be5fb4e34153b01d4add79f3f3e423010c826f891b1c019d0",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "21-conexion-remota-y-configuracion",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "3a858c57384fd0d6257e7e265303f68abe71b46117422cc4a9c30a5de7e6406c",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "22-identificacion-elementos-y-encantamiento",
+    "answer": "Revisa todo. Nada que decidir",
+    "answer_file_sha256": "d00f686f085b58a25bfc972a836b531e3858f64fd3de14b7ffec994c0d404844",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "23-bolso-sadida-apilado",
+    "answer": "Revisa todo. Nada que decidir",
+    "answer_file_sha256": "a9c5e475004649c66e870f734535e488bc12264e0ba4bdadc2571a03282a0930",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "24-nacion-y-pasaporte-neutral",
+    "answer": "Revisa todo. Nada que decidir, te dije que buscaras, el primer item me comprueba que nisiquiera intentaste buscar o revisar de que hablo",
+    "answer_file_sha256": "898432cb433ec790e28308e8b6252232dd23f596301f6b655913476dc24a4b12",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "25-brechas-dimensionales",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "62874c4a686b2479ec0c5281b98c7afba03f69f30ca0f72f05e2ef01640bb819",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "26-insertar-y-retirar-merkagemas",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "b3e16dcc89796dddd12a7144ae2de46991aa6fce1a184d829f21080243133789",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "27-clima-por-zona",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "954fad40ad5a28fdf6b2f2e90b2e056a59c60a50135d0abc822fb5fe80ea49bc",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "28-bonus-de-area",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "68225e7de7c77ee55122fce774a89e5542d228baf38372e25362e05d01e50324",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "29-mazmorras-e-instancias",
+    "answer": "1. Revisa todo. Nada que decidir\nPuedes empezar con mazmorras simples como la del jalato",
+    "answer_file_sha256": "a2d7b05115b2f77a9f1a5fc5c6fda960cf15ed5dc1b86a8a676999c74b1a6627",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "30-mesas-de-oficio-y-crafting",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "59df8d9c466288aeb780c2050aa1f9721a3b3ab828b5d87802415229247fd4a6",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "31-diversidad-de-celdas-de-colocacion",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "3763f972016c605338ed70518afacded4d2e81cc6762a06de41c5b5b9f3d002e",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "32-roles-admin-y-comandos",
+    "answer": "1. Admin -> todos los comandos !, jugador -> solo los permitidos, hay que poner eso modificable",
+    "answer_file_sha256": "6d71747d6a39dfd98e7758c5a986f6a005ae50fc067c68b0377e375aeb69632c",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "33-rendicion-y-retorno-al-mundo",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "80c288da4985533e482f8dc843033d7bd53d84ae756ec85ac4fa2d824c797f93",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "34-builds-personalizadas",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "598009deea8933d8518e529a7d16bd07875ad81d0f5c9ddbdcfa9a34edd3f239",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "E01-corrupcion-sqlite",
+    "answer": "1. Revisa todo. Nada que decidir\nRevisa tambien si vale la pena usar postgres en vez de sqlite",
+    "answer_file_sha256": "c06b16e7e80e05f911693eb282b29a5034cf6200625c1dd4e2658a2b827c4287",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "E02-resincronizacion-inventario-invalida",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "ddf59c957647f785e2360f15a9ef6b357eb65bae720edd32fbd016a62e1455f6",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "E03-api-test-sin-autenticacion",
+    "answer": "ya se habló en 32, todo modificable",
+    "answer_file_sha256": "7f54dcf836965df199495d447c88d94234be21ec5e2e119b86266f6ed0e65118",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "E04-activar-build-sin-handler",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "a5f16c61868da4a0f0cf8619f95ce9facac0b5c53453da2b217f3d5fe7c6262e",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "E05-seleccion-build-y-deck-cero",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "bfef9fdbec0bdd2ecd758170f0a393b89ada10deec37abc58b5c1ada69b258c6",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "E06-nivel-y-hojas-sin-atomicidad",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "219c405368c8423a6b9aa5735731670f3b6304ff1376b310c83a47c9d5350420",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "E07-borrado-de-build-sin-handler",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "1d6bcc5040a4966111a14eac06e75cae01e6122aba6fe90f9170c5b66677e0e7",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "E08-limite-de-builds-inconsistente",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "456c24116b41d89947404d6b304c3d51aa40e8ca176a700ce4d8a272efc942e0",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "E09-sql-redundante-con-redis",
+    "answer": "1. Ya eso lo hablamos antes",
+    "answer_file_sha256": "af40f4309dbfd4e192d40f2e7f114ef9e9f4b577188071b0cd714039e689538a",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "E10-equipment-set-omite-build-nueva",
+    "answer": "1. Revisa todo. Nada que decidir",
+    "answer_file_sha256": "4ddb968d9e25e217abd41c7a558cfb66a1d6c5c5d7cb4b8034737c8d93a3b5e7",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  },
+  {
+    "issue": "E11-test-desplazamiento-sin-terreno-exportado",
+    "answer": "Revisa todo. Nada que decidir; revisión de hechizos reservada a otra sesión.",
+    "answer_file_sha256": "79659441de228b574a3c03af16c4113cd765184f099c086677755246aa611583",
+    "disposition": "Investigar y resolver técnicamente; no solicitar al usuario datos obtenibles del código."
+  }
+]

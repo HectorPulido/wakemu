@@ -1,0 +1,19 @@
+{
+  "scope": "User manual two-client test on own isolated server; server log independently inspected",
+  "user_observation": "No message or error appears",
+  "private_request": {
+    "opcode": 13917,
+    "time": "2026-10-04T22:53:51.851473+00:00",
+    "rejection": "No handler for this opcode in the current session state"
+  },
+  "local_request_opcode_12366_observed": false,
+  "local_failure_cause_proven": false,
+  "private_sender_identity_correlated": true,
+  "private_sender_profile": "audit-multi-dos-isolated-20261004",
+  "native_capture_time": "2026-10-04T22:53:51.819789Z",
+  "private_decoded": {
+    "recipient": "Audit Builds",
+    "text": "hola"
+  },
+  "luna_reported_no_chat_sent": true
+}

@@ -1,0 +1,45 @@
+Familia305/eXq: acercamiento del caster (Carga y otros ataques)
+
+Registro original eVi305→eXq; eXq hereda eXD y su ruta AdditionalDatas campo70.
+Se integra al desplazamiento común, no mediante excepciones por raza/hechizo.
+Destino direccional: caster hacia celda, con proyección aAS nativa sin altura.
+Distancia: parámetro0 cuando existe; sin parámetros, Manhattan XY hacia celda
+(eXD.C/aBn.cG). Faz selecciona superficies nativas Sm y termina al alcanzar XY
+de la celda o el primer bloqueo/ocupante. eXq.fOs=false impide pérdidaPA por
+colisión, independientemente del parámetro heredado rDX. ROOTED3 y propiedad71
+CANT_GET_CLOSER impiden el acercamiento; se preservan los guards comunes de
+estabilización, carried y footprints, rechazando autoridad no acreditada.
+Eventos de runner:0,185(parent eXD),193(eXq.bbx), conservando canales comunes.
+
+El primer foco crítico reveló un error en mi integración: resolution seleccionaba
+celda pero cell_eligible todavía excluía305. Se conserva su reporte como
+active-critical-approach305-cell-policy-missing.json, sin atribuirle movimiento.
+Corregida esa segunda puerta acorde a bbAfalse/bbBtrue original; se añadió una
+regresión que exige ambas puertas. Última edición motor:23:23:08Z2026-10-04.
+
+Validación:
+ProbeNativeApproach.java: seis verificaciones contra eXq original (distancia
+explícita/automática, propiedad71 y codec). AdditionalDatas Python, dentro del
+campo8 del envelope iN, coincide byte a byte con eXD.b original.
+Seis pruebas propias PASS; cinco iniciales junto a eventos dieron9PASS.
+Foco crítico cuatro escenarios4783/7077: hashes estables y rollback4/4;305
+produce ruta0 para Carga adyacente, y ruta1 para Zobal. No confundir ruta0 con
+movimiento real del caster.
+
+Carga normal DISTANTE por entrada de PRODUCCIÓN:
+Ready/prepare_server_initialization(fight_start=True), luego prepare_server_spell
+con terreno1134 y caster(-8,-7,-1)/objetivo(-11,-7,-1), niveles17 y200.
+Ambos: evento305, ruta(-9,-7,-1),(-10,-7,-1), caster termina(-10,-7,-1).
+ObjetivoHP12→2 y12→0, respectivamente. Original sin modificar, hashes estables.
+Reporte: carga4783-normal-distant-current.json. No acredita todos los estados ni
+una validación gráfica; el objetivo de12HP limita el daño observado.
+
+Archivos: combat_displacement.py, combat_displacement_events.py,
+combat_ordinary_authority.py; test_combat_approach.py, probe y herramienta propios.
+Sin reinicio/deploy de este agente ni mutaciones de la cuenta del usuario.
+Iniciativa analizada por separado: native-initiative-player200.txt.
+
+Comandos:
+PYTHONPATH=server:server/tests python3 -m unittest test_combat_approach
+python3 server/tools/probe_approach_cast.py
+python3 server/tools/audit_active_spells.py --from-report docs/reports/combat-inventory/active-critical-stable-current.json --reason 'No handler for native effect class 305' --critical --output docs/reports/combat-inventory/active-critical-approach305-current.json

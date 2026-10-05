@@ -1,0 +1,29 @@
+Daño nativo y flag15
+
+Flag eVl.rwL = CAN_BE_EXECUTED_ON_KO, ID15. El escaneo de campos exactos
+del JAR encuentra un único consumidor externo: eZR.bcd. Su efecto común
+es permitir superar el veto de PV.baG, no añadir daño, crítico ni multiplicador.
+
+El runner eXt sobrescribe bcd y devuelve true incondicionalmente; flag15
+no cambia ni ese permiso ni el cálculo eXt. ProbeNativeDamageKoFlag ejecuta
+el override original con definición flagged y unflagged:2PASS.
+Bytecode .runtime/local/native-damage-flag15-eXt.txt y escaneo completo en
+.runtime/local/native-damage-flag15-consumers.txt.
+
+El manejador común admite15 y conserva el indicador en la definición. La
+validación de actores propios, vida positiva, snapshot, absorción y estado
+transaccional sigue intacta. No se afirma ejecución sobre KO ni resurrección:
+el lifecycle KO importado continúa sin autoridad y se rechaza expresamente.
+No se añade branch de raza, hechizo, familia de equipo o factor crítico.
+
+Regresión damage_parameters+damage_handler:15PASS, incluyendo igualdad exacta del estado durable
+y de todos los bytes emitidos con/sinflag15 y rechazo sin emisión con HP0.
+
+Focal crítico con fuentes estables:2067 niveles11/200 y4815 niveles17/200,
+cuatro actor_state_changed con daños efectivos12 y packet12613 en todos.
+2067 aplica estado7929;4815 aplica7810. La vida del NPC de prueba limita
+la pérdida observada a12, así que no demuestra daño máximo del hechizo.
+Rollback conserva fuente4/4. Reporte active-critical-damage-flag15-current.json.
+Primera ejecución concurrente también ejecutó cuatro, pero tuvo hashinestable
+por nuevas fuentes843/2251; se preserva separada y no cuenta como evidencia
+estable (active-critical-damage-flag15-concurrent-source.json). Sin GUI ni restart.

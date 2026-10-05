@@ -45,7 +45,7 @@ class EffectTargetTests(unittest.TestCase):
 
     def test_relations_empty_center_and_native_xy_height(self):
         actors = [
-            SimpleNamespace(id=i, team=team, position=pos, hp=hp)
+            SimpleNamespace(id=i, team=team, position=pos, hp=hp, physical_radius=0)
             for i, team, pos, hp in [
                 (1, 0, (0, 0, 0), 10),
                 (2, 0, (1, 0, 9), 10),
@@ -105,8 +105,12 @@ class NativeSelectorTests(unittest.TestCase):
     def test_null_selector_area_is_anchored_to_caster(self):
         from wakfu_server.combat_effect_targets import select_native_effect_targets
 
-        caster = SimpleNamespace(id=1, team=0, position=(0, 0, 0), hp=10)
-        remote = SimpleNamespace(id=2, team=1, position=(10, 0, 0), hp=10)
+        caster = SimpleNamespace(
+            id=1, team=0, position=(0, 0, 0), hp=10, physical_radius=0
+        )
+        remote = SimpleNamespace(
+            id=2, team=1, position=(10, 0, 0), hp=10, physical_radius=0
+        )
         data = dict(effect("anD", "point"), native_target_selector=None)
         contexts = {1: {"is_eHH": False}, 2: {"is_eHH": False}}
         self.assertEqual(
@@ -149,7 +153,9 @@ class NativeSelectorTests(unittest.TestCase):
     def test_self_empty_area_is_global_without_area_flag(self):
         from wakfu_server.combat_effect_targets import select_native_effect_targets
 
-        caster = SimpleNamespace(id=1, team=0, position=(0, 0, 0), hp=10)
+        caster = SimpleNamespace(
+            id=1, team=0, position=(0, 0, 0), hp=10, physical_radius=0
+        )
         data = dict(
             effect("anA", "empty"), native_target_selector={"class": "fcE", "mask": 2}
         )
@@ -195,8 +201,12 @@ class NativeSelectorTests(unittest.TestCase):
 
 class NativeTargetContextTests(unittest.TestCase):
     def setUp(self):
-        self.caster = SimpleNamespace(id=1, team=0, position=(0, 0, 0), hp=10)
-        self.target = SimpleNamespace(id=2, team=1, position=(1, 0, 0), hp=10)
+        self.caster = SimpleNamespace(
+            id=1, team=0, position=(0, 0, 0), hp=10, physical_radius=0
+        )
+        self.target = SimpleNamespace(
+            id=2, team=1, position=(1, 0, 0), hp=10, physical_radius=0
+        )
         self.context = {
             i: {
                 "bEe": True,

@@ -1,0 +1,42 @@
+{
+  "method": "Private native SlotCodecProbe execution, no repository/client modifications.",
+  "colors": {
+    "NONE": 0,
+    "RED": 1,
+    "GREEN": 2,
+    "BLUE": 3,
+    "WHITE": 4
+  },
+  "protobuf": {
+    "class": "lD",
+    "fields": {
+      "1": "shardSlots",
+      "2": "additionalGems",
+      "3": "sublimationItemId",
+      "4": "specialSublimationItemId",
+      "9": "charges"
+    }
+  },
+  "roundtrip": {
+    "slots": 4,
+    "slot_colors": [
+      "RED",
+      "GREEN",
+      "BLUE",
+      "WHITE"
+    ],
+    "charges": 7,
+    "sublimationItemId": 0,
+    "specialSublimationItemId": 0,
+    "hex": "0a0850005800600170000a0850015800600270000a0850025800600370000a085003580060047000180020004807"
+  },
+  "response13766": {
+    "decoded": true,
+    "slots": 4,
+    "elements_present": false
+  },
+  "limits": [
+    "Four slots and seven charges chosen as synthetic input; not proof of official generation distribution or default charges.",
+    "Does not validate effect application or sublimation eligibility."
+  ]
+}

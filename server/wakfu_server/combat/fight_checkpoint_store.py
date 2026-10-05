@@ -38,7 +38,13 @@ def snapshot(fight, *, runtime=None):
             raise ValueError("Runtime belongs to another fight")
         state["runtime"] = {
             key: _plain(getattr(runtime, key))
-            for key in ("action_id", "awaiting_ack", "round", "duration")
+            for key in (
+                "action_id",
+                "native_action_id",
+                "awaiting_ack",
+                "round",
+                "duration",
+            )
         }
         # Pending wire packets are derived presentation, not checkpoint gameplay state.
     return state
@@ -115,6 +121,12 @@ class Checkpoints:
             )
             return revision
 
+    @staticmethod
+    def _read_snapshot(raw):
+        from .combat_checkpoint_containers import reconstruct_state_containers
+
+        return reconstruct_state_containers(json.loads(raw))
+
     def read(self, account_id, fight_id):
         with self.store.connection() as db:
             row = db.execute(
@@ -129,7 +141,7 @@ class Checkpoints:
                 revision=row["revision"],
                 status=row["status"],
                 updated_at=row["updated_at"],
-                snapshot=json.loads(row["snapshot"]),
+                snapshot=self._read_snapshot(row["snapshot"]),
             )
 
     def end(

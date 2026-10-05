@@ -1,0 +1,38 @@
+Orientación nativa: familia 303 / eWF
+
+Implementado el manejador común de orientación, sin excepciones por raza ni hechizo.
+Fuente: eVi registra 303 como eWF; bytecode eWF.C/c y enumeración aAS.
+La selección conserva los doce modos originales: celda, cuatro cardinales,
+sorteo uniforme inclusivo 1..4, dirección del lanzador/inversa, orientación del
+lanzador hacia el objetivo, objetivo hacia lanzador, intercambio nativo de los
+componentes del vector del lanzador e inversa del objetivo. La altura no entra
+en el cálculo de orientación. El modo 8 cambia el destinatario al lanzador;
+propiedad 51 y contexto de retención se consultan sobre ese destinatario real.
+
+Objetivo nulo, dirección NONE, propiedad 51 activa o ausencia de cambio producen
+el fallo nativo sin giro ni paquete de aplicación. Datos de autoridad desconocidos
+se rechazan. El azar usa el RNG de la transacción; un error posterior restaura su
+estado y no modifica el combate original. La aplicación usa 13497 y el codec
+común Qe con UID, valor, destinatario y temporización propios. Retirar el efecto
+usa 13560 y no revierte la dirección: eWF no sobrescribe bbR.
+
+Validación:
+- ProbeNativeOrientation.java contra el JAR original: 13 casos aprobados,
+  incluyendo cambio de destinatario y bloqueo sev. El probe no compara el azar;
+  su intervalo y orden previo al chequeo de objetivo se acreditan por bytecode.
+- unittest test_combat_orientation_effect + test_combat_orientation: 9 pruebas
+  aprobadas (modos, codec, retiro, bloqueo, rebind y rollback del RNG).
+- active-critical-orientation303-current.json: diez escenarios de cuatro hechizos
+  antes rechazados por familia 303 completan con cambios reales. Hashes estables
+  y conservación del original en los diez. Ocho producen eventos de orientación;
+  7078 mantiene la dirección previa conforme al fallo nativo sin cambio y sí
+  produce desplazamiento/daño. Los daños observados están limitados por los 12 HP
+  del objetivo de prueba y no acreditan todos los posibles resultados del hechizo.
+
+Comandos:
+PYTHONPATH=server:server/tests python3 -m unittest test_combat_orientation_effect test_combat_orientation
+python3 server/tools/audit_active_spells.py --from-report docs/reports/combat-inventory/active-critical-stable-current.json --reason 'No handler for native effect class 303' --critical --output docs/reports/combat-inventory/active-critical-orientation303-current.json
+
+Archivos: combat_orientation_effect.py, combat_effect_runtime.py,
+combat_retained_runtime.py y combat_stat_handler.py; tests y probe propios.
+Cambios presentes en fuentes; esta tarea no reinició servicios ni verificó GUI.

@@ -1,0 +1,18 @@
+Revalidación de familias402 y447 contra la entrada común actual
+
+El reporte active-cast-audit.json registraba20 rechazos por familia sinhandler.
+La fuente actual ya instala NativeCellNullHandler402 (eXG/eXE) y
+NativeFightPropertyHandler447 (eWt), con codec/retirada/propiedad propios.
+No se añadió un segundo handler ni se omitieron criterios para esta tarea.
+
+Comando:
+PYTHONPATH=server:server/tools python3 server/tools/audit_active_spells.py
+  --from-report .runtime/local/active-402-447-pending.json
+  --output docs/reports/combat-inventory/active-402-447-current.json
+
+Resultado:19 definiciones,40 escenarios legales/200;30 cambian estado del
+actor en preview y6 sólo producen paquetes.4 rechazos conservan recursos
+por exigir objetivo de invocación propia:751(Osa) y4708(Steamer), variante
+enemigo en dos niveles. No son rechazos sinhandler402/447 ni se sustituyó
+ese objetivo por celda arbitraria. Fuente estable; original intacto40/40.
+La existencia de paquetes no se presenta como mecánica completa o pruebaGUI.

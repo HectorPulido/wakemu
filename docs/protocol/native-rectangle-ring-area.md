@@ -1,0 +1,21 @@
+# Área nativa anF: contorno rectangular
+
+Fuente instalada: `anF.p(int[])`, `bEl`, `bEj`, heredando `anc/amX`. El nuevo probe `sniffer/java/ProbeNativeRectangleRing.java` ejecuta la implementación original sin conexiones oficiales.
+
+`p` acepta dos parámetros (ordena mínimo y máximo, aplicados a ambos ejes) o cuatro (`innerX,innerY,outerX,outerY`). El catálogo exporta el resultado normalizado como `rectangular or square ring-w:innerX-outerX / h:innerY-outerY`. Rechaza límites interiores mayores que exteriores para cuatro parámetros.
+
+La enumeración recorre x=0..outerX e y=0..outerY, omitiendo únicamente puntos donde **ambos** x<innerX e y<innerY. Añade signos en orden (+,+),(-,+),(+,-),(-,-), evitando duplicación sobre ejes. El límite interior está incluido; con 1-1 por eje hay ocho casillas y el centro está excluido. Con cero-cero el centro está incluido. `bEj` devuelve false incluso para cuadrados: se conserva la transformación orientada nativa común. La altura no participa en la pertenencia XY.
+
+Implementación común: `combat_area_geometry.native_area_shape`, sin referencias ni clases de personaje especiales. Tres pruebas verifican orden original, centro/bordes, rectángulos, varios objetivos, caster, alturas y ausencia de mutación. La comparación de conjuntos por sí sola no reemplaza la orientación nativa existente.
+
+## Resultado focal de entrada común
+
+`active-rectangle-ring-current.json` ejecuta Columnata 5037 a nivel17/200 y Perturbación 7068 a9/200, con inicialización nativa real y objetivo self del caso previo. Los cuatro superan el rechazo anF; fuentes estables y rollback4/4. Columnata produce sólo paquetes (8 referencias ejecutadas por caso); Perturbación no muestra cambios (7 referencias). No se afirma daño efectivo: el caster está en el centro excluido y no hay varios enemigos en el contorno del fixture. Las condiciones nativas siguen vigentes: se observa falso `IsTargetCellFree() and not HasFightProperty("caster",11)` en Columnata, y `HasState(6612,"caster")` en Perturbación. La selección de varios actores del contorno, excluyendo caster/centro y fuera del borde, sí está comprobada por la prueba geométrica independiente; aún falta acreditar daño multienemigo en la transacción completa y GUI.
+
+## Transacción multienemigo completada
+
+La prueba reproducible `server/tools/audit_rectangle_ring_damage.py` usa tres NPC propios5525 nivel1 en contorno nativo1134, un cuarto fuera y caster central, con facing cardinal1. Inicializa innatas y evento de inicio reales, sin estados forzados. Columnata17/200 reduce los tres NPC12→0, consume4PA (6→2); Perturbación9 reduce12→6 y a200 reduce12→0, consume3PA (6→3). Cada caso genera tres paquetes de daño12613. Caster y NPC fuera permanecen intactos; MP/PW intactos; Fight original conservado4/4 y fuentes estables. Informe `rectangle-ring-multitarget.json`. No acredita GUI ni todas las caras/condiciones.
+
+Esta prueba detectó además un fallo compartido en grupos eYg: la rama actor `bbA` original transmite las coordenadas del PV seleccionado (`bfs.bcz/bcA/bcB`) y ese PV cuando `rFn` permite transmitirlo; la implementación reutilizaba el centro inicial y forzaba ausencia de PV explícito. La corrección final conserva únicamente coordenadas del actor seleccionado en la rama actor; mantiene reconstrucción de selectores (`native_explicit_target=False`). Un intento inicial de PV directo universal trasladó armadura de caster al NPC y fue retirado antes de desplegar. La rama cell permanece intacta. No se fuerza el destino ignorando máscaras del hijo. Evidencia bytecode: `.runtime/local/anF-eYg-current.txt`, método privado `a(Iterator,eVt)`, offsets95..156 y411..446. No se añadió excepción por hechizo.
+
+Regresiones finales del cambio limitado a coordenadas: Pie de Roca5033 nivel20/200 restaura armadura **al caster**0→7/24 (característica97), NPC0, dañoNPC11/12. Sangre Ardiente5031 nivel20/200 conserva círculo nativo: el NPC axial recibe12 y los diagonales fuera del círculo no reciben daño; caster recibe24/204 según árbol real. Atracción5030 nivel20/200 conserva ruta nativa desnivelada(-15,-5,-1)→(-15,-4,0), rollback2 y fuentes estables (`group-actor-pull-regression.json`). La fase de PVdirecto descartada no forma parte del checkpoint final. Los ocho casos multienemigo/control quedaron con fuentes estables y rollback original intacto.

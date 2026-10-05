@@ -2140,6 +2140,30 @@
       ],
       "zero_initial_amount_rejected": true
     },
+    "16": {
+      "additional_fields": {
+        "percent": 18,
+        "set_maximum": 17
+      },
+      "dynamic_stat": false,
+      "effect_class": 16,
+      "fixed_stat_id": 1,
+      "fixed_stat_name": "HP",
+      "operation": "set_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "percent_index": 2,
+        "set_maximum_index": 1,
+        "supported_counts": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "removal_reverts": false,
+      "runner": "eYO"
+    },
     "160": {
       "additional_fields": {
         "requested": 25,
@@ -4624,6 +4648,78 @@
       ],
       "zero_initial_amount_rejected": true
     },
+    "950": {
+      "additional_fields": {
+        "percent": 18,
+        "set_maximum": 17
+      },
+      "dynamic_stat": false,
+      "effect_class": 950,
+      "fixed_stat_id": 2,
+      "fixed_stat_name": "AP",
+      "operation": "set_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "percent_index": 2,
+        "set_maximum_index": 1,
+        "supported_counts": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "removal_reverts": false,
+      "runner": "eYO"
+    },
+    "951": {
+      "additional_fields": {
+        "percent": 18,
+        "set_maximum": 17
+      },
+      "dynamic_stat": false,
+      "effect_class": 951,
+      "fixed_stat_id": 3,
+      "fixed_stat_name": "MP",
+      "operation": "set_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "percent_index": 2,
+        "set_maximum_index": 1,
+        "supported_counts": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "removal_reverts": false,
+      "runner": "eYO"
+    },
+    "952": {
+      "additional_fields": {
+        "percent": 18,
+        "set_maximum": 17
+      },
+      "dynamic_stat": false,
+      "effect_class": 952,
+      "fixed_stat_id": 4,
+      "fixed_stat_name": "WP",
+      "operation": "set_current",
+      "parameter_contract": {
+        "amount_index": 0,
+        "percent_index": 2,
+        "set_maximum_index": 1,
+        "supported_counts": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "removal_reverts": false,
+      "runner": "eYO"
+    },
     "96": {
       "additional_fields": {
         "requested": 25,
@@ -4857,5 +4953,5 @@
     }
   },
   "removal_opcode": 13560,
-  "source": "Installed wakfu-client.jar eVi/eWQ/eWR/eXE registry, offline reflection"
+  "source": "Installed wakfu-client.jar eVi/eWQ/eWR/eXE/eYO registry, offline reflection"
 }

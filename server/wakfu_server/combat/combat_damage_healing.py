@@ -7,7 +7,37 @@ contexts. No spell/breed identity whitelist and no identity mitigation.
 import math
 from .equipment_damage import damage as native_damage, ELEMENT_STATS, _float, _stats
 
-HEAL_ELEMENTS = {25: 1, 251: 5, 253: 3, 258: 4, 259: 2}
+DAMAGE_FAMILIES = (1, 2, 3, 4, 5, 917, 1083)
+
+
+def light_damage_element(source_stats):
+    """eYE.a: highest present mastery, ties FIRE/WATER/EARTH/AIR."""
+    source = _stats(source_stats)
+    candidates = [
+        (family, stat)
+        for family, stat in ((2, 21), (4, 22), (3, 23), (5, 24))
+        if stat in source
+    ]
+    if not candidates:
+        raise ValueError("Missing native LIGHT elemental characteristics")
+    return max(candidates, key=lambda item: source[item[1]])[0]
+
+
+def stasis_resistance_element(target_stats):
+    """Original eYE.b: lowest present resistance, native enum tie order."""
+    target = _stats(target_stats)
+    candidates = [
+        (family, stat)
+        for family, stat in ((2, 28), (4, 29), (3, 30), (5, 31))
+        if stat in target
+    ]
+    if not candidates:
+        raise ValueError("Missing native STASIS resistance characteristics")
+    return min(candidates, key=lambda item: target[item[1]])[0]
+
+
+# eXv24 inherits healing consumption but derives value without elemental mastery.
+HEAL_ELEMENTS = {24: None, 25: 1, 251: 5, 253: 3, 258: 4, 259: 2, 1084: 6}
 
 
 def _amount(value):
@@ -98,11 +128,29 @@ def damage_amount(
     """
     if type(coefficient_mask) is not int or coefficient_mask not in range(4):
         raise ValueError("Unsupported native damage coefficient mask")
+    # fau selects LIGHT's source element before checking coefficient bits.
+    if element == 917:
+        # fau keeps separate offense/defense elements for STASIS. Project
+        # only the selected resistance into the ordinary arithmetic input;
+        # retain 917 on the running effect, events and wire.
+        defense = stasis_resistance_element(target_stats)
+        element = light_damage_element(source_stats)
+        target_stats = dict(_stats(target_stats))
+        target_stats[ELEMENT_STATS[element][1]] = target_stats[
+            ELEMENT_STATS[defense][1]
+        ]
+    elif element == 1083:
+        element = light_damage_element(source_stats)
     # fau.fSy guards mastery/final/indirect by bit1 and both resistance
     # characteristics (elemental and final) by bit2. Front location adds0.
     source_stats = source_stats if coefficient_mask & 1 else {}
     target_stats = target_stats if coefficient_mask & 2 else {}
     arithmetic_context = dict(arithmetic_context)
+    if not coefficient_mask & 1:
+        arithmetic_context["additional_final"] = 0
+        arithmetic_context["additional_mastery"] = 0
+    if not coefficient_mask & 2:
+        arithmetic_context["additional_resistance"] = 0
     # Native forced MELEE and RANGED may both apply (or neither). The older
     # front formula accepts a single boolean, so project the selected sum.
     if "ranged" in arithmetic_context:
@@ -168,12 +216,14 @@ def healing_amount(
     (stored per thousand, converted with float32 and truncation /10).
     Critical base must already be the selected native critical effect.
     """
-    _amount(base)
+    if type(base) is not int or not -(1 << 31) <= base < (1 << 31):
+        raise ValueError("Invalid signed native healing base")
     ranged = not melee if ranged is None else ranged
     _flags(critical, single_target, area, melee, ranged, berserk)
     source, target = _stats(source_stats), _stats(target_stats)
     if (
         element not in ELEMENT_STATS
+        and element != 6
         or type(coefficient_mask) is not int
         or coefficient_mask not in range(4)
     ):
@@ -193,7 +243,13 @@ def healing_amount(
         mastery += source.get(103, 0) if melee else 0
         mastery += source.get(104, 0) if ranged else 0
         mastery += source.get(107, 0) if berserk else 0
-        elemental, _ = ELEMENT_STATS[element]
+        if element == 6:
+            from .combat_element_selection import highest_mastery_element
+
+            selected = highest_mastery_element(source)
+            elemental = {1: 21, 2: 22, 3: 23, 4: 24}.get(selected)
+        else:
+            elemental, _ = ELEMENT_STATS[element]
         if elemental is not None:
             mastery += min(50000, source.get(elemental, 0))
         final = source.get(114, 0) + additional_final

@@ -1,0 +1,9 @@
+Grupo aleatorio341/eXR — operación común
+
+Registro eVi341 usa eXR, heredero eYg. eXR.t filtra nivel mínimo/máximo y criterio nativo antes del sorteo; no hace filtro de población amQ ni omite criterios por suscripción. Fuente de evento nula en ese criterio. Probabilidades eg se evalúan al nivel del padre. eXR.fPC suma pesos mediante float32 y conversión int en cada paso; GS.ne(total) obtiene entero en [0,total). El primer acumulado >= roll se elige, se excluye en los sorteos posteriores y se resta su peso con la misma conversión. El borde0 puede elegir peso0; se conserva esa conducta nativa. Total no positivo cuando aún se solicita sortear mantiene rechazo atómico, como GS.nextInt inválido.
+
+Parámetros propios:0 cantidad,1 So raw target/celda (defaulttarget),2 transmisión evaluada (defaulttrue). Cantidad no cuenta éxitos PT; gobierna sólo número de sorteos. Routing target/celda, niveles de contenedor, retención y retirada usan maquinaria común. Hijos reciben eVt(true,false) para no repetir el sorteo probabilístico. La actualización del builder sustituye campos1/2 sin duplicarlos y conserva los demás campos; corrige también la misma ruta relativa existente.
+
+RandomGroupAuthority recibe RNG entero acotado transaccional de server_runtime; no cachea contextos. Seed Python local no se presenta como idéntico al seed del cliente. ProbeNativeRandomGroup ejecuta fPC real con GS/GT seeded y verifica sorteo sin reposición, borde0, pesos fraccionarios y exclusión por nivel. PASS. Cuatro pruebas selector/contexto y nueve dispatcher PASS, incluida no doble aplicación de probability.
+
+Focal26 Eca: se superan341 y304 hijos; siguiente bloqueo359516 familia649, Missing complete native retained action population. Ancestros317352→374562→374563→359839→413114→359840→359844→359516. Original sin mutación26/26, hash estable. Informe docs/reports/combat-inventory/ready-eca-random-group-focal.json. Esto no acredita Ready completo. No GUI ni reinicio de servicios.

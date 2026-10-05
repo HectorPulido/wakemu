@@ -56,6 +56,8 @@ class NativeEventSelectionTests(unittest.TestCase):
 
     def test_unknown_flags_still_reject(self):
         validate_group_registration_flags([1, 17], active=True)
+        validate_group_registration_flags([5], active=True)
+        validate_group_registration_flags([15, 16, 17], active=True)
         with self.assertRaises(ValueError):
             validate_group_registration_flags([6], active=True)
         with self.assertRaises(ValueError):

@@ -9,7 +9,9 @@ from dataclasses import dataclass
 from .combat_cast import prepare_spell_cast
 from .combat_effect_dispatch import EffectDispatcher, EffectInvocation
 from .combat_spells import cast_animation, cast_notification
-from .fight_checkpoint_store import snapshot
+from .combat_geometry_snapshot import source_snapshot
+from .combat_active_spell import active_spell_scope
+from .combat_cast_facing import mirror_cast_facing
 
 
 @dataclass(frozen=True)
@@ -50,7 +52,7 @@ def prepare_spell_transaction(
         raise ValueError("Invalid spell action ID")
     if type(critical) is not bool:
         raise ValueError("Missing explicit critical branch")
-    source_state = snapshot(fight)
+    source_state = source_snapshot(fight)
     preview = deepcopy(fight)
     plan = prepare_spell_cast(
         body,
@@ -75,6 +77,7 @@ def prepare_spell_transaction(
         for stat, value in ((2, caster.ap), (3, caster.mp)):
             if stat in caster.effect_stats:
                 caster.effect_stats[stat] = value
+    mirror_cast_facing(caster, plan)
     dispatcher, effect_packets = runtime_factory(preview, plan)
     if not isinstance(dispatcher, EffectDispatcher) or not isinstance(
         effect_packets, list
@@ -82,7 +85,7 @@ def prepare_spell_transaction(
         raise ValueError(
             "Runtime factory must return dispatcher and private packet list"
         )
-    with preview.effect_resolution():
+    with active_spell_scope(preview, plan["spell_id"]), preview.effect_resolution():
         outcomes = tuple(
             dispatcher.execute(
                 EffectInvocation(
@@ -112,6 +115,10 @@ def prepare_spell_transaction(
                 plan["spell_id"],
                 plan["target"],
                 critical=critical,
+                native_uid=plan["spell_uid"]
+                if plan["spell_uid"] == plan["spell_id"]
+                else None,
+                native_level=plan["evaluation_level"],
             ),
         ),
         (
@@ -123,10 +130,17 @@ def prepare_spell_transaction(
                 plan["spell_id"],
                 plan["target"],
                 critical=critical,
+                native_uid=plan["spell_uid"]
+                if plan["spell_uid"] == plan["spell_id"]
+                else None,
+                native_level=plan["evaluation_level"],
             ),
         ),
         *effect_packets,
     )
+    from .combat_spell_usage import consume_usage
+
+    consume_usage(preview, plan)
     if caster.effect_stats is not None and 4 in caster.effect_stats:
         wp_remaining = caster.effect_stats[4]
     return SpellTransaction(

@@ -1,0 +1,17 @@
+{
+  "method": "Serialización real spawn_group + Reader; sin GUI ni combate",
+  "results": [
+    {
+      "case": "default",
+      "decoded_name": "Grupo local",
+      "reference": 5525
+    },
+    {
+      "case": "explicit",
+      "decoded_name": "Nombre de prueba",
+      "reference": 5525
+    }
+  ],
+  "live_screenshot": "Usuario: monstruo nivel 23 con nombre Grupo local",
+  "limit": "No coteja todavía fallback nativo de nombre vacío ni traducción por raza"
+}

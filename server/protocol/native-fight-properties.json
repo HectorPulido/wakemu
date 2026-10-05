@@ -1,0 +1,725 @@
+{
+  "source": "ffe / PE.aKg",
+  "properties": [
+    {
+      "id": 0,
+      "symbol": "NONE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 1,
+      "symbol": "SKIP_TURN",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 2,
+      "symbol": "RANGE_REDUCED_TO_CAC",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 3,
+      "symbol": "ROOTED",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 4,
+      "symbol": "IMMUNE_TO_MP_LOSS",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 5,
+      "symbol": "INVISIBLE",
+      "category": 1,
+      "application_branch": "occupancy_and_position"
+    },
+    {
+      "id": 6,
+      "symbol": "INVISIBLE_REVEALED",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 7,
+      "symbol": "TRANSPARENT_FOR_CONTROLLER",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 8,
+      "symbol": "BYPASS_RESISTANCE_CAP",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 9,
+      "symbol": "COWARD",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 10,
+      "symbol": "HASTE",
+      "category": 1,
+      "application_branch": "timeline_recalculate"
+    },
+    {
+      "id": 11,
+      "symbol": "STABILIZED",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 12,
+      "symbol": "NO_DEATH",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 14,
+      "symbol": "NO_DROP",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 15,
+      "symbol": "CANT_TACKLE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 16,
+      "symbol": "NO_XP",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 17,
+      "symbol": "MAX_PA_COST",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 18,
+      "symbol": "INVISIBLE_SUPERIOR",
+      "category": 1,
+      "application_branch": "occupancy_and_position"
+    },
+    {
+      "id": 19,
+      "symbol": "NO_KO",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 20,
+      "symbol": "UNDEAD",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 21,
+      "symbol": "UNTARGETTABLE_BY_OTHER",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 22,
+      "symbol": "IA_DOUBLE_FOCUS_ON_TARGET",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 23,
+      "symbol": "STASIS_1",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 24,
+      "symbol": "STASIS_2",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 25,
+      "symbol": "STASIS_3",
+      "category": 1,
+      "application_branch": "notify_wp_listeners"
+    },
+    {
+      "id": 26,
+      "symbol": "IA_MINIMIZE_FOCUS_ON_TARGET",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 27,
+      "symbol": "LOOTER",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 28,
+      "symbol": "CANNOT_BE_SEDUCED",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 29,
+      "symbol": "GROGGY_1",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 30,
+      "symbol": "GROGGY_2",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 31,
+      "symbol": "GROGGY_3",
+      "category": 1,
+      "application_branch": "set_ap_minimum"
+    },
+    {
+      "id": 32,
+      "symbol": "CRIPPLED_1",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 33,
+      "symbol": "CRIPPLED_2",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 34,
+      "symbol": "CRIPPLED_3",
+      "category": 1,
+      "application_branch": "set_mp_minimum"
+    },
+    {
+      "id": 35,
+      "symbol": "LAME",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 36,
+      "symbol": "SEVEN_LEAGUE_BOOTS",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 37,
+      "symbol": "EXTRA_TURN",
+      "category": 1,
+      "application_branch": "insert_extra_turn_current_round"
+    },
+    {
+      "id": 38,
+      "symbol": "CONFUSED",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 39,
+      "symbol": "CAN_DETECT_TRAPS",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 40,
+      "symbol": "CAN_BE_SEDUCED",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 41,
+      "symbol": "CANNOT_USE_ITEM_CAST",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 42,
+      "symbol": "CANNOT_BE_EFFECT_TARGET",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 43,
+      "symbol": "IS_CURRENT_SPELL_CAST_BROKEN",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 44,
+      "symbol": "IS_SADIDA_PUPPET",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 45,
+      "symbol": "IS_WALKABLE_SADIDA_TOTEM",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 46,
+      "symbol": "IA_INVERT_FOCUS_ON_TARGET",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 47,
+      "symbol": "DO_NOT_USE_LOCALISATION",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 48,
+      "symbol": "IA_CAN_TARGET_KO_FIGHTERS",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 49,
+      "symbol": "PHORZERKER_MODE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 50,
+      "symbol": "AP_AS_MP",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 51,
+      "symbol": "DO_NOT_ORIENTATE_FIGHTER_DURING_FIGHT",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 52,
+      "symbol": "CHRAGE_CANCEL_TRIGGERING_EFFECT",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 54,
+      "symbol": "DONT_BLOCK_LOS",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 55,
+      "symbol": "CANT_TRANSPOSE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 56,
+      "symbol": "CANT_BE_PUSH_OR_PULLED",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 57,
+      "symbol": "CANT_TELEPORT",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 58,
+      "symbol": "WONT_LOOSE_CHRAGE_WHEN_HEAL",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 59,
+      "symbol": "AI_CAN_TARGET_OFFPLAY_FIGHTERS",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 60,
+      "symbol": "IS_A_COPY_OF_HIS_CONTROLLER",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 61,
+      "symbol": "CANT_BE_DIFFERENTIATED_FROM_COPIES",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 62,
+      "symbol": "STILL_LIFE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 63,
+      "symbol": "DOESNT_TRIGGER_EFFECT_ZONE_WHEN_JOINING_FIGHT",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 64,
+      "symbol": "XELOR_HAS_BEEN_ROLLBACKED",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 65,
+      "symbol": "DONT_TRIGGER_KO",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 66,
+      "symbol": "CANNOT_BE_RAISED",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 67,
+      "symbol": "SPELL_WONT_BREAK_INVISIBILITY",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 68,
+      "symbol": "CANNOT_BE_EFFECT_TARGET_BUT_CAN_BE_AI_TARGET",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 69,
+      "symbol": "ESCAPE_TACKLE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 70,
+      "symbol": "CANNOT_BE_CARRIED",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 71,
+      "symbol": "CANT_GET_CLOSER",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 72,
+      "symbol": "CANT_BE_STATE_TARGET",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 73,
+      "symbol": "DISPLAYED_LIKE_A_DECORATION",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 74,
+      "symbol": "DONT_COUNT_AS_FIGHTER_ON_FIGHT_END",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 75,
+      "symbol": "IS_NOT_VALID_TARGET",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 76,
+      "symbol": "SUMMON_FORCE_CHARACTERISTIC_DISPLAY",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 77,
+      "symbol": "MOVEMENT_ON_RAILS_ONLY",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 78,
+      "symbol": "DO_NOT_USE_TIMESCORE_GAUGE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 79,
+      "symbol": "CANT_JUMP_FROM_CARRIER",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 80,
+      "symbol": "USE_MECANISM_MASTERY",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 81,
+      "symbol": "USE_SUMMONER_DMG_PERCENT",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 82,
+      "symbol": "AI_STOP_COMPUTE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 83,
+      "symbol": "CANT_MOVE_AWAY_OR_REPELL",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 84,
+      "symbol": "DONT_USE_SUMMONING_MASTERY",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 85,
+      "symbol": "SIMULATING",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 86,
+      "symbol": "DONT_SKIP_TURN_ON_TACKLE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 87,
+      "symbol": "TELEPORT_ON_MOVEMENT",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 88,
+      "symbol": "DO_NOT_MOVE_IN_FIGHT",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 90,
+      "symbol": "NO_DODGE_LIMIT",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 91,
+      "symbol": "NO_KAMAS",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 92,
+      "symbol": "SMOOTH_MOVE_ON_AREA",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 93,
+      "symbol": "MOVE_STRAIGHT_FORWARD",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 94,
+      "symbol": "ATTACK_STRAIGHT_FORWARD",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 95,
+      "symbol": "CANNOT_CAST_SPELL",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 96,
+      "symbol": "NO_SPELL_XP_GAIN",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 97,
+      "symbol": "GIVE_DOUBLE_XP",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 98,
+      "symbol": "MOVEMENT_ON_RAILS_ALWAYS_COST_1_PM",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 99,
+      "symbol": "NO_LOOT",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 100,
+      "symbol": "ALWAYS_LOOT",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 101,
+      "symbol": "SUMMONER_VISUAL_COPY",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 102,
+      "symbol": "DISABLE_FIGHT_CHALLENGE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 103,
+      "symbol": "BYPASS_SUMMONS_COUNT",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 104,
+      "symbol": "REVERSI_REVERSABLE_PIECE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 105,
+      "symbol": "CANNOT_USE_GATE_TO_MOVE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 106,
+      "symbol": "MINIMIZE_RANDOM_DAMAGES",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 107,
+      "symbol": "MAXIMIZE_RANDOM_DAMAGES",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 108,
+      "symbol": "SUMMONER_SHORTCUT_BAR_MANAGER",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 109,
+      "symbol": "COEUR_DE_FEU",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 110,
+      "symbol": "STABILIZED_FOR_ENEMIES",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 111,
+      "symbol": "STABILIZED_FOR_ALLIES",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 112,
+      "symbol": "DISABLE_PLAYER_ORIENTATION",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 113,
+      "symbol": "LOVE_BORDER",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 114,
+      "symbol": "NOT_PRESENT_IN_TIMELINE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 115,
+      "symbol": "FIXED_SUBSCRIPTION_XP_FACTOR",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 116,
+      "symbol": "NO_REROLL_XP",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 117,
+      "symbol": "BATTLEGROUND_NPC",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 118,
+      "symbol": "BATTLEGROUND_GENERAL",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 119,
+      "symbol": "BATTLEGROUND_ATTACKER",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 120,
+      "symbol": "BATTLEGROUND_DEFENDER",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 121,
+      "symbol": "SUMMON_WITH_TIMESCORE_GAUGE",
+      "category": 1,
+      "application_branch": "counter"
+    },
+    {
+      "id": 122,
+      "symbol": "HEALTH_BAR_HIDDEN",
+      "category": 1,
+      "application_branch": "counter"
+    }
+  ]
+}

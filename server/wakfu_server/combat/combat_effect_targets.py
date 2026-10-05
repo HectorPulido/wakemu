@@ -63,6 +63,22 @@ def area_offsets(effect, *, origin=None, reference=None, direction=None):
             {(n, 0) for n in range(-radius, radius + 1)}
             | {(0, n) for n in range(-radius, radius + 1)}
         )
+    elif kind == "anx" and (
+        match := re.fullmatch(
+            r"crossDiag-h(-?\d+)b(-?\d+)-g(-?\d+)d(-?\d+)", description or ""
+        )
+    ):
+        # anx.bEj=true: even unequal arms are fixed XY diagonals, not rotated.
+        return frozenset(
+            {(0, 0)}
+            | {
+                (dx * n, dy * n)
+                for length, (dx, dy) in zip(
+                    map(int, match.groups()), ((-1, -1), (1, 1), (-1, 1), (1, -1))
+                )
+                for n in range(1, length + 1)
+            }
+        )
     else:
         raise UnsupportedEffectArea(f"Unaudited effect area: {kind}/{description}")
     return frozenset(
@@ -71,6 +87,9 @@ def area_offsets(effect, *, origin=None, reference=None, direction=None):
         for y in range(-high, high + 1)
         if low <= abs(x) + abs(y) <= high
     )
+
+
+from .combat_effect_area_targets import target_available
 
 
 def target_relation(caster, target):
@@ -104,12 +123,26 @@ def select_effect_targets(
                 direction=getattr(caster, "direction", None),
                 radius=getattr(actor, "physical_radius", None) if native_radius else 0,
             )
-        return (actor.position[0] - center[0], actor.position[1] - center[1]) in offsets
+        # amQ with a selector calls anc.b/amX.a with amP.bcL, including
+        # isotropic point/circle/ring/cross shapes. Null-selector anc.a uses
+        # centre membership only; preserve that separate native route.
+        radius = getattr(actor, "physical_radius", None) if native_radius else 0
+        if type(radius) is not int or not -128 <= radius <= 127:
+            raise ValueError(
+                "Native area membership requires signed-byte physical radius"
+            )
+        radius = max(0, radius)
+        x, y = actor.position[0] - center[0], actor.position[1] - center[1]
+        return any(
+            (x + dx, y + dy) in offsets
+            for dx in range(-radius, radius + 1)
+            for dy in range(-radius, radius + 1)
+        )
 
     return tuple(
         actor
         for actor in actors
-        if actor.hp > 0
+        if target_available(actor)
         and inside(actor)
         and target_relation(caster, actor) in relations
     )
@@ -139,12 +172,18 @@ def native_selector_policy(effect):
         | 2
         | 4
         | 8
+        | 16
         | 32
         | 64
         | 128
         | 256
         | 4096
         | 8192
+        | (1 << 34)
+        | (1 << 40)
+        | (1 << 42)
+        | (1 << 43)
+        | (1 << 45)
         | (1 << 47)
         | (1 << 49)
         | (1 << 50)
@@ -193,12 +232,34 @@ def _native_target_valid(mask, caster, actor, contexts):
         return False  # eGj.bEe = !CANNOT_BE_EFFECT_TARGET (native property42).
     if mask & 64 and not value("is_Qq"):
         return False
+    # fcE uses Sn()>0, not PLAYER_CHARACTER; positive summons also qualify.
+    if mask & 16 and (not value("is_eGj") or actor.id <= 0):
+        return False
+    # eGj.baF is fdy IN_PLAY membership, distinct from a raw HP field.
+    if mask & (1 << 40) and (not value("is_eGj") or not value("baF")):
+        return False
+    if mask & (1 << 42) and (
+        not source_value("is_eGj") or actor.id != source_value("dpu_id")
+    ):
+        return False
+    if mask & (1 << 45) and (
+        not source_value("is_eGj") or actor.id != source_value("dpr_id")
+    ):
+        return False
+    if mask & (1 << 34):
+        if not source_value("is_eGj"):
+            return False
+        if value("is_eGj") and value("dTE") and value("dpu_id") == caster.id:
+            return False  # Native exclusion is own summons, not every summon.
     if mask & 32 and (not value("is_eGj") or not value("dTE")):
         return False
     if mask & 4096:
         if not value("is_eGj") or not value("dTE"):
             return False
         if value("dpu_id") != caster.id or value("baG") or value("baK"):
+            return False
+    if mask & (1 << 43):
+        if not value("is_Qq") or value("q_owner_id") != caster.id:
             return False
     if mask & (1 << 47) and not value("is_eGj"):
         return False
@@ -247,7 +308,8 @@ def select_native_effect_targets(
         candidates = tuple(
             actor
             for actor in actors
-            if actor.hp > 0 and target_relation(caster, actor) in policy["relations"]
+            if target_available(actor)
+            and target_relation(caster, actor) in policy["relations"]
         )
     return tuple(
         actor

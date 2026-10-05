@@ -33,3 +33,11 @@ Cinco pruebas adicionales incluyen emisión automática de las ocho fases/canale
 La producción automática de un evento de pago eWf y la rama fuente500/current-PN siguen pendientes de auditoría de su lifecycle. 912 soporta instantáneas pagadas explícitas acreditadas; los eventos eXs/eXt son `other` y conservan el nivel padre, como el cliente.
 
 Para949, `eVE.a(PL,PV,PN,UJ,...,true)` devuelve PT nulo si falla su guardia geométrica privada o no existe runner en UJ. Después `Qe.a` crea PT antes de seleccionar objetivos, por lo que un selector vacío puede producir PT creado con cero aplicaciones. La guardia privada comprueba fKX, amQ, actores/faV y QI.R/V; no equivale a la caminabilidad. Fuente: `.runtime/local/native-effect-pt-creation.txt`. El puente de creación/contador debe acreditar esas guardas antes de ejecutar949.
+
+## Integración949 acreditada (2026-10-04)
+
+La rama dedicada del dispatcher utiliza `combat_repeated_group.NativePtResult`: presencia del PT, contador `PT.bas()` y resultado de ejecución separados. El contador aumenta tras cada callback Qe.a aceptado, incluso si el manejador no altera el actor; suscripciones diferidas no lo incrementan. Cada hijo vuelve a resolver objetivos y condiciones en cada iteración. `child_level_context` comparte la transmisión nativa flag16 y el contexto eVt con los demás grupos, conservando UID y propiedad.
+
+El exportador nativo `ExportNativePtPreflight.java` acredita fKX nulo para177540 definiciones. Las797 exclusiones no nulas permanecen rechazadas: no se reemplaza esa geometría por caminabilidad. Un grupo retenido con objetivo nulo también conserva el rechazo previo de propiedad. La ausencia de un manejador no se convierte en PT nulo ni permite saltar el efecto.
+
+Ocho pruebas Python y `ProbeNativeRepeatLoop` pasan. El probe ejecuta C/c nativos de eXN y PT.bap/bas; sus hijos son un proveedor explícito de contadores y no acreditan la selección gráfica. La auditoría de26 inicializaciones Eca supera949 en todos los casos y llega a IsCarrying (efecto359839), con hashes estables y rollback preservado. Esto acredita la entrada común y la transacción, no juego completo ni GUI. Las primitivas anteriores documentadas arriba quedan como historial; el puente antes pendiente está ahora conectado para el subconjunto fKX nulo.

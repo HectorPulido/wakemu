@@ -37,6 +37,10 @@ class BootstrapTests(unittest.TestCase):
             terrain_effect_id=46,
             terrain_instance_id=123,
         )
+        from wakfu_server.combat_geometry_snapshot import ImmutableTerrainSet
+
+        self.assertIsInstance(fight.walkable, ImmutableTerrainSet)
+        self.assertIsInstance(fight.edges, ImmutableTerrainSet)
         self.assertEqual(fight.native_obstacle_cells, frozenset())
         self.assertEqual(fight.placement, terrain["placement_cells"])
         self.assertEqual(

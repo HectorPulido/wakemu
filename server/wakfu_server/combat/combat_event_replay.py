@@ -31,6 +31,14 @@ class NativeEventSource:
     cost_source: dict | None = None
     native_container: dict | None = None
     effect_action_id: int | None = None
+    zone_trigger_policy: dict | None = None
+    effect_flags: tuple[int, ...] | None = None  # Actual source PK/eVn REP flags.
+    final_modifier: object = (
+        None  # Transient live faq accumulator; never retained on Fight.
+    )
+    runner_modifier: object = (
+        None  # Transient live Qe amount, excluded from descriptors.
+    )
 
     def validate(self):
         if (
@@ -59,10 +67,23 @@ class NativeEventSource:
         ):
             raise ValueError("Native source event IDs required")
 
+        if self.final_modifier is not None:
+            from .combat_final_modifier import NativeFinalModifier
+
+            if not isinstance(self.final_modifier, NativeFinalModifier):
+                raise ValueError("Missing native faq source descriptor")
+            self.final_modifier.validate()
+            if (
+                self.final_modifier.uid != self.uid
+                or self.final_modifier.family != self.effect_action_id
+            ):
+                raise ValueError("Native faq source descriptor identity mismatch")
+
 
 @dataclass(frozen=True)
 class NativeExternalEvent:
     """Server external delivery with native null source; no running-effect UID."""
+
     manager_actor_id: int
     event_ids: tuple[int, ...]
     channel: int
@@ -76,12 +97,20 @@ class NativeExternalEvent:
     suppressed: bool = False
 
     def validate(self):
-        if (type(self.manager_actor_id) is not int or self.manager_actor_id == 0
-                or type(self.channel) is not int or not isinstance(self.event_ids, tuple)
-                or any(type(v) is not int or v < 0 for v in self.event_ids)
-                or any(getattr(self, name) is not None for name in
-                       ("uid", "source_parent_uid", "caster_id", "target_id"))
-                or self.suppresses_level_one or self.suppresses_all or self.suppressed):
+        if (
+            type(self.manager_actor_id) is not int
+            or self.manager_actor_id == 0
+            or type(self.channel) is not int
+            or not isinstance(self.event_ids, tuple)
+            or any(type(v) is not int or v < 0 for v in self.event_ids)
+            or any(
+                getattr(self, name) is not None
+                for name in ("uid", "source_parent_uid", "caster_id", "target_id")
+            )
+            or self.suppresses_level_one
+            or self.suppresses_all
+            or self.suppressed
+        ):
             raise ValueError("Native external null-source event required")
 
 
@@ -118,9 +147,9 @@ class NativeEventReplay:
         self.history = NativeTriggerHistory()
 
     def __call__(self, source, *, authority):
-        if not isinstance(source, (NativeEventSource, NativeExternalEvent)) or not isinstance(
-            authority, NativeCloneAuthority
-        ):
+        if not isinstance(
+            source, (NativeEventSource, NativeExternalEvent)
+        ) or not isinstance(authority, NativeCloneAuthority):
             raise ValueError("Native event source and clone authority required")
         source.validate()
         if not callable(authority.executable) or not callable(
@@ -176,13 +205,31 @@ class NativeEventReplay:
         )
         outcomes = []
         for entry, row, definition in queued:
+            if (
+                isinstance(source, NativeEventSource)
+                and source.runner_modifier is not None
+            ):
+                from .combat_trigger_value_modifier import NativeRunnerAmount
+
+                runner = source.runner_modifier
+                if (
+                    not isinstance(runner, NativeRunnerAmount)
+                    or runner.uid != source.uid
+                    or runner.family != source.effect_action_id
+                ):
+                    raise ValueError("Native source runner amount identity mismatch")
+                source = replace(source, value=runner.value)
             if entry.uid not in self.retention.fight.native_owned_group_effects:
                 continue
             count = row.get("execution_count")
             if type(count) is not int or not -32768 <= count <= 32767:
                 raise ValueError("Missing native retained listener execution count")
             original = EffectInvocation(
-                **dict(row["invocation"], cell=tuple(row["invocation"]["cell"]))
+                **dict(
+                    row["invocation"],
+                    cell=tuple(row["invocation"]["cell"]),
+                    native_value_scope=None,
+                )
             )
             caster, target = subscription_actor_ids(
                 target_code=definition["event_target_code"],
@@ -199,15 +246,27 @@ class NativeEventReplay:
             cell = (
                 self.retention.fight.actors[target].position
                 if target is not None
-                else (source.cell if isinstance(source, NativeEventSource) else original.cell)
+                else (
+                    source.cell
+                    if isinstance(source, NativeEventSource)
+                    else original.cell
+                )
             )
+            source_context = (
+                asdict(replace(source, final_modifier=None, runner_modifier=None))
+                if isinstance(source, NativeEventSource)
+                else None
+            )
+            if source_context is not None:
+                source_context.pop("final_modifier", None)
+                source_context.pop("runner_modifier", None)
             invocation = replace(
                 original,
                 caster_id=caster,
                 target_id=target,
                 cell=cell,
                 base_uid=entry.uid,
-                native_trigger_context=(asdict(source) if isinstance(source, NativeEventSource) else None),
+                native_trigger_context=(source_context),
             )
             key = self.history.enter(entry.generic_effect, caster, target)
             if key is None:
@@ -223,15 +282,26 @@ class NativeEventReplay:
                     accepted = True
                     return uid
 
-                outcomes.append(
-                    self.dispatcher.execute_activation(
-                        invocation,
-                        source=source,
-                        condition_context=authority.condition_context,
-                        executable=executable,
-                        allocate_uid=allocate_clone,
+                from .combat_final_modifier import final_modifier_source
+
+                from contextlib import nullcontext
+
+                # Native clones keep their actual PL pointer for all children,
+                # including siblings after another child removes its Qf carrier.
+                # Scope ends with this activation; it does not revive the state.
+                owner_scope = nullcontext()
+                if original.state_uid is not None:
+                    owner_scope = self.retention.container_scope(original)
+                with final_modifier_source(source), owner_scope:
+                    outcomes.append(
+                        self.dispatcher.execute_activation(
+                            invocation,
+                            source=source,
+                            condition_context=authority.condition_context,
+                            executable=executable,
+                            allocate_uid=allocate_clone,
+                        )
                     )
-                )
                 # Qe.k decrements the original listener after an accepted clone,
                 # independently of whether any child reported success.
                 if (
@@ -248,7 +318,7 @@ class NativeEventReplay:
         return tuple(outcomes)
 
 
-HEALING_ELEMENT_EVENT_IDS = {25: 17, 251: 16, 253: 15, 258: 13, 259: 14}
+HEALING_ELEMENT_EVENT_IDS = {25: 17, 251: 16, 253: 15, 258: 13, 259: 14, 1084: 30}
 
 
 def healing_event_source(

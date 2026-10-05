@@ -41,7 +41,7 @@ def _identity_fields(data, *, integer_fields=(1, 2, 3, 4, 6, 7), messages=None):
                 fields[field] = value
         elif wire == 2:
             length, offset = _read_varint(data, offset)
-            if messages is not None and field == 8:
+            if messages is not None and field in (5, 8):
                 if field in messages:
                     raise ValueError("Duplicate running-effect AdditionalDatas")
                 messages[field] = data[offset : offset + length]
@@ -55,6 +55,63 @@ def _identity_fields(data, *, integer_fields=(1, 2, 3, 4, 6, 7), messages=None):
     return fields
 
 
+def _proto_replace(data, field, wire, replacement):
+    """Preserve every unrelated field while replacing one native protobuf field."""
+    result, offset, found = bytearray(), 0, False
+    while offset < len(data):
+        start = offset
+        tag, offset = _read_varint(data, offset)
+        kind = tag & 7
+        if kind == 0:
+            _, offset = _read_varint(data, offset)
+        elif kind == 2:
+            length, offset = _read_varint(data, offset)
+            offset += length
+        elif kind in (1, 5):
+            offset += 8 if kind == 1 else 4
+        else:
+            raise ValueError("Unsupported protobuf wire type")
+        if offset > len(data):
+            raise ValueError("Truncated protobuf field")
+        if tag >> 3 == field:
+            if found or kind != wire:
+                raise ValueError("Duplicate or invalid protobuf field")
+            found = True
+            result.extend(replacement)
+        else:
+            result.extend(data[start:offset])
+    if not found:
+        result.extend(replacement)
+    return bytes(result)
+
+
+def state_unapplication_payload(payload):
+    # eZR.f(iB) reads field1 NotifyUnapplicationForced into rIZ; aVz.cbj
+    # requires eZR.fMV() before Qf.q. Evaluated eZk has aZN/bbW false.
+    from .combat_effects import _varint
+
+    timing = None
+    offset = 0
+    while offset < len(payload):
+        tag, offset = _read_varint(payload, offset)
+        wire = tag & 7
+        if wire == 0:
+            _, offset = _read_varint(payload, offset)
+        elif wire == 2:
+            length, offset = _read_varint(payload, offset)
+            if tag >> 3 == 11:
+                if timing is not None:
+                    raise ValueError("Duplicate TimeDatas")
+                timing = payload[offset : offset + length]
+            offset += length
+        elif wire in (1, 5):
+            offset += 8 if wire == 1 else 4
+        else:
+            raise ValueError("Unsupported protobuf wire type")
+    timing = _proto_replace(timing or b"", 1, 0, b"\x08\x01")
+    return _proto_replace(payload, 11, 2, b"\x5a" + _varint(len(timing)) + timing)
+
+
 def running_effect_removal(
     fight_id,
     action_id,
@@ -63,7 +120,8 @@ def running_effect_removal(
     target_id,
     uid,
     running_effect_payload,
-    sequence=-1
+    sequence=-1,
+    notify_unapplication=True,
 ):
     """Encode native removal using the complete payload owned by this fight.
 
@@ -92,9 +150,41 @@ def running_effect_removal(
         raise ValueError("Missing or oversized original running-effect payload")
     messages = {}
     fields = _identity_fields(running_effect_payload, messages=messages)
-    if not {1, 2, 3, 4, 6, 7} <= fields.keys():
+    from .combat_subscription_runners import GROUP_SUBSCRIPTION_FAMILIES
+
+    cell_only = (
+        effect_class in (315, 402)
+        or (effect_class == 935 and 7 not in fields)
+        or (7 not in fields and effect_class in GROUP_SUBSCRIPTION_FAMILIES)
+    )
+    required = {1, 2, 3, 4, 6} if cell_only else {1, 2, 3, 4, 6, 7}
+    if not required <= fields.keys():
         raise ValueError("Incomplete original running-effect payload")
-    if fields[1] != uid or fields[7] != target_id & ((1 << 64) - 1):
+    # Qe cell-only branch registers on bfr.bax(), with bfs=null. Its manager
+    # owner is caster6; inventing target7 would alter native cell identity.
+    owner = fields[6] if cell_only else fields[7]
+    if cell_only and (
+        5 not in messages
+        or 7 in fields
+        or (effect_class not in (315, 935) and fields[4] != 0)
+    ):
+        raise ValueError("Native cell null payload must have absent target/zero value")
+    if cell_only:
+        position = _identity_fields(messages[5], integer_fields=(1, 2, 3))
+        if set(position) != {1, 2, 3}:
+            raise ValueError("Native cell null position is incomplete")
+        values = [
+            v - (1 << 64) if v >= (1 << 63) else v
+            for v in (position[k] for k in (1, 2, 3))
+        ]
+        if (
+            any(not -(1 << 31) <= v < (1 << 31) for v in values[:2])
+            or not -32768 <= values[2] < 32768
+        ):
+            raise ValueError(
+                "Native cell null position exceeds native coordinate bounds"
+            )
+    if fields[1] != uid or owner != target_id & ((1 << 64) - 1):
         raise ValueError("Running-effect payload identity differs from removal")
     if effect_class == STATE_CARRIER_EFFECT_CLASS:
         if 8 not in messages:
@@ -107,6 +197,8 @@ def running_effect_removal(
         generic_valid = True  # eZR.bcc -> eVJ(-1) for a standalone native carrier.
     if not generic_valid or fields[6] == 0:
         raise ValueError("Missing owned effect/caster identity in original payload")
+    if effect_class == STATE_CARRIER_EFFECT_CLASS and notify_unapplication:
+        running_effect_payload = state_unapplication_payload(running_effect_payload)
     return (
         struct.pack(
             ">iiiih",

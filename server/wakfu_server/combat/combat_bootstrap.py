@@ -122,6 +122,7 @@ def player_payload(character, actor, fight_id, *, wp):
             snapshot,
             fight_id,
             actor.team,
+            obstacle_id=actor.native_obstacle_id,
             wp=wp,
             ap=actor.max_ap,
             mp=actor.max_mp,
@@ -210,9 +211,12 @@ def create_placement(
         placement_cells = arena.get("placement_cells")
     if placement_cells is None:
         placement_cells = {0: {pc.position}, 1: {npc.position for npc in npcs}}
+    from .combat_geometry_snapshot import freeze_terrain
+
     fight = Fight(
         fight_id, [pc, *npcs], cells, placement_cells, arena.get("valid_edges")
     )
+    freeze_terrain(fight)
     # QL obstacle occupancy is serialized separately from terrain masks and
     # placement teams. Only the explicitly empty owned table proves no QI.V
     # obstacles; absence or populated unknown entries remain unavailable.
@@ -223,7 +227,12 @@ def create_placement(
     payloads.update(
         {
             member["id"]: (
-                monster_actor_stats(member, fight_id, direction=3),
+                monster_actor_stats(
+                    member,
+                    fight_id,
+                    direction=3,
+                    obstacle_id=fight.actors[member["id"]].native_obstacle_id,
+                ),
                 actor_effects(),
             )
             for member in members

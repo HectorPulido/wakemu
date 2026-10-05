@@ -23,6 +23,14 @@
       "records": 720
     },
     {
+      "path": "protocol/forced-transitions/index.json",
+      "sha256": "f254336b9ffde132e891151247fcf1e89ba517d6a3d4994aaf7dd69a1015837c",
+      "bytes": 228460,
+      "declared_provenance": {
+        "source": "ExportCompactForcedTransitions native faz.B/Sm(height,0,4,true); loader verified per query; source archives listed by existing combat map index"
+      }
+    },
+    {
       "path": "protocol/interactive-actions.json",
       "sha256": "8c19a89e42de3bc3906fcdc98e85b3e7ab52c0b40d779d0d07e93f5c4e8d45af",
       "bytes": 789,
@@ -47,8 +55,8 @@
     },
     {
       "path": "protocol/item-equipment-effects.json",
-      "sha256": "7dee99acdaa0ce7649ee2eb80fbb782d77c6856a10ae2ade6fde34d9127be0b4",
-      "bytes": 33653813,
+      "sha256": "0ad76d5ec75a399843229d8c824da0f383c06297c57b11de0d43abfd17a669fe",
+      "bytes": 19277887,
       "declared_provenance": {
         "source": "Installed bIJ/fpC effects, evaluated at item level by eVn.a"
       },

@@ -1,0 +1,16 @@
+{
+  "command": "PYTHONPATH=server python3 -m unittest tests.test_monster_wander -q",
+  "tests_run": 2,
+  "result": "OK",
+  "fixture": "SQLite temporal + MemoryRedis",
+  "test_sha256": "2f6a0415f62b11c9fa5a2f503249911e86fcc5cae87719518feea3dca4644db5",
+  "covers": [
+    "Proximidad, aristas, ocupación",
+    "Posición recuperada desde journal, escritura SQL por flush, intento de mover snapshot antiguo rechazado",
+    "Exclusión de objetivos de recolección según suite"
+  ],
+  "limits": [
+    "Redis real y caída entre commit/publicación no cubiertos",
+    "Probabilidad25%,5 segundos y multipaso solicitados no implementados ni verificados"
+  ]
+}

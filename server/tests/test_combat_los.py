@@ -7,8 +7,7 @@ class LOSTests(unittest.TestCase):
         self.assertTrue(static_visible(1134, (-14, -10, -1), (-13, -10, -1)))
 
     def test_requires_exported_endpoints(self):
-        with self.assertRaises(ValueError):
-            static_visible(1134, (999, 999, 0), (-13, -10, -1))
+        self.assertFalse(static_visible(1134, (999, 999, 0), (-13, -10, -1)))
         with self.assertRaises(ValueError):
             static_visible(9, (-14, -10, -1), (-13, -10, -1))
 
@@ -18,7 +17,17 @@ class LOSTests(unittest.TestCase):
 
         source, target = (-14, -10, -1), (-11, -10, -1)
         fight = SimpleNamespace(
-            actors={i: SimpleNamespace(id=i, hp=10) for i in (1, 2, 3)},
+            actors={
+                1: SimpleNamespace(
+                    id=1, hp=10, team=0, position=source, native_los_height=6
+                ),
+                2: SimpleNamespace(
+                    id=2, hp=10, team=1, position=target, native_los_height=6
+                ),
+                3: SimpleNamespace(
+                    id=3, hp=10, team=1, position=(-13, -10, -1), native_los_height=6
+                ),
+            },
             walkable={(x, -10, -1) for x in range(-14, -10)},
         )
         footprints = {1: {source[:2]}, 2: {target[:2]}, 3: {(-13, -10)}}
@@ -51,7 +60,7 @@ class LOSTests(unittest.TestCase):
 
         source, target = (27, -25, 1), (27, -24, 1)
         fight = SimpleNamespace(
-            actors={i: SimpleNamespace(id=i, hp=10) for i in (1, 2)},
+            actors={i: SimpleNamespace(id=i, hp=10, team=i - 1) for i in (1, 2)},
             walkable={source, target},
         )
         self.assertTrue(

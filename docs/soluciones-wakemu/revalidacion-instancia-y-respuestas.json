@@ -1,0 +1,19 @@
+{
+  "observed_at": "2026-10-04T22:31:46.115737+00:00",
+  "isolated_api": "http://127.0.0.1:18091",
+  "health": {
+    "ok": true,
+    "storage": "sqlite",
+    "protocol": "local prototype"
+  },
+  "sessions": [
+    {
+      "character_id": 1,
+      "name": "Audit Builds",
+      "account_id": 1
+    }
+  ],
+  "original_answer_hashes_unchanged": 46,
+  "gui_state": "Pending Luna inspection; API session alone does not prove responsive client",
+  "complete": false
+}

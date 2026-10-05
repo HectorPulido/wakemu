@@ -1,0 +1,11 @@
+{
+  "scope": "Current authoritative completion code, not GUI reproduction",
+  "complete_has_probability_parameter": false,
+  "complete_returns_success_true": true,
+  "user_rules": {
+    "completed_success": "consume one seed and grant configured XP",
+    "completed_failure": "consume one seed, no XP",
+    "cancel": "no consumption, no XP"
+  },
+  "source_sha256": "1e7fffafce730a1cf34d5ee1f8657c886e5df7283d46a47ba55ca21bd29c85b1"
+}

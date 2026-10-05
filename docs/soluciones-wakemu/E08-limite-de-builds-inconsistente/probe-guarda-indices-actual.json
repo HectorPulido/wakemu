@@ -1,0 +1,48 @@
+{
+  "method": "validate actual: mapping de blobs vacío, para distinguir guard de índice y hoja",
+  "results": [
+    {
+      "index": -1,
+      "result": "Invalid build index"
+    },
+    {
+      "index": 0,
+      "result": "Invalid build sheet"
+    },
+    {
+      "index": 1,
+      "result": "Invalid build sheet"
+    },
+    {
+      "index": 2,
+      "result": "Invalid build sheet"
+    },
+    {
+      "index": 3,
+      "result": "Invalid build index"
+    },
+    {
+      "index": 23,
+      "result": "Invalid build index"
+    },
+    {
+      "index": 24,
+      "result": "Invalid build index"
+    },
+    {
+      "index": 127,
+      "result": "Invalid build index"
+    },
+    {
+      "index": 128,
+      "result": "Invalid build index"
+    }
+  ],
+  "source_sha256": "473c08a71dac1f9261453e8e25bf8141103cbd7efe3a3f5432935c1d8773ee68",
+  "limits": [
+    "0–2 pasan solo guard de índice, después rechazan hoja vacía",
+    "No guarda hojas ni ejecuta validaciones de hechizos/decks",
+    "Cupo nativo24 no equivale a índice máximo24"
+  ],
+  "fixture_correction": "Reemplaza intento preliminar con lista de blobs, incompatible con firma mapping"
+}

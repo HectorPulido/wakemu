@@ -9,6 +9,9 @@ from .combat_actor_snapshot import native_actor_catalog, _int32
 
 
 def snapshot_characteristics(actor):
+    from .combat_hud_resource import sync_actor_hud_resource
+
+    sync_actor_hud_resource(actor)
     mappings = [
         actor.effect_stats,
         actor.effect_minima,

@@ -1,0 +1,31 @@
+{
+  "method": "Executed cux parser and eTa XP accumulator from installed native JAR, no UI",
+  "opcode_12916_layout": "i32 profession_id + i64 XP delta, 12 bytes",
+  "fixture": {
+    "profession": 40,
+    "delta": 75
+  },
+  "repeated_delta_totals": [
+    75,
+    150
+  ],
+  "repeated_delta_levels": [
+    1,
+    1
+  ],
+  "thresholds": {
+    "0": 0,
+    "1": 75,
+    "2": 300,
+    "10": 7500,
+    "100": 750000,
+    "200": 3000000
+  },
+  "cap_total": 3000000,
+  "cap_level": 200,
+  "source_hash": "c7cfa49d4888d0d275af4d74e37085833a5cd44b7be67f6e190780b9bc3541b9",
+  "limits": [
+    "No live award or reconnect proof.",
+    "Action unlocking and bootstrap XP carrier still require verification."
+  ]
+}

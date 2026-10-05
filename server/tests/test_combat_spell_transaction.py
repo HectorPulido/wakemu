@@ -265,6 +265,7 @@ class SpellTransactionTests(unittest.TestCase):
         character = effective_character(
             dict(
                 id=7,
+                map_id=1134,  # Explicit native POSITION rE.Vp property.
                 breed=breed,
                 level=level,
                 hp=60,
@@ -289,7 +290,7 @@ class SpellTransactionTests(unittest.TestCase):
         build_player_snapshot(
             character, caster, wp_current=6, wp_maximum=6, running_effects=()
         ).install(caster)
-        monster = dict(id=-7, ref=5525)
+        monster = dict(id=-7, ref=5525, map_id=1134)
         build_npc_snapshot(
             monster, target, wp_current=0, wp_maximum=0, running_effects=()
         ).install(target)
@@ -305,7 +306,18 @@ class SpellTransactionTests(unittest.TestCase):
         from wakfu_server.combat_server_spell import prepare_server_spell
 
         character, monster, fight = self.native_server_fixture(2, 19)
-        body = struct.pack(">qqiih", 7, (7 << 32) | 7320, 2, 0, 0)
+        # Forced movement uses the installed map's surface-selection authority.
+        # The old synthetic z=0 grid was not a surface of map 1134.
+        from wakfu_server.combat_terrain import local_arena
+        from wakfu_server.combat_geometry_snapshot import freeze_terrain
+
+        fight.actors[7].position = (-8, -7, -1)
+        fight.actors[-7].position = (-6, -7, -1)
+        terrain = local_arena(1134, 7, (-8, -7, -1), (-6, -7, -1))
+        fight.walkable = terrain["validated_cells"]
+        fight.edges = terrain["valid_edges"]
+        freeze_terrain(fight)
+        body = struct.pack(">qqiih", 7, (7 << 32) | 7320, -6, -7, -1)
         result = prepare_server_spell(
             body,
             character,
@@ -320,10 +332,10 @@ class SpellTransactionTests(unittest.TestCase):
         )
         self.assertEqual(result.fight.actors[7].ap, 4)
         self.assertLess(result.fight.actors[-7].hp, 200)
-        self.assertGreater(result.fight.actors[-7].position[0], 2)
+        self.assertGreater(result.fight.actors[-7].position[0], -6)
         self.assertEqual(
             (fight.actors[7].ap, fight.actors[-7].hp, fight.actors[-7].position),
-            (6, 200, (2, 0, 0)),
+            (6, 200, (-6, -7, -1)),
         )
         self.assertGreaterEqual(sum(op == 12613 for op, _ in result.packets), 2)
 
@@ -366,7 +378,7 @@ class SpellTransactionTests(unittest.TestCase):
         build_player_snapshot(
             character, caster, wp_current=6, wp_maximum=6, running_effects=()
         ).install(caster)
-        monster = dict(id=-7, ref=5525)
+        monster = dict(id=-7, ref=5525, map_id=1134)
         build_npc_snapshot(
             monster, target, wp_current=0, wp_maximum=0, running_effects=()
         ).install(target)

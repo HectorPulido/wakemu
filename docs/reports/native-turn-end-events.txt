@@ -1,0 +1,45 @@
+Evento común de final de turno1001 — política del servidor local
+
+Se separan dos afirmaciones: los datos originales describen la reacción al
+final de turno; el momento de entrega y sus destinatarios son una política
+explícita de este servidor, como la entrega de inicio de combate1003.
+No se ha hallado un caller cliente que produzca1001 al cerrar un turno.
+El inventario original178337 definiciones no contiene aZO1001. Las constantes
+1001/1024 de temporizadores UI, errores de entrada o cifrado no son pruebas.
+
+Evidencia de contenido original:
+- Hipermago: estado4121 Corazón de Fuego describe pérdida de25% BC al final
+  de cada turno; raíz413768330 está suscrita a1001.
+- Sacrógrito: estado3702 Berserker conserva raíz197715330 suscrita a1001,
+  hijos415999/416000/416647/419069. Sangre Tatuada5051 se instala a través
+  de316633330→316634999→316635304 estado3231 y escucha1003, no1001.
+  Estas rutas son distintas: instalar5051 no demuestra ejecutar todas las
+  reacciones periódicas del Berserker.
+- Impacto Felino5249 escucha1002; ese evento NO se produce aquí. Ni1002 ni
+  el todavía ambiguo1024 se hacen equivalentes a final/inicio de turno.
+
+Contrato local implementado:
+- Sólo actor actual, combate activo e inicio entregado. Fuente NULL nativa.
+- Manager del actor: canales6 y60; todos los managers: canal61 global.
+- Selección nativa Qf/eZX: probe Java comprueba9 combinaciones; suscriptor
+  local sólo6, invertido sólo60 y global sólo61, todos con fuenteNULL.
+- Entrega antes de expiración de efectos de fin de turno; reacciones y
+  expiración comparten un preview no publicado. Fallo no cambia recursos,
+  turno, marcador ni actionID. No se consume ACK ficticio.
+- Marca por turn_id/actor_id/end serializada en checkpoint. ACK, heartbeat
+  o reconexión no vuelven a entregar el mismo final de turno.
+- RuntimeMessages y Ready aceptan proveedor opcional. Entry real lo conecta
+  a prepare_server_turn_end usando personaje/deck/roster propios y respeta
+  WAKFU_COMBAT_START_EVENTS. No ejecuta una regla por raza o hechizo.
+
+Validación:11 pruebas de política/runtime/Ready y probe Java9/9 pasan.
+Con fixture propia y terreno real1134, Sacro20+5051 herido: estado9313
+cambia100→50;5 paquetes; preview deja original idéntico. Hupper19, estado4121
+aplicado mediante descriptor original416488:1001 ejecuta413770→413771400+
+413772321 y retira4121;8 paquetes; original idéntico. La rama real no reduce
+BQ: no se fuerza la pérdida descrita por el texto, que puede estar obsoleto.
+Latencias calientes de esas dos transacciones:35.15ms y18.36ms (la anterior
+corrida midió21.68ms en Sacro). Hash4092 archivos estable en la primera ventana.
+Se añaden regresiones durables para ambos resultados, sin cambiar máscaras,
+criterios ni seleccionar efectos por raza en el productor.
+Sin reinicio ni validación visual durante esta tarea.

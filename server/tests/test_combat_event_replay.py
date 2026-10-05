@@ -84,13 +84,17 @@ class NativeEventReplayTests(unittest.TestCase):
 
     def test_external_null_source_preserves_listener_actors_and_allocates_clone(self):
         from wakfu_server.combat_event_replay import NativeExternalEvent
+
         row = self.fight.native_owned_group_effects[900]
         row["native_subscription_masks"][5] = [1003]
-        self.retention.metadata["effects"]["308265"]["event_reverse_subscription"] = False
+        self.retention.metadata["effects"]["308265"][
+            "event_reverse_subscription"
+        ] = False
         contexts = []
         authority = NativeCloneAuthority(
             lambda effect, inv, source: True,
-            lambda effect, inv, source: (contexts.append(inv) or self.conditions()))
+            lambda effect, inv, source: (contexts.append(inv) or self.conditions()),
+        )
         self.replay(NativeExternalEvent(7, (1003,), 6), authority=authority)
         self.assertTrue(contexts)
         self.assertTrue(all(i.native_trigger_context is None for i in contexts))

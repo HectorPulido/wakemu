@@ -26,6 +26,13 @@ def native_area_shape(effect):
         ):
             raise ValueError("Invalid native ordered point area")
         return tuple(tuple(point) for point in points), False
+    if kind == "anv" and (match := re.fullmatch(r"cone-(-?\d+)", text)):
+        height = int(match.group(1))
+        if not -(1 << 31) <= height < (1 << 31):
+            raise ValueError("Native cone height must be int32")
+        # anv.p: x starts at0 and is strictly below height; rows contain
+        # every y=-x..x. Nonpositive heights preserve native empty geometry.
+        return tuple((x, y) for x in range(height) for y in range(-x, x + 1)), False
     if kind == "anJ" and (match := re.fullmatch(r"t inv-barre:(\d+)-pied:(\d+)", text)):
         width, length = map(int, match.groups())
         points = [(0, 0)]
@@ -55,6 +62,29 @@ def native_area_shape(effect):
             ),
             width == height,
         )
+    if kind == "anF" and (
+        match := re.fullmatch(
+            r"rectangular or square ring-w:(-?\d+)-(-?\d+) / h:(-?\d+)-(-?\d+)", text
+        )
+    ):
+        inner_x, outer_x, inner_y, outer_y = map(int, match.groups())
+        if inner_x > outer_x or inner_y > outer_y:
+            raise ValueError("Invalid native rectangular ring bounds")
+        points = []
+        # anF.p preserves quadrant order and includes the inner boundary.
+        for x in range(outer_x + 1):
+            for y in range(outer_y + 1):
+                if x < inner_x and y < inner_y:
+                    continue
+                points.append((x, y))
+                if x:
+                    points.append((-x, y))
+                if y:
+                    points.append((x, -y))
+                if x and y:
+                    points.append((-x, -y))
+        # anF.bEj always false, even for a square: retain native orientation.
+        return tuple(points), False
     return None
 
 

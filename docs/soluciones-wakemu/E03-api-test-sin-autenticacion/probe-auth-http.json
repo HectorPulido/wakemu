@@ -1,0 +1,69 @@
+{
+  "scope": "Servidor HTTP efímero exclusivo en localhost, callbacks simulados; ninguna solicitud al servidor real ni mutación de datos de juego.",
+  "source_sha256": "b387ef1a986bf44f5bf65ab903dd7934fff15cb10b0c0d53b313af27143a890e",
+  "cases": [
+    {
+      "method": "POST",
+      "path": "/test/command",
+      "credential": "absent",
+      "http_status": 202,
+      "auth_checks": 0,
+      "console_calls": 1,
+      "task_callbacks": 0
+    },
+    {
+      "method": "POST",
+      "path": "/test/command",
+      "credential": "invalid",
+      "http_status": 202,
+      "auth_checks": 0,
+      "console_calls": 1,
+      "task_callbacks": 0
+    },
+    {
+      "method": "POST",
+      "path": "/test/tasks/positions_flush",
+      "credential": "absent",
+      "http_status": 200,
+      "auth_checks": 0,
+      "console_calls": 0,
+      "task_callbacks": 1
+    },
+    {
+      "method": "GET",
+      "path": "/test/sessions",
+      "credential": "absent",
+      "http_status": 200,
+      "auth_checks": 0,
+      "console_calls": 1,
+      "task_callbacks": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test/command/synthetic-handle",
+      "credential": "absent",
+      "http_status": 200,
+      "auth_checks": 0,
+      "console_calls": 1,
+      "task_callbacks": 0
+    },
+    {
+      "method": "GET",
+      "path": "/test/tasks",
+      "credential": "absent",
+      "http_status": 200,
+      "auth_checks": 0,
+      "console_calls": 0,
+      "task_callbacks": 0
+    },
+    {
+      "method": "GET",
+      "path": "/characters",
+      "credential": "absent",
+      "http_status": 401,
+      "auth_checks": 1,
+      "console_calls": 0,
+      "task_callbacks": 0
+    }
+  ]
+}

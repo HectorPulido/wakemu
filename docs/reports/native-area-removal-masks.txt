@@ -1,0 +1,13 @@
+Máscaras de retirada de áreas: zona781 y contrato general faV
+
+El campo aKa.ckD no contiene propiedades del mundo/combate. bcN.x lo transforma en BitSet y faV.f lo guarda en rLR. faV.a(BitSet,Qe,amP) llama primero Qq.a (entrada/salida), después comprueba rLR y retira el padre eYQ315 con Qf.q; si ese padre carece de Qf, llama Qs.b para retirar sólo el área. El valor10010 de781 es por tanto una máscara de evento de retirada. Su productor y significado temporal no se han atribuido ni fabricado.
+
+Qs.a(Qq,PV) elimina el UID de su registro ANTES de emitir10011. El servidor ahora conserva ese orden. La retirada reentrante del mismo padre ya en proceso se evita; no se retiran otras áreas con igual plantilla. native_area_properties=aKa.ckE sigue separado:781 contiene8/4/3 (NO_OVERHEAD/INVISIBLE_FOR_ENEMIES/NOT_NEGATIVE_FOR_RED_TEAM).
+
+Compatibilidad: catálogos existentes properties/native_fight_properties son aliases históricos de ckD. Se validan iguales; el nuevo exporter añade native_removal_masks y evidencia corregida. No se necesitan regeneración ni rebuild para leer el catálogo ya montado. Las máscaras no se convierten en nuevas propiedades booleanas ni eventos sintéticos.
+
+Prueba original: ProbeNativeAreaRemovalMasks compila contra el JAR y pasa entrada→salida→Qf.q, máscara irrelevante y retirada10010 sola. 21 pruebas de máscaras/callbacks/843/áreas retenidas/codec pasan. La expectativa antigua de callback antes de unregister se corrigió conforme a Qs original.
+
+Foco con WAKFU_NATIVE_AREA_CALLBACKS=1, monstruo1367 nivel115 nativo, sin inflar HP:6466 cuatro casos (15/200, actor/celda) ahora dos cambios de actores y dos de retención. Foco7321/8479 ocho casos: cuatro pasan a cambio de actor/retención; cuatro avanzan al siguiente bloqueo común familia935. Ambos reportes source_stable=true y originales preservados. Estos resultados son entradas offline, no confirmación GUI ni funcionamiento completo de los hechizos. No se reiniciaron servicios.
+
+Evidencia: .runtime/local/native-area-faV-current.txt; native-area-Qq-current.txt; native-area-Qs.txt; native-area-properties-fbo.txt. Reportes: combat-inventory/active-area-removal-masks-current.json y active-area-removal-masks-other-current.json.

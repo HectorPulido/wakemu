@@ -6,6 +6,7 @@ no result is a claim of complete spell/class gameplay or graphical validation.
 """
 from pathlib import Path
 import sys, json, random, struct, copy, csv, datetime, collections, argparse, traceback, hashlib
+import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import audit_class_initialization as init
@@ -29,6 +30,7 @@ from wakfu_server.combat_wire import arena as encode_arena, topology, decode_top
 from wakfu_server.combat_bootstrap import create_placement
 from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
 from wakfu_server.combat_effect_runtime import NativeEffectRuntimeFactory
+from wakfu_server.combat_server_spell import server_runtime
 from wakfu_server.combat_native_timing_context import NativeEffectTimingProvider
 from wakfu_server.spell_audit import catalog, states_catalog
 from wakfu_server.monsters import owned_instance
@@ -37,7 +39,7 @@ from wakfu_server.fight_checkpoint_store import snapshot
 from wakfu_server.paths import DATA_ROOT, PROJECT_ROOT
 
 
-def target_candidates(definition, level, terrain, origin):
+def target_candidates(definition, level, terrain, origin, *, spell_reference=None):
     minimum, maximum_range, _ = definition["levels"][level - 1]
     cells = []
     for cell in sorted(
@@ -57,7 +59,21 @@ def target_candidates(definition, level, terrain, origin):
                 continue
         cells.append(cell)
     variants = []
-    if minimum <= 0 <= maximum_range and not definition["free_cell"]:
+    native_self_candidate = False
+    if spell_reference is not None:
+        from wakfu_server.combat_self_cast import catalog as self_cast_catalog
+
+        policy = self_cast_catalog().get(str(spell_reference))
+        if not isinstance(policy, dict):
+            raise ValueError("Audit spell lacks native self-cast policy")
+        # Generate candidate scenarios, not an authorization: the common cast
+        # entry evaluates the actual conditional table in the initialized fight.
+        native_self_candidate = policy["allowed"] or any(
+            rule["allowed"] for rule in policy["conditional"]
+        )
+    if (minimum <= 0 <= maximum_range or native_self_candidate) and not definition[
+        "free_cell"
+    ]:
         # Exercise the real common-entry LOS gate; do not silently discard self
         # merely because the exported Sf ray reports false at this endpoint.
         variants.append(("self", origin))
@@ -69,7 +85,17 @@ def target_candidates(definition, level, terrain, origin):
     return variants
 
 
-def fixture(breed, level, enemy_cell, terrain, origin):
+def fixture(
+    breed,
+    level,
+    enemy_cell,
+    terrain,
+    origin,
+    *,
+    ready=True,
+    monster_reference=5525,
+    monster_level=1,
+):
     resource = BREEDS[breed]["resources"]
     hp = maximum(breed, level)
     character = dict(
@@ -89,7 +115,13 @@ def fixture(breed, level, enemy_cell, terrain, origin):
         inventory_items=[],
     )
     creature = owned_instance(
-        5525, 1, -7, map_id=1134, x=enemy_cell[0], y=enemy_cell[1], z=enemy_cell[2]
+        monster_reference,
+        monster_level,
+        -7,
+        map_id=1134,
+        x=enemy_cell[0],
+        y=enemy_cell[1],
+        z=enemy_cell[2],
     )
     placement = {0: {origin}, 1: {enemy_cell}}
     own_arena = encode_arena(1134, 0, terrain["cells"], placement)
@@ -130,27 +162,24 @@ def fixture(breed, level, enemy_cell, terrain, origin):
     npc.direction = 3
     fight.map_id = 1134
     fight.instance_id = 0
-    fight.ready(3)
+    if ready:
+        fight.ready(3)
     return character, creature, fight
 
 
 def observed(factory, records):
     def make(preview, container):
         dispatcher, packets = factory(preview, container)
-        from wakfu_server.combat_conditions import evaluate_condition
+        original_diagnose = dispatcher._diagnose
 
-        condition = dispatcher.condition_context
-
-        def conditions(invocation):
-            context = condition(invocation)
-            definition = dispatcher.effects[str(invocation.reference)]
-            if not evaluate_condition(definition["criteria"], context):
+        def diagnose(invocation, **details):
+            if details.get("status") == "skipped_condition":
                 records.append(
-                    (invocation.reference, "condition_false", definition["criteria"])
+                    (invocation.reference, "condition_false", details.get("criteria"))
                 )
-            return context
+            return original_diagnose(invocation, **details)
 
-        dispatcher.condition_context = conditions
+        dispatcher._diagnose = diagnose
         original = dispatcher._execute
 
         def execute(invocation, *a, **kw):
@@ -186,7 +215,16 @@ def run(
     only_breed=None,
     cases=None,
     output_name="docs/reports/combat-inventory/active-cast-audit.json",
+    max_cast_seconds=2.0,
+    critical=False,
+    sequence=False,
+    monster_reference=5525,
+    monster_level=1,
 ):
+    if max_cast_seconds <= 0:
+        raise ValueError("Cast time budget must be positive")
+    if type(critical) is not bool:
+        raise ValueError("Audit requires an explicit normal or critical branch")
     source_before = init.source_hashes()
     spells, states = catalog(), states_catalog()
     registry = json.loads(
@@ -236,7 +274,9 @@ def run(
             variants = (
                 []
                 if definition is None
-                else target_candidates(definition, level, terrain, origin)
+                else target_candidates(
+                    definition, level, terrain, origin, spell_reference=spell["id"]
+                )
             )
             if not variants:
                 rows.append(
@@ -248,6 +288,7 @@ def run(
                         status="no_verified_legal_target",
                         reason="No requested-range/LOS cell in exported arena",
                         gameplay_verified=False,
+                        critical=critical,
                         rollback_preserved=True,
                         no_source_resource_spend=True,
                     )
@@ -263,7 +304,13 @@ def run(
                     )
                 )
                 character, creature, base = fixture(
-                    spell["breed"], level, enemy_cell, terrain, origin
+                    spell["breed"],
+                    level,
+                    enemy_cell,
+                    terrain,
+                    origin,
+                    monster_reference=monster_reference,
+                    monster_level=monster_level,
                 )
                 deck = encode_deck([spell["id"]])
                 rng = random.Random(0)
@@ -276,21 +323,20 @@ def run(
                 adapter = NativeServerRuntimeAdapter(
                     actor_authority=authority,
                     cast=ordinary_cast_authority(
-                        actors=authority, timing=timing, rng=rng, critical=False
+                        actors=authority, timing=timing, rng=rng, critical=critical
                     ),
                 )
-                if shared is None:
-                    shared = NativeEffectRuntimeFactory(
-                        effects=spells["effects"],
-                        state_catalog=states,
-                        characteristic_registry=registry,
-                        action_id=1,
-                        contexts=adapter.contexts(),
-                        displacement_authority=authority,
-                    )
-                else:
-                    shared.contexts = adapter.contexts()
-                    shared.displacement_authority = authority
+                # Use the production factory, including its shared lottery,
+                # relative probability and summon authorities. A manually
+                # assembled factory falsely reports missing supported handlers.
+                shared, adapter = server_runtime(
+                    character,
+                    {creature["id"]: creature},
+                    deck,
+                    action_id=1,
+                    critical=critical,
+                    rng=rng,
+                )
                 row = dict(
                     breed=spell["breed"],
                     spell_id=spell["id"],
@@ -298,20 +344,38 @@ def run(
                     variant=variant,
                     cell=cell,
                     gameplay_verified=False,
+                    critical=critical,
                     deck_active=[spell["id"]],
                     deck_passive=[],
                 )
                 records = []
                 before = snapshot(base)
                 stage = "initialization"
+                cast_started = None
                 try:
-                    source, init_packets = initialize_transaction(
-                        base,
-                        plan(character, deck, spells, states),
-                        observed(shared, records),
-                        states,
-                        owner_id=3,
-                    )
+                    if sequence:
+                        from wakfu_server.combat_server_spell import (
+                            prepare_server_initialization,
+                        )
+
+                        source, init_packets = prepare_server_initialization(
+                            character,
+                            {creature["id"]: creature},
+                            base,
+                            3,
+                            deck,
+                            action_id=1,
+                            rng=rng,
+                            fight_start=True,
+                        )
+                    else:
+                        source, init_packets = initialize_transaction(
+                            base,
+                            plan(character, deck, spells, states),
+                            observed(shared, records),
+                            states,
+                            owner_id=3,
+                        )
                     if snapshot(base) != before:
                         raise AssertionError("Initialization mutated source")
                     row["initialization_packets"] = len(init_packets)
@@ -325,6 +389,7 @@ def run(
                     row["pre_cast_passed_server_turns"] = passed
                     before = snapshot(source)
                     stage = "cast"
+                    cast_started = time.monotonic()
                     records.clear()
 
                     def los(a, b, preview):
@@ -351,7 +416,7 @@ def run(
                         action_id=1,
                         line_of_sight=los,
                         runtime_factory=observed(shared, records),
-                        critical=False,
+                        critical=critical,
                         conditional_context=lambda request, preview: adapter.cast_condition(
                             preview, request
                         ),
@@ -397,6 +462,109 @@ def run(
                     )
                     row["rollback_preserved"] = snapshot(source) == before
                     row["no_source_resource_spend"] = row["rollback_preserved"]
+                    row["_first_cast_elapsed"] = time.monotonic() - cast_started
+                    if sequence:
+                        from audit_spell_sequence import audit_sequence
+                        from wakfu_server.combat_cast import prepare_spell_cast
+                        from wakfu_server.combat_server_spell import (
+                            prepare_server_turn_end,
+                        )
+
+                        target_id = next(
+                            (
+                                a.id
+                                for a in source.actors.values()
+                                if a.position == cell and a.hp > 0
+                            ),
+                            None,
+                        )
+
+                        def preflight_second(current):
+                            return prepare_spell_cast(
+                                body,
+                                character,
+                                current,
+                                3,
+                                deck,
+                                wp=current.actors[7].effect_stats[4],
+                                line_of_sight=los,
+                                conditional_context=lambda request, preview: adapter.cast_condition(
+                                    preview, request
+                                ),
+                            )
+
+                        def cast_second(current):
+                            return prepare_spell_transaction(
+                                body,
+                                character,
+                                current,
+                                3,
+                                deck,
+                                wp_current=current.actors[7].effect_stats[4],
+                                action_id=2,
+                                line_of_sight=los,
+                                runtime_factory=observed(shared, records),
+                                critical=critical,
+                                conditional_context=lambda request, preview: adapter.cast_condition(
+                                    preview, request
+                                ),
+                            )
+
+                        def finish_turn(current):
+                            return prepare_server_turn_end(
+                                character,
+                                {creature["id"]: creature},
+                                current,
+                                deck,
+                                actor_id=7,
+                                action_id=3,
+                                rng=rng,
+                            )
+
+                        def observe_second(current, transaction):
+                            expected = copy.deepcopy(current)
+                            actor = expected.actors[7]
+                            for name, stat in (("ap", 2), ("mp", 3)):
+                                setattr(
+                                    actor,
+                                    name,
+                                    getattr(actor, name)
+                                    - transaction.plan["costs"][name],
+                                )
+                                actor.effect_stats[stat] = getattr(actor, name)
+                            actor.effect_stats[4] -= transaction.plan["costs"]["wp"]
+                            actual_state, expected_state = snapshot(
+                                transaction.fight
+                            ), snapshot(expected)
+                            if actual_state["actors"] != expected_state["actors"]:
+                                return "actor_state_changed"
+                            if any(
+                                actual_state.get(k) != expected_state.get(k)
+                                for k in actual_state
+                                if k.startswith(
+                                    ("owned_", "native_retained", "native_owned_group")
+                                )
+                            ):
+                                return "retention_changed"
+                            return (
+                                "effect_packets_only"
+                                if transaction.packets[2:]
+                                else "no_effect_observed"
+                            )
+
+                        row["sequence"] = audit_sequence(
+                            result,
+                            actor_id=7,
+                            owner_id=3,
+                            preflight=preflight_second,
+                            cast=cast_second,
+                            turn_end=finish_turn,
+                            rng=rng,
+                            snapshot=snapshot,
+                            target_id=target_id,
+                            target_cell=cell,
+                            observe=observe_second,
+                        )
                 except Exception as error:
                     ref = getattr(error, "audit_reference", None)
                     eff = shared.effects.get(str(ref)) if ref is not None else None
@@ -420,6 +588,28 @@ def run(
                     )
                     row["no_source_resource_spend"] = row["rollback_preserved"]
                 false_conditions = [r for r in records if r[1] == "condition_false"]
+                # Keep every skipped branch visible. A successful damage root
+                # does not prove that a retained state or passive was activated.
+                row["skipped_conditions"] = [
+                    dict(
+                        effect_reference=reference,
+                        criteria=criteria,
+                        effect_class=shared.effects.get(str(reference), {}).get(
+                            "effect_class"
+                        ),
+                    )
+                    for reference, _, criteria in false_conditions
+                ]
+                row["visited_effect_references"] = sorted({r[0] for r in records})
+                row["cast_elapsed_seconds"] = row.pop(
+                    "_first_cast_elapsed",
+                    None if cast_started is None else time.monotonic() - cast_started,
+                )
+                row["max_cast_seconds"] = max_cast_seconds
+                row["client_unblocked_verified"] = False
+                from audit_spell_sequence import blocking_verdict
+
+                row["blocking_verdict"] = blocking_verdict(row, max_cast_seconds)
                 row["first_false_condition"] = (
                     None
                     if not false_conditions
@@ -453,7 +643,16 @@ def run(
     after = init.source_hashes()
     return dict(
         generated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        scope="Common offline request+innate initialization+normal cast transaction; no GUI or full gameplay claim",
+        scope="Common offline request+innate initialization+explicit cast branch; no GUI or full gameplay claim",
+        critical=critical,
+        sequence_enabled=sequence,
+        sequence_status_counts=dict(
+            collections.Counter(
+                step["stage"] + ":" + step["status"]
+                for row in rows
+                for step in row.get("sequence", {}).get("steps", ())
+            )
+        ),
         active_definitions=len(active),
         rows=rows,
         sources_before=source_before,
@@ -474,9 +673,11 @@ def run(
         },
         sources_stable=source_before == after,
         terrain=dict(map_id=1134, origin=origin, cells=len(terrain["cells"])),
+        opponent=dict(reference=monster_reference, level=monster_level),
         limitations=[
             "Bare own actors without equipped passives; legal native resources are not inflated",
-            "Single seeded normal branch, enemy Wonejo5525; injured targets/other states not explored",
+            "Explicit seeded normal/critical branch; opponent statistics come from the selected native monster/level; injured targets/other states not explored",
+            "Opt-in sequence preserves actual first-cast HP/AP/MP/WP and identifies changed preconditions separately",
             "Self variants satisfy range/occupancy; common entry still checks native exported LOS and can reject",
             "Native QL obstacle table comes from own arena+create_placement and topology roundtrip; not from walkability",
             "No-effect results distinguish conditional ineligibility from unsupported execution",
@@ -492,6 +693,19 @@ if __name__ == "__main__":
     parser.add_argument("--breed", type=int)
     parser.add_argument("--from-report")
     parser.add_argument("--reason")
+    parser.add_argument("--max-cast-seconds", type=float, default=2.0)
+    parser.add_argument(
+        "--sequence",
+        action="store_true",
+        help="Audit second cast with live resources and native turn-end boundary",
+    )
+    parser.add_argument("--monster-reference", type=int, default=5525)
+    parser.add_argument("--monster-level", type=int, default=1)
+    parser.add_argument(
+        "--critical",
+        action="store_true",
+        help="Execute the critical branch, not a probability roll",
+    )
     parser.add_argument(
         "--output", default="docs/reports/combat-inventory/active-cast-audit.json"
     )
@@ -503,7 +717,17 @@ if __name__ == "__main__":
             for r in json.loads(Path(args.from_report).read_text())["rows"]
             if args.reason is None or r.get("reason") == args.reason
         ]
-    report = run(args.limit, args.breed, cases, args.output)
+    report = run(
+        args.limit,
+        args.breed,
+        cases,
+        args.output,
+        args.max_cast_seconds,
+        args.critical,
+        args.sequence,
+        args.monster_reference,
+        args.monster_level,
+    )
     path = PROJECT_ROOT / args.output
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")

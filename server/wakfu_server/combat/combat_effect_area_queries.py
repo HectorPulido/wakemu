@@ -1,0 +1,224 @@
+"""Qs/Qq predicates with explicit registered-area snapshots.
+
+Specific range count uses Qq.bct, the prototype reference (eLn).
+Only owned faZ point shapes are currently represented; missing geometry rejects.
+"""
+from .combat_effect_area_geometry import contains_area_cell
+
+
+def _rows(fight):
+    rows = getattr(fight, "native_effect_areas", {})
+    if not isinstance(rows, dict):
+        raise ValueError("Missing native area manager")
+    for uid, row in rows.items():
+        if (
+            not isinstance(row, dict)
+            or row.get("uid") != uid
+            or (
+                row.get("native_hour_contract") is not True
+                and row.get("native_area_contract") not in ("faZ", "faY")
+            )
+        ):
+            raise ValueError("Unaudited native effect-area snapshot")
+    return tuple(rows.values())
+
+
+def specific_area_count(
+    fight, *, source_id, center, area_reference, minimum, maximum, owned=False
+):
+    """eLn/eJW: Prototype filter, optional owner, radius-zero ala.c distance.
+
+    Native max<0 bypasses both minimum and maximum. Missing center returns0.
+    """
+    if (
+        any(type(v) is not int for v in (area_reference, minimum, maximum))
+        or type(owned) is not bool
+    ):
+        raise ValueError("Invalid native area range predicate")
+    if center is None:
+        return 0
+    count = 0
+    for row in _rows(fight):
+        if row["uid"] == source_id or row["reference"] != area_reference:
+            continue
+        if owned and row["owner_id"] != source_id:
+            continue
+        distance = abs(row["cell"][0] - center[0]) + abs(row["cell"][1] - center[1])
+        if maximum < 0 or minimum <= distance <= maximum:
+            count += 1
+    return count
+
+
+def cell_contains_type(fight, *, cell, area_type, source_id=None, owned=False):
+    """eID: hour aeV=fbp.rNI.aIc()=1; Qq.bcT/d tests XY only."""
+    if type(area_type) is not int or type(owned) is not bool:
+        raise ValueError("Invalid native area type predicate")
+    if cell is None:
+        return False
+    for row in _rows(fight):
+        if area_type != row.get("native_type_id", 1) or (
+            owned and row["owner_id"] != source_id
+        ):
+            continue
+        from .combat_effect_area_geometry import contains_area_cell
+
+        if contains_area_cell(row, cell):
+            return True
+    return False
+
+
+def own_specific_area(fight, *, reference, selector, caster_id, target_id, cell):
+    """eOF: selected Qz area, or supplied target cell; compare PV owners."""
+    rows = {row["uid"]: row for row in _rows(fight)}
+    source_owner = rows[caster_id]["owner_id"] if caster_id in rows else caster_id
+    target_owner = rows[target_id]["owner_id"] if target_id in rows else target_id
+    selected = caster_id if selector.lower() == "caster" else target_id
+    if selected in rows:
+        return rows[selected]["reference"] == reference and source_owner == target_owner
+    if selected is not None:
+        return False
+    if caster_id is None:
+        return False
+    # Production cell routing supplies the native target aBn; it is not a
+    # literal null-target scan. Missing cell remains unknown explicitly.
+    if cell is None:
+        raise ValueError("Missing native area criterion target form")
+    return any(
+        row["reference"] == reference
+        and row["owner_id"] == source_owner
+        and contains_area_cell(row, cell)
+        for row in rows.values()
+    )
+
+
+def cell_contains_specific(fight, *, cell, reference, source_id=None, owned=False):
+    """eIE: prototype identity and Qq.d, with optional PV owner identity."""
+    if type(reference) is not int or type(owned) is not bool:
+        raise ValueError("Invalid native specific-area predicate")
+    if cell is None:
+        return False
+    rows = _rows(fight)
+    source_owner = next(
+        (r["owner_id"] for r in rows if r["uid"] == source_id), source_id
+    )
+    return any(
+        r["reference"] == reference
+        and (not owned or r["owner_id"] == source_owner)
+        and contains_area_cell(r, cell)
+        for r in rows
+    )
+
+
+def team_area_count(fight, *, source_id, center, area_type, minimum, maximum):
+    """eLw: filter aeV type and caster bcM, excluding caster Qq itself."""
+    if any(type(v) is not int for v in (area_type, minimum, maximum)):
+        raise ValueError("Invalid native team-area range predicate")
+    if center is None or source_id is None:
+        return 0
+    rows = _rows(fight)
+    by_uid = {r["uid"]: r for r in rows}
+    owner = by_uid[source_id]["owner_id"] if source_id in by_uid else source_id
+    source = getattr(fight, "actors", {}).get(owner)
+    if source is None:
+        raise ValueError("Missing native source area team")
+    count = 0
+    for row in rows:
+        if row["uid"] == source_id or area_type != row.get("native_type_id", 1):
+            continue
+        row_owner = getattr(fight, "actors", {}).get(row["owner_id"])
+        if row_owner is None:
+            raise ValueError("Missing native registered area team")
+        if row_owner.team != source.team:
+            continue
+        distance = abs(row["cell"][0] - center[0]) + abs(row["cell"][1] - center[1])
+        if maximum < 0 or minimum <= distance <= maximum:
+            count += 1
+    return count
+
+
+def area_type_count(
+    fight, *, source_id, center, area_type, minimum, maximum, owned=False
+):
+    """eJW: exact long aeV filter, caster ownership and inclusive ala.c range."""
+    if (
+        any(type(v) is not int for v in (area_type, minimum, maximum))
+        or type(owned) is not bool
+    ):
+        raise ValueError("Invalid native area-type range predicate")
+    if center is None:
+        return 0
+    count = 0
+    for row in _rows(fight):
+        if row["uid"] == source_id or row.get("native_type_id", 1) != area_type:
+            continue
+        if owned and row["owner_id"] != source_id:
+            continue
+        distance = abs(row["cell"][0] - center[0]) + abs(row["cell"][1] - center[1])
+        if maximum < 0 or minimum <= distance <= maximum:
+            count += 1
+    return count
+
+
+NATIVE_AREA_TYPE_IDS = frozenset(
+    (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 18, 19, 20)
+)
+
+
+def actor_on_area_type(fight, *, actor_id, area_type, owned=False):
+    """eOs selects eGj, validates fbp enum, uses that actor as ownership anchor."""
+    if type(area_type) is not int or type(owned) is not bool:
+        raise ValueError("Invalid native actor-area predicate")
+    # alP.longValue -> Java int before fbp.To lookup.
+    area_type = ((area_type + (1 << 31)) % (1 << 32)) - (1 << 31)
+    if area_type not in NATIVE_AREA_TYPE_IDS or actor_id is None:
+        return False
+    actor = getattr(fight, "actors", {}).get(actor_id)
+    if actor is None:
+        if any(r["uid"] == actor_id for r in _rows(fight)):
+            return False  # A Qq PV is not the eGj required by eII.a.
+        raise ValueError("Missing native selected fighter for area predicate")
+    return cell_contains_type(
+        fight, cell=actor.position, area_type=area_type, source_id=actor_id, owned=owned
+    )
+
+
+def areas_with_base_id(fight, *, reference, owner_id=None, all_owners=False):
+    """ePj/ePi: count Qs.bdm matching long bct; optional exact PV owner."""
+    if type(reference) is not int or type(all_owners) is not bool:
+        raise ValueError("Invalid native base-area count")
+    return sum(
+        row["reference"] == reference
+        and (all_owners or owner_id is not None and row.get("owner_id") == owner_id)
+        for row in _rows(fight)
+    )
+
+
+def actor_on_specific_area(fight, *, actor_id, reference, ownership="all"):
+    """eOv: exact prototype and selected eHg geometry, own/team filter."""
+    if ownership not in ("all", "own", "team") or type(reference) is not int:
+        raise ValueError("Invalid native specific actor-area predicate")
+    if actor_id is None:
+        return False
+    actor = fight.actors.get(actor_id)
+    if actor is None:
+        raise ValueError("Missing native selected area actor")
+    rows = _rows(fight)
+    for row in rows:
+        if row["reference"] != reference:
+            continue
+        if ownership == "own" and row.get("owner_id") != actor_id:
+            continue
+        if ownership == "team":
+            owner = fight.actors.get(row.get("owner_id"))
+            if owner is None:
+                raise ValueError("Missing native area affiliation")
+            if getattr(owner, "native_fight_affiliation", owner.team) != getattr(
+                actor, "native_fight_affiliation", actor.team
+            ):
+                continue
+        radius = actor.physical_radius
+        if type(radius) is not int or radius != 0:
+            raise ValueError("Unaudited native eOv Qq.a nonzero actor radius")
+        if contains_area_cell(row, actor.position):
+            return True
+    return False

@@ -4,6 +4,7 @@ Callbacks read the current transaction preview on every invocation. Actor kinds
 and properties come from authoritative snapshots; cell eligibility needs its
 own native policy callback and is never inferred from an empty actor selection.
 """
+from .combat_subscription_runners import SUBSCRIPTION_FAMILIES
 from dataclasses import dataclass, replace
 from .combat_effect_dispatch import EffectInvocation
 from .combat_effect_targets import select_native_effect_targets
@@ -75,8 +76,7 @@ def application_eligible(effect, context):
         if (
             context.trigger is not None
             or effect.get("_native_group_registration_verified") is not True
-            or effect["effect_class"]
-            not in (330, 400, 844, 910, 912, 913, 999, 1020, 1047)
+            or effect["effect_class"] not in SUBSCRIPTION_FAMILIES
         ):
             raise UnknownEffectResolution(
                 "Unverified native retained group registration"
@@ -89,9 +89,9 @@ def application_eligible(effect, context):
     if context.delivery == "immediate":
         if context.trigger is not None:
             raise UnknownEffectResolution("Event context on immediate delivery")
-        # aZO index6 emits events. Subscription/removal masks index0..5
-        # require a verified event registration/execution path, not flat apply.
-        if any(masks[:6]):
+        # Qa.aZN excludes index2: removal events do not defer initial
+        # calculation. Index6 emits events rather than subscribing.
+        if any(masks[index] for index in (0, 1, 3, 4, 5)):
             raise UnknownEffectResolution(
                 "Subscribed effect requires native event delivery"
             )
@@ -127,13 +127,21 @@ class NativeEffectResolver:
     """
 
     def __init__(
-        self, *, actors, native_context, context, cell_eligible=None, caster=None
+        self,
+        *,
+        actors,
+        native_context,
+        context,
+        cell_eligible=None,
+        caster=None,
+        direct_target_policies=None
     ):
         self.actors = actors
         self.native_context = native_context
         self.context = context
         self.cell_eligible = cell_eligible
         self.caster = caster
+        self.direct_target_policies = direct_target_policies
 
     def __call__(self, effect, invocation):
         if not isinstance(invocation, EffectInvocation):
@@ -148,6 +156,10 @@ class NativeEffectResolver:
             if type(accepted) is not bool:
                 raise UnknownEffectResolution("Unknown native cell eligibility")
             return (replace(invocation, target_id=None),) if accepted else ()
+        return self.candidate_invocations(effect, invocation, direct=True)
+
+    def candidate_invocations(self, effect, invocation, *, direct=False):
+        """eZR.a actor selection used by eYE.e, independent of parent bbB."""
         actors = tuple(self.actors(effect, invocation))
         identities = [actor.id for actor in actors]
         if len(set(identities)) != len(identities):
@@ -165,6 +177,35 @@ class NativeEffectResolver:
             raise UnknownEffectResolution(
                 "Caster callback changed authoritative source identity"
             )
+        if type(invocation.native_explicit_target) is not bool:
+            raise UnknownEffectResolution(
+                "Explicit native PV argument presence required"
+            )
+        policy = (
+            None
+            if self.direct_target_policies is None
+            else self.direct_target_policies.get(str(invocation.reference))
+        )
+        if direct and (
+            invocation.native_explicit_target
+            or (policy is not None and policy[2] is True)
+        ):
+            from .combat_direct_target import explicit_native_target
+
+            target_id = explicit_native_target(
+                effect, invocation, metadata=self.direct_target_policies
+            )
+            if target_id is not None:
+                # Qe.g(PV) skips amQ/fcE entirely. Criteria, probability and
+                # handler fMy guards still execute in the common dispatcher.
+                target = next(
+                    (actor for actor in actors if actor.id == target_id), None
+                )
+                return (
+                    ()
+                    if target is None
+                    else (replace(invocation, target_id=target.id),)
+                )
         targets = select_native_effect_targets(
             effect,
             caster,
@@ -172,4 +213,7 @@ class NativeEffectResolver:
             actors,
             native_context=self.native_context(effect, invocation),
         )
+        from .combat_target_ordering import order_native_targets
+
+        targets = order_native_targets(effect, invocation, targets)
         return tuple(replace(invocation, target_id=target.id) for target in targets)

@@ -37,5 +37,5 @@ class DecurseRuntimeTests(NativeRuntimeFactoryTests):
             )
         )
         self.assertEqual(
-            [op for op, b in packets], [13497, 13497, 13560, 13560, 13497, 13497]
+            [op for op, b in packets], [12613, 13497, 13560, 13560, 12613, 13497]
         )

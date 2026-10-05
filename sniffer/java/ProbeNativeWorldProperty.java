@@ -1,0 +1,6 @@
+import java.lang.reflect.*;import java.util.*;
+public class ProbeNativeWorldProperty {
+ static eHg actor(Set<Integer>world,Set<Integer>fight){return(eHg)Proxy.newProxyInstance(eHg.class.getClassLoader(),new Class<?>[]{eHg.class},(p,m,a)->switch(m.getName()){case "Sn"->1L;case "i"->{PE prop=(PE)a[0];yield prop instanceof eHQ?world.contains((int)prop.aKg()):fight.contains((int)prop.aKg());}default->throw new UnsupportedOperationException(m.getName());});}
+ static void check(Object caster,Object target,int expected,alS...args){int actual=new eMW(new ArrayList<alS>(Arrays.asList(args))).a(caster,target,null,null);if(actual!=expected)throw new AssertionError("actual="+actual+" expected="+expected);System.out.println("PASS nativeWorldProperty="+actual);}
+ public static void main(String[]args){eHg boss=actor(Set.of(43),Set.of()),none=actor(Set.of(),Set.of()),immortal=actor(Set.of(),Set.of(12));check(boss,none,0,new alw(43));check(boss,none,-1,new alw(49));check(boss,none,0,new alw(299));check(none,boss,0,new alw(43),new amc("TaRgEt"));check(boss,none,0,new alw(43),new amc("invalid"));check(immortal,none,0,new alw(12));check(null,boss,-1,new alw(43));check(boss,null,-1,new alw(43),new amc("target"));check(boss,none,0,new alw(43),new alw(1));check(boss,none,-1,new alw(43),new alw(Long.MAX_VALUE/1000));}
+}

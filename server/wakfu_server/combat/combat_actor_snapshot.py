@@ -7,7 +7,7 @@ Absent characteristic values are never filled with invented zeros.
 import gzip
 import json
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.equipment_stats import bonuses, effective_character
@@ -60,6 +60,9 @@ class ActorSnapshot:
     provenance: str
     percentages: dict = field(default_factory=dict)
     base_maxima: dict = field(default_factory=dict)
+    native_los_height: int | None = None
+
+    native_hud_breed: int | None = None
 
     def install(self, actor):
         _fresh(actor, ())
@@ -80,6 +83,14 @@ class ActorSnapshot:
             )
         ):
             raise ValueError("Actor changed since native snapshot construction")
+        if (
+            type(self.native_los_height) is not int
+            or not -128 <= self.native_los_height < 128
+            or actor.native_los_height not in (None, self.native_los_height)
+        ):
+            raise ValueError("Missing or conflicting native actor LOS height")
+        actor.native_hud_breed = self.native_hud_breed
+        actor.native_los_height = self.native_los_height
         actor.effect_stats = dict(self.stats)
         actor.effect_minima = dict(self.minima)
         actor.effect_maxima = dict(self.maxima)
@@ -103,7 +114,9 @@ def _rows(catalog):
     return rows
 
 
-def _finish(actor, rows, values, *, wp_current, wp_maximum, radius, provenance):
+def _finish(
+    actor, rows, values, *, wp_current, wp_maximum, radius, provenance, los_height
+):
     if type(radius) is not int or not 0 <= radius <= 127:
         raise ValueError("Unsupported native physical radius")
     minima = {k: v["minimum"] for k, v in values.items()}
@@ -136,6 +149,7 @@ def _finish(actor, rows, values, *, wp_current, wp_maximum, radius, provenance):
         provenance,
         {k: 0 for k in stats},
         dict(maxima),
+        los_height,
     )
 
 
@@ -147,7 +161,9 @@ def build_player_snapshot(
     wp_maximum,
     running_effects,
     build_index=None,
-    catalog=None
+    catalog=None,
+    dev_skip_unsupported=False,
+    initialization_warnings=None
 ):
     """bjo uses ffh/eGE.pIq; gear/aptitudes come from owned selected sheet.
 
@@ -162,8 +178,26 @@ def build_player_snapshot(
     rows = _rows(catalog)
     adjusted = dict(character, level=actor.effective_level)
     evaluated = bonuses(adjusted, build_index=build_index)
-    if evaluated["unsupported"]:
-        raise ValueError("Unsupported owned equipment/aptitude effects")
+    from .combat_initialization_policy import partition_unsupported_equipment
+
+    rejected, skipped = partition_unsupported_equipment(
+        evaluated["unsupported"], enabled=dev_skip_unsupported
+    )
+    if initialization_warnings is not None and not isinstance(
+        initialization_warnings, list
+    ):
+        raise ValueError("Initialization warnings must be an owned list")
+    if skipped and initialization_warnings is None:
+        raise ValueError("Development fallback requires explicit diagnostics collector")
+    if rejected:
+        details = json.dumps(
+            {
+                "count": len(rejected),
+                "effects": rejected[:16],
+            },
+            separators=(",", ":"),
+        )
+        raise ValueError("Unsupported owned equipment/aptitude effects: " + details)
     if set(evaluated["percentages"]) - {1}:
         raise ValueError("Unsupported native percentage characteristic")
     if actor.max_hp != effective_character(adjusted, build_index=build_index)["max_hp"]:
@@ -189,6 +223,7 @@ def build_player_snapshot(
         wp_current=wp_current,
         wp_maximum=wp_maximum,
         radius=catalog["default_actor_radius"],
+        los_height=catalog.get("default_actor_los_height"),
         provenance="bjo ffh + owned equipment/aptitudes + live resources",
     )
     percentage = evaluated["percentages"].get(1, 0)
@@ -197,29 +232,25 @@ def build_player_snapshot(
         result.base_maxima[1] = effective_character(adjusted, build_index=build_index)[
             "base_max_hp"
         ] + evaluated["stats"].get(1, 0)
-    return result
+    if initialization_warnings is not None:
+        from .combat_initialization_policy import initialization_warning
+
+        initialization_warnings.extend(
+            initialization_warning(actor.id, e) for e in skipped
+        )
+    return replace(result, native_hud_breed=character["breed"])
 
 
-def build_npc_snapshot(
-    monster, actor, *, wp_current, wp_maximum, running_effects, catalog=None
-):
-    """Exact bbo/ffC/ffx curves, anchored at native minimum breed level.
+def native_npc_creation_values(reference, level, *, catalog=None):
+    """Native ffx creation at any legal positive short level, also for eHD.
 
-    ffC multiplies float32 growth as double, truncates/saturates d2i, then wraps
-    iadd. Full reference characteristics include combat mastery/resistance.
-    Local instance resource overrides remain authoritative and explicit.
+    World spawn policy may impose breed min/max separately; eZl creates its
+    descriptor at spell/caster level and does not impose that policy.
     """
-    _fresh(actor, running_effects)
-    if actor.id != monster["id"] or actor.controlled:
-        raise ValueError("NPC snapshot belongs to a different actor")
     catalog = native_actor_catalog() if catalog is None else catalog
     rows = _rows(catalog)
-    profile = catalog["npc_profiles"].get(str(monster["ref"]))
-    if (
-        profile is None
-        or type(actor.effective_level) is not int
-        or not 0 < actor.effective_level < 32768
-    ):
+    profile = catalog["npc_profiles"].get(str(reference))
+    if profile is None or type(level) is not int or not 0 < level < 32768:
         raise ValueError("Missing native NPC profile or level")
     values = {int(k): dict(v) for k, v in profile["at_base_level"].items()}
     if set(values) != set(rows):
@@ -228,13 +259,29 @@ def build_npc_snapshot(
         curve = profile["curves"].get(str(k))
         if curve is None:
             continue  # Native feZ initialized every PC with ffw.aZs().
-        growth = (actor.effective_level - profile["base_level"]) * _float(curve[1])
+        growth = (level - profile["base_level"]) * _float(curve[1])
         increment = _clamp(math.trunc(growth), -(1 << 31), (1 << 31) - 1)
         native = _int32(curve[0] + increment)
         value = values[k]
         if row["expandable"]:
             value["maximum"] = _clamp(native, row["hard_minimum"], row["hard_maximum"])
         value["current"] = _clamp(native, value["minimum"], value["maximum"])
+    return values
+
+
+def build_npc_snapshot(
+    monster, actor, *, wp_current, wp_maximum, running_effects, catalog=None
+):
+    """Exact bbo/ffC/ffx curves with explicit owned live resource overrides."""
+    _fresh(actor, running_effects)
+    if actor.id != monster["id"] or actor.controlled:
+        raise ValueError("NPC snapshot belongs to a different actor")
+    catalog = native_actor_catalog() if catalog is None else catalog
+    rows = _rows(catalog)
+    profile = catalog["npc_profiles"].get(str(monster["ref"]))
+    values = native_npc_creation_values(
+        monster["ref"], actor.effective_level, catalog=catalog
+    )
     return _finish(
         actor,
         rows,
@@ -242,12 +289,21 @@ def build_npc_snapshot(
         wp_current=wp_current,
         wp_maximum=wp_maximum,
         radius=profile["physical_radius"],
+        los_height=profile.get("native_los_height"),
         provenance="bbo native NPC curves + ffx bounds + live resources",
     )
 
 
 def initialize_fight_snapshots(
-    fight, *, characters, monsters, wp_resources, running_effects, initial_effect_uid
+    fight,
+    *,
+    characters,
+    monsters,
+    wp_resources,
+    running_effects,
+    initial_effect_uid,
+    dev_skip_unsupported=False,
+    initialization_warnings=None
 ):
     """Initialize every fresh participant atomically before placement publishes.
 
@@ -272,6 +328,15 @@ def initialize_fight_snapshots(
         or set(running_effects) != identities
     ):
         raise ValueError("Missing exact fight snapshot sources or initial UID")
+    if type(dev_skip_unsupported) is not bool:
+        raise ValueError("Development initialization fallback must be boolean")
+    if initialization_warnings is not None and not isinstance(
+        initialization_warnings, list
+    ):
+        raise ValueError("Initialization warnings must be an owned list")
+    if dev_skip_unsupported and initialization_warnings is None:
+        raise ValueError("Development fallback requires explicit diagnostics collector")
+    local_warnings = []
     prepared = {}
     for identity, actor in fight.actors.items():
         wp = wp_resources[identity]
@@ -284,6 +349,8 @@ def initialize_fight_snapshots(
                 wp_current=wp[0],
                 wp_maximum=wp[1],
                 running_effects=running_effects[identity],
+                dev_skip_unsupported=dev_skip_unsupported,
+                initialization_warnings=local_warnings,
             )
         else:
             snapshot = build_npc_snapshot(
@@ -298,5 +365,11 @@ def initialize_fight_snapshots(
     # dataclass field assignments, after the entire roster has been validated.
     for identity, snapshot in prepared.items():
         snapshot.install(fight.actors[identity])
+        if identity in characters:
+            # Actual fresh biB WP observers are bkq/biB, UI refresh only.
+            # No owned eWr/eXb link has run at this validated fresh boundary.
+            fight.actors[identity].native_resource_numeric_observers = {4: ()}
     fight.native_effect_uid_next = initial_effect_uid
+    if initialization_warnings is not None:
+        initialization_warnings.extend(local_warnings)
     return prepared

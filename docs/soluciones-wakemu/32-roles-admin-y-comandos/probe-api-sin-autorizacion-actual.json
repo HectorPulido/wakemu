@@ -1,0 +1,40 @@
+{
+  "scope": "Current API on ephemeral localhost port, fake store/queue only; no real database or command execution",
+  "authorization_header_sent": false,
+  "token_validation_calls": 0,
+  "responses": [
+    {
+      "route": "/test/command",
+      "http_status": 202,
+      "response": {
+        "status": "pending",
+        "handle": "synthetic"
+      }
+    },
+    {
+      "route": "/test/tasks/audit",
+      "http_status": 202,
+      "response": {
+        "status": "pending",
+        "handle": "synthetic"
+      }
+    }
+  ],
+  "fake_submissions": [
+    {
+      "args": [
+        999,
+        "!pos"
+      ],
+      "request_id": null
+    },
+    {
+      "args": [
+        999,
+        "!pos"
+      ],
+      "request_id": "audit"
+    }
+  ],
+  "api_sha256": "b387ef1a986bf44f5bf65ab903dd7934fff15cb10b0c0d53b313af27143a890e"
+}

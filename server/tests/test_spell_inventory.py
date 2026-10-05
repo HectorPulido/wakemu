@@ -44,6 +44,8 @@ class InventoryTests(unittest.TestCase):
                 {r["id"] for r in inventory["spells"]}, {r["id"] for r in catalog}
             )
             self.assertEqual(len(inventory["spells"]), len(catalog))
+            random_group = next(r for r in inventory["families"] if r["family"] == 1076)
+            self.assertNotEqual(random_group["registration"], "Sin manejador")
             self.assertEqual(
                 len({r["id"] for r in inventory["effects"]}),
                 inventory["summary"]["effects"],

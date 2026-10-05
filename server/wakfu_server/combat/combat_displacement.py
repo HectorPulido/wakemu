@@ -1,7 +1,8 @@
 """Native eXK/eXJ/eXp displacement, eZC/eZD teleport and eXk swap.
 
-Ordinary actors, radius0, flat terrain and collision-free paths are audited.
-Collision AP loss/events, footprint/altitude mechanics and wrapped actors need
+Ordinary radius0 actors use native faz.B first-surface transitions when their
+map/physical-height policy is exported. Legacy flat fixtures remain explicit.
+Collision AP loss/events, larger footprints and wrapped actors need
 additional native machinery and reject before any preview mutation.
 """
 import math
@@ -16,6 +17,7 @@ FAMILIES = {
     302: "teleport_caster",
     340: "teleport_target",
     331: "move_away_cell",
+    305: "approach_cell",
     422: "swap",
 }
 
@@ -50,7 +52,7 @@ def displacement_additional(
         if type(accepted) is not bool:
             raise ValueError("Unknown native teleport accepted flag")
         return _blob(15, position_payload(destination)) + _integer(33, int(accepted))
-    if effect_class in (300, 301, 331):
+    if effect_class in (300, 301, 305, 331):
         if path is None:
             raise ValueError("Missing authoritative native displacement path")
         return (
@@ -165,18 +167,31 @@ def displacement_geometry(effect, level, *, source, target, cell):
     raw = effect["parameters"]
     count = len(raw) // 2
     values = [parameter_value(raw, n, level) for n in range(count)]
-    if kind in ("push", "pull", "move_away_cell"):
-        if not 1 <= count <= 3 or (kind == "move_away_cell" and count != 1):
+    if kind in ("push", "pull", "move_away_cell", "approach_cell"):
+        if (kind == "approach_cell" and count not in (0, 1, 2)) or (
+            kind != "approach_cell"
+            and (not 1 <= count <= 3 or (kind == "move_away_cell" and count != 1))
+        ):
             raise ValueError("Unsupported native displacement parameter count")
-        distance = values[0]
+        distance = (
+            (abs(source.position[0] - cell[0]) + abs(source.position[1] - cell[1]))
+            if kind == "approach_cell" and not count
+            else values[0]
+        )
         if not 0 <= distance <= 6552:
             raise ValueError("Unsupported native displacement distance")
         loss_ap = values[1] > 0 if count >= 2 else kind != "pull"
         mode = ((values[2] + 128) % 256) - 128 if count >= 3 else -1
-        actor = source if kind == "move_away_cell" else target
+        actor = source if kind in ("move_away_cell", "approach_cell") else target
         if actor is None:
             raise ValueError("Native displacement target absent")
-        if kind == "move_away_cell":
+        if kind == "approach_cell":
+            vector = cardinal_vector(
+                cell[0] - actor.position[0], cell[1] - actor.position[1]
+            )
+            stop = cell[:2]
+            loss_ap = False  # eXq.fOs=false regardless of inherited rDX.
+        elif kind == "move_away_cell":
             vector = cardinal_vector(
                 actor.position[0] - cell[0], actor.position[1] - cell[1]
             )
@@ -251,6 +266,25 @@ class NativeDisplacementHandler:
     def __init__(self, fight, packets, *, action_id, allocate_uid, authority):
         self.fight, self.packets, self.action_id = fight, packets, action_id
         self.allocate_uid, self.authority = allocate_uid, authority
+        self.event_lifecycle = None
+
+    def prepare(self, effect, values, invocation):
+        if self.event_lifecycle is None:
+            return invocation
+        from dataclasses import replace
+
+        invocation = replace(invocation, native_running_uid=self.allocate_uid())
+        self.event_lifecycle.phase(
+            effect, invocation, uid=invocation.native_running_uid, value=0, channel=1
+        )
+        return invocation
+
+    def _finish_events(self, effect, invocation, uid, value):
+        if self.event_lifecycle is not None:
+            for channel in (3, 4):
+                self.event_lifecycle.phase(
+                    effect, invocation, uid=uid, value=value, channel=channel
+                )
 
     def _ordinary(self, actor):
         authority = self.authority(self.fight, actor)
@@ -277,11 +311,24 @@ class NativeDisplacementHandler:
         if self.fight.phase != "active" or self.fight.current is None:
             raise ValueError("Displacement requires active combat")
         flags = set(effect["native_effect_flags"])
-        if flags - {13, 17, 36}:
+        # eVl.rwA(3) suppresses aJs client zone preview only; preserve it
+        # in the native definition without changing forced path/codec.
+        # eVl.rwK/rwW are consumed only by faK target ordering, already
+        # applied by the common resolver before each displacement invocation.
+        # Flag5 suppresses level-one reactions through the existing event
+        # lifecycle (eZR.aZB); it does not prevent native displacement.
+        if flags - {3, 5, 13, 14, 17, 26, 36}:
             raise ValueError(
-                f"Unhandled native displacement flags: {sorted(flags-{13,17,36})}"
+                f"Unhandled native displacement flags: {sorted(flags-{3,5,13,14,17,26,36})}"
             )
         native_definition_timing(effect, invocation.level)
+        uid = invocation.native_running_uid
+        if self.event_lifecycle is not None:
+            if uid is None:
+                # Direct/clone execution has no dispatcher prepare hook here.
+                invocation = self.prepare(effect, values, invocation)
+                uid = invocation.native_running_uid
+            self.event_lifecycle.phase(effect, invocation, uid=uid, value=0, channel=2)
         source = self.fight.actors[invocation.caster_id]
         source_props = self._ordinary(source)
         target = self.fight.actors.get(invocation.target_id)
@@ -298,6 +345,7 @@ class NativeDisplacementHandler:
                 raise ValueError("Swap requires native actor target")
             target_props = self._ordinary(target)
             if target.id == source.id:
+                self._finish_events(effect, invocation, uid, 0)
                 return True
             if not geometry["force"] and 36 not in flags:
                 if (
@@ -312,11 +360,13 @@ class NativeDisplacementHandler:
                         and source.team == target.team
                     )
                 ):
+                    self._finish_events(effect, invocation, uid, 0)
                     return False
             a, b = source.position, target.position
             if not self._free(source, b, ignore=(target.id,)) or not self._free(
                 target, a, ignore=(source.id,)
             ):
+                self._finish_events(effect, invocation, uid, 0)
                 return False
             additional = displacement_additional(
                 effect["effect_class"], source_original=a, target_original=b
@@ -334,6 +384,7 @@ class NativeDisplacementHandler:
                     and (11 in props or 110 in props and source.team != actor.team)
                 )
             ):
+                self._finish_events(effect, invocation, uid, 0)
                 return False
             destination = geometry["destination"]
             if not geometry["check_cells"]:
@@ -341,6 +392,7 @@ class NativeDisplacementHandler:
                     "Teleport bypass of blocking cells requires native terrain policy"
                 )
             if not self._free(actor, destination):
+                self._finish_events(effect, invocation, uid, 0)
                 return False
             additional = displacement_additional(
                 effect["effect_class"], destination=destination
@@ -350,7 +402,15 @@ class NativeDisplacementHandler:
         else:
             actor = geometry["actor"]
             props = self._ordinary(actor)
-            if 3 in props or (83 if kind == "move_away_cell" else 56) in props:
+            blocked_property = (
+                71
+                if kind == "approach_cell"
+                else 83
+                if kind == "move_away_cell"
+                else 56
+            )
+            if 3 in props or blocked_property in props:
+                self._finish_events(effect, invocation, uid, 0)
                 return False
             if (
                 13 not in flags
@@ -363,6 +423,7 @@ class NativeDisplacementHandler:
                     and source.team == actor.id
                 )
             ):
+                self._finish_events(effect, invocation, uid, 0)
                 return False
             vector = geometry["vector"]
             path = []
@@ -371,22 +432,43 @@ class NativeDisplacementHandler:
                 if vector == (0, 0) or geometry["stop"] == position[:2]:
                     break
                 xy = (position[0] + vector[0], position[1] + vector[1])
-                candidates = [
-                    cell
-                    for cell in self.fight.walkable
-                    if cell[:2] == xy and cell[2] == position[2]
-                ]
-                if len(candidates) != 1 or not self._free(actor, candidates[0]):
+                metadata = self.authority(self.fight, actor)
+                map_id = metadata.native_instance_id
+                if map_id is not None:
+                    # eGj.bvz() is 4 for the audited ordinary actor creation
+                    # path; faz uses bcK (breed height), not walking Sm(3,0,2).
+                    from .combat_forced_terrain import next_surface
+
+                    destination = next_surface(
+                        map_id,
+                        actor.native_los_height,
+                        position,
+                        xy,
+                        radius=actor.physical_radius,
+                        jump=4,
+                    )
+                else:
+                    # Explicit legacy fixture geometry cannot attest height
+                    # changes. Production authorities carry their map identity.
+                    candidates = [
+                        cell
+                        for cell in self.fight.walkable
+                        if cell[:2] == xy and cell[2] == position[2]
+                    ]
+                    destination = candidates[0] if len(candidates) == 1 else None
+                    if (
+                        destination is not None
+                        and self.fight.edges is not None
+                        and (position, destination) not in self.fight.edges
+                    ):
+                        raise ValueError(
+                            "Native forced terrain transition requires verified edge"
+                        )
+                if destination is None or not self._free(actor, destination):
+                    if kind == "approach_cell":
+                        break  # faz stops at obstacle; eXq has no collision AP loss.
                     raise ValueError(
                         "Native displacement collision requires AP-loss/events executor"
-                    )
-                destination = candidates[0]
-                if (
-                    self.fight.edges is not None
-                    and (position, destination) not in self.fight.edges
-                ):
-                    raise ValueError(
-                        "Native forced terrain transition requires verified edge"
                     )
                 path.append(destination)
                 position = destination
@@ -397,7 +479,7 @@ class NativeDisplacementHandler:
         packet = displacement_packet(
             self.fight.id,
             self.action_id,
-            uid=self.allocate_uid(),
+            uid=self.allocate_uid() if uid is None else uid,
             generic_effect=invocation.reference,
             effect_class=effect["effect_class"],
             caster_id=source.id,
@@ -406,9 +488,19 @@ class NativeDisplacementHandler:
             additional=additional,
             base_uid=invocation.base_uid,
         )
+        moved = [
+            (actor.id, actor.position, position)
+            for actor, position in changed
+            if actor.position != position
+        ]
         for actor, position in changed:
             actor.position = position
         self.packets.append(packet)
+        self._finish_events(effect, invocation, uid, value)
+        if moved and self.event_lifecycle is not None:
+            self.event_lifecycle.displacement_completed(
+                effect, invocation, uid=uid, value=value, moved=moved
+            )
         self.fight._event(
             "effect_displacement",
             effect_class=effect["effect_class"],

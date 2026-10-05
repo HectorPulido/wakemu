@@ -1,0 +1,40 @@
+{
+  "scope": "Revisión posterior a respuestas; pruebas aisladas y lectura de código, sin fixes ni reinicios. No certifica despliegue.",
+  "branch": "main",
+  "head": "7eb67928818af54eb04bddff29397ef0ccdec1ba",
+  "source_sha256": {
+    "server/wakfu_server/maps/planting.py": "1e7fffafce730a1cf34d5ee1f8657c886e5df7283d46a47ba55ca21bd29c85b1",
+    "server/wakfu_server/maps/planting_runtime.py": "5247374d25cef0617cb0c93d2ec894572c8c097cdbf5976cd12e552479931c04",
+    "server/wakfu_server/maps/monster_wander.py": "4bfdd278846dd9e878d5c0fdb55e36e911bd6d810f83c434c4a684cd9c781ec7",
+    "server/wakfu_server/storage/store.py": "9e69e69bb17084485601f474ae4a8fb5a262a152c07b604ea03742595b9bb547",
+    "server/wakfu_server/storage/build_journal.py": "345f0d271da99387165e049bea25fd4521d2e241bddf08cfb05bfb92a848116b",
+    "server/wakfu_server/api.py": "b387ef1a986bf44f5bf65ab903dd7934fff15cb10b0c0d53b313af27143a890e",
+    "server/local_game_server.py": "8c56f538dc42b111f0a3a0f5d22788c5ba074d0ee2582aac1dd9f378cb645457",
+    "compose.yaml": "b44c7c3822f68dc33bf6f190d7c329f1ec405ba397c98952d711214e5ec9b1b6",
+    "/Users/hectorpulido/dofus/ai-service/spell_catalog.py": "09d0f7529cfd02562c3be46a2067b579cec06314e7cca35ec9cf8f1cb1209c59"
+  },
+  "original_answer_files_checked": 46,
+  "original_answer_files_changed": [],
+  "folders": 47,
+  "links_checked": 1134,
+  "broken_links": [],
+  "existing_tests_executed": {
+    "test_health_tick_writes.py": {
+      "passed": 3,
+      "skipped": 0
+    },
+    "test_monster_wander.py": {
+      "passed": 2,
+      "skipped": 0
+    }
+  },
+  "completed_native_probes": [
+    "ResourceFieldsProbe:8 descriptors",
+    "ResourcePacketProbe:actual encoder creation_time decoded as ownerAccount",
+    "BuildPolicyProbe:unlock51,customlimit24,index3,13811 and truncation",
+    "CardoStagesProbe:5states and per-stage actions"
+  ],
+  "new_issue": "E12-curacion-al-alternar-aptitudes",
+  "gui_resource_reproduction": "in progress; not counted as passed",
+  "audit_complete": false
+}

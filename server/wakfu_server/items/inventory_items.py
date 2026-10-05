@@ -21,13 +21,18 @@ def schema(db):
 
 def load(db, character_id):
     schema(db)
-    return [
-        dict(row)
-        for row in db.execute(
-            "SELECT * FROM inventory_items WHERE character_id=? ORDER BY container,slot",
-            (character_id,),
-        )
-    ]
+    from .inventory_elements import hydrate
+
+    return hydrate(
+        db,
+        [
+            dict(row)
+            for row in db.execute(
+                "SELECT * FROM inventory_items WHERE character_id=? ORDER BY container,slot",
+                (character_id,),
+            )
+        ],
+    )
 
 
 def _lease(store, db, account_id, generation, character_id):
@@ -85,9 +90,16 @@ def grant(
             "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(?,?,?,?,?,?)",
             (uid, character_id, reference, quantity, container, slot),
         )
-        return dict(
+        item = dict(
             db.execute("SELECT * FROM inventory_items WHERE uid=?", (uid,)).fetchone()
         )
+        from .inventory_elements import create, save
+
+        selected = create(reference)
+        if selected is not None:
+            save(db, uid, selected)
+            item.update(selected)
+        return item
 
 
 def remove(store, account_id, generation, character_id, uid, quantity):
@@ -142,7 +154,17 @@ def item_proto(item):
         or not 1 <= qty <= 32767
     ):
         raise ValueError("Invalid minimal item")
-    return b"\x08" + _varint(uid) + b"\x10" + _varint(ref) + b"\x18" + _varint(qty)
+    from .inventory_elements import proto
+
+    return (
+        b"\x08"
+        + _varint(uid)
+        + b"\x10"
+        + _varint(ref)
+        + b"\x18"
+        + _varint(qty)
+        + proto(item)
+    )
 
 
 def equipment_inventory(character):
@@ -168,9 +190,11 @@ def equipment_inventory(character):
 
 def item_form(item):
     item_proto(item)
+    from .inventory_elements import binary_options
+
     return struct.pack(
         ">qih", item["uid"], item["reference"], item["quantity"]
-    ) + bytes(8)
+    ) + binary_options(item)
 
 
 def insertion(item, *, notification=False):

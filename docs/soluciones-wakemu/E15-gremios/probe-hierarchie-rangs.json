@@ -1,0 +1,34 @@
+{
+  "scope": "Offline native fgK.b(permission,target_position) execution",
+  "cases": 1080,
+  "permissions": 27,
+  "actor_positions": [
+    0,
+    1,
+    2,
+    5
+  ],
+  "target_positions": [
+    -1,
+    0,
+    1,
+    2,
+    5
+  ],
+  "permission_present": [
+    false,
+    true
+  ],
+  "rule": "permission_bit_present AND (target==-1 OR not permission.slJ OR actor_position==0 OR actor_position<target_position)",
+  "hierarchical_permissions": [
+    "REMOVE_MEMBER",
+    "CHANGE_MEMBER_RANK",
+    "EDIT_RANK"
+  ],
+  "limits": [
+    "Position0 bypasses position comparison, not permission bit requirement",
+    "Target-1 is native no-target-check sentinel, not authorized server bypass",
+    "Does not prove founder leadership transfer, disband or hierarchy assignment constraints"
+  ],
+  "source_sha256": "8894b6277899fd790be4df0b0855c7f312fa851aa7d70996f90d73c0c0c542ac"
+}

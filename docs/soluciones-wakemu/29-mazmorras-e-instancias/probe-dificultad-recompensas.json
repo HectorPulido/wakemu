@@ -1,0 +1,73 @@
+{
+  "source": "Estado nativo 7447, grupos aKX, efectos bcA; consumidor bam/eQN y brq/brE; enum ffw",
+  "scope": "Decodificación offline de metadatos; no prueba de recompensas efectivas del servidor",
+  "loot": {
+    "normal_group": 335583,
+    "competitive_group": 335577,
+    "normal_percent": [
+      60,
+      100,
+      120,
+      160,
+      188,
+      200,
+      205,
+      210,
+      215,
+      220
+    ],
+    "competitive_percent": [
+      60,
+      100,
+      140,
+      250,
+      400,
+      550,
+      600,
+      650,
+      680,
+      710
+    ],
+    "criteria": {
+      "335577": "GetInstanceLevelMax() > 0",
+      "335583": "GetInstanceLevelMax() <= 0"
+    }
+  },
+  "xp": {
+    "stat_id": 115,
+    "groups": {
+      "335565": [
+        60,
+        100,
+        140,
+        250,
+        400,
+        550,
+        600,
+        650,
+        680,
+        710
+      ],
+      "335571": [
+        60,
+        100,
+        120,
+        160,
+        188,
+        200,
+        205,
+        210,
+        215,
+        220
+      ]
+    },
+    "mode_mapping": {
+      "335565": "competitivo: GetInstanceLevelMax() > 0",
+      "335571": "normal: GetInstanceLevelMax() <= 0"
+    }
+  },
+  "stat_ids": {
+    "XP_EARNED_FACTOR": 115,
+    "DROP_RATE_FACTOR": 116
+  }
+}

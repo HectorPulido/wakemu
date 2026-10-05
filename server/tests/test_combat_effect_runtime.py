@@ -239,16 +239,19 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
         self.assertEqual(preview.owned_stat_effects[203]["state_uid"], 202)
         self.assertEqual(preview.native_effect_uid_next, 204)
         classes = [
-            struct.unpack(">i", payload[12:16])[0] for opcode, payload in packets
+            struct.unpack(">i", payload[13:17] if opcode == 12613 else payload[12:16])[
+                0
+            ]
+            for opcode, payload in packets
         ]
         self.assertEqual(
             list(zip([opcode for opcode, payload in packets], classes)),
             [
-                (13497, 310),
+                (12613, 310),
                 (13497, 400),
                 (13560, 400),
                 (13560, 310),
-                (13497, 310),
+                (12613, 310),
                 (13497, 400),
             ],
         )

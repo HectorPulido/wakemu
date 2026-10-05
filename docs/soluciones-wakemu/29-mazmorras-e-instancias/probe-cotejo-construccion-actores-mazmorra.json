@@ -1,0 +1,18 @@
+{
+  "method": "Lectura del código actual; sin ejecutar combate ni hechizos",
+  "source_sha256": {
+    "server/wakfu_server/maps/monsters.py": "f4bb5a9fbbc1ed23b70b554824425558e61a0c5a330fce641d81b960071de331",
+    "server/wakfu_server/combat/combat_bootstrap.py": "3623307d5504385f70ad609f659c8087f0479b17780c481dcd0afd99fb2a5783",
+    "server/wakfu_server/combat/combat_actor_snapshot.py": "6c2b0cc895df7dda4e56ef48da463d5e8a6ac676c748ded1639d45cda86b11a5",
+    "server/wakfu_server/maps/native_transports.py": "ed621d00d7d45834893fa7f27c28b0eb8b6153a67ecf0f255b01ce52690c12cd",
+    "server/wakfu_server/maps/generic_transports.py": "904b0ad9183890073e063a3fa86be443650bf1896e45b9460a72dae1727b1dab"
+  },
+  "observations": [
+    "owned_instance calcula curvas por nivel, fija instance_id=0 y no recibe dificultad",
+    "create_placement reconstruye owned_instance y exige igualdad completa del miembro: cambiar HP o instance_id externamente provoca rechazo",
+    "build_npc_snapshot reconstruye curvas base; _finish conserva recursos vivos HP/AP/MP/WP pero no aplica voluntad por dificultad",
+    "native_transports.bootstrap usa contexto no-mazmorra constante",
+    "generic_transports.resolve rechaza instancia distinta de 0 y contexto especial cyZ>=0"
+  ],
+  "limit": "No demuestra ausencia en todo el repositorio; acredita restricciones de estas rutas actuales"
+}

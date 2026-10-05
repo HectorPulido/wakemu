@@ -1,0 +1,10 @@
+{
+  "consumer": "bOY.a(so)",
+  "world_bar": 2,
+  "slot": 3,
+  "reference": 4275,
+  "restored_lookup_verified": true,
+  "empty_collection_clears_existing_entry": true,
+  "entity_observer": "biQ.zm -> biB.iig.a(so) -> c(eQW)",
+  "scope": "Offline native consumer on newly constructed private objects; no GUI or live singleton."
+}

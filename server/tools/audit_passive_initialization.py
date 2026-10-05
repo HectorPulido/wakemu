@@ -63,7 +63,9 @@ def cases():
 
 def main():
     workload, passives = cases()
-    result = run(workload)
+    # Production initialization supplies the same native relative-group
+    # authority through server_runtime; omitting it invents a setup blocker.
+    result = run(workload, with_relative_probability=True)
     result["coverage"] = {
         "native_passive_count": len(passives),
         "native_passive_ids": [p["id"] for p in passives],

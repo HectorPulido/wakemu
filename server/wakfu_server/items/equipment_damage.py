@@ -62,7 +62,10 @@ def damage(
     indirect=False,
     ignore_resistance_cap=False,
     rng=None,
-    localization=None
+    localization=None,
+    additional_final=0,
+    additional_mastery=0,
+    additional_resistance=0
 ):
     """Compute the native normal-front result with caller-selected cast variant.
 
@@ -99,7 +102,14 @@ def damage(
     # fau.fSH disables localization for neutral eVg.rpe.
     location = "FRONT" if element == 1 else localization
     source, target = _stats(source_stats), _stats(target_stats)
-    mastery = source.get(20, 0) + source.get(52 if critical else 102, 0)
+    if any(
+        type(v) is not int or not -(1 << 31) <= v < (1 << 31)
+        for v in (additional_mastery, additional_resistance)
+    ):
+        raise ValueError("Invalid native damage auxiliary fields")
+    mastery = (
+        additional_mastery + source.get(20, 0) + source.get(52 if critical else 102, 0)
+    )
     if location == "BACK":
         mastery += source.get(16, 0)
     if single_target:
@@ -112,8 +122,10 @@ def damage(
     elemental_mastery, elemental_resistance = ELEMENT_STATS[element]
     if elemental_mastery is not None:
         mastery += min(50000, source.get(elemental_mastery, 0))
-    resistance = target.get(27, 0) + (
-        target.get(elemental_resistance, 0) if elemental_resistance else 0
+    resistance = (
+        additional_resistance
+        + target.get(27, 0)
+        + (target.get(elemental_resistance, 0) if elemental_resistance else 0)
     )
     if critical:
         resistance += target.get(95, 0)
@@ -132,7 +144,13 @@ def damage(
             _float(100 + ({"FRONT": 0, "SIDE": 10, "BACK": 25}[location])) / _float(100)
         )
     )
-    final = source.get(48, 0) + (source.get(101, 0) if indirect else 0)
+    if type(additional_final) is not int or not -(1 << 31) <= additional_final < (
+        1 << 31
+    ):
+        raise ValueError("Invalid native faq final modifier")
+    final = (
+        source.get(48, 0) + (source.get(101, 0) if indirect else 0) + additional_final
+    )
     final_factor = _float(
         _float(100 + max(-50, final) - target.get(49, 0)) / _float(100)
     )

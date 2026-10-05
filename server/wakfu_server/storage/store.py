@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import hashlib
 import hmac
 import json
+import os
 from pathlib import Path
 import re
 import secrets
@@ -12,9 +13,16 @@ from protocol_codec import APPEARANCE_FIELDS
 
 
 class Store:
-    def __init__(self, path, clock=time.time):
+    def __init__(self, path, clock=time.time, *, max_characters=None):
         self.path = str(path)
         self.clock = clock
+        self.max_characters = (
+            int(os.environ.get("WAKFU_MAX_CHARACTERS", "5"))
+            if max_characters is None
+            else max_characters
+        )
+        if type(self.max_characters) is not int or not 1 <= self.max_characters <= 127:
+            raise ValueError("Invalid character selection capacity")
         self.build_journal = None
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         with self.connection() as db:
@@ -234,8 +242,11 @@ class Store:
         name = name.strip()
         if not re.fullmatch(r"[A-Za-z][A-Za-z -]{2,23}", name):
             raise ValueError("Nombre: 3–24 letras, espacios o guiones.")
+        from wakfu_server.breed_resources import playable_breeds
+
         if (
-            breed not in range(1, 19)
+            type(breed) is not int
+            or breed not in playable_breeds()
             or sex not in (0, 1)
             or face not in range(32)
             or hair not in range(32)
@@ -261,9 +272,13 @@ class Store:
                 db.execute(
                     "SELECT COUNT(*) FROM characters WHERE account_id=?", (account_id,)
                 ).fetchone()[0]
-                >= 5
+                >= self.max_characters
             ):
-                raise ValueError("Máximo cinco personajes por cuenta.")
+                raise ValueError(
+                    "Máximo cinco personajes por cuenta."
+                    if self.max_characters == 5
+                    else f"Máximo {self.max_characters} personajes por cuenta."
+                )
             try:
                 result = db.execute(
                     "INSERT INTO characters(account_id,name,breed,sex,face,hair,colors,created_at,appearance) "

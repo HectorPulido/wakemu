@@ -80,7 +80,7 @@ def apply_current_stat(
     executable,
     frozen,
     source_guards_verified,
-    limit_policy
+    limit_policy,
 ):
     """eWW.c -> eWQ.d/eWR.d; preserve prepercent request and actual delta."""
     if (
@@ -148,7 +148,8 @@ def owned_effect_payload(
     requested=None,
     timing_payload=None,
     execution_status=None,
-    executed=True
+    executed=True,
+    inherit_container=True,
 ):
     """Native iN for eXE or eWQ/eWR; explicit clocks supplied as TimeDatas.
 
@@ -187,6 +188,10 @@ def owned_effect_payload(
             (7, target_id),
         )
     )
+    if inherit_container:
+        from .combat_running_container import running_container_payload
+
+        payload += running_container_payload()
     if stat_id is not None or requested is not None:
         if (
             type(stat_id) is not int
@@ -295,7 +300,7 @@ def owned_effect_application(
     target_id,
     uid,
     running_effect_payload,
-    sequence=-1
+    sequence=-1,
 ):
     """cvY13497 prefix; validation shared with cvZ13560 owned removal."""
     return running_effect_removal(
@@ -307,3 +312,17 @@ def owned_effect_application(
         running_effect_payload=running_effect_payload,
         sequence=sequence,
     )[:-16]
+
+
+def owned_effect_delivery(fight_id, action_id, *, native_opcode=13497, **arguments):
+    """Native eXE requires cvX/aVo registration; eYg uses cvY/aTR.
+
+    The false eIK byte retains the evaluated runner without executing gameplay
+    again. UID, PL and TimeDatas bytes remain unchanged.
+    """
+    payload = owned_effect_application(fight_id, action_id, **arguments)
+    if native_opcode == 12613:
+        return 12613, payload[:12] + b"\x00" + payload[12:]
+    if native_opcode != 13497:
+        raise ValueError("Unsupported native owned delivery opcode")
+    return 13497, payload

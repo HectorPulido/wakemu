@@ -6,6 +6,45 @@ from wakfu_server.combat_effect_dispatch import EffectInvocation
 
 
 class StateContainerScopeTests(unittest.TestCase):
+    def test_stat_timing_uses_scoped_parent_without_accepting_later_stale_uid(self):
+        from unittest.mock import patch
+        from wakfu_server.combat_native_timing_context import NativeEffectTimingProvider
+
+        provider = NativeEffectTimingProvider({})
+        definition = {"native_execution_mode": 0}
+        with patch(
+            "wakfu_server.combat_native_timing_context.native_definition_timing",
+            return_value={"retained": False, "duration": 0},
+        ):
+            with self.runtime.container_scope(self.invocation):
+                self.ledger.entries = []
+                result = provider.stat(
+                    self.runtime.fight, None, definition, self.invocation
+                )
+                self.assertFalse(
+                    result.retained
+                )  # Owning fyW does not override native Tyfalse.
+            with self.assertRaisesRegex(ValueError, "Missing unique"):
+                provider.stat(self.runtime.fight, None, definition, self.invocation)
+
+    def test_original_carrier_critical_flag_survives_only_its_running_scope(self):
+        from wakfu_server.combat_native_container import (
+            state_container_scope,
+            resolve_state_wire_payload,
+        )
+        from wakfu_server.combat_effects import _integer, _varint
+
+        additional = _integer(19, 1)
+        payload = _varint((8 << 3) | 2) + _varint(len(additional)) + additional
+        self.runtime.fight.state_wire_payloads = {219: payload.hex()}
+        with state_container_scope(self.runtime.fight, {219: self.old}):
+            self.ledger.entries = []
+            self.runtime.fight.state_wire_payloads.clear()
+            self.assertEqual(
+                resolve_state_wire_payload(self.runtime.fight, 219), payload.hex()
+            )
+        self.assertIsNone(resolve_state_wire_payload(self.runtime.fight, 219))
+
     def setUp(self):
         self.old = SimpleNamespace(uid=219, reference=3442, level=14)
         self.new = SimpleNamespace(uid=220, reference=3442, level=15)
@@ -78,7 +117,7 @@ class StateContainerScopeTests(unittest.TestCase):
         with self.runtime.container_scope(self.invocation):
             self.ledger.entries = [self.new]
             self.assertEqual(
-                ordinary_container_type(self.runtime.fight, {}, self.invocation), 3
+                ordinary_container_type(self.runtime.fight, {}, self.invocation), 1
             )
             self.assertIs(resolve_state_container(self.runtime.fight, 219), self.old)
             other = SimpleNamespace(actors={})

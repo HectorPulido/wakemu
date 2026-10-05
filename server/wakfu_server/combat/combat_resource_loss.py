@@ -4,7 +4,7 @@ UP.bt is stochastic rounding, not ceil/round. Applying positive loss also
 executes eWu state5227; callers must supply that executor, never omit it.
 This module is independent of factory registration and transaction ownership.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import math
 import struct
 from .combat_parameters import _float32
@@ -62,7 +62,8 @@ def resolve_resource_loss(
     ignores_willpower=False,
     frozen=False,
     suppresses_loss_state=False,
-    random_fraction=None
+    random_fraction=None,
+    value_context=None
 ):
     """eVZ.C -> eWR.d, explicit native characteristic presence already resolved.
 
@@ -102,6 +103,12 @@ def resolve_resource_loss(
     raw = _float32(_float32(_float32(requested) * _float32(0.5)) * factor)
     calculated = min(requested, max(0, stochastic_native_round(raw, random_fraction)))
     override = (58 if stat_id == 2 else 75) if calculated != requested else None
+    calculation_status = 3 if calculated == 0 else 0
+    # eZR.n applies SQ after eVZ.C. C's event/status decisions are preserved;
+    # eWR.d consumes the replaced value and records its actual resource delta.
+    from .combat_value_transfer import apply_context_value
+
+    calculated = apply_context_value(calculated, value_context)
     after = (
         current if frozen else max(minimum, min(maximum, _i32(current - calculated)))
     )
@@ -118,8 +125,43 @@ def resolve_resource_loss(
         current,
         after,
         override,
-        3 if calculated == 0 else 0,
+        calculation_status,
         state,
+    )
+
+
+def rebase_resource_loss_application(
+    plan, *, calculated, current, minimum, maximum, frozen, suppresses_loss_state
+):
+    """eWR.d consumes live aSg after L2 without repeating eVZ.C/UP.bt.
+
+    C's event override/status remain unchanged. PA is read at application time;
+    native eVZ.d then creates state5227 from the actual resulting loss.
+    """
+    if (
+        not isinstance(plan, ResourceLossPlan)
+        or any(
+            type(v) is not int or not -(2**31) <= v < 2**31
+            for v in (calculated, current, minimum, maximum)
+        )
+        or type(frozen) is not bool
+        or type(suppresses_loss_state) is not bool
+        or not minimum <= current <= maximum
+    ):
+        raise ValueError("Missing live native loss application snapshot")
+    after = (
+        current if frozen else max(minimum, min(maximum, _i32(current - calculated)))
+    )
+    actual = current - after
+    return replace(
+        plan,
+        calculated=calculated,
+        before=current,
+        after=after,
+        actual=actual,
+        state_5227_parameters=None
+        if actual <= 0 or suppresses_loss_state
+        else (5227, 0, _i32(actual * 10), 0, 100, 0),
     )
 
 
@@ -236,7 +278,6 @@ def remove_resource_loss(*, current, minimum, maximum, actual, frozen):
             type(v) is not int or not -2147483648 <= v <= 2147483647
             for v in (current, minimum, maximum, actual)
         )
-        or actual < 0
         or type(frozen) is not bool
         or not minimum <= current <= maximum
     ):
