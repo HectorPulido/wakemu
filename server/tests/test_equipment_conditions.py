@@ -104,7 +104,12 @@ class EquipmentConditionsTests(unittest.TestCase):
                 {"uid": 103, "character_id": 7, "quantity": 1, "reference": 2027}
             ],
         }
-        character["builds"] = {0: {"equipment": self.sheet([(103, 15)]).hex()}}
+        character["builds"] = {
+            0: {
+                "equipment": self.sheet([(103, 15)]).hex(),
+                "sheet": proto_field(24, (1 << 64) - 1).hex(),
+            }
+        }
         result = bonuses(character)
         self.assertEqual(result["equipped_uids"], [103])
         # Native installed2027 effects184060/184061/184062: HP11, ferocity2, mastery14.

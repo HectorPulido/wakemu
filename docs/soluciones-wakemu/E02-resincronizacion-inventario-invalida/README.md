@@ -15,3 +15,7 @@ Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta s
 ## Invariante de aceptación
 
 Toda respuesta se valida por su parser nativo; un rechazo no altera el estado visual de otros dominios.
+
+## Estado de implementación
+
+Implementado en el servidor; nueve pruebas y lector nativo PASS. Pendiente aceptación visual. Ver [IMPLEMENTACION.md](IMPLEMENTACION.md).

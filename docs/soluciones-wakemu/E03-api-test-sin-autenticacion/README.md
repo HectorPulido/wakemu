@@ -6,7 +6,7 @@ Autenticar y autorizar todas las rutas de prueba y tareas, conservando separaci�
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+**Resuelto y verificado en Docker** para E03; controles de rutas, jobs y principal cron probados. [Implementación, pruebas, operación y límites](IMPLEMENTACION.md).
 
 ## Dependencias
 

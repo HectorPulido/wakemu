@@ -1,6 +1,5 @@
-import tempfile, unittest, struct
-from pathlib import Path
-from wakfu_server.store import Store
+import unittest, struct
+from postgres_case import PostgresCase
 from wakfu_server.transport_discovery import (
     Discoveries,
     account_packet,
@@ -8,22 +7,21 @@ from wakfu_server.transport_discovery import (
 )
 
 
-class DiscoveryTests(unittest.TestCase):
+class DiscoveryTests(PostgresCase):
     def test_account_scope_persistence_dedup_and_stale_session(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            store = Store(Path(tmp) / "world.db")
-            a = store.register("one", "local-pass")["id"]
-            b = store.register("two", "local-pass")["id"]
-            g = store.begin_session(a)
-            d = Discoveries(store)
-            self.assertTrue(d.discover(a, g, 1, 123))
-            self.assertFalse(d.discover(a, g, 1, 123))
-            self.assertTrue(d.discover(a, g, 2, 456))
-            self.assertEqual(Discoveries(store).known(a), {1: (123,), 2: (456,)})
-            self.assertEqual(d.known(b), {1: (), 2: ()})
-            store.begin_session(a)
-            with self.assertRaises(ValueError):
-                d.discover(a, g, 1, 789)
+        store = self.store
+        a = store.register("one", "local-pass")["id"]
+        b = store.register("two", "local-pass")["id"]
+        g = store.begin_session(a)
+        d = Discoveries(store)
+        self.assertTrue(d.discover(a, g, 1, 123))
+        self.assertFalse(d.discover(a, g, 1, 123))
+        self.assertTrue(d.discover(a, g, 2, 456))
+        self.assertEqual(Discoveries(store).known(a), {1: (123,), 2: (456,)})
+        self.assertEqual(d.known(b), {1: (), 2: ()})
+        store.begin_session(a)
+        with self.assertRaises(ValueError):
+            d.discover(a, g, 1, 789)
 
     def test_exact_native_incremental_and_section_envelope(self):
         self.assertEqual(discovery_packet(1, 123), (12674, b"\0\0\0{\1"))

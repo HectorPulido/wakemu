@@ -2,7 +2,11 @@
 
 ## Alcance y evidencia
 
-Decisión del usuario: **sin retrocompatibilidad con SQLite**. PostgreSQL será el único backend del servidor y de sus tests de persistencia. SQLite se utiliza únicamente como fuente de exportación durante el cutover, no como fallback ni doble escritura.
+Decisión del usuario, reiterada el 5 de octubre: **sin retrocompatibilidad con SQLite ni obligación de conservar su base**. PostgreSQL será el único backend del servidor y de sus tests de persistencia. La exportación puntual es opcional; se permite crear un esquema nuevo y una base vacía si simplifica el diseño. No implementar fallback, doble escritura ni traducción genérica de dialectos para mantener callers viejos.
+
+**Actualización del plan de tipos:** las elecciones «inicialmente text/smallint/double para conservar callers» de la primera auditoría quedan sustituidas por tipos del contrato definitivo. Usar boolean para flags, jsonb para documentos estructurados (bytea para protobuf/binarios), bigint para IDs/contadores y timestamps UTC para instantes reales, preservando unidades/proyecciones que exige el wire mediante conversiones explícitas. Reescribir comparaciones de baseline y serializers; no mantener representaciones antiguas por compatibilidad. Constraints y claves deben expresar invariantes de dominio, aunque rechacen datos viejos. Normalización de nombres debe ser explícita y probada, no una emulación obligatoria de NOCASE.
+
+El inventario27 de abajo es la evidencia original, no el esquema actual definitivo: recontar módulos y tablas antes de implementar, incluyendo rol administrativo y su auditoría añadidos por32. El esquema nuevo se diseña a partir del estado actual y sus invariantes.
 
 Inventario por AST de todos los módulos: **27 tablas**. Inspección solo lectura de la instancia propia: **26 tablas**, incluyendo columnas incorporadas por ALTER; `fight_health_exits` está declarada pero ausente en esa instancia. No extrapolar su ausencia a otros boots. [DDL, columnas, FK, índices y archivos fuente](inventario-tablas-migracion.json). Este documento es especificación; no hay migración implementada ni ejecutada.
 
@@ -10,10 +14,10 @@ Inventario por AST de todos los módulos: **27 tablas**. Inspección solo lectur
 
 - IDs de cuenta/personaje/objeto/grupo/recurso/instancia: **bigint**, porque INTEGER de SQLite no equivale a integer32 de PostgreSQL. Coordenadas x/y y referencias pueden usar integer cuando sus límites se verifican; z/nivel respetan además límites de wire. Revisiones/XP/kamas y tiempos enteros usan bigint con checks de rango adecuados.
 - `accounts.id` y `characters.id`: bigint identity, importando IDs explícitos y reajustando secuencias. La identidad de objetos usa un asignador compartido, no una secuencia independiente por tabla.
-- Blobs de hash, salt, builds y peticiones: **bytea**, bytes al entrar/salir. Flags actualmente leídos como 0/1: inicialmente smallint con CHECK IN(0,1), para no mezclar cambio de backend y cambio de serialización; no convertir sin adaptar callers.
-- Tiempos REAL en segundos: inicialmente double precision, manteniendo semántica existente; `started_ms/last_ms` y `creation_time` enteros: bigint. No reinterpretar unidades ni convertir a timestamp sin revisar consumidores.
-- JSON almacenado como texto: **text inicialmente**. Hay comparaciones de baseline y serializaciones canónicas; jsonb normaliza representación y requiere adaptar código. PostgreSQL definitivo no obliga a rediseñar todos los payloads a jsonb durante el primer import.
-- Constraints actuales se preservan; los FK adicionales propuestos abajo necesitan reconciliación previa. No reemplazar `COLLATE NOCASE` por case-fold Unicode distinto sin decidir compatibilidad de nombres existentes. Elegir clave canónica que reproduzca la semántica acreditada y detectar colisiones antes de UNIQUE.
+- Hashes, salts y payloads binarios/protobuf: **bytea**. Flags de dominio: **boolean**; adaptar consultas y serializers al nuevo contrato.
+- Instantes reales: **timestamptz** en UTC. Duraciones y contadores conservan unidades explícitas; convertir a segundos o milisegundos únicamente donde lo requiera el protocolo.
+- Documentos estructurados: **jsonb**, con validación de su estructura. Reescribir comparaciones de baseline sobre valores de dominio; no depender de la representación textual anterior.
+- Constraints, FK e índices expresan las invariantes del esquema nuevo. Definir una clave canónica para nombres y usernames, con pruebas de normalización y unicidad. Si se decide importar datos, detectar colisiones y rechazar registros inválidos; no condicionar el diseño a su aceptación.
 
 ## Revisión de las 27 tablas
 
@@ -72,3 +76,7 @@ Portar journals Redis manteniendo baseline, revisión y commit SQL antes de chec
 Tests actuales de Store y módulos deben usar PostgreSQL temporal, no MemoryRedis/SQLite como única evidencia. Dos conexiones/procesos: última plaza de personaje/inventario, UID simultáneo, token one-shot, lease reemplazado, wallet/trade, premio repetido, build/HP concurrentes. Fault injection antes/después de commit/checkpoint y restore completo; aislar hechizos reservados. Verificar bytea, nombres/caja, UID i64 y límites nativos. Medir latencias/pool/locks con misma carga, no prometer mejoras sin benchmark.
 
 **Límite actual:** schema/operaciones cotejados; aún no existen DDL PostgreSQL ejecutados, import, benchmark ni pruebas contra ese motor. Ningún dato real se modificó.
+
+## Ampliación E14
+
+Migración005: character_world_shortcuts, FK characters con ON DELETE CASCADE, clave compuesta personaje/barra/slot. Checks WORLD4×8, tipos1/2, identidad/referencia positivas y normalización tipo1. No liga referencia a existencia de una pila: los accesos por referencia sobreviven al agotamiento. UID2 se filtra al restaurar si ya no es propio. Tras carga el esquema tiene cinco migraciones y33 tablas; no es una conversión adicional del SQLite.

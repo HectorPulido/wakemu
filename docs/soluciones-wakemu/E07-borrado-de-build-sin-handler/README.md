@@ -6,7 +6,7 @@ Implementar eliminación nativa con fallback activo y sin destruir objetos refer
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+Implementación del servidor en curso: borrado, selección y salud atómicos en PostgreSQL; handler13169 conectado en fuente, con ACK12837 de éxito/rechazo. Pruebas delegadas a Luna y carga/aceptación visual pendientes. Los apartados históricos del journal Redis fueron reemplazados por E01. Ver [implementación](IMPLEMENTACION.md).
 
 ## Dependencias
 
@@ -15,3 +15,7 @@ Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta s
 ## Invariante de aceptación
 
 Eliminar una hoja no elimina sus objetos; selección válida y controles se restauran en todas las salidas.
+
+## Borrado real confirmado el 6 de octubre
+
+El usuario eliminó «nanana», build3 activa, y confirmó que siguió eliminada tras volver a entrar. Las capturas muestran contador2/24 y build predeterminada activa. PostgreSQL conserva únicamente hojas1/2 y selección0; log `build_deleted` a05:36:06 UTC acredita handler13169, índice3 y fallback0. La validación visual se suma a la regresión transaccional de borrado, rechazo y conservación de inventario. E07 queda resuelto; esta prueba no acredita los consumidores de combate pendientes de E05.

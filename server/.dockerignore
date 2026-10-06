@@ -20,3 +20,9 @@ wakfu_server/__pycache__/
 !cron-service/Dockerfile
 !cron-service/service.py
 !cron-service/config.json
+
+!migrations/
+!migrations/*.sql
+!tools/
+!tools/migrate_postgres.py
+!tools/manage_permissions.py

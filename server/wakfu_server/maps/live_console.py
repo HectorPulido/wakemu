@@ -56,10 +56,19 @@ class LiveConsole:
             return {
                 key: value
                 for key, value in receipt.items()
-                if key not in ("event", "generation", "command", "request_id")
+                if key
+                not in ("event", "generation", "command", "request_id", "authorize")
             }
 
-    def submit(self, character_id, command, *, request_id=None):
+    def submit(
+        self,
+        character_id,
+        command,
+        *,
+        request_id=None,
+        requester_account_id=None,
+        authorize=None
+    ):
         if (
             type(character_id) is not int
             or not isinstance(command, str)
@@ -76,7 +85,7 @@ class LiveConsole:
             if session is None:
                 raise ValueError("El personaje no tiene una sesión conectada")
             key = (
-                (character_id, session["generation"], request_id)
+                (requester_account_id, character_id, session["generation"], request_id)
                 if request_id
                 else None
             )
@@ -101,6 +110,8 @@ class LiveConsole:
                 receipt = dict(
                     handle=handle,
                     character_id=character_id,
+                    requester_account_id=requester_account_id,
+                    authorize=authorize,
                     status="pending",
                     command=command,
                     generation=session["generation"],
@@ -131,6 +142,8 @@ class LiveConsole:
                 receipt = self.receipts[handle]
                 receipt["status"] = "running"
             try:
+                if receipt.get("authorize") is not None:
+                    receipt["authorize"]()
                 result = execute(receipt["command"])
                 update = dict(status="completed", result=result)
             except Exception as error:

@@ -6,7 +6,7 @@ occurrences; a crash before reply may safely repeat a durable journal flush.
 import threading
 import time
 
-ALLOWED_TASKS = frozenset(("positions_flush", "builds_flush", "groups_flush"))
+ALLOWED_TASKS = frozenset(("positions_flush",))
 
 
 class GlobalTasks:

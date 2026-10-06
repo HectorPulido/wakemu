@@ -1,11 +1,11 @@
-import tempfile, unittest, json
-from pathlib import Path
-from wakfu_server.store import Store
+import struct
+import json
+from postgres_case import PostgresCase
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.fight_checkpoint_store import Checkpoints
 
 
-class CheckpointTests(unittest.TestCase):
+class CheckpointTests(PostgresCase):
     def test_cast_limits_preserved_in_durable_checkpoint(self):
         from wakfu_server.combat_spell_usage import validate_usage, consume_usage
 
@@ -25,6 +25,31 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(saved["native_table_turn"], self.fight.native_table_turn)
         with self.assertRaisesRegex(ValueError, "per target"):
             validate_usage(self.fight, caster, 4776, 20, (1, 0, 0))
+
+    def test_placement_orientation_survives_combat_start_and_checkpoint_roundtrip(self):
+        from wakfu_server.combat_orientation import apply
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+
+        runtime = RuntimeMessages(self.fight)
+        self.fight.phase = "placement"
+        self.fight.ready_owners.clear()
+        actor = self.fight.actors[self.character]
+        apply(runtime, self.account, struct.pack(">qB", self.character, 7))
+        self.assertEqual(actor.direction, 7)
+
+        self.fight.ready(self.account)
+        self.assertEqual(self.fight.phase, "active")
+        self.assertEqual(actor.direction, 7)
+        payloads = {identity: (b"", b"") for identity in self.fight.actors}
+        runtime.combat_started(payloads)
+        self.assertEqual(actor.direction, 7)
+
+        self.checkpoints.save(
+            self.account, self.generation, self.fight, runtime=runtime
+        )
+        snapshot = Checkpoints(self.store).read(self.account, 77)["snapshot"]
+        self.assertEqual(snapshot["actors"][str(self.character)]["direction"], 7)
+        self.assertEqual(snapshot["runtime"]["action_id"], runtime.action_id)
 
     @classmethod
     def setUpClass(cls):
@@ -59,13 +84,21 @@ class CheckpointTests(unittest.TestCase):
         self.assertEqual(snap["spell_ap_cost_modifiers"], {"8": -1, "11": 2})
 
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.store = Store(Path(self.temp.name) / "world.db")
+        super().setUp()
+        self.store.clock = lambda: 1000
         self.account = self.store.register("local", "testing-local")["id"]
         self.character = self.store.create_character(self.account, "Own Hero")["id"]
         self.generation = self.store.begin_session(self.account)
         self.store.select_character(self.account, self.generation, self.character)
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO combat_fights(id,status) OVERRIDING SYSTEM VALUE VALUES(%s,'active')",
+                (77,),
+            )
+            db.execute(
+                "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team) VALUES(%s,%s,%s,0)",
+                (77, self.character, self.account),
+            )
         self.checkpoints = Checkpoints(self.store)
         pc = Actor(self.character, 0, (0, 0, 0), 60, 6, 3, 10, 1, self.account, True)
         npc = Actor(-200, 1, (1, 0, 0), 12, 6, 3, 5, 1)
@@ -136,7 +169,7 @@ class CheckpointTests(unittest.TestCase):
             timer, dict(actor_id=self.character, expiration_round=2, phase="start")
         )
         self.assertEqual(row["snapshot"]["events"][-1]["kind"], "damage")
-        json.dumps(row)
+        json.dumps(row, default=lambda value: value.isoformat())
         self.assertEqual(
             self.checkpoints.end(
                 self.account, self.generation, 77, expected_revision=revision

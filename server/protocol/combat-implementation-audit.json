@@ -220,7 +220,7 @@
     "module": "wakfu_server/combat_runtime_messages.py",
     "start": "12873 own actor stats;13912 running effects;12233 active phase;13477 round start+13420 then13337 prestart+13420 and13482 turn start+13420. Round13477 precedes each full timeline cycle.",
     "end": "12502qActor+i32initiativeDelta(-1)+i32offset0 then13420; clientaUM emits13510globalACK. Pending nextturn waitsACK.",
-    "interruption": "12238cvFhuN=true executesaUH cleanup immediately; format1713046setsoutsidefight-1. Does not invent normal victory/rewardresults.",
+    "interruption": "12238 cvF huN=true removes the participant but aUH can return before UI teardown when fewer than fUM teams remain (including 1v1). It is not a verified neutral reconnect cleanup. Normal huN=false requires native outcome lists; do not fabricate a winner. See docs/reports/combat-abandon-corrections.md.",
     "native_validation": [
       "cvk12233",
       "cvW13337",

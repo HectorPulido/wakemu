@@ -1,5 +1,7 @@
 # E16 — Monstruos con nombre «Grupo local»
 
+**Actualización:** corrección implementada en el serializador compartido; [evidencia y límites actuales](IMPLEMENTACION.md). El resto de este documento conserva el cotejo anterior, no describe el estado corregido.
+
 ## Síntoma y causa comprobada
 
 El usuario muestra un monstruo de nivel 23 llamado «Grupo local». `combat/combat_monster_world.py::spawn_group` tiene ese literal como nombre por defecto y lo pasa a **cada miembro**, no solo a la identidad del grupo. `world_actor` lo codifica en la sección NAME de la apariencia NPC formato 11, enviada mediante 12608. La raza permanece como referencia separada.
@@ -48,3 +50,8 @@ Solución inicial concreta para sesiones españolas: resolver `REFERENCES[member
 ## Propuesta probada en roster mixto
 
 Se serializaron dos actores del mismo grupo sintético 300 con el roster completo: referencia 5525 «Wonejo» y 4168 «Dragonito vivaz», a sus niveles mínimos válidos. `world_actor` recibe nombres explícitos diferentes y preserva referencias, ID de grupo y ambos miembros del roster. El grupo es un fixture de contraste, no población oficial. Esto demuestra que el serializador individual permite la solución; `spawn_group` aún debe admitir resolución por miembro en una implementación posterior. No se aplicó ese cambio ni se probó broadcast/UI. [Probe](probe-nombres-por-referencia.json).
+
+
+## Confirmación del usuario — 6 de octubre
+
+**Solucionado totalmente.** El usuario confirma E16 como solucionado: los monstruos muestran sus nombres reales.

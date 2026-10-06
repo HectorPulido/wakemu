@@ -1,35 +1,19 @@
 # Pruebas y aceptación — E10
 
-## Base existente
+## Revalidación PostgreSQL — 2026-10-05
 
-- [test_builds.py](../../../server/tests/test_builds.py): incluido en la ejecución de base registrada.
-- [test_ring_build_integration.py](../../../server/tests/test_ring_build_integration.py): referencia existente; no ejecutado en el lote de base registrado.
+El lote de aptitudes/builds/equipo indicado en E08 ejecutó **54 tests OK** con PostgreSQL aislado y migraciones 001–008. Incluyó `test_builds`, `test_build_capacity`, `test_equipment_stats`, `test_equipment_full_set`, `test_equipment_full_set_ready`, `test_equipment_combat_integration` y `test_ring_build_integration`.
 
-El lote común descubrió **133 tests: 123 pasaron y 10 se omitieron** (Redis real); salida 0. No implica que todas las pruebas relacionadas de esta carpeta se ejecutaran, ni que los casos nuevos pasen. Ver [VALIDACION.md](../VALIDACION.md).
+| Invariante | Evidencia actual |
+| --- | --- |
+| Guardar y reabrir build | `test_save_response_and_reopen_are_authoritative`: blobs guardados reaparecen idénticos tras cargar Store nuevo. |
+| Build nueva entra al registro publicado | `test_save_response_publishes_new_owned_registry_entries`: carrier12393 contiene índices0 y127; respuesta emite ACK12284, registro12393, aptitudes12103 y snapshot13046 en ese orden. |
+| Catálogo uniforme | `test_metadata_equipment_and_aptitudes_share_catalog` produce los mismos índices para metadata, equipos y aptitudes. |
+| Publicación tras edición de anillo | `test_ring_build_integration` verifica reabrir y emitir registro al guardar la hoja modificada. |
 
-Comando dirigido propuesto, desde la raíz y en entorno autorizado:
+La función histórica `equipment_set` ya no tiene caller y fue retirada; la cobertura valida el constructor y las respuestas actualmente conectadas al flujo. Los paquetes generados se han cotejado además con el consumidor Java del carrier12393. No se ejercitó el dispatcher socket completo ni una sesión gráfica del cliente: la visualización de la fila y todas las transiciones de guardar/activar/borrar siguen pendientes de aceptación nativa.
 
-```sh
-PYTHONPATH=server:server/tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest test_builds test_ring_build_integration -q
-```
 
-## Casos específicos que deben añadirse o reproducirse
+## Aceptación visual — 6 de octubre
 
-| Caso | Acción | Resultado exigido | Estado |
-| --- | --- | --- | --- |
-| Conjunto 0→0,2 | Añadir nueva secundaria | Parser resuelve 2 sin perder 0 | Pendiente de implementar/verificar |
-| Update existente | Cambiar equipo 0 | No cambia cardinalidad indebidamente | Pendiente de implementar/verificar |
-| ACK ybootstrap | Comparar después de guardar | Índices/hojas equivalentes | Pendiente de implementar/verificar |
-| Duplicateupdate | Repetir payload | Una entrada por índice | Pendiente de implementar/verificar |
-| Fallo save | Ítem ajeno | Conjunto anterior intacto | Pendiente de implementar/verificar |
-| Crear en UI | Nueva fila y Equipables | Modelo existente sin modelo nulo | Pendiente de implementar/verificar |
-
-## Método y criterios
-
-Usar personaje y almacenamiento de prueba aislados. Registrar identidad de instancia, versión, estado inicial, petición, respuesta decodificada y estado durable final. Controlar reloj y RNG en los casos deterministas. Ejecutar límites de ownership, sesión obsoleta, índices/UID inválidos y payload truncado donde apliquen.
-
-Repetir operaciones confirmadas y cortes alrededor del commit/ACK; ninguna repetición puede duplicar consumo, recompensa o efectos. Verificar observadores y reconexión cuando el caso sea multijugador. La prueba gráfica confirma integración, mientras la fixture de protocolo debe fallar si cambian layout o semántica.
-
-Invariante: Una build nueva anunciada tiene una entrada de equipo registrable, no un update dirigido a un índice inexistente.
-
-Registrar cada caso como PASS, FAIL o NO EJECUTADO, con evidencia. No convertir una omisión, un click optimista o un resultado de otro snapshot en PASS.
+El usuario confirmó los seis pasos completos con Audiluna y la build Prueba E10: creación/activación, equipo visible y guardado, alternancia independiente, cambio de personaje, reinicio del cliente y borrado persistente sin pérdida ni duplicación de objetos. Este recorrido completa la verificación visual antes pendiente.

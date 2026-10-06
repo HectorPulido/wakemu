@@ -2,16 +2,6 @@
 from .inventory_items import _lease
 
 
-def schema(db):
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS character_professions(
-        character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
-        profession_id INTEGER NOT NULL CHECK(profession_id>0),
-        level INTEGER NOT NULL CHECK(level BETWEEN 0 AND 200),
-        PRIMARY KEY(character_id,profession_id))"""
-    )
-
-
 def _validate(profession_id):
     if type(profession_id) is not int or not 0 < profession_id < 2**31:
         raise ValueError("Invalid profession identity")
@@ -21,9 +11,8 @@ def level(store, account_id, generation, character_id, profession_id):
     _validate(profession_id)
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
-        schema(db)
         row = db.execute(
-            "SELECT level FROM character_professions WHERE character_id=? AND profession_id=?",
+            "SELECT level FROM character_professions WHERE character_id=%s AND profession_id=%s",
             (character_id, profession_id),
         ).fetchone()
         return 0 if row is None else row["level"]
@@ -45,18 +34,16 @@ def ensure_learned(store, account_id, generation, character_id, profession_ids):
     ):
         raise ValueError("Unknown native profession requested")
     with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
         _lease(store, db, account_id, generation, character_id)
-        schema(db)
         for profession_id in ids:
             db.execute(
-                "INSERT OR IGNORE INTO character_professions VALUES(?,?,0)",
+                "INSERT INTO character_professions VALUES(%s,%s,0) ON CONFLICT(character_id,profession_id) DO NOTHING",
                 (character_id, profession_id),
             )
         levels = {
             row["profession_id"]: row["level"]
             for row in db.execute(
-                "SELECT * FROM character_professions WHERE character_id=?",
+                "SELECT * FROM character_professions WHERE character_id=%s",
                 (character_id,),
             )
         }
@@ -68,10 +55,9 @@ def learned(store, account_id, generation, character_id, profession_id):
     _validate(profession_id)
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
-        schema(db)
         return (
             db.execute(
-                "SELECT 1 FROM character_professions WHERE character_id=? AND profession_id=?",
+                "SELECT 1 FROM character_professions WHERE character_id=%s AND profession_id=%s",
                 (character_id, profession_id),
             ).fetchone()
             is not None

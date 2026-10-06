@@ -68,3 +68,30 @@ class ReadyTests(unittest.TestCase):
         self.assertIsNone(no_messages)
         self.assertEqual((no_packets, calls), ((), [1]))
         self.assertGreater(messages.action_id, 1)
+
+    def test_readiness_can_commit_one_owner_without_starting_shared_fight(self):
+        cells = {(0, 0, 0), (1, 0, 0), (2, 0, 0)}
+        fight = Fight(
+            9,
+            [
+                Actor(100, 0, (0, 0, 0), 60, 6, 3, 100, 1, 1, True),
+                Actor(101, 0, (1, 0, 0), 60, 6, 3, 100, 1, 2, True),
+                Actor(-200, 1, (2, 0, 0), 20, 4, 2, 10, 1),
+            ],
+            cells,
+            {0: {(0, 0, 0), (1, 0, 0)}, 1: {(2, 0, 0)}},
+        )
+        candidate, messages, packets = prepare_ready(
+            fight,
+            1,
+            True,
+            initialize=lambda preview, action: self.fail(
+                "class initialization waits for every controlled owner"
+            ),
+            stats_serializer=lambda actor: b"stats",
+            effects_serializer=lambda: b"effects",
+        )
+        self.assertEqual((fight.phase, fight.ready_owners), ("placement", set()))
+        self.assertEqual((candidate.phase, candidate.ready_owners), ("placement", {1}))
+        self.assertIsNone(messages)
+        self.assertEqual(packets, ())

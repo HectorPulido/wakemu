@@ -1,17 +1,11 @@
-# E10. Actualización equipment_set no crea entradas nuevas
+# E10. Registro de equipo de nuevas builds
 
-Garantizar que creación/actualización de una hoja de equipo registre índices nuevos sin perder existentes.
+El servidor ya no depende de `equipment_set`, helper sin callers que solo recorría entradas antiguas. El flujo actual publica un registro derivado del catálogo común mediante `equipment_registry`, y las respuestas de guardado incluyen ACK, carrier12393, aptitudes12103 y snapshot de estadísticas13046. Las pruebas verifican la nueva entrada, índices dispersos y persistencia/reapertura.
 
-[Diagnóstico](DIAGNOSTICO.md) · [Cotejo de código](COTEJO.md) · [Solución](SOLUCION.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md)
+[Diagnóstico](DIAGNOSTICO.md) · [Cotejo](COTEJO.md) · [Implementación](IMPLEMENTACION.md) · [Pruebas](PRUEBAS.md)
 
-## Estado y alcance
+## Estado y límites
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+**Solucionado totalmente.** El gate PostgreSQL de aptitudes/builds/equipo pasó 54 pruebas. Comprueba guardado, reapertura, emisión del registro con una nueva build y conservación de otros índices/personajes. La aceptación nativa previa confirma el carrier12393 y reemplazo del registro del personaje en el modelo Java. El6 de octubre el usuario completó los seis pasos con Audiluna: creación y activación, panel/equipo visibles, guardado, alternancia con equipo propio de cada build, cambio de personaje y reinicio del cliente conservando el equipo; borrado y reentrada sin pérdidas ni duplicaciones.
 
-## Dependencias
-
-34, E04, E08. Ver el [índice general](../README.md) y las [reglas transversales](../TRANSVERSALES.md).
-
-## Invariante de aceptación
-
-Una build nueva anunciada tiene una entrada de equipo registrable, no un update dirigido a un índice inexistente.
+No se modificó el motor de hechizos en esta revalidación.

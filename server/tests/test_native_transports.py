@@ -3,8 +3,13 @@ from wakfu_server.native_transports import resolve, registration, bootstrap
 from wakfu_server.transport_discovery import known_all
 
 
-class NativeTransportTests(unittest.TestCase):
+from postgres_case import PostgresCase
+
+
+class NativeTransportTests(PostgresCase):
     def setUp(self):
+        super().setUp()
+        self.store.clock = lambda: 1000
         self.character = dict(
             id=7, account_id=9, map_id=1134, instance_id=0, x=-10, y=-11, z=-1
         )
@@ -48,97 +53,90 @@ class NativeTransportTests(unittest.TestCase):
         self.assertEqual(struct.unpack_from(">q", body, 12)[0], 9)
 
     def test_concurrent_travel_persists_all_routes_without_cross_account_writes(self):
-        import tempfile
         from concurrent.futures import ThreadPoolExecutor
-        from pathlib import Path
-        from wakfu_server.store import Store
 
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "world.sqlite3"
-            store = Store(path)
-            travelers = []
-            for number in range(3):
-                account = store.register(
-                    "traveler" + str(number), "local-test-password"
-                )["id"]
-                character = store.create_character(
-                    account, "Traveler " + chr(65 + number)
+        store = self.store
+        travelers = []
+        for number in range(3):
+            account = store.register("traveler" + str(number), "local-test-password")[
+                "id"
+            ]
+            character = store.create_character(account, "Traveler " + chr(65 + number))
+            generation = store.begin_session(account)
+            store.select_character(account, generation, character["id"])
+            origin = dict(map_id=1134, instance_id=0, x=-10, y=-11, z=-1)
+            character = store.transition_map(
+                account, generation, character["id"], character, origin
+            )
+            travelers.append((account, generation, character))
+        known = known_all()[1]
+
+        def travel(traveler):
+            account, generation, character = traveler
+            for destination in known:
+                route = resolve(
+                    character,
+                    struct.pack(">qq", 31316, destination),
+                    known_ids=known,
+                    waive_criteria=True,
                 )
-                generation = store.begin_session(account)
-                store.select_character(account, generation, character["id"])
-                origin = dict(map_id=1134, instance_id=0, x=-10, y=-11, z=-1)
                 character = store.transition_map(
-                    account, generation, character["id"], character, origin
+                    account,
+                    generation,
+                    character["id"],
+                    character,
+                    route["destination"],
                 )
-                travelers.append((account, generation, character))
-            known = known_all()[1]
-
-            def travel(traveler):
-                account, generation, character = traveler
-                for destination in known:
-                    route = resolve(
-                        character,
-                        struct.pack(">qq", 31316, destination),
-                        known_ids=known,
-                        waive_criteria=True,
-                    )
-                    character = store.transition_map(
-                        account,
-                        generation,
-                        character["id"],
-                        character,
-                        route["destination"],
-                    )
-                    persisted = Store(path).character(account, character["id"])
-                    self.assertEqual(
-                        tuple(persisted[k] for k in ("map_id", "x", "y", "z")),
-                        tuple(character[k] for k in ("map_id", "x", "y", "z")),
-                    )
-                    route = resolve(
-                        character,
-                        struct.pack(">qq", destination, 31316),
-                        known_ids=known,
-                        waive_criteria=True,
-                    )
-                    character = store.transition_map(
-                        account,
-                        generation,
-                        character["id"],
-                        character,
-                        route["destination"],
-                    )
-                return account, generation, character
-
-            with ThreadPoolExecutor(max_workers=3) as pool:
-                completed = list(pool.map(travel, travelers))
-            for account, generation, character in completed:
+                persisted = store.character(account, character["id"])
                 self.assertEqual(
-                    (
-                        character["map_id"],
-                        character["x"],
-                        character["y"],
-                        character["z"],
-                    ),
-                    (1134, -10, -10, -1),
+                    tuple(persisted[k] for k in ("map_id", "x", "y", "z")),
+                    tuple(character[k] for k in ("map_id", "x", "y", "z")),
                 )
-                other_account = next(a for a, _, _ in completed if a != account)
-                with self.assertRaises(ValueError):
-                    store.transition_map(
-                        other_account,
-                        generation,
-                        character["id"],
-                        character,
-                        dict(map_id=1134, instance_id=0, x=-10, y=-11, z=-1),
-                    )
-                store.begin_session(account)
-                with self.assertRaises(ValueError):
-                    store.transition_map(
-                        account,
-                        generation,
-                        character["id"],
-                        character,
-                        dict(map_id=1134, instance_id=0, x=-10, y=-11, z=-1),
-                    )
+                route = resolve(
+                    character,
+                    struct.pack(">qq", destination, 31316),
+                    known_ids=known,
+                    waive_criteria=True,
+                )
+                character = store.transition_map(
+                    account,
+                    generation,
+                    character["id"],
+                    character,
+                    route["destination"],
+                )
+            return account, generation, character
+
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            completed = list(pool.map(travel, travelers))
+        for account, generation, character in completed:
+            self.assertEqual(
+                (
+                    character["map_id"],
+                    character["x"],
+                    character["y"],
+                    character["z"],
+                ),
+                (1134, -10, -10, -1),
+            )
+            other_account = next(a for a, _, _ in completed if a != account)
+            with self.assertRaises(ValueError):
+                store.transition_map(
+                    other_account,
+                    generation,
+                    character["id"],
+                    character,
+                    dict(map_id=1134, instance_id=0, x=-10, y=-11, z=-1),
+                )
+            store.begin_session(account)
+            with self.assertRaises(ValueError):
+                store.transition_map(
+                    account,
+                    generation,
+                    character["id"],
+                    character,
+                    dict(map_id=1134, instance_id=0, x=-10, y=-11, z=-1),
+                )
 
 
 class NativeDragoTests(unittest.TestCase):

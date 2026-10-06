@@ -1,4 +1,5 @@
 import struct, unittest
+from unittest.mock import patch
 from protocol_codec import Reader
 from wakfu_server.monsters import owned_instance
 from wakfu_server.combat_monster_world import spawn_monster, world_actor
@@ -61,3 +62,56 @@ class MonsterWorldTests(unittest.TestCase):
             world_actor({**npc, "hp": 999}, group_id=200)
         with self.assertRaises(ValueError):
             world_actor(npc, group_id=0)
+
+    def test_mixed_group_resolves_individual_names_and_preserves_full_roster(self):
+        from wakfu_server.combat_monster_world import spawn_group
+        from wakfu_server.monsters import reference
+
+        members = [
+            owned_instance(
+                ref,
+                reference(ref)["min_level"],
+                identity,
+                map_id=1134,
+                x=-7,
+                y=-7,
+                z=-1,
+            )
+            for ref, identity in ((5525, -200), (4168, -201))
+        ]
+        expected_roster = [(m["ref"], m["level"]) for m in members]
+        # Repeated publication models join/return/respawn: names must not depend
+        # on a previous serialization or on the leader's reference.
+        for _ in range(2):
+            r = Reader(spawn_group(members, group_id=200))
+            self.assertEqual((r.number("B"), r.number("B")), (0, 2))
+            for member, expected_name in zip(members, ("Wonejo", "Dragonito vivaz")):
+                self.assertEqual((r.number("B"), r.number("q")), (1, member["id"]))
+                e = Reader(r.take(r.number("H")))
+                self.assertEqual(
+                    (e.number("B"), e.number("q"), e.number("B"), e.number("q")),
+                    (11, member["id"], 1, -1),
+                )
+                self.assertEqual(
+                    (e.text("H"), e.number("h")), (expected_name, member["ref"])
+                )
+                e.take(20 + 5 + 11 + 1)
+                self.assertEqual((e.number("q"), e.number("H")), (200, 2))
+                self.assertEqual(
+                    [(e.number("h"), e.number("h")) for _ in members], expected_roster
+                )
+            r.finish()
+
+    def test_missing_name_is_not_replaced_with_debug_label_and_group_not_registered(
+        self,
+    ):
+        from wakfu_server.combat_groups import Groups
+
+        npc = owned_instance(5525, 1, -200, map_id=1134, x=-7, y=-7, z=-1)
+        groups = Groups()
+        with patch(
+            "wakfu_server.combat_monster_world.reference", return_value={"name": ""}
+        ):
+            with self.assertRaises(ValueError):
+                groups.register(1134, 0, 200, [npc])
+        self.assertEqual(groups.available(1134, 0), [])

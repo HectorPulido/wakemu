@@ -17,6 +17,9 @@ HELP = "!ayuda | !pos | !nivel nivel | !tp mapa x y z | !item referencia cantida
 def execute(store, groups, account, generation, character, text):
     if not isinstance(text, str) or not text.startswith("!"):
         return None
+    from .command_permissions import authorize_command
+
+    authorize_command(store, account, text)
     fields = text.split()
     if not fields:
         raise ValueError("Comando vacío")
@@ -55,34 +58,32 @@ def execute(store, groups, account, generation, character, text):
         level = values[0]
         xp = level_xp(level)
         with store.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
             _lease(store, db, account, generation, current["id"])
             latest = store.character(account, current["id"], db)
             if level < latest["level"]:
                 raise ValueError("Este comando solo permite subir de nivel")
             db.execute(
-                "UPDATE characters SET level=? WHERE id=? AND account_id=?",
+                "UPDATE characters SET level=%s WHERE id=%s AND account_id=%s",
                 (level, current["id"], account),
             )
             db.execute(
-                "UPDATE character_progression SET xp=? WHERE character_id=?",
+                "UPDATE character_progression SET xp=%s WHERE character_id=%s",
                 (max(xp, latest["xp"]), current["id"]),
             )
-        updated = health_store.initialize(
-            store, account, generation, current["id"], coefficient=1
-        )
+            updated = health_store.initialize(
+                store, account, generation, current["id"], coefficient=1, db=db
+            )
+            packet = outside_progression(
+                updated,
+                wp=(
+                    int(os.environ["WAKFU_COMBAT_TEST_WP"])
+                    if os.environ.get("WAKFU_COMBAT_TEST_WP", "").strip()
+                    else None
+                ),
+            )
         result.update(
             character=updated,
-            packets=[
-                outside_progression(
-                    updated,
-                    wp=(
-                        int(os.environ["WAKFU_COMBAT_TEST_WP"])
-                        if os.environ.get("WAKFU_COMBAT_TEST_WP", "").strip()
-                        else None
-                    ),
-                )
-            ],
+            packets=[packet],
             message=f"Nivel {level} guardado; vuelve a seleccionar el personaje para actualizar sus hechizos y puntos",
         )
     elif command == "!tp":

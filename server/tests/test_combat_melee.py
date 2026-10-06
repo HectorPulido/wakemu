@@ -101,6 +101,220 @@ class UnarmedTests(unittest.TestCase):
             {transaction.action_id},
         )
 
+    def test_real_unarmed_damage_replay_preserves_native_item_container_12(self):
+        from dataclasses import asdict
+        from wakfu_server.combat_conditions import ConditionContext, evaluate_condition
+        from wakfu_server.combat_event_replay import NativeEventReplay
+        from wakfu_server.combat_spell_commit import commit_spell_transaction
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_trigger_identifiers import condition_identifiers
+
+        sources = []
+        retained_containers = []
+        replay = NativeEventReplay.__call__
+
+        def capture_replay(runtime, source, *, authority):
+            sources.append(source)
+            retained_containers.append(runtime.retention.container(None))
+            return replay(runtime, source, authority=authority)
+
+        with patch.object(NativeEventReplay, "__call__", capture_replay):
+            transaction = self.run_attack(prepare_only=True)
+
+        # These sources came through item2145 -> wrapper158454 -> damage3597,
+        # ordinary damage lifecycle and the production retained-event replay.
+        self.assertTrue(sources)
+        source = next(row for row in sources if row.generic_effect == 3597)
+        self.assertEqual(source.native_container["type"], 12)
+        self.assertTrue(
+            any(
+                descriptor["container_type"] == 12 and identity == 2145
+                for descriptor, identity in retained_containers
+            )
+        )
+        context = ConditionContext({}, **condition_identifiers(asdict(source)))
+        self.assertEqual(context.triggering_container_type, 12)
+        self.assertTrue(
+            evaluate_condition("GetTriggeringContainerType() == 12", context)
+        )
+        self.assertFalse(evaluate_condition("IsTriggeredByIndirectEffect()", context))
+
+        runtime = RuntimeMessages(self.fight)
+        before_commit_sources = len(sources)
+        packets = commit_spell_transaction(
+            runtime, transaction, stats_serializer=lambda *args: b"owned-stats"
+        )
+        self.assertEqual(len(sources), before_commit_sources)
+        self.assertEqual(runtime.fight.actors[7].ap, 3)
+        self.assertEqual(runtime.fight.actors[-7].hp, 17)
+        self.assertEqual(runtime.fight.native_owned_group_effects, {})
+        self.assertEqual(runtime.fight.owned_stat_effects, {})
+        self.assertEqual(packets[0][0], 13509)
+
+    def test_yopuka_level_100_initialization_records_real_unarmed_trigger_criteria(
+        self,
+    ):
+        import copy
+
+        from random import Random
+        from test_combat_spell_transaction import SpellTransactionTests
+        from wakfu_server import combat_effect_dispatch
+        from wakfu_server.combat_event_replay import NativeEventReplay
+        from wakfu_server.combat_geometry_snapshot import freeze_terrain
+        from wakfu_server.combat_melee import execute_unarmed
+        from wakfu_server.combat_runtime_adapter import NativeServerRuntimeAdapter
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_server_spell import prepare_server_initialization
+        from wakfu_server.combat_spell_commit import commit_spell_transaction
+        from wakfu_server.combat_terrain import local_arena
+        from wakfu_server.progression import level_xp
+        from wakfu_server.spells import default_deck
+
+        fixture = SpellTransactionTests()
+        fixture.setUp()
+        character, monster, fight = fixture.native_server_fixture(8, 100)
+        character["account_id"] = 3
+        character["xp"] = level_xp(100)
+        caster_cell, target_cell = (-8, -7, -1), (-7, -7, -1)
+        fight.actors[7].position = caster_cell
+        fight.actors[-7].position = target_cell
+        terrain = local_arena(1134, 7, caster_cell, target_cell)
+        fight.walkable = terrain["validated_cells"]
+        fight.edges = terrain["valid_edges"]
+        freeze_terrain(fight)
+        monster.update(
+            wp=0,
+            max_wp=0,
+            hp=fight.actors[-7].hp,
+            max_hp=fight.actors[-7].max_hp,
+            level=1,
+            x=target_cell[0],
+            y=target_cell[1],
+            z=target_cell[2],
+            direction=3,
+        )
+        initialized, init_packets = prepare_server_initialization(
+            character,
+            {monster["id"]: monster},
+            fight,
+            3,
+            default_deck(character),
+            action_id=1,
+            fight_start=True,
+        )
+        self.assertTrue(init_packets)
+        # The real initialization owns 398720; 398721 is its native reverse
+        # clone, so it must appear only if the real item hit selects it.
+        self.assertIn(
+            398720,
+            {
+                row["invocation"]["reference"]
+                for row in initialized.native_owned_group_effects.values()
+            },
+        )
+        self.assertNotIn(
+            398721,
+            {
+                row["invocation"]["reference"]
+                for row in initialized.native_owned_group_effects.values()
+            },
+        )
+
+        melee = UnarmedTests()
+        melee.setUp()
+        melee.character = character
+        melee.monster = monster
+        melee.fight = initialized
+        melee.pc = initialized.actors[7]
+        melee.npc = initialized.actors[-7]
+        melee.body = struct.pack(">qqbiih", 7, -1, 15, *target_cell)
+        replay_sources = []
+        condition_contexts = {}
+        condition_results = []
+        native_replay = NativeEventReplay.__call__
+        native_condition = NativeServerRuntimeAdapter.condition
+        evaluate_condition = combat_effect_dispatch.evaluate_condition
+
+        def capture_replay(runtime, source, *, authority):
+            replay_sources.append(source)
+            return native_replay(runtime, source, authority=authority)
+
+        def capture_condition(adapter, preview, plan, effect, invocation, **kwargs):
+            context = native_condition(
+                adapter, preview, plan, effect, invocation, **kwargs
+            )
+            condition_contexts[id(context)] = (
+                invocation.reference,
+                copy.deepcopy(invocation.native_trigger_context),
+            )
+            return context
+
+        def capture_evaluation(criteria, context):
+            result = evaluate_condition(criteria, context)
+            captured = condition_contexts.get(id(context))
+            if captured is not None:
+                condition_results.append((captured[0], criteria, result, captured[1]))
+            return result
+
+        with patch.object(NativeEventReplay, "__call__", capture_replay), patch.object(
+            NativeServerRuntimeAdapter, "condition", capture_condition
+        ), patch.object(
+            combat_effect_dispatch, "evaluate_condition", capture_evaluation
+        ):
+            with patch("wakfu_server.combat_execute.static_visible", return_value=True):
+                transaction = execute_unarmed(
+                    melee.body,
+                    character,
+                    {monster["id"]: monster},
+                    initialized,
+                    3,
+                    unarmed=True,
+                    wp_current=6,
+                    wp_maximum=6,
+                    action_id=1,
+                    effect_uid=initialized.native_effect_uid_next,
+                    critical_chance=0,
+                    caster_running_effects=(),
+                    target_running_effects=(),
+                    caster_bonuses={},
+                    target_bonuses={},
+                    mitigate=lambda damage, *_args: damage,
+                    rng=Random(1),
+                    prepare_only=True,
+                )
+        actual_hit_sources = [
+            source for source in replay_sources if source.generic_effect == 3597
+        ]
+        self.assertTrue(actual_hit_sources)
+        for source in actual_hit_sources:
+            self.assertEqual(source.native_container["type"], 12)
+        self.assertTrue(
+            all(type(result) is bool for _, _, result, _ in condition_results)
+        )
+        trigger_checks = [
+            check
+            for check in condition_results
+            if check[3] is not None and check[3].get("generic_effect") == 3597
+        ]
+        self.assertTrue(trigger_checks)
+        self.assertTrue(
+            all(
+                source["native_container"]["type"] == 12
+                for _, _, _, source in trigger_checks
+            )
+        )
+        self.assertEqual(transaction.fight.actors[7].ap, 3)
+        self.assertLess(transaction.fight.actors[-7].hp, initialized.actors[-7].hp)
+
+        runtime = RuntimeMessages(initialized)
+        packets = commit_spell_transaction(
+            runtime,
+            transaction,
+            stats_serializer=lambda *_args: b"native-stats",
+        )
+        self.assertTrue(packets)
+        self.assertEqual(runtime.fight.actors[7].ap, 3)
+
     def test_native_fists_cost_and_damage(self):
         result = self.run_attack()
         self.assertEqual((self.pc.ap, self.pc.mp, self.npc.hp), (3, 3, 17))

@@ -8,7 +8,7 @@ import json
 import struct
 from pathlib import Path
 from .inventory_items import _lease, decode_use
-from . import health, health_store
+from . import health, health_store, health_policy
 
 CATALOG = {
     item["reference"]: item
@@ -58,7 +58,6 @@ def use(store, account_id, generation, character_id, body, *, expected_hp, in_fi
     if type(in_fight) is not bool or in_fight or request["position"] is not None:
         raise ValueError("Healing food requires an outside-combat self use")
     with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
         _lease(store, db, account_id, generation, character_id)
         character = store.character(account_id, character_id, db)
         if type(expected_hp) is not int or character["hp"] != expected_hp:
@@ -75,33 +74,29 @@ def use(store, account_id, generation, character_id, body, *, expected_hp, in_fi
         ):
             raise ValueError("Equipped healing modifiers are not implemented")
         item = db.execute(
-            "SELECT * FROM inventory_items WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (request["uid"], character_id),
         ).fetchone()
         if item is None:
             raise ValueError("Used food unavailable or foreign")
         plan = healing_plan(item["reference"])
         hp = min(character["max_hp"], character["hp"] + plan["amount"])
-        health_store.schema(db)
         state = db.execute(
-            "SELECT coefficient FROM character_regeneration WHERE character_id=?",
+            "SELECT coefficient FROM character_regeneration WHERE character_id=%s",
             (character_id,),
         ).fetchone()
         coefficient = state["coefficient"] if state else 0
-        now = int(store.clock() * 1000)
+        now = store.now()
+        hp = health_policy.apply(db, character, hp)
         db.execute(
-            "UPDATE characters SET hp=? WHERE id=? AND account_id=? AND hp=?",
-            (hp, character_id, account_id, expected_hp),
-        )
-        db.execute(
-            "INSERT INTO character_regeneration VALUES(?,?,?,?,?) ON CONFLICT(character_id) DO UPDATE SET initial_hp=excluded.initial_hp,started_ms=excluded.started_ms,coefficient=excluded.coefficient,last_ms=excluded.last_ms",
+            "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) VALUES(%s,%s,%s,%s,%s) ON CONFLICT(character_id) DO UPDATE SET initial_hp=excluded.initial_hp,started_at=excluded.started_at,coefficient=excluded.coefficient,last_at=excluded.last_at",
             (character_id, hp, now, coefficient, now),
         )
         if item["quantity"] == 1:
-            db.execute("DELETE FROM inventory_items WHERE uid=?", (item["uid"],))
+            db.execute("DELETE FROM inventory_items WHERE uid=%s", (item["uid"],))
         else:
             db.execute(
-                "UPDATE inventory_items SET quantity=quantity-1 WHERE uid=?",
+                "UPDATE inventory_items SET quantity=quantity-1 WHERE uid=%s",
                 (item["uid"],),
             )
         return dict(

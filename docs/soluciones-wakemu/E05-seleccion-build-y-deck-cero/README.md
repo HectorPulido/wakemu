@@ -6,7 +6,9 @@ Persistir y resolver una sola selección para stats, aptitudes y combate.
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+Implementación parcial comprobada en fuente actual: `character_build_selection` persiste índice/revisión; `Store.activate_build` confirma selección y salud de forma transaccional. Equipo y aptitudes resuelven `active_build_index`, y `13776` publica la selección autoritativa mediante `13811`. Los documentos de diagnóstico anteriores describen el estado histórico.
+
+La brecha de deck continúa: `local_game_server.py` aún consulta `character.get("builds", {}).get(0, {})` en consumidores de combate, incluido `apply_readiness`. No cerrar E05 hasta que ready, inicio/fin de turno, arma y áreas resuelvan el mismo índice activo. La regresión requiere decks distintos en builds 0 y 1, alternancia, reconexión y guardar una build inactiva sin cambiar la activa. Los cambios de decks/hechizos están reservados a la otra sesión.
 
 ## Dependencias
 

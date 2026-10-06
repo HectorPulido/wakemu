@@ -8,6 +8,8 @@ import json
 import struct
 import uuid
 import threading
+import math
+from datetime import timedelta
 from functools import wraps, lru_cache
 
 
@@ -23,6 +25,57 @@ def _serialized(method):
 from .paths import DATA_ROOT
 from .wire import proto_fields
 from .inventory_items import _lease, insertion
+
+
+class Regenerating(ValueError):
+    def __init__(self, monster_id, action_id):
+        super().__init__("Monster harvest resource is regenerating")
+        self.monster_id = monster_id
+        self.action_id = action_id
+
+
+def availability_packet(monster_id, action_id, enabled):
+    """cyg13421 updates the target NPC's contextual action availability."""
+    if (
+        type(monster_id) is not int
+        or not -(1 << 63) <= monster_id < 0
+        or type(action_id) is not int
+        or not 0 < action_id < (1 << 31)
+        or type(enabled) is not bool
+    ):
+        raise ValueError("Invalid monster resource availability")
+    return 13421, struct.pack(">qiB", monster_id, action_id, int(enabled))
+
+
+def policy(db):
+    row = db.execute(
+        "SELECT value FROM settings WHERE name='monster_harvest'"
+    ).fetchone()
+    value = None if row is None else row["value"]
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"quantity", "cooldown_seconds"}
+        or type(value["quantity"]) is not int
+        or not 1 <= value["quantity"] <= 32767
+        or type(value["cooldown_seconds"]) not in (int, float)
+        or not math.isfinite(value["cooldown_seconds"])
+        or not 0 < value["cooldown_seconds"] <= 86400
+    ):
+        raise ValueError("Invalid database monster harvest policy")
+    return value
+
+
+def available(db, store, monster, action_id):
+    key = (monster["map_id"], monster["instance_id"], monster["id"], action_id)
+    lock_key = "harvest:" + ":".join(map(str, key))
+    db.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (lock_key,))
+    last = db.execute(
+        "SELECT MAX(regenerates_until) AS last FROM monster_harvest_receipts "
+        "WHERE map_id=%s AND instance_id=%s AND monster_id=%s AND action_id=%s",
+        key,
+    ).fetchone()["last"]
+    if last is not None and store.now() < last:
+        raise Regenerating(monster["id"], action_id)
 
 
 def decode_request(body):
@@ -128,14 +181,6 @@ def resolve_target(registry, character, monster_id):
     return matches[0]
 
 
-def schema(db):
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS monster_harvest_receipts(
-        token TEXT PRIMARY KEY,character_id INTEGER NOT NULL,monster_id INTEGER NOT NULL,
-        action_id INTEGER NOT NULL,completed_at REAL NOT NULL,item_uid INTEGER NOT NULL)"""
-    )
-
-
 class Harvests:
     """One pending occupation per character/target; grant and receipt commit together."""
 
@@ -144,8 +189,56 @@ class Harvests:
         self.pending = {}
         self.targets = {}
         self.lock = threading.RLock()
-        with store.connection() as db:
-            schema(db)
+        self.regenerating = {}
+        self.next_regeneration = math.inf
+
+    @_serialized
+    def availability_snapshot(self, map_id, instance_id):
+        """Restore disabled actions after NPC publication, including reconnect."""
+        with self.store.connection() as db:
+            rows = db.execute(
+                "SELECT monster_id,action_id,MAX(regenerates_until) AS regenerates_until "
+                "FROM monster_harvest_receipts WHERE map_id=%s AND instance_id=%s "
+                "AND regenerates_until>%s GROUP BY monster_id,action_id",
+                (map_id, instance_id, self.store.now()),
+            ).fetchall()
+        now = self.store.clock()
+        packets = []
+        for row in rows:
+            due = row["regenerates_until"].timestamp()
+            if due > now:
+                key = (map_id, instance_id, row["monster_id"], row["action_id"])
+                self.regenerating[key] = due
+                self.next_regeneration = min(self.next_regeneration, due)
+                packets.append(availability_packet(key[2], key[3], False))
+        return packets
+
+    @_serialized
+    def due_availability(self):
+        """One global drain; packet traffic only checks the earliest deadline."""
+        now = self.store.clock()
+        if now < self.next_regeneration:
+            return []
+        ready = []
+        for key, due in list(self.regenerating.items()):
+            if due <= now:
+                del self.regenerating[key]
+                ready.append(
+                    (key[0], key[1], availability_packet(key[2], key[3], True))
+                )
+        self.next_regeneration = min(self.regenerating.values(), default=math.inf)
+        return ready
+
+    @_serialized
+    def availability_for(self, map_id, instance_id, monster_ids):
+        """Reapply cached gates when existing NPC identities reappear."""
+        targets = set(monster_ids)
+        now = self.store.clock()
+        return [
+            availability_packet(key[2], key[3], False)
+            for key, due in self.regenerating.items()
+            if key[:2] == (map_id, instance_id) and key[2] in targets and due > now
+        ]
 
     @_serialized
     def begin(
@@ -157,14 +250,16 @@ class Harvests:
         monster,
         *,
         profession_level,
-        reachable,
-        quantity,
-        cooldown_seconds=0
+        reachable
     ):
         request = decode_request(body)
         with self.store.connection() as db:
             _lease(self.store, db, account_id, generation, character_id)
             character = self.store.character(account_id, character_id, db)
+            configuration = policy(db)
+            available(db, self.store, monster, request["action_id"])
+        quantity = configuration["quantity"]
+        cooldown_seconds = configuration["cooldown_seconds"]
         previous = self.pending.get(character_id)
         if previous is not None and previous["generation"] != generation:
             # The new lease was checked above. An expired/replaced lease cannot
@@ -243,9 +338,7 @@ class Harvests:
         from .inventory_uids import allocate
 
         with self.store.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
             _lease(self.store, db, account_id, generation, character_id)
-            schema(db)
             character = self.store.character(account_id, character_id, db)
             if (
                 tuple(character[k] for k in ("map_id", "instance_id", "x", "y", "z"))
@@ -260,64 +353,109 @@ class Harvests:
                 raise ValueError("Monster harvest target changed")
             validate_action(ticket["rule"], monster, profession_level=profession_level)
             if db.execute(
-                "SELECT 1 FROM monster_harvest_receipts WHERE token=?",
+                "SELECT 1 FROM monster_harvest_receipts WHERE token=%s",
                 (ticket["token"],),
             ).fetchone():
                 self.cancel(character_id)
                 return dict(applied=False, packets=[])
-            last = db.execute(
-                "SELECT MAX(completed_at) FROM monster_harvest_receipts WHERE monster_id=? AND action_id=?",
-                (monster["id"], ticket["rule"]["action_id"]),
-            ).fetchone()[0]
-            if (
-                last is not None
-                and self.store.clock() - last < ticket["cooldown_seconds"]
-            ):
-                raise ValueError("Local monster harvest cooldown")
+            available(db, self.store, monster, ticket["rule"]["action_id"])
             # Base pocket accepts ordinary materials; no bag specialty assumptions.
             base = character["inventory_containers"][0]
+            from wakfu_server.inventory_move import STACKS
+            from wakfu_server.inventory_elements import masks
+
+            reference = ticket["rule"]["item_ref"]
+            quantity = ticket["quantity"]
+            stack_rule = STACKS.get(reference)
+            if stack_rule is None or quantity > stack_rule["maximum"]:
+                raise ValueError("Unsupported native harvest stack quantity")
+            existing = next(
+                (
+                    i
+                    for i in character["inventory_items"]
+                    if i["container"] == base["uid"]
+                    and i["reference"] == reference
+                    and stack_rule["minimal_mergeable"]
+                    and masks(i) is None
+                    and "mount" not in i
+                    and i["quantity"] + quantity <= stack_rule["maximum"]
+                ),
+                None,
+            )
             occupied = {
                 i["slot"]
                 for i in character["inventory_items"]
                 if i["container"] == base["uid"]
             }
             slot = next((s for s in range(base["capacity"]) if s not in occupied), None)
-            if slot is None:
+            if slot is None and existing is None:
                 raise ValueError("Base inventory full")
-            uid = allocate(db)
+            uid = existing["uid"] if existing is not None else allocate(db)
             item = dict(
                 uid=uid,
                 character_id=character_id,
-                reference=ticket["rule"]["item_ref"],
-                quantity=ticket["quantity"],
+                reference=reference,
+                quantity=quantity
+                + (existing["quantity"] if existing is not None else 0),
                 container=base["uid"],
-                slot=slot,
+                slot=existing["slot"] if existing is not None else slot,
+            )
+            if existing is not None:
+                db.execute(
+                    "UPDATE inventory_items SET quantity=%s WHERE uid=%s AND character_id=%s",
+                    (item["quantity"], uid, character_id),
+                )
+            else:
+                db.execute(
+                    "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(%s,%s,%s,%s,%s,%s)",
+                    tuple(
+                        item[k]
+                        for k in (
+                            "uid",
+                            "character_id",
+                            "reference",
+                            "quantity",
+                            "container",
+                            "slot",
+                        )
+                    ),
+                )
+            completed_at = self.store.now()
+            regenerates_until = completed_at + timedelta(
+                seconds=ticket["cooldown_seconds"]
             )
             db.execute(
-                "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(?,?,?,?,?,?)",
-                tuple(
-                    item[k]
-                    for k in (
-                        "uid",
-                        "character_id",
-                        "reference",
-                        "quantity",
-                        "container",
-                        "slot",
-                    )
-                ),
-            )
-            db.execute(
-                "INSERT INTO monster_harvest_receipts VALUES(?,?,?,?,?,?)",
+                "INSERT INTO monster_harvest_receipts(token,character_id,map_id,instance_id,monster_id,action_id,completed_at,item_uid,regenerates_until) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (
                     ticket["token"],
                     character_id,
+                    monster["map_id"],
+                    monster["instance_id"],
                     monster["id"],
                     ticket["rule"]["action_id"],
-                    self.store.clock(),
+                    completed_at,
                     uid,
+                    regenerates_until,
                 ),
             )
-            packet = insertion(item, notification=True)
+            packet = (
+                (12470, struct.pack(">qh", uid, quantity))
+                if existing is not None
+                else insertion(item, notification=True)
+            )
         self.cancel(character_id)
-        return dict(applied=True, item=item, packets=[packet])
+        key = (
+            monster["map_id"],
+            monster["instance_id"],
+            monster["id"],
+            ticket["rule"]["action_id"],
+        )
+        due = regenerates_until.timestamp()
+        self.regenerating[key] = due
+        self.next_regeneration = min(self.next_regeneration, due)
+        return dict(
+            applied=True,
+            item=item,
+            packets=[packet],
+            availability=(key[0], key[1], availability_packet(key[2], key[3], False)),
+        )

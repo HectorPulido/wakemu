@@ -4,10 +4,10 @@ The breed reference supplies its native NPC visual data; sN only toggles
 visibility and never contains a player ProtoAppearance or arbitrary sprite ID.
 """
 import struct
-from .monsters import owned_instance
+from .monsters import owned_instance, reference
 
 
-def world_actor(monster, *, name="Monstruo local", group_id, direction=3, members=None):
+def world_actor(monster, *, name=None, group_id, direction=3, members=None):
     verified = owned_instance(
         monster["ref"],
         monster["level"],
@@ -27,6 +27,8 @@ def world_actor(monster, *, name="Monstruo local", group_id, direction=3, member
         or not 0 <= direction < 8
     ):
         raise ValueError("Invalid own NPC group or direction")
+    if name is None:
+        name = reference(monster["ref"])["name"]
     if not isinstance(name, str) or not name or len(name.encode("utf-8")) > 65535:
         raise ValueError("Invalid NPC name")
     encoded_name = name.encode("utf-8")
@@ -91,14 +93,14 @@ def world_actor(monster, *, name="Monstruo local", group_id, direction=3, member
     return out
 
 
-def spawn_monster(monster, *, group_id, name="Monstruo local", direction=3):
+def spawn_monster(monster, *, group_id, name=None, direction=3):
     blob = world_actor(monster, group_id=group_id, name=name, direction=direction)
     if len(blob) > 65535:
         raise ValueError("NPC appearance too large")
     return b"\x00\x01" + struct.pack(">BqH", 1, monster["id"], len(blob)) + blob
 
 
-def spawn_group(members, *, group_id, name="Grupo local", direction=3):
+def spawn_group(members, *, group_id, direction=3):
     """Register all owned world actors with the same full native group roster."""
     members = tuple(members)
     if not members or len(members) > 127:
@@ -106,7 +108,7 @@ def spawn_group(members, *, group_id, name="Grupo local", direction=3):
     entries = []
     for member in members:
         blob = world_actor(
-            member, group_id=group_id, name=name, direction=direction, members=members
+            member, group_id=group_id, direction=direction, members=members
         )
         if len(blob) > 65535:
             raise ValueError("NPC appearance too large")

@@ -1,14 +1,33 @@
 name: wakfu-local
 services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: wakemu
+      POSTGRES_USER: wakemu
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
+    networks: [isolated]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U wakemu -d wakemu']
+      interval: 5s
+      timeout: 3s
+      retries: 10
   world:
     build: ./server
     init: true
     depends_on:
+      postgres:
+        condition: service_healthy
       ai:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
+      WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
+      WAKFU_DATABASE_PASSWORD_FILE: /data/secrets/postgres-password
       WAKFU_AI_URL: ${WAKFU_AI_URL:-http://ai:8090}
       WAKFU_REDIS_URL: ${WAKFU_REDIS_URL:-redis://redis:6379/0}
       WAKFU_EXTERNAL_SCHEDULER: '1'
@@ -65,7 +84,9 @@ services:
         condition: service_healthy
     environment:
       WAKFU_REDIS_URL: redis://redis:6379/0
+      WAKFU_CRON_API_TOKEN_FILE: /run/secrets/wakfu-scheduler-token
     volumes:
+      - ./.runtime/local/secrets/scheduler-token:/run/secrets/wakfu-scheduler-token:ro
       - ./server/wakfu_server:/app/wakfu_server:ro
       - ./server/cron-service/service.py:/app/service.py:ro
       - ./server/cron-service/config.json:/app/config.json:ro
@@ -91,6 +112,7 @@ services:
       timeout: 2s
       retries: 10
 volumes:
+  postgres-data:
   redis-data:
 networks:
   client-access:

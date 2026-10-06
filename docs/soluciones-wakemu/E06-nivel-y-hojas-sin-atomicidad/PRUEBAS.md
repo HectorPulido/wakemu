@@ -1,36 +1,48 @@
 # Pruebas y aceptación — E06
 
-## Base existente
+## Revalidación PostgreSQL — 2026-10-05
 
-- [test_aptitudes.py](../../../server/tests/test_aptitudes.py): incluido en la ejecución de base registrada.
-- [test_build_journal.py](../../../server/tests/test_build_journal.py): incluido en la ejecución de base registrada.
-- [test_combat_rewards.py](../../../server/tests/test_combat_rewards.py): incluido en la ejecución de base registrada.
+Las suites se ejecutaron en contenedores `world` efímeros, con código montado read-only, PostgreSQL de pruebas y esquemas aislados por `PostgresCase` (migraciones 001–008).
 
-El lote común descubrió **133 tests: 123 pasaron y 10 se omitieron** (Redis real); salida 0. No implica que todas las pruebas relacionadas de esta carpeta se ejecutaran, ni que los casos nuevos pasen. Ver [VALIDACION.md](../VALIDACION.md).
-
-Comando dirigido propuesto, desde la raíz y en entorno autorizado:
+Primer lote, que cubre aptitudes, comando/nivel, capacidad, builds, journal, estadísticas y publicación de equipo:
 
 ```sh
-PYTHONPATH=server:server/tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest test_aptitudes test_build_journal test_combat_rewards -q
+docker compose run --rm --no-deps --entrypoint python3 \
+  -v "$PWD:/workspace:ro" \
+  -e PYTHONPATH=/workspace:/workspace/server:/workspace/server/tests \
+  -e WAKFU_POSTGRES_TEST_URL='host=postgres dbname=wakemu_migration_test user=wakemu' \
+  -e WAKFU_MIGRATIONS_TEST_DIR=/workspace/server/migrations \
+  -e WAKFU_DATABASE_PASSWORD_FILE=/data/secrets/postgres-password \
+  world -m unittest test_aptitudes test_live_console test_build_capacity \
+  test_builds test_build_journal test_equipment_stats test_equipment_full_set \
+  test_equipment_full_set_ready test_equipment_combat_integration \
+  test_ring_build_integration -q
 ```
 
-## Casos específicos que deben añadirse o reproducirse
+Resultado: **54 tests OK**.
 
-| Caso | Acción | Resultado exigido | Estado |
-| --- | --- | --- | --- |
-| Fixture 49→50 | Hoja fija 49 y command | Resultado coherente o rechazo total, nunca nivel 50/max 540 parcial | Pendiente de implementar/verificar |
-| Hoja-1 | Misma subida con nivel real | Presupuesto y salud actualizados | Pendiente de implementar/verificar |
-| Hoja modulada | Cap inferior legítimo | Regla validada sin elevar stats ilegalmente | Pendiente de implementar/verificar |
-| RewardXP | Cruce por combate | Mismas garantías de atomicidad | Pendiente de implementar/verificar |
-| Journal pending | Subida antes de flush | Hydration/recovery válidas | Pendiente de implementar/verificar |
-| Fallo de evaluador | Inyección antes de commit | Estado anterior completo preservado | Pendiente de implementar/verificar |
+Segundo lote, centrado en el comando `!nivel` y recompensas:
 
-## Método y criterios
+```sh
+docker compose run --rm --no-deps --entrypoint python3 \
+  -v "$PWD:/workspace:ro" \
+  -e PYTHONPATH=/workspace:/workspace/server:/workspace/server/tests \
+  -e WAKFU_POSTGRES_TEST_URL='host=postgres dbname=wakemu_migration_test user=wakemu' \
+  -e WAKFU_MIGRATIONS_TEST_DIR=/workspace/server/migrations \
+  -e WAKFU_DATABASE_PASSWORD_FILE=/data/secrets/postgres-password \
+  world -m unittest test_chat_console test_combat_rewards -q
+```
 
-Usar personaje y almacenamiento de prueba aislados. Registrar identidad de instancia, versión, estado inicial, petición, respuesta decodificada y estado durable final. Controlar reloj y RNG en los casos deterministas. Ejecutar límites de ownership, sesión obsoleta, índices/UID inválidos y payload truncado donde apliquen.
+Resultado: **16 tests OK**.
 
-Repetir operaciones confirmadas y cortes alrededor del commit/ACK; ninguna repetición puede duplicar consumo, recompensa o efectos. Verificar observadores y reconexión cuando el caso sea multijugador. La prueba gráfica confirma integración, mientras la fixture de protocolo debe fallar si cambian layout o semántica.
+| Invariante | Resultado actual |
+| --- | --- |
+| Fallo después de preparar XP/nivel y antes del snapshot | `test_level_snapshot_failure_rolls_back_progression_and_health`: nivel, XP, HP, máximo y builds vuelven al estado previo. |
+| Hoja fija 49 al pasar nivel real49→50 | `test_fixed_aptitude_level_survives_49_to_50`: comando exitoso; nivel real50, efectivo49, XP actualizado, salud y hoja conservadas tras reabrir. |
+| Recompensa cruza nivel y falla actualización de salud | `test_level_health_failure_rolls_back_reward_and_wallet`: XP, nivel, wallet y recibo revierten junto con salud. |
+| Recompensa de nivel con personaje herido | `test_level_reward_updates_maximum_without_healing_wounds_and_replay`: máximo cambia sin curación accidental, y la repetición no duplica recompensa. |
+| Persistencia de hoja / journal | Los módulos `test_builds` y `test_build_journal` del primer lote pasaron, incluyendo guardar/reabrir y el overlay de hoja pendiente cubierto por sus fixtures configuradas. |
 
-Invariante: Nivel/XP y hojas compatibles cambian juntos; un evaluador no puede fallar después de dejar media transición confirmada.
+## Límites de la validación
 
-Registrar cada caso como PASS, FAIL o NO EJECUTADO, con evidencia. No convertir una omisión, un click optimista o un resultado de otro snapshot en PASS.
+Estos resultados acreditan los casos transaccionales PostgreSQL enumerados. No acreditan actualización visual de roster/cliente, todos los consumidores de `effective_level` durante combate, todas las modalidades de hoja, ni el flujo completo de recompensas hasta el ACK del cliente. El primer comando incluye el módulo `test_live_console`; el comando de administración `!nivel` está cubierto por `test_chat_console` en el segundo.

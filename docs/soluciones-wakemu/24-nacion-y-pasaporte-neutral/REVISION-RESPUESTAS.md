@@ -31,3 +31,11 @@ No se obtuvo captura ni lectura del pasaporte. **No se confirma Amakna ni neutra
 ## Evidencia visual adicional: selección del segundo personaje
 
 Luna llegó a selección del segundo perfil `audit-multi-dos-isolated-20261004`. La ficha única ocupada mostró **Audit Multi Dos — Uginak — nivel 1 — Amakna**. Es un personaje recién creado en la cuenta propia de auditoría; no se observó `passportDialog`. El resultado confirma el texto nacional en **selección de personaje**, y exige contrastar el payload realmente recibido con el reemplazo NATION_ID actual. No se concluye todavía que la DB guarde ciudadanía Amakna: puede ser versión cargada, layout no adaptado o representación de nación cero; esas hipótesis necesitan cotejo.
+
+## Cotejo PostgreSQL y parser nativo — 2026-10-05
+
+La plantilla de producción se obtiene con `character_list_local`, que selecciona el único blob que contiene Pekebu dentro del fixture23548. Mide301 bytes y su SHA256 es `6de50d9932ae0be8dcbee826826707c25bcb6a517980c5ed0c45de9473ed13f3`, coincidente con `ENTITY_LAYOUTS[5]`. El primer blob del roster completo no sustituye esa plantilla.
+
+En PostgreSQL aislado se creó un personaje y se serializó `store.characters` con `wire.character_list` y la plantilla correcta. La entidad resultante medía193 bytes; su qZ apareció en offset173 después de compactar las secciones previas, con bytes `00000000`. El probe Java offline de `qZ.aG` confirmó `parse=true`, `Wi=0`. El locale español asigna `nation.short.0=Neutral` y `nation.short.30=Amakna`.
+
+Esto acredita la neutralidad del campo serializado actual de selección. No acredita el binding concreto de la tarjeta ni el paquete recibido por la sesión de la captura anterior. Tampoco cierra pasaporte, ciudadanía o territorios. Queda cotejar la selección recién cargada y los carriers de esas otras superficies; no se requiere modificar el cliente.

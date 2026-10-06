@@ -1,5 +1,5 @@
 {
-  "objective": "Revisar exhaustivamente todos los issues 0–34 y adicionales; cotejo técnico, reproducciones aisladas y propuestas de servidor sin implementar fixes.",
+  "objective": "Resolver todos los issues uno a uno, priorizando importancia y sencillez; implementar y verificar cambios del servidor y mantener status en README.",
   "ui_delegation": "Luna, reasoning low; root no interactúa con UI.",
   "spells": "Excluidos; otra sesión.",
   "goal_tool_status": "active",
@@ -12,11 +12,17 @@
       "executed_probe_artifacts": [
         "probe-sql-redis-actual.json"
       ],
-      "complete": false
+      "complete": false,
+      "combat_regression_observed": "2026-10-06T05:41:37Z",
+      "combat_regression_evidence": "REGRESION-COMBATE-2026-10-06.md",
+      "combat_engine_edits_authorized": false,
+      "serializer_scope_tests": 45,
+      "serializer_scope_loaded": true,
+      "combat_visual_verification": "pending"
     },
     {
       "issue": "01-semillas-sin-refresco",
-      "status": "audit_in_progress",
+      "status": "resolved_verified_user_and_postgresql",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -24,12 +30,18 @@
         "probe-extraccion-repetida-monstruo.json",
         "probe-plan-consulta-cooldown.json"
       ],
-      "complete": false,
-      "remaining_evidence": [
-        "Activación de modo plantar y operación real en UI",
-        "Cantidad visual/SQL antes/después en éxito/fallo/cancelación",
-        "Última unidad y callback repetido"
-      ]
+      "complete": true,
+      "remaining_evidence": [],
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "verified_tests": 61,
+      "visual_evidence": [
+        "77-hotkey-1.png",
+        "81-plant-attempt.png"
+      ],
+      "harvest_regression_tests": 43,
+      "manual_harvest_cooldown_verified": true,
+      "manual_harvest_stacking_verified": true,
+      "harvest_stack_uid": 1099511628100
     },
     {
       "issue": "02-maduracion-de-monstruos",
@@ -63,23 +75,35 @@
     },
     {
       "issue": "05-permisos-y-recoleccion-de-cardo",
-      "status": "audit_in_progress",
+      "status": "En revision",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-propiedad-recursos.json"
       ],
-      "complete": false
+      "complete": false,
+      "verified_tests": 18,
+      "implementation_evidence": "README.md",
+      "remaining_evidence": [
+        "Recargar corrección ownerAccount público0",
+        "Implementar y verificar flujo completo cosecha vegetal12995"
+      ]
     },
     {
       "issue": "06-etapas-completas-de-cardo",
-      "status": "audit_in_progress",
+      "status": "En revision",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-etapas-nativas.json"
       ],
-      "complete": false
+      "complete": false,
+      "implementation_evidence": "REVISION-RESPUESTAS.md",
+      "remaining_evidence": [
+        "Extraer grafo legal etapas",
+        "Vencimiento persistido y outbox por transición",
+        "Publicar etapa del evento y verificar ciclo completo"
+      ]
     },
     {
       "issue": "07-wakfu-y-stasis",
@@ -150,7 +174,7 @@
     },
     {
       "issue": "13-chat-privado-y-canales",
-      "status": "audit_in_progress",
+      "status": "private_router_loaded_pending_live_delivery_and_other_channels",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -162,7 +186,16 @@
         "probe-identificadores-canales.json",
         "probe-respuesta-privada-y-consumidor.json"
       ],
-      "complete": false
+      "complete": false,
+      "verified_tests": 93,
+      "implementation_evidence": "COTEJO-ACTUAL-POSTGRESQL.md",
+      "remaining_evidence": [
+        "Recepción real entre dos clientes",
+        "Otros canales y preferencias DND/ignore",
+        "Cambios de sesión concurrentes con entrega de socket"
+      ],
+      "loaded_image": "3d5aee9d6c2e9e46389dbce16e64078bcbd2b536cdd1abaa043b9a13afa8fcd5",
+      "cleanup_and_chat_regression_tests": 88
     },
     {
       "issue": "14-unirse-a-combates",
@@ -199,28 +232,37 @@
     },
     {
       "issue": "17-aptitudes-y-calculo-de-estadisticas",
-      "status": "audit_in_progress",
+      "status": "resolved_verified_full_user_acceptance_and_postgresql",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-cobertura-bonus-actual.json",
         "probe-reversibilidad.json"
       ],
-      "complete": false
+      "complete": true,
+      "verified_tests": 58,
+      "manual_acceptance_steps": 8,
+      "remaining_evidence": []
     },
     {
       "issue": "18-orientacion-en-colocacion",
-      "status": "audit_in_progress",
+      "status": "changed_pending_reload_and_visual",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-fases-orientacion.json"
       ],
-      "complete": false
+      "complete": false,
+      "verified_tests": 53,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [
+        "Validar orientación desde interfaz colocación",
+        "Sincronización de participantes/observadores con issues14/16"
+      ]
     },
     {
       "issue": "19-movimiento-aleatorio-eficiente",
-      "status": "audit_in_progress",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -228,7 +270,12 @@
         "probe-regresion-movimiento-actual.json",
         "probe-ruta-multipaso-nativa.json"
       ],
-      "complete": false
+      "complete": true,
+      "verified_tests": 41,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [],
+      "snapshot_regression_tests": 9,
+      "user_confirmation": "2026-10-06: usuario confirma prueba y solicita cierre total"
     },
     {
       "issue": "20-poblacion-inicial-y-zonas-activas",
@@ -263,13 +310,18 @@
     },
     {
       "issue": "23-bolso-sadida-apilado",
-      "status": "audit_in_progress",
+      "status": "resolved_verified_all_user_cases",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-sadida-stack-actual.json"
       ],
-      "complete": false
+      "complete": true,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [
+        "Retirada visual del bolso y reconexión tras retirar; el defecto original de equipar stack está validado"
+      ],
+      "user_validation": "Confirma !item12493 3: equipada1/restan2, interfaz válida, reconexión conserva; DB contiene stack12493 qty2 y bolso12493 kind2 capacity10."
     },
     {
       "issue": "24-nacion-y-pasaporte-neutral",
@@ -374,27 +426,37 @@
     },
     {
       "issue": "32-roles-admin-y-comandos",
-      "status": "audit_in_progress",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-api-sin-autorizacion-actual.json"
       ],
-      "complete": false
+      "complete": true,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [],
+      "user_confirmation": "2026-10-06: 32 todo bien; cuenta normal sin admin, rechazo mob, pos y continuidad sesión"
     },
     {
       "issue": "33-rendicion-y-retorno-al-mundo",
-      "status": "audit_in_progress",
+      "status": "resolved_verified_user_full_cycle_and_postgresql",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-flags-retorno-actual.json"
       ],
-      "complete": false
+      "complete": true,
+      "verified_tests": 34,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [],
+      "loaded_image": "3d5aee9d6c2e9e46389dbce16e64078bcbd2b536cdd1abaa043b9a13afa8fcd5",
+      "disconnect_atomic_status": "verified_loaded",
+      "cleanup_retry_status": "verified_loaded",
+      "cleanup_and_chat_regression_tests": 88
     },
     {
       "issue": "34-builds-personalizadas",
-      "status": "audit_in_progress",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -403,58 +465,100 @@
         "probe-persistencia-seleccion.json",
         "probe-politica-nativa.json"
       ],
-      "complete": false
+      "complete": false,
+      "remaining_evidence": [
+        "Cruce49/50/51",
+        "Límite24",
+        "Modulación/salud",
+        "Deck secundario combate coordinado sesión hechizos"
+      ]
     },
     {
       "issue": "E01-corrupcion-sqlite",
-      "status": "audit_in_progress",
+      "status": "resolved",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-backups-solo-lectura.json",
         "probe-respaldo-copia-privada.json"
       ],
-      "complete": false
+      "complete": true,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [],
+      "runtime_backend": "postgresql",
+      "verified_tests": 77,
+      "populated_restore_verified": true,
+      "full_suite_result": {
+        "tests": 1662,
+        "failures": 12,
+        "errors": 59,
+        "skipped": 1,
+        "passed": false,
+        "postgresql_errors": 0
+      },
+      "return_rollback_verified": true
     },
     {
       "issue": "E02-resincronizacion-inventario-invalida",
-      "status": "audit_in_progress",
+      "status": "implemented_pending_visual",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [],
-      "complete": false
+      "complete": false,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [
+        "Rechazo y recuperación visual en personaje de auditoría",
+        "Continuidad de operaciones tras el rechazo"
+      ]
     },
     {
       "issue": "E03-api-test-sin-autenticacion",
-      "status": "audit_in_progress",
+      "status": "resolved_verified_docker",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-auth-http.json"
       ],
-      "complete": false
+      "complete": true,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": []
     },
     {
       "issue": "E04-activar-build-sin-handler",
-      "status": "audit_in_progress",
+      "status": "resolved_verified_user_and_postgresql",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [],
-      "complete": false
+      "complete": true,
+      "implementation_evidence": "README.md",
+      "remaining_evidence": [],
+      "verified_tests": 44,
+      "manual_verified": [
+        "activation_and_alternation",
+        "reopen_after_character_switch",
+        "third_build_creation",
+        "edited_build_persistence"
+      ],
+      "bootstrap_empty_deck_fix_loaded": true
     },
     {
       "issue": "E05-seleccion-build-y-deck-cero",
-      "status": "audit_in_progress",
+      "status": "implemented_partial",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-seleccion-estadisticas-actual.json"
       ],
-      "complete": false
+      "complete": false,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [
+        "Sincronización de deck activo",
+        "Aceptación visual y despliegue"
+      ]
     },
     {
       "issue": "E06-nivel-y-hojas-sin-atomicidad",
-      "status": "audit_in_progress",
+      "status": "implemented_partial_deployed",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -463,45 +567,93 @@
         "probe-hoja-fija-49-a-50.json",
         "probe-recompensa-hoja-fija.json"
       ],
-      "complete": false
+      "complete": false,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [
+        "Ciclo completo de subida de nivel en cliente",
+        "Revisar consumidores de nivel efectivo en combate"
+      ],
+      "current_postgres_validation": {
+        "builds_equipment_gate": 54,
+        "console_rewards_gate": 16,
+        "migrations": 8
+      }
     },
     {
       "issue": "E07-borrado-de-build-sin-handler",
-      "status": "audit_in_progress",
+      "status": "resolved_verified_user_and_postgresql",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-contrato-borrado-nativo.json"
       ],
-      "complete": false
+      "complete": true,
+      "implementation_evidence": "README.md",
+      "remaining_evidence": [],
+      "verified_tests": 30,
+      "manual_active_build_deletion_verified": true,
+      "manual_reentry_deletion_verified": true,
+      "deleted_index": 3,
+      "fallback_active_index": 0
     },
     {
       "issue": "E08-limite-de-builds-inconsistente",
-      "status": "audit_in_progress",
+      "status": "capacity_carrier_verified_loaded_pending_visual",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [],
-      "complete": false
+      "complete": false,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [
+        "Contador visual con cupo DB inferior a24",
+        "Catálogo y modulación de hojas permanentes"
+      ],
+      "current_postgres_validation": {
+        "builds_equipment_gate": 54,
+        "console_rewards_gate": 16,
+        "migrations": 8
+      },
+      "loaded_image": "62a9b743aac46ca1e7f14b469f5267e807b17a5be8624aaa4ebda5803843b233",
+      "native_counter_verified": true,
+      "manual_counter_values": [
+        "1/24",
+        "2/24"
+      ]
     },
     {
       "issue": "E09-sql-redundante-con-redis",
-      "status": "audit_in_progress",
+      "status": "replay_single_hydration_verified_loaded_pending_measurement",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-lecturas-actuales.json"
       ],
-      "complete": false
+      "complete": false,
+      "implementation_evidence": "COTEJO-ACTUAL-POSTGRESQL.md",
+      "remaining_evidence": [
+        "Medición SQL/latencia",
+        "Resto de lecturas redundantes y coherencia concurrente"
+      ],
+      "verified_tests": 4,
+      "loaded_image": "33a78a4819e2b791eade0c67e02193a693de8545d51d649a4bfa7651dfae1f7f"
     },
     {
       "issue": "E10-equipment-set-omite-build-nueva",
-      "status": "audit_in_progress",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-rutas-actuales.json"
       ],
-      "complete": false
+      "complete": true,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [],
+      "current_postgres_validation": {
+        "builds_equipment_gate": 54,
+        "console_rewards_gate": 16,
+        "migrations": 8
+      },
+      "user_confirmation": "2026-10-06: seis pasos E10 completos con Audiluna, equipo persistente y borrado sin pérdidas/duplicaciones"
     },
     {
       "issue": "E11-test-desplazamiento-sin-terreno-exportado",
@@ -515,7 +667,7 @@
     },
     {
       "issue": "E12-curacion-al-alternar-aptitudes",
-      "status": "audit_in_progress",
+      "status": "implemented_pending_visual",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -523,7 +675,12 @@
         "probe-revalidacion-journal.json",
         "probe-revalidacion-sqlite.json"
       ],
-      "complete": false
+      "complete": false,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "remaining_evidence": [
+        "Ciclo de aptitudes y builds en interfaz"
+      ],
+      "verified_tests": 50
     },
     {
       "issue": "E15-gremios",
@@ -558,7 +715,7 @@
     },
     {
       "issue": "E14-consumibles-barra-rapida-no-persisten",
-      "status": "audit_in_progress",
+      "status": "resolved",
       "user_answers_present": false,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -571,11 +728,14 @@
         "probe-estado-grafico-actual.json",
         "probe-limite-cliente-grafico.json"
       ],
-      "complete": false,
-      "remaining_evidence": [
-        "Captura GUI de asignación de semillas/pan mediante Luna low",
-        "Timing real de12091 y reconexión autenticada",
-        "Estado durable y respuesta del servidor actual"
+      "complete": true,
+      "remaining_evidence": [],
+      "verified_tests": 18,
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "visual_evidence": [
+        "69-hover-hotbar.png",
+        "73-menu-again.png",
+        "75-reentry.png"
       ]
     },
     {
@@ -593,7 +753,7 @@
     },
     {
       "issue": "E16-nombres-genericos-monstruos",
-      "status": "audit_in_progress",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -603,12 +763,10 @@
         "probe-nombres-por-referencia.json",
         "probe-seccion-name-nativa.json"
       ],
-      "complete": false,
-      "remaining_evidence": [
-        "Catálogo localizado y lengua negociada del personaje",
-        "Grupo mixto: nombres individuales visibles",
-        "Reconexión/retorno de combate e idiomas"
-      ]
+      "complete": true,
+      "remaining_evidence": [],
+      "implementation_evidence": "IMPLEMENTACION.md",
+      "user_confirmation": "2026-10-06: E16, solucionado"
     },
     {
       "issue": "E17-monturas-y-dragopavos",
@@ -623,7 +781,11 @@
         "Carrier PET en caliente y estado montado inicial",
         "Protobuf item rico y operaciones de alimentación/cosméticos",
         "Recorrido GUI y observadores tras implementación"
-      ]
+      ],
+      "mount_foundation_tests": 19,
+      "mount_models_loaded": 40,
+      "swimming_helper_tests": 3,
+      "mount_handlers_loaded": false
     },
     {
       "issue": "E18-ia-tactica-enemigos",
@@ -654,6 +816,35 @@
         "Reglas/productores de objetivos sin criterio, incluyendo cadena4228 y entrenamiento8539",
         "Contrato completo de activación/recompensas y parámetros, tipo17",
         "Validación real de progreso, premio, reconexión y recuperación"
+      ]
+    },
+    {
+      "issue": "E20-colocacion-no-expira",
+      "status": "Solucionado totalmente",
+      "complete": true,
+      "user_answers_present": true,
+      "post_answer_review": true,
+      "implementation_evidence": "README.md",
+      "remaining_evidence": [],
+      "verified_tests": 21,
+      "loaded_image": "33a78a4819e2b791eade0c67e02193a693de8545d51d649a4bfa7651dfae1f7f",
+      "scope_limit": "Expiración multijugador requiere aceptación cuando exista combate compartido; el defecto reportado de colocación individual está verificado.",
+      "visual_evidence": [
+        ".runtime/local/audit-postgres-visual/e20-placement-start.png",
+        ".runtime/local/audit-postgres-visual/e20-after-wait.png"
+      ],
+      "runtime_evidence": "fight2 actor1: combat_test_active y combat_placement_expired 2026-10-06T04:23:35Z; sin pulsar Listo.",
+      "user_confirmation": "2026-10-06: usuario confirma prueba y solicita cierre total"
+    },
+    {
+      "issue": "E21-accesos-zurkalia",
+      "status": "reported_investigating_server",
+      "complete": false,
+      "implementation_evidence": "E21-accesos-zurkalia/README.md",
+      "remaining_evidence": [
+        "Opcode e identidad de acceso Astrub",
+        "Destinos y condiciones nativas de arenas",
+        "Traslado, retorno y persistencia verificados"
       ]
     }
   ],

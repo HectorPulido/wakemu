@@ -51,8 +51,14 @@ def bonuses(character, *, build_index=None):
     index = (
         character.get("active_build_index", 0) if build_index is None else build_index
     )
-    if type(index) is not int or not 0 <= index <= 2:
+    from wakfu_server.builds import valid_index
+
+    if not valid_index(index):
         raise ValueError("Invalid active equipment sheet")
+    from wakfu_server.builds import effective_sheet_level
+
+    level = effective_sheet_level(character, index)
+    character = dict(character, level=level)
     saved = character.get("builds", {}).get(index, {})
     blob = bytes.fromhex(saved.get("equipment", ""))
     selected = validate_sheet(character, blob)
@@ -133,7 +139,13 @@ def bonuses(character, *, build_index=None):
 def effective_character(character, *, build_index=None):
     result = dict(character)
     evaluated = bonuses(character, build_index=build_index)
-    base = maximum(character["breed"], character["level"])
+    from wakfu_server.builds import effective_sheet_level
+
+    index = (
+        character.get("active_build_index", 0) if build_index is None else build_index
+    )
+    effective_level = effective_sheet_level(character, index)
+    base = maximum(character["breed"], effective_level)
     flat = base + evaluated["stats"].get(1, 0)
     percentage = evaluated["percentages"].get(1, 0)
     # fff.aYU uses Java integer division toward zero.
@@ -143,6 +155,7 @@ def effective_character(character, *, build_index=None):
     )
     result.update(
         base_max_hp=base,
+        effective_level=effective_level,
         max_hp=effective,
         hp=min(effective, max(0, character.get("hp", base))),
         equipment_stats=evaluated["stats"],

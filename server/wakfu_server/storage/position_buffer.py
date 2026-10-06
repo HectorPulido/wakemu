@@ -1,4 +1,4 @@
-"""Single-process authoritative positions with generation-safe SQLite batches.
+"""Single-process authoritative positions with generation-safe PostgreSQL batches.
 
 A crash may lose the unflushed interval. Graceful lifecycle barriers must flush
 successfully before logout, map transition, character switch or process exit.
@@ -21,8 +21,8 @@ class Positions:
         key = (account_id, generation, character["id"])
         with self.lock, self.store.connection() as db:
             row = db.execute(
-                "SELECT character_id FROM sessions WHERE account_id=? AND generation=? AND expires_at>?",
-                (account_id, generation, self.store.clock()),
+                "SELECT character_id FROM sessions WHERE account_id=%s AND generation=%s AND expires_at>%s FOR UPDATE",
+                (account_id, generation, self.store.now()),
             ).fetchone()
             if row is None or row["character_id"] != character["id"]:
                 raise ValueError("Invalid buffered position session")
@@ -87,11 +87,10 @@ class Positions:
             committed = []
             stale = []
             with self.store.connection() as db:
-                db.execute("BEGIN IMMEDIATE")
-                for (account, gen, cid), entry in selected:
+                for (account, gen, cid), entry in sorted(selected):
                     session = db.execute(
-                        "SELECT character_id FROM sessions WHERE account_id=? AND generation=? AND expires_at>?",
-                        (account, gen, self.store.clock()),
+                        "SELECT character_id FROM sessions WHERE account_id=%s AND generation=%s AND expires_at>%s FOR UPDATE",
+                        (account, gen, self.store.now()),
                     ).fetchone()
                     if session is None or session["character_id"] != cid:
                         stale.append((account, gen, cid))
@@ -101,8 +100,8 @@ class Positions:
                     old = entry["persisted"]
                     new = entry["current"]
                     result = db.execute(
-                        "UPDATE characters SET x=?,y=?,z=? WHERE id=? AND account_id=? "
-                        "AND map_id=? AND instance_id=? AND x=? AND y=? AND z=?",
+                        "UPDATE characters SET x=%s,y=%s,z=%s WHERE id=%s AND account_id=%s "
+                        "AND map_id=%s AND instance_id=%s AND x=%s AND y=%s AND z=%s",
                         (
                             new["x"],
                             new["y"],

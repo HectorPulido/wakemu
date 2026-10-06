@@ -31,7 +31,7 @@ docker compose logs -f world
 PYTHONPATH=server python3 -m unittest discover -s server/tests
 ```
 
-La base de datos existente permanece en `.runtime/local/world.sqlite3`. Los eventos detallados están en `.runtime/local/logs/game-server.jsonl`.
+El servidor usa PostgreSQL en el servicio `postgres`, base `wakemu_runtime`, con volumen persistente `postgres-data`. El entrypoint aplica las migraciones de `server/migrations/` antes de arrancar; las credenciales se leen desde el archivo privado configurado por `WAKFU_DATABASE_PASSWORD_FILE`. El archivo `.runtime/local/world.sqlite3` es histórico y no se usa como fallback ni se importa automáticamente. Los eventos detallados están en `.runtime/local/logs/game-server.jsonl`.
 
 ## Organización del servidor
 
@@ -40,7 +40,7 @@ La base de datos existente permanece en `.runtime/local/world.sqlite3`. Los even
 - `combat/`: turnos, movimiento, ataques, IA, muerte y recompensas.
 - `items/`: inventario, bolsas, equipamiento, builds y merkasacos.
 - `maps/`: jugadores en el mundo, desplazamiento, transportes y objetos.
-- `storage/`: SQLite, posiciones en memoria y Redis.
+- `storage/`: PostgreSQL, posiciones por lotes y journal Redis de posiciones.
 - `characters/`: creación, vida, experiencia, hechizos y datos sociales.
 
 `server/ai-service/` es un proceso HTTP independiente. Compose mantiene IA y Redis en una red interna; el servidor publica los puertos del cliente solo en localhost.

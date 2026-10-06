@@ -21,14 +21,13 @@ def remove(store, account_id, generation, character_id, body):
     ):
         raise ValueError("Invalid native bag removal identity")
     with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
         _lease(store, db, account_id, generation, character_id)
         bag = db.execute(
-            "SELECT * FROM inventory_containers WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s",
             (bag_uid, character_id),
         ).fetchone()
         target = db.execute(
-            "SELECT * FROM inventory_containers WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s",
             (destination, character_id),
         ).fetchone()
         if bag is None or bag["kind"] == 0 or target is None or target["kind"] != 0:
@@ -37,13 +36,13 @@ def remove(store, account_id, generation, character_id, body):
         if bag["capacity"] != rule["capacity"]:
             raise ValueError("Bag capacity differs from native catalog")
         if db.execute(
-            "SELECT 1 FROM inventory_items WHERE container=?", (bag_uid,)
+            "SELECT 1 FROM inventory_items WHERE container=%s", (bag_uid,)
         ).fetchone():
             raise ValueError("Bag must be empty before removal")
         occupied = {
-            entry[0]
+            entry["slot"]
             for entry in db.execute(
-                "SELECT slot FROM inventory_items WHERE container=?", (destination,)
+                "SELECT slot FROM inventory_items WHERE container=%s", (destination,)
             )
         }
         if position == -1:
@@ -52,14 +51,14 @@ def remove(store, account_id, generation, character_id, body):
             )
         if not 0 <= position < target["capacity"] or position in occupied:
             raise ValueError("Bag destination is full or occupied")
-        db.execute("DELETE FROM inventory_containers WHERE uid=?", (bag_uid,))
+        db.execute("DELETE FROM inventory_containers WHERE uid=%s", (bag_uid,))
         db.execute(
-            "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(?,?,?,?,?,?)",
+            "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(%s,%s,%s,%s,%s,%s)",
             (bag_uid, character_id, bag["reference"], 1, destination, position),
         )
         item = dict(
             db.execute(
-                "SELECT * FROM inventory_items WHERE uid=?", (bag_uid,)
+                "SELECT * FROM inventory_items WHERE uid=%s", (bag_uid,)
             ).fetchone()
         )
         return dict(
@@ -76,33 +75,38 @@ def equip(store, account_id, generation, character_id, body):
     if request["character_id"] != character_id or request["slot"] not in (1, 2, 3):
         raise ValueError("Foreign or unsupported bag slot")
     with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
         _lease(store, db, account_id, generation, character_id)
         item = db.execute(
-            "SELECT * FROM inventory_items WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (request["uid"], character_id),
         ).fetchone()
-        if (
-            item is None
-            or item["quantity"] != 1
-            or item["container"] != request["container"]
-        ):
+        if item is None or item["container"] != request["container"]:
             raise ValueError("Unavailable or unsupported owned bag item")
         rule = ordinary(item["reference"])
         character = store.character(account_id, character_id, db)
         if character.get("effective_level", character["level"]) < rule["minimum_level"]:
             raise ValueError("Native bag minimum level requirement not met")
         if db.execute(
-            "SELECT 1 FROM inventory_containers WHERE character_id=? AND kind=?",
+            "SELECT 1 FROM inventory_containers WHERE character_id=%s AND kind=%s",
             (character_id, request["slot"]),
         ).fetchone():
             raise ValueError("Bag slot occupied; native replacement not implemented")
-        db.execute("DELETE FROM inventory_items WHERE uid=?", (item["uid"],))
+        if item["quantity"] == 1:
+            bag_uid = item["uid"]
+            db.execute("DELETE FROM inventory_items WHERE uid=%s", (bag_uid,))
+        else:
+            from .inventory_uids import allocate
+
+            bag_uid = allocate(db)
+            db.execute(
+                "UPDATE inventory_items SET quantity=quantity-1 WHERE uid=%s",
+                (item["uid"],),
+            )
         db.execute(
-            "INSERT INTO inventory_containers(character_id,uid,reference,kind,capacity,flags) VALUES(?,?,?,?,?,?)",
+            "INSERT INTO inventory_containers(character_id,uid,reference,kind,capacity,flags) VALUES(%s,%s,%s,%s,%s,%s)",
             (
                 character_id,
-                item["uid"],
+                bag_uid,
                 item["reference"],
                 request["slot"],
                 rule["capacity"],
@@ -111,7 +115,7 @@ def equip(store, account_id, generation, character_id, body):
         )
         bag = struct.pack(
             ">qiBhBHH",
-            item["uid"],
+            bag_uid,
             item["reference"],
             request["slot"],
             rule["capacity"],

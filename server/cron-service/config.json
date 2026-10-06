@@ -10,12 +10,6 @@
       "url": "http://world:18081/test/tasks/positions_flush",
       "body": {}
     },
-    "groups_flush": {
-      "enabled": true,
-      "interval": 1200,
-      "url": "http://world:18081/test/tasks/groups_flush",
-      "body": {}
-    },
     "population": {
       "enabled": false,
       "interval": 60,
@@ -32,15 +26,6 @@
       "enabled": false,
       "interval": 60,
       "url": "http://world:18081/test/tasks/zone_challenges",
-      "body": {}
-    },
-    "builds_flush": {
-      "enabled": true,
-      "interval": 1200,
-      "lease_seconds": 30,
-      "retry_seconds": 5,
-      "max_attempts": 3,
-      "url": "http://world:18081/test/tasks/builds_flush",
       "body": {}
     }
   }

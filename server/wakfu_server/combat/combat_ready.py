@@ -12,8 +12,16 @@ def prepare_ready(
     stats_serializer,
     effects_serializer,
     turn_end_provider=None,
-    turn_start_provider=None
+    turn_start_provider=None,
+    previous_native_action_id=0
 ):
+    from .combat_native_action_ids import MAX_NATIVE_ACTION_ID
+
+    if (
+        type(previous_native_action_id) is not int
+        or not 0 <= previous_native_action_id <= MAX_NATIVE_ACTION_ID
+    ):
+        raise ValueError("Invalid previous native action counter")
     if fight.phase == "active":
         if owner_id not in fight.ready_owners:
             raise ValueError("Readiness owner mismatch")
@@ -36,5 +44,6 @@ def prepare_ready(
         turn_start_provider=turn_start_provider,
     )
     messages.action_id = 1  # reserve the transaction's native action identifier
+    messages.native_action_id = previous_native_action_id
     packets = messages.combat_started(payloads, initialization_packets=initialization)
     return preview, messages, tuple(packets)

@@ -37,3 +37,10 @@ Repetir operaciones confirmadas y cortes alrededor del commit/ACK; ninguna repet
 Invariante: Metadata, equipo, aptitudes, deck y selección comparten índice y revisión; el check visual Activa no prueba autoridad del servidor.
 
 Registrar cada caso como PASS, FAIL o NO EJECUTADO, con evidencia. No convertir una omisión, un click optimista o un resultado de otro snapshot en PASS.
+
+
+## Reconciliación con pruebas del usuario — 6 de octubre
+
+PASS: abrir build secundaria vacía; crear/activar/alternar/editar; recuperar selección y hojas al cambiar de personaje y reiniciar; estadísticas +5/+10 y reset sin acumulación; equipo de build nueva y alternancia; borrado persistente de activa con fallback y conservación de objetos. Evidencias detalladas: E04, E07, E10 e issue17.
+
+NO EJECUTADO en ciclo visual completo: cruce49/50/51, límite24, modulación/salud y cast exclusivo del deck secundario. No trasladar a estos casos el PASS de otras operaciones. Las filas históricas de la matriz anterior describen el estado inicial de auditoría.

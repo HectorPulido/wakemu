@@ -1,35 +1,19 @@
 # Pruebas y aceptación — E08
 
-## Base existente
+## Revalidación PostgreSQL — 2026-10-05
 
-- [test_builds.py](../../../server/tests/test_builds.py): incluido en la ejecución de base registrada.
-- [test_build_journal.py](../../../server/tests/test_build_journal.py): incluido en la ejecución de base registrada.
+El lote aislado `test_aptitudes test_live_console test_build_capacity test_builds test_build_journal test_equipment_stats test_equipment_full_set test_equipment_full_set_ready test_equipment_combat_integration test_ring_build_integration` pasó: **54 tests OK** en contenedores efímeros `world`, con PostgreSQL y migraciones 001–008.
 
-El lote común descubrió **133 tests: 123 pasaron y 10 se omitieron** (Redis real); salida 0. No implica que todas las pruebas relacionadas de esta carpeta se ejecutaran, ni que los casos nuevos pasen. Ver [VALIDACION.md](../VALIDACION.md).
+| Invariante | Evidencia PostgreSQL |
+| --- | --- |
+| Índice e identidad separados del cupo | `test_sparse_index_and_native_byte_boundaries` acepta índices dispersos3,24,127 y rechaza −1,128, booleanos y floats. |
+| Cupo por cantidad, no por índice máximo | `test_capacity_is_count_not_max_index`: 24 hojas no permanentes permiten índice24; una hoja adicional en índice127 excede cupo. Clasificación permanente falsa no evade la validación. |
+| Setting durable | `test_database_capacity_controls_validation_and_reopen`: setting1 se lee tras reabrir, valida una hoja y rechaza la siguiente; setting inválido25 falla al cargar. |
+| Límite en el camino de escritura | `test_database_capacity_rejects_save_without_partial_insert`: con cupo1 `Store.save_build` guarda una hoja, rechaza la segunda y tras reabrir solo permanece la primera. |
+| Carrier nativo del setting | `test_native_capacity_carrier_is_exact_for_one_and_default_twenty_four` comprueba el opcode22318 y los cuerpos hexadecimales exactos para1 y24; `test_native_capacity_carrier_rejects_invalid_types_and_bounds` rechaza None, booleanos, valores fuera1–24, float y string. El decoder nativo del carrier aplica delta24→1 y conserva `calendar.delta7`. |
+| Índice alto persistido | `test_high_index_save_reopen_and_effective_stats`: índice127 se guarda, reabre y evalúa;128 falla. |
+| Catálogo compartido | `test_metadata_equipment_and_aptitudes_share_catalog` alinea índices de metadata, registro de equipo y aptitudes para0 y127. |
 
-Comando dirigido propuesto, desde la raíz y en entorno autorizado:
+## Gap de anuncio
 
-```sh
-PYTHONPATH=server:server/tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest test_builds test_build_journal -q
-```
-
-## Casos específicos que deben añadirse o reproducirse
-
-| Caso | Acción | Resultado exigido | Estado |
-| --- | --- | --- | --- |
-| Último permitido | Crear hoja en allowed_max | Success y cuatro hojas | Pendiente de implementar/verificar |
-| Primero inválido | Index fuera catálogo | Rechazo coherente con UI | Pendiente de implementar/verificar |
-| Índice 3 actual | Fixture de backend | Reproduce rechazo existente; futura regla lo redefine explícitamente | Pendiente de implementar/verificar |
-| Delete/recreate | Liberar cupo | Sin sobrescribir otras hojas | Pendiente de implementar/verificar |
-| Signedbyte | Borde de rango nativo | Sin desbordamiento ni alias de índice | Pendiente de implementar/verificar |
-| Legacy | Más hojas que nuevo cupo | Migration declarada, no pérdida oculta | Pendiente de implementar/verificar |
-
-## Método y criterios
-
-Usar personaje y almacenamiento de prueba aislados. Registrar identidad de instancia, versión, estado inicial, petición, respuesta decodificada y estado durable final. Controlar reloj y RNG en los casos deterministas. Ejecutar límites de ownership, sesión obsoleta, índices/UID inválidos y payload truncado donde apliquen.
-
-Repetir operaciones confirmadas y cortes alrededor del commit/ACK; ninguna repetición puede duplicar consumo, recompensa o efectos. Verificar observadores y reconexión cuando el caso sea multijugador. La prueba gráfica confirma integración, mientras la fixture de protocolo debe fallar si cambian layout o semántica.
-
-Invariante: El cupo que la interfaz ofrece corresponde al que el servidor valida; cada índice conserva su identidad.
-
-Registrar cada caso como PASS, FAIL o NO EJECUTADO, con evidencia. No convertir una omisión, un click optimista o un resultado de otro snapshot en PASS.
+El código actual envía el carrier22318 antes del paquete23082 del bootstrap y con las respuestas de guardado exitoso o rechazado. La prueba/lectura del decoder nativo confirma actualización del estado de configuración y preservación de otra clave; aún falta observar visualmente el contador en la UI durante una sesión y verificar la secuencia completa de creación/selección/borrado.

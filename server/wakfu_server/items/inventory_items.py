@@ -6,44 +6,41 @@ native rules; these operations fail before changing ownership or quantity.
 import struct
 
 
-def schema(db):
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS inventory_items (
-        uid INTEGER PRIMARY KEY AUTOINCREMENT,
-        character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
-        reference INTEGER NOT NULL CHECK(reference>0),
-        quantity INTEGER NOT NULL CHECK(quantity BETWEEN 1 AND 32767),
-        container INTEGER NOT NULL REFERENCES inventory_containers(uid),
-        slot INTEGER NOT NULL CHECK(slot>=0),
-        UNIQUE(container,slot))"""
-    )
-
-
 def load(db, character_id):
-    schema(db)
     from .inventory_elements import hydrate
+    from .mount_inventory import hydrate as hydrate_mounts
 
-    return hydrate(
+    return hydrate_mounts(
         db,
-        [
-            dict(row)
-            for row in db.execute(
-                "SELECT * FROM inventory_items WHERE character_id=? ORDER BY container,slot",
-                (character_id,),
-            )
-        ],
+        hydrate(
+            db,
+            [
+                dict(row)
+                for row in db.execute(
+                    "SELECT * FROM inventory_items WHERE character_id=%s ORDER BY container,slot",
+                    (character_id,),
+                )
+            ],
+        ),
     )
 
 
 def _lease(store, db, account_id, generation, character_id):
     row = db.execute(
-        """SELECT character_id FROM sessions WHERE account_id=?
-        AND generation=? AND expires_at>?""",
-        (account_id, generation, store.clock()),
+        """SELECT character_id FROM sessions WHERE account_id=%s
+        AND generation=%s AND expires_at>%s FOR UPDATE""",
+        (account_id, generation, store.now()),
     ).fetchone()
     if row is None or row["character_id"] != character_id:
         raise ValueError("Invalid inventory session")
-    store.character(account_id, character_id, db)
+    if (
+        db.execute(
+            "SELECT id FROM characters WHERE id=%s AND account_id=%s FOR UPDATE",
+            (character_id, account_id),
+        ).fetchone()
+        is None
+    ):
+        raise ValueError("Invalid inventory owner")
 
 
 def grant(
@@ -69,29 +66,33 @@ def grant(
     ):
         raise ValueError("Invalid owned item grant")
     with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
         _lease(store, db, account_id, generation, character_id)
+        mount_model = db.execute(
+            "SELECT model_id FROM mount_models WHERE reference=%s", (reference,)
+        ).fetchone()
+        if mount_model is not None and quantity != 1:
+            raise ValueError("Mount grants require one unstacked unit")
         bag = db.execute(
-            "SELECT * FROM inventory_containers WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s",
             (container, character_id),
         ).fetchone()
         if bag is None or slot >= bag["capacity"]:
             raise ValueError("Invalid owned destination container")
         if db.execute(
-            "SELECT 1 FROM inventory_items WHERE container=? AND slot=?",
+            "SELECT 1 FROM inventory_items WHERE container=%s AND slot=%s",
             (container, slot),
         ).fetchone():
             raise ValueError("Inventory position occupied")
-        # Keep generated item IDs separate from deterministic base gems/bags.
+        # Shared sequence covers items, bags and reserved client split IDs.
         from .inventory_uids import allocate
 
         uid = allocate(db)
         db.execute(
-            "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(?,?,?,?,?,?)",
+            "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(%s,%s,%s,%s,%s,%s)",
             (uid, character_id, reference, quantity, container, slot),
         )
         item = dict(
-            db.execute("SELECT * FROM inventory_items WHERE uid=?", (uid,)).fetchone()
+            db.execute("SELECT * FROM inventory_items WHERE uid=%s", (uid,)).fetchone()
         )
         from .inventory_elements import create, save
 
@@ -99,6 +100,10 @@ def grant(
         if selected is not None:
             save(db, uid, selected)
             item.update(selected)
+        if mount_model is not None:
+            from .mount_inventory import initialize
+
+            item["mount"] = initialize(db, uid, character_id, store.now())
         return item
 
 
@@ -106,10 +111,9 @@ def remove(store, account_id, generation, character_id, uid, quantity):
     if type(quantity) is not int or not 1 <= quantity <= 32767:
         raise ValueError("Invalid removal quantity")
     with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
         _lease(store, db, account_id, generation, character_id)
         item = db.execute(
-            "SELECT * FROM inventory_items WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (uid, character_id),
         ).fetchone()
         if item is None or quantity > item["quantity"]:
@@ -124,10 +128,10 @@ def remove(store, account_id, generation, character_id, uid, quantity):
                         "Equipped item must be removed from its build first"
                     )
         if quantity == item["quantity"]:
-            db.execute("DELETE FROM inventory_items WHERE uid=?", (uid,))
+            db.execute("DELETE FROM inventory_items WHERE uid=%s", (uid,))
         else:
             db.execute(
-                "UPDATE inventory_items SET quantity=quantity-? WHERE uid=?",
+                "UPDATE inventory_items SET quantity=quantity-%s WHERE uid=%s",
                 (quantity, uid),
             )
         # cwZ/chK -> fnq/fnp -> Rj.b adds this signed quantity delta.
@@ -156,6 +160,14 @@ def item_proto(item):
         raise ValueError("Invalid minimal item")
     from .inventory_elements import proto
 
+    mount_proto = b""
+    if "mount" in item:
+        if qty != 1:
+            raise ValueError("Mount protobuf requires an unstacked unit")
+        from .mount_codec import item_pet
+
+        mount_proto = item_pet(item["mount"])
+
     return (
         b"\x08"
         + _varint(uid)
@@ -164,6 +176,7 @@ def item_proto(item):
         + b"\x18"
         + _varint(qty)
         + proto(item)
+        + mount_proto
     )
 
 
@@ -249,7 +262,7 @@ def owned_request(store, account_id, generation, character_id, opcode, body):
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
         item = db.execute(
-            "SELECT * FROM inventory_items WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (request["uid"], character_id),
         ).fetchone()
         if item is None:

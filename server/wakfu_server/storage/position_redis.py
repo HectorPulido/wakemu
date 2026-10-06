@@ -1,8 +1,8 @@
 """Optional Redis write-ahead mirror for generation-scoped position batches.
 
-SQLite owns leases and committed state. Redis holds only validated unflushed
-positions, including the exact SQLite baseline required for crash recovery.
-This is not a distributed world server or a replacement for SQLite ownership.
+PostgreSQL owns leases and committed state. Redis holds only validated unflushed
+positions, including the exact PostgreSQL baseline required for crash recovery.
+This is not a distributed world server or a replacement for PostgreSQL ownership.
 """
 import copy
 import json
@@ -12,6 +12,10 @@ from .position_buffer import Positions, _KEYS
 
 class PositionJournalError(ValueError):
     pass
+
+
+class PositionJournalUnavailable(PositionJournalError):
+    """Transient backend failure, distinct from malformed data or CAS conflict."""
 
 
 _PUT = """local old=redis.call('HGET',KEYS[1],ARGV[1]);
@@ -64,7 +68,9 @@ class Journal:
         try:
             return getattr(self.client, method)(*args)
         except Exception as error:
-            raise PositionJournalError("Redis position journal unavailable") from error
+            raise PositionJournalUnavailable(
+                "Redis position journal unavailable"
+            ) from error
 
     def put(self, key, entry, expected=None):
         value = dict(
@@ -104,7 +110,9 @@ class Journal:
         try:
             rows = list(self.client.hscan_iter(self.namespace))
         except Exception as error:
-            raise PositionJournalError("Redis position journal unavailable") from error
+            raise PositionJournalUnavailable(
+                "Redis position journal unavailable"
+            ) from error
         for field, encoded in rows:
             field = field.decode() if isinstance(field, bytes) else field
             encoded = encoded.decode() if isinstance(encoded, bytes) else encoded
@@ -130,9 +138,9 @@ class Journal:
             yield key, value, encoded
 
     def recover(self, store):
-        """Replay CAS only for current selected SQLite leases, before accepting clients.
+        """Replay CAS only for current selected PostgreSQL leases, before accepting clients.
 
-        A crash after SQLite commit but before Redis ACK is recognized as already
+        A crash after PostgreSQL commit but before Redis ACK is recognized as already
         committed. Conflicting baselines remain in Redis and are reported untouched.
         Expired/replaced leases are removed, never applied to a new generation.
         """
@@ -140,13 +148,12 @@ class Journal:
         for key, value, encoded in self.records():
             account, generation, character_id = key
             with store.connection() as db:
-                db.execute("BEGIN IMMEDIATE")
                 session = db.execute(
-                    "SELECT character_id FROM sessions WHERE account_id=? AND generation=? AND expires_at>?",
-                    (account, generation, store.clock()),
+                    "SELECT character_id FROM sessions WHERE account_id=%s AND generation=%s AND expires_at>%s FOR UPDATE",
+                    (account, generation, store.now()),
                 ).fetchone()
                 row = db.execute(
-                    "SELECT * FROM characters WHERE id=? AND account_id=?",
+                    "SELECT * FROM characters WHERE id=%s AND account_id=%s FOR UPDATE",
                     (character_id, account),
                 ).fetchone()
                 if (
@@ -161,7 +168,7 @@ class Journal:
                     old = value["baseline"]
                     new = value["current"]
                     changed = db.execute(
-                        "UPDATE characters SET x=?,y=?,z=? WHERE id=? AND account_id=? AND map_id=? AND instance_id=? AND x=? AND y=? AND z=?",
+                        "UPDATE characters SET x=%s,y=%s,z=%s WHERE id=%s AND account_id=%s AND map_id=%s AND instance_id=%s AND x=%s AND y=%s AND z=%s",
                         (
                             new["x"],
                             new["y"],
@@ -268,6 +275,6 @@ def create(store, *, lease_active, url=None, namespace="wakfu:positions:v1"):
     recovery = journal.recover(store)
     if recovery["conflicts"]:
         raise PositionJournalError(
-            "Redis position recovery has unresolved SQLite baselines"
+            "Redis position recovery has unresolved PostgreSQL baselines"
         )
     return RedisPositions(store, lease_active=lease_active, journal=journal), recovery

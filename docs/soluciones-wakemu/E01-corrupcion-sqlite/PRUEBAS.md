@@ -33,3 +33,24 @@ Repetir operaciones confirmadas y cortes alrededor del commit/ACK; ninguna repet
 Invariante: Recovery nunca inventa objetos/progreso; la copia reparada se valida antes de sustituir la autoridad.
 
 Registrar cada caso como PASS, FAIL o NO EJECUTADO, con evidencia. No convertir una omisión, un click optimista o un resultado de otro snapshot en PASS.
+
+## Suite completa del servidor — 5 de octubre de 2026
+
+Se ejecutó el descubrimiento completo en un contenedor efímero con el checkout montado en solo lectura, PostgreSQL `wakemu_migration_test` y Redis DB 15. El log privado está en `.runtime/local/full-postgres-suite-current.log`.
+
+```sh
+docker compose run --rm --no-deps --entrypoint python3 \
+  -v "$PWD:/workspace:ro" \
+  -e PYTHONPATH=/workspace:/workspace/server:/workspace/server/tests \
+  -e WAKFU_POSTGRES_TEST_URL='host=postgres dbname=wakemu_migration_test user=wakemu' \
+  -e WAKFU_MIGRATIONS_TEST_DIR=/workspace/server/migrations \
+  -e WAKFU_DATABASE_PASSWORD_FILE=/data/secrets/postgres-password \
+  -e WAKFU_REDIS_TEST_URL=redis://redis:6379/15 \
+  world -m unittest discover -s /workspace/server/tests -q
+```
+
+Resultado: **1,737 tests; 12 FAIL, 59 ERROR, 1 omitido; salida 1**. No se observaron trazas de fallo PostgreSQL, migración ni Redis en los errores de unittest. La ejecución acotada relacionada con cleanup, journal Redis, mundo/chat y autorización pasó **88/88**; no sustituye el resultado rojo de la suite completa.
+
+Los errores completos se concentran en suites de combate: 37 `UnboundLocalError` de `area_handler` (displacement 2, effect runtime 18, runtime adapter 2, state decurse 7 y state level/group 8); 12 `AttributeError` por fixtures/modelos sin `turn_count` (8), `native_obstacle_id` (3) o `RegisteredSummonAuthority.decks` (1); 8 `ValueError` por políticas nativas ausentes (routing de dueño de entrega 2, build metadata 4, límite de lanzamiento propio 1 y propagación de summon sin auditar 1); y 2 artefactos ausentes (`cinetosis-fulgor-runtime-audit.json` y `.runtime/local/hud-threshold-runtime.json`). Los 12 `FAIL` son también de comportamiento/expectativas de combate: eventos de displacement (3), heart-blood (2), ordinary healing events (2), diagnóstico de efecto 949 (1), autocast/LOS (1), pasiva de inicio Iop (1), rama crítica del arma (1) y registro de características de efecto (1).
+
+Esta suite no atribuye esos fallos a persistencia PostgreSQL. Mantenerlos como fallos abiertos de sus módulos; no retirar assertions ni presentar la suite completa como verde. E01 se evalúa además por su gate PostgreSQL específico, restauración poblada y validación visual documentados en [IMPLEMENTACION.md](IMPLEMENTACION.md).

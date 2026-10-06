@@ -27,4 +27,4 @@
 | Comida, curación, reposo y cosmético | Consumo/estado atómicos; fechas y cooldown sobreviven reinicio |
 | Reinicio/fallo entre commit y publicación | Estado recuperable; no duplicación de items ni pérdida de montura |
 
-Pendientes técnicos: carrier PET en caliente, estado montado de bootstrap, protobuf rico de item, handlers de alimentación/cosméticos y recorridos GUI/observadores. Son trabajo de investigación/implementación, no decisiones a pedir al usuario.
+Carrier PET caliente15548 y descriptor de ProtoItem/ProtoPet cotejados en la revisión posterior de [COTEJO.md](COTEJO.md). Se corrige el layout rz: no contiene XP. Pendientes técnicos: implementar estado montado de bootstrap, protobuf rico de item, autoridad PostgreSQL, handlers de alimentación/cosméticos y recorridos GUI/observadores. El contrato cotejado no equivale a haber desplegado esa implementación. Son trabajo de investigación/implementación, no decisiones a pedir al usuario.

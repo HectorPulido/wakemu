@@ -1,63 +1,50 @@
 """Session-scoped health persistence; no fixture HP enters owned state."""
+from contextlib import nullcontext
+from datetime import datetime, timezone
+from psycopg.pq import TransactionStatus
 import threading
 import weakref
-from wakfu_server import health
+from wakfu_server import health, health_policy
 
 _TICK_LOCK = threading.RLock()
 _TICK_CLOCKS = weakref.WeakKeyDictionary()
 
 
-def schema(db):
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS character_regeneration (
-        character_id INTEGER PRIMARY KEY REFERENCES characters(id),
-        initial_hp INTEGER NOT NULL, started_ms INTEGER NOT NULL,
-        coefficient INTEGER NOT NULL, last_ms INTEGER NOT NULL)"""
-    )
+def timestamp(now_ms):
+    if type(now_ms) is not int:
+        raise ValueError("Invalid regeneration clock")
+    return datetime.fromtimestamp(now_ms / 1000, timezone.utc)
 
 
 def _owned(store, db, account_id, generation, character_id):
-    session = db.execute(
-        "SELECT character_id FROM sessions WHERE account_id=? AND generation=? AND expires_at>?",
-        (account_id, generation, store.clock()),
-    ).fetchone()
-    if session is None or session["character_id"] != character_id:
-        raise ValueError("Invalid health session")
+    store.lock_character(db, account_id, generation, character_id)
     return store.character(account_id, character_id, db)
 
 
 def initialize(
-    store, account_id, generation, character_id, *, coefficient=0, now_ms=None
+    store, account_id, generation, character_id, *, coefficient=0, now_ms=None, db=None
 ):
-    """Repair bare maximum; a previously full character remains full.
+    """Reconcile effective maximum without erasing canonical wounds or death.
 
-    Call on selection before sending initial HP. Incomplete equipment/passive
-    HP bonuses must be implemented before enabling them in the local world.
+    Call on selection before sending initial HP; shared with build transitions.
     """
     now_ms = int(store.clock() * 1000) if now_ms is None else now_ms
-    with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
-        schema(db)
+    if db is not None and db.info.transaction_status != TransactionStatus.INTRANS:
+        raise ValueError("Health initialization requires an active transaction")
+    borrowed = db is not None
+    with nullcontext(db) if borrowed else store.connection() as db:
         character = _owned(store, db, account_id, generation, character_id)
         from .equipment_stats import effective_character
 
         maximum = effective_character(character)["max_hp"]
-        hp = (
-            maximum
-            if character["hp"] == character["max_hp"]
-            else min(maximum, max(0, character["hp"]))
-        )
+        hp = health_policy.reconfigure(db, character, maximum)
         if hp == 0:
             coefficient = 0  # A dead character waits for explicit resurrection.
         health.packet(character_id, hp, coefficient)
         db.execute(
-            "UPDATE characters SET hp=?,max_hp=? WHERE id=? AND account_id=?",
-            (hp, maximum, character_id, account_id),
-        )
-        db.execute(
-            "INSERT INTO character_regeneration VALUES(?,?,?,?,?) ON CONFLICT(character_id) DO UPDATE SET "
-            "initial_hp=excluded.initial_hp,started_ms=excluded.started_ms,coefficient=excluded.coefficient,last_ms=excluded.last_ms",
-            (character_id, hp, now_ms, coefficient, now_ms),
+            "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) VALUES(%s,%s,%s,%s,%s) ON CONFLICT(character_id) DO UPDATE SET "
+            "initial_hp=excluded.initial_hp,started_at=excluded.started_at,coefficient=excluded.coefficient,last_at=excluded.last_at",
+            (character_id, hp, timestamp(now_ms), coefficient, timestamp(now_ms)),
         )
         return store.character(account_id, character_id, db)
 
@@ -77,19 +64,14 @@ def sync(
     now_ms = int(store.clock() * 1000) if now_ms is None else now_ms
     health.packet(character_id, hp, coefficient)
     with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
-        schema(db)
         character = _owned(store, db, account_id, generation, character_id)
         if character["hp"] != expected_hp or hp > character["max_hp"]:
             raise ValueError("Stale or out-of-range health")
+        hp = health_policy.apply(db, character, hp)
         db.execute(
-            "UPDATE characters SET hp=? WHERE id=? AND account_id=? AND hp=?",
-            (hp, character_id, account_id, expected_hp),
-        )
-        db.execute(
-            "INSERT INTO character_regeneration VALUES(?,?,?,?,?) ON CONFLICT(character_id) DO UPDATE SET "
-            "initial_hp=excluded.initial_hp,started_ms=excluded.started_ms,coefficient=excluded.coefficient,last_ms=excluded.last_ms",
-            (character_id, hp, now_ms, coefficient, now_ms),
+            "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) VALUES(%s,%s,%s,%s,%s) ON CONFLICT(character_id) DO UPDATE SET "
+            "initial_hp=excluded.initial_hp,started_at=excluded.started_at,coefficient=excluded.coefficient,last_at=excluded.last_at",
+            (character_id, hp, timestamp(now_ms), coefficient, timestamp(now_ms)),
         )
         return store.character(account_id, character_id, db)
 
@@ -98,9 +80,9 @@ def tick(store, account_id, generation, character_id, expected_hp, *, now_ms=Non
     """Read-only until integer HP changes; keep the original fractional baseline.
 
     Returns a lightweight owned HP snapshot (id/account/breed/level/hp/max_hp),
-    avoiding Store.character hydration, which performs inventory initialization.
+    avoiding full Store.character hydration.
     Persistent last_ms records the last applied change. A per-Store high-water
-    clock validates skipped observations in this process without writing SQLite
+    clock validates skipped observations in this process without writing persistent state
     for full/dead/stopped characters or sub-integer regeneration increments.
     """
     now_ms = int(store.clock() * 1000) if now_ms is None else now_ms
@@ -110,43 +92,46 @@ def tick(store, account_id, generation, character_id, expected_hp, *, now_ms=Non
 
         def evaluate():
             session = db.execute(
-                "SELECT character_id FROM sessions WHERE account_id=? AND generation=? AND expires_at>?",
-                (account_id, generation, store.clock()),
+                "SELECT character_id FROM sessions WHERE account_id=%s AND generation=%s AND expires_at>%s",
+                (account_id, generation, store.now()),
             ).fetchone()
             if session is None or session["character_id"] != character_id:
                 raise ValueError("Invalid health session")
             row = db.execute(
-                "SELECT id,account_id,breed,level,hp,max_hp FROM characters WHERE id=? AND account_id=?",
+                "SELECT id,account_id,breed,level,hp,max_hp,hp_damage,health_dead FROM characters WHERE id=%s AND account_id=%s",
                 (character_id, account_id),
             ).fetchone()
             if row is None:
                 raise ValueError("Invalid health character")
             character = dict(row)
             totals = db.execute(
-                "SELECT xp,kamas FROM character_progression WHERE character_id=?",
+                "SELECT xp FROM character_progression WHERE character_id=%s",
                 (character_id,),
             ).fetchone()
             wallet = db.execute(
-                "SELECT kamas FROM account_wallets WHERE account_id=?", (account_id,)
+                "SELECT kamas FROM account_wallets WHERE account_id=%s", (account_id,)
             ).fetchone()
             if totals is not None:
                 from wakfu_server.progression import level_xp
 
                 character.update(
-                    xp=max(totals["xp"], level_xp(character["level"])),
-                    kamas=wallet["kamas"] if wallet is not None else totals["kamas"],
+                    xp=totals["xp"],
+                    kamas=wallet["kamas"] if wallet is not None else 0,
                 )
             if character["hp"] != expected_hp:
                 raise ValueError("Stale health update")
             state = db.execute(
-                "SELECT * FROM character_regeneration WHERE character_id=?",
+                "SELECT * FROM character_regeneration WHERE character_id=%s",
                 (character_id,),
             ).fetchone()
             if state is None:
                 raise ValueError("Invalid regeneration clock")
+            state["started_ms"] = int(state["started_at"].timestamp() * 1000)
+            state["last_ms"] = int(state["last_at"].timestamp() * 1000)
             signature = (
                 generation,
                 state["initial_hp"],
+                state["initial_damage"],
                 state["started_ms"],
                 state["coefficient"],
             )
@@ -157,34 +142,31 @@ def tick(store, account_id, generation, character_id, expected_hp, *, now_ms=Non
                 minimum = max(minimum, previous[1])
             if now_ms < minimum:
                 raise ValueError("Invalid regeneration clock")
-            if character["hp"] in (0, character["max_hp"]) or state["coefficient"] == 0:
-                hp = character["hp"]
-            else:
-                hp = health.regenerated(
-                    state["initial_hp"],
-                    character["max_hp"],
-                    now_ms - state["started_ms"],
-                    state["coefficient"],
-                )
-            return character, state, signature, hp
+            damage = character["hp_damage"]
+            if not character["health_dead"] and state["coefficient"]:
+                elapsed = now_ms - state["started_ms"]
+                gained = (
+                    state["coefficient"] * elapsed + health.REGEN_DENOMINATOR_MS // 2
+                ) // health.REGEN_DENOMINATOR_MS
+                damage = max(0, state["initial_damage"] - gained)
+            hp = health_policy.visible(
+                character["max_hp"], damage, character["health_dead"]
+            )
+            return character, state, signature, hp, damage
 
-        character, state, signature, hp = evaluate()
-        if hp != character["hp"]:
-            # Re-read under a write lock: combat healing/damage, generation or
-            # regeneration policy may have changed since the read-only probe.
-            db.execute("BEGIN IMMEDIATE")
-            character, state, signature, hp = evaluate()
-            if hp != character["hp"]:
-                result = db.execute(
-                    "UPDATE characters SET hp=? WHERE id=? AND account_id=? AND hp=?",
-                    (hp, character_id, account_id, expected_hp),
+        character, state, signature, hp, damage = evaluate()
+        if damage != character["hp_damage"]:
+            store.lock_character(db, account_id, generation, character_id)
+            character, state, signature, hp, damage = evaluate()
+            if damage != character["hp_damage"]:
+                hp = health_policy.apply_damage(
+                    db, character, damage, character["health_dead"]
                 )
-                if result.rowcount != 1:
-                    raise ValueError("Stale health update")
                 db.execute(
-                    "UPDATE character_regeneration SET last_ms=? WHERE character_id=?",
-                    (now_ms, character_id),
+                    "UPDATE character_regeneration SET last_at=%s WHERE character_id=%s",
+                    (timestamp(now_ms), character_id),
                 )
                 character["hp"] = hp
+                character["hp_damage"] = damage
         _TICK_CLOCKS[store][(account_id, character_id)] = (signature, now_ms)
         return character

@@ -1,12 +1,22 @@
 # Seed planting
 
+> **Corrección del cotejo, implementación actual:** la revisión completa de
+> `bJt.d/e` demuestra que la llamada desde `cgN.a(cAZ)` solo muestra
+> `item.selfDrop`; no resta cantidad. `cYt.eXi` avanza objetivos y tampoco
+> actualiza la pila. La afirmación anterior de que12954 consume visualmente
+> era incorrecta. Una prueba GUI registró cinco plantaciones confirmadas desde
+> una pila5: PostgreSQL quedó sin el objeto y la interfaz conservó5. El servidor
+> ahora emite12470 con UID y delta-1 una sola vez después del ACK; replay y
+> cancelación no emiten delta. Validación del cambio gráfico pendiente.
+
+
 Installed item action `bIi` identifies its own profession, minimum profession level and resource reference. ExportSeedActions produced254actions. Resource definitions `aNl` produced533records and their native stage IDs. `bbO.a` creates `bOh` for `aNl.cvt=true` and `bOk` otherwise. Monster resource `cvv` contains monster FAMILY IDs: client `dev.eEa` resolves them through `bRT.Jp`, whose model `bRQ.cqM` is family identity. These integers must not be used as monster reference IDs.
 
 Examples from installed data (not special implementation branches): Wonejo seed30927/action13427/profession74/resource823/family1113; monster reference5525 has family1113. Herb seed4275/action406/profession72/resource60. Wheat seed1752/action644/profession64/resource23.
 
 Native OUT13220 carries action i32, seed UID i64 and bIi payload x/y i32:20bytes. IN12815 `cyK` is byte mun,short hvY,long actor hvW,profession eii i32,ctQ widened from i32,egY i32,x/y i32. The observed ctQ resembles duration, but no universal duration formula is asserted. IN13135 `cAz→zk→cFL` is protobuf ResourcePartition: reference,x,y,z,stage,boolean,time,extra, fields1..8. Native cFL selects `bOi` for monster seed resources and `bOm` for plants.
 
-Official tutorial capture shows stage1 resource creation for both monster and plant seeds, then success12954. It does not prove immediate creation of a mature NPC group. IN12954 `cAZ` is i64+i32+boolean. Its cgN handler reads only boolean, updates dev state and consumes1seed on BOTH success and failure. Therefore sending12954 together with inventory12470 would consume twice visually. Unknown prefix identities are caller-supplied rather than guessed. Native Java parsers validated all three produced packet formats.
+Official tutorial capture shows stage1 resource creation for both monster and plant seeds, then success12954. It does not prove immediate creation of a mature NPC group. IN12954 `cAZ` is i64+i32+boolean. Its cgN handler reads the success boolean, advances dev state and calls bJt.d/e to display the loss message. Full inspection of that callee confirms no quantity mutation; a committed consumption also requires inventory12470. Unknown prefix identities are caller-supplied rather than guessed. Native Java parsers validated all three produced packet formats.
 
 `planting.prepare` validates lease, owned seed/action, criteria support, learned profession/minimum level and resource, then invokes caller `authorize_cell` for territory, exact height and ecosystem policy. The callback must reject unknown conditions. CursorX can occur before an outgoing request: dev requires region/ecosystem family records, permissions and profession availability. This helper alone does not initialize those client models.
 

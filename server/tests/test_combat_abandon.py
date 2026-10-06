@@ -1,36 +1,68 @@
 import struct
 import tempfile
-import unittest
-from pathlib import Path
-from wakfu_server.store import Store
+from contextlib import contextmanager
+from postgres_case import PostgresCase
 from wakfu_server import health_store, combat_abandon
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_runtime_messages import RuntimeMessages
 
 
-class AbandonTests(unittest.TestCase):
-    def setup(self, directory):
-        store = Store(Path(directory) / "world.db", lambda: 1000)
-        account = store.register("one", "local-password")["id"]
-        gen = store.begin_session(account)
-        char = store.create_character(account, "One")
-        char = store.select_character(account, gen, char["id"])
-        char = health_store.initialize(store, account, gen, char["id"], coefficient=0)
-        fight = Fight(
-            7,
-            [
-                Actor(char["id"], 0, (0, 0, 0), char["hp"], 6, 3, 0, account, 1, True),
-                Actor(-200, 1, (1, 0, 0), 20, 4, 2, 10, 1),
-            ],
-            {(0, 0, 0), (1, 0, 0)},
-            {0: {(0, 0, 0)}, 1: {(1, 0, 0)}},
+def setup_abandon_state(store):
+    store.clock = lambda: 1000
+    account = store.register("one", "local-password")["id"]
+    generation = store.begin_session(account)
+    character = store.create_character(account, "One")
+    character = store.select_character(account, generation, character["id"])
+    character = health_store.initialize(
+        store, account, generation, character["id"], coefficient=0
+    )
+    with store.connection() as db:
+        db.execute(
+            "INSERT INTO combat_fights(id,status) OVERRIDING SYSTEM VALUE VALUES(%s,'placement')",
+            (7,),
         )
-        return store, account, gen, char, fight, RuntimeMessages(fight)
+        db.execute(
+            "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team) VALUES(%s,%s,%s,0)",
+            (7, character["id"], account),
+        )
+    fight = Fight(
+        7,
+        [
+            Actor(
+                character["id"],
+                0,
+                (0, 0, 0),
+                character["hp"],
+                6,
+                3,
+                0,
+                account,
+                1,
+                True,
+            ),
+            Actor(-200, 1, (1, 0, 0), 20, 4, 2, 10, 1),
+        ],
+        {(0, 0, 0), (1, 0, 0)},
+        {0: {(0, 0, 0)}, 1: {(1, 0, 0)}},
+    )
+    return store, account, generation, character, fight, RuntimeMessages(fight)
+
+
+class AbandonTests(PostgresCase):
+    def setup(self, directory):
+        return setup_abandon_state(self.store)
 
     def test_abandon_placement_waits_for_matching_callback_without_rewards(self):
         with tempfile.TemporaryDirectory() as directory:
             s, a, g, c, f, r = self.setup(directory)
             result = combat_abandon.prepare(s, a, g, c, r, b"")
+            with s.connection() as db:
+                self.assertEqual(
+                    db.execute(
+                        "SELECT status FROM combat_fights WHERE id=%s", (f.id,)
+                    ).fetchone()["status"],
+                    "aborted",
+                )  # Durable outcome is committed by prepare, before any checkpoint/ACK.
             self.assertEqual([op for op, body in result["packets"]], [12238, 13420])
             self.assertEqual(result["packets"][0][1][12], 0)
             self.assertEqual(
@@ -63,10 +95,15 @@ class AbandonTests(unittest.TestCase):
             )
             with s.connection() as db:
                 self.assertEqual(
-                    db.execute("SELECT COUNT(*) FROM fight_rewards").fetchone()[0], 0
+                    db.execute(
+                        "SELECT COUNT(*) AS count FROM fight_rewards"
+                    ).fetchone()["count"],
+                    0,
                 )
                 self.assertEqual(
-                    db.execute("SELECT COUNT(*) FROM fight_health_exits").fetchone()[0],
+                    db.execute(
+                        "SELECT COUNT(*) AS count FROM fight_health_exits"
+                    ).fetchone()["count"],
                     1,
                 )
 
@@ -137,7 +174,10 @@ class AbandonTests(unittest.TestCase):
             self.assertTrue(r.abandon_returned)
             with s.connection() as db:
                 self.assertEqual(
-                    db.execute("SELECT COUNT(*) FROM fight_rewards").fetchone()[0], 0
+                    db.execute(
+                        "SELECT COUNT(*) AS count FROM fight_rewards"
+                    ).fetchone()["count"],
+                    0,
                 )
             with self.assertRaises(ValueError):
                 combat_abandon.return_to_world(
@@ -168,3 +208,100 @@ class AbandonTests(unittest.TestCase):
                 combat_abandon.prepare(s, a, g, c, r, b"")
             self.assertEqual(f.phase, "placement")
             self.assertEqual(r.action_id, 0)
+
+    def test_status_update_failure_rolls_back_health_receipt_and_runtime_state(self):
+        from unittest.mock import patch
+        from wakfu_server.fight_store import activate
+
+        s, a, g, c, f, r = self.setup(None)
+        f.ready(a)
+        f.actors[c["id"]].hp -= 5
+        activate(s, a, g, c["id"], f.id)
+        r.awaiting_ack = 17
+        r.pending = [(123, b"pending")]
+        pending = r.pending
+        original_connection = s.connection
+
+        @contextmanager
+        def fail_abort_status():
+            with original_connection() as db:
+
+                class FaultingConnection:
+                    def execute(self, query, *args, **kwargs):
+                        if "UPDATE combat_fights SET status='aborted'" in query:
+                            raise RuntimeError("injected abort status failure")
+                        return db.execute(query, *args, **kwargs)
+
+                    def __getattr__(self, name):
+                        return getattr(db, name)
+
+                yield FaultingConnection()
+
+        before = s.character(a, c["id"])
+        with patch.object(s, "connection", side_effect=fail_abort_status):
+            with self.assertRaisesRegex(RuntimeError, "injected abort status failure"):
+                combat_abandon.prepare(s, a, g, c, r, b"")
+
+        after = s.character(a, c["id"])
+        self.assertEqual(
+            (after["hp"], after["hp_damage"], after["health_dead"]),
+            (before["hp"], before["hp_damage"], before["health_dead"]),
+        )
+        self.assertEqual(
+            (f.phase, f.winner, f.actors[c["id"]].hp), ("active", None, c["hp"] - 5)
+        )
+        self.assertEqual((r.awaiting_ack, r.pending), (17, pending))
+        self.assertIs(r.pending, pending)
+        with s.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (f.id,)
+                ).fetchone()["status"],
+                "active",
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT COUNT(*) AS count FROM fight_health_exits WHERE fight_id=%s",
+                    (f.id,),
+                ).fetchone()["count"],
+                0,
+            )
+
+    def test_finished_durable_fight_rejects_abandon_without_any_mutation(self):
+        s, a, g, c, f, r = self.setup(None)
+        f.ready(a)
+        f.actors[c["id"]].hp -= 5
+        r.awaiting_ack = 17
+        r.pending = [(123, b"pending")]
+        with s.connection() as db:
+            db.execute(
+                "UPDATE combat_fights SET status='finished' WHERE id=%s", (f.id,)
+            )
+        before = s.character(a, c["id"])
+
+        with self.assertRaisesRegex(ValueError, "durably abandoned"):
+            combat_abandon.prepare(s, a, g, c, r, b"")
+
+        after = s.character(a, c["id"])
+        self.assertEqual(
+            (after["hp"], after["hp_damage"], after["health_dead"]),
+            (before["hp"], before["hp_damage"], before["health_dead"]),
+        )
+        self.assertEqual(
+            (f.phase, f.winner, f.actors[c["id"]].hp), ("active", None, c["hp"] - 5)
+        )
+        self.assertEqual((r.awaiting_ack, r.pending), (17, [(123, b"pending")]))
+        with s.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (f.id,)
+                ).fetchone()["status"],
+                "finished",
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT COUNT(*) AS count FROM fight_health_exits WHERE fight_id=%s",
+                    (f.id,),
+                ).fetchone()["count"],
+                0,
+            )

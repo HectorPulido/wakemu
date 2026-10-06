@@ -1,5 +1,12 @@
 # Reglas de implementación y verificación
 
+## Criterio de arquitectura autorizado — 2026-10-05
+
+El usuario prioriza código limpio y escalable sobre retrocompatibilidad. Se autorizan cambios incompatibles de esquema, API interna y formatos persistidos, incluso si la base anterior deja de funcionar. No mantener lectores legacy, traductores de SQL SQLite, doble backend, dual-write ni fallbacks para preservar contratos abandonados. Reescribir callers y pruebas alrededor del contrato definitivo.
+
+Un backup/exportación puntual es recuperación operativa, no una obligación de restaurar compatibilidad. Conservar datos antiguos solo si aporta valor sin condicionar el diseño; se permite empezar con una base nueva. Mantener los contratos nativos que necesita el cliente de juego: esa interoperabilidad sigue siendo requisito funcional, no retrocompatibilidad de nuestra implementación.
+
+
 ## Autoridad y alcance
 
 Trabajar solo en el servidor y sobre un entorno autorizado. No editar el cliente para ocultar un defecto de estado o protocolo. Separar código del checkout, snapshot del ensayo y versión desplegada; registrar identidad de instancia y versión real. Los cambios concurrentes obligan a repetir el cotejo de archivos afectados.
@@ -20,6 +27,6 @@ Distinguir petición, ACK, delta y snapshot completo. Usar fixtures mínimas y d
 
 ## Recuperación y entrega
 
-Ensayar antes de commit, después de commit y antes del ACK. Probar sesión revocada, replay, reconnect y observers cuando corresponda. Las migraciones se prueban en copias consistentes con compatibilidad de lectores y plan de recuperación. No recuperar mediante SQL antiguo si existen mutaciones posteriores confirmadas.
+Ensayar antes de commit, después de commit y antes del ACK. Probar sesión revocada, replay, reconnect y observers cuando corresponda. Validar el esquema nuevo, las transacciones y sus consumidores sin exigir lectores antiguos. Si se importa información anterior, probar la importación sobre una copia consistente y documentar los registros rechazados; comenzar con una base vacía también es válido. No recuperar mediante SQL antiguo si existen mutaciones posteriores confirmadas.
 
 No publicar bases, tokens, capturas privadas, logs personales ni archivos propietarios del cliente. No se autoriza reinicio, commit, push o despliegue por la existencia de estos planes. Registrar PASS/FAIL/NO EJECUTADO y no confundir tests de base con aceptación de una solución aún no implementada.

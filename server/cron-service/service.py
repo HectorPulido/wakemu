@@ -4,6 +4,7 @@ import os
 import threading
 import time
 import urllib.request
+from pathlib import Path
 import redis
 from wakfu_server.world_scheduler import RedisBackend, Scheduler
 
@@ -12,11 +13,24 @@ def http_action(task):
     def action(occurrence, lease_lost):
         if lease_lost.is_set():
             raise RuntimeError("Task lease lost before request")
+        token_path = os.environ.get("WAKFU_CRON_API_TOKEN_FILE", "")
+        token = (
+            Path(token_path).read_text().strip()
+            if token_path
+            else os.environ.get("WAKFU_CRON_API_TOKEN", "").strip()
+        )
+        if not token:
+            raise RuntimeError("Scheduler API credential is not configured")
+        headers = {
+            "Content-Type": "application/json",
+            "Idempotency-Key": occurrence,
+            "Authorization": "Bearer " + token,
+        }
         body = dict(task.get("body", {}), request_id=occurrence)
         request = urllib.request.Request(
             task["url"],
             data=json.dumps(body).encode(),
-            headers={"Content-Type": "application/json", "Idempotency-Key": occurrence},
+            headers=headers,
         )
         deadline = time.monotonic() + task.get("timeout_seconds", 10)
         with urllib.request.urlopen(
@@ -30,7 +44,10 @@ def http_action(task):
                     if lease_lost.wait(0.1):
                         raise RuntimeError("Task lease lost")
                     with urllib.request.urlopen(
-                        base + "/" + handle,
+                        urllib.request.Request(
+                            base + "/" + handle,
+                            headers={"Authorization": "Bearer " + token},
+                        ),
                         timeout=max(0.1, deadline - time.monotonic()),
                     ) as poll:
                         result = json.load(poll)

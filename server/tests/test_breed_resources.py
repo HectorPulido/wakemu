@@ -29,9 +29,10 @@ class BreedResourceTests(unittest.TestCase):
         ]
         c["builds"] = {
             0: dict(
+                sheet=proto_field(24, (1 << 64) - 1).hex(),
                 equipment=proto_field(
                     10, proto_field(8, 1000) + proto_field(16, 4)
-                ).hex()
+                ).hex(),
             )
         }
         self.assertEqual(combat_resources(c)["ap"], 7)

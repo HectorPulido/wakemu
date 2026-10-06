@@ -1,8 +1,18 @@
 # Semillas: contrato de consumo y límite de reproducción
 
+> **Corrección del cotejo, implementación actual:** la revisión completa de
+> `bJt.d/e` demuestra que la llamada desde `cgN.a(cAZ)` solo muestra
+> `item.selfDrop`; no resta cantidad. `cYt.eXi` avanza objetivos y tampoco
+> actualiza la pila. La afirmación anterior de que12954 consume visualmente
+> era incorrecta. Una prueba GUI registró cinco plantaciones confirmadas desde
+> una pila5: PostgreSQL quedó sin el objeto y la interfaz conservó5. El servidor
+> ahora emite12470 con UID y delta-1 una sola vez después del ACK; replay y
+> cancelación no emiten delta. Validación del cambio gráfico pendiente.
+
+
 ## Evidencia nativa
 
-`cgN` despacha12954 a `a(cAZ)`. La rama consulta éxito, pero finalmente ambas variantes obtienen semilla mediante `dev.getItem()` y llaman `bJt.d(item,1)`. Esto resuelve la duda del plan anterior: **el ACK nativo ya resta visualmente una unidad; añadir12470 por esa misma operación duplicaría la resta**. Falta acreditar estado activo de `dev` y recepción del ACK en una plantación real. No se infiere un UID de los prefijos del paquete sin consumidor verificado.
+`cgN` despacha12954 a `a(cAZ)`. La rama consulta éxito, pero finalmente ambas variantes obtienen semilla mediante `dev.getItem()` y llaman `bJt.d(item,1)`. La inspección inicial de esa llamada fue incompleta. El cuerpo de `bJt.d/e` solo muestra el mensaje de pérdida: **el ACK no resta la cantidad; el servidor debe publicar12470 por el consumo confirmado**. La reproducción posterior acreditó estado activo de `dev`, plantaciones aplicadas y cantidad visual desactualizada. No se infiere un UID de los prefijos del paquete sin consumidor verificado.
 
 ## Cotejo del servidor
 

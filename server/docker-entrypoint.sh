@@ -8,4 +8,5 @@ if [ ! -f "$WAKFU_RUNTIME/server.key" ] || [ ! -f "$WAKFU_RUNTIME/server.crt" ];
     -days 365 -subj '/CN=localhost' 2>"$WAKFU_RUNTIME/logs/certificate.log"
 fi
 openssl pkey -in "$WAKFU_RUNTIME/server.key" -pubout -outform DER -out "$WAKFU_RUNTIME/public-key.der"
+PYTHONPATH=/app python3 /app/tools/migrate_postgres.py
 exec python3 /app/local_game_server.py

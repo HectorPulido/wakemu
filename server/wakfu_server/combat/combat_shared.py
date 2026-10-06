@@ -275,7 +275,7 @@ class Registry:
             )
 
     def lease_generation_active(self, generation):
-        """RedisGroups.lease_active accepts a generation, not a group lease tuple."""
+        """Match the generation component of a persistent group lease."""
         with self.lock:
             return any(
                 shared.group_lease is not None

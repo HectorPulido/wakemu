@@ -6,7 +6,7 @@ Autorizar comandos por cuenta y cerrar rutas alternativas antes de exponer el se
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+**Solucionado totalmente.** Backend y chat real verificados. El6 de octubre el usuario confirmó la prueba completa desde una cuenta nueva con `is_admin=false`: `!mob 4 8 1` rechazado sin crear monstruo, `!pos` permitido y continuidad de movimiento/inventario. [Implementación, pruebas, operación y límites](IMPLEMENTACION.md).
 
 ## Dependencias
 

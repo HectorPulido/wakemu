@@ -28,7 +28,8 @@ class EquipmentReturnTests(unittest.TestCase):
             stats[1], (41, maximum(character["breed"], character["level"]) + 6)
         )
         self.assertEqual(stats[2], (7, 7))
-        self.assertEqual(stats[3], (3, 3))
+        # Breed 8 has four native MP; this amulet adds no MP.
+        self.assertEqual(stats[3], (4, 4))
         self.assertEqual(stats[4], (6, 6))
         self.assertEqual(
             character["max_hp"], maximum(character["breed"], character["level"])

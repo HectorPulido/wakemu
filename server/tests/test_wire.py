@@ -5,6 +5,120 @@ from wakfu_server import wire
 
 
 class WireTests(unittest.TestCase):
+    def test_private_chat_echo_uses_recipient_character_and_sender_account_ids(self):
+        body = wire.private_chat(
+            9001,
+            {"id": 41, "name": "Remitente"},
+            {"id": 73, "name": "Destinatario"},
+            "hola ñ",
+        )
+        recipient = "Destinatario".encode("utf-8")
+        sender = "Remitente".encode("utf-8")
+        text = "hola ñ".encode("utf-8")
+        expected = (
+            struct.pack(">B", len(recipient))
+            + recipient
+            + struct.pack(">qB", 73, len(sender))
+            + sender
+            + struct.pack(">BBqB", 6, 4, 9001, 0)
+            + struct.pack(">H", len(text))
+            + text
+        )
+        self.assertEqual(body, expected)
+        self.assertNotEqual(9001, 41)  # account ID differs from sender character ID
+        self.assertNotEqual(9001, 73)  # and from recipient character ID
+
+    def test_private_chat_utf8_byte_limits_allow_127_and_2048(self):
+        sender_name = "ñ" * 63 + "a"  # 127 UTF-8 bytes, despite 64 code points
+        recipient_name = "é" * 63 + "a"
+        text = "ñ" * 1024  # exactly 2048 UTF-8 bytes
+        body = wire.private_chat(
+            9001,
+            {"id": 41, "name": sender_name},
+            {"id": 73, "name": recipient_name},
+            text,
+        )
+        self.assertEqual(body[0], 127)
+        self.assertEqual(body[1:128], recipient_name.encode("utf-8"))
+        recipient_end = 1 + len(recipient_name.encode("utf-8"))
+        self.assertEqual(
+            struct.unpack(">qB", body[recipient_end : recipient_end + 9]), (73, 127)
+        )
+        sender_start = recipient_end + 9
+        sender_end = sender_start + len(sender_name.encode("utf-8"))
+        self.assertEqual(body[sender_start:sender_end], sender_name.encode("utf-8"))
+        text_length_offset = sender_end + 11
+        self.assertEqual(
+            struct.unpack(">H", body[text_length_offset : text_length_offset + 2])[0],
+            2048,
+        )
+        self.assertEqual(len(body[text_length_offset + 2 :]), 2048)
+
+    def test_private_chat_sender_name_uses_unsigned_nq_byte_while_recipient_is_signed(
+        self,
+    ):
+        # Oi's leading recipient-name byte is signed by the native parser;
+        # the nested NQ sender-name byte is read as unsigned (0..255).
+        recipient_name = "r" * 127
+        recipient_end = 1 + len(recipient_name.encode("utf-8"))
+        for source_length in (128, 255):
+            with self.subTest(source_length=source_length):
+                sender_name = "s" * source_length
+                body = wire.private_chat(
+                    9001,
+                    {"id": 41, "name": sender_name},
+                    {"id": 73, "name": recipient_name},
+                    "x",
+                )
+                self.assertEqual(body[0], 127)
+                self.assertEqual(body[recipient_end + 8], source_length)
+                self.assertEqual(
+                    body[recipient_end + 9 : recipient_end + 9 + source_length],
+                    sender_name.encode(),
+                )
+
+    def test_private_chat_and_user_not_found_have_distinct_name_length_widths(self):
+        name = "Éva"  # three characters, four UTF-8 bytes
+        response = wire.private_chat(
+            9001, {"id": 41, "name": "Yo"}, {"id": 73, "name": name}, "x"
+        )
+        error = wire.private_chat_error(101, name)
+        name_bytes = name.encode("utf-8")
+        self.assertEqual(
+            response[: 1 + len(name_bytes)], bytes([len(name_bytes)]) + name_bytes
+        )
+        self.assertEqual(error, struct.pack(">hH", 101, len(name_bytes)) + name_bytes)
+        self.assertEqual(error[:2], b"\x00\x65")  # 101 is a two-byte signed code
+        self.assertEqual(error[2:4], b"\x00\x04")  # error name length is u16
+
+    def test_private_chat_rejects_names_text_and_identity_outside_native_bounds(self):
+        sender = {"id": 41, "name": "S"}
+        recipient = {"id": 73, "name": "R"}
+        for account_id, source, target, text in (
+            (9001, {"id": 41, "name": "s" * 256}, recipient, "x"),
+            (9001, sender, {"id": 73, "name": "é" * 64}, "x"),
+            (9001, sender, recipient, "ñ" * 1025),
+            (9001, sender, recipient, ""),
+            (0, sender, recipient, "x"),
+            (True, sender, recipient, "x"),
+            (9001, sender, {"id": 0, "name": "R"}, "x"),
+        ):
+            with self.subTest(account_id=account_id, text_len=len(text)):
+                with self.assertRaises(ValueError):
+                    wire.private_chat(account_id, source, target, text)
+
+    def test_private_chat_error_rejects_unsupported_codes_and_bad_recipient_names(self):
+        for code in (100, 102, 103, 141, True, "101"):
+            with self.subTest(code=code):
+                with self.assertRaises(ValueError):
+                    wire.private_chat_error(code, "Destino")
+        self.assertEqual(wire.private_chat_error(104), b"\x00\x68")
+        self.assertEqual(wire.private_chat_error(140), b"\x00\x8c")
+        for name in ("", "ñ" * 64):
+            with self.subTest(name_bytes=len(name.encode("utf-8"))):
+                with self.assertRaises(ValueError):
+                    wire.private_chat_error(101, name)
+
     def test_character_entry_never_inherits_template_active_states(self):
         import hashlib
         from unittest.mock import patch

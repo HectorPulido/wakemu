@@ -6,7 +6,7 @@ Enrutar cada mensaje solo a los destinatarios del canal correspondiente.
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+Implementación parcial del **servidor**: request13917 enruta privados mediante respuestas720 y errores349, sin broadcast. El gate inicial de protocolo, routing y sesiones pasó93 pruebas; el gate posterior de cierre de sesión/Redis/chat pasó88 pruebas, incluyendo consultas y envíos fuera del bloqueo global. Los gates tienen cobertura solapada y no se suman. Véase el [cotejo actual PostgreSQL](COTEJO-ACTUAL-POSTGRESQL.md). Quedan recepción visual entre clientes, preferencias de privacidad y otros canales; el issue no se declara cerrado.
 
 ## Dependencias
 

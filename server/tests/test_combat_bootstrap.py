@@ -6,6 +6,79 @@ from protocol_codec import decode_body
 
 
 class BootstrapTests(unittest.TestCase):
+    def test_selected_fixed_build_controls_actor_level_without_rewriting_real_xp(self):
+        from wakfu_server.combat_bootstrap import create_placement, player_payload
+        from wakfu_server.monsters import owned_instance
+        from wakfu_server.wire import proto_field
+        from wakfu_server.progression import level_xp
+        from wakfu_server.health import maximum
+
+        char = dict(
+            id=100,
+            account_id=1,
+            breed=8,
+            level=50,
+            xp=level_xp(50),
+            hp=20,
+            max_hp=maximum(8, 49),
+            map_id=1134,
+            x=0,
+            y=0,
+            z=0,
+            active_build_index=1,
+            inventory_items=[],
+            builds={
+                1: dict(
+                    sheet=proto_field(24, 49).hex(), equipment="", aptitudes="", deck=""
+                )
+            },
+        )
+        monster = owned_instance(5525, 1, -200, map_id=1134, x=1, y=0, z=0)
+        cells = [(0, 0, 0), (1, 0, 0)]
+        terrain = arena(1134, 1, cells, {0: cells[0], 1: cells[1]})
+        terrain.update(
+            validated_cells=cells,
+            valid_edges={(cells[0], cells[1]), (cells[1], cells[0])},
+        )
+        fight, messages = create_placement(
+            char,
+            monster,
+            terrain,
+            fight_id=7,
+            player_ap=6,
+            player_mp=4,
+            player_wp=6,
+            player_initiative=0,
+            terrain_effect_id=46,
+            terrain_instance_id=123,
+            duration_ms=12345,
+        )
+        self.assertEqual(fight.actors[100].effective_level, 49)
+        self.assertEqual((char["level"], char["xp"]), (50, level_xp(50)))
+        payload, _ = player_payload(char, fight.actors[100], 7, wp=6)
+        # Format3 carries real progression; actor's effective level is separate.
+        self.assertEqual(struct.unpack_from(">q", payload, 1)[0], level_xp(50))
+        self.assertEqual(struct.unpack_from(">h", payload, len(payload) - 2)[0], 50)
+        self.assertEqual(
+            decode_bootstrap(messages[1][1])["participants"][0]["actor_id"], 100
+        )
+        self.assertEqual(
+            decode_body("in", 13684, messages[2][1]),
+            dict(fight_id=7, placement_duration=12345),
+        )
+        from wakfu_server.combat_actor_snapshot import build_player_snapshot
+
+        snapshot = build_player_snapshot(
+            char, fight.actors[100], wp_current=6, wp_maximum=6, running_effects=()
+        )
+        self.assertEqual(snapshot.stats[1], 20)
+        self.assertEqual(snapshot.maxima[1], maximum(8, 49))
+        fight.actors[100].effective_level = 50
+        with self.assertRaisesRegex(ValueError, "level disagrees"):
+            build_player_snapshot(
+                char, fight.actors[100], wp_current=6, wp_maximum=6, running_effects=()
+            )
+
     def test_selected_map_placement_is_used_by_authoritative_fight(self):
         from wakfu_server.combat_terrain import local_arena
         from wakfu_server.combat_bootstrap import create_placement

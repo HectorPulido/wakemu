@@ -6,7 +6,7 @@ Seed requirement/surface authorization come from installed data and caller.
 import struct
 import threading
 import uuid
-import json
+from psycopg.types.json import Jsonb
 import secrets
 from . import planting
 from .inventory_items import _lease
@@ -28,9 +28,6 @@ class Plantings:
         self.publisher_lock = threading.Lock()
         if type(growth_seconds) not in (int, float) or growth_seconds <= 0:
             raise ValueError("Invalid local planting growth delay")
-        with store.connection() as db:
-            planting.schema(db)
-            growth_schema(db)
 
     def begin(self, account, generation, character, body, authorize_cell):
         with self.lock:
@@ -59,14 +56,14 @@ class Plantings:
                 raise ValueError("Planting occupation/cell busy")
             with self.store.connection() as db:
                 if db.execute(
-                    "SELECT 1 FROM planted_resources WHERE map_id=? AND instance_id=? AND x=? AND y=?",
+                    "SELECT 1 FROM planted_resources WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s",
                     key,
                 ).fetchone():
                     raise ValueError("Owned resource already occupies this cell")
                 for row in db.execute(
-                    "SELECT resource FROM planting_growth_outbox WHERE published=0"
+                    "SELECT resource FROM planting_growth_outbox WHERE published=FALSE"
                 ):
-                    resource = json.loads(row["resource"])
+                    resource = row["resource"]
                     if (
                         resource["map_id"],
                         resource["instance_id"],
@@ -146,13 +143,13 @@ class Plantings:
         with self.store.connection() as db:
             rows = list(
                 db.execute(
-                    "SELECT * FROM planted_resources WHERE map_id=? AND instance_id=? ORDER BY resource_uid",
+                    "SELECT * FROM planted_resources WHERE map_id=%s AND instance_id=%s ORDER BY resource_uid",
                     (map_id, instance_id),
                 )
             )
         return [planting.resource_packet(dict(row)) for row in rows]
 
-    def mature(self, groups, *, authorize_spawn=lambda resource: True):
+    def mature(self, groups, *, publish, authorize_spawn=lambda resource: True):
         """Local30s growth policy; returns map-scoped broadcasts for main writer.
 
         SQL outbox survives Redis outages. Caller excludes live players/objects
@@ -164,7 +161,7 @@ class Plantings:
             resources = [
                 dict(row)
                 for row in db.execute(
-                    "SELECT * FROM planted_resources WHERE stage=1 AND creation_time<=?",
+                    "SELECT * FROM planted_resources WHERE stage=1 AND creation_time<=%s",
                     (due,),
                 )
             ]
@@ -175,10 +172,9 @@ class Plantings:
                 continue
             candidates.append((resource, definition))
         with self.lock, self.store.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
             for resource, definition in candidates:
                 current = db.execute(
-                    "SELECT * FROM planted_resources WHERE resource_uid=?",
+                    "SELECT * FROM planted_resources WHERE resource_uid=%s FOR UPDATE",
                     (resource["resource_uid"],),
                 ).fetchone()
                 if current is None or dict(current) != resource:
@@ -191,29 +187,29 @@ class Plantings:
                         members=[member],
                     )
                     db.execute(
-                        "INSERT OR IGNORE INTO planting_growth_outbox(resource_uid,resource,group_payload) VALUES(?,?,?)",
+                        "INSERT INTO planting_growth_outbox(resource_uid,resource,group_payload) VALUES(%s,%s,%s) ON CONFLICT(resource_uid) DO NOTHING",
                         (
                             resource["resource_uid"],
-                            json.dumps(resource),
-                            json.dumps(group),
+                            Jsonb(resource),
+                            Jsonb(group),
                         ),
                     )
                     db.execute(
-                        "DELETE FROM planted_resources WHERE resource_uid=?",
+                        "DELETE FROM planted_resources WHERE resource_uid=%s",
                         (resource["resource_uid"],),
                     )
                 elif 2 in definition["stages"]:
                     db.execute(
-                        "UPDATE planted_resources SET stage=2 WHERE resource_uid=?",
+                        "UPDATE planted_resources SET stage=2 WHERE resource_uid=%s",
                         (resource["resource_uid"],),
                     )
                     db.execute(
-                        "INSERT OR IGNORE INTO planting_growth_outbox(resource_uid,resource,group_payload) VALUES(?,?,NULL)",
-                        (resource["resource_uid"], json.dumps(dict(resource, stage=2))),
+                        "INSERT INTO planting_growth_outbox(resource_uid,resource,group_payload) VALUES(%s,%s,NULL) ON CONFLICT(resource_uid) DO NOTHING",
+                        (resource["resource_uid"], Jsonb(dict(resource, stage=2))),
                     )
-        return self.publish_growth(groups)
+        return self.publish_growth(groups, publish=publish)
 
-    def publish_growth(self, groups):
+    def publish_growth(self, groups, *, publish):
         from .combat_monster_world import spawn_group
 
         published = []
@@ -222,14 +218,12 @@ class Plantings:
                 rows = [
                     dict(row)
                     for row in db.execute(
-                        "SELECT * FROM planting_growth_outbox WHERE published=0 ORDER BY resource_uid"
+                        "SELECT * FROM planting_growth_outbox WHERE published=FALSE ORDER BY resource_uid"
                     )
                 ]
             for row in rows:
-                resource = json.loads(row["resource"])
-                group = (
-                    json.loads(row["group_payload"]) if row["group_payload"] else None
-                )
+                resource = row["resource"]
+                group = row["group_payload"] if row["group_payload"] else None
                 if group:
                     groups.register(*group["key"], group["members"])
                     packets = [
@@ -240,20 +234,22 @@ class Plantings:
                         ),
                     ]
                 else:
-                    packets = [state_packet(resource, 2)]
+                    packets = [state_packet(resource, resource["stage"])]
+                delivery = dict(
+                    map_id=resource["map_id"],
+                    instance_id=resource["instance_id"],
+                    resource_uid=resource["resource_uid"],
+                    packets=packets,
+                )
+                # The durable event remains pending if world delivery fails.
+                # A crash after delivery can replay the exact state packet.
+                publish(delivery)
                 with self.store.connection() as db:
                     db.execute(
-                        "UPDATE planting_growth_outbox SET published=1 WHERE resource_uid=?",
+                        "UPDATE planting_growth_outbox SET published=TRUE WHERE resource_uid=%s",
                         (row["resource_uid"],),
                     )
-                published.append(
-                    dict(
-                        map_id=resource["map_id"],
-                        instance_id=resource["instance_id"],
-                        resource_uid=resource["resource_uid"],
-                        packets=packets,
-                    )
-                )
+                published.append(delivery)
         return published
 
 
@@ -268,14 +264,6 @@ def state_packet(resource, stage):
         stage,
         resource["creation_time"],
         0,
-    )
-
-
-def growth_schema(db):
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS planting_growth_outbox(
-        resource_uid INTEGER PRIMARY KEY,resource TEXT NOT NULL,
-        group_payload TEXT,published INTEGER NOT NULL DEFAULT 0)"""
     )
 
 

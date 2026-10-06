@@ -1,12 +1,14 @@
 """Owned native seed actions and SQL planting receipts/outbox.
 
 Territorial authorization and outcome/growth are caller policies; unknown
-conditions are not fabricated. Resource and seed commit together in SQLite.
+conditions are not fabricated. Resource and seed commit together in PostgreSQL.
 Publishing a prepared monster group to Redis is retried from the durable outbox.
 """
 import json
 import secrets
 import struct
+from psycopg.errors import UniqueViolation
+from psycopg.types.json import Jsonb
 from .paths import DATA_ROOT
 from .inventory_items import _lease
 from .monsters import reference, owned_instance
@@ -42,7 +44,9 @@ def resource_packet(resource):
         (32, resource["z"]),
         (40, resource["stage"]),
         (48, 0),
-        (56, resource["creation_time"]),
+        # zk field 7 is ownerAccount, not the planting timestamp. World
+        # flora is public; creation_time remains in PostgreSQL for growth.
+        (56, 0),
         (64, 0),
     )
     return (
@@ -67,22 +71,6 @@ def start_packet(*, mun, hvY, actor_id, profession_id, duration, egY, x, y):
         struct.pack(
             ">Bhqiiiii", mun, hvY, actor_id, profession_id, duration, egY, x, y
         ),
-    )
-
-
-def schema(db):
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS planted_resources(
-        resource_uid INTEGER PRIMARY KEY, map_id INTEGER NOT NULL, instance_id INTEGER NOT NULL,
-        x INTEGER NOT NULL,y INTEGER NOT NULL,z INTEGER NOT NULL,resource_reference INTEGER NOT NULL,
-        stage INTEGER NOT NULL,creation_time INTEGER NOT NULL,
-        UNIQUE(map_id,instance_id,x,y))"""
-    )
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS planting_receipts(
-        operation_id TEXT PRIMARY KEY,character_id INTEGER NOT NULL,item_uid INTEGER NOT NULL,
-        request TEXT NOT NULL,resource TEXT NOT NULL,group_payload TEXT,
-        published INTEGER NOT NULL DEFAULT 0)"""
     )
 
 
@@ -120,11 +108,8 @@ def prepare(
         resource = RESOURCES.get(seed["resource_reference"])
         if resource is None:
             raise ValueError("Unknown native resource reference")
-        from .profession_store import schema as profession_schema
-
-        profession_schema(db)
         learned = db.execute(
-            "SELECT level FROM character_professions WHERE character_id=? AND profession_id=?",
+            "SELECT level FROM character_professions WHERE character_id=%s AND profession_id=%s",
             (current["id"], seed["profession_id"]),
         ).fetchone()
         if not open_test_policy and (
@@ -191,22 +176,20 @@ def complete(
             character["map_id"], character["instance_id"], group_id, monster_members
         )
         group = dict(key=key, members=monster_members)
-    encoded_request = json.dumps(request, sort_keys=True)
     with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
         _lease(store, db, account, generation, character["id"])
-        schema(db)
+        db.execute(
+            "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+            ("planting:" + operation_id,),
+        )
         old = db.execute(
-            "SELECT * FROM planting_receipts WHERE operation_id=?", (operation_id,)
+            "SELECT * FROM planting_receipts WHERE operation_id=%s", (operation_id,)
         ).fetchone()
         if old:
-            if (
-                old["character_id"] != character["id"]
-                or old["request"] != encoded_request
-            ):
+            if old["character_id"] != character["id"] or old["request"] != request:
                 raise ValueError("Planting operation ID was reused")
             return dict(
-                resource=json.loads(old["resource"]),
+                resource=old["resource"],
                 duplicate=True,
                 packets=[],
                 group=None,
@@ -217,40 +200,50 @@ def complete(
         ):
             raise ValueError("Planting origin changed")
         item = db.execute(
-            "SELECT * FROM inventory_items WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (request["item_uid"], character["id"]),
         ).fetchone()
         if item is None or item["reference"] != prepared["seed"]["item_reference"]:
             raise ValueError("Seed no longer owned")
-        db.execute(
-            "INSERT INTO planted_resources VALUES(?,?,?,?,?,?,?,?,?)",
-            tuple(resource.values()),
-        )
+        try:
+            with db.transaction():
+                db.execute(
+                    "INSERT INTO planted_resources(resource_uid,map_id,instance_id,x,y,z,resource_reference,stage,creation_time) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    tuple(resource.values()),
+                )
+        except UniqueViolation as exc:
+            raise ValueError(
+                "Planting resource identity or cell already occupied"
+            ) from exc
         if item["quantity"] == 1:
-            db.execute("DELETE FROM inventory_items WHERE uid=?", (item["uid"],))
+            db.execute("DELETE FROM inventory_items WHERE uid=%s", (item["uid"],))
         else:
             db.execute(
-                "UPDATE inventory_items SET quantity=quantity-1 WHERE uid=?",
+                "UPDATE inventory_items SET quantity=quantity-1 WHERE uid=%s",
                 (item["uid"],),
             )
         db.execute(
-            "INSERT INTO planting_receipts(operation_id,character_id,item_uid,request,resource,group_payload) VALUES(?,?,?,?,?,?)",
+            "INSERT INTO planting_receipts(operation_id,character_id,item_uid,request,resource,group_payload) VALUES(%s,%s,%s,%s,%s,%s)",
             (
                 operation_id,
                 character["id"],
                 item["uid"],
-                encoded_request,
-                json.dumps(resource),
-                json.dumps(group) if group else None,
+                Jsonb(request),
+                Jsonb(resource),
+                Jsonb(group) if group else None,
             ),
         )
-    # cgN consumes one client seed on BOTH success and failure12954. Never
-    # also emit12470 for this successful consumption, which would double it.
+    # cgN12954 calls bJt.d/e, which only displays item.selfDrop; it does not
+    # mutate the inventory. Publish the committed quantity delta exactly once.
     return dict(
         resource=resource,
         duplicate=False,
         group=group,
-        packets=[resource_packet(resource), result_packet(*result_prefix, True)],
+        packets=[
+            resource_packet(resource),
+            result_packet(*result_prefix, True),
+            (12470, struct.pack(">qh", item["uid"], -1)),
+        ],
         character=store.character(account, character["id"]),
     )
 
@@ -258,20 +251,19 @@ def complete(
 def publish_groups(store, groups):
     """Idempotent SQL outbox → Redis/group registry; retain failures for retry."""
     with store.connection() as db:
-        schema(db)
         pending = list(
             db.execute(
-                "SELECT operation_id,group_payload FROM planting_receipts WHERE published=0 AND group_payload IS NOT NULL"
+                "SELECT operation_id,group_payload FROM planting_receipts WHERE published=FALSE AND group_payload IS NOT NULL"
             )
         )
     published = []
     for row in pending:
-        group = json.loads(row["group_payload"])
+        group = row["group_payload"]
         key = tuple(group["key"])
         groups.register(*key, group["members"])
         with store.connection() as db:
             db.execute(
-                "UPDATE planting_receipts SET published=1 WHERE operation_id=?",
+                "UPDATE planting_receipts SET published=TRUE WHERE operation_id=%s",
                 (row["operation_id"],),
             )
         published.append((12608, spawn_group(group["members"], group_id=key[2])))

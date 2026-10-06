@@ -81,6 +81,10 @@ def minimal_entity(body, character):
             from wakfu_server.inventory import bags
 
             replacement = bags(character)
+        elif section["name"] == "PET":
+            from .mount_inventory import actor_pet
+
+            replacement = actor_pet(character)
         elif section["name"] == "SPELL_INVENTORY":
             replacement = spell_inventory(character)
         elif section["name"] == "SPELL_DECK" and character.get("builds"):
@@ -92,6 +96,10 @@ def minimal_entity(body, character):
             replacement = struct.pack(">H", len(deck)) + deck
         elif section["name"] == "XP":
             replacement = struct.pack(">q", character_xp(character))
+        elif section["name"] == "SHORTCUT_INVENTORIES":
+            from wakfu_server.world_shortcuts import owned_collection
+
+            replacement = owned_collection(character)
         elif section["name"] in EMPTY_SECTIONS:
             replacement = ENTITY_DEFAULTS[section["name"]]
         if replacement is not None:
@@ -304,6 +312,18 @@ def spawn_player(template, character):
     return b"\x00\x01" + struct.pack(">BqH", 0, character["id"], len(blob)) + blob
 
 
+def refresh_player(template, character):
+    """15548: update an existing actor from the same own entity serializer."""
+    from .mount_codec import entity_refresh
+
+    blob = header(
+        position(minimal_entity(template, character), character),
+        character["account_id"],
+        character,
+    )
+    return entity_refresh(character["id"], blob)
+
+
 def remove_player(character_id):
     # ctA: teleport flag, secondary flag, count, then (type, actorId).
     return b"\x00\x00\x01" + struct.pack(">Bq", 0, character_id)
@@ -385,6 +405,45 @@ def chat(character, text):
         + struct.pack(">H", len(text))
         + text
     )
+
+
+def private_chat(account_id, sender, recipient, text):
+    """Oi720: recipient character link followed by account-identity NQ."""
+    source = sender["name"].encode("utf-8")
+    target = recipient["name"].encode("utf-8")
+    content = text.encode("utf-8")
+    if (
+        type(account_id) is not int
+        or not 0 < account_id < 2**63
+        or type(recipient["id"]) is not int
+        or not 0 < recipient["id"] < 2**63
+        or not 1 <= len(source) <= 255
+        or not 1 <= len(target) <= 127
+        or not 1 <= len(content) <= 2048
+    ):
+        raise ValueError("Invalid private chat identity or length")
+    return (
+        struct.pack(">B", len(target))
+        + target
+        + struct.pack(">qB", recipient["id"], len(source))
+        + source
+        + struct.pack(">BBqB", 6, 4, account_id, 0)
+        + struct.pack(">H", len(content))
+        + content
+    )
+
+
+def private_chat_error(code, recipient=None):
+    """NE349 uses a u16 name length for user-not-found101."""
+    if type(code) is not int or code not in (101, 104, 140):
+        raise ValueError("Unsupported private chat error")
+    body = struct.pack(">h", code)
+    if code == 101:
+        name = recipient.encode("utf-8")
+        if not 1 <= len(name) <= 127:
+            raise ValueError("Invalid private chat recipient")
+        body += struct.pack(">H", len(name)) + name
+    return body
 
 
 def empty_equipment_sheets(body, character):

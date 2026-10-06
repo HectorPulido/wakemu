@@ -1,4 +1,5 @@
 import unittest
+from postgres_case import PostgresCase
 from protocol_codec import decode_body
 from wakfu_server import health, world_clock
 
@@ -35,62 +36,104 @@ class HealthTests(unittest.TestCase):
         )
 
 
-class HealthStoreTests(unittest.TestCase):
+class HealthStoreTests(PostgresCase):
+    def test_hidden_wounds_regenerate_from_original_debt_without_overcounting(self):
+        from wakfu_server import health_policy, health_store
+
+        store = self.store
+        store.clock = lambda: 1.0
+        account = store.register("hidden-regen", "local-password")["id"]
+        char = store.create_character(account, "Hidden Regen")
+        generation = store.begin_session(account)
+        store.select_character(account, generation, char["id"])
+        health_store.initialize(
+            store, account, generation, char["id"], coefficient=1, now_ms=1000
+        )
+        with store.connection() as db:
+            current = store.character(account, char["id"], db)
+            self.assertEqual(health_policy.apply_damage(db, current, 100, False), 1)
+        health_store.sync(
+            store,
+            account,
+            generation,
+            char["id"],
+            1,
+            1,
+            coefficient=1,
+            now_ms=1000,
+        )
+
+        first = health_store.tick(
+            store, account, generation, char["id"], 1, now_ms=3000
+        )
+        self.assertEqual((first["hp"], first["hp_damage"]), (1, 99))
+        second = health_store.tick(
+            store, account, generation, char["id"], 1, now_ms=7000
+        )
+        self.assertEqual((second["hp"], second["hp_damage"]), (1, 98))
+        emerged = health_store.tick(
+            store, account, generation, char["id"], 1, now_ms=201000
+        )
+        self.assertEqual((emerged["hp"], emerged["hp_damage"]), (10, 50))
+        with store.connection() as db:
+            baseline = db.execute(
+                "SELECT initial_hp,initial_damage,started_at,last_at FROM character_regeneration WHERE character_id=%s",
+                (char["id"],),
+            ).fetchone()
+        self.assertEqual((baseline["initial_hp"], baseline["initial_damage"]), (1, 100))
+        self.assertEqual(int(baseline["started_at"].timestamp() * 1000), 1000)
+        self.assertEqual(int(baseline["last_at"].timestamp() * 1000), 201000)
+
     def test_owned_health_persists_and_stale_session_cannot_tick(self):
-        import tempfile
-        from pathlib import Path
-        from wakfu_server.store import Store
         from wakfu_server import health_store
 
-        with tempfile.TemporaryDirectory() as tmp:
-            store = Store(Path(tmp) / "db")
-            account = store.register("health-test", "health-password")["id"]
-            char = store.create_character(account, "Health Test", breed=8)
-            generation = store.begin_session(account)
-            store.select_character(account, generation, char["id"])
-            with store.connection() as db:
-                db.execute("UPDATE characters SET level=200 WHERE id=?", (char["id"],))
-            char = health_store.initialize(
-                store, account, generation, char["id"], now_ms=1000
+        store = self.store
+        account = store.register("health-test", "health-password")["id"]
+        char = store.create_character(account, "Health Test", breed=8)
+        generation = store.begin_session(account)
+        store.select_character(account, generation, char["id"])
+        with store.connection() as db:
+            db.execute("UPDATE characters SET level=%s WHERE id=%s", (200, char["id"]))
+        char = health_store.initialize(
+            store, account, generation, char["id"], now_ms=1000
+        )
+        self.assertEqual((char["hp"], char["max_hp"]), (2050, 2050))
+        char = health_store.sync(
+            store,
+            account,
+            generation,
+            char["id"],
+            2050,
+            2040,
+            coefficient=1,
+            now_ms=1000,
+        )
+        for now, hp in (
+            (2000, 2040),
+            (3000, 2041),
+            (4000, 2041),
+            (5000, 2041),
+            (7000, 2042),
+        ):
+            char = health_store.tick(
+                store, account, generation, char["id"], char["hp"], now_ms=now
             )
-            self.assertEqual((char["hp"], char["max_hp"]), (2050, 2050))
-            char = health_store.sync(
-                store,
-                account,
-                generation,
-                char["id"],
-                2050,
-                2040,
-                coefficient=1,
-                now_ms=1000,
-            )
-            for now, hp in (
-                (2000, 2040),
-                (3000, 2041),
-                (4000, 2041),
-                (5000, 2041),
-                (7000, 2042),
-            ):
-                char = health_store.tick(
-                    store, account, generation, char["id"], char["hp"], now_ms=now
-                )
-                self.assertEqual(char["hp"], hp)
-            self.assertEqual(
-                Store(Path(tmp) / "db").character(account, char["id"])["hp"], 2042
-            )
-            with self.assertRaises(ValueError):
-                health_store.tick(
-                    store, account, generation, char["id"], 2040, now_ms=8000
-                )
-            with self.assertRaises(ValueError):
-                health_store.tick(
-                    store, account, generation, char["id"], 2042, now_ms=6000
-                )
-            store.begin_session(account)
-            with self.assertRaises(ValueError):
-                health_store.tick(
-                    store, account, generation, char["id"], 2042, now_ms=8000
-                )
+            self.assertEqual(char["hp"], hp)
+        self.assertEqual(self.reopen().character(account, char["id"])["hp"], 2042)
+        with store.connection() as db:
+            state = db.execute(
+                "SELECT started_at,last_at FROM character_regeneration WHERE character_id=%s",
+                (char["id"],),
+            ).fetchone()
+        self.assertEqual(state["started_at"].timestamp() * 1000, 1000)
+        self.assertEqual(state["last_at"].timestamp() * 1000, 7000)
+        with self.assertRaises(ValueError):
+            health_store.tick(store, account, generation, char["id"], 2040, now_ms=8000)
+        with self.assertRaises(ValueError):
+            health_store.tick(store, account, generation, char["id"], 2042, now_ms=6000)
+        store.begin_session(account)
+        with self.assertRaises(ValueError):
+            health_store.tick(store, account, generation, char["id"], 2042, now_ms=8000)
 
 
 class ClockTests(unittest.TestCase):

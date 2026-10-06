@@ -142,13 +142,13 @@ def condition_identifiers(source):
             if type(kind) is not int or not -(1 << 31) <= kind < (1 << 31):
                 raise ValueError("Invalid native source container eVo.aZY")
             # Serialized PL discriminator is native eVo.aZY: fyW=1,
-            # effect-area=3, fyG=11/25. It is not cmZ (level).
+            # effect-area=3, fnR item=12, fyG=11/25. It is not cmZ (level).
             native_type = container.get("native_type")
             if native_type is not None:
                 if type(native_type) is not int:
                     raise ValueError("Invalid explicit native PL.aZY")
                 result["triggering_container_type"] = native_type
-            elif kind in (1, 3, 11, 25):
+            elif kind in (1, 3, 11, 12, 25):
                 result["triggering_container_type"] = kind
     if container["present"] and type(container.get("is_state")) is bool:
         result["triggering_container_is_state"] = container["is_state"]

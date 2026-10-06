@@ -1,11 +1,12 @@
 """Explicit local wandering policy over verified native directed walk edges.
 
-One short group translation per callback; never invent cells or heights.
+One bounded group path per attempt; never invent cells or heights.
 Caller snapshots online players and excludes fighting/harvesting positions.
-Only RedisGroups exposes durable CAS movement; no memory fallback.
+PersistentGroups owns PostgreSQL CAS movement; no memory fallback.
 """
 import random
 import struct
+import math
 from copy import deepcopy
 from protocol_codec import DIRECTIONS
 
@@ -27,7 +28,48 @@ def movement_packet(actor_id, origin, destination):
     )
 
 
-def plan(members, players, valid_edges, *, occupied=(), radius=20, rng=None):
+def edge_index(valid_edges):
+    edges = frozenset((tuple(a), tuple(b)) for a, b in valid_edges)
+    adjacent = {}
+    for origin, destination in edges:
+        adjacent.setdefault(origin, []).append(destination)
+    return edges, adjacent
+
+
+def policy(store):
+    with store.connection() as db:
+        row = db.execute(
+            "SELECT value FROM settings WHERE name='monster_wander'"
+        ).fetchone()
+    value = row["value"] if row is not None else None
+    if not isinstance(value, dict) or set(value) != {
+        "interval_seconds",
+        "move_probability",
+        "min_steps",
+        "max_steps",
+        "radius",
+    }:
+        raise ValueError("Invalid monster wander policy")
+    for key in ("interval_seconds", "move_probability"):
+        if type(value[key]) not in (int, float) or not math.isfinite(value[key]):
+            raise ValueError("Invalid monster wander timing or probability")
+    if (
+        not 0 < value["interval_seconds"] <= 3600
+        or not 0 <= value["move_probability"] <= 1
+    ):
+        raise ValueError("Invalid monster wander timing or probability")
+    if (
+        any(type(value[key]) is not int for key in ("min_steps", "max_steps", "radius"))
+        or not 1 <= value["min_steps"] <= value["max_steps"] <= 255
+        or not 1 <= value["radius"] <= 1000
+    ):
+        raise ValueError("Invalid monster wander distance")
+    return value
+
+
+def plan(
+    members, players, valid_edges, *, occupied=(), radius=20, rng=None, indexed=None
+):
     if not members or radius <= 0:
         return None
     origins = [point(m) for m in members]
@@ -38,11 +80,10 @@ def plan(members, players, valid_edges, *, occupied=(), radius=20, rng=None):
     ):
         return None
     blocked = set(occupied) | {point(p) for p in players}
-    edges = set((tuple(a), tuple(b)) for a, b in valid_edges)
+    edges, adjacent = edge_index(valid_edges) if indexed is None else indexed
     candidates = []
-    for a, b in edges:
-        if a != origins[0]:
-            continue
+    for b in adjacent.get(origins[0], ()):
+        a = origins[0]
         delta = tuple(y - x for x, y in zip(a, b))
         destinations = [tuple(x + d for x, d in zip(o, delta)) for o in origins]
         if len(set(destinations)) != len(destinations) or any(
@@ -65,6 +106,50 @@ def plan(members, players, valid_edges, *, occupied=(), radius=20, rng=None):
     return (rng or random).choice(candidates) if candidates else None
 
 
+def plan_path(
+    members,
+    players,
+    valid_edges,
+    *,
+    occupied=(),
+    radius=20,
+    min_steps=1,
+    max_steps=3,
+    rng=None,
+    indexed=None
+):
+    rng = rng or random
+    indexed = edge_index(valid_edges) if indexed is None else indexed
+    moved = members
+    paths = [[point(member)] for member in members]
+    for _ in range(rng.randint(min_steps, max_steps)):
+        result = plan(
+            moved,
+            players,
+            (),
+            occupied=occupied,
+            radius=radius,
+            rng=rng,
+            indexed=indexed,
+        )
+        if result is None:
+            break
+        moved = result["members"]
+        for path, member in zip(paths, moved):
+            path.append(point(member))
+    if moved is members:
+        return None
+    packets = []
+    for member, path in zip(moved, paths):
+        deltas = bytearray()
+        for origin, destination in zip(path, path[1:]):
+            deltas.extend(movement_packet(member["id"], origin, destination)[1][-1:])
+        packets.append(
+            (13852, struct.pack(">qiihB", member["id"], *path[0], len(deltas)) + deltas)
+        )
+    return dict(members=moved, packets=packets)
+
+
 def wander_location(
     groups,
     map_id,
@@ -76,7 +161,11 @@ def wander_location(
     occupied=(),
     radius=20,
     rng=None,
-    excluded_ids=()
+    excluded_ids=(),
+    move_probability=0.25,
+    min_steps=1,
+    max_steps=3,
+    indexed=None
 ):
     """Serialize claim/move/broadcast using the same registry lock.
 
@@ -88,33 +177,58 @@ def wander_location(
     ]
     if not players:
         return []
+    rng = rng or random
+    indexed = edge_index(valid_edges) if indexed is None else indexed
     moved_keys = []
     with groups.lock:
-        roster = groups.available(map_id, instance_id)
+        local = groups.snapshot(map_id, instance_id)
+        roster = sorted(
+            (group for group in local if group["status"] == "available"),
+            key=lambda group: group["key"],
+        )
         blocked = set(occupied)
+        blocked.update(
+            point(member)
+            for group in local
+            for member in group["members"]
+            if group["status"] == "fighting" or member["id"] in excluded_ids
+        )
         for group in roster:
-            if any(m["id"] in excluded_ids for m in group["members"]):
-                continue
-            others = {
-                point(m)
-                for g in roster
-                if g["key"] != group["key"]
-                for m in g["members"]
-            }
-            result = plan(
-                group["members"],
-                players,
-                valid_edges,
-                occupied=blocked | others,
-                radius=radius,
-                rng=rng,
-            )
-            if result is None or not groups.move_members(
-                group["key"], group["members"], result["members"]
+            candidate = deepcopy(list(group["members"]))
+            packets = []
+            for index, member in enumerate(candidate):
+                if member["id"] in excluded_ids or rng.random() >= move_probability:
+                    continue
+                others = {
+                    point(other)
+                    for other_group in roster
+                    for other in (
+                        candidate
+                        if other_group["key"] == group["key"]
+                        else other_group["members"]
+                    )
+                    if other["id"] != member["id"]
+                }
+                result = plan_path(
+                    [member],
+                    players,
+                    valid_edges,
+                    occupied=blocked | others,
+                    radius=radius,
+                    rng=rng,
+                    indexed=indexed,
+                    min_steps=min_steps,
+                    max_steps=max_steps,
+                )
+                if result is not None:
+                    candidate[index] = result["members"][0]
+                    packets.extend(result["packets"])
+            if not packets or not groups.move_members(
+                group["key"], group["members"], candidate
             ):
                 continue
-            group["members"] = result["members"]
-            for packet in result["packets"]:
+            group["members"] = candidate
+            for packet in packets:
                 emit(*packet)
             moved_keys.append(group["key"])
     return moved_keys

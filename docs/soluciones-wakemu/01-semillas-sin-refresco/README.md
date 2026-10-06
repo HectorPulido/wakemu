@@ -6,7 +6,7 @@ Consumir exactamente una semilla por plantación aplicada y mostrar la cantidad 
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+Implementación del **servidor** cargada: delta de inventario por plantación y cooldown de extracción en PostgreSQL. [Evidencia y61 pruebas](IMPLEMENTACION.md); comprobación gráfica posterior pendiente. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
 
 ## Dependencias
 

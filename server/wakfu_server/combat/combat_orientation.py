@@ -40,9 +40,18 @@ def response(fight_id, action_id, actor_id, direction, sequence=-1):
 def apply(runtime, owner_id, body):
     identity, direction = decode_request(body)
     fight = runtime.fight
-    if fight.phase != "active" or runtime.awaiting_ack is not None:
-        raise ValueError("Orientation requires an active synchronized turn")
-    actor = fight._current_owned(owner_id, identity)
+    if runtime.awaiting_ack is not None:
+        raise ValueError("Orientation requires synchronized combat state")
+    if fight.phase == "placement":
+        actor = fight._owned(owner_id, identity)
+        if owner_id in fight.ready_owners:
+            raise ValueError("Placement is already ready")
+        if tuple(actor.position) not in fight.placement[actor.team]:
+            raise ValueError("Actor is outside its placement area")
+    elif fight.phase == "active":
+        actor = fight._current_owned(owner_id, identity)
+    else:
+        raise ValueError("Orientation requires placement or an active turn")
     next_action = runtime.action_id + 1
     packet = response(fight.id, next_action, identity, direction)
     # Everything validates before changing actor facing or action counters.

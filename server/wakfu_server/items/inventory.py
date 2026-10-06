@@ -6,73 +6,64 @@ containers provide capacity without granting items from captured inventories.
 import struct
 
 
-def initial_containers(character_id):
-    if type(character_id) is not int or not 0 < character_id < (1 << 55):
-        raise ValueError("Invalid inventory owner")
-    return [
-        dict(
-            uid=character_id * 256 + 128, reference=2175, kind=0, capacity=30, flags=0
-        ),
-        dict(uid=character_id * 256 + 129, reference=2603, kind=1, capacity=4, flags=0),
-    ]
-
-
-def load(db, character_id):
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS inventory_containers (
-        character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
-        uid INTEGER NOT NULL UNIQUE, reference INTEGER NOT NULL,
-        kind INTEGER NOT NULL, capacity INTEGER NOT NULL, flags INTEGER NOT NULL,
-        PRIMARY KEY(character_id,kind))"""
-    )
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS inventory_initialized (
-        character_id INTEGER PRIMARY KEY REFERENCES characters(id) ON DELETE CASCADE)"""
-    )
+def initialize(db, character_id):
+    """Initialize once under the owner lock; schemas belong to migrations."""
     if (
         db.execute(
-            "SELECT 1 FROM inventory_initialized WHERE character_id=?", (character_id,)
+            "SELECT id FROM characters WHERE id=%s FOR UPDATE", (character_id,)
         ).fetchone()
         is None
     ):
-        if (
-            db.execute(
-                "SELECT 1 FROM inventory_containers WHERE character_id=?",
-                (character_id,),
-            ).fetchone()
-            is None
-        ):
-            for container in initial_containers(character_id):
-                db.execute(
-                    """INSERT INTO inventory_containers
-                    (character_id,uid,reference,kind,capacity,flags) VALUES(?,?,?,?,?,?)""",
-                    (
-                        character_id,
-                        *(
-                            container[key]
-                            for key in ("uid", "reference", "kind", "capacity", "flags")
-                        ),
-                    ),
-                )
-        db.execute("INSERT INTO inventory_initialized VALUES(?)", (character_id,))
-    return [
-        dict(row)
-        for row in db.execute(
-            """SELECT uid,reference,kind,capacity,flags
-        FROM inventory_containers WHERE character_id=? ORDER BY kind""",
+        raise ValueError("Invalid inventory owner")
+    inserted = db.execute(
+        "INSERT INTO inventory_initialized(character_id) VALUES(%s) "
+        "ON CONFLICT(character_id) DO NOTHING RETURNING character_id",
+        (character_id,),
+    ).fetchone()
+    if inserted is None:
+        return
+    for reference, kind, capacity in ((2175, 0, 30), (2603, 1, 4)):
+        db.execute(
+            "INSERT INTO inventory_containers(character_id,reference,kind,capacity,flags) "
+            "VALUES(%s,%s,%s,%s,0)",
+            (character_id, reference, kind, capacity),
+        )
+
+
+def load(db, character_id):
+    return list(
+        db.execute(
+            "SELECT uid,character_id,reference,kind,capacity,flags FROM inventory_containers "
+            "WHERE character_id=%s ORDER BY kind",
             (character_id,),
         )
-    ]
+    )
 
 
 def bags(character):
     containers = character.get("inventory_containers")
     if containers is None:
-        containers = initial_containers(character["id"])
+        raise ValueError("Owned inventory containers must be loaded")
     if not 1 <= len(containers) <= 4:
         raise ValueError("Unsupported owned inventory container layout")
-    expected = initial_containers(character["id"])
-    if containers[0] != expected[0]:
+    if any(
+        container.get("character_id") != character["id"] for container in containers
+    ):
+        raise ValueError("Foreign inventory container owner")
+    base = containers[0]
+    if (
+        type(base["uid"]) is not int
+        or not 0 < base["uid"] < (1 << 63)
+        or any(
+            base[key] != value
+            for key, value in (
+                ("reference", 2175),
+                ("kind", 0),
+                ("capacity", 30),
+                ("flags", 0),
+            )
+        )
+    ):
         raise ValueError("Invalid fixed base inventory container")
     from .inventory_bag_rules import ordinary
 

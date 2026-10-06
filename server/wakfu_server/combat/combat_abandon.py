@@ -77,9 +77,25 @@ def prepare(store, account_id, generation, character, runtime, body):
             struct.pack(">q", identity) for identity in identities
         )
     packets = [(12238, payload), planned._flush()]
-    exit_health = combat_health.persist(
-        store, account_id, generation, character, runtime.fight, reason="abort"
-    )
+    # The durable outcome must not depend on the subsequent checkpoint or
+    # client callback. Commit the abort and its health receipt together.
+    with store.connection() as db:
+        exit_health = combat_health.persist(
+            store,
+            account_id,
+            generation,
+            character,
+            runtime.fight,
+            reason="abort",
+            db=db,
+        )
+        cursor = db.execute(
+            "UPDATE combat_fights SET status='aborted' WHERE id=%s "
+            "AND status IN ('placement','active','aborted')",
+            (runtime.fight.id,),
+        )
+        if cursor.rowcount != 1:
+            raise ValueError("Fight cannot be durably abandoned")
     runtime.fight.phase = "finished"
     runtime.fight.winner = None
     runtime.awaiting_ack = None

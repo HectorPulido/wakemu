@@ -2,9 +2,11 @@
 
 Instantiate once at server startup with recover=True to release reservations
 whose in-memory fights were lost. Defeated groups are never revived by recovery.
-Tables belong to this module; it does not alter the character Store schema.
+PostgreSQL migrations own tables; no DDL is issued during runtime.
 """
-import json
+from psycopg.types.json import Jsonb
+from psycopg.pq import TransactionStatus
+from datetime import datetime, timezone
 import time
 from copy import deepcopy
 from threading import RLock
@@ -16,27 +18,12 @@ class PersistentGroups:
         self.store = store
         self.lock = RLock()
         self.clock = clock
-        with store.connection() as db:
-            db.execute(
-                """CREATE TABLE IF NOT EXISTS combat_groups (
-                map_id INTEGER NOT NULL, instance_id INTEGER NOT NULL,
-                group_id INTEGER NOT NULL, members TEXT NOT NULL,
-                status TEXT NOT NULL CHECK(status IN ('available','fighting','defeated')),
-                generation TEXT, fight_id INTEGER, revision INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY(map_id,instance_id,group_id))"""
-            )
-        with store.connection() as db:
-            columns = {
-                r["name"] for r in db.execute("PRAGMA table_info(combat_groups)")
-            }
-            if "defeated_at" not in columns:
-                db.execute("ALTER TABLE combat_groups ADD COLUMN defeated_at REAL")
         if recover:
             self.recover_reservations()
 
     @staticmethod
     def _members(row):
-        return tuple(json.loads(row["members"]))
+        return tuple(row["members"])
 
     def register(self, map_id, instance_id, group_id, members):
         # Reuse the complete native ownership/roster validation.
@@ -44,29 +31,76 @@ class PersistentGroups:
         key = validator.register(map_id, instance_id, group_id, members)
         canonical = validator.groups[key]["members"]
         with self.lock, self.store.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
-            row = db.execute(
-                "SELECT * FROM combat_groups WHERE map_id=? AND instance_id=? AND group_id=?",
-                key,
+            inserted = db.execute(
+                "INSERT INTO combat_groups(map_id,instance_id,group_id,members,status) "
+                "VALUES(%s,%s,%s,%s,'available') ON CONFLICT(map_id,instance_id,group_id) "
+                "DO NOTHING RETURNING group_id",
+                (*key, Jsonb(canonical)),
             ).fetchone()
-            if row:
+            if inserted is None:
+                row = db.execute(
+                    "SELECT members FROM combat_groups WHERE map_id=%s AND instance_id=%s AND group_id=%s",
+                    key,
+                ).fetchone()
                 if self._members(row) != canonical:
                     raise ValueError("Conflicting existing group")
                 return key
-            identities = {m["id"] for m in canonical}
-            for other in db.execute(
-                "SELECT members FROM combat_groups WHERE map_id=? AND instance_id=?",
-                key[:2],
-            ):
-                if identities & {m["id"] for m in self._members(other)}:
+            for member in canonical:
+                claimed = db.execute(
+                    "INSERT INTO combat_group_members(map_id,instance_id,monster_id,group_id) "
+                    "VALUES(%s,%s,%s,%s) ON CONFLICT(map_id,instance_id,monster_id) "
+                    "DO NOTHING RETURNING monster_id",
+                    (map_id, instance_id, member["id"], group_id),
+                ).fetchone()
+                if claimed is None:
                     raise ValueError("NPC identity already exists in this map instance")
-            db.execute(
-                "INSERT INTO combat_groups(map_id,instance_id,group_id,members,status) VALUES(?,?,?,?,?)",
-                (*key, json.dumps(canonical, separators=(",", ":")), "available"),
-            )
         return key
 
-    def snapshot(self):
+    def register_seed(self, map_id, instance_id, group_id, members):
+        """Keep persisted positions while checking the seed identity and stats."""
+        validator = Groups()
+        key = validator.register(map_id, instance_id, group_id, members)
+        with self.store.connection() as db:
+            row = db.execute(
+                "SELECT members FROM combat_groups WHERE map_id=%s AND instance_id=%s AND group_id=%s",
+                key,
+            ).fetchone()
+        if row is None:
+            return self.register(*key, members)
+
+        def identity(member):
+            return {k: v for k, v in member.items() if k not in ("x", "y", "z")}
+
+        if [identity(m) for m in row["members"]] != [identity(m) for m in members]:
+            raise ValueError("Conflicting existing group seed identity or stats")
+        return key
+
+    def move_members(self, key, expected_members, moved_members):
+        """Persist positions only when the available roster still matches."""
+        expected_members, moved_members = list(expected_members), list(moved_members)
+        if not moved_members or len(expected_members) != len(moved_members):
+            raise ValueError("Invalid group movement roster")
+        for old, new in zip(expected_members, moved_members):
+            if {k: v for k, v in old.items() if k not in ("x", "y", "z")} != {
+                k: v for k, v in new.items() if k not in ("x", "y", "z")
+            }:
+                raise ValueError("Wandering may only change positions")
+        validator = Groups()
+        validator.register(*key, moved_members)
+        with self.store.connection() as db:
+            return (
+                db.execute(
+                    "UPDATE combat_groups SET members=%s,revision=revision+1 "
+                    "WHERE map_id=%s AND instance_id=%s AND group_id=%s "
+                    "AND status='available' AND members=%s RETURNING group_id",
+                    (Jsonb(moved_members), *key, Jsonb(expected_members)),
+                ).fetchone()
+                is not None
+            )
+
+    def snapshot(self, map_id=None, instance_id=None):
+        if (map_id is None) != (instance_id is None):
+            raise ValueError("Group snapshot requires map and instance together")
         with self.lock, self.store.connection() as db:
             return [
                 dict(
@@ -74,7 +108,12 @@ class PersistentGroups:
                     status=row["status"],
                     members=deepcopy(self._members(row)),
                 )
-                for row in db.execute("SELECT * FROM combat_groups")
+                for row in db.execute(
+                    "SELECT * FROM combat_groups"
+                    if map_id is None
+                    else "SELECT * FROM combat_groups WHERE map_id=%s AND instance_id=%s",
+                    () if map_id is None else (map_id, instance_id),
+                )
             ]
 
     def available(self, map_id, instance_id):
@@ -85,7 +124,7 @@ class PersistentGroups:
                     members=self._members(r),
                 )
                 for r in db.execute(
-                    "SELECT * FROM combat_groups WHERE map_id=? AND instance_id=? AND status='available' ORDER BY group_id",
+                    "SELECT * FROM combat_groups WHERE map_id=%s AND instance_id=%s AND status='available' ORDER BY group_id",
                     (map_id, instance_id),
                 )
             ]
@@ -99,49 +138,53 @@ class PersistentGroups:
         ):
             raise ValueError("Invalid fight lease")
         with self.lock, self.store.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
             row = db.execute(
-                "SELECT * FROM combat_groups WHERE map_id=? AND instance_id=? AND group_id=? AND status='available'",
+                "SELECT * FROM combat_groups WHERE map_id=%s AND instance_id=%s AND group_id=%s AND status='available' FOR UPDATE",
                 key,
             ).fetchone()
             if row is None:
                 raise ValueError("Group is unavailable")
             revision = row["revision"] + 1
             db.execute(
-                "UPDATE combat_groups SET status='fighting',generation=?,fight_id=?,revision=? WHERE map_id=? AND instance_id=? AND group_id=?",
+                "UPDATE combat_groups SET status='fighting',generation=%s,fight_id=%s,revision=%s WHERE map_id=%s AND instance_id=%s AND group_id=%s",
                 (generation, fight_id, revision, *key),
             )
             return (key, generation, fight_id, revision), self._members(row)
 
-    def finish(self, lease, *, defeated):
+    def finish(self, lease, *, defeated, db=None):
         if type(defeated) is not bool:
             raise ValueError("Outcome must be explicit")
         key, generation, fight_id, revision = lease
-        with self.lock, self.store.connection() as db:
-            cursor = db.execute(
-                "UPDATE combat_groups SET status=?,generation=NULL,fight_id=NULL,revision=revision+1,defeated_at=? WHERE map_id=? AND instance_id=? AND group_id=? AND status='fighting' AND generation=? AND fight_id=? AND revision=?",
-                (
-                    "defeated" if defeated else "available",
-                    self.clock() if defeated else None,
-                    *key,
-                    generation,
-                    fight_id,
-                    revision,
-                ),
-            )
-            return cursor.rowcount == 1
+        if db is None:
+            with self.lock, self.store.connection() as connection:
+                return self.finish(lease, defeated=defeated, db=connection)
+        if db.info.transaction_status != TransactionStatus.INTRANS:
+            raise ValueError("Group settlement requires an active transaction")
+        cursor = db.execute(
+            "UPDATE combat_groups SET status=%s,generation=NULL,fight_id=NULL,revision=revision+1,defeated_at=%s WHERE map_id=%s AND instance_id=%s AND group_id=%s AND status='fighting' AND generation=%s AND fight_id=%s AND revision=%s",
+            (
+                "defeated" if defeated else "available",
+                datetime.fromtimestamp(self.clock(), timezone.utc)
+                if defeated
+                else None,
+                *key,
+                generation,
+                fight_id,
+                revision,
+            ),
+        )
+        return cursor.rowcount == 1
 
     def release_session(self, generation):
         with self.lock, self.store.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
             rows = list(
                 db.execute(
-                    "SELECT * FROM combat_groups WHERE status='fighting' AND generation=?",
+                    "SELECT * FROM combat_groups WHERE status='fighting' AND generation=%s FOR UPDATE",
                     (generation,),
                 )
             )
             db.execute(
-                "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,revision=revision+1 WHERE status='fighting' AND generation=?",
+                "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,revision=revision+1 WHERE status='fighting' AND generation=%s",
                 (generation,),
             )
             return [
@@ -154,15 +197,14 @@ class PersistentGroups:
 
     def respawn(self, key):
         with self.lock, self.store.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
             row = db.execute(
-                "SELECT * FROM combat_groups WHERE map_id=? AND instance_id=? AND group_id=? AND status='defeated'",
+                "SELECT * FROM combat_groups WHERE map_id=%s AND instance_id=%s AND group_id=%s AND status='defeated' FOR UPDATE",
                 key,
             ).fetchone()
             if row is None:
                 raise ValueError("Only defeated groups can respawn")
             db.execute(
-                "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,revision=revision+1,defeated_at=NULL WHERE map_id=? AND instance_id=? AND group_id=?",
+                "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,revision=revision+1,defeated_at=NULL WHERE map_id=%s AND instance_id=%s AND group_id=%s",
                 key,
             )
             return self._members(row)
@@ -185,18 +227,17 @@ class PersistentGroups:
             "inf"
         ):
             raise ValueError("Respawn delay must be finite and nonnegative")
-        cutoff = self.clock() - delay_seconds
+        cutoff = datetime.fromtimestamp(self.clock() - delay_seconds, timezone.utc)
         with self.lock, self.store.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
             rows = list(
                 db.execute(
-                    "SELECT * FROM combat_groups WHERE status='defeated' AND defeated_at IS NOT NULL AND defeated_at<=? ORDER BY map_id,instance_id,group_id",
+                    "SELECT * FROM combat_groups WHERE status='defeated' AND defeated_at IS NOT NULL AND defeated_at<=%s ORDER BY map_id,instance_id,group_id FOR UPDATE SKIP LOCKED",
                     (cutoff,),
                 )
             )
             for row in rows:
                 db.execute(
-                    "UPDATE combat_groups SET status='available',defeated_at=NULL,generation=NULL,fight_id=NULL,revision=revision+1 WHERE map_id=? AND instance_id=? AND group_id=?",
+                    "UPDATE combat_groups SET status='available',defeated_at=NULL,generation=NULL,fight_id=NULL,revision=revision+1 WHERE map_id=%s AND instance_id=%s AND group_id=%s",
                     (row["map_id"], row["instance_id"], row["group_id"]),
                 )
             return [

@@ -1,10 +1,14 @@
-import tempfile, unittest
+import tempfile
+import copy
+from contextlib import contextmanager
+from unittest.mock import patch
+from postgres_case import PostgresCase
 from tests import test_combat_rewards
-from wakfu_server import health_store
+from wakfu_server import health_store, health_policy
 from wakfu_server.combat_health import persist, persist_aborted_fight
 
 
-class FightExitHealthTests(unittest.TestCase):
+class FightExitHealthTests(PostgresCase):
     def state(self, directory):
         (
             store,
@@ -12,7 +16,7 @@ class FightExitHealthTests(unittest.TestCase):
             char,
             generation,
             fight,
-        ) = test_combat_rewards.RewardTests().setup_state(directory)
+        ) = test_combat_rewards.setup_reward_state(self.store)
         char = health_store.initialize(
             store, account, generation, char["id"], coefficient=0
         )
@@ -28,6 +32,10 @@ class FightExitHealthTests(unittest.TestCase):
             s, a, c, g, f = self.state(directory)
             f.phase = "active"
             f.winner = None
+            with s.connection() as db:
+                db.execute(
+                    "UPDATE combat_fights SET status='active' WHERE id=%s", (f.id,)
+                )
             result = persist_aborted_fight(s, a, g, c, f)
             self.assertTrue(result["applied"])
             self.assertEqual(result["character"]["hp"], f.actors[c["id"]].hp)
@@ -37,12 +45,18 @@ class FightExitHealthTests(unittest.TestCase):
             self.assertEqual(f.phase, "active")
             with s.connection() as db:
                 self.assertEqual(
-                    db.execute("SELECT COUNT(*) FROM fight_rewards").fetchone()[0], 0
+                    db.execute(
+                        "SELECT COUNT(*) AS count FROM fight_rewards"
+                    ).fetchone()["count"],
+                    0,
                 )
-                db.execute("UPDATE characters SET hp=hp+1,x=44 WHERE id=?", (c["id"],))
+                current = s.character(a, c["id"], db)
+                health_policy.apply(db, current, current["hp"] + 1)
+                db.execute("UPDATE characters SET x=44 WHERE id=%s", (c["id"],))
                 baseline = db.execute(
-                    "SELECT started_ms FROM character_regeneration"
-                ).fetchone()[0]
+                    "SELECT started_at FROM character_regeneration WHERE character_id=%s",
+                    (c["id"],),
+                ).fetchone()["started_at"]
             s.clock = lambda: 1001
             again = persist_aborted_fight(s, a, g, c, f)
             self.assertFalse(again["applied"])
@@ -51,8 +65,9 @@ class FightExitHealthTests(unittest.TestCase):
             with s.connection() as db:
                 self.assertEqual(
                     db.execute(
-                        "SELECT started_ms FROM character_regeneration"
-                    ).fetchone()[0],
+                        "SELECT started_at FROM character_regeneration WHERE character_id=%s",
+                        (c["id"],),
+                    ).fetchone()["started_at"],
                     baseline,
                 )
 
@@ -60,18 +75,144 @@ class FightExitHealthTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             s, a, c, g, f = self.state(directory)
             with s.connection() as db:
-                db.execute("UPDATE characters SET hp=hp-1 WHERE id=?", (c["id"],))
+                db.execute(
+                    "UPDATE combat_fights SET status='active' WHERE id=%s", (f.id,)
+                )
+            with s.connection() as db:
+                current = s.character(a, c["id"], db)
+                health_policy.apply(db, current, current["hp"] - 1)
             self.assertIsNone(persist_aborted_fight(s, a, g, c, f))
             new = s.begin_session(a)
             s.select_character(a, new, c["id"])
+            from wakfu_server.fight_store import create
+
+            newer_fight = create(s, a, new, c["id"])
             self.assertIsNone(persist_aborted_fight(s, a, g, c, f))
             self.assertEqual(s.character(a, c["id"])["hp"], c["hp"] - 1)
             with s.connection() as db:
                 self.assertEqual(
                     db.execute(
-                        "SELECT COUNT(*) FROM sqlite_master WHERE name='fight_health_exits'"
-                    ).fetchone()[0],
+                        "SELECT COUNT(*) AS count FROM fight_health_exits WHERE character_id=%s",
+                        (c["id"],),
+                    ).fetchone()["count"],
                     0,
+                )
+                self.assertEqual(
+                    db.execute(
+                        "SELECT status FROM combat_fights WHERE id=%s", (f.id,)
+                    ).fetchone()["status"],
+                    "aborted",
+                )
+                self.assertEqual(
+                    db.execute(
+                        "SELECT status FROM combat_fights WHERE id=%s", (newer_fight,)
+                    ).fetchone()["status"],
+                    "placement",
+                )
+
+    def test_abort_sql_failure_rolls_back_hp_receipt_and_fight_then_retry_succeeds(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as directory:
+            store, account, character, generation, fight = self.state(directory)
+            fight.phase = "active"
+            fight.winner = None
+            with store.connection() as db:
+                db.execute(
+                    "UPDATE combat_fights SET status='active' WHERE id=%s", (fight.id,)
+                )
+            before = store.character(account, character["id"])
+            original_connection = store.connection
+
+            @contextmanager
+            def fail_abort_status():
+                with original_connection() as db:
+
+                    class FaultingConnection:
+                        def execute(self, query, *args, **kwargs):
+                            if "UPDATE combat_fights f SET status='aborted'" in query:
+                                raise RuntimeError("injected durable abort failure")
+                            return db.execute(query, *args, **kwargs)
+
+                        def __getattr__(self, name):
+                            return getattr(db, name)
+
+                    yield FaultingConnection()
+
+            with patch.object(store, "connection", side_effect=fail_abort_status):
+                with self.assertRaisesRegex(
+                    RuntimeError, "injected durable abort failure"
+                ):
+                    persist_aborted_fight(store, account, generation, character, fight)
+
+            after = store.character(account, character["id"])
+            self.assertEqual(
+                (after["hp"], after["hp_damage"], after["health_dead"]),
+                (before["hp"], before["hp_damage"], before["health_dead"]),
+            )
+            with store.connection() as db:
+                self.assertEqual(
+                    db.execute(
+                        "SELECT status FROM combat_fights WHERE id=%s", (fight.id,)
+                    ).fetchone()["status"],
+                    "active",
+                )
+                self.assertEqual(
+                    db.execute(
+                        "SELECT COUNT(*) AS count FROM fight_health_exits WHERE fight_id=%s",
+                        (fight.id,),
+                    ).fetchone()["count"],
+                    0,
+                )
+
+            retried = persist_aborted_fight(
+                store, account, generation, character, fight
+            )
+            self.assertTrue(retried["applied"])
+            self.assertEqual(
+                retried["character"]["hp"], fight.actors[character["id"]].hp
+            )
+            with store.connection() as db:
+                self.assertEqual(
+                    db.execute(
+                        "SELECT status FROM combat_fights WHERE id=%s", (fight.id,)
+                    ).fetchone()["status"],
+                    "aborted",
+                )
+                self.assertEqual(
+                    db.execute(
+                        "SELECT COUNT(*) AS count FROM fight_health_exits WHERE fight_id=%s",
+                        (fight.id,),
+                    ).fetchone()["count"],
+                    1,
+                )
+
+    def test_borrowed_abort_rejects_autocommit_connection(self):
+        from wakfu_server.fight_store import abort
+        from psycopg import connect
+
+        with tempfile.TemporaryDirectory() as directory:
+            store, account, character, generation, fight = self.state(directory)
+            with store.connection() as db:
+                db.execute(
+                    "UPDATE combat_fights SET status='active' WHERE id=%s", (fight.id,)
+                )
+            db = connect(
+                store.database.conninfo,
+                **store.database.connection_kwargs,
+                autocommit=True,
+            )
+            try:
+                with self.assertRaisesRegex(ValueError, "active transaction"):
+                    abort(store, account, character["id"], fight.id, db=db)
+            finally:
+                db.close()
+            with store.connection() as db:
+                self.assertEqual(
+                    db.execute(
+                        "SELECT status FROM combat_fights WHERE id=%s", (fight.id,)
+                    ).fetchone()["status"],
+                    "active",
                 )
 
     def test_duplicate_return_does_not_reset_health_or_create_another_award(self):
@@ -90,6 +231,77 @@ class FightExitHealthTests(unittest.TestCase):
             self.assertEqual(again["packets"], [])
             self.assertEqual(again["character"], first["character"])
 
+    def test_return_encoder_failure_rolls_back_health_exit_then_retry_emits_packets(
+        self,
+    ):
+        from unittest.mock import patch
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_lifecycle import return_to_world
+        import struct
+
+        with tempfile.TemporaryDirectory() as directory:
+            store, account, character, generation, fight = self.state(directory)
+            runtime = RuntimeMessages(fight)
+            body = struct.pack(">iB", fight.id, 0)
+            with store.connection() as db:
+                before_hp = db.execute(
+                    "SELECT hp FROM characters WHERE id=%s", (character["id"],)
+                ).fetchone()["hp"]
+                before_regen = db.execute(
+                    "SELECT initial_hp,started_at,last_at,coefficient FROM character_regeneration WHERE character_id=%s",
+                    (character["id"],),
+                ).fetchone()
+
+            with patch(
+                "wakfu_server.combat_lifecycle.outside_progression",
+                side_effect=ValueError("Injected progression encoder failure"),
+            ):
+                with self.assertRaisesRegex(
+                    ValueError, "Injected progression encoder failure"
+                ):
+                    return_to_world(
+                        store, account, generation, character, runtime, body, wp=6
+                    )
+
+            with store.connection() as db:
+                self.assertEqual(
+                    db.execute(
+                        "SELECT hp FROM characters WHERE id=%s", (character["id"],)
+                    ).fetchone()["hp"],
+                    before_hp,
+                )
+                self.assertEqual(
+                    db.execute(
+                        "SELECT initial_hp,started_at,last_at,coefficient FROM character_regeneration WHERE character_id=%s",
+                        (character["id"],),
+                    ).fetchone(),
+                    before_regen,
+                )
+                self.assertEqual(
+                    db.execute(
+                        "SELECT count(*) AS count FROM fight_health_exits WHERE fight_id=%s AND character_id=%s",
+                        (fight.id, character["id"]),
+                    ).fetchone()["count"],
+                    0,
+                )
+
+            retried = return_to_world(
+                store, account, generation, character, runtime, body, wp=6
+            )
+            self.assertTrue(retried["applied"])
+            self.assertTrue(retried["packets"])
+            self.assertEqual(
+                retried["character"]["hp"], fight.actors[character["id"]].hp
+            )
+            with store.connection() as db:
+                self.assertEqual(
+                    db.execute(
+                        "SELECT count(*) AS count FROM fight_health_exits WHERE fight_id=%s AND character_id=%s",
+                        (fight.id, character["id"]),
+                    ).fetchone()["count"],
+                    1,
+                )
+
     def test_defeat_persists_zero_hp_without_implicit_regeneration_or_rewards(self):
         with tempfile.TemporaryDirectory() as directory:
             s, a, c, g, f = self.state(directory)
@@ -105,5 +317,56 @@ class FightExitHealthTests(unittest.TestCase):
             self.assertEqual((current["xp"], current["kamas"]), (c["xp"], 0))
             with s.connection() as db:
                 self.assertEqual(
-                    db.execute("SELECT COUNT(*) FROM fight_rewards").fetchone()[0], 0
+                    db.execute(
+                        "SELECT COUNT(*) AS count FROM fight_rewards"
+                    ).fetchone()["count"],
+                    0,
                 )
+
+    def test_temporary_combat_maximum_does_not_change_wound_debt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store, account, character, generation, fight = self.state(directory)
+            character = health_store.sync(
+                store,
+                account,
+                generation,
+                character["id"],
+                character["hp"],
+                50,
+                coefficient=0,
+            )
+            actor = fight.actors[character["id"]]
+            actor.max_hp = 120
+            actor.hp = 105
+
+            result = persist_aborted_fight(store, account, generation, character, fight)
+
+            self.assertTrue(result["applied"])
+            persisted = result["character"]
+            self.assertEqual(
+                (persisted["max_hp"], persisted["hp"], persisted["hp_damage"]),
+                (60, 45, 15),
+            )
+
+            healed_fight = copy.deepcopy(fight)
+            healed_fight.id = 8
+            healed_fight.phase = "active"
+            healed_fight.winner = None
+            healed_fight.actors[character["id"]].max_hp = 120
+            healed_fight.actors[character["id"]].hp = 115
+            healed = persist_aborted_fight(
+                store, account, generation, persisted, healed_fight
+            )
+            self.assertTrue(healed["applied"])
+            self.assertEqual(
+                (
+                    healed["character"]["max_hp"],
+                    healed["character"]["hp"],
+                    healed["character"]["hp_damage"],
+                ),
+                (60, 55, 5),
+            )
+            reopened = self.reopen().character(account, character["id"])
+            self.assertEqual(
+                (reopened["max_hp"], reopened["hp"], reopened["hp_damage"]), (60, 55, 5)
+            )

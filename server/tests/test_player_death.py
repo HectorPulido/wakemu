@@ -1,4 +1,6 @@
-import struct, tempfile, unittest
+import struct
+import tempfile
+from postgres_case import PostgresCase
 from tests import test_combat_rewards
 from wakfu_server.combat_runtime_messages import RuntimeMessages
 from wakfu_server.player_death import defeat_messages
@@ -7,7 +9,7 @@ from wakfu_server.wire import proto_fields
 from wakfu_server import health_store
 
 
-class PlayerDeathTests(unittest.TestCase):
+class PlayerDeathTests(PostgresCase):
     def test_positive_owned_player_native_death_result_and_persistent_zero_hp(self):
         with tempfile.TemporaryDirectory() as directory:
             (
@@ -16,7 +18,7 @@ class PlayerDeathTests(unittest.TestCase):
                 char,
                 generation,
                 fight,
-            ) = test_combat_rewards.RewardTests().setup_state(directory)
+            ) = test_combat_rewards.setup_reward_state(self.store)
             char = health_store.initialize(
                 store, account, generation, char["id"], coefficient=0
             )
@@ -60,7 +62,10 @@ class PlayerDeathTests(unittest.TestCase):
             self.assertEqual(store.character(account, char["id"])["hp"], 0)
             with store.connection() as db:
                 self.assertEqual(
-                    db.execute("SELECT COUNT(*) FROM fight_rewards").fetchone()[0], 0
+                    db.execute(
+                        "SELECT COUNT(*) AS count FROM fight_rewards"
+                    ).fetchone()["count"],
+                    0,
                 )
             metadata[char["id"]]["gained_kamas"] = 1
             with self.assertRaises(ValueError):

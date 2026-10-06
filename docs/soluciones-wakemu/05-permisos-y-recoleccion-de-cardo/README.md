@@ -6,7 +6,11 @@ Permitir recolección legal y emitir rechazos que correspondan al estado real de
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+**En revision.** El encoder del servidor enviaba `creation_time` en el campo nativo `ownerAccount`, haciendo que plantas y árboles públicos parecieran ajenos. Se corrigió el campo a `0`; la fecha sigue persistida para crecimiento. El mismo encoder publica nuevas plantas y snapshots al entrar al mapa. Regresión y gate de plantación: **18/18 pruebas OK** en Docker con PostgreSQL aislado, incluidos paquetes reales de cardo60/fresno139 y snapshots. Esta modificación aún no se ha recargado.
+
+Se exportaron desde los datos nativos las acciones de flora para las 533 referencias, asociadas a sus etapas, con oficio, nivel mínimo, duración, referencias de producto y criterios. El catálogo facilita validar qué acción pertenece al recurso y etapa actuales.
+
+La solución completa sigue pendiente: falta el handler de cosecha vegetal `12995`, la ocupación y su respuesta nativa, la concesión durable de recompensas y la transición/regeneración del recurso. El catálogo no acredita cantidades ni probabilidades de producto ni la XP de oficio; véanse los [límites de la exportación](REVISION-RESPUESTAS.md).
 
 ## Dependencias
 

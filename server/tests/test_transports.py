@@ -1,13 +1,10 @@
 import struct
-import tempfile
-from pathlib import Path
-import unittest
+from postgres_case import PostgresCase
 from protocol_codec import Reader
 from wakfu_server import transports, wire
-from wakfu_server.store import Store
 
 
-class TransportTests(unittest.TestCase):
+class TransportTests(PostgresCase):
     def request(self, route):
         return struct.pack(
             ">qiBi", route["interactive_element_id"], route["destination_id"], 0, 2
@@ -94,23 +91,28 @@ class TransportTests(unittest.TestCase):
             )
 
     def test_persisted_transition_is_generation_and_origin_safe(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "db"
-            st = Store(path)
-            a = st.register("traveler", "local-test-password")["id"]
-            c = st.create_character(a, "Traveler")
-            g = st.begin_session(a)
-            st.select_character(a, g, c["id"])
-            destination = transports.CATALOG["routes"][0]["destination"]
-            changed = st.transition_map(a, g, c["id"], c, destination)
-            reopened = Store(path).character(a, c["id"])
-            self.assertTrue(
-                all(reopened[key] == value for key, value in destination.items())
+        store = self.store
+        store.clock = lambda: 1000
+        account = store.register("traveler", "local-test-password")["id"]
+        char = store.create_character(account, "Traveler")
+        generation = store.begin_session(account)
+        store.select_character(account, generation, char["id"])
+        destination = transports.CATALOG["routes"][0]["destination"]
+        changed = store.transition_map(
+            account, generation, char["id"], char, destination
+        )
+        reopened = self.reopen().character(account, char["id"])
+        self.assertTrue(
+            all(reopened[key] == value for key, value in destination.items())
+        )
+        with self.assertRaises(ValueError):
+            store.transition_map(account, generation, char["id"], char, destination)
+        store.begin_session(account)
+        with self.assertRaises(ValueError):
+            store.transition_map(
+                account,
+                generation,
+                char["id"],
+                changed,
+                {**destination, "map_id": 1385},
             )
-            with self.assertRaises(ValueError):
-                st.transition_map(a, g, c["id"], c, destination)
-            st.begin_session(a)
-            with self.assertRaises(ValueError):
-                st.transition_map(
-                    a, g, c["id"], changed, {**destination, "map_id": 1385}
-                )

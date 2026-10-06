@@ -1,9 +1,7 @@
 import tempfile
-import unittest
-from pathlib import Path
+from postgres_case import PostgresCase
 from wakfu_server.aptitudes import validate, budgets
 from wakfu_server.wire import proto_field
-from wakfu_server.store import Store
 from wakfu_server import builds
 
 
@@ -14,7 +12,7 @@ def sheet(entries):
     )
 
 
-class AptitudeTests(unittest.TestCase):
+class AptitudeTests(PostgresCase):
     def test_native_java_two_hp_points_codec_and_partial_categories(self):
         blob = bytes.fromhex("18ffffffffffffffffff01220408011002")
         result = validate({"level": 6}, blob)
@@ -52,13 +50,14 @@ class AptitudeTests(unittest.TestCase):
 
     def test_save_reconnect_and_invalid_allocation_atomicity(self):
         with tempfile.TemporaryDirectory() as folder:
-            store = Store(Path(folder) / "world.db")
+            store = self.store
+            store.clock = lambda: 1000
             account = store.register("aptitudes", "password")["id"]
             char = store.create_character(account, "Aptitude Player", breed=8)
             generation = store.begin_session(account)
             store.select_character(account, generation, char["id"])
             with store.connection() as db:
-                db.execute("UPDATE characters SET level=6 WHERE id=?", (char["id"],))
+                db.execute("UPDATE characters SET level=6 WHERE id=%s", (char["id"],))
             metadata = b"".join(
                 proto_field(t, v)
                 for t, v in (
@@ -88,7 +87,7 @@ class AptitudeTests(unittest.TestCase):
                     dict(blobs, aptitudes=sheet([(1, 3)])),
                 )
             self.assertEqual(
-                Store(store.path).character(account, char["id"])["builds"],
+                self.reopen().character(account, char["id"])["builds"],
                 saved["builds"],
             )
 
@@ -105,6 +104,7 @@ class AptitudeTests(unittest.TestCase):
             "builds": {
                 0: {
                     "aptitudes": sheet([(1, 2)]).hex(),
+                    "sheet": proto_field(24, (1 << 64) - 1).hex(),
                     "equipment": builds.EMPTY_EQUIPMENT.hex(),
                 }
             },

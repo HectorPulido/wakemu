@@ -144,7 +144,8 @@ def create_placement(
     player_initiative,
     terrain_effect_id,
     terrain_instance_id,
-    placement_cells=None
+    placement_cells=None,
+    duration_ms=60000
 ):
     """Combine authoritative local PC/NPC state into FSM and placement messages.
 
@@ -175,6 +176,11 @@ def create_placement(
             raise ValueError("Fight actors belong to a different map")
     if character["map_id"] != arena["map_id"]:
         raise ValueError("Fight actors belong to a different map")
+    from .builds import effective_sheet_level
+
+    effective_level = effective_sheet_level(
+        character, character.get("active_build_index", 0)
+    )
     pc = Actor(
         character["id"],
         0,
@@ -183,7 +189,7 @@ def create_placement(
         player_ap,
         player_mp,
         player_initiative,
-        character["level"],
+        effective_level,
         character["account_id"],
         True,
         max_hp=character["max_hp"],
@@ -245,6 +251,7 @@ def create_placement(
         terrain_effect_id=terrain_effect_id,
         terrain_instance_id=terrain_instance_id,
         leaders={0: pc.id, 1: npcs[0].id},
+        duration_ms=duration_ms,
     )
     return fight, messages
 

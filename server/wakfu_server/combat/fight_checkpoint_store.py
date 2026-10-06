@@ -4,6 +4,7 @@ Recovery marks interrupted fights aborted; it never reconstructs a client fight
 or silently resumes a timeline. Runtime callbacks and network peers are omitted.
 """
 import json
+from psycopg.types.json import Jsonb
 from dataclasses import asdict
 from .combat_state_ledger import StateLedger
 
@@ -53,19 +54,11 @@ def snapshot(fight, *, runtime=None):
 class Checkpoints:
     def __init__(self, store):
         self.store = store
-        with store.connection() as db:
-            db.execute(
-                """CREATE TABLE IF NOT EXISTS fight_checkpoints (
-                fight_id INTEGER PRIMARY KEY, account_id INTEGER NOT NULL,
-                generation TEXT NOT NULL, revision INTEGER NOT NULL,
-                status TEXT NOT NULL CHECK(status IN ('active','ended','aborted')),
-                snapshot TEXT NOT NULL, updated_at REAL NOT NULL)"""
-            )
 
     def _session(self, db, account_id, generation):
         row = db.execute(
-            "SELECT * FROM sessions WHERE account_id=? AND generation=? AND expires_at>?",
-            (account_id, generation, self.store.clock()),
+            "SELECT * FROM sessions WHERE account_id=%s AND generation=%s AND expires_at>%s FOR UPDATE",
+            (account_id, generation, self.store.now()),
         ).fetchone()
         if row is None:
             raise ValueError("Fight checkpoint session is stale")
@@ -79,23 +72,32 @@ class Checkpoints:
         ):
             raise ValueError("Account does not own a fight participant")
         state = snapshot(fight, runtime=runtime)
-        encoded = json.dumps(state, separators=(",", ":"), allow_nan=False)
+        json.dumps(state, allow_nan=False)  # Reject non-finite floats before SQL.
+        encoded = Jsonb(state)
         with self.store.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
             session = self._session(db, account_id, generation)
             actor = fight.actors.get(session["character_id"])
             if actor is None or not actor.controlled or actor.owner_id != account_id:
                 raise ValueError(
                     "Selected character does not participate in this fight"
                 )
+            if (
+                db.execute(
+                    "SELECT f.id FROM combat_fights f JOIN combat_fight_participants p "
+                    "ON p.fight_id=f.id WHERE f.id=%s AND p.character_id=%s AND p.account_id=%s FOR UPDATE OF f",
+                    (fight.id, session["character_id"], account_id),
+                ).fetchone()
+                is None
+            ):
+                raise ValueError("Missing owned durable fight participant")
             row = db.execute(
-                "SELECT * FROM fight_checkpoints WHERE fight_id=?", (fight.id,)
+                "SELECT * FROM fight_checkpoints WHERE fight_id=%s", (fight.id,)
             ).fetchone()
             if row is None:
                 if expected_revision is not None:
                     raise ValueError("Fight checkpoint revision does not exist")
                 db.execute(
-                    "INSERT INTO fight_checkpoints VALUES(?,?,?,?,?,?,?)",
+                    "INSERT INTO fight_checkpoints VALUES(%s,%s,%s,%s,%s,%s,%s)",
                     (
                         fight.id,
                         account_id,
@@ -103,7 +105,7 @@ class Checkpoints:
                         1,
                         "active",
                         encoded,
-                        self.store.clock(),
+                        self.store.now(),
                     ),
                 )
                 return 1
@@ -116,8 +118,8 @@ class Checkpoints:
                 raise ValueError("Stale or foreign fight checkpoint")
             revision = row["revision"] + 1
             db.execute(
-                "UPDATE fight_checkpoints SET revision=?,snapshot=?,updated_at=? WHERE fight_id=?",
-                (revision, encoded, self.store.clock(), fight.id),
+                "UPDATE fight_checkpoints SET revision=%s,snapshot=%s,updated_at=%s WHERE fight_id=%s",
+                (revision, encoded, self.store.now(), fight.id),
             )
             return revision
 
@@ -125,12 +127,12 @@ class Checkpoints:
     def _read_snapshot(raw):
         from .combat_checkpoint_containers import reconstruct_state_containers
 
-        return reconstruct_state_containers(json.loads(raw))
+        return reconstruct_state_containers(raw)
 
     def read(self, account_id, fight_id):
         with self.store.connection() as db:
             row = db.execute(
-                "SELECT * FROM fight_checkpoints WHERE fight_id=? AND account_id=?",
+                "SELECT * FROM fight_checkpoints WHERE fight_id=%s AND account_id=%s",
                 (fight_id, account_id),
             ).fetchone()
             if row is None:
@@ -150,13 +152,12 @@ class Checkpoints:
         if status not in ("ended", "aborted"):
             raise ValueError("Invalid checkpoint terminal status")
         with self.store.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
             self._session(db, account_id, generation)
             cursor = db.execute(
-                "UPDATE fight_checkpoints SET status=?,revision=revision+1,updated_at=? WHERE fight_id=? AND account_id=? AND generation=? AND revision=? AND status='active'",
+                "UPDATE fight_checkpoints SET status=%s,revision=revision+1,updated_at=%s WHERE fight_id=%s AND account_id=%s AND generation=%s AND revision=%s AND status='active'",
                 (
                     status,
-                    self.store.clock(),
+                    self.store.now(),
                     fight_id,
                     account_id,
                     generation,
@@ -165,13 +166,21 @@ class Checkpoints:
             )
             if cursor.rowcount != 1:
                 raise ValueError("Stale or foreign fight checkpoint")
+            if status == "aborted":
+                db.execute(
+                    "UPDATE combat_fights SET status='aborted' WHERE id=%s AND status IN ('placement','active')",
+                    (fight_id,),
+                )
             return expected_revision + 1
 
     def recover_interrupted(self):
         """Startup-only; preserve last actor HP/resources while marking lost fights."""
         with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_fights SET status='aborted' WHERE status IN ('placement','active')"
+            )
             cursor = db.execute(
-                "UPDATE fight_checkpoints SET status='aborted',revision=revision+1,updated_at=? WHERE status='active'",
-                (self.store.clock(),),
+                "UPDATE fight_checkpoints SET status='aborted',revision=revision+1,updated_at=%s WHERE status='active'",
+                (self.store.now(),),
             )
             return cursor.rowcount

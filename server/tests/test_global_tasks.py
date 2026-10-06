@@ -1,6 +1,7 @@
 import json
 import threading
 import unittest
+from postgres_case import PostgresCase
 import urllib.request
 import urllib.error
 from wakfu_server.global_tasks import GlobalTasks
@@ -8,7 +9,7 @@ from wakfu_server.api import serve_api
 from wakfu_server.world_scheduler import MemoryBackend, Scheduler
 
 
-class GlobalTaskTests(unittest.TestCase):
+class GlobalTaskTests(PostgresCase):
     def test_whitelist_occurrence_and_failed_retry(self):
         with self.assertRaises(ValueError):
             GlobalTasks({"weather": lambda: None})
@@ -19,18 +20,25 @@ class GlobalTaskTests(unittest.TestCase):
             if len(calls) == 1:
                 raise RuntimeError("storage unavailable")
 
-        tasks = GlobalTasks({"groups_flush": callback})
+        tasks = GlobalTasks({"positions_flush": callback})
         with self.assertRaises(ValueError):
-            tasks.run("groups_flush", "builds_flush:1")
+            tasks.run("positions_flush", "builds_flush:1")
         with self.assertRaises(RuntimeError):
-            tasks.run("groups_flush", "groups_flush:1")
-        self.assertFalse(tasks.run("groups_flush", "groups_flush:1")["deduplicated"])
-        self.assertTrue(tasks.run("groups_flush", "groups_flush:1")["deduplicated"])
+            tasks.run("positions_flush", "positions_flush:1")
+        self.assertFalse(
+            tasks.run("positions_flush", "positions_flush:1")["deduplicated"]
+        )
+        self.assertTrue(
+            tasks.run("positions_flush", "positions_flush:1")["deduplicated"]
+        )
         self.assertEqual(len(calls), 2)
 
     def test_http_global_without_session_and_scheduler_deduplication(self):
+        store = self.store
+        account = store.register("scheduler", "password")["id"]
+        token = store.issue_token(account, "scheduler")
         calls = []
-        callbacks = GlobalTasks({"builds_flush": lambda: calls.append(1)})
+        callbacks = GlobalTasks({"positions_flush": lambda: calls.append(1)})
         ready = threading.Event()
         servers = []
 
@@ -40,7 +48,7 @@ class GlobalTaskTests(unittest.TestCase):
 
         thread = threading.Thread(
             target=serve_api,
-            args=(None, "127.0.0.1", 0),
+            args=(store, "127.0.0.1", 0),
             kwargs=dict(global_tasks=callbacks, on_ready=on_ready),
             daemon=True,
         )
@@ -50,9 +58,12 @@ class GlobalTaskTests(unittest.TestCase):
 
         def action(occurrence, lost):
             req = urllib.request.Request(
-                base + "/test/tasks/builds_flush",
+                base + "/test/tasks/positions_flush",
                 data=json.dumps({"request_id": occurrence}).encode(),
-                headers={"Content-Type": "application/json"},
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token,
+                },
             )
             with urllib.request.urlopen(req, timeout=2) as response:
                 self.assertEqual(json.load(response)["status"], "completed")
@@ -61,16 +72,21 @@ class GlobalTaskTests(unittest.TestCase):
             backend = MemoryBackend(lambda: 1200)
             scheduler = Scheduler(
                 backend,
-                {"builds_flush": dict(interval=1200, action=action)},
+                {"positions_flush": dict(interval=1200, action=action)},
                 clock=lambda: 1200,
             )
             self.assertTrue(scheduler.tick()[0]["success"])
             self.assertEqual(scheduler.tick(), [])
-            action("builds_flush:1", threading.Event())
+            action("positions_flush:1", threading.Event())
             self.assertEqual(calls, [1])
-            with urllib.request.urlopen(base + "/test/tasks") as response:
+            with urllib.request.urlopen(
+                urllib.request.Request(
+                    base + "/test/tasks", headers={"Authorization": "Bearer " + token}
+                )
+            ) as response:
                 self.assertEqual(
-                    json.load(response), [{"name": "builds_flush", "scope": "global"}]
+                    json.load(response),
+                    [{"name": "positions_flush", "scope": "global"}],
                 )
         finally:
             servers[0].shutdown()

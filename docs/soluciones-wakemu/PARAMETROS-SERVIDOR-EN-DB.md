@@ -34,3 +34,19 @@ Congelar política al iniciar combate/recompensa o reservar una recolección: ca
 Cotejado con `compose.yaml`, inicialización de `server/local_game_server.py`, `combat/combat_lifecycle.py::policy_from_env` y `combat/combat_terrain.py::local_arena`: actualmente se leen variables de entorno, algunas al arrancar y otras por operación. El cooldown de extracción sigue pasado como literal cero; véase el probe del issue 1.
 
 La futura implementación debe probar tipos/rangos, precedencia, actualización concurrente, rollback, caché obsoleta, caída de Redis, reinicio, lectura consistente por varios procesos y ausencia de doble premio. Cambiar una regla en DB debe afectar nuevas operaciones sin editar Compose; las operaciones existentes conservan su revisión. No se cambiaron código, Compose ni bases de datos.
+
+## Avance de implementación PostgreSQL
+
+La configuración aún no está migrada por completo.006 incorpora
+`settings.monster_wander` (5s,25%, pasos1–3 y radio20), cargada y con14 pruebas
+dirigidas;008 incorpora `settings.monster_harvest` (cantidad1 y cooldown60s),
+en validación antes de carga. El cooldown se comprueba contra recibos
+por mapa/instancia/criatura/acción, antes de iniciar y dentro de la entrega
+transaccional. La política de extracción se congela en el ticket; cambios en DB
+afectan solicitudes nuevas. Los valores iniciales son políticas locales.
+El diseño transversal de versiones y ámbitos sigue pendiente; estas dos claves
+no acreditan la migración de las demás variables de Compose.
+
+## Estado verificado el 6 de octubre
+
+Las referencias anteriores a cooldown cero y008 sin cargar son históricas.006 y008 están aplicadas: movimiento y recolección leen sus políticas de PostgreSQL.011 añade un deadline persistido por recibo, conservado aunque cambie la duración de la política; el gate actualizado de43 pruebas cubre restauración, nuevos tickets, respawn y cleanup. El usuario acreditó recolección, botón deshabilitado durante regeneración y reapertura tras el cooldown.010 agrega políticas de monturas (habilitadas y sin misión por defecto; cooldown de montaje1000ms como política local), con19 pruebas de autoridad/codec, pero el handler de montaje continúa pendiente. Esto no completa la migración de las demás variables de Compose ni el diseño de versiones y ámbitos.

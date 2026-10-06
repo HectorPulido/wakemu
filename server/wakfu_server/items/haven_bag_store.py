@@ -1,6 +1,7 @@
-"""SQLite-owned haven-bag configuration; no captured account state."""
+"""PostgreSQL-owned haven-bag configuration; no captured account state."""
 from .paths import DATA_ROOT
 import json
+from psycopg.types.json import Jsonb
 from pathlib import Path
 
 MODELS = {
@@ -32,27 +33,6 @@ GEM_TYPES = {
 }
 
 
-def schema(db):
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS haven_bags (
-        character_id INTEGER PRIMARY KEY REFERENCES characters(id) ON DELETE CASCADE,
-        appearance_id INTEGER NOT NULL DEFAULT 408,
-        layout TEXT NOT NULL,
-        locked INTEGER NOT NULL DEFAULT 0,
-        furniture TEXT NOT NULL DEFAULT '[]',
-        access TEXT NOT NULL DEFAULT '{"groups":[{"group":0,"rights":1}],"characters":[]}')"""
-    )
-    columns = {row["name"] for row in db.execute("PRAGMA table_info(haven_bags)")}
-    for name, default in (
-        ("furniture", "[]"),
-        ("access", '{"groups":[{"group":0,"rights":1}],"characters":[]}'),
-    ):
-        if name not in columns:
-            db.execute(
-                f"ALTER TABLE haven_bags ADD COLUMN {name} TEXT NOT NULL DEFAULT '{default}'"
-            )
-
-
 def initial_layout(character_id):
     return [
         dict(
@@ -68,66 +48,18 @@ def initial_layout(character_id):
 
 
 def load(db, character_id):
-    db.execute(
-        "INSERT OR IGNORE INTO haven_bags(character_id,layout,access) VALUES(?,?,?)",
-        (
-            character_id,
-            json.dumps(initial_layout(character_id), separators=(",", ":")),
-            json.dumps(
-                {"groups": [{"group": 0, "rights": 1}], "characters": []},
-                separators=(",", ":"),
-            ),
-        ),
-    )
     row = db.execute(
-        "SELECT * FROM haven_bags WHERE character_id=?", (character_id,)
+        "SELECT * FROM haven_bags WHERE character_id=%s",
+        (character_id,),
     ).fetchone()
-    access = json.loads(row["access"])
-    if "allow" in access or "deny" in access:
-        if access.get("allow") or access.get("deny"):
-            raise ValueError("Unsupported legacy haven-bag ACL data")
-        access = {"groups": [{"group": 0, "rights": 1}], "characters": []}
-        db.execute(
-            "UPDATE haven_bags SET access=? WHERE character_id=?",
-            (json.dumps(access, separators=(",", ":")), character_id),
-        )
-    rooms = json.loads(row["layout"])
-    # Previous minimal serializer duplicated the same item in two slots.
-    # Repair only that impossible state, preserving legitimate personalization.
-    changed = False
-    for room in rooms:
-        if room["primary_uid"] and room["primary_uid"] == room["secondary_uid"]:
-            room["secondary_ref"], room["secondary_uid"] = -1, 0
-            changed = True
-    present = {room["index"] for room in rooms}
-    for index in range(9):
-        if index not in present:
-            rooms.append(
-                dict(
-                    index=index,
-                    enabled=False,
-                    primary_ref=-1,
-                    primary_uid=0,
-                    secondary_ref=-1,
-                    secondary_uid=0,
-                )
-            )
-            changed = True
-    rooms.sort(key=lambda room: room["index"])
-    if changed:
-        db.execute(
-            "UPDATE haven_bags SET layout=? WHERE character_id=?",
-            (json.dumps(rooms, separators=(",", ":")), character_id),
-        )
+    if row is None:
+        raise ValueError("Missing owned haven bag")
     return {
         "appearance_id": row["appearance_id"],
-        "rooms": rooms,
-        "locked": bool(row["locked"]),
-        "furniture": json.loads(row["furniture"]),
-        "access": {
-            "groups": access.get("groups", []),
-            "characters": access.get("characters", []),
-        },
+        "rooms": row["layout"],
+        "locked": row["locked"],
+        "furniture": row["furniture"],
+        "access": row["access"],
     }
 
 
@@ -230,14 +162,7 @@ def save(
     if locked is not None and type(locked) is not bool:
         raise ValueError("Invalid haven-bag lock")
     with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
-        session = db.execute(
-            "SELECT character_id FROM sessions WHERE account_id=? AND generation=? AND expires_at>?",
-            (account_id, generation, store.clock()),
-        ).fetchone()
-        if session is None or session["character_id"] != character_id:
-            raise ValueError("Sesión o personaje inválidos.")
-        store.character(account_id, character_id, db)
+        store.lock_character(db, account_id, generation, character_id)
         current = load(db, character_id)
         if access is not None:
             from wakfu_server.haven_bag import permission_payload, decode_permissions
@@ -247,26 +172,18 @@ def save(
             _, access = decode_permissions(struct.pack(">I", len(payload)) + payload)
             for item in access["characters"]:
                 target = db.execute(
-                    "SELECT name FROM characters WHERE id=?", (item["id"],)
+                    "SELECT name FROM characters WHERE id=%s", (item["id"],)
                 ).fetchone()
                 if target is None or target["name"] != item["name"]:
                     raise ValueError("Unknown local haven-bag permission character")
         db.execute(
-            "UPDATE haven_bags SET appearance_id=?,layout=?,locked=?,access=?,furniture=? WHERE character_id=?",
+            "UPDATE haven_bags SET appearance_id=%s,layout=%s,locked=%s,access=%s,furniture=%s WHERE character_id=%s",
             (
                 current["appearance_id"] if appearance_id is None else appearance_id,
-                json.dumps(
-                    current["rooms"] if rooms is None else rooms, separators=(",", ":")
-                ),
+                Jsonb(current["rooms"] if rooms is None else rooms),
                 current["locked"] if locked is None else locked,
-                json.dumps(
-                    current["access"] if access is None else access,
-                    separators=(",", ":"),
-                ),
-                json.dumps(
-                    current["furniture"] if furniture is None else furniture,
-                    separators=(",", ":"),
-                ),
+                Jsonb(current["access"] if access is None else access),
+                Jsonb(current["furniture"] if furniture is None else furniture),
                 character_id,
             ),
         )

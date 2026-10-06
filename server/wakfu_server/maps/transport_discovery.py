@@ -46,17 +46,11 @@ def account_packet(known):
 class Discoveries:
     def __init__(self, store):
         self.store = store
-        with store.connection() as db:
-            db.execute(
-                """CREATE TABLE IF NOT EXISTS transport_discoveries(
-                account_id INTEGER NOT NULL,kind INTEGER NOT NULL CHECK(kind IN(1,2)),
-                transport_id INTEGER NOT NULL, PRIMARY KEY(account_id,kind,transport_id))"""
-            )
 
     def known(self, account_id):
         with self.store.connection() as db:
             rows = db.execute(
-                "SELECT kind,transport_id FROM transport_discoveries WHERE account_id=?",
+                "SELECT kind,transport_id FROM transport_discoveries WHERE account_id=%s",
                 (account_id,),
             ).fetchall()
             return {
@@ -67,16 +61,15 @@ class Discoveries:
     def discover(self, account_id, generation, kind, identity):
         _validate(kind, identity)
         with self.store.connection() as db:
-            db.execute("BEGIN IMMEDIATE")
             session = db.execute(
-                "SELECT 1 FROM sessions WHERE account_id=? AND generation=? AND expires_at>?",
-                (account_id, generation, self.store.clock()),
+                "SELECT 1 FROM sessions WHERE account_id=%s AND generation=%s AND expires_at>%s FOR UPDATE",
+                (account_id, generation, self.store.now()),
             ).fetchone()
             if session is None:
                 raise ValueError("Transport discovery session is stale")
             return (
                 db.execute(
-                    "INSERT OR IGNORE INTO transport_discoveries VALUES(?,?,?)",
+                    "INSERT INTO transport_discoveries VALUES(%s,%s,%s) ON CONFLICT(account_id,kind,transport_id) DO NOTHING",
                     (account_id, kind, identity),
                 ).rowcount
                 == 1

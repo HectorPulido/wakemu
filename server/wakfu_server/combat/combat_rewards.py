@@ -1,10 +1,11 @@
 """Explicit local victory rewards, independent of official reward/drop data.
 
-Schema is an additive, lazy extension to Store schema5. Award keys include
-session generation, character and fight ID; a session replacement cannot
-replay an old award. No item loot is generated.
+Award keys are durable fight/character identities, independent of session
+replacement. PostgreSQL migrations own the schema. No item loot is generated.
 """
 from dataclasses import dataclass
+from contextlib import nullcontext
+from psycopg.pq import TransactionStatus
 from .progression import level_xp, XP_BY_LEVEL
 
 
@@ -21,69 +22,26 @@ class Policy:
             raise ValueError("FightReport gainedKamas requires signed32 amount")
 
 
-def schema(db):
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS character_progression (
-        character_id INTEGER PRIMARY KEY REFERENCES characters(id) ON DELETE CASCADE,
-        xp INTEGER NOT NULL CHECK(xp>=0), kamas INTEGER NOT NULL DEFAULT 0 CHECK(kamas>=0))"""
-    )
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS account_wallets (
-        account_id INTEGER PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
-        kamas INTEGER NOT NULL DEFAULT 0 CHECK(kamas>=0))"""
-    )
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS fight_rewards (
-        generation TEXT NOT NULL, fight_id INTEGER NOT NULL,
-        character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
-        account_id INTEGER NOT NULL REFERENCES accounts(id),
-        xp INTEGER NOT NULL, kamas INTEGER NOT NULL, created_at REAL NOT NULL,
-        PRIMARY KEY(generation,fight_id,character_id))"""
-    )
-
-    columns = {row["name"] for row in db.execute("PRAGMA table_info(fight_rewards)")}
-    for name in ("start_xp", "end_xp", "start_level", "end_level"):
-        if name not in columns:
-            db.execute(f"ALTER TABLE fight_rewards ADD COLUMN {name} INTEGER")
-
-
 def load(db, character):
-    """Load totals, initializing manual-level characters at their native threshold."""
-    schema(db)
-    db.execute(
-        "INSERT OR IGNORE INTO character_progression(character_id,xp) VALUES(?,?)",
-        (character["id"], level_xp(character["level"])),
-    )
+    """Read authoritative XP and account currency; initialization is explicit."""
     row = db.execute(
-        "SELECT xp,kamas FROM character_progression WHERE character_id=?",
-        (character["id"],),
+        "SELECT p.xp,w.kamas FROM character_progression p "
+        "JOIN account_wallets w ON w.account_id=%s WHERE p.character_id=%s",
+        (character["account_id"], character["id"]),
     ).fetchone()
-    # Preserve explicit administrative level changes; never lower level200.
-    xp = max(row["xp"], level_xp(character["level"]))
-    if xp != row["xp"]:
-        db.execute(
-            "UPDATE character_progression SET xp=? WHERE character_id=?",
-            (xp, character["id"]),
-        )
-    db.execute(
-        "INSERT OR IGNORE INTO account_wallets(account_id,kamas) "
-        "SELECT ?,COALESCE(SUM(p.kamas),0) FROM character_progression p "
-        "JOIN characters c ON c.id=p.character_id WHERE c.account_id=?",
-        (character["account_id"], character["account_id"]),
-    )
-    wallet = db.execute(
-        "SELECT kamas FROM account_wallets WHERE account_id=?",
-        (character["account_id"],),
-    ).fetchone()
-    return dict(xp=xp, kamas=wallet["kamas"])
+    if row is None:
+        raise ValueError("Missing character progression or account wallet")
+    return dict(row)
 
 
-def award(store, account_id, generation, character_id, fight, policy=Policy()):
+def award(
+    store, account_id, generation, character_id, fight, policy=Policy(), *, db=None
+):
     """Award a winning controlled participant once, under the current lease.
 
     Returns {character, awarded, xp, kamas}; character contains updated total
     xp/kamas and level. xp/kamas at the top level are this fight's amounts.
-    HP maximum must be refreshed by health_store when a level changes.
+    Level-dependent health is refreshed in the same transaction as the award.
     """
     if not isinstance(policy, Policy):
         raise ValueError("Explicit local reward Policy required")
@@ -99,20 +57,31 @@ def award(store, account_id, generation, character_id, fight, policy=Policy()):
         raise ValueError("Rewards require the own winning fight participant")
     if type(fight.id) is not int or not 0 < fight.id < 2**31:
         raise ValueError("Invalid reward fight identity")
-    with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
-        schema(db)
-        lease = db.execute(
-            "SELECT character_id FROM sessions WHERE account_id=? AND generation=? AND expires_at>?",
-            (account_id, generation, store.clock()),
+    borrowed = db is not None
+    if borrowed and db.info.transaction_status != TransactionStatus.INTRANS:
+        raise ValueError("Reward requires an active transaction")
+    with nullcontext(db) if borrowed else store.connection() as db:
+        store.lock_character(db, account_id, generation, character_id)
+        participant = db.execute(
+            "SELECT p.team,f.status FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+            "WHERE p.fight_id=%s AND p.character_id=%s AND p.account_id=%s FOR UPDATE OF f",
+            (fight.id, character_id, account_id),
         ).fetchone()
-        if lease is None or lease["character_id"] != character_id:
-            raise ValueError("Session or character lease is stale")
+        if (
+            participant is None
+            or participant["team"] != fight.winner
+            or participant["status"] != "finished"
+        ):
+            raise ValueError("Missing finished owned durable fight participant")
+        db.execute(
+            "SELECT account_id FROM account_wallets WHERE account_id=%s FOR UPDATE",
+            (account_id,),
+        )
         character = store.character(account_id, character_id, db)
         totals = load(db, character)
         existing = db.execute(
-            "SELECT * FROM fight_rewards WHERE generation=? AND fight_id=? AND character_id=?",
-            (generation, fight.id, character_id),
+            "SELECT * FROM fight_rewards WHERE fight_id=%s AND character_id=%s",
+            (fight.id, character_id),
         ).fetchone()
         if existing is not None:
             return dict(
@@ -130,18 +99,23 @@ def award(store, account_id, generation, character_id, fight, policy=Policy()):
             max(level for level, threshold in XP_BY_LEVEL.items() if threshold <= xp),
         )
         db.execute(
-            "UPDATE character_progression SET xp=? WHERE character_id=?",
+            "UPDATE character_progression SET xp=%s WHERE character_id=%s",
             (xp, character_id),
         )
         db.execute(
-            "UPDATE account_wallets SET kamas=? WHERE account_id=?", (kamas, account_id)
+            "UPDATE account_wallets SET kamas=%s WHERE account_id=%s",
+            (kamas, account_id),
         )
         db.execute(
-            "UPDATE characters SET level=? WHERE account_id=? AND id=?",
+            "UPDATE characters SET level=%s WHERE account_id=%s AND id=%s",
             (level, account_id, character_id),
         )
+        if level != character["level"]:
+            from . import health_store
+
+            health_store.initialize(store, account_id, generation, character_id, db=db)
         db.execute(
-            "INSERT INTO fight_rewards(generation,fight_id,character_id,account_id,xp,kamas,created_at,start_xp,end_xp,start_level,end_level) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO fight_rewards(generation,fight_id,character_id,account_id,xp,kamas,created_at,start_xp,end_xp,start_level,end_level) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 generation,
                 fight.id,
@@ -149,7 +123,7 @@ def award(store, account_id, generation, character_id, fight, policy=Policy()):
                 account_id,
                 policy.xp,
                 policy.kamas,
-                store.clock(),
+                store.now(),
                 totals["xp"],
                 xp,
                 character["level"],
@@ -175,23 +149,14 @@ def award(store, account_id, generation, character_id, fight, policy=Policy()):
 
 
 def wallet(store, account_id):
-    """Current account-wide balance, including login before character selection."""
+    """Read the single account balance; registration initializes the wallet."""
     with store.connection() as db:
-        schema(db)
-        if (
-            db.execute("SELECT id FROM accounts WHERE id=?", (account_id,)).fetchone()
-            is None
-        ):
-            raise ValueError("Unknown local account")
-        db.execute(
-            "INSERT OR IGNORE INTO account_wallets(account_id,kamas) "
-            "SELECT ?,COALESCE(SUM(p.kamas),0) FROM character_progression p "
-            "JOIN characters c ON c.id=p.character_id WHERE c.account_id=?",
-            (account_id, account_id),
-        )
-        return db.execute(
-            "SELECT kamas FROM account_wallets WHERE account_id=?", (account_id,)
-        ).fetchone()["kamas"]
+        row = db.execute(
+            "SELECT kamas FROM account_wallets WHERE account_id=%s", (account_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError("Unknown account wallet")
+        return row["kamas"]
 
 
 def _xp_info(receipt):

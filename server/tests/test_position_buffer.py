@@ -1,22 +1,17 @@
-from pathlib import Path
-import tempfile
 import unittest
-from wakfu_server.store import Store
+from postgres_case import PostgresCase
 from wakfu_server.position_buffer import Positions
 
 
-class PositionBufferTests(unittest.TestCase):
+class PositionBufferTests(PostgresCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
+        super().setUp()
         self.now = 1000
-        self.store = Store(Path(self.tmp.name) / "world.db", lambda: self.now)
+        self.store.clock = lambda: self.now
         self.live = set()
         self.buffer = Positions(
             self.store, lease_active=lambda a, g, c: (a, g, c) in self.live
         )
-
-    def tearDown(self):
-        self.tmp.cleanup()
 
     def attach(self, name):
         account = self.store.register(name, "local-password")["id"]

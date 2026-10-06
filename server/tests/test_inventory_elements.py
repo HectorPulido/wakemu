@@ -1,17 +1,15 @@
 import struct
-import tempfile
 import unittest
-from pathlib import Path
 from random import Random
 from unittest.mock import patch
 from wakfu_server.inventory_elements import create, masks, bonuses as selected_bonuses
 from wakfu_server.inventory_items import grant, item_proto, item_form
 from wakfu_server.equipment_stats import bonuses, CATALOG, _flat
-from wakfu_server.store import Store
+from postgres_case import PostgresCase
 from wakfu_server.wire import proto_field, proto_fields
 
 
-class InventoryElementsTests(unittest.TestCase):
+class InventoryElementsTests(PostgresCase):
     def test_native_creation_selection_and_legacy_absence_are_distinct(self):
         selected = create(2869, rng=Random(0))
         self.assertEqual(selected["damage_elements"].bit_count(), 3)
@@ -41,55 +39,48 @@ class InventoryElementsTests(unittest.TestCase):
                 masks(bad)
 
     def test_sql_grant_reopen_item_codecs_and_repeated_equipment_preserve_masks(self):
-        with tempfile.TemporaryDirectory() as folder:
-            store = Store(Path(folder) / "world.sqlite3")
-            account = store.register("element-unit", "local-test-password")["id"]
-            char = store.create_character(account, "Element Unit")
-            generation = store.begin_session(account)
-            store.select_character(account, generation, char["id"])
-            with patch(
-                "wakfu_server.inventory_elements.SystemRandom", return_value=Random(0)
-            ):
-                item = grant(
-                    store,
-                    account,
-                    generation,
-                    char["id"],
-                    reference=2869,
-                    quantity=1,
-                    container=char["inventory_containers"][0]["uid"],
-                    slot=0,
-                    allowed_references={2869},
-                )
-            selected = masks(item)
-            reopened = Store(store.path).character(account, char["id"])[
-                "inventory_items"
-            ][0]
-            self.assertEqual(masks(reopened), selected)
-            nested = dict(proto_fields(item_proto(item)))[450]
+        store = self.store
+        account = store.register("element-unit", "local-test-password")["id"]
+        char = store.create_character(account, "Element Unit")
+        generation = store.begin_session(account)
+        store.select_character(account, generation, char["id"])
+        with patch(
+            "wakfu_server.inventory_elements.SystemRandom", return_value=Random(0)
+        ):
+            item = grant(
+                store,
+                account,
+                generation,
+                char["id"],
+                reference=2869,
+                quantity=1,
+                container=char["inventory_containers"][0]["uid"],
+                slot=0,
+                allowed_references={2869},
+            )
+        selected = masks(item)
+        reopened = self.reopen().character(account, char["id"])["inventory_items"][0]
+        self.assertEqual(masks(reopened), selected)
+        nested = dict(proto_fields(item_proto(item)))[450]
+        self.assertEqual(dict(proto_fields(nested)), {8: selected[0], 16: selected[1]})
+        self.assertEqual(item_form(item)[14:], bytes(5) + bytes((1, *selected, 0, 0)))
+        sheet = proto_field(10, proto_field(8, item["uid"]) + proto_field(16, 15)).hex()
+        loaded = dict(
+            store.character(account, char["id"]),
+            level=200,
+            effective_level=200,
+            builds={
+                0: dict(equipment=sheet, sheet=proto_field(24, (1 << 64) - 1).hex())
+            },
+        )
+        first = bonuses(loaded)
+        self.assertFalse(first["unsupported"])
+        self.assertEqual(first, bonuses(loaded))
+        for element in (1, 2, 3, 4):
             self.assertEqual(
-                dict(proto_fields(nested)), {8: selected[0], 16: selected[1]}
+                first["stats"].get(20 + element, 0),
+                21 if selected[0] & (1 << element) else 0,
             )
-            self.assertEqual(
-                item_form(item)[14:], bytes(5) + bytes((1, *selected, 0, 0))
-            )
-            sheet = proto_field(
-                10, proto_field(8, item["uid"]) + proto_field(16, 15)
-            ).hex()
-            loaded = dict(
-                store.character(account, char["id"]),
-                level=200,
-                effective_level=200,
-                builds={0: dict(equipment=sheet)},
-            )
-            first = bonuses(loaded)
-            self.assertFalse(first["unsupported"])
-            self.assertEqual(first, bonuses(loaded))
-            for element in (1, 2, 3, 4):
-                self.assertEqual(
-                    first["stats"].get(20 + element, 0),
-                    21 if selected[0] & (1 << element) else 0,
-                )
 
     def test_native_copy_minus_one_with_absent_equipment_trigger_is_zero(self):
         effect = dict(

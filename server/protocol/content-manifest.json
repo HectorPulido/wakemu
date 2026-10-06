@@ -149,9 +149,17 @@
     },
     {
       "path": "protocol/plant-resources.json",
-      "sha256": "f4bf7a4a81f618f7b47a6590522f65c9b3cbf3e10668223b9367adc9cffa7e46",
-      "bytes": 158568,
-      "records": 533
+      "sha256": "2397948397dbd0ed9b30d3d7905f4b3e726bf384dd0766436f0fa02f5637a4e2",
+      "bytes": 954604,
+      "records": 533,
+      "declared_provenance": {
+        "source": "ExportPlantResources.java traverses native aNl -> aNm -> aNn[]; resource stages/actions exported from installed client bdata",
+        "jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+        "bdata_shards_sha256": "9ef3bcfa2589db304c3f703ea8a99e00b864d54a01961422e7960157bdcead18",
+        "bdata_index_sha256": "e64de278a22979552cd3d58ffb62e792d396acac0d9b7eb175f6dadf3133140d",
+        "exporter_sha256": "4c1b4b15687e87c8fc168a511b1b06caf9e7801d3654f314116cceddd3976d08",
+        "limits": "Raw getter values are preserved without assigning unverified reward quantities, probabilities, XP, or transitions."
+      }
     },
     {
       "path": "protocol/planting-grounds.json",

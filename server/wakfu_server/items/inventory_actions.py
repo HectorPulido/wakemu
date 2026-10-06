@@ -20,10 +20,9 @@ def destroy(store, account_id, generation, character_id, body):
     if uid <= 0:
         raise ValueError("Invalid destroyed item UID")
     with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
         _lease(store, db, account_id, generation, character_id)
         item = db.execute(
-            "SELECT * FROM inventory_items WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (uid, character_id),
         ).fetchone()
         if item is None:
@@ -41,7 +40,7 @@ def destroy(store, account_id, generation, character_id, body):
                         "Desequip the selected owned unit before destruction"
                     )
         db.execute(
-            "DELETE FROM inventory_items WHERE uid=? AND character_id=?",
+            "DELETE FROM inventory_items WHERE uid=%s AND character_id=%s",
             (uid, character_id),
         )
         return dict(
@@ -57,7 +56,7 @@ def use_request(store, account_id, generation, character_id, body):
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
         item = db.execute(
-            "SELECT * FROM inventory_items WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (request["uid"], character_id),
         ).fetchone()
         if item is None:

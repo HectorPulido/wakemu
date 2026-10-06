@@ -11,15 +11,6 @@ STATS = {1068: {1: 21, 2: 22, 3: 23, 4: 24}, 1069: {1: 28, 2: 29, 3: 30, 4: 31}}
 VALID_MASK = sum(1 << element for element in ELEMENTS)
 
 
-def schema(db):
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS inventory_item_elements (
-        uid INTEGER PRIMARY KEY REFERENCES inventory_items(uid) ON DELETE CASCADE,
-        damage_elements INTEGER NOT NULL CHECK(damage_elements BETWEEN 0 AND 30),
-        resistance_elements INTEGER NOT NULL CHECK(resistance_elements BETWEEN 0 AND 30))"""
-    )
-
-
 def masks(item):
     present = [field in item for field in FIELDS.values()]
     if not any(present):
@@ -61,27 +52,24 @@ def create(reference, *, rng=None):
 
 
 def save(db, uid, selection):
-    schema(db)
     values = masks(selection)
     if values is None:
         return
     db.execute(
-        "INSERT INTO inventory_item_elements(uid,damage_elements,resistance_elements) VALUES(?,?,?)",
+        "INSERT INTO inventory_item_elements(uid,damage_elements,resistance_elements) VALUES(%s,%s,%s)",
         (uid, *values),
     )
 
 
 def hydrate(db, items):
-    schema(db)
     if not items:
         return items
     by_uid = {item["uid"]: item for item in items}
-    query = (
-        "SELECT uid,damage_elements,resistance_elements FROM inventory_item_elements WHERE uid IN ("
-        + ",".join("?" for _ in items)
-        + ")"
-    )
-    for row in db.execute(query, tuple(by_uid)):
+    for row in db.execute(
+        "SELECT uid,damage_elements,resistance_elements FROM inventory_item_elements "
+        "WHERE uid = ANY(%s)",
+        (list(by_uid),),
+    ):
         item = by_uid[row["uid"]]
         item.update(
             damage_elements=row["damage_elements"],
@@ -92,9 +80,8 @@ def hydrate(db, items):
 
 
 def copy(db, source_uid, target_uid):
-    schema(db)
     row = db.execute(
-        "SELECT damage_elements,resistance_elements FROM inventory_item_elements WHERE uid=?",
+        "SELECT damage_elements,resistance_elements FROM inventory_item_elements WHERE uid=%s",
         (source_uid,),
     ).fetchone()
     if row is not None:
@@ -123,7 +110,7 @@ def bonuses(item, effect):
 
 
 def proto(item):
-    from .wire import proto_field
+    from wakfu_server.wire import proto_field
 
     values = masks(item)
     if values is None:

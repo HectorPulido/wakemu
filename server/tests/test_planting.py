@@ -1,19 +1,15 @@
 import struct
-import tempfile
 import unittest
-from pathlib import Path
-from wakfu_server.store import Store
+from postgres_case import PostgresCase
 from wakfu_server.inventory_items import grant
 from wakfu_server.planting import prepare, complete, publish_groups, SEEDS, RESOURCES
 from wakfu_server.monsters import owned_instance
 from wakfu_server.combat_groups import Groups
 
 
-class PlantingTests(unittest.TestCase):
+class PlantingTests(PostgresCase):
     def setUp(self):
-        self.folder = tempfile.TemporaryDirectory()
-        self.addCleanup(self.folder.cleanup)
-        self.store = Store(Path(self.folder.name) / "world.db")
+        super().setUp()
         self.account = self.store.register("planting", "password")["id"]
         self.char = self.store.create_character(self.account, "Planting Player")
         self.generation = self.store.begin_session(self.account)
@@ -31,12 +27,9 @@ class PlantingTests(unittest.TestCase):
             slot=0,
             allowed_references=SEEDS,
         )
-        from wakfu_server.profession_store import schema
-
         with self.store.connection() as db:
-            schema(db)
             db.execute(
-                "INSERT INTO character_professions VALUES(?,?,?)",
+                "INSERT INTO character_professions VALUES(%s,%s,%s)",
                 (self.char["id"], SEEDS[ref]["profession_id"], 200),
             )
         body = struct.pack(">iqii", SEEDS[ref]["action_id"], item["uid"], 10, 11)
@@ -56,13 +49,16 @@ class PlantingTests(unittest.TestCase):
             operation_id="herb-1", stage=1, creation_time=123, result_prefix=(0, 1)
         )
         result = complete(self.store, self.account, self.generation, p, **kwargs)
-        self.assertEqual([packet[0] for packet in result["packets"]], [13135, 12954])
-        self.assertEqual(result["resource"]["resource_reference"], 60)
-        self.assertTrue(
-            complete(self.store, self.account, self.generation, p, **kwargs)[
-                "duplicate"
-            ]
+        self.assertEqual(
+            [packet[0] for packet in result["packets"]], [13135, 12954, 12470]
         )
+        self.assertEqual(
+            result["packets"][2], (12470, struct.pack(">qh", item["uid"], -1))
+        )
+        self.assertEqual(result["resource"]["resource_reference"], 60)
+        duplicate = complete(self.store, self.account, self.generation, p, **kwargs)
+        self.assertTrue(duplicate["duplicate"])
+        self.assertEqual(duplicate["packets"], [])
         self.assertEqual(
             self.store.character(self.account, self.char["id"])["inventory_items"][0][
                 "quantity"
@@ -90,7 +86,7 @@ class PlantingTests(unittest.TestCase):
 
         class Failed:
             def register(self, *args):
-                raise ConnectionError("Redis unavailable")
+                raise ConnectionError("Group registry unavailable")
 
         with self.assertRaises(ConnectionError):
             publish_groups(self.store, Failed())

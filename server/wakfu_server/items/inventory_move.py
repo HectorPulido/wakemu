@@ -41,15 +41,11 @@ def decode(body):
 def transfer(store, account_id, generation, character_id, body):
     request = decode(body)
     with store.connection() as db:
-        db.execute("BEGIN IMMEDIATE")
         _lease(store, db, account_id, generation, character_id)
-        from .inventory_uids import schema
-
-        schema(db)
         clone = request["clone_uid"]
         if clone is not None:
             reservation = db.execute(
-                "SELECT * FROM inventory_reserved_uids WHERE uid=? AND account_id=? AND generation=? AND character_id=?",
+                "SELECT * FROM inventory_reserved_uids WHERE uid=%s AND account_id=%s AND generation=%s AND character_id=%s",
                 (clone, account_id, generation, character_id),
             ).fetchone()
             if reservation is None:
@@ -65,15 +61,15 @@ def transfer(store, account_id, generation, character_id, body):
                     applied=False,
                 )
         item = db.execute(
-            "SELECT * FROM inventory_items WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (request["uid"], character_id),
         ).fetchone()
         destination = db.execute(
-            "SELECT * FROM inventory_containers WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s",
             (request["destination"], character_id),
         ).fetchone()
         source = db.execute(
-            "SELECT * FROM inventory_containers WHERE uid=? AND character_id=?",
+            "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s",
             (request["source"], character_id),
         ).fetchone()
         if (
@@ -96,9 +92,9 @@ def transfer(store, account_id, generation, character_id, body):
         position = request["position"]
         if position == -1:
             occupied = {
-                entry[0]
+                entry["slot"]
                 for entry in db.execute(
-                    "SELECT slot FROM inventory_items WHERE container=?",
+                    "SELECT slot FROM inventory_items WHERE container=%s",
                     (destination["uid"],),
                 )
             }
@@ -113,7 +109,7 @@ def transfer(store, account_id, generation, character_id, body):
         if not 0 <= position < destination["capacity"]:
             raise ValueError("Inventory destination full or outside capacity")
         other = db.execute(
-            "SELECT * FROM inventory_items WHERE container=? AND slot=?",
+            "SELECT * FROM inventory_items WHERE container=%s AND slot=%s",
             (destination["uid"], position),
         ).fetchone()
         if other is not None and other["uid"] == item["uid"]:
@@ -158,37 +154,37 @@ def transfer(store, account_id, generation, character_id, body):
                         )
             moved = min(quantity, rule["maximum"] - other["quantity"])
             db.execute(
-                "UPDATE inventory_items SET quantity=quantity+? WHERE uid=?",
+                "UPDATE inventory_items SET quantity=quantity+%s WHERE uid=%s",
                 (moved, other["uid"]),
             )
             if moved == item["quantity"]:
-                db.execute("DELETE FROM inventory_items WHERE uid=?", (item["uid"],))
+                db.execute("DELETE FROM inventory_items WHERE uid=%s", (item["uid"],))
             else:
                 db.execute(
-                    "UPDATE inventory_items SET quantity=quantity-? WHERE uid=?",
+                    "UPDATE inventory_items SET quantity=quantity-%s WHERE uid=%s",
                     (moved, item["uid"]),
                 )
         elif other is not None:
             # Both native containers are ordinary bags: exchange their two
             # owned records without ever exposing a duplicate UNIQUE slot.
             db.execute(
-                "UPDATE inventory_items SET slot=32767 WHERE uid=?", (item["uid"],)
+                "UPDATE inventory_items SET slot=32767 WHERE uid=%s", (item["uid"],)
             )
             db.execute(
-                "UPDATE inventory_items SET container=?,slot=? WHERE uid=?",
+                "UPDATE inventory_items SET container=%s,slot=%s WHERE uid=%s",
                 (source["uid"], item["slot"], other["uid"]),
             )
             db.execute(
-                "UPDATE inventory_items SET container=?,slot=? WHERE uid=?",
+                "UPDATE inventory_items SET container=%s,slot=%s WHERE uid=%s",
                 (destination["uid"], position, item["uid"]),
             )
         elif clone is not None:
             db.execute(
-                "UPDATE inventory_items SET quantity=quantity-? WHERE uid=?",
+                "UPDATE inventory_items SET quantity=quantity-%s WHERE uid=%s",
                 (quantity, item["uid"]),
             )
             db.execute(
-                "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(?,?,?,?,?,?)",
+                "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(%s,%s,%s,%s,%s,%s)",
                 (
                     clone,
                     character_id,
@@ -200,7 +196,7 @@ def transfer(store, account_id, generation, character_id, body):
             )
         else:
             db.execute(
-                "UPDATE inventory_items SET container=?,slot=? WHERE uid=?",
+                "UPDATE inventory_items SET container=%s,slot=%s WHERE uid=%s",
                 (destination["uid"], position, item["uid"]),
             )
         if clone is not None:
@@ -209,7 +205,7 @@ def transfer(store, account_id, generation, character_id, body):
             if not merge:
                 copy_elements(db, item["uid"], clone)
             db.execute(
-                "UPDATE inventory_reserved_uids SET used_request=? WHERE uid=?",
+                "UPDATE inventory_reserved_uids SET used_request=%s WHERE uid=%s",
                 (body, clone),
             )
         # biB/flW updated the client before cpR was sent: duplicate12471 would
@@ -224,4 +220,16 @@ def transfer(store, account_id, generation, character_id, body):
 def synchronization(character):
     from .inventory import bags
 
-    return 13713, struct.pack(">q", character["id"]) + bags(character)
+    # eHf.BAGS (ordinal 35) selects only eHe.BAGS. cwY13713/chK
+    # passes the remainder to eHd.ew, whose first byte is a format ID.
+    return 13713, struct.pack(">qB", character["id"], 35) + bags(character)
+
+
+def reload_inventory(store, account_id, character):
+    """Refresh committed inventory without replacing live combat/map state."""
+    saved = store.character(account_id, character["id"])
+    return dict(
+        character,
+        inventory_containers=saved["inventory_containers"],
+        inventory_items=saved["inventory_items"],
+    )

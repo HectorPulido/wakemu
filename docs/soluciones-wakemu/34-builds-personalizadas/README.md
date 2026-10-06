@@ -6,7 +6,9 @@ Completar desbloqueo, hojas, guardado, activación autoritativa, estadísticas/d
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+**Solucionado parcialmente.** El usuario verificó creación, apertura, activación, alternancia, edición y borrado de builds, con cambio de personaje y reinicio. E10 también quedó confirmado: equipo propio de cada build, persistencia y borrado sin pérdida ni duplicación. Issue17 acredita aptitudes +5/+10, alternancia sin acumulación y reset persistente.
+
+Pendientes: cruce del umbral de desbloqueo49/50/51, capacidad completa24, modulación/salud y consumo del deck seleccionado en combate. Este último permanece coordinado con la sesión de hechizos; no se cambia su semántica para cerrar el issue.
 
 ## Dependencias
 

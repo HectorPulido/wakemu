@@ -1,0 +1,9 @@
+{
+  "source": "installed native tplg topology; VF.k == Vy.bml == (Vy.bLF & 512) != 0",
+  "map_id": 1445,
+  "archive_sha256": "0d278db61891ac4c18e01f96146838bf2aa277f48cbcf0fe5c43d3b3a7377f57",
+  "surface_count": 5884,
+  "valid_surface_count": 643,
+  "native_vf_validation": {"checked_surfaces": 5884, "mismatches": 0, "verified_empty": false, "checked_chunks": 0, "checked_empty_cells": 0, "empty_probe_z": [-32768,0,32767]},
+  "swimming_cells_xyz": []
+}

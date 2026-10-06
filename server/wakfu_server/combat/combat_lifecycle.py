@@ -32,13 +32,17 @@ def prepare_finish(
     duration_ms,
     fight_instance_id,
     policy=None,
-    fight_model=2
+    fight_model=2,
+    groups=None,
+    group_lease=None
 ):
-    """Persist victory once, then encode its normal report.
+    """Commit fight, victory reward and group outcome before returning a report.
 
     Defeat earns no rewards. This does not restore health or exploration until
     the matching12925 callback. The returned character keeps exterior position.
     """
+    if (groups is None) != (group_lease is None):
+        raise ValueError("Group registry and fight lease must be provided together")
     fight = runtime.fight
     # Validate required report identity before committing a reward transaction.
     combat_results.fight_report(
@@ -49,36 +53,58 @@ def prepare_finish(
         initiator_id=character["id"],
         fight_model=fight_model,
     )
-    actor = fight.actors[character["id"]]
-    if actor.team == fight.winner:
-        reward = combat_rewards.award(
-            store,
-            account_id,
-            generation,
-            character["id"],
-            fight,
-            policy_from_env() if policy is None else policy,
-        )
-        metadata = combat_rewards.report_metadata(metadata, character["id"], reward)
-        saved = reward["character"]
-    else:
-        saved = store.character(account_id, character["id"])
-        reward = None
-    packets = combat_results.finish_messages(
-        runtime,
-        metadata,
-        duration_ms=duration_ms,
-        fight_instance_id=fight_instance_id,
-        initiator_id=character["id"],
-        fight_model=fight_model,
-    )
-    if reward is not None:
-        from .combat_xp_gain import notification
+    previous_ack, previous_pending = runtime.awaiting_ack, runtime.pending
+    try:
+        with store.connection() as db:
+            from .fight_store import finish
 
-        notice = notification(character["id"], reward)
-        if notice is not None:
-            packets.insert(0, notice)
-    return dict(character=saved, reward=reward, metadata=metadata, packets=packets)
+            finish(store, db, account_id, generation, character["id"], fight.id)
+            actor = fight.actors[character["id"]]
+            if actor.team == fight.winner:
+                reward = combat_rewards.award(
+                    store,
+                    account_id,
+                    generation,
+                    character["id"],
+                    fight,
+                    policy_from_env() if policy is None else policy,
+                    db=db,
+                )
+                metadata = combat_rewards.report_metadata(
+                    metadata, character["id"], reward
+                )
+                saved = reward["character"]
+            else:
+                saved = store.character(account_id, character["id"], db)
+                reward = None
+            if groups is not None:
+                if group_lease is None:
+                    raise ValueError("Missing group fight lease")
+                applied = groups.finish(
+                    group_lease, defeated=actor.team == fight.winner, db=db
+                )
+                if not applied and reward is not None and reward["awarded"]:
+                    raise ValueError("Group fight lease changed before settlement")
+            packets = combat_results.finish_messages(
+                runtime,
+                metadata,
+                duration_ms=duration_ms,
+                fight_instance_id=fight_instance_id,
+                initiator_id=character["id"],
+                fight_model=fight_model,
+            )
+            if reward is not None:
+                from .combat_xp_gain import notification
+
+                notice = notification(character["id"], reward)
+                if notice is not None:
+                    packets.insert(0, notice)
+            return dict(
+                character=saved, reward=reward, metadata=metadata, packets=packets
+            )
+    except Exception:
+        runtime.awaiting_ack, runtime.pending = previous_ack, previous_pending
+        raise
 
 
 def outside_progression(character, *, wp=None, ap=None, mp=None):
@@ -112,7 +138,7 @@ def outside_progression(character, *, wp=None, ap=None, mp=None):
 def return_to_world(
     store, account_id, generation, character, runtime, body, *, wp, ap=6, mp=3
 ):
-    """Handle12925, resume HP regen and return owned wallet/progression packets.
+    """Build12925 return packets atomically with HP and regeneration persistence.
 
     Root still supplies its13974 destination bootstrap and releases the fight.
     This function does not own the NPC respawn policy or map transition.
@@ -126,20 +152,21 @@ def return_to_world(
         raise ValueError("Foreign fight return participant")
     from .combat_health import persist
 
-    health_exit = persist(store, account_id, generation, character, fight)
-    saved = health_exit["character"]
-    if not health_exit["applied"]:
-        return dict(character=saved, packets=[], applied=False)
-    packets = combat_results.outside_fight_updates(fight)
-    packets.extend(
-        [
-            outside_progression(saved, wp=wp, ap=ap, mp=mp),
-            (
-                12436,
-                health.packet(saved["id"], saved["hp"], health_exit["coefficient"]),
-            ),
-            (13021, struct.pack(">q", saved["kamas"])),
-            (13873, wire.account_kamas(saved["kamas"])),
-        ]
-    )
-    return dict(character=saved, packets=packets, applied=True)
+    with store.connection() as db:
+        health_exit = persist(store, account_id, generation, character, fight, db=db)
+        saved = health_exit["character"]
+        if not health_exit["applied"]:
+            return dict(character=saved, packets=[], applied=False)
+        packets = combat_results.outside_fight_updates(fight)
+        packets.extend(
+            [
+                outside_progression(saved, wp=wp, ap=ap, mp=mp),
+                (
+                    12436,
+                    health.packet(saved["id"], saved["hp"], health_exit["coefficient"]),
+                ),
+                (13021, struct.pack(">q", saved["kamas"])),
+                (13873, wire.account_kamas(saved["kamas"])),
+            ]
+        )
+        return dict(character=saved, packets=packets, applied=True)

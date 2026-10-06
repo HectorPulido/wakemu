@@ -174,6 +174,13 @@ def build_player_snapshot(
     _fresh(actor, running_effects)
     if actor.id != character["id"] or not actor.controlled:
         raise ValueError("Player snapshot belongs to a different actor")
+    from .builds import effective_sheet_level
+
+    selected_index = (
+        character.get("active_build_index", 0) if build_index is None else build_index
+    )
+    if actor.effective_level != effective_sheet_level(character, selected_index):
+        raise ValueError("Live player level disagrees with owned build")
     catalog = native_actor_catalog() if catalog is None else catalog
     rows = _rows(catalog)
     adjusted = dict(character, level=actor.effective_level)

@@ -95,11 +95,8 @@ def authorize(store, character, request, seed, resource, *, open_test_policy=Fal
 
         authorize_family(character["map_id"], cell["region_id"], resource)
     with store.connection() as db:
-        from .planting import schema
-
-        schema(db)
         if db.execute(
-            "SELECT 1 FROM planted_resources WHERE map_id=? AND instance_id=? AND x=? AND y=?",
+            "SELECT 1 FROM planted_resources WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s",
             (character["map_id"], character["instance_id"], request["x"], request["y"]),
         ).fetchone():
             raise ValueError("Planting surface is occupied")

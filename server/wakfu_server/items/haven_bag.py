@@ -135,7 +135,7 @@ def leave_messages(template, character):
 
 
 class HavenBagSession:
-    """Interior location stays in memory; SQLite retains the exterior return point."""
+    """Interior location stays in memory; PostgreSQL retains the exterior return point."""
 
     def __init__(self, outside):
         self.outside = dict(outside)

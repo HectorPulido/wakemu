@@ -1,23 +1,19 @@
-"""Owned ring save/ACK/registry/reconnect/Redis batch, without user mutations."""
-import json, struct, tempfile, unittest, uuid
-from pathlib import Path
-from wakfu_server.store import Store
-from wakfu_server.build_journal import BuildJournal
+"""Owned ring save, ACK, registry, and PostgreSQL reconnect integration."""
+import struct
+import unittest
+
+from postgres_case import PostgresCase
 from wakfu_server import builds, wire
-from wakfu_server.inventory_items import grant
-from wakfu_server.health import maximum
 from wakfu_server.equipment_stats import bonuses, effective_character
+from wakfu_server.health import maximum
+from wakfu_server.inventory_items import grant
+from wakfu_server.progression import level_xp
 from protocol_codec import Reader
-from test_combat_group_redis import MemoryRedis
 
 
-class RingBuildIntegrationTests(unittest.TestCase):
+class RingBuildIntegrationTests(PostgresCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.path = Path(self.temp.name) / "world.sqlite3"
-        self.now = [100.0]
-        self.store = Store(self.path, clock=lambda: self.now[0])
+        super().setUp()
         self.account = self.store.register("ring-test", "private-local-test-password")[
             "id"
         ]
@@ -26,8 +22,12 @@ class RingBuildIntegrationTests(unittest.TestCase):
         self.store.select_character(self.account, self.generation, self.char["id"])
         with self.store.connection() as db:
             db.execute(
-                "UPDATE characters SET level=20,hp=80,max_hp=? WHERE id=?",
-                (maximum(11, 20), self.char["id"]),
+                "UPDATE characters SET level=20,hp=80,max_hp=%s,hp_damage=%s,health_dead=false WHERE id=%s",
+                (maximum(11, 20), maximum(11, 20) - 80, self.char["id"]),
+            )
+            db.execute(
+                "UPDATE character_progression SET xp=%s WHERE character_id=%s",
+                (level_xp(20), self.char["id"]),
             )
         self.char = self.store.character(self.account, self.char["id"])
         self.items = [
@@ -44,12 +44,6 @@ class RingBuildIntegrationTests(unittest.TestCase):
             )
             for slot in (0, 1)
         ]
-        self.client = MemoryRedis()
-        self.namespace = "wakfu:test:ring:" + uuid.uuid4().hex
-        self.journal = BuildJournal(
-            self.store, self.client, namespace=self.namespace, clock=lambda: self.now[0]
-        )
-        self.store.build_journal = self.journal
 
     def blobs(self, slot=7):
         return dict(
@@ -74,11 +68,15 @@ class RingBuildIntegrationTests(unittest.TestCase):
             self.account, self.generation, character, index, decoded
         )
 
-    def test_ring_ack_registry_reopening_and_redis_reconnect_keep_real_uid_once(self):
+    def test_ring_ack_registry_reopening_keep_real_uid_once(self):
         blobs = self.blobs()
         saved = self.save(blobs)
         self.assertEqual(bonuses(saved)["stats"], {1: 5, 20: 5})
-        self.assertEqual((saved["hp"], saved["max_hp"]), (80, maximum(11, 20) + 5))
+        expected_hp = maximum(11, 20) + 5 - (maximum(11, 20) - 80)
+        self.assertEqual(
+            (saved["hp"], saved["max_hp"], saved["hp_damage"]),
+            (expected_hp, maximum(11, 20) + 5, maximum(11, 20) - 80),
+        )
         r = Reader(builds.response_messages(saved, 0, wp=6)[0][1])
         self.assertEqual(
             (r.number("q"), r.number("i"), r.number("b"), r.number("B")),
@@ -91,32 +89,36 @@ class RingBuildIntegrationTests(unittest.TestCase):
         packet = wire.attribute_sheets(
             struct.pack(">I", len(original)) + original, [saved]
         )
-        registry = dict(wire.proto_fields(dict(wire.proto_fields(packet[4:]))[10]))
-        self.assertEqual(registry[16], saved["id"])
-        selected = dict(wire.proto_fields(registry[10]))
-        self.assertEqual(selected[8], 0)
-        self.assertEqual(selected[18], blobs["equipment"])
-        reopened = Store(self.path, clock=lambda: self.now[0])
-        reopened.build_journal = BuildJournal(
-            reopened, self.client, namespace=self.namespace, clock=lambda: self.now[0]
-        )
-        loaded = reopened.character(self.account, saved["id"])
+        registry = list(wire.proto_fields(dict(wire.proto_fields(packet[4:]))[10]))
+        self.assertEqual(dict(registry)[16], saved["id"])
+        entries = {
+            dict(wire.proto_fields(value))[8]: dict(wire.proto_fields(value))
+            for tag, value in registry
+            if tag == 10
+        }
+        self.assertEqual(set(entries), {0})
+        self.assertEqual(entries[0][8], 0)
+        self.assertEqual(entries[0][18], blobs["equipment"])
+        loaded = self.reopen().character(self.account, saved["id"])
         self.assertEqual(loaded["builds"], saved["builds"])
         self.assertEqual(effective_character(loaded)["max_hp"], maximum(11, 20) + 5)
         repeated = self.save(blobs)
         self.assertEqual(
-            (repeated["hp"], repeated["max_hp"]), (80, maximum(11, 20) + 5)
+            (repeated["hp"], repeated["max_hp"], repeated["hp_damage"]),
+            (expected_hp, maximum(11, 20) + 5, maximum(11, 20) - 80),
         )
         with self.store.connection() as db:
             self.assertEqual(
-                db.execute("SELECT count(*) FROM character_builds").fetchone()[0], 0
+                db.execute("SELECT count(*) AS count FROM character_builds").fetchone()[
+                    "count"
+                ],
+                1,
             )
-        self.now[0] += 1200
-        self.assertEqual(self.journal.flush_due(), 1)
-        with self.store.connection() as db:
             self.assertEqual(
                 bytes(
-                    db.execute("SELECT equipment FROM character_builds").fetchone()[0]
+                    db.execute("SELECT equipment FROM character_builds").fetchone()[
+                        "equipment"
+                    ]
                 ),
                 blobs["equipment"],
             )

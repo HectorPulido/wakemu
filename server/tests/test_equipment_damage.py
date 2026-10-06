@@ -50,7 +50,9 @@ class EquipmentDamageTests(unittest.TestCase):
             inventory_items=[
                 dict(uid=1000, character_id=1, reference=2021, quantity=1)
             ],
-            builds={0: dict(equipment=sheet)},
+            builds={
+                0: dict(equipment=sheet, sheet=proto_field(24, (1 << 64) - 1).hex())
+            },
         )
         result = inputs(char)
         self.assertEqual(result["critical_chance"], 2)

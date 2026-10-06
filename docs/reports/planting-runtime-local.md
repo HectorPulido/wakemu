@@ -1,8 +1,18 @@
 # Siembra y crecimiento en el servidor local
 
+> **Corrección del cotejo, implementación actual:** la revisión completa de
+> `bJt.d/e` demuestra que la llamada desde `cgN.a(cAZ)` solo muestra
+> `item.selfDrop`; no resta cantidad. `cYt.eXi` avanza objetivos y tampoco
+> actualiza la pila. La afirmación anterior de que12954 consume visualmente
+> era incorrecta. Una prueba GUI registró cinco plantaciones confirmadas desde
+> una pila5: PostgreSQL quedó sin el objeto y la interfaz conservó5. El servidor
+> ahora emite12470 con UID y delta-1 una sola vez después del ACK; replay y
+> cancelación no emiten delta. Validación del cambio gráfico pendiente.
+
+
 `Plantings` mantiene ocupaciones por personaje y generación de sesión. `begin` valida semilla propia, acción nativa, casilla autorizada y reserva; `complete` acepta el formato real de `13429` (resultado byte y tipo short 2), comprueba duración y consume una semilla en la misma transacción que crea el recurso. La repetición no vuelve a consumir. `cancel` está limitado a la generación indicada.
 
-`12815` inicia la ocupación con animación nativa 5 para plantas y 47 para reproducción de monstruos. La duración de 3000 ms es una política local explícita. `13135` crea recursos propios y `12954` actualiza la semilla consumida: no se añade una segunda retirada mediante `12470`. `snapshots(map,instance)` sólo reconstruye recursos persistidos de esa instancia.
+`12815` inicia la ocupación con animación nativa 5 para plantas y 47 para reproducción de monstruos. La duración de 3000 ms es una política local explícita. `13135` crea recursos propios y `12954` comunica el resultado; `12470` actualiza la cantidad de la semilla consumida. La revisión completa corrigió la interpretación anterior del ACK. `snapshots(map,instance)` sólo reconstruye recursos persistidos de esa instancia.
 
 `open_test_policy=True` permite saltar nivel mínimo y criterios de la semilla en este experimento. Conserva selección de personaje, sesión, propiedad del objeto, identidad de acción y comprobación de casilla que aporta el llamador. El agente del cliente para mostrar cualquier suelo como apto es una pieza separada.
 

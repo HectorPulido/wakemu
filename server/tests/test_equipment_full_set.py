@@ -37,7 +37,12 @@ class FullSetTests(unittest.TestCase):
                 y=0,
                 z=0,
                 inventory_items=items,
-                builds={0: {"equipment": sheet.hex()}},
+                builds={
+                    0: {
+                        "equipment": sheet.hex(),
+                        "sheet": proto_field(24, (1 << 64) - 1).hex(),
+                    }
+                },
             )
         )
 

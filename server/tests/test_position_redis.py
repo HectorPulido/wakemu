@@ -1,17 +1,17 @@
 import json
 import os
-import tempfile
 import unittest
 import uuid
-from pathlib import Path
-from wakfu_server.store import Store
+from postgres_case import PostgresCase
 from wakfu_server.position_buffer import Positions
 from wakfu_server.position_redis import (
     Journal,
     RedisPositions,
     PositionJournalError,
+    PositionJournalUnavailable,
     create,
 )
+from wakfu_server.session_cleanup import retry_step
 
 
 class MemoryRedis:
@@ -43,16 +43,17 @@ class MemoryRedis:
         self.values.pop(key, None)
 
 
-class RedisFixture(unittest.TestCase):
+class RedisFixture(PostgresCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
+        super().setUp()
         self.now = 1000
-        self.store = Store(Path(self.tmp.name) / "world.db", lambda: self.now)
+        self.store.clock = lambda: self.now
         self.live = set()
         self.client = self.make_client()
         self.journal = Journal(
             self.client, namespace="wakfu:test:positions:" + uuid.uuid4().hex
         )
+        self.addCleanup(self.client.delete, self.journal.namespace)
         self.buffer = RedisPositions(
             self.store,
             lease_active=lambda a, g, c: (a, g, c) in self.live,
@@ -61,10 +62,6 @@ class RedisFixture(unittest.TestCase):
 
     def make_client(self):
         return MemoryRedis()
-
-    def tearDown(self):
-        self.client.delete(self.journal.namespace)
-        self.tmp.cleanup()
 
     def attach(self, name="Owner"):
         account = self.store.register(name, "local-password")["id"]
@@ -87,7 +84,8 @@ class RedisPositionTests(RedisFixture):
         current = self.move(a, g, char)
         self.assertEqual(self.store.character(a, char["id"])["x"], char["x"])
         self.assertEqual(len(list(self.journal.records())), 1)
-        fresh = Store(self.store.path, lambda: self.now)
+        fresh = self.reopen()
+        fresh.clock = lambda: self.now
         report = Journal(self.client, namespace=self.journal.namespace).recover(fresh)
         self.assertEqual(
             report, dict(recovered=1, already_committed=0, stale=0, conflicts=[])
@@ -126,7 +124,7 @@ class RedisPositionTests(RedisFixture):
         self.assertEqual(report["stale"], 1)
         self.assertEqual(self.store.character(a, char["id"])["x"], char["x"])
 
-    def test_sqlite_conflict_preserves_dirty_record_and_other_batch_rolls_back(self):
+    def test_postgres_conflict_preserves_dirty_record_and_other_batch_rolls_back(self):
         a, g, char = self.attach()
         b, h, other = self.attach("Other")
         self.move(a, g, char)
@@ -150,7 +148,7 @@ class RedisPositionTests(RedisFixture):
         current = self.move(a, g, char)
         Positions.flush(
             self.buffer
-        )  # Simulate crash after SQLite commit, before Redis ACK.
+        )  # Simulate crash after PostgreSQL commit, before Redis ACK.
         report = self.journal.recover(self.store)
         self.assertEqual(report["already_committed"], 1)
         self.assertEqual(report["recovered"], 0)
@@ -214,6 +212,60 @@ class RedisFailureTests(RedisFixture):
         self.assertEqual(self.buffer.flush(), 0)
         self.assertFalse(self.buffer.pending_acks)
         self.assertEqual(list(self.journal.records()), [])
+
+    def test_retry_after_postgres_commit_and_redis_ack_outage_does_not_apply_twice(
+        self,
+    ):
+        a, g, char = self.attach()
+        current = self.move(a, g, char)
+        key = (a, g, char["id"])
+        self.client.fail = True
+        attempts, failures, renewals, waits = [], [], [], []
+
+        def flush_one_barrier():
+            attempts.append("flush")
+            return self.buffer.flush(
+                account_id=a, generation=g, character_id=char["id"]
+            )
+
+        def wait(seconds):
+            waits.append(seconds)
+            self.client.fail = False
+
+        result = retry_step(
+            flush_one_barrier,
+            retry_errors=(PositionJournalUnavailable, OSError),
+            failed=failures.append,
+            renew=lambda: renewals.append("session heartbeat"),
+            wait=wait,
+        )
+
+        self.assertEqual(result, 0)  # Retry only drains the already-committed ACK.
+        self.assertEqual(attempts, ["flush", "flush"])
+        self.assertEqual(len(failures), 1)
+        self.assertEqual(renewals, ["session heartbeat"])
+        self.assertEqual(waits, [1])
+        self.assertEqual(self.store.character(a, char["id"])["x"], current["x"])
+        self.assertFalse(self.buffer.entries[key]["dirty"])
+        self.assertEqual(self.buffer.entries[key]["persisted"]["x"], current["x"])
+        self.assertFalse(self.buffer.pending_acks)
+        self.assertEqual(list(self.journal.records()), [])
+
+    def test_cleanup_retry_does_not_retry_journal_conflict(self):
+        failures, renewals, waits = [], [], []
+
+        def conflict():
+            raise PositionJournalError("Redis position revision conflict")
+
+        with self.assertRaisesRegex(PositionJournalError, "revision conflict"):
+            retry_step(
+                conflict,
+                retry_errors=(PositionJournalUnavailable, OSError),
+                failed=failures.append,
+                renew=lambda: renewals.append(True),
+                wait=waits.append,
+            )
+        self.assertEqual((failures, renewals, waits), ([], [], []))
 
     def test_memory_default_uses_original_backend(self):
         buffer, report = create(self.store, lease_active=lambda *args: True, url="")

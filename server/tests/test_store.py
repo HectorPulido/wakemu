@@ -1,20 +1,16 @@
 import concurrent.futures
-from pathlib import Path
-import tempfile
 import unittest
-from wakfu_server.store import Store
+from postgres_case import PostgresCase
 
 
-class StoreTests(unittest.TestCase):
+class StoreTests(PostgresCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
+        super().setUp()
         self.now = 1000
-        self.store = Store(Path(self.temp.name) / "world.sqlite3", lambda: self.now)
+        self.store.clock = lambda: self.now
+        self.store.max_characters = 5
         self.a = self.store.register("alice", "experiment-alice")["id"]
         self.b = self.store.register("bob", "experiment-bob")["id"]
-
-    def tearDown(self):
-        self.temp.cleanup()
 
     def test_native_playable_classes_include_huppermage_but_not_soul(self):
         character = self.store.create_character(self.a, "Hupper Test", breed=19)
@@ -24,7 +20,9 @@ class StoreTests(unittest.TestCase):
                 self.store.create_character(self.a, "Invalid Breed", breed=breed)
 
     def test_configured_selection_capacity_keeps_account_isolation_and_limit(self):
-        expanded = Store(self.store.path, lambda: self.now, max_characters=24)
+        expanded = self.reopen()
+        expanded.clock = lambda: self.now
+        expanded.max_characters = 24
         names = ["Character " + chr(ord("A") + index) for index in range(24)]
         for name in names:
             expanded.create_character(self.a, name)
@@ -47,7 +45,7 @@ class StoreTests(unittest.TestCase):
         char = self.store.create_character(
             self.a, "Fresh Cra", breed=2, appearance=appearance
         )
-        reopened = Store(self.store.path)
+        reopened = self.reopen()
         self.assertEqual(
             reopened.character(self.a, char["id"])["appearance"], appearance
         )
@@ -55,19 +53,6 @@ class StoreTests(unittest.TestCase):
         for bad in ({"skinColor": 1 << 31}, {"sex": True}, {"unknown": 0}):
             with self.assertRaises(ValueError):
                 reopened.create_character(self.a, "Invalid", appearance=bad)
-
-    def test_legacy_appearance_fallback_and_idempotent_migration(self):
-        char = self.store.create_character(
-            self.a, "Legacy", colors=[0x123456, 0, 0xFFFFFF]
-        )
-        with self.store.connection() as db:
-            db.execute(
-                "UPDATE characters SET appearance='{}' WHERE id=?", (char["id"],)
-            )
-        reopened = Store(self.store.path)
-        result = reopened.character(self.a, char["id"])
-        self.assertEqual(result["appearance"]["skinColor"], -15584170)
-        self.assertEqual(result["appearance"]["pupilColor"], -1)
 
     def test_passwords_and_account_ownership(self):
         self.assertEqual(
@@ -78,7 +63,9 @@ class StoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.store.register("Alice", "another-password")
         char = self.store.create_character(self.a, "Alpha")
-        self.assertEqual((char["level"], char["hp"], char["map_id"]), (1, 50, 1134))
+        self.assertEqual(
+            (char["level"], char["hp"], char["map_id"]), (1, char["max_hp"], 1134)
+        )
         with self.assertRaises(ValueError):
             self.store.character(self.b, char["id"])
         with self.store.connection() as db:
@@ -86,8 +73,8 @@ class StoreTests(unittest.TestCase):
                 b"experiment-alice",
                 bytes(
                     db.execute(
-                        "SELECT password_hash FROM accounts WHERE id=?", (self.a,)
-                    ).fetchone()[0]
+                        "SELECT password_hash FROM accounts WHERE id=%s", (self.a,)
+                    ).fetchone()["password_hash"]
                 ),
             )
 
@@ -149,7 +136,7 @@ class StoreTests(unittest.TestCase):
         start = {k: char[k] for k in ("x", "y", "z")}
         end = dict(x=-14, y=-8, z=-1)
         self.store.move(self.a, generation, char["id"], start, end)
-        reopened = Store(self.store.path, lambda: self.now)
+        reopened = self.reopen()
         self.assertEqual(reopened.character(self.a, char["id"])["x"], -14)
         with self.assertRaises(ValueError):
             self.store.move(self.a, generation, char["id"], start, end)
@@ -161,7 +148,7 @@ class StoreTests(unittest.TestCase):
         token = self.store.issue_token(self.a, "game", ttl=5)
         with self.store.connection() as db:
             self.assertNotEqual(
-                db.execute("SELECT digest FROM tokens").fetchone()[0], token
+                db.execute("SELECT digest FROM tokens").fetchone()["digest"], token
             )
         self.now += 6
         with self.assertRaises(ValueError):

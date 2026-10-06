@@ -1,0 +1,819 @@
+{
+  "schema_version": 1,
+  "source": {
+    "kind": "installed client bdata native mount catalog",
+    "client_jar": "client/lib/wakfu-client.jar",
+    "client_jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+    "bdata_directory": "client/contents/bdata",
+    "bdata_files": 113,
+    "bdata_aggregate_sha256": "50dbc4128eb97bef1851988ee33ea9248981e702a43722b719f6bd4ea9e4d9e2",
+    "aggregate_method": "SHA-256 over sorted jar names, NUL separators, each jar SHA-256 digest bytes, and newline separators",
+    "loader": "aMo -> bbp.a(aMo) -> fwn registered through fwu",
+    "field_sources": {
+      "reference": "aMo.AK()",
+      "model_id": "aMo.d() / fwr.d()",
+      "health": "aMo.agN() / fwr.agN()",
+      "xp_per_level": "aMo.csW() / fwr.csW()",
+      "max_level": "aMo.cqO() / fwr.aWa()",
+      "speed_id": "aMo.cta() -> Si.pf() -> Si.d()",
+      "milliseconds_per_cell": "Si.bgb()",
+      "gfx": "aMo.csV() / fwr.bwX()",
+      "meal_item_refs": "fwr.gqr() -> azo.bUw()",
+      "xp_per_meal": "fwr.gqu() -> fwv.gqu()",
+      "meal_min_interval_seconds": "fwr.gqs() -> TT.bjT()",
+      "meal_max_interval_seconds": "fwr.gqt() -> TT.bjT()"
+    },
+    "food_semantics": "The native mount definition toString names these fields mealItemRefIds, xpPerMeal, mealMinInterval, and mealMaxInterval; TT/TS duration values are seconds."
+  },
+  "count": 40,
+  "models": [
+    {
+      "reference": 18682,
+      "model_id": 76,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 24,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 18704,
+      "model_id": 81,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 24,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 18705,
+      "model_id": 82,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 24,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 18706,
+      "model_id": 83,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 24,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 18709,
+      "model_id": 84,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 25,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 18710,
+      "model_id": 85,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 25,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 18711,
+      "model_id": 86,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 25,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 18712,
+      "model_id": 87,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 25,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 14422,
+      "model_id": 88,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 28,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 19274,
+      "model_id": 104,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 26,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 86400,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 19275,
+      "model_id": 105,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 26,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 86400,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 19276,
+      "model_id": 106,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 26,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 86400,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 19277,
+      "model_id": 107,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 26,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 86400,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 19555,
+      "model_id": 116,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 27,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 19556,
+      "model_id": 117,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 27,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 19557,
+      "model_id": 118,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 27,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 19558,
+      "model_id": 119,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 27,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 19724,
+      "model_id": 123,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 28,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 19725,
+      "model_id": 124,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 28,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 19726,
+      "model_id": 125,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 28,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20624,
+      "model_id": 135,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 24,
+      "food": {
+        "meal_item_refs": [],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20638,
+      "model_id": 136,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 24,
+      "food": {
+        "meal_item_refs": [],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20622,
+      "model_id": 137,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 24,
+      "food": {
+        "meal_item_refs": [],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20741,
+      "model_id": 138,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 29,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20742,
+      "model_id": 139,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 29,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20743,
+      "model_id": 140,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 29,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20744,
+      "model_id": 141,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 29,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20760,
+      "model_id": 146,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 30,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20811,
+      "model_id": 148,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 30,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20812,
+      "model_id": 149,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 30,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20813,
+      "model_id": 150,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 30,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20916,
+      "model_id": 152,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 31,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20917,
+      "model_id": 153,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 31,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20918,
+      "model_id": 154,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 31,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 20919,
+      "model_id": 155,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 31,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 24161,
+      "model_id": 182,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 32,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 24162,
+      "model_id": 183,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 33,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 24163,
+      "model_id": 184,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 34,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 24860,
+      "model_id": 197,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 35,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    },
+    {
+      "reference": 26884,
+      "model_id": 209,
+      "health": 20,
+      "xp_per_level": 50,
+      "max_level": 50,
+      "speed_id": 6,
+      "milliseconds_per_cell": 200,
+      "gfx": 36,
+      "food": {
+        "meal_item_refs": [
+          12284,
+          13358,
+          18377
+        ],
+        "xp_per_meal": 50,
+        "meal_min_interval_seconds": 72000,
+        "meal_max_interval_seconds": 259200
+      }
+    }
+  ]
+}

@@ -22,7 +22,9 @@ class EquipmentStatsTests(unittest.TestCase):
             inventory_items=[
                 dict(uid=1000, character_id=1, reference=2021, quantity=1)
             ],
-            builds={0: dict(equipment=equipment)},
+            builds={
+                0: dict(equipment=equipment, sheet=proto_field(24, (1 << 64) - 1).hex())
+            },
         )
 
     def test_native_amulet_resources_and_stats_without_double_count_or_healing(self):
@@ -49,7 +51,9 @@ class EquipmentStatsTests(unittest.TestCase):
     def test_unequipping_removes_bonus_and_caps_current_hp_to_base(self):
         char = effective_character(self.character())
         char["hp"] = char["max_hp"]
-        char["builds"] = {0: dict(equipment="")}
+        char["builds"] = {
+            0: dict(equipment="", sheet=proto_field(24, (1 << 64) - 1).hex())
+        }
         result = effective_character(char)
         self.assertEqual(
             (result["hp"], result["max_hp"]), (maximum(8, 6), maximum(8, 6))
@@ -63,12 +67,16 @@ class EquipmentStatsTests(unittest.TestCase):
 
         char = dict(self.character(), account_id=2, x=0, y=0, z=0, map_id=1134)
         char["builds"][0].update(
-            sheet=b"\x08\x00".hex(), deck=default_deck(char).hex(), aptitudes=""
+            sheet=(b"\x08\x00" + proto_field(24, (1 << 64) - 1)).hex(),
+            deck=default_deck(char).hex(),
+            aptitudes="",
         )
 
         def stats(packets):
-            self.assertEqual([opcode for opcode, _ in packets], [12284, 13046])
-            outer = packets[1][1]
+            self.assertEqual(
+                [opcode for opcode, _ in packets], [12284, 12393, 12103, 13046]
+            )
+            outer = packets[-1][1]
             identity, length = struct.unpack_from(">qh", outer)
             self.assertEqual(identity, char["id"])
             self.assertEqual(length, len(outer) - 10)

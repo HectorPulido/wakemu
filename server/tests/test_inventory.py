@@ -1,11 +1,9 @@
-import tempfile
 import unittest
-from pathlib import Path
-from wakfu_server.store import Store
+from postgres_case import PostgresCase
 from wakfu_server.inventory import bags
 
 
-class InventoryTests(unittest.TestCase):
+class InventoryTests(PostgresCase):
     def test_equipment_registry_resolves_owned_units_independently_of_bags(self):
         import struct
         from wakfu_server.inventory_items import equipment_inventory
@@ -36,24 +34,23 @@ class InventoryTests(unittest.TestCase):
             equipment_inventory(dict(character, inventory_items=[item, item]))
 
     def test_empty_capacity_is_owned_persistent_and_separate(self):
-        with tempfile.TemporaryDirectory() as folder:
-            store = Store(Path(folder) / "world.sqlite3")
-            account = store.register("inventory-owner", "local-password")["id"]
-            first = store.create_character(account, "Inventory First")
-            second = store.create_character(account, "Inventory Second")
-            self.assertEqual(
-                [c["capacity"] for c in first["inventory_containers"]], [30, 4]
-            )
-            self.assertEqual(len(bags(first)), 42)
-            self.assertNotEqual(bags(first), bags(second))
-            reopened = Store(store.path)
-            self.assertEqual(
-                reopened.character(account, first["id"])["inventory_containers"],
-                first["inventory_containers"],
-            )
-            forged = {**first, "inventory_containers": second["inventory_containers"]}
-            with self.assertRaises(ValueError):
-                bags(forged)
+        store = self.store
+        account = store.register("inventory-owner", "local-password")["id"]
+        first = store.create_character(account, "Inventory First")
+        second = store.create_character(account, "Inventory Second")
+        self.assertEqual(
+            [c["capacity"] for c in first["inventory_containers"]], [30, 4]
+        )
+        self.assertEqual(len(bags(first)), 42)
+        self.assertNotEqual(bags(first), bags(second))
+        reopened = self.reopen()
+        self.assertEqual(
+            reopened.character(account, first["id"])["inventory_containers"],
+            first["inventory_containers"],
+        )
+        forged = {**first, "inventory_containers": second["inventory_containers"]}
+        with self.assertRaises(ValueError):
+            bags(forged)
 
     def test_basic_haven_contains_one_owned_gem_and_eight_empty_slots(self):
         from wakfu_server.haven_bag_store import initial_layout
@@ -76,47 +73,42 @@ class InventoryTests(unittest.TestCase):
         from wakfu_server.inventory_items import grant, remove, insertion
         import struct
 
-        with tempfile.TemporaryDirectory() as folder:
-            store = Store(Path(folder) / "items.sqlite3", lambda: 1000)
-            account = store.register("item-owner", "local-password")["id"]
-            character = store.create_character(account, "Item Owner")
-            sibling = store.create_character(account, "Item Sibling")
-            generation = store.begin_session(account)
-            store.select_character(account, generation, character["id"])
-            destination = character["inventory_containers"][0]["uid"]
-            item = grant(
-                store,
-                account,
-                generation,
-                character["id"],
-                reference=100,
-                quantity=3,
-                container=destination,
-                slot=0,
-                allowed_references={100},
-            )
-            self.assertGreater(item["uid"], 1 << 40)
-            self.assertEqual(insertion(item)[0], 12471)
-            reloaded = store.character(account, character["id"])
-            self.assertEqual(reloaded["inventory_items"], [item])
-            self.assertEqual(len(bags(reloaded)), 66)
-            self.assertEqual(
-                store.character(account, sibling["id"])["inventory_items"], []
-            )
-            with self.assertRaises(ValueError):
-                remove(store, account, generation, sibling["id"], item["uid"], 1)
-            with self.assertRaises(ValueError):
-                remove(store, account, generation, character["id"], item["uid"], 4)
-            self.assertEqual(
-                remove(store, account, generation, character["id"], item["uid"], 2),
-                (12470, struct.pack(">qh", item["uid"], -2)),
-            )
-            self.assertEqual(
-                store.character(account, character["id"])["inventory_items"][0][
-                    "quantity"
-                ],
-                1,
-            )
-            store.begin_session(account)
-            with self.assertRaises(ValueError):
-                remove(store, account, generation, character["id"], item["uid"], 1)
+        store = self.store
+        account = store.register("item-owner", "local-password")["id"]
+        character = store.create_character(account, "Item Owner")
+        sibling = store.create_character(account, "Item Sibling")
+        generation = store.begin_session(account)
+        store.select_character(account, generation, character["id"])
+        destination = character["inventory_containers"][0]["uid"]
+        item = grant(
+            store,
+            account,
+            generation,
+            character["id"],
+            reference=100,
+            quantity=3,
+            container=destination,
+            slot=0,
+            allowed_references={100},
+        )
+        self.assertGreater(item["uid"], 1 << 40)
+        self.assertEqual(insertion(item)[0], 12471)
+        reloaded = store.character(account, character["id"])
+        self.assertEqual(reloaded["inventory_items"], [item])
+        self.assertEqual(len(bags(reloaded)), 66)
+        self.assertEqual(store.character(account, sibling["id"])["inventory_items"], [])
+        with self.assertRaises(ValueError):
+            remove(store, account, generation, sibling["id"], item["uid"], 1)
+        with self.assertRaises(ValueError):
+            remove(store, account, generation, character["id"], item["uid"], 4)
+        self.assertEqual(
+            remove(store, account, generation, character["id"], item["uid"], 2),
+            (12470, struct.pack(">qh", item["uid"], -2)),
+        )
+        self.assertEqual(
+            store.character(account, character["id"])["inventory_items"][0]["quantity"],
+            1,
+        )
+        store.begin_session(account)
+        with self.assertRaises(ValueError):
+            remove(store, account, generation, character["id"], item["uid"], 1)

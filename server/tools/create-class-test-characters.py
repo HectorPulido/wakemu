@@ -46,7 +46,7 @@ def create_roster(store, account_id, *, level=200, prefix="Prueba"):
     requested.append((11, f"{prefix} Sacro Control"))
     with store.connection() as db:
         if (
-            db.execute("SELECT id FROM accounts WHERE id=?", (account_id,)).fetchone()
+            db.execute("SELECT id FROM accounts WHERE id=%s", (account_id,)).fetchone()
             is None
         ):
             raise ValueError("Account does not exist")
@@ -65,8 +65,8 @@ def create_roster(store, account_id, *, level=200, prefix="Prueba"):
                 )
             missing += int(row is None)
         current = db.execute(
-            "SELECT COUNT(*) FROM characters WHERE account_id=?", (account_id,)
-        ).fetchone()[0]
+            "SELECT COUNT(*) AS n FROM characters WHERE account_id=%s", (account_id,)
+        ).fetchone()["n"]
         if current + missing > store.max_characters:
             raise ValueError(
                 "Configured selection capacity is too small for this roster"
@@ -103,9 +103,8 @@ def create_roster(store, account_id, *, level=200, prefix="Prueba"):
             )
             validate(character, 0, blobs)
             with store.connection() as db:
-                db.execute("BEGIN IMMEDIATE")
                 db.execute(
-                    "UPDATE characters SET level=?,hp=?,max_hp=? WHERE id=? AND account_id=?",
+                    "UPDATE characters SET level=%s,hp=%s,max_hp=%s WHERE id=%s AND account_id=%s",
                     (
                         level,
                         character["hp"],
@@ -115,11 +114,11 @@ def create_roster(store, account_id, *, level=200, prefix="Prueba"):
                     ),
                 )
                 db.execute(
-                    "UPDATE character_progression SET xp=? WHERE character_id=?",
+                    "UPDATE character_progression SET xp=%s WHERE character_id=%s",
                     (level_xp(level), character["id"]),
                 )
                 db.execute(
-                    "INSERT INTO character_builds VALUES(?,?,?,?,?,?)",
+                    "INSERT INTO character_builds VALUES(%s,%s,%s,%s,%s,%s)",
                     (character["id"], 0, sheet, EMPTY_EQUIPMENT, deck, EMPTY_APTITUDES),
                 )
             character = store.character(account_id, character["id"])
@@ -159,12 +158,13 @@ if __name__ == "__main__":
     parser.add_argument("--prefix", default="Prueba")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
-    report = create_roster(
-        Store(args.db, max_characters=args.max_characters),
-        args.account_id,
-        level=args.level,
-        prefix=args.prefix,
-    )
+    store = Store(args.db, max_characters=args.max_characters)
+    try:
+        report = create_roster(
+            store, args.account_id, level=args.level, prefix=args.prefix
+        )
+    finally:
+        store.close()
     Path(args.output).write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     )

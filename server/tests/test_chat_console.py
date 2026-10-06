@@ -1,18 +1,17 @@
-import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import patch
-from wakfu_server.store import Store
+from postgres_case import PostgresCase
 from wakfu_server.combat_groups import Groups
 from wakfu_server.test_console import execute
 
 
-class ConsoleTests(unittest.TestCase):
+class ConsoleTests(PostgresCase):
     def setUp(self):
-        self.folder = tempfile.TemporaryDirectory()
-        self.addCleanup(self.folder.cleanup)
-        self.store = Store(Path(self.folder.name) / "world.db")
+        super().setUp()
         self.account = self.store.register("console", "password")["id"]
+        from wakfu_server.command_permissions import set_admin
+
+        set_admin(self.store, self.account, True, operator="test", reason="fixture")
         self.char = self.store.create_character(self.account, "Console Player")
         self.generation = self.store.begin_session(self.account)
         self.store.select_character(self.account, self.generation, self.char["id"])
@@ -26,7 +25,7 @@ class ConsoleTests(unittest.TestCase):
     def test_item_native_delta_persistence_and_invalid_stack_no_change(self):
         result = self.run_command("!item 2021 1")
         self.assertEqual(result["packets"][0][0], 12471)
-        restored = Store(self.store.path).character(self.account, self.char["id"])
+        restored = self.reopen().character(self.account, self.char["id"])
         self.assertEqual(restored["inventory_items"][0]["reference"], 2021)
         with self.assertRaises(ValueError):
             self.run_command("!item 2021 32768")
@@ -43,7 +42,7 @@ class ConsoleTests(unittest.TestCase):
             self.run_command("!tp 1385 1 2 3")
             with self.assertRaises(ValueError):
                 self.run_command("!tp 1385 1 2 4")
-        restored = Store(self.store.path).character(self.account, self.char["id"])
+        restored = self.reopen().character(self.account, self.char["id"])
         self.assertEqual(
             tuple(restored[k] for k in ("map_id", "x", "y", "z")), (1385, 1, 2, 3)
         )
@@ -73,7 +72,7 @@ class ConsoleTests(unittest.TestCase):
         from wakfu_server.progression import level_xp
 
         result = self.run_command("!nivel 6")
-        restored = Store(self.store.path).character(self.account, self.char["id"])
+        restored = self.reopen().character(self.account, self.char["id"])
         self.assertEqual((restored["level"], restored["xp"]), (6, level_xp(6)))
         self.assertEqual(result["packets"][0][0], 13046)
         with self.assertRaises(ValueError):
@@ -89,12 +88,19 @@ class ConsoleTests(unittest.TestCase):
 
     def test_equip_unequip_and_foreign_uid_do_not_remove_owned_items(self):
         from wakfu_server.equipment import validate_sheet
+        from wakfu_server.progression import level_xp
 
         with self.store.connection() as db:
-            db.execute("UPDATE characters SET level=6 WHERE id=?", (self.char["id"],))
+            db.execute("UPDATE characters SET level=6 WHERE id=%s", (self.char["id"],))
+            db.execute(
+                "UPDATE character_progression SET xp=%s WHERE character_id=%s",
+                (level_xp(6), self.char["id"]),
+            )
         granted = self.run_command("!item 2021 1")["item"]
         equipped = self.run_command(f"!equip {granted['uid']} 4")
-        self.assertEqual([p[0] for p in equipped["packets"]], [12284, 13046])
+        self.assertEqual(
+            [p[0] for p in equipped["packets"]], [12284, 12393, 12103, 13046]
+        )
         char = self.store.character(self.account, self.char["id"])
         self.assertEqual(
             validate_sheet(char, bytes.fromhex(char["builds"][0]["equipment"])),
@@ -107,8 +113,54 @@ class ConsoleTests(unittest.TestCase):
             char["builds"],
         )
         self.run_command("!unequip 4")
-        char = Store(self.store.path).character(self.account, self.char["id"])
+        char = self.reopen().character(self.account, self.char["id"])
         self.assertEqual(
             validate_sheet(char, bytes.fromhex(char["builds"][0]["equipment"])), []
         )
         self.assertEqual(len(char["inventory_items"]), 1)
+
+    def test_level_snapshot_failure_rolls_back_progression_and_health(self):
+        before = self.store.character(self.account, self.char["id"])
+        with patch(
+            "wakfu_server.combat_lifecycle.outside_progression",
+            side_effect=ValueError("Injected snapshot failure"),
+        ):
+            with self.assertRaises(ValueError):
+                self.run_command("!nivel 50")
+        after = self.store.character(self.account, self.char["id"])
+        for key in ("level", "xp", "hp", "max_hp", "builds"):
+            self.assertEqual(after[key], before[key])
+
+    def test_fixed_aptitude_level_survives_49_to_50(self):
+        from wakfu_server import builds
+        from wakfu_server.wire import proto_field
+
+        self.run_command("!nivel 49")
+        metadata = b"".join(
+            proto_field(t, v)
+            for t, v in [(8, 0), (18, b"Fixed"), (24, 49), (56, 1), (64, 1)]
+        )
+        self.store.save_build(
+            self.account,
+            self.generation,
+            self.char["id"],
+            0,
+            dict(
+                sheet=metadata,
+                equipment=builds.EMPTY_EQUIPMENT,
+                deck=b"",
+                aptitudes=proto_field(24, 49),
+            ),
+        )
+        before = self.store.character(self.account, self.char["id"])
+        result = self.run_command("!nivel 50")
+        after = self.store.character(self.account, self.char["id"])
+        self.assertEqual(after["level"], 50)
+        self.assertEqual(result["character"]["effective_level"], 49)
+        self.assertGreaterEqual(after["xp"], before["xp"])
+        for key in ("hp", "max_hp", "builds"):
+            self.assertEqual(after[key], before[key])
+        self.assertEqual(
+            self.reopen().character(self.account, self.char["id"])["builds"],
+            after["builds"],
+        )

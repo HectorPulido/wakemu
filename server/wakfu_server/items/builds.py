@@ -8,6 +8,57 @@ EMPTY_EQUIPMENT = bytes.fromhex("a803ffffffffffffffffff01")
 EMPTY_APTITUDES = bytes.fromhex("18ffffffffffffffffff01")
 
 
+def capacity_message(character):
+    """Native cEp22318 configuration delta; preserve unrelated settings."""
+    limit = character["non_permanent_build_limit"]
+    if type(limit) is not int or not 1 <= limit <= 24:
+        raise ValueError("Invalid non-permanent build capacity")
+    key = b"non.permanent.build.limit"
+    value = str(limit).encode("utf-8")
+    return (
+        22318,
+        struct.pack(">I", len(key)) + key + struct.pack(">I", len(value)) + value,
+    )
+
+
+def decode_activation(body):
+    if len(body) != 9:
+        raise ValueError("Invalid13776 activation length")
+    actor_id, index = struct.unpack(">qb", body)
+    if actor_id <= 0 or not valid_index(index):
+        raise ValueError("Invalid13776 activation identity")
+    return actor_id, index
+
+
+def decode_deletion(body):
+    if len(body) != 9:
+        raise ValueError("Invalid13169 deletion length")
+    actor_id, index = struct.unpack(">qb", body)
+    if actor_id <= 0 or not valid_index(index):
+        raise ValueError("Invalid13169 deletion identity")
+    return actor_id, index
+
+
+def deletion_message(actor_id, index, *, failed):
+    # cnP.aIm()==true selects the error branch in cEN, not success.
+    if (
+        type(actor_id) is not int
+        or not 0 < actor_id < (1 << 63)
+        or not valid_index(index)
+    ):
+        raise ValueError("Invalid deletion response identity")
+    if type(failed) is not bool:
+        raise ValueError("Invalid deletion response status")
+    return 12837, struct.pack(">qbB", actor_id, index, int(failed))
+
+
+def selection_message(character):
+    index = character["active_build_index"]
+    if not valid_index(index) or index not in catalog_indices(character):
+        raise ValueError("Invalid authoritative build selection")
+    return 13811, struct.pack(">qb", character["id"], index)
+
+
 def decode(body):
     r = Reader(body)
     character_id = r.number("q")
@@ -28,8 +79,56 @@ def signed32(value):
     return (value & 0xFFFFFFFF) - (1 << 32) if value & 0x80000000 else value
 
 
+def valid_index(index):
+    """Native activation uses a signed byte; negative IDs are sentinels."""
+    return type(index) is int and 0 <= index <= 127
+
+
+def effective_sheet_level(character, index):
+    if not valid_index(index) or index not in catalog_indices(character):
+        raise ValueError("Unknown owned build level")
+    saved = character.get("builds", {}).get(index)
+    if saved is None:
+        return character["level"]
+    if not isinstance(saved.get("sheet"), str):
+        raise ValueError("Missing owned build metadata")
+    data = dict(proto_fields(bytes.fromhex(saved["sheet"])))
+    if 24 not in data or type(data[24]) is not int:
+        raise ValueError("Missing owned build level")
+    level = signed32(data[24])
+    if level == -1:
+        return character["level"]
+    if not 1 <= level <= character["level"]:
+        raise ValueError("Owned build exceeds character level")
+    return level
+
+
+def validate_capacity(character, index, data):
+    saved = character.get("builds", {})
+    previous = saved.get(index)
+    permanent = bool(data.get(64, 0))
+    if index != 0:
+        was_permanent = previous is not None and bool(
+            dict(proto_fields(bytes.fromhex(previous["sheet"]))).get(64, 0)
+        )
+        if permanent != was_permanent:
+            raise ValueError("Client cannot change permanent build classification")
+    limit = character.get("non_permanent_build_limit", 24)
+    if type(limit) is not int or not 1 <= limit <= 24:
+        raise ValueError("Invalid non-permanent build capacity")
+    # Only owned saved sheets consume capacity; default build0 is permanent.
+    non_permanent = set()
+    for key, build in saved.items():
+        if key and not dict(proto_fields(bytes.fromhex(build["sheet"]))).get(64, 0):
+            non_permanent.add(key)
+    if index and not data.get(64, 0):
+        non_permanent.add(index)
+    if len(non_permanent) > limit:
+        raise ValueError("Non-permanent build capacity exceeded")
+
+
 def validate(character, index, blobs):
-    if type(index) is not int or not 0 <= index <= 2:
+    if not valid_index(index):
         raise ValueError("Invalid build index")
     fields = list(proto_fields(blobs["sheet"]))
     data = dict(fields)
@@ -43,23 +142,26 @@ def validate(character, index, blobs):
         raise ValueError("Invalid build identity")
     data[18].decode("utf8")
     if (
-        signed32(data[24]) not in (-1, character["level"])
+        (signed32(data[24]) != -1 and not 1 <= signed32(data[24]) <= character["level"])
         or not 0 <= data[56] <= 255
         or data.get(64, 0) not in (0, 1)
     ):
         raise ValueError("Invalid build properties")
+    validate_capacity(character, index, data)
+    cap = character["level"] if signed32(data[24]) == -1 else signed32(data[24])
+    validation_character = dict(character, level=cap, effective_level=cap)
     if blobs["equipment"]:
         from wakfu_server.equipment import validate_sheet
 
-        validate_sheet(character, blobs["equipment"])
+        validate_sheet(validation_character, blobs["equipment"])
     if blobs["aptitudes"]:
         from wakfu_server.aptitudes import validate as validate_aptitudes
 
-        validate_aptitudes(character, blobs["aptitudes"])
+        validate_aptitudes(validation_character, blobs["aptitudes"])
     if blobs["deck"]:
         from wakfu_server.spells import validate_deck
 
-        validate_deck(blobs["deck"], character["breed"], character["level"])
+        validate_deck(blobs["deck"], character["breed"], cap)
 
 
 def response(character, index, status=0):
@@ -99,7 +201,18 @@ def response_messages(character, index, *, wp, status=0):
     if status == 0 and index in character.get("builds", {}):
         from wakfu_server.combat_lifecycle import outside_progression
 
-        packets.append(outside_progression(character, wp=wp))
+        registry = proto_field(10, equipment_registry(character))
+        aptitudes = aptitude_registry(character)
+        packets.extend(
+            [
+                (12393, struct.pack(">I", len(registry)) + registry),
+                (
+                    12103,
+                    struct.pack(">qI", character["id"], len(aptitudes)) + aptitudes,
+                ),
+                outside_progression(character, wp=wp),
+            ]
+        )
     return packets
 
 
@@ -150,7 +263,7 @@ def blocked_save_messages(character, request_body):
     actor_id, index, _ = decode(request_body)
     if actor_id != character["id"]:
         raise ValueError("Build request belongs to another character")
-    if type(index) is not int or not 0 <= index <= 2:
+    if not valid_index(index):
         raise ValueError("Invalid build index")
     return [(12284, rejection_response(character, index, status=2))]
 
@@ -170,35 +283,31 @@ def rejection_messages(character, index, *, wp, status):
 
 
 def deck_collection(character):
-    decks = [
-        (index, bytes.fromhex(data["deck"]))
-        for index, data in sorted(character.get("builds", {}).items())
-        if data["deck"]
-    ]
-    if not any(index == 0 for index, _ in decks):
-        from wakfu_server.spells import default_deck
+    from wakfu_server.spells import default_deck
 
-        decks.insert(0, (0, default_deck(character)))
+    saved = character.get("builds", {})
+    # bhp.dkV resolves the active sheet in this registry when opening builds.
+    # Publish empty saved sheets with the same initial deck as the save ACK.
+    decks = [
+        (
+            index,
+            bytes.fromhex(saved.get(index, {}).get("deck", ""))
+            or default_deck(character),
+        )
+        for index in catalog_indices(character)
+    ]
     raw = struct.pack(">i", len(decks)) + b"".join(
         struct.pack(">b", index) + deck for index, deck in decks
     )
     return struct.pack(">H", len(raw)) + raw
 
 
-def equipment_set(character, original):
-    fields = list(proto_fields(original))
-    saved = character.get("builds", {})
-    out = []
-    for tag, value in fields:
-        if tag == 10:
-            entry = dict(proto_fields(value))
-            index = entry.get(8)
-            if index in saved and saved[index]["equipment"]:
-                value = proto_field(8, index) + proto_field(
-                    18, bytes.fromhex(saved[index]["equipment"])
-                )
-        out.append(proto_field(tag, value))
-    return b"".join(out)
+def catalog_indices(character):
+    """Publish the permanent default and owned saved sheets only."""
+    indices = {0, *character.get("builds", {})}
+    if any(not valid_index(index) for index in indices):
+        raise ValueError("Invalid owned build catalog index")
+    return sorted(indices)
 
 
 def build_set(character, original):
@@ -206,8 +315,11 @@ def build_set(character, original):
     # contained permanent level20..140 builds, which do not belong to this player.
     list(proto_fields(original))
     saved = character.get("builds", {})
-    indices = sorted({0, 1, *saved})
-    result = proto_field(8, 0)
+    indices = catalog_indices(character)
+    active = character.get("active_build_index", 0)
+    if not valid_index(active) or active not in indices:
+        raise ValueError("Invalid selected build")
+    result = proto_field(8, active)
     for index in indices:
         if index in saved:
             sheet = bytes.fromhex(saved[index]["sheet"])
@@ -233,7 +345,7 @@ def equipment_registry(character):
     biB.Dj(index) reads that registry independently of eQW/aptitude sheets.
     """
     saved = character.get("builds", {})
-    indices = sorted({0, *saved})
+    indices = catalog_indices(character)
     entries = b"".join(
         proto_field(
             10,
@@ -264,5 +376,5 @@ def aptitude_registry(character):
                 else EMPTY_APTITUDES,
             ),
         )
-        for index in sorted({0, 1, *saved})
+        for index in catalog_indices(character)
     )
