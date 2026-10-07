@@ -7,6 +7,7 @@ from wakfu_server.combat.combat_multiplayer_wire import (
     decode_external,
     external_marker_actor_id,
 )
+from wakfu_server import monsters
 
 
 def sample_shared(*, instance_id=0, duel=False):
@@ -41,6 +42,7 @@ def sample_shared(*, instance_id=0, duel=False):
         instance_id=instance_id,
         is_duel=duel,
         participants=participants,
+        group_lease=((1134, 0, 77), "g1", 53, 1),
         join_context={
             "arena": arena,
             # Native combat bootstrap uses this terrain/effect-area template
@@ -48,7 +50,9 @@ def sample_shared(*, instance_id=0, duel=False):
             "terrain_effect_id": 46,
             "leaders": {0: 17, 1: -201},
             "monsters": {
-                -201: {"id": -201, "map_id": 1134, "instance_id": 0, "x": 14, "y": 9}
+                -201: monsters.owned_instance(
+                    5525, 1, -201, map_id=1134, x=14, y=9, z=2
+                )
             },
             "world_marker_cells": ((14, 9),),
             "world_marker_origin": (14, 9, 2),
@@ -88,18 +92,27 @@ class ExternalFightMarkerTests(unittest.TestCase):
         self.assertEqual(marker_topology["max_z"], 3)
         self.assertEqual(marker_topology["instance_id"], 0)
         self.assertEqual(marker_topology["cell_masks"], [0])
+        snapshots = markers.world_snapshots(1134, 0)
+        self.assertEqual([packet[0] for packet in snapshots], [12608, 13753])
+        self.assertEqual(snapshots[1], created)
+        from wakfu_server.combat_monster_world import spawn_group
+
+        self.assertEqual(
+            snapshots[0][1],
+            spawn_group(tuple(shared.join_context["monsters"].values()), group_id=77),
+        )
         self.assertEqual(markers.snapshots(1134, 0), (created,))
         self.assertEqual(markers.snapshots(1134, 0, exclude_character_id=17), ())
         self.assertEqual(markers.snapshots(1134, 1), ())
 
         # Timestamp is fixed at creation. A phase/turn change refreshes the
-        # late-join snapshot but does not resend a creation opcode to clients
-        # that already registered this fight ID.
+        # late-join snapshot and uses the native END_PLACEMENT carrier for
+        # clients that already registered this fight ID.
         self.assertIsNone(markers.update(shared, now_ms=101_000, now_monotonic=101.0))
         shared.fight.phase = "active"
         shared.fight.native_table_turn = 2
         update = markers.update(shared, now_ms=102_000, now_monotonic=102.0)
-        self.assertIsNone(update)
+        self.assertEqual(update, (12233, struct.pack(">i", 53)))
         late_join = markers.snapshots(1134, 0)[0]
         latest = decode_external(late_join[1])
         self.assertEqual(latest["phase_code"], 2)
@@ -134,7 +147,7 @@ class ExternalFightMarkerTests(unittest.TestCase):
         self.assertEqual(markers.started_at_ms, {})
         self.assertFalse(hasattr(markers, "announced_fights"))
 
-    def test_phase_and_roster_refresh_late_join_snapshot_without_rebroadcast(self):
+    def test_phase_update_reaches_existing_observers_and_refreshes_late_join(self):
         markers = ExternalFightMarkers()
         shared = sample_shared()
         first = markers.update(shared, now_ms=100_000, now_monotonic=100.0)
@@ -147,7 +160,10 @@ class ExternalFightMarkerTests(unittest.TestCase):
         )
         shared.fight.phase = "active"
         shared.fight.native_table_turn = 1
-        self.assertIsNone(markers.update(shared, now_ms=101_000, now_monotonic=101.0))
+        self.assertEqual(
+            markers.update(shared, now_ms=101_000, now_monotonic=101.0),
+            (12233, struct.pack(">i", 53)),
+        )
 
         body = decode_external(markers.snapshots(1134, 0)[0][1])
         self.assertEqual(body["phase_code"], 2)
@@ -201,6 +217,35 @@ class ExternalFightMarkerTests(unittest.TestCase):
         shared = sample_shared()
         del shared.join_context["world_marker_origin"]
         self.assertIsNone(markers.update(shared, now_ms=100_000, now_monotonic=100.0))
+
+    def test_marker_requires_matching_owned_npc_group_lease(self):
+        markers = ExternalFightMarkers()
+        for lease in (
+            None,
+            ((1134, 0, 77), "g1", 52, 1),
+            ((1134, 9, 77), "g1", 53, 1),
+            ((1134, 0, 77), "g1", 53, 0),
+        ):
+            shared = sample_shared()
+            shared.group_lease = lease
+            self.assertIsNone(
+                markers.update(shared, now_ms=100_000, now_monotonic=100.0)
+            )
+            self.assertEqual(markers.snapshots(1134, 0), ())
+
+        shared = sample_shared()
+        shared.join_context["monsters"][-201]["id"] = 201
+        self.assertIsNone(markers.update(shared, now_ms=100_000, now_monotonic=100.0))
+        self.assertEqual(markers.snapshots(1134, 0), ())
+
+        # The lease generation is the original group claim; a participant
+        # may reconnect under a newer session generation while that claim
+        # remains live, so actor reconstruction must use the durable lease key.
+        shared = sample_shared()
+        shared.group_lease = ((1134, 0, 77), "retired-owner-generation", 53, 1)
+        self.assertEqual(
+            markers.update(shared, now_ms=100_000, now_monotonic=100.0)[0], 13753
+        )
 
     def test_translation_rejects_z_overflow_without_mutating_private_arena(self):
         from wakfu_server.combat.combat_external_markers import _marker_topology

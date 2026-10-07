@@ -350,3 +350,32 @@ class World:
                     and self.location(character) == (map_id, instance_id)
                 ):
                     self._send(peer, opcode, body)
+
+    def emit_location_batch(
+        self,
+        map_id,
+        instance_id,
+        packets,
+        *,
+        exclude_generation=None,
+        exclude_sessions=(),
+    ):
+        """Capture location peers, then deliver each ordered batch in one write.
+
+        Identity/generation exclusions have the same meaning as emit_location.
+        Captured sockets are never redirected to replacement leases. A failed
+        peer cannot prevent delivery to the other captured recipients.
+        """
+        packets = tuple(packets)
+        if not packets:
+            return 0
+        exclude_sessions = frozenset(exclude_sessions)
+        with self.lock:
+            peers = tuple(
+                peer
+                for generation, peer, character in self.players.values()
+                if generation != exclude_generation
+                and (character["id"], generation) not in exclude_sessions
+                and self.location(character) == (map_id, instance_id)
+            )
+        return sum(self._send_batch(peer, packets) for peer in peers)

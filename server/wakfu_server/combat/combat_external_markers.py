@@ -108,7 +108,9 @@ class Marker:
     map_id: int
     instance_id: int
     participant_character_ids: frozenset
+    actor_body: bytes
     body: bytes
+    phase_code: int
 
 
 class ExternalFightMarkers:
@@ -116,6 +118,62 @@ class ExternalFightMarkers:
         self.lock = RLock()
         self.markers = {}
         self.started_at_ms = {}
+
+    @staticmethod
+    def _actor_snapshot(shared):
+        """Build the owned NPC world actors referenced by the marker.
+
+        A public marker's myr roster may contain the fight's monster leader.
+        That actor must exist in the recipient's world registry first. The
+        only authoritative public appearance is the original leased NPC
+        group from join_context plus its group lease; never derive a group ID
+        or appearance from the combat actor alone.
+        """
+        fight = getattr(shared, "fight", None)
+        context = getattr(shared, "join_context", None)
+        lease = getattr(shared, "group_lease", None)
+        monsters = context.get("monsters") if isinstance(context, dict) else None
+        if (
+            fight is None
+            or not isinstance(context, dict)
+            or not isinstance(monsters, dict)
+            or not monsters
+            or not isinstance(lease, (tuple, list))
+            or len(lease) != 4
+        ):
+            return None
+        key, generation, leased_fight_id, revision = lease
+        if (
+            not isinstance(key, (tuple, list))
+            or len(key) != 3
+            or tuple(key[:2]) != (shared.map_id, shared.instance_id)
+            or type(key[2]) is not int
+            or key[2] <= 0
+            or not isinstance(generation, str)
+            or not generation
+            or type(leased_fight_id) is not int
+            or leased_fight_id != fight.id
+            or type(revision) is not int
+            or revision <= 0
+        ):
+            return None
+        leaders = context.get("leaders")
+        if not isinstance(leaders, dict) or leaders.get(1) not in monsters:
+            return None
+        try:
+            from wakfu_server.combat_monster_world import spawn_group
+
+            members = tuple(monsters.values())
+            if any(
+                not isinstance(member, dict)
+                or member.get("map_id") != shared.map_id
+                or member.get("instance_id", 0) != shared.instance_id
+                for member in members
+            ):
+                return None
+            return 12608, spawn_group(members, group_id=key[2])
+        except (KeyError, TypeError, ValueError, OverflowError, struct.error):
+            return None
 
     @staticmethod
     def _body(shared, *, started_at_ms):
@@ -290,7 +348,13 @@ class ExternalFightMarkers:
                 self.markers.pop(fight_id, None)
                 self.started_at_ms.pop(fight_id, None)
                 return (12238, _remove_body(fight_id)) if current is not None else None
+            actor_packet = self._actor_snapshot(shared)
+            if actor_packet is None:
+                self.markers.pop(fight_id, None)
+                self.started_at_ms.pop(fight_id, None)
+                return (12238, _remove_body(fight_id)) if current is not None else None
             opcode, body = encoded
+            phase_code = 1 if fight.phase == "placement" else 2
             sessions = tuple(getattr(shared, "participants", {}).values())
             if not sessions:
                 return None
@@ -299,14 +363,22 @@ class ExternalFightMarkers:
                 shared.map_id,
                 shared.instance_id,
                 frozenset(session.character_id for session in sessions),
+                actor_packet[1],
                 body,
+                phase_code,
             )
             if current is not None:
+                phase_changed_to_action = (
+                    current.phase_code == 1 and phase_code == 2
+                )
                 # Keep phase, turn, and roster fresh for a later join without
-                # re-sending a 13753 to clients that already registered this
-                # fight ID. The observed client treats 13753 as creation and
-                # rejects duplicate fight-ID registration.
+                # re-sending 13753 to clients that already registered this
+                # fight ID. The native 12233 END_PLACEMENT message moves an
+                # existing external model to ACTION; send it exactly once when
+                # the authoritative shared fight crosses that boundary.
                 self.markers[fight_id] = marker
+                if phase_changed_to_action:
+                    return 12233, struct.pack(">i", fight_id)
                 return None
             self.markers[fight_id] = marker
             return opcode, body
@@ -324,6 +396,14 @@ class ExternalFightMarkers:
         with self.lock:
             marker = self.markers.get(fight_id)
             return None if marker is None else (marker.map_id, marker.instance_id)
+
+    def actor_packet(self, fight_id):
+        """Return the authoritative 12608 group dependency for one marker."""
+        if type(fight_id) is not int or fight_id <= 0:
+            raise ValueError("Invalid marker fight ID")
+        with self.lock:
+            marker = self.markers.get(fight_id)
+            return None if marker is None else (12608, marker.actor_body)
 
     def snapshots(self, map_id, instance_id, *, exclude_character_id=None):
         if (
@@ -347,6 +427,38 @@ class ExternalFightMarkers:
                 and marker.instance_id == instance_id
                 and exclude_character_id not in marker.participant_character_ids
             )
+
+    def world_snapshots(self, map_id, instance_id, *, exclude_character_id=None):
+        """Return actor registrations immediately before their 13753 markers.
+
+        Both packets are captured under one lock, so a late entrant cannot get
+        a marker body from one roster revision and the NPC group from another.
+        Existing ``snapshots`` remains marker-only for explicit marker replay.
+        """
+        if (
+            type(map_id) is not int
+            or map_id <= 0
+            or type(instance_id) is not int
+            or instance_id < 0
+            or (
+                exclude_character_id is not None
+                and (type(exclude_character_id) is not int or exclude_character_id <= 0)
+            )
+        ):
+            raise ValueError("Invalid public marker snapshot scope")
+        if instance_id != 0:
+            return ()
+        with self.lock:
+            packets = []
+            for _, marker in sorted(self.markers.items()):
+                if (
+                    marker.map_id != map_id
+                    or marker.instance_id != instance_id
+                    or exclude_character_id in marker.participant_character_ids
+                ):
+                    continue
+                packets.extend(((12608, marker.actor_body), (13753, marker.body)))
+            return tuple(packets)
 
 
 def _remove_body(fight_id):

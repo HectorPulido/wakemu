@@ -69,6 +69,19 @@ class SpectatorEventFilterTests(unittest.TestCase):
         self.assertEqual(sequence_n, (repeated,))
         self.assertEqual(sequence_n + sequence_n_plus_one, (repeated, repeated))
 
+    def test_end_placement_opcode_is_forwarded_as_phase_transition(self):
+        # Native cvk/12233 makes the client queue END_PLACEMENT; ckV then
+        # changes an external buG model to ACTION. It is distinct from the
+        # one-time 13753 marker-creation packet.
+        fight_id = 1552062216
+        end_placement = (12233, struct.pack(">i", fight_id))
+        self.assertEqual(
+            public_combat_events(((end_placement,), (end_placement,))),
+            (end_placement,),
+        )
+        next_round_or_turn = public_combat_events(((end_placement,),))
+        self.assertEqual(next_round_or_turn, (end_placement,))
+
     def test_intentional_duplicate_inside_one_owner_batch_is_preserved(self):
         repeated = (13560, b"effect")
         self.assertEqual(

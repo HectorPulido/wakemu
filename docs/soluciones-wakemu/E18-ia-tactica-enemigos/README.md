@@ -9,11 +9,32 @@ implementación nativa no se inventan desde AI.
 | Componente | Estado verificado |
 | --- | --- |
 | World | `3af10843cbc6`, inicio externo `2026-10-07T19:32:35.800276365Z` |
-| AI | `2232682a8593`, inicio `2026-10-07T20:19:31.420000522Z` |
-| Suite final | **459 pruebas OK**, motor actual `3af10843cbc6`; 169 imports nativos, ninguno externo; 136,510 s de validación |
+| AI | `26576b10f2bb`, inicio `2026-10-07T20:52:14.414608101Z` |
+| Suite final | **459 pruebas OK**, motor actual `3af10843cbc6`; 169 imports nativos, ninguno externo; 116,222 s de validación de la reorganización |
 | Pruebas focalizadas nuevas | 60 de búsqueda, caché, entrada y provisión OK (0,114 s) |
-| Catálogo vivo | **13.308 entradas**, 712.773.075 bytes declarados en el manifiesto; sellado completo, sin faltantes |
+| Catálogo vivo | **13.269 entradas**, 711.838.483 bytes declarados en el manifiesto; sellado completo, sin faltantes |
 | Reinicios propios de world | **1/3**; ninguno nuevo |
+
+## Organización del servicio
+
+Código en `server/ai-service/wakfu_ai/`, dividido en `planning`, `native`,
+`context`, `bridge` y `http`. Pruebas en `tests/`, operaciones en `scripts/`,
+mediciones en `benchmarks/`, probes Java en `tools/java/` y documentación en
+`docs/`. La raíz conserva únicamente configuración, README y entradas
+compatibles que ya consumen world y sus pruebas externas.
+
+El loader estable carga la nueva entrada privada correctamente desde el
+world activo; no se modificó ni reinició world. Docker arranca con
+`python3 -m wakfu_ai`; `COPY .` y el catálogo completo se conservan.
+**Reorganización validada: 459 pruebas OK**, 115,552 s de tests/116,222 s
+de validación. Los 169 módulos nativos proceden únicamente del motor
+congelado `3af10843cbc6`. Los 104 archivos Python del contenedor AI coinciden
+por SHA con el SDK actual; servicio saludable y catálogo sellado completo.
+No se modificó el algoritmo, los presupuestos ni el soporte de hechizos.
+Evidencia: `.runtime/local/e18-ai-package-layout-final-full-suite.log` y
+`.runtime/local/e18-ai-package-layout-final-rebuild.log`.
+
+Estructura y comandos vigentes: [README del servicio](../../../server/ai-service/README.md).
 
 El catálogo completo se prepara antes de dar AI por listo. Una caché privada
 persiste snapshots por contenido y firmas de archivo; cada turno sigue
@@ -154,15 +175,15 @@ En Amakna, mapa 1134, instancia 0:
    arrastrar foco ni acciones del encuentro anterior.
 
 Pasos y evidencia de FIFO/ACK en la
-[prueba completa de world](../../../server/ai-service/PRUEBA-WORLD.md).
+[prueba completa de world](../../../server/ai-service/docs/PRUEBA-WORLD.md).
 Los ataques aún no implementados por el motor común no se simulan desde AI.
 
 ## Diseño y evidencia
 
 [Servicio](../../../server/ai-service/README.md) ·
-[Validación](../../../server/ai-service/VALIDACION.md) ·
-[Inventario del puente](../../../server/ai-service/BRIDGE-INVENTORY.md) ·
-[Catálogo Docker](../../../server/ai-service/CATALOGO-CONTENEDOR.md) ·
+[Validación](../../../server/ai-service/docs/VALIDACION.md) ·
+[Inventario del puente](../../../server/ai-service/docs/BRIDGE-INVENTORY.md) ·
+[Catálogo Docker](../../../server/ai-service/docs/CATALOGO-CONTENEDOR.md) ·
 [Pendientes](FALTANTES.md).
 
 [Cotejo con Dofus sin Laya](COTEJO.md) · [Solución](SOLUCION.md) ·

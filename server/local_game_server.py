@@ -566,7 +566,7 @@ def join_world(generation, connection, character):
         character["map_id"], character["instance_id"]
     ):
         send(connection, "world", *packet)
-    for packet in EXTERNAL_FIGHT_MARKERS.snapshots(
+    for packet in EXTERNAL_FIGHT_MARKERS.world_snapshots(
         character["map_id"],
         character["instance_id"],
         exclude_character_id=character["id"],
@@ -771,6 +771,9 @@ def session(raw, peer, service, context):
     static_sync_pending = False
     static_sync_attempts = 0
     static_sync_due = time.monotonic() + 0.75
+    world_snapshot_pending = False
+    world_snapshot_due = time.monotonic() + 0.75
+    world_snapshot_identity = None
     account_id = generation = character = None
     bag_session = None
     fight = None
@@ -834,18 +837,27 @@ def session(raw, peer, service, context):
             validated=validated,
         )
 
-    def refresh_owned_world_after_spectating():
-        """Restore the loaded observer's current world snapshot after 12154."""
-        if character is None or account_id is None or generation is None:
-            raise ValueError("Loaded observer session is required")
+    def send_loaded_world_snapshot(*, static_validated=False):
+        """Rebuild the current loaded map for this peer after scene transitions."""
+        if character is None or not loaded or account_id is None or generation is None:
+            raise ValueError("Loaded world session is required")
+        if fight is not None or combat_session is not None:
+            raise ValueError("Cannot rebuild an exploration snapshot during combat")
+        if character.get("map_id") == 9:
+            raise ValueError("Private haven-bag maps do not use world replay")
+        if not STORE.current_session(account_id, generation):
+            raise ValueError("World snapshot session is stale")
         if not WORLD.resynchronize(generation, connection, character):
-            raise ValueError("World snapshot delivery failed")
+            raise ValueError("Player snapshot delivery failed")
+        # This is a complete current-map snapshot, so it also validates the
+        # static-object load. Do not leave the independent retry timer armed
+        # to resend the same 13984 packets after the world replay.
         sync_static_world(force=True, validated=True)
         send_planting_context(connection, character)
         for packet in PLANTINGS.snapshots(
             character["map_id"], character.get("instance_id", 0)
         ):
-            send(connection, "world", *packet)
+            send(connection, service, *packet)
         if COMBAT_TEST:
             from wakfu_server.combat_monster_world import spawn_group
 
@@ -856,27 +868,86 @@ def session(raw, peer, service, context):
                 for group in groups:
                     send(
                         connection,
-                        "world",
+                        service,
                         12608,
                         spawn_group(group["members"], group_id=group["key"][2]),
                     )
         for packet in HARVESTS.availability_snapshot(
             character["map_id"], character.get("instance_id", 0)
         ):
-            send(connection, "world", *packet)
+            send(connection, service, *packet)
         if COMBAT_TEST:
-            for packet in EXTERNAL_FIGHT_MARKERS.snapshots(
+            for packet in EXTERNAL_FIGHT_MARKERS.world_snapshots(
                 character["map_id"],
                 character.get("instance_id", 0),
                 exclude_character_id=character["id"],
             ):
-                send(connection, "world", *packet)
+                send(connection, service, *packet)
 
-    def mark_static_sync_pending():
+    def sync_loaded_world_snapshot(*, force=False):
+        nonlocal world_snapshot_pending
+        if not world_snapshot_pending or not loaded or character is None:
+            return False
+        if fight is not None or combat_session is not None:
+            return False
+        if character.get("map_id") == 9:
+            # Each haven bag is a private instance; the normal join already
+            # supplied its scoped state and must not trigger public replay.
+            world_snapshot_pending = False
+            return False
+        identity = (
+            character["id"],
+            generation,
+            character["map_id"],
+            character.get("instance_id", 0),
+        )
+        if identity != world_snapshot_identity:
+            world_snapshot_pending = False
+            return False
+        if not force and time.monotonic() < world_snapshot_due:
+            return False
+        try:
+            send_loaded_world_snapshot()
+        except ValueError as error:
+            record(
+                event="world_snapshot_resynchronization_failed",
+                actor_id=character["id"],
+                reason=str(error),
+            )
+            world_snapshot_pending = False
+            return False
+        world_snapshot_pending = False
+        record(
+            event="world_snapshot_resynchronized",
+            actor_id=character["id"],
+            map_id=character["map_id"],
+            instance_id=character.get("instance_id", 0),
+            trigger="ready" if force else "fallback",
+        )
+        return True
+
+    def refresh_owned_world_after_spectating():
+        """Restore the loaded observer's current world snapshot after 12154."""
+        if character is None or account_id is None or generation is None:
+            raise ValueError("Loaded observer session is required")
+        send_loaded_world_snapshot(static_validated=True)
+        nonlocal world_snapshot_pending
+        world_snapshot_pending = False
+
+    def mark_static_sync_pending(*, world_ready=False):
         nonlocal static_sync_pending, static_sync_attempts, static_sync_due
+        nonlocal world_snapshot_pending, world_snapshot_due, world_snapshot_identity
         static_sync_pending = True
         static_sync_attempts = 0
         static_sync_due = time.monotonic() + 0.75
+        world_snapshot_pending = not world_ready and character.get("map_id") != 9
+        world_snapshot_due = static_sync_due
+        world_snapshot_identity = (
+            character["id"],
+            generation,
+            character["map_id"],
+            character.get("instance_id", 0),
+        )
 
     placement_deadline = Deadline()
     position = {"x": -12, "y": -8, "z": -1}
@@ -1576,10 +1647,20 @@ def session(raw, peer, service, context):
             for session in SPECTATORS.sessions(fight.id)
         )
         try:
-            WORLD.emit_location(
+            # The native marker resolves its NPC leader in the world actor
+            # registry. A claimed group is absent from available() snapshots.
+            # Publish its authoritative descriptor before announcing the fight.
+            if packet[0] == 13753:
+                actor_packet = EXTERNAL_FIGHT_MARKERS.actor_packet(fight.id)
+                if actor_packet is None:
+                    raise ValueError("External fight marker lacks its NPC snapshot")
+                packets = (actor_packet, packet)
+            else:
+                packets = (packet,)
+            WORLD.emit_location_batch(
                 map_id,
                 instance_id,
-                *packet,
+                packets,
                 exclude_sessions=participant_sessions | observer_sessions,
             )
             record(
@@ -2051,7 +2132,8 @@ def session(raw, peer, service, context):
                             fight_id=fight.id,
                             reason=str(error),
                         )
-            sync_static_world()
+            if not sync_loaded_world_snapshot():
+                sync_static_world()
             if spectator_session is not None and spectator_fight_id is not None:
                 try:
                     if character is None or (
@@ -2362,7 +2444,6 @@ def session(raw, peer, service, context):
                     and not loaded
                     and opcode
                     in (
-                        14689,
                         13331,
                         12366,
                         13578,
@@ -2421,7 +2502,9 @@ def session(raw, peer, service, context):
                         )
                     join_world(generation, connection, character)
                     resume_settled_shared_combat()
-                    mark_static_sync_pending()
+                    # The first native world request is already a client-side
+                    # load barrier; later map transitions need a post-load replay.
+                    mark_static_sync_pending(world_ready=True)
                     send(
                         connection,
                         service,
@@ -2433,6 +2516,48 @@ def session(raw, peer, service, context):
                         ),
                     )
                     record(event="world_bootstrap_sent", position=position)
+                if (
+                    loaded
+                    and world_snapshot_pending
+                    and opcode
+                    in (
+                        14689,
+                        13331,
+                        12366,
+                        13578,
+                        12772,
+                        12296,
+                        13686,
+                        12870,
+                        13220,
+                        13481,
+                        1156,
+                        1031,
+                        1074,
+                        1066,
+                        13074,
+                        13224,
+                        13188,
+                        13831,
+                        13140,
+                        12997,
+                        13037,
+                        12203,
+                        12781,
+                        13406,
+                        12027,
+                        13113,
+                        784,
+                        657,
+                        672,
+                        799,
+                        12449,
+                        12787,
+                        13993,
+                        12294,
+                    )
+                ):
+                    sync_loaded_world_snapshot(force=True)
                 if opcode == 33:
                     send(connection, service, 23, b"\x01" + body)
                     send(connection, service, 309, struct.pack(">I", 12345))
@@ -5580,7 +5705,8 @@ def session(raw, peer, service, context):
                             reason=str(error),
                         )
                 elif opcode == 14689 and loaded:
-                    sync_static_world(force=True)
+                    if not sync_loaded_world_snapshot(force=True):
+                        sync_static_world(force=True)
                     record(
                         event="transport_objects_initialized",
                         actor_id=character["id"],

@@ -64,7 +64,7 @@ Mimic debe corregir el sistema general.
 Actualización: diagnóstico de Mimic, combate **23**. Los turnos iniciales se
 rechazaban con `Selected native build is absent`: la build permanente cero
 no necesita una fila guardada, pero el adaptador la exigía. Corrección en
-`server/ai-service/native_store.py`, sin cambios en world: conserva el carácter
+`server/ai-service/wakfu_ai/native/native_store.py`, sin cambios en world: conserva el carácter
 completo y usa `catalog_indices` y `default_deck` nativos. Ocho pruebas
 específicas pasan; suite ampliada de **417 pruebas OK**, 204,481 s,
 169 imports del motor vivo congelado y ninguno externo
@@ -750,7 +750,7 @@ restricción nativa de lifecycle aún no auditado; no se ha saltado esa validaci
 
 ### Después
 
-1. Ejecutar la [prueba manual general](../../../server/ai-service/PRUEBA-WORLD.md)
+1. Ejecutar la [prueba manual general](../../../server/ai-service/docs/PRUEBA-WORLD.md)
    y cotejar acciones, FIFO, ACK y cierre contra logs del juego.
 2. Completar roles derivados, coordinación por equipo, orientación y corpus
    concurrente usando resultados nativos. Todo cambio de lógica queda en AI.
@@ -764,9 +764,9 @@ después del tercero no hacer más cambios. Catálogo completo no significa que
 el motor ejecute todos los efectos futuros: dependencias obligatorias sin
 soporte se declaran explícitamente.
 
-Evidencia: [validación](../../../server/ai-service/VALIDACION.md),
-[catálogo Docker](../../../server/ai-service/CATALOGO-CONTENEDOR.md),
-[inventario del puente](../../../server/ai-service/BRIDGE-INVENTORY.md).
+Evidencia: [validación](../../../server/ai-service/docs/VALIDACION.md),
+[catálogo Docker](../../../server/ai-service/docs/CATALOGO-CONTENEDOR.md),
+[inventario del puente](../../../server/ai-service/docs/BRIDGE-INVENTORY.md).
 
 La línea base anterior acercaba al enemigo por BFS y añadía un ataque específico de Wonejo. La implementación táctica en curso permite comparar consecuencias nativas y redecidir tras cada acción. Referencia: reutilizar la arquitectura táctica de `/Users/hectorpulido/dofus/ai-service`, excluyendo Laya, con adaptadores nativos de Wakfu para hechizos, terreno 3D, orientación y ejecución.
 
@@ -804,8 +804,8 @@ Wonejo atacando y jalató acercándose; ambos combates finalizaron según logs.
 GUI/observadores completa y previsión de amenazas rivales. E18 continúa en implementación, no cerrado.
 
 Contrato y extensión: [README del servicio](../../../server/ai-service/README.md).
-Evidencia: [VALIDACION](../../../server/ai-service/VALIDACION.md).
-Prueba general: [PRUEBA-WORLD](../../../server/ai-service/PRUEBA-WORLD.md).
+Evidencia: [VALIDACION](../../../server/ai-service/docs/VALIDACION.md).
+Prueba general: [PRUEBA-WORLD](../../../server/ai-service/docs/PRUEBA-WORLD.md).
 
 ### Lectura íntegra concurrente — revisión posterior aún sin desplegar
 
@@ -1095,7 +1095,7 @@ retirada deberá proceder de un arquetipo/capacidad y utilidad genéricos.
 
 ## Próximo trabajo
 
-El prototipo de [grafo por fragmentos](../../../server/ai-service/FORMATO-GRAFO-FRAGMENTADO.md)
+El prototipo de [grafo por fragmentos](../../../server/ai-service/docs/FORMATO-GRAFO-FRAGMENTADO.md)
 ya supera **14 pruebas de formato** y reconstruye exactamente los 73.677 nodos de
 la geometría real del mapa 1134, con todos sus bytes y alias. No está activado:
 partir de un grafo plano y reconstruirlo todavía cuesta demasiado. Encoder directo experimental implementado; falta conectar el lector virtual
@@ -1128,15 +1128,15 @@ En Amakna, mapa 1134, instancia 0:
    arrastrar foco ni acciones del encuentro anterior.
 
 Pasos y evidencia de FIFO/ACK en la
-[prueba completa de world](../../../server/ai-service/PRUEBA-WORLD.md).
+[prueba completa de world](../../../server/ai-service/docs/PRUEBA-WORLD.md).
 Los ataques aún no implementados por el motor común no se simulan desde AI.
 
 ## Diseño y evidencia
 
 [Servicio](../../../server/ai-service/README.md) ·
-[Validación](../../../server/ai-service/VALIDACION.md) ·
-[Inventario del puente](../../../server/ai-service/BRIDGE-INVENTORY.md) ·
-[Catálogo Docker](../../../server/ai-service/CATALOGO-CONTENEDOR.md) ·
+[Validación](../../../server/ai-service/docs/VALIDACION.md) ·
+[Inventario del puente](../../../server/ai-service/docs/BRIDGE-INVENTORY.md) ·
+[Catálogo Docker](../../../server/ai-service/docs/CATALOGO-CONTENEDOR.md) ·
 [Pendientes](FALTANTES.md).
 
 [Cotejo con Dofus sin Laya](COTEJO.md) · [Solución](SOLUCION.md) ·

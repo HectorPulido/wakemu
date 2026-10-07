@@ -13,4 +13,4 @@ if [ "$ai_current_world_image" != "$ai_world_image" ]; then
     exit 1
 fi
 docker compose up -d --no-deps --no-build ai
-python3 server/ai-service/provision_live_catalog.py
+python3 server/ai-service/scripts/provision_live_catalog.py

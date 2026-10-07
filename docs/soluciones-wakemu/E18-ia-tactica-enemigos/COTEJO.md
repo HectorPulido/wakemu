@@ -2,7 +2,7 @@
 
 ## Wakemu hoy
 
-- `server/ai-service/planner.py::decide`: BFS sobre aristas dirigidas 3D, respeta ocupación y presupuesto PM; busca adyacencia a un enemigo. Devuelve `attack=None`. No considera hechizos, resistencias, curación, orientación, exposición ni equipo.
+- `server/ai-service/wakfu_ai/planning/planner.py::decide`: BFS sobre aristas dirigidas 3D, respeta ocupación y presupuesto PM; busca adyacencia a un enemigo. Devuelve `attack=None`. No considera hechizos, resistencias, curación, orientación, exposición ni equipo.
 - `combat/combat_ai.py::snapshot`: protocolo 1, requestId/stateKey, turno, geometría, actores con equipo/HP/PA/PM/control. Faltan HP máximo, PW, dirección, estados, hechizos y amenazas. Su hash protege solo los datos incluidos. `validate` rechaza cualquier ataque no nulo; HTTP timeout 1 segundo y fallback sin movimiento.
 - `combat_movement_runtime.apply_ai`: ejecuta recorrido validado; existe integración opcional de eventos de área. No basta el pathfinder para modelar costes/reacciones especiales de movimiento. El caller actual usa dirección 3.
 - `local_game_server.py::pass_test_monster_turn`: acercarse, intentar un ataque, terminar turno. La política de ataque no viene del servicio.

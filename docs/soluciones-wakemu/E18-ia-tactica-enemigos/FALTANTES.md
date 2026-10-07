@@ -200,7 +200,7 @@ en arena completa y commit PC tienen evidencia de prueba. Todavía falta:
   world vivo. Reinicios propios1/3; avisar antes de cada uno, después del
   tercero no hacer más cambios. No repetir parches de world para ampliar IA.
 - Aceptación conectada al juego pendiente: ejecutar la partida completa de
-  `server/ai-service/PRUEBA-WORLD.md`; no afirmar que todo E18 esté completo.
+  `server/ai-service/docs/PRUEBA-WORLD.md`; no afirmar que todo E18 esté completo.
 
 Última suite conjunta AI y regresiones raíz:284 pruebas OK /48,250s
 (48,860s totales; cero fallos, errores u omisiones).

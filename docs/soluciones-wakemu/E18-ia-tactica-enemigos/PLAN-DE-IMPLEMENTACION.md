@@ -17,7 +17,7 @@ El motor nuevo y el puente inicial están implementados; la aceptación completa
 
 **Reutilizar/refactorizar desde Dofus:** búsqueda y diversidad de `tactical_planner`; generación de intenciones de `intent_ai`; coordinación y cache de `team_memory/turn_strategy`. Crear variante independiente en Wakemu con dependencias inyectadas. No mantener imports a `/Users/hectorpulido/dofus`; un clon limpio debe funcionar sin ese checkout.
 
-**Servicio Wakemu:** `server/ai-service/planner.py` deja de ser exclusivamente BFS y orquesta capas propuestas `semantics`, `intents`, `search`, `scoring`, `team_memory`. `server.py` valida protocolo 2, límites de tamaño/tiempo/concurrencia y errores. BFS actual se conserva como algoritmo de rutas/fallback donde sea legal, no como única política de combate.
+**Servicio Wakemu:** `server/ai-service/wakfu_ai/planning/planner.py` deja de ser exclusivamente BFS y orquesta capas propuestas `semantics`, `intents`, `search`, `scoring`, `team_memory`. `server.py` valida protocolo 2, límites de tamaño/tiempo/concurrencia y errores. BFS actual se conserva como algoritmo de rutas/fallback donde sea legal, no como única política de combate.
 
 **World:** `combat_ai.py` amplía snapshot/validación y deja de imponer attack=null. `combat_movement_runtime` integra ruta/orientación/reacciones. Crear transición NPC común junto a `combat_server_spell`, reutilizando handlers y commit; coordinación con el otro agente antes de editar módulos compartidos. `pass_test_monster_turn` pasa a ciclo acotado decisión→acción→ACK→redecisión→fin, evitando ejecutar movimiento y ataque detrás de sincronización pendiente.
 

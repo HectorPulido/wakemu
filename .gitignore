@@ -16,3 +16,6 @@ javac.*.args
 *.key
 *.pem
 docs/reports/combat-inventory/inventory.json
+
+docs/reports/
+docs/soluciones-wakemu/

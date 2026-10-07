@@ -65,3 +65,8 @@ He prefer testing complete systems rather than small tests.
 ### Contenedores de Wakemu
 
 Trabajar sobre un único contenedor `world`: modificarlo y reiniciarlo con la autorización persistente. No crear ni acumular servidores candidatos por versión; conservar copias de seguridad y validación automática. Esta preferencia no exige fusionar servicios distintos como PostgreSQL o IA en un único proceso.
+
+
+### Idioma
+Codigo y comentarios en ingles, Documentacion en ingles, conversacion con Hector en español
+Aunque lo que ya este en español, puede estar en español, no traduzcas un archivo existente a menos que te lo indiquen
