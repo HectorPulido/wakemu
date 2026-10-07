@@ -76,3 +76,11 @@ La columna anterior clasifica el trabajo propuesto, no dice que cada pieza falte
 ## Límites de verificación
 
 La existencia de una función o codec no demuestra integración de extremo a extremo. Las ausencias de handler deben comprobarse en el dispatcher y con una solicitud autenticada; las fórmulas, políticas y respuestas nativas pendientes se enumeran en [FALTANTES.md](FALTANTES.md). Si cambia un hash, repetir el cotejo antes de implementar.
+
+## Fórmula nativa cotejada
+
+`dev.am` busca la celda/ground y llama `fyi.b`. Fórmula: `clamp((T/100) × biome × (1 + PS),0,1)`. T usa primero la referencia de recurso (incluido0 explícito), después familia, después0. Biome vale1 para clima ausente, recurso sin restricción o compatible; de lo contrario0,8. `PS=eRL.a(eRJ.raN,professionId,2)/100`, modificador de oficio identificado por efecto2000. No aparece el nivel de oficio como factor directo ni densidad del ecosistema; los niveles y familias son autorizaciones separadas.
+
+UI: si p<=0 muestra X (-1); en otro caso `Math.round(100*p)`. El helper de tirada usa `Random.nextDouble()<p` sin redondeo. Ejemplos cotejados: terreno50 + bonus50%→75%; terreno50 + bonus−50%→25%; terreno100 + clima incompatible→80%. Esto acredita el cálculo del cliente instalado, no prueba la implementación del servidor oficial.
+
+`planting_probability.calculate/succeeds` implementa esta aritmética en fuente; adquisición de clima/bonus, RNG transaccional y alineación con el indicador intervenido siguen pendientes. No se usan valores del cliente como resultado confiable.

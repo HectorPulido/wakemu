@@ -16,6 +16,9 @@ from wakfu_server.monster_collect import (
     availability_packet,
 )
 from wakfu_server.wire import proto_field
+from wakfu_server.ecology_feedback import information
+from wakfu_server.profession_store import ensure_learned
+from wakfu_server.monsters import REFERENCES, owned_instance
 
 
 class HarvestTests(PostgresCase):
@@ -28,15 +31,33 @@ class HarvestTests(PostgresCase):
         self.gen = self.store.begin_session(self.account)
         self.store.select_character(self.account, self.gen, self.char["id"])
         self.harvest = Harvests(self.store)
+        # Real exported surface in Amakna (map 1134, region 79001). Harvest
+        # ecology must use the monster's native position, not the character's.
         self.monster = dict(
             id=-4498523304664558568,
             ref=1,
             hp=10,
-            map_id=self.char["map_id"],
-            instance_id=self.char["instance_id"],
+            map_id=1134,
+            instance_id=17,
+            x=54,
+            y=36,
+            z=17,
         )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET map_id=%s,instance_id=%s,x=%s,y=%s,z=%s WHERE id=%s",
+                (1134, 17, 54, 36, 17, self.char["id"]),
+            )
         self.body = proto_field(8, 3723) + proto_field(
             16, self.monster["id"] % (2**64)
+        )
+        self.rule = action(self.monster["ref"], 3723)
+        ensure_learned(
+            self.store,
+            self.account,
+            self.gen,
+            self.char["id"],
+            [self.rule["profession_id"]],
         )
 
     def begin(self, **kwargs):
@@ -68,6 +89,362 @@ class HarvestTests(PostgresCase):
             monster=self.monster,
             profession_level=0,
         )
+
+    def ecology_info(self):
+        return information(
+            "Ecosistema: población 0 → 0; rango de equilibrio 1–128. "
+            "Tu acción no reduce el desequilibrio: sin cambio de afinidad. "
+            "Afinidad: Neutral → Neutral."
+        )
+
+    @staticmethod
+    def xp_packet(xp=50, profession_id=74):
+        return 12916, struct.pack(">iq", profession_id, xp)
+
+    def prepare_profession_xp(self):
+        ensure_learned(
+            self.store,
+            self.account,
+            self.gen,
+            self.char["id"],
+            [action(1, 3723)["profession_id"]],
+        )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='profession_action_rewards'",
+                (
+                    Jsonb(
+                        {
+                            "version": 1,
+                            "planting_xp": 10,
+                            "harvest_xp": 50,
+                            "recipe_slot_xp": 100,
+                        }
+                    ),
+                ),
+            )
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='profession_xp'",
+                (Jsonb({"multiplier_basis_points": 10000}),),
+            )
+
+    def profession_xp_receipts(self):
+        with self.store.connection() as db:
+            return db.execute(
+                "SELECT profession_id,character_id,operation,applied_xp "
+                "FROM profession_xp_receipts WHERE account_id=%s ORDER BY operation,profession_id",
+                (self.account,),
+            ).fetchall()
+
+    def profession_xp(self, profession_id=74):
+        with self.store.connection() as db:
+            row = db.execute(
+                "SELECT xp FROM account_professions WHERE account_id=%s AND profession_id=%s",
+                (self.account, profession_id),
+            ).fetchone()
+        return None if row is None else row["xp"]
+
+    def test_profession82_captura_de_peletero_awards_once(self):
+        monster_ref, action_id, profession_id = 1724, 3865, 82
+        rule = action(monster_ref, action_id)
+        self.assertEqual(
+            (profession_id, 11358, ""),
+            (rule["profession_id"], rule["item_ref"], rule["condition"]),
+        )
+        ensure_learned(
+            self.store, self.account, self.gen, self.char["id"], [profession_id]
+        )
+        monster = owned_instance(
+            monster_ref,
+            REFERENCES[monster_ref]["min_level"],
+            self.monster["id"],
+            map_id=self.monster["map_id"],
+            instance_id=self.monster["instance_id"],
+            x=self.monster["x"],
+            y=self.monster["y"],
+            z=self.monster["z"],
+        )
+        body = proto_field(8, action_id) + proto_field(16, monster["id"] % (2**64))
+        before = self.profession_xp(profession_id)
+        self.harvest.begin(
+            self.account,
+            self.gen,
+            self.char["id"],
+            body,
+            monster,
+            profession_level=0,
+            reachable=True,
+        )
+        token = self.harvest.pending[self.char["id"]]["token"]
+        self.now[0] += rule["duration_ms"] / 1000
+        result = self.harvest.complete(
+            self.account,
+            self.gen,
+            self.char["id"],
+            b"\x02\x00\x06",
+            monster=monster,
+            profession_level=0,
+        )
+        self.assertTrue(result["applied"])
+        self.assertEqual(11358, result["item"]["reference"])
+        self.assertIn(self.xp_packet(profession_id=profession_id), result["packets"])
+        self.assertEqual((before or 0) + 50, self.profession_xp(profession_id))
+        with self.store.connection() as db:
+            receipt = db.execute(
+                "SELECT applied_xp FROM profession_xp_receipts "
+                "WHERE account_id=%s AND operation=%s AND profession_id=%s",
+                (self.account, "monster-harvest:" + token, profession_id),
+            ).fetchone()
+        self.assertEqual(50, receipt["applied_xp"])
+
+    def test_successful_monster_harvest_awards_action_profession_xp_once(self):
+        rule = action(self.monster["ref"], 3723)
+        self.assertEqual(74, rule["profession_id"])
+        self.prepare_profession_xp()
+        before = self.profession_xp()
+        self.begin()
+        token = self.harvest.pending[self.char["id"]]["token"]
+        self.now[0] += 3
+
+        result = self.complete()
+
+        self.assertTrue(result["applied"])
+        self.assertIn((12916, struct.pack(">iq", 74, 50)), result["packets"])
+        self.assertEqual(before + 50, self.profession_xp())
+        self.assertEqual(
+            [
+                {
+                    "profession_id": 74,
+                    "character_id": self.char["id"],
+                    "operation": "monster-harvest:" + token,
+                    "applied_xp": 50,
+                }
+            ],
+            [dict(row) for row in self.profession_xp_receipts()],
+        )
+
+        replay = self.complete()
+        self.assertFalse(replay["applied"])
+        self.assertEqual([], replay["packets"])
+        self.assertEqual(before + 50, self.profession_xp())
+        self.assertEqual(1, len(self.profession_xp_receipts()))
+
+    def test_cancelled_harvest_and_cooldown_rejection_do_not_award_xp(self):
+        self.prepare_profession_xp()
+        self.begin()
+        self.now[0] += 3
+        canceled = self.harvest.complete(
+            self.account,
+            self.gen,
+            self.char["id"],
+            b"\x03\x00\x06",
+            monster=self.monster,
+            profession_level=0,
+        )
+        self.assertFalse(canceled["applied"])
+        self.assertEqual(0, self.profession_xp())
+        self.assertEqual([], self.profession_xp_receipts())
+
+        self.begin()
+        self.now[0] += 3
+        self.assertTrue(self.complete()["applied"])
+        with self.assertRaisesRegex(ValueError, "regenerating"):
+            self.begin()
+        self.assertEqual(50, self.profession_xp())
+        self.assertEqual(1, len(self.profession_xp_receipts()))
+
+    def test_stale_lease_harvest_completion_does_not_award_xp(self):
+        self.prepare_profession_xp()
+        self.begin()
+        self.now[0] += 3
+        replacement = self.store.begin_session(self.account, ttl=10_000)
+        self.store.select_character(self.account, replacement, self.char["id"])
+
+        with self.assertRaises(ValueError):
+            self.complete()
+
+        self.assertEqual(0, self.profession_xp())
+        self.assertEqual([], self.profession_xp_receipts())
+        with self.store.connection() as db:
+            self.assertEqual(
+                0,
+                db.execute(
+                    "SELECT count(*) AS n FROM monster_harvest_receipts WHERE character_id=%s",
+                    (self.char["id"],),
+                ).fetchone()["n"],
+            )
+        self.harvest.cancel(self.char["id"], self.gen)
+
+    def test_profession_award_failure_rolls_back_harvest_and_is_retryable(self):
+        self.prepare_profession_xp()
+        self.begin()
+        token = self.harvest.pending[self.char["id"]]["token"]
+        self.now[0] += 3
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='profession_xp'",
+                (Jsonb({"multiplier_basis_points": True}),),
+            )
+
+        with self.assertRaisesRegex(ValueError, "profession XP policy"):
+            self.complete()
+        with self.store.connection() as db:
+            self.assertEqual(
+                0,
+                db.execute(
+                    "SELECT count(*) AS n FROM monster_harvest_receipts WHERE token=%s",
+                    (token,),
+                ).fetchone()["n"],
+            )
+            self.assertEqual(
+                0,
+                db.execute(
+                    "SELECT count(*) AS n FROM inventory_items WHERE character_id=%s AND reference=2246",
+                    (self.char["id"],),
+                ).fetchone()["n"],
+            )
+            self.assertEqual(
+                0,
+                db.execute(
+                    "SELECT count(*) AS n FROM profession_xp_receipts WHERE account_id=%s",
+                    (self.account,),
+                ).fetchone()["n"],
+            )
+            self.assertEqual(
+                0,
+                db.execute(
+                    "SELECT count(*) AS n FROM personal_ecology_receipts WHERE character_id=%s "
+                    "AND operation=%s",
+                    (self.char["id"], "monster-harvest:" + token),
+                ).fetchone()["n"],
+            )
+        self.assertIn(self.char["id"], self.harvest.pending)
+        self.assertEqual(0, self.profession_xp())
+
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='profession_xp'",
+                (Jsonb({"multiplier_basis_points": 10000}),),
+            )
+        retried = self.complete()
+        self.assertTrue(retried["applied"])
+        self.assertIn(self.xp_packet(), retried["packets"])
+        self.assertEqual(50, self.profession_xp())
+        self.assertEqual(1, len(self.profession_xp_receipts()))
+
+    def test_harvest_is_neutral_and_replay_does_not_emit_duplicate_ecology(self):
+        self.begin()
+        self.now[0] += 3
+
+        result = self.complete()
+        self.assertTrue(result["applied"])
+        self.assertEqual(result["packets"][1:], [self.xp_packet(), self.ecology_info()])
+        self.assertEqual(result["packets"][2][0], 349)
+        with self.store.connection() as db:
+            character = db.execute(
+                "SELECT ecology_value,ecology_revision FROM characters WHERE id=%s",
+                (self.char["id"],),
+            ).fetchone()
+            ecology = db.execute(
+                "SELECT requested_delta,evidence FROM personal_ecology_receipts "
+                "WHERE character_id=%s AND operation LIKE %s",
+                (self.char["id"], "monster-harvest:%"),
+            ).fetchall()
+        self.assertEqual(
+            (character["ecology_value"], character["ecology_revision"]), (0, 1)
+        )
+        self.assertEqual(len(ecology), 1)
+        self.assertEqual(ecology[0]["requested_delta"], 0)
+        self.assertEqual(ecology[0]["evidence"]["action"], "harvest")
+        self.assertEqual(ecology[0]["evidence"]["before_population"], 0)
+        self.assertEqual(ecology[0]["evidence"]["after_population"], 0)
+
+        replay = self.complete()
+        self.assertFalse(replay["applied"])
+        self.assertEqual(replay["packets"], [])
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM personal_ecology_receipts "
+                    "WHERE character_id=%s AND operation LIKE %s",
+                    (self.char["id"], "monster-harvest:%"),
+                ).fetchone()["n"],
+                1,
+            )
+
+    def test_ecology_receipt_failure_rolls_back_harvest_and_keeps_ticket_retryable(
+        self,
+    ):
+        self.begin()
+        self.now[0] += 3
+        with self.store.connection() as db:
+            db.execute(
+                """CREATE FUNCTION reject_monster_harvest_ecology() RETURNS trigger
+                LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'injected ecology failure'; END $$"""
+            )
+            db.execute(
+                "CREATE TRIGGER reject_monster_harvest_ecology BEFORE INSERT ON "
+                "personal_ecology_receipts FOR EACH ROW EXECUTE FUNCTION "
+                "reject_monster_harvest_ecology()"
+            )
+
+        with self.assertRaises(psycopg.Error):
+            self.complete()
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM monster_harvest_receipts"
+                ).fetchone()["n"],
+                0,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM inventory_items WHERE character_id=%s AND reference=2246",
+                    (self.char["id"],),
+                ).fetchone()["n"],
+                0,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM profession_xp_receipts WHERE account_id=%s",
+                    (self.account,),
+                ).fetchone()["n"],
+                0,
+            )
+            db.execute(
+                "DROP TRIGGER reject_monster_harvest_ecology ON personal_ecology_receipts"
+            )
+            db.execute("DROP FUNCTION reject_monster_harvest_ecology()")
+
+        # The occupied action remains available after rollback and commits all
+        # product, receipt, profession XP and ecology together on retry.
+        retried = self.complete()
+        self.assertTrue(retried["applied"])
+        self.assertEqual(
+            retried["packets"][1:], [self.xp_packet(), self.ecology_info()]
+        )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM monster_harvest_receipts"
+                ).fetchone()["n"],
+                1,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM profession_xp_receipts WHERE account_id=%s",
+                    (self.account,),
+                ).fetchone()["n"],
+                1,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM personal_ecology_receipts WHERE character_id=%s "
+                    "AND operation LIKE %s",
+                    (self.char["id"], "monster-harvest:%"),
+                ).fetchone()["n"],
+                1,
+            )
 
     def test_native_large_id_and_duration_packet(self):
         self.assertEqual(
@@ -481,39 +858,27 @@ class HarvestTests(PostgresCase):
         )
         self.assertLess(spawn.lineno, snapshot.lineno)
 
-        respawn = next(
-            node
-            for node in tree.body
-            if isinstance(node, ast.FunctionDef) and node.name == "respawn_monsters"
-        )
-        respawn_calls = [
-            node for node in ast.walk(respawn) if isinstance(node, ast.Call)
+        finish_target = next(node for node in branches if opcode_branch(node, 13481))
+        finish_calls = [
+            node for node in ast.walk(finish_target) if isinstance(node, ast.Call)
         ]
-        respawn_spawn = next(
+        availability_emit = next(
             call
-            for call in respawn_calls
+            for call in finish_calls
             if isinstance(call.func, ast.Attribute)
             and call.func.attr == "emit_location"
+        )
+        packet_loop = next(
+            node
+            for node in ast.walk(finish_target)
+            if isinstance(node, ast.For)
+            and isinstance(node.target, ast.Tuple)
             and any(
-                isinstance(n, ast.Constant) and n.value == 12608 for n in ast.walk(call)
+                isinstance(n, ast.Name) and n.id == "packets"
+                for n in ast.walk(node.iter)
             )
         )
-        restore = next(
-            call
-            for call in respawn_calls
-            if isinstance(call.func, ast.Attribute)
-            and call.func.attr == "availability_for"
-        )
-        availability_emit = [
-            call
-            for call in respawn_calls
-            if isinstance(call.func, ast.Attribute)
-            and call.func.attr == "emit_location"
-            and call is not respawn_spawn
-        ]
-        self.assertTrue(availability_emit)
-        self.assertLess(respawn_spawn.lineno, restore.lineno)
-        self.assertLess(restore.lineno, max(call.lineno for call in availability_emit))
+        self.assertLess(availability_emit.lineno, packet_loop.lineno)
 
     def test_early_finish_cancel_and_foreign_generation_do_not_grant(self):
         self.begin()
@@ -584,7 +949,12 @@ class HarvestTests(PostgresCase):
         )
         self.assertEqual(second["item"]["uid"], first_item["uid"])
         self.assertEqual(
-            second["packets"], [(12470, struct.pack(">qh", first_item["uid"], 1))]
+            second["packets"],
+            [
+                (12470, struct.pack(">qh", first_item["uid"], 1)),
+                self.xp_packet(),
+                self.ecology_info(),
+            ],
         )
         self.assertEqual(
             sum(
@@ -623,7 +993,12 @@ class HarvestTests(PostgresCase):
         self.assertEqual(result["item"]["uid"], first["uid"])
         self.assertEqual(result["item"]["quantity"], 2)
         self.assertEqual(
-            result["packets"], [(12470, struct.pack(">qh", first["uid"], 1))]
+            result["packets"],
+            [
+                (12470, struct.pack(">qh", first["uid"], 1)),
+                self.xp_packet(),
+                self.ecology_info(),
+            ],
         )
         with self.store.connection() as db:
             count = db.execute(

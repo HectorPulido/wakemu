@@ -105,7 +105,26 @@ def toggle(
                 return 2, character
             if not location_allowed:
                 return 4, character
+            from wakfu_server.swimming import at_position
+
+            try:
+                if at_position(character):
+                    return 4, character
+            except ValueError:
+                # Unexported or unverified surfaces are not assumed dry.
+                return 4, character
             if not occupation_cancelable:
+                return 5, character
+            # The world must cancel a durable harvest before granting a ride.
+            # Do not trust a caller's context boolean over a live SQL ticket.
+            if (
+                db.execute(
+                    "SELECT 1 FROM resource_harvest_occupations "
+                    "WHERE character_id=%s AND expires_at>%s LIMIT 1",
+                    (character_id, store.now()),
+                ).fetchone()
+                is not None
+            ):
                 return 5, character
             unit = equipped(character)
             if unit is None:

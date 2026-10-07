@@ -65,3 +65,19 @@ La existencia de una función o codec no demuestra integración de extremo a ext
 ## Causa general comprobada
 
 [Fecha enviada como ownerAccount: afecta plantas y árboles](REVISION-RESPUESTAS.md).
+
+
+## Contrato de ocupación vegetal cotejado — 6 de octubre
+
+`cWn` emite `cmC/zg`12995 con acción y coordenadasXY. El inicio de cosecha es12230, lector `cyJ`, con layout big-endian `byte,short,long,long,byte,int,int,byte,int,byte,double,int`; no reutilizar el layout de12815 de plantación. `blO` usa occupation type3. `blG.dwm()` produce13429 con resultado2 y tipo3; `blG.l(...)` produce resultado3 para cancelación/fallo. La captura oficial contiene ACKs13429 de tipo3, coherentes con ese productor. Plantación usa tipo2 y monstruos tipo6.
+
+La supuesta ausencia de tratamiento de cancelación en los handlers actuales se descartó siguiendo los callees: `Plantings.complete` y `Harvests.complete` cancelan con resultado3 antes de la transacción de recompensa. No introducir ese falso positivo en el backlog.
+
+`cvK` solo ordena acciones; `cvI` controla ocultar/deshabilitar una acción con criterio inválido; `csN` resuelve una categoría de acción para icono/animación. `cmI` interviene como coeficiente de XP mostrada por la enciclopedia (`boJ`/`boA`), pero aún falta cotejar su fórmula y concesión autoritativa. `cvG` aparece como requisito de jugadores y delta visual, no acredita por sí solo la transición de cosecha del servidor.
+
+
+## Inicio de ocupación correlacionado con captura oficial
+
+Flujo observado07:14:05UTC:12995acción2269/XY12,20→12230tipo3→13429resultado2/tipo3 aproximadamente3s después→12916oficio72/+131XP→13916actualización de recurso→12782XY12,20/estado2. El inicio12230 lleva `mun=1`, `hvY=3`, `hvW=actor`, `ivx=3000ms`, `mCS=2`, XY, `mCT=72`, `bes=2269`, `ivO=1`, `mCU=0.0`, `eoj=0`. Otro flujo del mismo oficio utiliza2950ms; duración es dato del inicio, no un valor único de toda cosecha.
+
+`start_packet` codifica ese contrato con duración y oficio de la acción seleccionada. `decode_result` acepta únicamente los resultados2/3 del tipo3. No atribuir +131XP a una fórmula universal ni interpretar13916 como producto de inventario sin decodificarlo. Encoder y resultado están en pruebas, aún sin coordinador/dispatcher.

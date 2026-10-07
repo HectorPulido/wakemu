@@ -11,6 +11,18 @@ from wakfu_server.combat_state import Actor, Fight
 
 
 def extracted_session_orientation(namespace):
+    namespace.setdefault("struct", struct)
+    from types import SimpleNamespace
+
+    namespace.setdefault(
+        "POSITIONS",
+        SimpleNamespace(flush=lambda **_kwargs: None, attach=lambda *_args: None),
+    )
+    namespace.setdefault(
+        "WORLD", SimpleNamespace(update=lambda *_args, **_kwargs: None)
+    )
+    namespace.setdefault("STORE", object())
+    namespace.setdefault("generation", 1)
     source_path = Path(__file__).resolve().parents[1] / "local_game_server.py"
     source = source_path.read_text()
     tree = ast.parse(source, filename=str(source_path))
@@ -19,20 +31,36 @@ def extracted_session_orientation(namespace):
         for node in tree.body
         if isinstance(node, ast.FunctionDef) and node.name == "session"
     )
-    branch = next(
-        node
-        for node in ast.walk(session)
-        if isinstance(node, ast.If)
-        and any(
-            isinstance(value, ast.Compare)
-            and isinstance(value.left, ast.Name)
+
+    def is_combat_orientation_branch(node):
+        if not isinstance(node, ast.If):
+            return False
+        comparisons = [
+            value for value in ast.walk(node.test) if isinstance(value, ast.Compare)
+        ]
+        opcode_match = any(
+            isinstance(value.left, ast.Name)
             and value.left.id == "opcode"
             and any(
                 isinstance(part, ast.Constant) and part.value == 13655
                 for part in value.comparators
             )
-            for value in ast.walk(node.test)
+            for value in comparisons
         )
+        combat_match = any(
+            isinstance(value.left, ast.Name)
+            and value.left.id == "fight"
+            and isinstance(value.ops[0], ast.IsNot)
+            and any(
+                isinstance(part, ast.Constant) and part.value is None
+                for part in value.comparators
+            )
+            for value in comparisons
+        )
+        return opcode_match and combat_match
+
+    branch = next(
+        node for node in ast.walk(session) if is_combat_orientation_branch(node)
     )
     branch.orelse = []
     args = (
@@ -56,12 +84,31 @@ def extracted_session_orientation(namespace):
             kw_defaults=[],
             defaults=[],
         ),
-        body=[branch, ast.Return(value=ast.Name(id="fight_messages", ctx=ast.Load()))],
+        body=[
+            ast.Nonlocal(names=["character"]),
+            branch,
+            ast.Return(value=ast.Name(id="fight_messages", ctx=ast.Load())),
+        ],
         decorator_list=[],
     )
-    module = ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[]))
+    factory = ast.FunctionDef(
+        name="_make_orientation_handler",
+        args=ast.arguments(
+            posonlyargs=[],
+            args=[ast.arg(arg="character")],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[],
+        ),
+        body=[
+            function,
+            ast.Return(value=ast.Name(id="handle_orientation", ctx=ast.Load())),
+        ],
+        decorator_list=[],
+    )
+    module = ast.fix_missing_locations(ast.Module(body=[factory], type_ignores=[]))
     exec(compile(module, str(source_path), "exec"), namespace)
-    return namespace["handle_orientation"]
+    return namespace["_make_orientation_handler"](namespace.get("character"))
 
 
 class OrientationTests(unittest.TestCase):
@@ -112,21 +159,28 @@ class OrientationTests(unittest.TestCase):
         namespace = {"character": {"id": 9}}
         handler = extracted_session_orientation(namespace)
         connection = object()
-        for direction in (1, 3, 5, 7):
-            runtime = handler(
-                13655,
-                runtime.fight,
-                runtime,
-                struct.pack(">qB", actor.id, direction),
-                9,
-                connection,
-                "world",
-                lambda _connection, _service, opcode, payload: sent.append(
-                    (opcode, payload)
-                ),
-                lambda **_event: None,
-                lambda: None,
-            )
+        with patch(
+            "wakfu_server.world_orientation.save",
+            side_effect=lambda _store, _account, _generation, actor_id, direction, **_kw: {
+                "direction": direction,
+                "packet": (12401, struct.pack(">qB", actor_id, direction)),
+            },
+        ):
+            for direction in (1, 3, 5, 7):
+                runtime = handler(
+                    13655,
+                    runtime.fight,
+                    runtime,
+                    struct.pack(">qB", actor.id, direction),
+                    9,
+                    connection,
+                    "world",
+                    lambda _connection, _service, opcode, payload: sent.append(
+                        (opcode, payload)
+                    ),
+                    lambda **_event: None,
+                    lambda: None,
+                )
 
         placement_ids = [
             struct.unpack_from(">i", payload, 4)[0]
@@ -191,21 +245,28 @@ class OrientationTests(unittest.TestCase):
         runtime = RuntimeMessages(fight)
         sent = []
         handler = extracted_session_orientation({"character": {"id": 7}})
-        for direction in (1, 3, 5, 7):
-            runtime = handler(
-                13655,
-                fight,
-                runtime,
-                struct.pack(">qB", 7, direction),
-                9,
-                object(),
-                "world",
-                lambda _connection, _service, opcode, payload: sent.append(
-                    (opcode, payload)
-                ),
-                lambda **_event: None,
-                lambda: None,
-            )
+        with patch(
+            "wakfu_server.world_orientation.save",
+            side_effect=lambda _store, _account, _generation, actor_id, direction, **_kw: {
+                "direction": direction,
+                "packet": (12401, struct.pack(">qB", actor_id, direction)),
+            },
+        ):
+            for direction in (1, 3, 5, 7):
+                runtime = handler(
+                    13655,
+                    fight,
+                    runtime,
+                    struct.pack(">qB", 7, direction),
+                    9,
+                    object(),
+                    "world",
+                    lambda _connection, _service, opcode, payload: sent.append(
+                        (opcode, payload)
+                    ),
+                    lambda **_event: None,
+                    lambda: None,
+                )
 
         candidate, ready_runtime, ready_packets = prepare_ready(
             fight,
@@ -310,10 +371,12 @@ class OrientationTests(unittest.TestCase):
 
     def test_invalid_owner_and_malformed_requests_do_not_mutate(self):
         runtime, actor = self.runtime()
+        initial_direction = actor.direction
         body = struct.pack(">qB", -7, 1)
         for owner, request in ((8, body), (9, struct.pack(">qB", 2, 1))):
             with self.assertRaises(ValueError):
                 apply(runtime, owner, request)
+            self.assertEqual(actor.direction, initial_direction)
         for malformed in (
             b"",
             struct.pack(">qB", -7, 0),
@@ -325,7 +388,7 @@ class OrientationTests(unittest.TestCase):
         runtime.action_id = (1 << 31) - 1
         with self.assertRaises(ValueError):
             apply(runtime, 9, body)
-        self.assertFalse(hasattr(actor, "direction"))
+        self.assertEqual(actor.direction, initial_direction)
 
     def test_response_layout_validates_native_ranges(self):
         packet = response(3, 1, -7, 5)

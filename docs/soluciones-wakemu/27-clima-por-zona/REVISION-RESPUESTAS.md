@@ -1,21 +1,23 @@
-# Clima: carrier acreditado y tarea ausente
+# Revisión técnica — 27
 
-## Prueba ejecutada
+## Estado 7 de octubre de 2026
 
-13948 (`ctm`) usa big endian **i64 + byte firmado + seis float32 + i32 precipitación**, total37bytes. Se generó un fixture sintético y se decodificó mediante `ctm.dp` y `protocol_codec`: los ocho valores numéricos y el enum se conservan. `Vl` admite0ABSENT,1LIGHT,2HEAVY,3STORM. Los floats1–6 y byte17 son sentinelas de layout, **no un clima oficial ni rangos válidos acreditados**. No etiquetar el primer long como region_id sin resolver su consumidor.
+### ¿Qué está desplegado?
 
-`chl` atiende13948 y construye `bRW`: aplica cinco floats al estado de transición y un segundo conjunto al estado presente; combina el byte base con el tercer float de transición y aplica el resultado al territorio actual `bLO`. Esto no se reproduce enviando únicamente reloj23354. Hay otro mensaje13895 para previsión (`cBl`→`bRV`→`bRY`), cuyo layout y calendario siguen pendientes.
+Root informó que `6319c87d` está activo sobre la base con IA conservada y que la política local056 ya se aplicó. La cobertura usa `ABSENT` configurable y no copia estado meteorológico entre territorios. El cron de transiciones13948 está activo cada5s. El panel requiere aceptación visual.
 
-## Cotejo de tareas y publicación
+### ¿Se conoce el protocolo de forecast?
 
-Cron contiene weather desactivado. `GlobalTasks.ALLOWED_TASKS` solo contiene positions_flush/builds_flush/groups_flush; registrar weather es rechazado por constructor. Pasaron dos pruebas existentes de tareas globales, incluido ese control negativo. Cambiar `enabled` no crea callback, modelo ni publicación. No se encontró emisión explícita13948 desde el dispatcher actual; esto no prueba por sí solo ausencia de algún frame histórico en la captura.
+Sí, su layout estructurado y enums están cotejados con el cliente instalado y el vector local pasó `ForecastNativeProbe`. Esto verifica parser y serialización, no la procedencia de los datos. No se localizó productor oficial ni unidades físicas de las muestras.
 
-## Solución concreta de servidor
+### ¿Qué aporta la migración058?
 
-Acreditar todos los parámetros/rangos/calendario y extraer defaults por región antes de implementar generación. Mantener estado por territorio/revisión, hora y próxima transición, no sortear clima distinto por jugador. Incorporar callback weather explícito, idempotente por ocurrencia, y sus carriers13948/13895 después de fijar estado; enviar snapshot al entrar/reconectar. Filtrar destinatarios por territorio real, no broadcast mundial: el consumidor usa el territorio actual del personaje.
+Política de forecast con filas diarias y estacionales, particionadas por mapa, instancia y región, más outbox por versión. Los guardados son monotónicos aunque compitan primeras escrituras. El lector mantiene una versión coherente mientras recupera las filas. Publicación usa la sesión actual y filtra por región exacta; los fallos quedan reintentables y las versiones anteriores se coalescen. La respuesta vacía de `packet_for_territory` sirve para limpiar una previsión anterior en el cliente.
 
-Integrar condiciones climáticas en las autoridades de plantación/crecimiento, no solo efecto visual. Faltan las funciones nativas que relacionan temperatura/lluvia con cada recurso. La pausa ecológica en mapas vacíos no implica automáticamente parar calendario global; cotejar reglas y separar reloj del trabajo de simulación.
+### ¿Qué falta?
 
-## Límites
+La migración058 y sus helpers siguen en fuente, no desplegados. `send_planting_context` envía el snapshot ecológico,13948 y13895 en ese orden, y el tick drena el outbox. El smoke TLS estricto pasó contra la candidata final2 sobre DB aislada: verificó 12789,13948 y13895, clear, outbox regional, reconexión y contexto de plantación. Falta la aceptación visual del panel. No hay datos oficiales para poblar un calendario real; una previsión configurada por operadores debe rotularse como política local.
 
-No se probó cambio climático visible ni efectos sobre plantas; no se acreditaron calendarios/rangos/formulas. [Fixture, prueba de población y hashes](probe-clima-y-ecologia.json). No hubo fixes ni cambios del cliente.
+### Gate actual
+
+Gate Docker PostgreSQL aislado con las59 migraciones presentes al correrlo: **76/76 OK**. Incluye suites weather existentes, política/outbox forecast, publicación de snapshot ecológico/meteorológico, movimiento, flora, tareas globales y migraciones. El probe Java del JAR del cliente confirmó el vector sintético con el parser `bRV.fe`. El smoke TLS completo confirma el flujo de fuente en candidata, pero no despliegue de058 ni aceptación visual.

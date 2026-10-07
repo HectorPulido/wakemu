@@ -29,3 +29,8 @@ La transición de colocación a Listo pasa `previous_native_action_id` al prepar
 ## Gate integrado aprobado
 
 53 pruebas OK en Docker con PostgreSQL aislado: `test_combat_orientation test_placement_deadline test_combat_melee test_combat_trigger_identifiers test_combat_trigger_indirect test_combat_spell_transaction`. Incluye ejecución del handler real13655 en las cuatro direcciones, preparación de Listo, puño, fin de turno y ACK, con IDs nativos únicos; agotamiento rechaza antes de activar la pelea. Cambio aún sin recargar mientras el usuario prueba movimiento; aceptación visual pendiente.
+
+
+## Confirmación actual del usuario
+
+**Solucionado totalmente.** El usuario confirma que puede girar al personaje durante la primera fase del combate y que el puño vuelve a funcionar. El giro observado al golpear se registra separadamente en[E22](../E22-giro-del-personaje-al-atacar/README.md); no mantiene abierto el defecto de orientación manual en colocación. La investigación deE21 es de solo lectura y no modifica hechizos.

@@ -6,7 +6,7 @@ Documentar contrato de endpoints y acceso externo del servidor; conservar fuera 
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+**🟡 Solucionado parcialmente.** La configuración de red del servidor y su verificador están implementados en fuente. La conexión desde otro equipo sigue pendiente; las pruebas locales no acreditan acceso remoto.
 
 ## Dependencias
 
@@ -15,3 +15,7 @@ Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta s
 ## Invariante de aceptación
 
 Bind y anuncio son distintos; acceso de red nunca reemplaza autenticación ni autoriza publicar assets del cliente.
+
+## Avance — 7 de octubre
+
+**Solucionado parcialmente.** Se añadió `.env.example` y `server/tools/check_server_network.py`; distingue bind/anuncio, valida IPv4/puerto, respeta precedencia del entorno y no imprime secretos. Compose permite WAKFU_BIND_HOST conservando0.0.0.0 como default interno y publicaciones localhost. Tres pruebas de configuración pasaron (incluidos comentarios tras valores entre comillas) y `docker compose config --quiet` aprobó. No hay exposición remota ni cambios de cliente; la conexión desde otro equipo sigue pendiente.

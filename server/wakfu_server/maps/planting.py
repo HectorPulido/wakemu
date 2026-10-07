@@ -7,6 +7,7 @@ Publishing a prepared monster group to Redis is retried from the durable outbox.
 import json
 import secrets
 import struct
+import math
 from psycopg.errors import UniqueViolation
 from psycopg.types.json import Jsonb
 from .paths import DATA_ROOT
@@ -108,12 +109,13 @@ def prepare(
         resource = RESOURCES.get(seed["resource_reference"])
         if resource is None:
             raise ValueError("Unknown native resource reference")
-        learned = db.execute(
-            "SELECT level FROM character_professions WHERE character_id=%s AND profession_id=%s",
-            (current["id"], seed["profession_id"]),
-        ).fetchone()
-        if not open_test_policy and (
-            learned is None or learned["level"] < seed["minimum_level"]
+        from .profession_store import stored_level
+
+        learned = stored_level(db, account, seed["profession_id"])
+        # The test override relaxes requirements, never account ownership of
+        # profession progress. Reject before starting an uncreditable action.
+        if learned is None or (
+            not open_test_policy and learned < seed["minimum_level"]
         ):
             raise ValueError("Profession unlearned or below seed requirement")
     # Caller verifies authoritative territory permissions, exact native
@@ -134,9 +136,19 @@ def complete(
     stage,
     creation_time,
     result_prefix,
+    success=True,
+    probability=None,
     monster_members=None,
     group_id=None
 ):
+    if type(success) is not bool:
+        raise ValueError("Invalid authoritative planting outcome")
+    if probability is not None and (
+        type(probability) not in (int, float)
+        or not 0 <= probability <= 1
+        or not math.isfinite(probability)
+    ):
+        raise ValueError("Invalid authoritative planting probability")
     if not isinstance(operation_id, str) or not 1 <= len(operation_id) <= 128:
         raise ValueError("Invalid planting receipt ID")
     if (
@@ -193,6 +205,8 @@ def complete(
                 duplicate=True,
                 packets=[],
                 group=None,
+                success=old["success"],
+                probability=old["probability"],
             )
         current = store.character(account, character["id"], db)
         if any(
@@ -205,12 +219,52 @@ def complete(
         ).fetchone()
         if item is None or item["reference"] != prepared["seed"]["item_reference"]:
             raise ValueError("Seed no longer owned")
+        cell = tuple(resource[key] for key in ("map_id", "instance_id", "x", "y"))
+        db.execute(
+            "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+            ("planting-cell:" + ":".join(map(str, cell)),),
+        )
+        if db.execute(
+            "SELECT 1 FROM planted_resources "
+            "WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s",
+            cell,
+        ).fetchone():
+            raise ValueError("Planting resource identity or cell already occupied")
+        if probability is not None:
+            from .planting_probability import succeeds
+
+            success = succeeds(probability, secrets.randbelow(1 << 53) / (1 << 53))
+        from .flora_ecology import change as ecological_change
+        from hashlib import sha256
+
+        from .ecology_feedback import information
+
+        ecology = (
+            ecological_change(
+                db,
+                character["id"],
+                resource,
+                operation="planting:" + sha256(operation_id.encode()).hexdigest(),
+                action="plant",
+            )
+            if success
+            else dict(
+                packets=[
+                    information(
+                        "Ecosistema: la plantación no arraigó. "
+                        "La población y tu afinidad Wakfu/Stasis no cambian."
+                    )
+                ],
+                reason="planting_failed",
+            )
+        )
         try:
             with db.transaction():
-                db.execute(
-                    "INSERT INTO planted_resources(resource_uid,map_id,instance_id,x,y,z,resource_reference,stage,creation_time) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                    tuple(resource.values()),
-                )
+                if success:
+                    db.execute(
+                        "INSERT INTO planted_resources(resource_uid,map_id,instance_id,x,y,z,resource_reference,stage,creation_time) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        tuple(resource.values()),
+                    )
         except UniqueViolation as exc:
             raise ValueError(
                 "Planting resource identity or cell already occupied"
@@ -223,27 +277,59 @@ def complete(
                 (item["uid"],),
             )
         db.execute(
-            "INSERT INTO planting_receipts(operation_id,character_id,item_uid,request,resource,group_payload) VALUES(%s,%s,%s,%s,%s,%s)",
+            "INSERT INTO planting_receipts(operation_id,character_id,item_uid,request,resource,group_payload,success,probability) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 operation_id,
                 character["id"],
                 item["uid"],
                 Jsonb(request),
-                Jsonb(resource),
-                Jsonb(group) if group else None,
+                Jsonb(resource) if success else None,
+                Jsonb(group) if success and group else None,
+                success,
+                probability,
             ),
         )
+        from .profession_rewards import base_xp
+        from .profession_store import award
+        from hashlib import sha256
+
+        if success:
+            from wakfu_server.territory_bonuses import (
+                current_region,
+                profession_xp_percent,
+            )
+
+            territory = current_region(db, current)
+            territory_percent = profession_xp_percent(territory, "planting")
+            progress = award(
+                store,
+                db,
+                account,
+                generation,
+                character["id"],
+                prepared["seed"]["profession_id"],
+                base_xp=base_xp(db, "planting"),
+                operation="planting:" + sha256(operation_id.encode()).hexdigest(),
+                territory_percent=territory_percent,
+            )
+        else:
+            progress = dict(packets=[])
     # cgN12954 calls bJt.d/e, which only displays item.selfDrop; it does not
     # mutate the inventory. Publish the committed quantity delta exactly once.
     return dict(
-        resource=resource,
+        resource=resource if success else None,
+        success=success,
+        probability=probability,
         duplicate=False,
-        group=group,
-        packets=[
-            resource_packet(resource),
-            result_packet(*result_prefix, True),
+        group=group if success else None,
+        packets=([resource_packet(resource)] if success else [])
+        + [
+            result_packet(*result_prefix, success),
             (12470, struct.pack(">qh", item["uid"], -1)),
-        ],
+        ]
+        + progress["packets"]
+        + ecology["packets"],
+        ecology=ecology,
         character=store.character(account, character["id"]),
     )
 

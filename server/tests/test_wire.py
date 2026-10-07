@@ -5,6 +5,95 @@ from wakfu_server import wire
 
 
 class WireTests(unittest.TestCase):
+    @staticmethod
+    def _world_r_e_direction(body):
+        offset = body.index(wire.INITIAL_POSITION)
+        # Native rE fixed prefix: XYZ, map, direction, and position-present.
+        return struct.unpack_from(">iihqBB", body, offset)
+
+    def test_own_spawn_refresh_and_bootstrap_preserve_all_world_directions(self):
+        from wakfu_server.native_transports import bootstrap
+
+        name = b"Pekebu"
+        template = (
+            struct.pack(
+                ">BqBqH",
+                11,
+                wire.TEMPLATE_CHARACTER,
+                1,
+                wire.TEMPLATE_ACCOUNT,
+                len(name),
+            )
+            + name
+            + struct.pack(">iihqBB", -12, -8, -1, 1134, 3, 1)
+            + bytes(20)  # Native secondary rH position and remaining sections.
+        )
+        base = dict(
+            id=42,
+            account_id=501,
+            name="Pekebu",
+            level=None,
+            x=-12,
+            y=-8,
+            z=-1,
+            map_id=1134,
+            direction=3,
+        )
+
+        for direction in range(8):
+            with self.subTest(direction=direction):
+                character = dict(base, direction=direction)
+                spawned = wire.spawn_player(template, character)
+                spawn_entity_len = struct.unpack_from(">H", spawned, 2 + 1 + 8)[0]
+                spawn_entity = spawned[2 + 1 + 8 + 2 : 2 + 1 + 8 + 2 + spawn_entity_len]
+                self.assertEqual(direction, self._world_r_e_direction(spawn_entity)[4])
+
+                opcode, refresh = wire.refresh_player(template, character)
+                self.assertEqual(15548, opcode)
+                char_id, entity_len = struct.unpack_from(">qh", refresh)
+                self.assertEqual(42, char_id)
+                refresh_entity = refresh[10 : 10 + entity_len]
+                self.assertEqual(
+                    direction, self._world_r_e_direction(refresh_entity)[4]
+                )
+
+                packets = bootstrap(character)
+                self.assertEqual(13974, packets[1][0])
+                encoded = packets[1][1]
+                first_len = struct.unpack_from(">H", encoded)[0]
+                entity = encoded[2 : 2 + first_len]
+                self.assertEqual(direction, self._world_r_e_direction(entity)[4])
+
+    def test_world_direction_adapters_reject_bool_and_out_of_range_values(self):
+        from wakfu_server.native_transports import bootstrap
+
+        character = dict(
+            id=42,
+            account_id=501,
+            name="Pekebu",
+            level=None,
+            x=-12,
+            y=-8,
+            z=-1,
+            map_id=1134,
+            direction=3,
+        )
+        template = (
+            struct.pack(
+                ">BqBqH", 11, wire.TEMPLATE_CHARACTER, 1, wire.TEMPLATE_ACCOUNT, 6
+            )
+            + b"Pekebu"
+            + struct.pack(">iihqBB", -12, -8, -1, 1134, 3, 1)
+            + bytes(20)
+        )
+        for direction in (True, -1, 8):
+            with self.subTest(direction=direction), self.assertRaises(ValueError):
+                wire.spawn_player(template, dict(character, direction=direction))
+            with self.subTest(bootstrap_direction=direction), self.assertRaises(
+                ValueError
+            ):
+                bootstrap(dict(character, direction=direction))
+
     def test_private_chat_echo_uses_recipient_character_and_sender_account_ids(self):
         body = wire.private_chat(
             9001,
@@ -90,6 +179,13 @@ class WireTests(unittest.TestCase):
         self.assertEqual(error, struct.pack(">hH", 101, len(name_bytes)) + name_bytes)
         self.assertEqual(error[:2], b"\x00\x65")  # 101 is a two-byte signed code
         self.assertEqual(error[2:4], b"\x00\x04")  # error name length is u16
+        # NE/cis.a reads a u16-length string for each native 101/102/103 case.
+        self.assertEqual(
+            wire.private_chat_error(102, "Destino"), b"\x00\x66\x00\x07Destino"
+        )
+        self.assertEqual(
+            wire.private_chat_error(103, "Destino"), b"\x00\x67\x00\x07Destino"
+        )
 
     def test_private_chat_rejects_names_text_and_identity_outside_native_bounds(self):
         sender = {"id": 41, "name": "S"}
@@ -108,7 +204,7 @@ class WireTests(unittest.TestCase):
                     wire.private_chat(account_id, source, target, text)
 
     def test_private_chat_error_rejects_unsupported_codes_and_bad_recipient_names(self):
-        for code in (100, 102, 103, 141, True, "101"):
+        for code in (100, 141, True, "101"):
             with self.subTest(code=code):
                 with self.assertRaises(ValueError):
                     wire.private_chat_error(code, "Destino")
@@ -116,8 +212,12 @@ class WireTests(unittest.TestCase):
         self.assertEqual(wire.private_chat_error(140), b"\x00\x8c")
         for name in ("", "ñ" * 64):
             with self.subTest(name_bytes=len(name.encode("utf-8"))):
-                with self.assertRaises(ValueError):
-                    wire.private_chat_error(101, name)
+                for code in (101, 102, 103):
+                    with self.subTest(code=code), self.assertRaises(ValueError):
+                        wire.private_chat_error(code, name)
+        for code in (101, 102, 103):
+            with self.subTest(code=code), self.assertRaises(ValueError):
+                wire.private_chat_error(code)
 
     def test_character_entry_never_inherits_template_active_states(self):
         import hashlib
@@ -169,6 +269,22 @@ class WireTests(unittest.TestCase):
             actual = wire.minimal_entity(body, {"level": 1})
         self.assertEqual(actual, body[:7] + bytes(27) + body[34:])
 
+    def test_passport_info_is_reset_with_character_nation(self):
+        import hashlib
+        from unittest.mock import patch
+
+        # The one-byte rr section is separate from qZ/NATION_ID. Keep it
+        # authoritative too, so a template cannot carry passport state over.
+        body = b"\x0a-prefix" + b"\x7f" + b"-suffix"
+        start = len(b"\x0a-prefix")
+        layout = {
+            "template_sha256": hashlib.sha256(body).hexdigest(),
+            "sections": [{"name": "PASSEPORT_INFO", "start": start, "end": start + 1}],
+        }
+        with patch.dict(wire.ENTITY_LAYOUTS, {10: layout}):
+            actual = wire.minimal_entity(body, {"level": 1})
+        self.assertEqual(actual, body[:start] + b"\x00" + body[start + 1 :])
+
     def test_account_inventory_empty_proto_replaces_captured_items(self):
         proto = b"captured items"
         body = struct.pack(">III", 1, 4, len(proto)) + proto
@@ -192,6 +308,19 @@ class WireTests(unittest.TestCase):
         for invalid in (b"", bytes(7), bytes(9)):
             with self.assertRaises(ValueError):
                 wire.adapt(13021, invalid, 7)
+
+    def test_native_live_wallet_refresh_mutates_existing_account_balance(self):
+        # Native cye/chS reads this absolute i64 and applies it to aTJ.cXc(),
+        # preserving the existing foF observer chain.
+        body = struct.pack(">q", 999999)
+        self.assertEqual(wire.adapt(12753, body, 7, kamas=123), struct.pack(">q", 123))
+        self.assertEqual(wire.account_kamas_update(123), struct.pack(">q", 123))
+        for invalid in (b"", bytes(7), bytes(9)):
+            with self.assertRaises(ValueError):
+                wire.adapt(12753, invalid, 7, kamas=123)
+        for amount in (-1, 1 << 63, True):
+            with self.assertRaises(ValueError):
+                wire.account_kamas_update(amount)
 
     def test_fresh_attribute_sheet_drops_inherited_allocations(self):
         old = wire.proto_field(10, b"captured allocations") + wire.proto_field(

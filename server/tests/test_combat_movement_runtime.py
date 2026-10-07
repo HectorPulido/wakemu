@@ -9,6 +9,32 @@ from wakfu_server.combat_movement_runtime import apply_client, decode_request
 
 
 class MovementRuntimeTests(unittest.TestCase):
+    def test_direction_follows_last_planar_path_step_and_preserves_vertical_facing(
+        self,
+    ):
+        from wakfu_server.combat_movement_runtime import direction_after_path
+
+        vectors = (
+            (1, -1),
+            (1, 0),
+            (1, 1),
+            (0, 1),
+            (-1, 1),
+            (-1, 0),
+            (-1, -1),
+            (0, -1),
+        )
+        for direction, (dx, dy) in enumerate(vectors):
+            with self.subTest(direction=direction):
+                self.assertEqual(
+                    direction_after_path((0, 0, 0), [(dx, dy, 0)], 6), direction
+                )
+        self.assertEqual(direction_after_path((0, 0, 0), [(1, 0, 0), (1, 0, 1)], 6), 1)
+        self.assertEqual(direction_after_path((0, 0, 0), [(1, 0, 0), (1, 1, 0)], 6), 3)
+        self.assertEqual(direction_after_path((0, 0, 0), [(0, 0, 1)], 6), 6)
+        with self.assertRaisesRegex(ValueError, "native facing vector"):
+            direction_after_path((0, 0, 0), [(2, 0, 0)], 6)
+
     def setup_fight(self):
         cells = {(x, 0, 0) for x in range(4)}
         p = Actor(1, 0, (0, 0, 0), 60, 6, 3, 9, 1, 7, True)
@@ -25,20 +51,18 @@ class MovementRuntimeTests(unittest.TestCase):
             7,
             struct.pack(">qiih", 1, 1, 0, 0),
             lambda a: struct.pack(">i", a.mp),
-            direction=2,
         )
         self.assertEqual([n for n, _ in packets], [13624, 13420, 12873])
         self.assertEqual((p.position, p.mp), ((1, 0, 0), 2))
         self.assertEqual(packets[2][1][-4:], struct.pack(">i", 2))
         self.assertEqual(event["cost"], 1)
-        self.assertEqual(p.direction, 2)
+        self.assertEqual(p.direction, 1)
+        self.assertEqual(packets[0][1][20], 1)
 
     def test_invalid_edge_does_not_mutate(self):
         r, p = self.setup_fight()
         with self.assertRaises(ValueError):
-            apply_client(
-                r, 7, struct.pack(">qiih", 1, 2, 0, 0), lambda a: b"own", direction=2
-            )
+            apply_client(r, 7, struct.pack(">qiih", 1, 2, 0, 0), lambda a: b"own")
         self.assertEqual((p.position, p.mp, r.action_id), ((0, 0, 0), 3, 0))
 
     def test_rejects_malformed_owner_and_sync(self):
@@ -47,10 +71,10 @@ class MovementRuntimeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             decode_request(body + b"\0")
         with self.assertRaises(ValueError):
-            apply_client(r, 8, body, lambda a: b"own", direction=2)
+            apply_client(r, 8, body, lambda a: b"own")
         r.awaiting_ack = 1
         with self.assertRaises(ValueError):
-            apply_client(r, 7, body, lambda a: b"own", direction=2)
+            apply_client(r, 7, body, lambda a: b"own")
 
     def test_preview_characteristics_sync_without_mutating_original_on_codec_failure(
         self,
@@ -61,17 +85,17 @@ class MovementRuntimeTests(unittest.TestCase):
 
         def fail(candidate):
             self.assertEqual(candidate.effect_stats[3], 2)
-            self.assertEqual(candidate.direction, 2)
+            self.assertEqual(candidate.direction, 1)
             self.assertEqual(actor.effect_stats[3], 3)
             raise ValueError("codec failure")
 
         with self.assertRaises(ValueError):
-            apply_client(runtime, 7, body, fail, direction=2)
+            apply_client(runtime, 7, body, fail)
         self.assertEqual(
             (actor.mp, actor.effect_stats[3], runtime.action_id), (3, 3, 0)
         )
-        self.assertFalse(hasattr(actor, "direction"))
-        apply_client(runtime, 7, body, lambda candidate: b"own", direction=2)
+        self.assertEqual(actor.direction, 0)
+        apply_client(runtime, 7, body, lambda candidate: b"own")
         self.assertEqual((actor.mp, actor.effect_stats[3]), (2, 2))
 
 

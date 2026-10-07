@@ -1,24 +1,24 @@
 # Solución propuesta — 24
 
-Eliminar nación heredada en personaje y lugares mientras la mecánica nacional no esté implementada.
+Publicar estado nacional neutral y propio del personaje hasta que exista una mecánica nacional; no fabricar ni heredar alineamiento territorial.
 
-Leer primero [COTEJO.md](COTEJO.md). Estos pasos son una especificación para implementar y validar; no describen una corrección aplicada.
+El reemplazo de la sección de pasaporte indicada abajo ya está aplicado en fuente. El resto de este plan identifica verificación pendiente, no una afirmación de neutralidad territorial implementada.
 
 ## 1. Identificar cada superficie
 
-Listar nación del personaje, pasaporte como objeto/estado, selector de personaje, territorial/clan y nombre visual. El usuario añadió neutralidad de lugares: no basta tocar nación propia. Leer secciones de fixture/replay y caches antes de atribuir Amakna a item inicial.
+`/passport` es un comando de UI, no un objeto de inventario: `PassportCommand` abre `passportDialog`, que enlaza `pvpLadderEntry` con el modelo de la nación del personaje. El selector y el estado público de nación son superficies separadas; la ubicación del mapa no es ciudadanía.
 
 ## 2. Localizar carriers heredados
 
-Decodificar bytes nativos de selección/entidad/mundo, comparar personajes nuevos y antiguos con perfil limpio. Buscar referencias a nación en datos del mapa/clan; wire ya limpia algunas secciones. No reemplazar todas las apariciones del número de Amakna en buffers: puede ser otro campo.
+El serializador sustituye `NATION_ID` por i32 0 y `PASSEPORT_INFO` por su default nativo de un byte `00`; la sincronización nacional se normaliza por separado. No reemplazar toda aparición de un ID nacional en buffers. Los catálogos de región inspeccionados mapean geografía, no una nación propietaria verificable.
 
 ## 3. Modelar neutralidad explícita
 
-Definir IDs/status nativos de sin nación para personaje y zona; persistir o resolver neutral mientras no haya mecánica. Un valor 0 no acredita neutral en todos los codecs. Guardar procedencia/version, separar nación de geografía/nombre de la capital y ciudadanía/pasaporte.
+El valor de personaje 0 está acreditado como `Neutral` por el parser nativo qZ y el locale. No se encontró un status de “sin nación” para lugares en las fuentes mapa/territorio inspeccionadas. No asignarles 0 hasta identificar su carrier y consumidor.
 
 ## 4. Sustituir cada sección por estado propio
 
-Bootstrap/selección/contexto territorial deben emitir lo mismo y no replay de otra cuenta. Configurar territorios neutrales como exige el usuario sin romper acciones de ecosistema/transporte ni catálogos visuales. Migrar solo valores heredados probados, sin borrar progreso legítimo.
+El bootstrap/selección actual debe conservar estos defaults propios; falta aceptación visual de selector/pasaporte tras reentrada. La adaptación de `15984` normaliza solo el estado público nacional reconocido; no declara neutral a cada mapa, NPC, nombre geográfico ni titular de territorio.
 
 ## 5. Verificar reload y futuras naciones
 

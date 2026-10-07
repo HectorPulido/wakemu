@@ -20,6 +20,8 @@ class Groups:
         members = tuple(deepcopy(list(members)))
         if any(m["map_id"] != map_id for m in members):
             raise ValueError("Group belongs to another map")
+        if any(m["instance_id"] != instance_id for m in members):
+            raise ValueError("Group belongs to another instance")
         spawn_group(
             members, group_id=group_id
         )  # Enforce native ownership/roster constraints.

@@ -1,0 +1,1959 @@
+{
+  "version": 1,
+  "scope": "Automatic native ecological habitats; regular mobile references, verified geometry, reserved-cell exclusions and durable one-time seeding.",
+  "plans": [
+    {
+      "map_id": 711,
+      "instance_id": 0,
+      "region_id": 63401,
+      "members": [
+        {
+          "reference": 2765,
+          "level": 50,
+          "x": -27,
+          "y": -54,
+          "z": -78
+        },
+        {
+          "reference": 2765,
+          "level": 50,
+          "x": -26,
+          "y": -54,
+          "z": -78
+        }
+      ]
+    },
+    {
+      "map_id": 527,
+      "instance_id": 0,
+      "region_id": 66701,
+      "members": [
+        {
+          "reference": 2616,
+          "level": 4,
+          "x": 27,
+          "y": 4,
+          "z": 0
+        },
+        {
+          "reference": 2616,
+          "level": 4,
+          "x": 27,
+          "y": 5,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 527,
+      "instance_id": 0,
+      "region_id": 76101,
+      "members": [
+        {
+          "reference": 2,
+          "level": 4,
+          "x": -212,
+          "y": -28,
+          "z": 0
+        },
+        {
+          "reference": 2,
+          "level": 4,
+          "x": -212,
+          "y": -27,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 527,
+      "instance_id": 0,
+      "region_id": 75801,
+      "members": [
+        {
+          "reference": 2,
+          "level": 4,
+          "x": -63,
+          "y": 60,
+          "z": 0
+        },
+        {
+          "reference": 2,
+          "level": 4,
+          "x": -62,
+          "y": 60,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 527,
+      "instance_id": 0,
+      "region_id": 76001,
+      "members": [
+        {
+          "reference": 4079,
+          "level": 19,
+          "x": -158,
+          "y": 32,
+          "z": 0
+        },
+        {
+          "reference": 4079,
+          "level": 19,
+          "x": -157,
+          "y": 32,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 527,
+      "instance_id": 0,
+      "region_id": 75701,
+      "members": [
+        {
+          "reference": 6,
+          "level": 4,
+          "x": -77,
+          "y": -68,
+          "z": 0
+        },
+        {
+          "reference": 6,
+          "level": 4,
+          "x": -76,
+          "y": -68,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 527,
+      "instance_id": 0,
+      "region_id": 76201,
+      "members": [
+        {
+          "reference": 2616,
+          "level": 4,
+          "x": -13,
+          "y": 138,
+          "z": 0
+        },
+        {
+          "reference": 2616,
+          "level": 4,
+          "x": -13,
+          "y": 139,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 527,
+      "instance_id": 0,
+      "region_id": 75901,
+      "members": [
+        {
+          "reference": 3212,
+          "level": 19,
+          "x": 47,
+          "y": 91,
+          "z": 0
+        },
+        {
+          "reference": 3212,
+          "level": 19,
+          "x": 48,
+          "y": 91,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 527,
+      "instance_id": 0,
+      "region_id": 75601,
+      "members": [
+        {
+          "reference": 87,
+          "level": 22,
+          "x": 4,
+          "y": -143,
+          "z": 40
+        },
+        {
+          "reference": 87,
+          "level": 22,
+          "x": 5,
+          "y": -143,
+          "z": 40
+        }
+      ]
+    },
+    {
+      "map_id": 1134,
+      "instance_id": 0,
+      "region_id": 79001,
+      "members": [
+        {
+          "reference": 1166,
+          "level": 97,
+          "x": -38,
+          "y": 68,
+          "z": 0
+        },
+        {
+          "reference": 1166,
+          "level": 97,
+          "x": -37,
+          "y": 68,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1134,
+      "instance_id": 0,
+      "region_id": 79201,
+      "members": [
+        {
+          "reference": 4512,
+          "level": 38,
+          "x": -53,
+          "y": -97,
+          "z": 50
+        },
+        {
+          "reference": 4512,
+          "level": 38,
+          "x": -52,
+          "y": -97,
+          "z": 50
+        }
+      ]
+    },
+    {
+      "map_id": 1134,
+      "instance_id": 0,
+      "region_id": 79101,
+      "members": [
+        {
+          "reference": 135,
+          "level": 38,
+          "x": 72,
+          "y": -15,
+          "z": 0
+        },
+        {
+          "reference": 135,
+          "level": 38,
+          "x": 72,
+          "y": -14,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 323,
+      "instance_id": 0,
+      "region_id": 56401,
+      "members": [
+        {
+          "reference": 1787,
+          "level": 70,
+          "x": -72,
+          "y": -62,
+          "z": 0
+        },
+        {
+          "reference": 1787,
+          "level": 70,
+          "x": -72,
+          "y": -61,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 327,
+      "instance_id": 0,
+      "region_id": 56601,
+      "members": [
+        {
+          "reference": 1829,
+          "level": 83,
+          "x": -107,
+          "y": -30,
+          "z": -20
+        },
+        {
+          "reference": 1829,
+          "level": 83,
+          "x": -107,
+          "y": -29,
+          "z": -20
+        }
+      ]
+    },
+    {
+      "map_id": 458,
+      "instance_id": 0,
+      "region_id": 61501,
+      "members": [
+        {
+          "reference": 2462,
+          "level": 83,
+          "x": -72,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "reference": 2462,
+          "level": 83,
+          "x": -71,
+          "y": 0,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 504,
+      "instance_id": 0,
+      "region_id": 60601,
+      "members": [
+        {
+          "reference": 2359,
+          "level": 98,
+          "x": -43,
+          "y": -94,
+          "z": 6
+        },
+        {
+          "reference": 2359,
+          "level": 98,
+          "x": -42,
+          "y": -94,
+          "z": 6
+        }
+      ]
+    },
+    {
+      "map_id": 507,
+      "instance_id": 0,
+      "region_id": 60701,
+      "members": [
+        {
+          "reference": 2364,
+          "level": 98,
+          "x": -22,
+          "y": -78,
+          "z": 28
+        },
+        {
+          "reference": 2364,
+          "level": 98,
+          "x": -22,
+          "y": -77,
+          "z": 28
+        }
+      ]
+    },
+    {
+      "map_id": 508,
+      "instance_id": 0,
+      "region_id": 60801,
+      "members": [
+        {
+          "reference": 2350,
+          "level": 110,
+          "x": -56,
+          "y": 10,
+          "z": 0
+        },
+        {
+          "reference": 2350,
+          "level": 110,
+          "x": -56,
+          "y": 11,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 546,
+      "instance_id": 0,
+      "region_id": 62201,
+      "members": [
+        {
+          "reference": 123,
+          "level": 8,
+          "x": -48,
+          "y": 45,
+          "z": 0
+        },
+        {
+          "reference": 123,
+          "level": 8,
+          "x": -48,
+          "y": 46,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 792,
+      "instance_id": 0,
+      "region_id": 64601,
+      "members": [
+        {
+          "reference": 2967,
+          "level": 115,
+          "x": -144,
+          "y": -55,
+          "z": 21
+        },
+        {
+          "reference": 2967,
+          "level": 115,
+          "x": -143,
+          "y": -55,
+          "z": 21
+        }
+      ]
+    },
+    {
+      "map_id": 793,
+      "instance_id": 0,
+      "region_id": 64801,
+      "members": [
+        {
+          "reference": 3007,
+          "level": 113,
+          "x": -3,
+          "y": -95,
+          "z": 10
+        },
+        {
+          "reference": 3007,
+          "level": 113,
+          "x": -2,
+          "y": -95,
+          "z": 10
+        }
+      ]
+    },
+    {
+      "map_id": 796,
+      "instance_id": 0,
+      "region_id": 64701,
+      "members": [
+        {
+          "reference": 2975,
+          "level": 125,
+          "x": -81,
+          "y": 19,
+          "z": 20
+        },
+        {
+          "reference": 2975,
+          "level": 125,
+          "x": -81,
+          "y": 20,
+          "z": 20
+        }
+      ]
+    },
+    {
+      "map_id": 843,
+      "instance_id": 0,
+      "region_id": 65301,
+      "members": [
+        {
+          "reference": 3076,
+          "level": 143,
+          "x": -4,
+          "y": -4,
+          "z": 48
+        },
+        {
+          "reference": 3076,
+          "level": 143,
+          "x": -4,
+          "y": -3,
+          "z": 48
+        }
+      ]
+    },
+    {
+      "map_id": 853,
+      "instance_id": 0,
+      "region_id": 65401,
+      "members": [
+        {
+          "reference": 3090,
+          "level": 143,
+          "x": -53,
+          "y": -113,
+          "z": 0
+        },
+        {
+          "reference": 3090,
+          "level": 143,
+          "x": -53,
+          "y": -112,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 922,
+      "instance_id": 0,
+      "region_id": 69301,
+      "members": [
+        {
+          "reference": 3395,
+          "level": 158,
+          "x": -36,
+          "y": 60,
+          "z": -20
+        },
+        {
+          "reference": 3395,
+          "level": 158,
+          "x": -36,
+          "y": 61,
+          "z": -20
+        }
+      ]
+    },
+    {
+      "map_id": 923,
+      "instance_id": 0,
+      "region_id": 69401,
+      "members": [
+        {
+          "reference": 3392,
+          "level": 158,
+          "x": -36,
+          "y": 60,
+          "z": -20
+        },
+        {
+          "reference": 3392,
+          "level": 158,
+          "x": -36,
+          "y": 61,
+          "z": -20
+        }
+      ]
+    },
+    {
+      "map_id": 943,
+      "instance_id": 0,
+      "region_id": 69501,
+      "members": [
+        {
+          "reference": 1784,
+          "level": 65,
+          "x": -160,
+          "y": 43,
+          "z": -30
+        },
+        {
+          "reference": 1784,
+          "level": 65,
+          "x": -160,
+          "y": 44,
+          "z": -30
+        }
+      ]
+    },
+    {
+      "map_id": 943,
+      "instance_id": 0,
+      "region_id": 69601,
+      "members": [
+        {
+          "reference": 3573,
+          "level": 68,
+          "x": -221,
+          "y": -30,
+          "z": 0
+        },
+        {
+          "reference": 3573,
+          "level": 68,
+          "x": -220,
+          "y": -30,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 999,
+      "instance_id": 0,
+      "region_id": 71501,
+      "members": [
+        {
+          "reference": 3857,
+          "level": 173,
+          "x": -108,
+          "y": -95,
+          "z": -80
+        },
+        {
+          "reference": 3857,
+          "level": 173,
+          "x": -107,
+          "y": -95,
+          "z": -80
+        }
+      ]
+    },
+    {
+      "map_id": 999,
+      "instance_id": 0,
+      "region_id": 82201,
+      "members": [
+        {
+          "reference": 3858,
+          "level": 173,
+          "x": -96,
+          "y": -61,
+          "z": -50
+        },
+        {
+          "reference": 3858,
+          "level": 173,
+          "x": -96,
+          "y": -60,
+          "z": -50
+        }
+      ]
+    },
+    {
+      "map_id": 1053,
+      "instance_id": 0,
+      "region_id": 73701,
+      "members": [
+        {
+          "reference": 3862,
+          "level": 173,
+          "x": -42,
+          "y": -10,
+          "z": -10
+        },
+        {
+          "reference": 3862,
+          "level": 173,
+          "x": -41,
+          "y": -10,
+          "z": -10
+        }
+      ]
+    },
+    {
+      "map_id": 1118,
+      "instance_id": 0,
+      "region_id": 78601,
+      "members": [
+        {
+          "reference": 4239,
+          "level": 53,
+          "x": -35,
+          "y": -24,
+          "z": 0
+        },
+        {
+          "reference": 4239,
+          "level": 53,
+          "x": -34,
+          "y": -24,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1119,
+      "instance_id": 0,
+      "region_id": 78701,
+      "members": [
+        {
+          "reference": 4248,
+          "level": 83,
+          "x": -108,
+          "y": 5,
+          "z": 8
+        },
+        {
+          "reference": 4248,
+          "level": 83,
+          "x": -107,
+          "y": 5,
+          "z": 8
+        }
+      ]
+    },
+    {
+      "map_id": 1120,
+      "instance_id": 0,
+      "region_id": 79401,
+      "members": [
+        {
+          "reference": 4228,
+          "level": 113,
+          "x": -88,
+          "y": -11,
+          "z": 0
+        },
+        {
+          "reference": 4228,
+          "level": 113,
+          "x": -88,
+          "y": -10,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1120,
+      "instance_id": 0,
+      "region_id": 80601,
+      "members": [
+        {
+          "reference": 4223,
+          "level": 128,
+          "x": -197,
+          "y": 19,
+          "z": 4
+        },
+        {
+          "reference": 4223,
+          "level": 128,
+          "x": -197,
+          "y": 20,
+          "z": 4
+        }
+      ]
+    },
+    {
+      "map_id": 1122,
+      "instance_id": 0,
+      "region_id": 79801,
+      "members": [
+        {
+          "reference": 4214,
+          "level": 160,
+          "x": -35,
+          "y": -15,
+          "z": 4
+        },
+        {
+          "reference": 4214,
+          "level": 160,
+          "x": -35,
+          "y": -14,
+          "z": 4
+        }
+      ]
+    },
+    {
+      "map_id": 1122,
+      "instance_id": 0,
+      "region_id": 80001,
+      "members": [
+        {
+          "reference": 4203,
+          "level": 187,
+          "x": 36,
+          "y": -72,
+          "z": 50
+        },
+        {
+          "reference": 4203,
+          "level": 187,
+          "x": 36,
+          "y": -71,
+          "z": 50
+        }
+      ]
+    },
+    {
+      "map_id": 1123,
+      "instance_id": 0,
+      "region_id": 80101,
+      "members": [
+        {
+          "reference": 4324,
+          "level": 187,
+          "x": -89,
+          "y": -6,
+          "z": 40
+        },
+        {
+          "reference": 4324,
+          "level": 187,
+          "x": -88,
+          "y": -6,
+          "z": 40
+        }
+      ]
+    },
+    {
+      "map_id": 1124,
+      "instance_id": 0,
+      "region_id": 81001,
+      "members": [
+        {
+          "reference": 4208,
+          "level": 188,
+          "x": -53,
+          "y": -83,
+          "z": 24
+        },
+        {
+          "reference": 4208,
+          "level": 188,
+          "x": -52,
+          "y": -83,
+          "z": 24
+        }
+      ]
+    },
+    {
+      "map_id": 1124,
+      "instance_id": 0,
+      "region_id": 81101,
+      "members": [
+        {
+          "reference": 4258,
+          "level": 188,
+          "x": -52,
+          "y": -97,
+          "z": 60
+        },
+        {
+          "reference": 4258,
+          "level": 188,
+          "x": -52,
+          "y": -96,
+          "z": 60
+        }
+      ]
+    },
+    {
+      "map_id": 1135,
+      "instance_id": 0,
+      "region_id": 80801,
+      "members": [
+        {
+          "reference": 4716,
+          "level": 109,
+          "x": -108,
+          "y": -40,
+          "z": 90
+        },
+        {
+          "reference": 4716,
+          "level": 109,
+          "x": -108,
+          "y": -39,
+          "z": 90
+        }
+      ]
+    },
+    {
+      "map_id": 1135,
+      "instance_id": 0,
+      "region_id": 80901,
+      "members": [
+        {
+          "reference": 4749,
+          "level": 51,
+          "x": 21,
+          "y": -103,
+          "z": -60
+        },
+        {
+          "reference": 4749,
+          "level": 51,
+          "x": 22,
+          "y": -103,
+          "z": -60
+        }
+      ]
+    },
+    {
+      "map_id": 1136,
+      "instance_id": 0,
+      "region_id": 84301,
+      "members": [
+        {
+          "reference": 4888,
+          "level": 128,
+          "x": 72,
+          "y": -36,
+          "z": -80
+        },
+        {
+          "reference": 4888,
+          "level": 128,
+          "x": 72,
+          "y": -35,
+          "z": -80
+        }
+      ]
+    },
+    {
+      "map_id": 1136,
+      "instance_id": 0,
+      "region_id": 84401,
+      "members": [
+        {
+          "reference": 4760,
+          "level": 66,
+          "x": -35,
+          "y": 115,
+          "z": -80
+        },
+        {
+          "reference": 4760,
+          "level": 66,
+          "x": -34,
+          "y": 115,
+          "z": -80
+        }
+      ]
+    },
+    {
+      "map_id": 1136,
+      "instance_id": 0,
+      "region_id": 84501,
+      "members": [
+        {
+          "reference": 4867,
+          "level": 68,
+          "x": -107,
+          "y": 95,
+          "z": 11
+        },
+        {
+          "reference": 4867,
+          "level": 68,
+          "x": -107,
+          "y": 96,
+          "z": 11
+        }
+      ]
+    },
+    {
+      "map_id": 1137,
+      "instance_id": 0,
+      "region_id": 81901,
+      "members": [
+        {
+          "reference": 4742,
+          "level": 83,
+          "x": 18,
+          "y": -133,
+          "z": 30
+        },
+        {
+          "reference": 4742,
+          "level": 83,
+          "x": 18,
+          "y": -132,
+          "z": 30
+        }
+      ]
+    },
+    {
+      "map_id": 1137,
+      "instance_id": 0,
+      "region_id": 82001,
+      "members": [
+        {
+          "reference": 4912,
+          "level": 81,
+          "x": 36,
+          "y": -65,
+          "z": -50
+        },
+        {
+          "reference": 4912,
+          "level": 81,
+          "x": 36,
+          "y": -64,
+          "z": -50
+        }
+      ]
+    },
+    {
+      "map_id": 1137,
+      "instance_id": 0,
+      "region_id": 85901,
+      "members": [
+        {
+          "reference": 4777,
+          "level": 143,
+          "x": 13,
+          "y": -265,
+          "z": 0
+        },
+        {
+          "reference": 4777,
+          "level": 143,
+          "x": 14,
+          "y": -265,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1207,
+      "instance_id": 0,
+      "region_id": 83801,
+      "members": [
+        {
+          "reference": 4880,
+          "level": 38,
+          "x": -117,
+          "y": -25,
+          "z": 0
+        },
+        {
+          "reference": 4880,
+          "level": 38,
+          "x": -116,
+          "y": -25,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1207,
+      "instance_id": 0,
+      "region_id": 86601,
+      "members": [
+        {
+          "reference": 4534,
+          "level": 157,
+          "x": -124,
+          "y": -84,
+          "z": 40
+        },
+        {
+          "reference": 4534,
+          "level": 157,
+          "x": -124,
+          "y": -83,
+          "z": 40
+        }
+      ]
+    },
+    {
+      "map_id": 1208,
+      "instance_id": 0,
+      "region_id": 84101,
+      "members": [
+        {
+          "reference": 4726,
+          "level": 113,
+          "x": -58,
+          "y": 31,
+          "z": 0
+        },
+        {
+          "reference": 4726,
+          "level": 113,
+          "x": -57,
+          "y": 31,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1208,
+      "instance_id": 0,
+      "region_id": 86801,
+      "members": [
+        {
+          "reference": 2015,
+          "level": 158,
+          "x": -124,
+          "y": 17,
+          "z": 0
+        },
+        {
+          "reference": 2015,
+          "level": 158,
+          "x": -124,
+          "y": 18,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1209,
+      "instance_id": 0,
+      "region_id": 83901,
+      "members": [
+        {
+          "reference": 4767,
+          "level": 157,
+          "x": -34,
+          "y": -142,
+          "z": 40
+        },
+        {
+          "reference": 4767,
+          "level": 157,
+          "x": -34,
+          "y": -141,
+          "z": 40
+        }
+      ]
+    },
+    {
+      "map_id": 1209,
+      "instance_id": 0,
+      "region_id": 86701,
+      "members": [
+        {
+          "reference": 4916,
+          "level": 68,
+          "x": -71,
+          "y": -68,
+          "z": 20
+        },
+        {
+          "reference": 4916,
+          "level": 68,
+          "x": -70,
+          "y": -68,
+          "z": 20
+        }
+      ]
+    },
+    {
+      "map_id": 1210,
+      "instance_id": 0,
+      "region_id": 84001,
+      "members": [
+        {
+          "reference": 4883,
+          "level": 83,
+          "x": -18,
+          "y": -121,
+          "z": 40
+        },
+        {
+          "reference": 4883,
+          "level": 83,
+          "x": -18,
+          "y": -120,
+          "z": 40
+        }
+      ]
+    },
+    {
+      "map_id": 1210,
+      "instance_id": 0,
+      "region_id": 86901,
+      "members": [
+        {
+          "reference": 4920,
+          "level": 158,
+          "x": -69,
+          "y": -45,
+          "z": 20
+        },
+        {
+          "reference": 4920,
+          "level": 158,
+          "x": -69,
+          "y": -44,
+          "z": 20
+        }
+      ]
+    },
+    {
+      "map_id": 1252,
+      "instance_id": 0,
+      "region_id": 88501,
+      "members": [
+        {
+          "reference": 5036,
+          "level": 143,
+          "x": -35,
+          "y": -62,
+          "z": -76
+        },
+        {
+          "reference": 5036,
+          "level": 143,
+          "x": -34,
+          "y": -62,
+          "z": -76
+        }
+      ]
+    },
+    {
+      "map_id": 1252,
+      "instance_id": 0,
+      "region_id": 88601,
+      "members": [
+        {
+          "reference": 5043,
+          "level": 173,
+          "x": -72,
+          "y": -144,
+          "z": -60
+        },
+        {
+          "reference": 5043,
+          "level": 173,
+          "x": -72,
+          "y": -143,
+          "z": -60
+        }
+      ]
+    },
+    {
+      "map_id": 1252,
+      "instance_id": 0,
+      "region_id": 88701,
+      "members": [
+        {
+          "reference": 5055,
+          "level": 188,
+          "x": 18,
+          "y": -207,
+          "z": -20
+        },
+        {
+          "reference": 5055,
+          "level": 188,
+          "x": 18,
+          "y": -206,
+          "z": -20
+        }
+      ]
+    },
+    {
+      "map_id": 1252,
+      "instance_id": 0,
+      "region_id": 88801,
+      "members": [
+        {
+          "reference": 5049,
+          "level": 188,
+          "x": -164,
+          "y": -157,
+          "z": -50
+        },
+        {
+          "reference": 5049,
+          "level": 188,
+          "x": -163,
+          "y": -157,
+          "z": -50
+        }
+      ]
+    },
+    {
+      "map_id": 1264,
+      "instance_id": 0,
+      "region_id": 89301,
+      "members": [
+        {
+          "reference": 5113,
+          "level": 68,
+          "x": 36,
+          "y": -24,
+          "z": 0
+        },
+        {
+          "reference": 5113,
+          "level": 68,
+          "x": 37,
+          "y": -24,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1264,
+      "instance_id": 0,
+      "region_id": 89401,
+      "members": [
+        {
+          "reference": 5134,
+          "level": 190,
+          "x": -54,
+          "y": 80,
+          "z": 2
+        },
+        {
+          "reference": 5134,
+          "level": 190,
+          "x": -54,
+          "y": 81,
+          "z": 2
+        }
+      ]
+    },
+    {
+      "map_id": 1264,
+      "instance_id": 0,
+      "region_id": 89501,
+      "members": [
+        {
+          "reference": 5104,
+          "level": 70,
+          "x": -126,
+          "y": -33,
+          "z": 60
+        },
+        {
+          "reference": 5104,
+          "level": 70,
+          "x": -125,
+          "y": -33,
+          "z": 60
+        }
+      ]
+    },
+    {
+      "map_id": 1264,
+      "instance_id": 0,
+      "region_id": 89701,
+      "members": [
+        {
+          "reference": 5128,
+          "level": 173,
+          "x": 75,
+          "y": 165,
+          "z": -20
+        },
+        {
+          "reference": 5128,
+          "level": 173,
+          "x": 75,
+          "y": 166,
+          "z": -20
+        }
+      ]
+    },
+    {
+      "map_id": 1276,
+      "instance_id": 0,
+      "region_id": 89901,
+      "members": [
+        {
+          "reference": 5168,
+          "level": 203,
+          "x": -72,
+          "y": -110,
+          "z": -1
+        },
+        {
+          "reference": 5168,
+          "level": 203,
+          "x": -72,
+          "y": -109,
+          "z": -1
+        }
+      ]
+    },
+    {
+      "map_id": 1276,
+      "instance_id": 0,
+      "region_id": 90001,
+      "members": [
+        {
+          "reference": 5187,
+          "level": 203,
+          "x": 72,
+          "y": -152,
+          "z": 2
+        },
+        {
+          "reference": 5187,
+          "level": 203,
+          "x": 72,
+          "y": -151,
+          "z": 2
+        }
+      ]
+    },
+    {
+      "map_id": 1276,
+      "instance_id": 0,
+      "region_id": 90101,
+      "members": [
+        {
+          "reference": 5175,
+          "level": 203,
+          "x": -144,
+          "y": -147,
+          "z": 1
+        },
+        {
+          "reference": 5175,
+          "level": 203,
+          "x": -144,
+          "y": -146,
+          "z": 1
+        }
+      ]
+    },
+    {
+      "map_id": 1276,
+      "instance_id": 0,
+      "region_id": 90201,
+      "members": [
+        {
+          "reference": 5179,
+          "level": 203,
+          "x": -72,
+          "y": -211,
+          "z": -1
+        },
+        {
+          "reference": 5179,
+          "level": 203,
+          "x": -72,
+          "y": -210,
+          "z": -1
+        }
+      ]
+    },
+    {
+      "map_id": 1295,
+      "instance_id": 0,
+      "region_id": 90601,
+      "members": [
+        {
+          "reference": 2075,
+          "level": 98,
+          "x": -198,
+          "y": -17,
+          "z": -42
+        },
+        {
+          "reference": 2075,
+          "level": 98,
+          "x": -198,
+          "y": -16,
+          "z": -42
+        }
+      ]
+    },
+    {
+      "map_id": 1295,
+      "instance_id": 0,
+      "region_id": 90701,
+      "members": [
+        {
+          "reference": 5240,
+          "level": 203,
+          "x": -270,
+          "y": 29,
+          "z": -80
+        },
+        {
+          "reference": 5240,
+          "level": 203,
+          "x": -270,
+          "y": 30,
+          "z": -80
+        }
+      ]
+    },
+    {
+      "map_id": 1297,
+      "instance_id": 0,
+      "region_id": 90801,
+      "members": [
+        {
+          "reference": 5246,
+          "level": 203,
+          "x": -67,
+          "y": -41,
+          "z": 29
+        },
+        {
+          "reference": 5246,
+          "level": 203,
+          "x": -67,
+          "y": -40,
+          "z": 29
+        }
+      ]
+    },
+    {
+      "map_id": 1298,
+      "instance_id": 0,
+      "region_id": 90901,
+      "members": [
+        {
+          "reference": 5234,
+          "level": 203,
+          "x": -120,
+          "y": -50,
+          "z": 40
+        },
+        {
+          "reference": 5234,
+          "level": 203,
+          "x": -120,
+          "y": -49,
+          "z": 40
+        }
+      ]
+    },
+    {
+      "map_id": 1305,
+      "instance_id": 0,
+      "region_id": 91201,
+      "members": [
+        {
+          "reference": 5276,
+          "level": 218,
+          "x": -46,
+          "y": -99,
+          "z": 31
+        },
+        {
+          "reference": 5276,
+          "level": 218,
+          "x": -46,
+          "y": -98,
+          "z": 31
+        }
+      ]
+    },
+    {
+      "map_id": 1309,
+      "instance_id": 0,
+      "region_id": 91301,
+      "members": [
+        {
+          "reference": 5282,
+          "level": 218,
+          "x": -72,
+          "y": -33,
+          "z": 10
+        },
+        {
+          "reference": 5282,
+          "level": 218,
+          "x": -72,
+          "y": -32,
+          "z": 10
+        }
+      ]
+    },
+    {
+      "map_id": 1326,
+      "instance_id": 0,
+      "region_id": 91401,
+      "members": [
+        {
+          "reference": 5288,
+          "level": 218,
+          "x": -171,
+          "y": -124,
+          "z": 50
+        },
+        {
+          "reference": 5288,
+          "level": 218,
+          "x": -170,
+          "y": -124,
+          "z": 50
+        }
+      ]
+    },
+    {
+      "map_id": 1333,
+      "instance_id": 0,
+      "region_id": 91801,
+      "members": [
+        {
+          "reference": 5294,
+          "level": 218,
+          "x": -68,
+          "y": -165,
+          "z": 24
+        },
+        {
+          "reference": 5294,
+          "level": 218,
+          "x": -68,
+          "y": -164,
+          "z": 24
+        }
+      ]
+    },
+    {
+      "map_id": 1338,
+      "instance_id": 0,
+      "region_id": 92001,
+      "members": [
+        {
+          "reference": 5300,
+          "level": 218,
+          "x": -196,
+          "y": -137,
+          "z": 16
+        },
+        {
+          "reference": 5300,
+          "level": 218,
+          "x": -195,
+          "y": -137,
+          "z": 16
+        }
+      ]
+    },
+    {
+      "map_id": 1358,
+      "instance_id": 0,
+      "region_id": 92201,
+      "members": [
+        {
+          "reference": 5374,
+          "level": 38,
+          "x": -166,
+          "y": 40,
+          "z": -51
+        },
+        {
+          "reference": 5374,
+          "level": 38,
+          "x": -166,
+          "y": 41,
+          "z": -51
+        }
+      ]
+    },
+    {
+      "map_id": 1359,
+      "instance_id": 0,
+      "region_id": 92301,
+      "members": [
+        {
+          "reference": 5379,
+          "level": 40,
+          "x": -26,
+          "y": -175,
+          "z": -42
+        },
+        {
+          "reference": 5379,
+          "level": 40,
+          "x": -26,
+          "y": -174,
+          "z": -42
+        }
+      ]
+    },
+    {
+      "map_id": 1364,
+      "instance_id": 0,
+      "region_id": 93001,
+      "members": [
+        {
+          "reference": 5386,
+          "level": 53,
+          "x": -25,
+          "y": -170,
+          "z": -38
+        },
+        {
+          "reference": 5386,
+          "level": 53,
+          "x": -24,
+          "y": -170,
+          "z": -38
+        }
+      ]
+    },
+    {
+      "map_id": 1365,
+      "instance_id": 0,
+      "region_id": 92601,
+      "members": [
+        {
+          "reference": 5397,
+          "level": 218,
+          "x": -124,
+          "y": -31,
+          "z": -49
+        },
+        {
+          "reference": 5397,
+          "level": 218,
+          "x": -124,
+          "y": -30,
+          "z": -49
+        }
+      ]
+    },
+    {
+      "map_id": 1368,
+      "instance_id": 0,
+      "region_id": 92901,
+      "members": [
+        {
+          "reference": 5391,
+          "level": 218,
+          "x": -62,
+          "y": 19,
+          "z": 0
+        },
+        {
+          "reference": 5391,
+          "level": 218,
+          "x": -62,
+          "y": 20,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1384,
+      "instance_id": 0,
+      "region_id": 93301,
+      "members": [
+        {
+          "reference": 2553,
+          "level": 128,
+          "x": -115,
+          "y": -72,
+          "z": 12
+        },
+        {
+          "reference": 2553,
+          "level": 128,
+          "x": -115,
+          "y": -71,
+          "z": 12
+        }
+      ]
+    },
+    {
+      "map_id": 1384,
+      "instance_id": 0,
+      "region_id": 93501,
+      "members": [
+        {
+          "reference": 5470,
+          "level": 128,
+          "x": -216,
+          "y": -151,
+          "z": 0
+        },
+        {
+          "reference": 5470,
+          "level": 128,
+          "x": -216,
+          "y": -150,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1384,
+      "instance_id": 0,
+      "region_id": 93801,
+      "members": [
+        {
+          "reference": 5477,
+          "level": 143,
+          "x": -180,
+          "y": -306,
+          "z": -3
+        },
+        {
+          "reference": 5477,
+          "level": 143,
+          "x": -180,
+          "y": -305,
+          "z": -3
+        }
+      ]
+    },
+    {
+      "map_id": 1384,
+      "instance_id": 0,
+      "region_id": 93901,
+      "members": [
+        {
+          "reference": 2565,
+          "level": 128,
+          "x": -316,
+          "y": -202,
+          "z": 24
+        },
+        {
+          "reference": 2565,
+          "level": 128,
+          "x": -315,
+          "y": -202,
+          "z": 24
+        }
+      ]
+    },
+    {
+      "map_id": 1385,
+      "instance_id": 0,
+      "region_id": 93601,
+      "members": [
+        {
+          "reference": 5455,
+          "level": 2,
+          "x": -21,
+          "y": -4,
+          "z": 17
+        },
+        {
+          "reference": 5455,
+          "level": 2,
+          "x": -21,
+          "y": -3,
+          "z": 17
+        }
+      ]
+    },
+    {
+      "map_id": 1390,
+      "instance_id": 0,
+      "region_id": 93701,
+      "members": [
+        {
+          "reference": 2606,
+          "level": 143,
+          "x": -168,
+          "y": -49,
+          "z": -8
+        },
+        {
+          "reference": 2606,
+          "level": 143,
+          "x": -167,
+          "y": -49,
+          "z": -8
+        }
+      ]
+    },
+    {
+      "map_id": 1401,
+      "instance_id": 0,
+      "region_id": 94201,
+      "members": [
+        {
+          "reference": 5637,
+          "level": 233,
+          "x": -72,
+          "y": -88,
+          "z": 0
+        },
+        {
+          "reference": 5637,
+          "level": 233,
+          "x": -71,
+          "y": -88,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1401,
+      "instance_id": 0,
+      "region_id": 94301,
+      "members": [
+        {
+          "reference": 5630,
+          "level": 233,
+          "x": -170,
+          "y": -96,
+          "z": 12
+        },
+        {
+          "reference": 5630,
+          "level": 233,
+          "x": -169,
+          "y": -96,
+          "z": 12
+        }
+      ]
+    },
+    {
+      "map_id": 1401,
+      "instance_id": 0,
+      "region_id": 94401,
+      "members": [
+        {
+          "reference": 5623,
+          "level": 233,
+          "x": -90,
+          "y": -158,
+          "z": 0
+        },
+        {
+          "reference": 5623,
+          "level": 233,
+          "x": -90,
+          "y": -157,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1401,
+      "instance_id": 0,
+      "region_id": 94501,
+      "members": [
+        {
+          "reference": 5643,
+          "level": 233,
+          "x": 0,
+          "y": -106,
+          "z": 0
+        },
+        {
+          "reference": 5643,
+          "level": 233,
+          "x": 0,
+          "y": -105,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 1401,
+      "instance_id": 0,
+      "region_id": 94601,
+      "members": [
+        {
+          "reference": 5648,
+          "level": 233,
+          "x": -36,
+          "y": -299,
+          "z": 20
+        },
+        {
+          "reference": 5648,
+          "level": 233,
+          "x": -36,
+          "y": -298,
+          "z": 20
+        }
+      ]
+    }
+  ]
+}

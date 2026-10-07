@@ -1,0 +1,38 @@
+{
+  "scope": "Inspección estática de loaders, definición de mazmorra y mapas exportados; ningún encuentro ni actor se creó",
+  "normal_route": {
+    "entry_map": 527,
+    "object": 26842,
+    "destination": 2504,
+    "template": 91,
+    "definition": 90,
+    "interior_map": 1086
+  },
+  "definition_membership": {
+    "monster_references": [1, 2, 3, 39, 41, 44],
+    "native_method": "aKU.cno() returns int[] eiQ; bam passes these references to bpN; bpU resolves them through the monster registry for catalogue/name search.",
+    "meaning_limit": "The inspected path does not expose a room index, spawn count, monster grade/level, or spawn coordinates.",
+    "evidence": {
+      "aKU": ".runtime/local/review-continuacion-20261004/dungeon-aKU-current.txt",
+      "aKU_sha256": "a24303b27c42abf3d8a28e04f8bceada33b8ab3d63166083e979d8193bddc91c",
+      "loader": ".runtime/local/review-continuacion-20261004/dungeon-content-loader.txt",
+      "loader_sha256": "9740731c80474f7b4c5a75cedda625d985bf2df3bb820fc8e0f6461076f71477",
+      "child_group_loader": ".runtime/local/review-continuacion-20261004/dungeon-childgroup-loader.txt",
+      "child_group_loader_sha256": "c44b43af49c8f3f1587cf0e1569a57b537014a74bf3a9336b7350c4befbf35a9"
+    }
+  },
+  "maps_and_doors": {
+    "teleporter_catalog": "server/protocol/native-generic-teleporters.json",
+    "teleporter_catalog_sha256": "1a2dfe4af93aff64032fca2ef6a36ad3d086f9fb17d0ed9729665fb5d73ba345",
+    "sectors": [
+      {"object": 26845, "normal_destination": 2506, "map": 1086, "x": 152, "y": -10, "z": 0},
+      {"object": 26850, "normal_destination": 2510, "map": 1086, "x": 151, "y": -149, "z": 0},
+      {"object": 26849, "normal_destination": 2509, "map": 1086, "x": 0, "y": -26, "z": 0},
+      {"object": 26853, "normal_destination": 2511, "map": 1086, "x": 150, "y": -25, "z": 0}
+    ],
+    "combat_map": "server/protocol/combat-maps/1086.json.gz",
+    "combat_map_sha256": "5323e596752cbb9ce257dc730eb2e130194c8a2ff7dbdb4b0bd96af18614f326",
+    "combat_map_scope": "Static walkable surfaces only; source explicitly excludes dynamic actors, line-of-sight, and fight placement policy."
+  },
+  "conclusion": "The available catalog establishes definition membership and room-sector links, not per-room encounter composition. Exact combat population needs another native source or a captured, successful in-client instance traversal."
+}

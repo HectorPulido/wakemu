@@ -65,6 +65,8 @@ def execute_unarmed(
     mitigate,
     rng=None,
     prepare_only=False,
+    player_characters=None,
+    deck_blobs=None,
 ):
     request = decode_request(body)
     if unarmed is not True:
@@ -139,6 +141,8 @@ def execute_unarmed(
         critical=False,
         rng=rng,
         compiled=weapon_runtime_catalog(),
+        player_characters=player_characters,
+        deck_blobs=deck_blobs,
     )
     plan = dict(
         actor_id=pc.id,

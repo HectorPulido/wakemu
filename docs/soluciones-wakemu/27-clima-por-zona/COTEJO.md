@@ -1,45 +1,27 @@
-# Cotejo de código — 27
+# Cotejo nativo y alcance — 27
 
-## Versión inspeccionada
+## 13948: estado meteorológico actual
 
-Checkout local `main`, HEAD `7eb67928818af54eb04bddff29397ef0ccdec1ba`, con modificaciones concurrentes. La identidad por archivo queda en [manifest.json](../manifest.json); HEAD por sí solo no identifica estos bytes. No se afirma que esta sea la versión desplegada.
+La clase `ctm` consume un payload de37bytes en big endian: i64 opaco, byte firmado, seis float32 e i32 de clima. El enum `Vl` es `0 ABSENT`, `1 LIGHT`, `2 HEAVY`, `3 STORM`. `chl` instala el estado en el modelo del territorio. El servidor preserva el payload y publica el estado por mapa, instancia y región calculada desde las celdas nativas. No se acredita que el i64 seleccione región.
 
-## Hallazgo contrastado
+La política general desplegada usa `ABSENT` y valores neutrales locales configurables. La inicialización conserva filas previas. La flora consulta el enum persistido; no se le asignan efectos a temperaturas o lluvia sin evidencia.
 
-**Enviar hora del mundo no implementa clima. La tarea weather está deshabilitada y fuera del registro permitido actual; hacen falta estado climático, reglas y carriers.**
+## 13895: forecast estructurado
 
-Función `packet`, línea 10 de [server/wakfu_server/maps/world_clock.py](../../../server/wakfu_server/maps/world_clock.py). SHA-256: `ca6a506c2b56e0a5c16398fc3108852322e7af7d64570c73c1268b3e4c026f92`.
+El envelope `cBl.dp` contiene un u16 de longitud y el cuerpo de `bRV.fe`. Cada fila diaria mide12bytes: season u8, dos muestras i8, wind u16, clima i32, ajuste i8 y modificador i16. Luego hay un count de ajustes estacionales y registros `{season u8, min i8, max i8}`; el parser consume posiciones de relleno de3bytes cuando faltan registros para sus ranuras auxiliares. Las temporadas son ordinals0–3: invierno, primavera, verano y otoño. Los estados de clima comparten `Vl` con13948.
 
-```python
-def packet(now_ms=None, offset_ms=0):
-    if now_ms is None:
-        now_ms = time.time_ns() // 1000000
-    if type(now_ms) is not int or type(offset_ms) is not int:
-        raise ValueError("Clock values must be integer milliseconds")
-    return struct.pack(">q", now_ms + offset_ms)
-```
+El consumidor `bRY` usa las filas para la previsión diaria y gráfica. La prueba Java del JAR instalado decodifica el vector sintético del encoder local. No se encontró productor server-side ni fuente oficial de forecast, calendario de datos o unidades físicas. Los nombres de campos reflejan el layout, no unidades Celsius.
 
-## Archivos que debe recorrer la implementación
+## Fuente local y garantías
 
-| Fuente | SHA-256 abreviado | Puntos de entrada |
-| --- | --- | --- |
-| [server/cron-service/config.json](../../../server/cron-service/config.json) | b2383fea7f15 | Configuración; revisar valores y uso por el proceso. |
-| [server/wakfu_server/storage/global_tasks.py](../../../server/wakfu_server/storage/global_tasks.py) | cb5b91243fff | `__init__` L13, `names` L24, `run` L27 |
-| [server/wakfu_server/maps/world_clock.py](../../../server/wakfu_server/maps/world_clock.py) | ca6a506c2b56 | `packet` L10, `daytime` L21 |
-| [server/wakfu_server/maps/planting_context.py](../../../server/wakfu_server/maps/planting_context.py) | 707de24e1d5d | `region` L17, `bootstrap` L31, `authorize_family` L77, `encode` L47 |
+`territory_weather_forecast.py` ofrece codec estricto, persistencia estructurada por `(map_id, instance_id, region_id)`, versiones monotónicas y outbox versionado. El publicador filtra por mapa, instancia, región y lease actual; `packet_for_territory` produce un paquete vacío explícito para un ámbito sin forecast. El outbox coalesce versiones superseded, conserva reintentos tras fallo y no afirma ACK del cliente.
 
-## Correspondencia con el plan
+La migración058, el tick y la ruta de bootstrap están conectados en fuente. El smoke TLS completo ya pasó en candidata aislada; no afirmar que el forecast ya esté desplegado ni que sus datos sean upstream.
 
-| Paso | Situación |
-| --- | --- |
-| 1. Identificar carriers y reglas | Propuesta; requiere cambio, prueba y revisión del contrato |
-| 2. Modelar zona y tiempo | Propuesta; requiere cambio, prueba y revisión del contrato |
-| 3. Implementar scheduler seguro | Propuesta; requiere cambio, prueba y revisión del contrato |
-| 4. Aplicar a sistemas consumidores | Propuesta; requiere cambio, prueba y revisión del contrato |
-| 5. Publicar y recuperar | Propuesta; requiere cambio, prueba y revisión del contrato |
+## Fuentes del servidor
 
-La columna anterior clasifica el trabajo propuesto, no dice que cada pieza falte íntegramente. Reutilizar las validaciones, transacciones y codecs existentes identificados arriba; completar únicamente las brechas descritas.
-
-## Límites de verificación
-
-La existencia de una función o codec no demuestra integración de extremo a extremo. Las ausencias de handler deben comprobarse en el dispatcher y con una solicitud autenticada; las fórmulas, políticas y respuestas nativas pendientes se enumeran en [FALTANTES.md](FALTANTES.md). Si cambia un hash, repetir el cotejo antes de implementar.
+- `server/wakfu_server/maps/territory_weather.py`: parser13948, persistencia, cambio de clima, outbox y tick.
+- `server/wakfu_server/maps/territory_weather_forecast.py`: codec y política local13895 por ámbito exacto.
+- `server/wakfu_server/maps/territory_cells.py`: mapa/región nativos resueltos por celda.
+- `server/migrations/020_territory_weather.sql`, `055_territory_weather_transitions.sql`, `056_territory_weather_local_policy.sql`, `058_territory_weather_forecast_policy.sql`: persistencia por fases.
+- `.runtime/local/review-continuacion-20261004/ForecastNativeProbe.java`: vector local verificado con el parser instalado.

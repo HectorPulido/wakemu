@@ -199,6 +199,10 @@ def decode_body(direction, opcode, body):
             fields = {"language": r.text()}
         elif opcode == 23664:
             fields = {"character_id": r.number("q"), "character_name": r.text()}
+        elif opcode == 22870:
+            fields = {"character_id": r.number("q")}
+            if fields["character_id"] <= 0:
+                raise ValueError("Invalid character deletion identity")
         elif opcode == 22296:
             fields = {
                 "character_id": r.number("q"),

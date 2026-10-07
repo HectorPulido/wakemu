@@ -79,6 +79,27 @@ class RedisFixture(PostgresCase):
 
 
 class RedisPositionTests(RedisFixture):
+    def test_direction_is_in_v2_journal_and_recovers_after_crash(self):
+        account, generation, char = self.attach("Facing")
+        current = self.buffer.move(
+            account,
+            generation,
+            char["id"],
+            char,
+            {"x": char["x"] + 1, "y": char["y"], "z": char["z"], "direction": 6},
+        )
+        record = next(self.journal.records())[1]
+        self.assertEqual(2, record["version"])
+        self.assertEqual(3, record["baseline"]["direction"])
+        self.assertEqual(6, record["current"]["direction"])
+
+        fresh = self.reopen()
+        fresh.clock = lambda: self.now
+        report = Journal(self.client, namespace=self.journal.namespace).recover(fresh)
+        self.assertEqual(1, report["recovered"])
+        loaded = fresh.character(account, char["id"])
+        self.assertEqual((current["x"], 6), (loaded["x"], loaded["direction"]))
+
     def test_dirty_crash_recovery_and_committed_cleanup(self):
         a, g, char = self.attach()
         current = self.move(a, g, char)

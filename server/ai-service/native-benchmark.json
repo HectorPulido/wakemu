@@ -1,0 +1,174 @@
+{
+  "measuredAtLocal": "2026-10-07 (America/Bogota)",
+  "runner": "PYTHONPATH=.runtime/e18-deploy-server:server .runtime/e18-venv/bin/python -m unittest tests.test_combat_tactical_ai tests.test_combat_ai_policy tests.test_combat_ai_capabilities",
+  "buildRequestDefaults": {
+    "max_previews": 48,
+    "budget_ms": 150,
+    "depth": 2
+  },
+  "thresholdEnforced": false,
+  "coldAfterNpcMetadataOnly": {
+    "warmState": "npc runtime catalog and provider capabilities/outcome features primed; general runtime catalog not prewarmed; fixture LOS stub enabled",
+    "cases": [
+      {
+        "name": "adjacent_wonejo",
+        "npcPosition": [
+          5,
+          0,
+          0
+        ],
+        "playerPosition": [
+          6,
+          0,
+          0
+        ],
+        "wallSeconds": 1.345,
+        "producerElapsedMs": 1342.221,
+        "previews": 1,
+        "transitions": 1,
+        "casts": 1,
+        "nativeCells": 7,
+        "decisionCells": 2,
+        "dtoBytes": 2420
+      },
+      {
+        "name": "approach_then_cast",
+        "npcPosition": [
+          0,
+          0,
+          0
+        ],
+        "playerPosition": [
+          6,
+          0,
+          0
+        ],
+        "wallSeconds": 9.3828,
+        "producerElapsedMs": 9380.263,
+        "previews": 21,
+        "transitions": 17,
+        "casts": 5,
+        "nativeCells": 7,
+        "decisionCells": 7,
+        "dtoBytes": 13492
+      }
+    ]
+  },
+  "warmAfterRuntimeCatalogAndOneForecastCast": {
+    "warmState": "prewarm_runtime_catalogs called; each provider capability/outcome path primed and one detached, uncommitted native cast forecast run before timing; fixture LOS stub enabled",
+    "cases": [
+      {
+        "name": "adjacent_wonejo",
+        "npcPosition": [
+          5,
+          0,
+          0
+        ],
+        "playerPosition": [
+          6,
+          0,
+          0
+        ],
+        "wallSeconds": 0.1132,
+        "producerElapsedMs": 110.7,
+        "previews": 48,
+        "transitions": 41,
+        "casts": 11,
+        "nativeCells": 7,
+        "decisionCells": 7,
+        "dtoBytes": 29580
+      },
+      {
+        "name": "approach_then_cast",
+        "npcPosition": [
+          0,
+          0,
+          0
+        ],
+        "playerPosition": [
+          6,
+          0,
+          0
+        ],
+        "wallSeconds": 0.1124,
+        "producerElapsedMs": 109.865,
+        "previews": 48,
+        "transitions": 41,
+        "casts": 12,
+        "nativeCells": 7,
+        "decisionCells": 7,
+        "dtoBytes": 29480
+      }
+    ]
+  },
+  "hotProfile": {
+    "case": "approach_then_cast",
+    "los": "fixture stub",
+    "profiledWallSeconds": 0.157725,
+    "producerElapsedMs": 153.853,
+    "previews": 19,
+    "topCumulative": [
+      {
+        "function": "copy.py:118(deepcopy)",
+        "calls": 91413,
+        "ownSeconds": 0.05053,
+        "cumulativeSeconds": 0.101415
+      },
+      {
+        "function": "copy.py:247(_reconstruct)",
+        "calls": 738,
+        "ownSeconds": 0.001058,
+        "cumulativeSeconds": 0.101019
+      },
+      {
+        "function": "copy.py:217(_deepcopy_dict)",
+        "calls": 1250,
+        "ownSeconds": 0.013529,
+        "cumulativeSeconds": 0.100882
+      },
+      {
+        "function": "combat_tactical_ai.py:239(NativeProvider.preview)",
+        "calls": 19,
+        "ownSeconds": 0.00042,
+        "cumulativeSeconds": 0.077868
+      },
+      {
+        "function": "combat_tactical_ai.py:345(build_request)",
+        "calls": 2,
+        "ownSeconds": 0.000864,
+        "cumulativeSeconds": 0.058432
+      },
+      {
+        "function": "combat_npc_spell.py:28(prepare_npc_spell)",
+        "calls": 8,
+        "ownSeconds": 0.000453,
+        "cumulativeSeconds": 0.034939
+      },
+      {
+        "function": "combat_tactical_ai.py:64(state_key)",
+        "calls": 26,
+        "ownSeconds": 0.000124,
+        "cumulativeSeconds": 0.028602
+      },
+      {
+        "function": "combat_geometry_snapshot.py:34(source_snapshot)",
+        "calls": 30,
+        "ownSeconds": 0.000326,
+        "cumulativeSeconds": 0.027102
+      },
+      {
+        "function": "fight_checkpoint_store.py:12(_plain)",
+        "calls": 43192,
+        "ownSeconds": 0.022604,
+        "cumulativeSeconds": 0.026761
+      },
+      {
+        "function": "dict.get",
+        "calls": 186047,
+        "ownSeconds": 0.019025,
+        "cumulativeSeconds": 0.019025
+      }
+    ]
+  },
+  "observation": "The earlier multi-second first forecast included lazy general runtime catalog setup that production prewarm_runtime_catalogs performs before listeners. Warm forecasts stayed near the configured 150 ms budget. Measurements are wall-clock observations; no timing threshold is enforced."
+}

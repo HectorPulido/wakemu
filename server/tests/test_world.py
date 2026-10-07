@@ -6,6 +6,28 @@ from wakfu_server import wire
 
 
 class WorldTests(unittest.TestCase):
+    def test_send_batch_uses_one_batch_writer_for_captured_peer(self):
+        sent = []
+
+        class Peer:
+            def shutdown(self, how):
+                self.fail("batch delivery should not shut down the peer")
+
+        peer = Peer()
+        world = World(
+            lambda c: b"",
+            lambda c: b"",
+            lambda *_: self.fail("single-packet writer should not be used"),
+            deliver_batch=lambda target, packets: sent.append((target, tuple(packets))),
+        )
+        world.join("lease", peer, self.character(81, map_id=4, instance_id=5))
+
+        self.assertTrue(
+            world.send_batch_to(81, "lease", ((13482, b"ready"), (12755, b"report")))
+        )
+        self.assertEqual(sent, [(peer, ((13482, b"ready"), (12755, b"report")))])
+        self.assertFalse(world.send_batch_to(81, "old-lease", ((1, b"stale"),)))
+
     def test_failed_delivery_reports_cause_before_shutdown(self):
         order = []
 
@@ -26,6 +48,255 @@ class WorldTests(unittest.TestCase):
         )
         world._send(Peer(), 13852, b"world movement")
         self.assertEqual(order, [("failure", 13852, 32), ("shutdown", 2)])
+
+    def test_information_all_reaches_snapshot_across_locations_and_skips_failed_peer(
+        self,
+    ):
+        attempts = []
+        failures = []
+
+        class Peer:
+            def __init__(self, name):
+                self.name = name
+
+            def shutdown(self, how):
+                attempts.append(("shutdown", self.name, how))
+
+        def deliver(peer, opcode, body):
+            attempts.append((peer.name, opcode, body))
+            if peer.name == "broken":
+                raise BrokenPipeError(32, "gone")
+
+        world = World(
+            lambda c: ("spawn", c["id"]),
+            lambda c: ("remove", c),
+            deliver,
+            delivery_failure=lambda peer, opcode, error: failures.append(
+                (peer.name, opcode, error.errno)
+            ),
+        )
+        world.join("g1", Peer("map-a"), self.character(1, map_id=1, instance_id=0))
+        world.join("g2", Peer("broken"), self.character(2, map_id=2, instance_id=8))
+        world.join("g3", Peer("map-b"), self.character(3, map_id=1, instance_id=9))
+        attempts.clear()
+
+        delivered = world.information_all("Guardado global completado")
+
+        self.assertEqual(2, delivered)
+        sent = [event for event in attempts if len(event) == 3 and event[1] == 349]
+        self.assertEqual({"map-a", "broken", "map-b"}, {event[0] for event in sent})
+        self.assertEqual({("broken", 349, 32)}, set(failures))
+        self.assertIn(("shutdown", "broken", 2), attempts)
+
+    def test_information_all_does_not_hold_world_lock_during_socket_write(self):
+        entered = threading.Event()
+        release = threading.Event()
+
+        class Peer:
+            def shutdown(self, how):
+                pass
+
+        def deliver(_peer, opcode, _body):
+            if opcode == 349:
+                entered.set()
+                self.assertTrue(release.wait(2))
+
+        world = World(lambda c: b"", lambda c: b"", deliver)
+        world.join("generation", Peer(), self.character(81, map_id=4, instance_id=5))
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            sending = pool.submit(world.information_all, "Guardado iniciado")
+            self.assertTrue(entered.wait(2))
+            snapshot = pool.submit(world.snapshot)
+            try:
+                self.assertEqual([81], [row["id"] for row in snapshot.result(0.5)])
+            finally:
+                release.set()
+            self.assertEqual(1, sending.result(2))
+
+    def test_join_orders_state_snapshots_after_spawn_for_matching_instance_only(self):
+        events = []
+        world = World(
+            lambda c: ("spawn", c["id"]),
+            lambda c: ("remove", c),
+            lambda peer, opcode, body: events.append(("send", peer, opcode, body)),
+            state_packets=lambda character: ((12634, ("ride", character["id"])),),
+        )
+        first = self.character(1, map_id=1134, instance_id=7)
+        second_instance = self.character(2, map_id=1134, instance_id=8)
+        newcomer = self.character(3, map_id=1134, instance_id=7)
+        world.join("g1", "peer1", first)
+        world.join("g2", "peer2", second_instance)
+        events.clear()
+
+        world.join("g3", "peer3", newcomer)
+
+        self.assertEqual(
+            events,
+            [
+                ("send", "peer3", 12608, ("spawn", 1)),
+                ("send", "peer3", 12634, ("ride", 1)),
+                ("send", "peer1", 12608, ("spawn", 3)),
+                ("send", "peer1", 12634, ("ride", 3)),
+                ("send", "peer3", 12634, ("ride", 3)),
+            ],
+        )
+
+    def test_join_reconnect_replays_own_state_after_registration(self):
+        observations = []
+        world = None
+
+        def state_packets(character):
+            observations.append((character["id"] in world.players, character["id"]))
+            return ((12634, ("ride", character["id"])),)
+
+        messages = []
+        world = World(
+            lambda c: ("spawn", c["id"]),
+            lambda c: ("remove", c),
+            lambda peer, opcode, body: messages.append((peer, opcode, body)),
+            state_packets=state_packets,
+        )
+        actor = self.character(11, map_id=1134, instance_id=2)
+        world.join("old-generation", "old-peer", actor)
+        observations.clear()
+        messages.clear()
+
+        world.join("new-generation", "new-peer", actor)
+
+        self.assertEqual(observations, [(True, 11)])
+        self.assertEqual(messages, [("new-peer", 12634, ("ride", 11))])
+
+    def test_resynchronize_restores_visible_snapshot_only_to_current_peer(self):
+        messages = []
+        world = World(
+            lambda c: ("spawn", c["id"]),
+            lambda c: ("remove", c),
+            lambda peer, opcode, body: messages.append((peer, opcode, body)),
+            state_packets=lambda c: ((12634, ("ride", c["id"])),),
+        )
+        owner = self.character(1, map_id=1134, instance_id=7)
+        other = self.character(2, map_id=1134, instance_id=7)
+        foreign_instance = self.character(3, map_id=1134, instance_id=8)
+        world.join("owner-generation", "owner-peer", owner)
+        world.join("other-generation", "other-peer", other)
+        world.join("foreign-generation", "foreign-peer", foreign_instance)
+        messages.clear()
+
+        self.assertTrue(world.resynchronize("owner-generation", "owner-peer", owner))
+
+        self.assertEqual(
+            messages,
+            [
+                ("owner-peer", 12608, ("spawn", 2)),
+                ("owner-peer", 12634, ("ride", 2)),
+                ("owner-peer", 12634, ("ride", 1)),
+            ],
+        )
+
+    def test_resynchronize_rejects_stale_session_without_delivery(self):
+        messages = []
+        world = World(
+            lambda c: ("spawn", c["id"]),
+            lambda c: ("remove", c),
+            lambda peer, opcode, body: messages.append((peer, opcode, body)),
+        )
+        actor = self.character(1)
+        world.join("new-generation", "new-peer", actor)
+        messages.clear()
+
+        self.assertRaisesRegex(
+            ValueError,
+            "stale",
+            world.resynchronize,
+            "old-generation",
+            "old-peer",
+            actor,
+        )
+        self.assertEqual(messages, [])
+
+    def test_join_does_not_publish_mount_state_for_dismounted_actor(self):
+        messages = []
+        world = World(
+            lambda c: ("spawn", c["id"]),
+            lambda c: ("remove", c),
+            lambda peer, opcode, body: messages.append((peer, opcode, body)),
+            state_packets=lambda character: (),
+        )
+        world.join("g1", "peer1", self.character(1))
+        self.assertEqual(messages, [])
+
+    def test_publish_ecology_uses_current_session_and_location_and_rejects_old_revision(
+        self,
+    ):
+        messages = []
+        world = World(
+            lambda c: ("spawn", c["id"]),
+            lambda c: ("remove", c),
+            lambda peer, opcode, body: messages.append((peer, opcode, body)),
+        )
+        owner = dict(
+            self.character(40, map_id=1200, instance_id=9),
+            ecology_value=0,
+            ecology_revision=0,
+        )
+        observer = self.character(41, map_id=1200, instance_id=9)
+        unrelated = self.character(42, map_id=1134, instance_id=0)
+        world.join("old", "old-owner", owner)
+        world.join("observer-session", "observer", observer)
+        world.join("other-session", "other", unrelated)
+        messages.clear()
+
+        committed = dict(
+            owner, map_id=1134, instance_id=0, ecology_value=25, ecology_revision=1
+        )
+        self.assertTrue(world.publish_ecology(committed))
+        self.assertEqual(
+            {(peer, opcode) for peer, opcode, _ in messages},
+            {("old-owner", 13574), ("observer", 13574)},
+        )
+        self.assertEqual(len({body for _, _, body in messages}), 1)
+        updated = {c["id"]: c for c in world.snapshot()}[40]
+        self.assertEqual(
+            (1200, 9, 25, 1),
+            (
+                updated["map_id"],
+                updated["instance_id"],
+                updated["ecology_value"],
+                updated["ecology_revision"],
+            ),
+        )
+
+        messages.clear()
+        stale = dict(committed, ecology_value=-25, ecology_revision=0)
+        self.assertFalse(world.publish_ecology(stale))
+        self.assertEqual(messages, [])
+        still_current = {c["id"]: c for c in world.snapshot()}[40]
+        self.assertEqual(
+            (25, 1), (still_current["ecology_value"], still_current["ecology_revision"])
+        )
+
+    def test_publish_ecology_offline_owner_is_not_broadcast(self):
+        committed = dict(self.character(50), ecology_value=25, ecology_revision=1)
+        self.assertFalse(self.world.publish_ecology(committed))
+        self.assertEqual(self.messages, [])
+
+    def test_private_information_reaches_only_current_online_character_peer(self):
+        from wakfu_server.ecology_feedback import information
+
+        owner = self.character(51, map_id=1134, instance_id=4)
+        observer = self.character(52, map_id=1134, instance_id=4)
+        self.world.join("owner-gen", "owner-peer", owner)
+        self.world.join("observer-gen", "observer-peer", observer)
+        self.messages.clear()
+
+        self.assertTrue(self.world.information(51, "Ecosistema: afinidad neutral."))
+        self.assertEqual(
+            [("owner-peer", *information("Ecosistema: afinidad neutral."))],
+            self.messages,
+        )
+        self.messages.clear()
+        self.assertFalse(self.world.information(999, "No debe enviarse"))
+        self.assertEqual([], self.messages)
 
     def setUp(self):
         self.messages = []
@@ -120,6 +391,101 @@ class WorldTests(unittest.TestCase):
         self.assertEqual(
             self.messages,
             [("sender-peer", 349, wire.private_chat_error(104))],
+        )
+
+    def test_private_chat_social_block_denies_before_any_fanout(self):
+        sender = self.chat_character(101, 9001, "Sender", 1134)
+        recipient = self.chat_character(202, 9002, "Destino", 42)
+        self.world.join("sender-generation", "sender-peer", sender)
+        self.world.join("recipient-generation", "recipient-peer", recipient)
+        self.messages.clear()
+        checks = []
+
+        def blocked(sender_account, recipient_account):
+            checks.append((sender_account, recipient_account))
+            return 103
+
+        delivered = self.world.private_chat(
+            "sender-generation",
+            sender["id"],
+            sender["account_id"],
+            "Destino",
+            "hello",
+            valid_session=lambda entry: True,
+            block_reason=blocked,
+        )
+
+        self.assertFalse(delivered)
+        self.assertEqual(checks, [(sender["account_id"], recipient["account_id"])])
+        self.assertEqual(
+            self.messages,
+            [("sender-peer", 349, wire.private_chat_error(103, "Destino"))],
+        )
+
+    def test_private_chat_social_policy_runs_outside_world_lock(self):
+        sender = self.chat_character(101, 9001, "Sender", 1134)
+        recipient = self.chat_character(202, 9002, "Destino", 42)
+        third = self.chat_character(303, 9003, "Otro", 900)
+        self.world.join("sender-generation", "sender-peer", sender)
+        self.world.join("recipient-generation", "recipient-peer", recipient)
+        self.world.join("third-generation", "third-peer", third)
+        self.messages.clear()
+        checking, resume = threading.Event(), threading.Event()
+
+        def block_reason(_sender_account, _recipient_account):
+            checking.set()
+            if not resume.wait(timeout=5):
+                raise AssertionError("test did not release social policy lookup")
+            return 102
+
+        with ThreadPoolExecutor(max_workers=3) as workers:
+            delivery = workers.submit(
+                self.world.private_chat,
+                "sender-generation",
+                sender["id"],
+                sender["account_id"],
+                "Destino",
+                "hello",
+                valid_session=lambda entry: True,
+                block_reason=block_reason,
+            )
+            self.assertTrue(checking.wait(timeout=2))
+            snapshot = workers.submit(self.world.snapshot)
+            leave = workers.submit(self.world.leave, third["id"], "third-generation")
+            try:
+                self.assertEqual(len(snapshot.result(timeout=1)), 3)
+                self.assertTrue(leave.result(timeout=1))
+            finally:
+                resume.set()
+            self.assertFalse(delivery.result(timeout=2))
+        self.assertEqual(
+            self.messages,
+            [("sender-peer", 349, wire.private_chat_error(102, "Destino"))],
+        )
+
+    def test_social_policy_is_not_consulted_for_stale_recipient_lease(self):
+        sender = self.chat_character(101, 9001, "Sender", 1134)
+        recipient = self.chat_character(202, 9002, "Destino", 42)
+        self.world.join("sender-generation", "sender-peer", sender)
+        self.world.join("recipient-generation", "recipient-peer", recipient)
+        self.messages.clear()
+        checks = []
+
+        delivered = self.world.private_chat(
+            "sender-generation",
+            sender["id"],
+            sender["account_id"],
+            "Destino",
+            "hello",
+            valid_session=lambda entry: entry[0] == "sender-generation",
+            block_reason=lambda *accounts: checks.append(accounts) or 103,
+        )
+
+        self.assertFalse(delivered)
+        self.assertEqual(checks, [])
+        self.assertEqual(
+            self.messages,
+            [("sender-peer", 349, wire.private_chat_error(101, "Destino"))],
         )
 
     def test_private_chat_rejects_account_identity_that_disagrees_with_sender(self):
@@ -474,6 +840,28 @@ class WorldTests(unittest.TestCase):
         self.messages.clear()
         self.world.emit_location(1134, 0, 12304, b"npc", exclude_generation="a")
         self.assertEqual(self.messages, [("beta", 12304, b"npc")])
+
+    def test_emit_location_excludes_exact_participant_sessions(self):
+        self.world.join("same-generation", "participant", self.character(1))
+        self.world.join("other-generation", "nearby", self.character(2))
+        self.world.join("same-generation", "other-character", self.character(3))
+        self.messages.clear()
+
+        self.world.emit_location(
+            1134,
+            0,
+            13753,
+            b"marker",
+            exclude_sessions={(1, "same-generation")},
+        )
+
+        self.assertEqual(
+            self.messages,
+            [
+                ("nearby", 13753, b"marker"),
+                ("other-character", 13753, b"marker"),
+            ],
+        )
 
     def test_emit_location_failed_peer_does_not_stop_other_delivery(self):
         class Peer:

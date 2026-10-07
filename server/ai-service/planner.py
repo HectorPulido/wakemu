@@ -4,6 +4,38 @@ The world supplies verified terrain and remains authoritative for execution.
 There are no Dofus cells, spells, model files, LLM calls or inferred attacks.
 """
 from collections import deque
+from functools import lru_cache
+import threading
+
+_TACTICAL_IMPORT_LOCK = threading.Lock()
+
+
+@lru_cache(maxsize=1)
+def _tactical_planner():
+    # Resolve sibling modules even when a host loads this file with importlib.
+    # A private package also avoids collisions with unrelated search modules.
+    import importlib.util
+    from pathlib import Path
+    import sys
+
+    name = "_wakfu_ai_tactical"
+    with _TACTICAL_IMPORT_LOCK:
+        if name not in sys.modules:
+            directory = Path(__file__).resolve().parent
+            spec = importlib.util.spec_from_file_location(
+                name,
+                directory / "tactical.py",
+                submodule_search_locations=[str(directory)],
+            )
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[name] = module
+            try:
+                spec.loader.exec_module(module)
+            except Exception:
+                sys.modules.pop(name, None)
+                raise
+        return sys.modules[name].decide
+
 
 _REASON = "No reference-verified attack policy; movement only"
 
@@ -23,7 +55,7 @@ def _cell(value):
     )
 
 
-def validate(snapshot):
+def validate(snapshot, *, max_cells=8192, max_edges=65536):
     if (
         not isinstance(snapshot, dict)
         or type(snapshot.get("protocol")) is not int
@@ -49,12 +81,12 @@ def validate(snapshot):
     raw_cells = snapshot.get("walkable")
     raw_edges = snapshot.get("edges")
     raw_actors = snapshot.get("actors")
-    if not isinstance(raw_cells, list) or not 1 <= len(raw_cells) <= 8192:
+    if not isinstance(raw_cells, list) or not 1 <= len(raw_cells) <= max_cells:
         raise ValueError("Invalid native walkable cells")
     cells = {_cell(c) for c in raw_cells}
     if len(cells) != len(raw_cells):
         raise ValueError("Duplicate native cell")
-    if not isinstance(raw_edges, list) or len(raw_edges) > 65536:
+    if not isinstance(raw_edges, list) or len(raw_edges) > max_edges:
         raise ValueError("Invalid native movement edges")
     edges = set()
     for edge in raw_edges:
@@ -107,6 +139,15 @@ def legal_movements(cell, graph):
 
 
 def decide(snapshot):
+    if (
+        isinstance(snapshot, dict)
+        and type(snapshot.get("protocol")) is int
+        and snapshot["protocol"] == 2
+    ):
+        # Lazy import keeps the established protocol-1 boundary independent.
+        return _tactical_planner()(
+            snapshot, lambda value: validate(value, max_cells=32767, max_edges=131068)
+        )
     actor_id, actors, walkable, edges = validate(snapshot)
     actor = actors[actor_id]
     enemies = [a for a in actors.values() if a["team"] != actor["team"] and a["hp"] > 0]

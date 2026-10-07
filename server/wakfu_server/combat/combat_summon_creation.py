@@ -64,6 +64,7 @@ class NativeSummonBuilder:
             values[35]["current"],
             specification.level,
             max_hp=values[1]["maximum"],
+            direction=specification.direction,
         )
         assign_obstacle_ids([*preview.actors.values(), actor])
         snapshot = build_npc_snapshot(

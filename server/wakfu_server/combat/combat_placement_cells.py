@@ -4,6 +4,7 @@ Six cells per team is an explicit configurable local formation policy, not a
 claim about the official server's placement generator. No terrain is invented.
 """
 from collections import defaultdict, deque
+import hashlib
 
 
 def _cell(value):
@@ -28,7 +29,7 @@ def _distances(seeds, cells, outgoing, blocked):
     return distances
 
 
-def generate(cells, edges, seeds, *, slots_per_team=6):
+def generate(cells, edges, seeds, *, slots_per_team=6, variation_seed=None):
     """Return disjoint team0/1 placement sets containing every current actor.
 
     Native outgoing paths choose nearby candidates; enemy seed cells are blocked
@@ -37,6 +38,10 @@ def generate(cells, edges, seeds, *, slots_per_team=6):
     """
     if type(slots_per_team) is not int or not 1 <= slots_per_team <= 127:
         raise ValueError("Invalid local placement capacity")
+    if variation_seed is not None and (
+        type(variation_seed) is not int or variation_seed < 0
+    ):
+        raise ValueError("Invalid placement variation seed")
     cells = {_cell(cell) for cell in cells}
     if not cells or len({cell[:2] for cell in cells}) != len(cells):
         raise ValueError("Placement needs selected unique-height terrain")
@@ -65,8 +70,19 @@ def generate(cells, edges, seeds, *, slots_per_team=6):
         team: _distances(selected[team], cells, outgoing, selected[1 - team])
         for team in (0, 1)
     }
+
+    def candidate_order(team, cell):
+        if variation_seed is None:
+            return (distances[team][cell], cell)
+        # Keep native distance priority; vary only equally reachable cells.
+        # A durable encounter seed makes retries independent of input order.
+        tie = hashlib.sha256(
+            repr((variation_seed, team, cell)).encode("ascii")
+        ).digest()
+        return (distances[team][cell], tie, cell)
+
     candidates = {
-        team: deque(sorted(distances[team], key=lambda c: (distances[team][c], c)))
+        team: deque(sorted(distances[team], key=lambda c: candidate_order(team, c)))
         for team in (0, 1)
     }
     occupied = selected[0] | selected[1]

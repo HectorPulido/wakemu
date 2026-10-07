@@ -6,6 +6,34 @@ from wakfu_server.combat_monster_world import spawn_monster, world_actor
 
 
 class MonsterWorldTests(unittest.TestCase):
+    def test_world_spawn_r_e_carries_each_native_direction(self):
+        from protocol_codec import Reader
+
+        npc = owned_instance(5525, 1, -200, map_id=1134, x=-10, y=-2, z=-1)
+        for direction in range(8):
+            with self.subTest(direction=direction):
+                body = world_actor(npc, group_id=200, direction=direction)
+                reader = Reader(body)
+                self.assertEqual(reader.number("B"), 11)
+                reader.number("q")
+                reader.number("B")
+                reader.number("q")
+                reader.text("H")
+                reader.number("h")
+                x, y, z, map_id, encoded_direction, present = (
+                    reader.number(kind) for kind in ("i", "i", "h", "q", "B", "B")
+                )
+                self.assertEqual(
+                    (-10, -2, -1, 1134, direction, 0),
+                    (x, y, z, map_id, encoded_direction, present),
+                )
+                reader.take(len(body) - reader.pos)
+                reader.finish()
+
+        for invalid in (True, -1, 8):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                world_actor(npc, group_id=200, direction=invalid)
+
     def test_console_large_identities_survive_native_wire_fields(self):
         # Actual !mob identities reported by the current client inspector. This
         # protects the i64 contract; it does not claim that UI picking succeeds.

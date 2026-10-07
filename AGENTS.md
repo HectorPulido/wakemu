@@ -36,3 +36,32 @@ This checkout has no available Git history, so commit conventions cannot be veri
 Keep credentials, captures, certificates, databases, and logs out of commits. Preserve localhost bindings and internal service networks.
 
 For Dofus/Starloco, work remotely only: verify server, repository, and DEV branch `0.7` before editing. Report actual location, branch, commit, and push status. Promote only explicitly authorized commits to `main` or production. Never restart services without explicit authorization. Maintaining this guide locally is permitted.
+
+## Preferred delivery workflow (user instruction)
+
+### Project scope and existing authorization
+
+This repository is Wakfu/Wakemu, not Dofus/Starloco. The Dofus/Starloco remote-only and DEV branch `0.7` rules above do not apply here. Do not stop or block the Wakemu goal because of rules belonging to that other project. The user has explicitly authorized work in this local Wakemu checkout, Docker changes, and server restarts for the active issue-resolution goal; that authorization persists. Preserve combat and spell behavior and prioritize original issues without E.
+
+1. Prefer automatic, general solutions across the affected system rather than handling individual maps, species, or cases separately.
+2. Validate with automated tests; delegate testing to Luna when using sub-agents.
+3. Prepare one general manual acceptance test with exact steps, commands and expected results.
+4. Let the user review the complete result after automated verification. Request individual manual probes only to isolate a concrete failure.
+
+Keep the issue README current. Prioritize original issues without E; E issues only as dependencies or after originals. Preserve combat and spell behavior. Existing explicit session authorization remains applicable; do not request the same authorization again.
+
+
+### If you need to test something and Hector is available
+
+Let him know if he should test anything. It could be any issue; He just want you to move faster.
+
+Rules:
+Tell him exactly what to test, step by step.
+If He need something, like a command to get an object, tell him the exact command.
+Exactly what should he see?
+He's here for a limited time, so He recommends you let him test the things that are pending. You can progress much faster than with Luna, since Luna takes a long time to run tests, while He can do them in minutes.
+He prefer testing complete systems rather than small tests.
+
+### Contenedores de Wakemu
+
+Trabajar sobre un único contenedor `world`: modificarlo y reiniciarlo con la autorización persistente. No crear ni acumular servidores candidatos por versión; conservar copias de seguridad y validación automática. Esta preferencia no exige fusionar servicios distintos como PostgreSQL o IA en un único proceso.

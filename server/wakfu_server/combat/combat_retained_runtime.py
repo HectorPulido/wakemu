@@ -260,12 +260,17 @@ class NativeRetainedRuntime:
         protected = row["protected"]
         if type(protected) is not bool:
             raise ValueError("Missing native fyF.elO")
-        return dict(
-            container_present=True,
-            container_type=25 if protected else 11,
-            container_is_spell=True,
-            spell_protected=protected,
-        ), (spell << 16) + (level & 255)
+        identity = (spell << 16) + (level & 255)
+        return (
+            dict(
+                container_present=True,
+                container_type=25 if protected else 11,
+                container_id=identity,
+                container_is_spell=True,
+                spell_protected=protected,
+            ),
+            identity,
+        )
 
     @contextmanager
     def applied_state_scope(self, entry):
@@ -589,6 +594,157 @@ class NativeRetainedRuntime:
         self.container(invocation)  # Validate identity and native spell metadata.
         return True, self.plan.get("evaluation_level")
 
+    def replay_container(self, row, entry, invocation):
+        """Validate and return the PL snapshot required by an event clone.
+
+        A checkpoint predating the snapshot is reconstructed only from its
+        serialized native PL, original parent-root invocation and matching
+        native spell tree. Otherwise replay fails closed; it never borrows a
+        level from its generic dispatcher or guesses from a child/container ID.
+        """
+        if invocation.state_uid is not None:
+            if row.get("native_retained_container") is not None:
+                raise ValueError("State-owned listener has an unexpected PL snapshot")
+            return None
+        context = row.get("native_retained_container")
+        if context is None:
+            if entry.container_present is False:
+                return {"present": False}
+            if entry.container_present is True:
+                context = self._legacy_spell_container(row, entry, invocation)
+            if context is not None:
+                return self._validate_replay_container(
+                    context, entry, allow_missing_id=True
+                )
+            raise ValueError("Missing retained PL snapshot for event replay")
+        return self._validate_replay_container(context, entry)
+
+    @staticmethod
+    def _validate_replay_container(context, entry, *, allow_missing_id=False):
+        if not isinstance(context, dict) or type(context.get("present")) is not bool:
+            raise ValueError("Malformed retained PL snapshot")
+        if context["present"] is not entry.container_present:
+            raise ValueError("Retained PL snapshot differs from registered container")
+        if not context["present"]:
+            return {"present": False}
+        if (
+            type(context.get("type")) is not int
+            or not -(1 << 31) <= context["type"] < (1 << 31)
+            or type(context.get("id")) is not int
+            or not -(1 << 63) <= context["id"] < (1 << 63)
+            or type(context.get("is_spell")) is not bool
+            or type(entry.container_is_spell) is not bool
+            or (entry.container_is_spell and type(context.get("protected")) is not bool)
+        ):
+            raise ValueError("Malformed retained PL identity types")
+        for key, value in (
+            ("type", entry.container_type),
+            ("id", entry.container_id),
+            ("is_spell", entry.container_is_spell),
+            ("protected", entry.spell_protected),
+        ):
+            if key == "id" and value is None and allow_missing_id:
+                continue
+            if context.get(key) != value:
+                raise ValueError("Retained PL snapshot identity mismatch")
+        if entry.container_kind is not None and context.get("native_kind") not in (
+            None,
+            entry.container_kind,
+        ):
+            raise ValueError("Retained PL snapshot kind mismatch")
+        if entry.container_is_spell:
+            spell, level = context.get("spell_id"), context.get("level")
+            identity = context.get("id")
+            if (
+                type(spell) is not int
+                or spell <= 0
+                or type(level) is not int
+                or not 0 <= level <= 32767
+                or type(identity) is not int
+                or identity != (spell << 16) | (level & 0xFF)
+                or entry.container_id not in (None, identity)
+            ):
+                raise ValueError("Invalid retained spell PL level authority")
+        elif "level" in context and (
+            type(context["level"]) is not int or not -32768 <= context["level"] <= 32767
+        ):
+            raise ValueError("Invalid retained direct PL level")
+        return dict(context)
+
+    def _legacy_spell_container(self, row, entry, invocation):
+        """Migrate a trusted older group checkpoint from its native PL bytes.
+
+        The spell identity comes from Qe's serialized container fields. The
+        level comes from the stored *parent root invocation*, and is accepted
+        only when its exact identity formula and native spell-effect tree agree.
+        A child level or the container ID's low byte is never used as a source.
+        """
+        if entry.container_is_spell is not True or entry.container_type not in (11, 25):
+            return None
+        try:
+            payload = bytes.fromhex(row["payload"])
+            fields = _identity_fields(payload, integer_fields=(9, 10))
+        except (KeyError, TypeError, ValueError):
+            return None
+        if 9 not in fields or 10 not in fields:
+            return None
+        container_type, identity = fields[9], fields[10]
+        if (
+            container_type != entry.container_type
+            or entry.container_id not in (None, identity)
+            or type(identity) is not int
+            or identity <= 0
+        ):
+            return None
+        spell = identity >> 16
+        level = invocation.level
+        if (
+            type(spell) is not int
+            or spell <= 0
+            or type(level) is not int
+            or not 1 <= level <= 200
+            or identity != (spell << 16) | (level & 0xFF)
+        ):
+            return None
+        owner = self.fight.actors.get(invocation.caster_id)
+        if owner is None or owner.effective_level < level:
+            return None
+        from .spell_audit import catalog as spell_catalog
+        from .combat_native_spell_casting import catalog as casting_catalog
+
+        tree = spell_catalog()
+        spell_tree = tree["spells"].get(str(spell))
+        casting = casting_catalog().get(str(spell))
+        if spell_tree is None or casting is None or level > len(spell_tree["levels"]):
+            return None
+        protected = casting.get("protected")
+        if type(protected) is not bool or entry.container_type != (
+            25 if protected else 11
+        ):
+            return None
+        roots = spell_tree["levels"][level - 1][2]
+        pending = list(roots)
+        visited = set()
+        while pending:
+            reference = pending.pop()
+            if reference == invocation.reference:
+                return {
+                    "present": True,
+                    "type": container_type,
+                    "id": identity,
+                    "is_spell": True,
+                    "protected": protected,
+                    "spell_id": spell,
+                    "level": level,
+                }
+            if reference in visited:
+                continue
+            visited.add(reference)
+            effect = tree["effects"].get(str(reference))
+            if effect is not None:
+                pending.extend(effect.get("children", ()))
+        return None
+
     def transmit_child_override(self, effect, invocation, override):
         from .combat_group_level_transmission import transmitted_child_override
 
@@ -794,6 +950,41 @@ class NativeRetainedRuntime:
         ):
             raise ValueError("Unaudited target-less retained native runner")
         container, identity = self.container(invocation)
+        replay_container = None
+        if invocation.state_uid is None:
+            # Event replay uses a fight-scoped dispatcher, whose plan has no
+            # relation to the spell that registered this listener. Preserve
+            # the exact PL authority at registration so the replayed clone can
+            # construct children with the same parent container level.
+            direct = invocation.native_retained_container
+            if direct is None:
+                direct = self.plan.get("native_retained_container")
+            if direct is not None:
+                replay_container = dict(direct)
+            elif container["container_present"]:
+                spell = self.plan.get("spell_id")
+                level = self.plan.get("evaluation_level")
+                if (
+                    type(spell) is not int
+                    or spell <= 0
+                    or type(level) is not int
+                    or not 0 <= level <= 32767
+                    or container["container_is_spell"] is not True
+                ):
+                    raise ValueError(
+                        "Missing authoritative retained spell container level"
+                    )
+                replay_container = {
+                    "present": True,
+                    "type": container["container_type"],
+                    "id": identity,
+                    "is_spell": True,
+                    "protected": container["spell_protected"],
+                    "spell_id": spell,
+                    "level": level,
+                }
+            else:
+                replay_container = {"present": False}
         context = self.timing.stat(self.fight, self.plan, effect, invocation)
         uid = self.fight.allocate_effect_uid()
         payload = group_payload(
@@ -848,6 +1039,7 @@ class NativeRetainedRuntime:
             target_id=invocation.target_id,
             effect_class=effect["effect_class"],
             state_uid=invocation.state_uid,
+            native_retained_container=replay_container,
             payload=payload.hex(),
             timer=None if context.timer is None else dict(vars(context.timer)),
             invocation=dict(vars(invocation), native_value_scope=None),

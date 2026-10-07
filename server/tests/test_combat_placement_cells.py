@@ -4,6 +4,70 @@ from wakfu_server.combat_wire import arena, topology, decode_topology
 
 
 class PlacementCellTests(unittest.TestCase):
+    def test_variation_on_exported_native_maps_preserves_wire_and_terrain(self):
+        from wakfu_server.combat_terrain import map_geometry
+        from wakfu_server.combat_arena_selection import bounded_arena
+
+        varied = False
+        for map_id in (1134, 527):
+            geometry = map_geometry(map_id)
+            selected = None
+            for player, enemy in geometry["edges"][:100]:
+                try:
+                    candidate = bounded_arena(geometry, player, [enemy], radius=12)
+                except ValueError:
+                    continue
+                if len(candidate["cells"]) >= 24:
+                    selected = candidate
+                    break
+            self.assertIsNotNone(selected, f"Native map {map_id} has no fixture arena")
+            seeds = {0: {tuple(player)}, 1: {tuple(enemy)}}
+            layouts = set()
+            for identity in range(10):
+                placement = generate(
+                    selected["cells"],
+                    selected["edges"],
+                    seeds,
+                    slots_per_team=12,
+                    variation_seed=identity,
+                )
+                self.assertFalse(placement[0] & placement[1])
+                for team in (0, 1):
+                    self.assertTrue(seeds[team] <= placement[team] <= selected["cells"])
+                wire = decode_topology(
+                    topology(arena(map_id, 1, sorted(selected["cells"]), placement))
+                )
+                self.assertEqual(wire["cell_flags"].count(0), len(placement[0]))
+                self.assertEqual(wire["cell_flags"].count(1), len(placement[1]))
+                layouts.add(tuple(tuple(sorted(placement[t])) for t in (0, 1)))
+            varied |= len(layouts) > 1
+        self.assertTrue(varied, "Encounter seeds did not vary either native arena")
+
+    def test_encounter_seed_varies_legal_layout_and_is_stable_on_retry(self):
+        cells, edges = self.grid()
+        seeds = {0: {(0, 0, 0)}, 1: {(7, 3, 0)}}
+        layouts = set()
+        for identity in range(20):
+            placement = generate(
+                cells, edges, seeds, slots_per_team=4, variation_seed=identity
+            )
+            self.assertEqual(
+                placement,
+                generate(
+                    reversed(sorted(cells)),
+                    reversed(sorted(edges)),
+                    seeds,
+                    slots_per_team=4,
+                    variation_seed=identity,
+                ),
+            )
+            self.assertFalse(placement[0] & placement[1])
+            for team in (0, 1):
+                self.assertEqual(len(placement[team]), 4)
+                self.assertTrue(seeds[team] <= placement[team] <= cells)
+            layouts.add(tuple(tuple(sorted(placement[t])) for t in (0, 1)))
+        self.assertGreater(len(layouts), 1)
+
     def grid(self):
         cells = {(x, y, 0) for x in range(8) for y in range(4)}
         edges = {

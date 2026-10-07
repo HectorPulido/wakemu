@@ -11,3 +11,9 @@ El cambio parcial de nivel, XP, salud y hojas fijas ya tiene cobertura PostgreSQ
 La migración de la hoja 49→50 descrita en los probes viejos fue reemplazada por el comportamiento actual de hoja fija válida. Esos probes quedan como evidencia histórica del defecto previo, no como resultado vigente.
 
 Dependencias: 9, 17 y 34. El motor de hechizos no se modificó en esta revalidación.
+
+## Aceptación manual y defecto de biblioteca — 6 de octubre
+
+El usuario confirma que Npers sube correctamente de nivel. Captura de Personaje: nivel50,550PdV,6PA,3PM,6PW; builds24/24 con CupoReemplazo activa. La biblioteca mantiene hechizos grises con requisitos inferiores al nivel actual. Por tanto la subida visual está confirmada, pero **el desbloqueo de hechizos al subir no funciona** según la prueba del usuario. Esta evidencia no basta para inferir qué carrier o cache es responsable: hay que cotejar actualización de biblioteca y nivel efectivo con la sesión que mantiene los hechizos.
+
+No se modifican codecs, catálogo ni motor de hechizos desde esta tarea. E06 continúa **Solucionado parcialmente**: modulación integral y desbloqueo de biblioteca pendientes; la subida de nivel básica no debe volver a figurar como prueba visual no ejecutada.

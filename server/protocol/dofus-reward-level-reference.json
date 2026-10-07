@@ -1,0 +1,3098 @@
+{
+  "observed_levels": [
+    {
+      "level": 1,
+      "monster_grade_count": 55,
+      "base_xp_median": 100,
+      "min_kamas_median": 25,
+      "max_kamas_median": 45
+    },
+    {
+      "level": 2,
+      "monster_grade_count": 50,
+      "base_xp_median": 100,
+      "min_kamas_median": 25,
+      "max_kamas_median": 45
+    },
+    {
+      "level": 3,
+      "monster_grade_count": 46,
+      "base_xp_median": 122,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 4,
+      "monster_grade_count": 33,
+      "base_xp_median": 150,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 5,
+      "monster_grade_count": 39,
+      "base_xp_median": 180,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 6,
+      "monster_grade_count": 32,
+      "base_xp_median": 300,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 7,
+      "monster_grade_count": 15,
+      "base_xp_median": 350,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 8,
+      "monster_grade_count": 17,
+      "base_xp_median": 633,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 9,
+      "monster_grade_count": 17,
+      "base_xp_median": 800,
+      "min_kamas_median": 30,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 10,
+      "monster_grade_count": 103,
+      "base_xp_median": 100,
+      "min_kamas_median": 1,
+      "max_kamas_median": 5
+    },
+    {
+      "level": 11,
+      "monster_grade_count": 22,
+      "base_xp_median": 1000,
+      "min_kamas_median": 17,
+      "max_kamas_median": 42
+    },
+    {
+      "level": 12,
+      "monster_grade_count": 45,
+      "base_xp_median": 1100,
+      "min_kamas_median": 10,
+      "max_kamas_median": 40
+    },
+    {
+      "level": 13,
+      "monster_grade_count": 24,
+      "base_xp_median": 1250,
+      "min_kamas_median": 50,
+      "max_kamas_median": 60
+    },
+    {
+      "level": 14,
+      "monster_grade_count": 29,
+      "base_xp_median": 1500,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 15,
+      "monster_grade_count": 28,
+      "base_xp_median": 1817,
+      "min_kamas_median": 27,
+      "max_kamas_median": 55
+    },
+    {
+      "level": 16,
+      "monster_grade_count": 29,
+      "base_xp_median": 1901,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 17,
+      "monster_grade_count": 28,
+      "base_xp_median": 2117,
+      "min_kamas_median": 20,
+      "max_kamas_median": 40
+    },
+    {
+      "level": 18,
+      "monster_grade_count": 40,
+      "base_xp_median": 2316,
+      "min_kamas_median": 25,
+      "max_kamas_median": 45
+    },
+    {
+      "level": 19,
+      "monster_grade_count": 28,
+      "base_xp_median": 2482,
+      "min_kamas_median": 20,
+      "max_kamas_median": 40
+    },
+    {
+      "level": 20,
+      "monster_grade_count": 129,
+      "base_xp_median": 1000,
+      "min_kamas_median": 1,
+      "max_kamas_median": 5
+    },
+    {
+      "level": 21,
+      "monster_grade_count": 32,
+      "base_xp_median": 2895,
+      "min_kamas_median": 22,
+      "max_kamas_median": 40
+    },
+    {
+      "level": 22,
+      "monster_grade_count": 38,
+      "base_xp_median": 3148,
+      "min_kamas_median": 20,
+      "max_kamas_median": 40
+    },
+    {
+      "level": 23,
+      "monster_grade_count": 31,
+      "base_xp_median": 3000,
+      "min_kamas_median": 20,
+      "max_kamas_median": 40
+    },
+    {
+      "level": 24,
+      "monster_grade_count": 35,
+      "base_xp_median": 3200,
+      "min_kamas_median": 20,
+      "max_kamas_median": 40
+    },
+    {
+      "level": 25,
+      "monster_grade_count": 33,
+      "base_xp_median": 3900,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 26,
+      "monster_grade_count": 27,
+      "base_xp_median": 3400,
+      "min_kamas_median": 50,
+      "max_kamas_median": 50
+    },
+    {
+      "level": 27,
+      "monster_grade_count": 14,
+      "base_xp_median": 3400,
+      "min_kamas_median": 32,
+      "max_kamas_median": 52
+    },
+    {
+      "level": 28,
+      "monster_grade_count": 31,
+      "base_xp_median": 4250,
+      "min_kamas_median": 10,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 29,
+      "monster_grade_count": 9,
+      "base_xp_median": 4123,
+      "min_kamas_median": 15,
+      "max_kamas_median": 23
+    },
+    {
+      "level": 30,
+      "monster_grade_count": 140,
+      "base_xp_median": 3000,
+      "min_kamas_median": 1,
+      "max_kamas_median": 5
+    },
+    {
+      "level": 31,
+      "monster_grade_count": 13,
+      "base_xp_median": 4991,
+      "min_kamas_median": 10,
+      "max_kamas_median": 23
+    },
+    {
+      "level": 32,
+      "monster_grade_count": 27,
+      "base_xp_median": 5200,
+      "min_kamas_median": 30,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 33,
+      "monster_grade_count": 11,
+      "base_xp_median": 5150,
+      "min_kamas_median": 15,
+      "max_kamas_median": 50
+    },
+    {
+      "level": 34,
+      "monster_grade_count": 31,
+      "base_xp_median": 5800,
+      "min_kamas_median": 15,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 35,
+      "monster_grade_count": 55,
+      "base_xp_median": 6300,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 36,
+      "monster_grade_count": 41,
+      "base_xp_median": 6000,
+      "min_kamas_median": 30,
+      "max_kamas_median": 42
+    },
+    {
+      "level": 37,
+      "monster_grade_count": 12,
+      "base_xp_median": 6550,
+      "min_kamas_median": 40,
+      "max_kamas_median": 60
+    },
+    {
+      "level": 38,
+      "monster_grade_count": 61,
+      "base_xp_median": 7000,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 39,
+      "monster_grade_count": 30,
+      "base_xp_median": 7000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 40,
+      "monster_grade_count": 169,
+      "base_xp_median": 4000,
+      "min_kamas_median": 1,
+      "max_kamas_median": 5
+    },
+    {
+      "level": 41,
+      "monster_grade_count": 45,
+      "base_xp_median": 7700,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 42,
+      "monster_grade_count": 41,
+      "base_xp_median": 7953,
+      "min_kamas_median": 10,
+      "max_kamas_median": 50
+    },
+    {
+      "level": 43,
+      "monster_grade_count": 25,
+      "base_xp_median": 7500,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 44,
+      "monster_grade_count": 64,
+      "base_xp_median": 8400,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 45,
+      "monster_grade_count": 26,
+      "base_xp_median": 8525,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 46,
+      "monster_grade_count": 33,
+      "base_xp_median": 9113,
+      "min_kamas_median": 10,
+      "max_kamas_median": 35
+    },
+    {
+      "level": 47,
+      "monster_grade_count": 46,
+      "base_xp_median": 9100,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 48,
+      "monster_grade_count": 37,
+      "base_xp_median": 9245,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 49,
+      "monster_grade_count": 13,
+      "base_xp_median": 10000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 50,
+      "monster_grade_count": 156,
+      "base_xp_median": 5000,
+      "min_kamas_median": 1,
+      "max_kamas_median": 5
+    },
+    {
+      "level": 51,
+      "monster_grade_count": 17,
+      "base_xp_median": 10500,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 52,
+      "monster_grade_count": 21,
+      "base_xp_median": 10800,
+      "min_kamas_median": 20,
+      "max_kamas_median": 60
+    },
+    {
+      "level": 53,
+      "monster_grade_count": 5,
+      "base_xp_median": 11000,
+      "min_kamas_median": 10,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 54,
+      "monster_grade_count": 20,
+      "base_xp_median": 11366,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 55,
+      "monster_grade_count": 16,
+      "base_xp_median": 10000,
+      "min_kamas_median": 45,
+      "max_kamas_median": 50
+    },
+    {
+      "level": 56,
+      "monster_grade_count": 14,
+      "base_xp_median": 12436,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 57,
+      "monster_grade_count": 10,
+      "base_xp_median": 11444,
+      "min_kamas_median": 12,
+      "max_kamas_median": 50
+    },
+    {
+      "level": 58,
+      "monster_grade_count": 15,
+      "base_xp_median": 12528,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 59,
+      "monster_grade_count": 4,
+      "base_xp_median": 11485,
+      "min_kamas_median": 12,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 60,
+      "monster_grade_count": 90,
+      "base_xp_median": 10000,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 61,
+      "monster_grade_count": 7,
+      "base_xp_median": 11500,
+      "min_kamas_median": 10,
+      "max_kamas_median": 50
+    },
+    {
+      "level": 62,
+      "monster_grade_count": 16,
+      "base_xp_median": 14750,
+      "min_kamas_median": 7,
+      "max_kamas_median": 27
+    },
+    {
+      "level": 63,
+      "monster_grade_count": 6,
+      "base_xp_median": 13971,
+      "min_kamas_median": 12,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 64,
+      "monster_grade_count": 16,
+      "base_xp_median": 15250,
+      "min_kamas_median": 7,
+      "max_kamas_median": 27
+    },
+    {
+      "level": 65,
+      "monster_grade_count": 21,
+      "base_xp_median": 13246,
+      "min_kamas_median": 30,
+      "max_kamas_median": 50
+    },
+    {
+      "level": 66,
+      "monster_grade_count": 18,
+      "base_xp_median": 15750,
+      "min_kamas_median": 10,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 67,
+      "monster_grade_count": 1,
+      "base_xp_median": 10483,
+      "min_kamas_median": 30,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 68,
+      "monster_grade_count": 15,
+      "base_xp_median": 17000,
+      "min_kamas_median": 10,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 69,
+      "monster_grade_count": 10,
+      "base_xp_median": 15330,
+      "min_kamas_median": 10,
+      "max_kamas_median": 40
+    },
+    {
+      "level": 70,
+      "monster_grade_count": 68,
+      "base_xp_median": 7000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 9
+    },
+    {
+      "level": 71,
+      "monster_grade_count": 1,
+      "base_xp_median": 18000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 72,
+      "monster_grade_count": 13,
+      "base_xp_median": 18000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 73,
+      "monster_grade_count": 8,
+      "base_xp_median": 17250,
+      "min_kamas_median": 7,
+      "max_kamas_median": 37
+    },
+    {
+      "level": 74,
+      "monster_grade_count": 11,
+      "base_xp_median": 19000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 75,
+      "monster_grade_count": 31,
+      "base_xp_median": 18750,
+      "min_kamas_median": 50,
+      "max_kamas_median": 60
+    },
+    {
+      "level": 76,
+      "monster_grade_count": 9,
+      "base_xp_median": 20000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 77,
+      "monster_grade_count": 4,
+      "base_xp_median": 17986,
+      "min_kamas_median": 50,
+      "max_kamas_median": 65
+    },
+    {
+      "level": 78,
+      "monster_grade_count": 14,
+      "base_xp_median": 21000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 79,
+      "monster_grade_count": 6,
+      "base_xp_median": 20000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 80,
+      "monster_grade_count": 80,
+      "base_xp_median": 20000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 81,
+      "monster_grade_count": 10,
+      "base_xp_median": 19850,
+      "min_kamas_median": 22,
+      "max_kamas_median": 32
+    },
+    {
+      "level": 82,
+      "monster_grade_count": 11,
+      "base_xp_median": 21000,
+      "min_kamas_median": 10,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 83,
+      "monster_grade_count": 10,
+      "base_xp_median": 20000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 84,
+      "monster_grade_count": 18,
+      "base_xp_median": 21000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 85,
+      "monster_grade_count": 11,
+      "base_xp_median": 18000,
+      "min_kamas_median": 30,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 86,
+      "monster_grade_count": 14,
+      "base_xp_median": 23000,
+      "min_kamas_median": 10,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 87,
+      "monster_grade_count": 10,
+      "base_xp_median": 51500,
+      "min_kamas_median": 10,
+      "max_kamas_median": 17
+    },
+    {
+      "level": 88,
+      "monster_grade_count": 13,
+      "base_xp_median": 22200,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 89,
+      "monster_grade_count": 12,
+      "base_xp_median": 24500,
+      "min_kamas_median": 7,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 90,
+      "monster_grade_count": 27,
+      "base_xp_median": 26000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 91,
+      "monster_grade_count": 10,
+      "base_xp_median": 25000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 92,
+      "monster_grade_count": 27,
+      "base_xp_median": 25500,
+      "min_kamas_median": 10,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 93,
+      "monster_grade_count": 2,
+      "base_xp_median": 13700,
+      "min_kamas_median": 15,
+      "max_kamas_median": 27
+    },
+    {
+      "level": 94,
+      "monster_grade_count": 13,
+      "base_xp_median": 31000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 95,
+      "monster_grade_count": 3,
+      "base_xp_median": 29000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 90
+    },
+    {
+      "level": 96,
+      "monster_grade_count": 20,
+      "base_xp_median": 27500,
+      "min_kamas_median": 20,
+      "max_kamas_median": 40
+    },
+    {
+      "level": 97,
+      "monster_grade_count": 3,
+      "base_xp_median": 28000,
+      "min_kamas_median": 10,
+      "max_kamas_median": 50
+    },
+    {
+      "level": 98,
+      "monster_grade_count": 9,
+      "base_xp_median": 34000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 99,
+      "monster_grade_count": 3,
+      "base_xp_median": 30000,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 100,
+      "monster_grade_count": 72,
+      "base_xp_median": 30000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 10
+    },
+    {
+      "level": 101,
+      "monster_grade_count": 8,
+      "base_xp_median": 30000,
+      "min_kamas_median": 2,
+      "max_kamas_median": 12
+    },
+    {
+      "level": 102,
+      "monster_grade_count": 10,
+      "base_xp_median": 31000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 103,
+      "monster_grade_count": 3,
+      "base_xp_median": 30000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 104,
+      "monster_grade_count": 7,
+      "base_xp_median": 32000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 105,
+      "monster_grade_count": 17,
+      "base_xp_median": 36000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 106,
+      "monster_grade_count": 9,
+      "base_xp_median": 33000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 107,
+      "monster_grade_count": 7,
+      "base_xp_median": 40000,
+      "min_kamas_median": 10,
+      "max_kamas_median": 10
+    },
+    {
+      "level": 108,
+      "monster_grade_count": 6,
+      "base_xp_median": 34000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 109,
+      "monster_grade_count": 5,
+      "base_xp_median": 35000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 110,
+      "monster_grade_count": 34,
+      "base_xp_median": 37000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 50
+    },
+    {
+      "level": 111,
+      "monster_grade_count": 6,
+      "base_xp_median": 35000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 112,
+      "monster_grade_count": 8,
+      "base_xp_median": 36000,
+      "min_kamas_median": 27,
+      "max_kamas_median": 47
+    },
+    {
+      "level": 113,
+      "monster_grade_count": 8,
+      "base_xp_median": 56000,
+      "min_kamas_median": 252,
+      "max_kamas_median": 762
+    },
+    {
+      "level": 114,
+      "monster_grade_count": 5,
+      "base_xp_median": 37000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 115,
+      "monster_grade_count": 15,
+      "base_xp_median": 49000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 90
+    },
+    {
+      "level": 116,
+      "monster_grade_count": 9,
+      "base_xp_median": 39000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 118,
+      "monster_grade_count": 6,
+      "base_xp_median": 39000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 70
+    },
+    {
+      "level": 119,
+      "monster_grade_count": 3,
+      "base_xp_median": 40000,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 120,
+      "monster_grade_count": 37,
+      "base_xp_median": 32500,
+      "min_kamas_median": 10,
+      "max_kamas_median": 50
+    },
+    {
+      "level": 121,
+      "monster_grade_count": 4,
+      "base_xp_median": 41000,
+      "min_kamas_median": 2,
+      "max_kamas_median": 12
+    },
+    {
+      "level": 123,
+      "monster_grade_count": 4,
+      "base_xp_median": 43000,
+      "min_kamas_median": 2,
+      "max_kamas_median": 12
+    },
+    {
+      "level": 124,
+      "monster_grade_count": 1,
+      "base_xp_median": 42000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 125,
+      "monster_grade_count": 14,
+      "base_xp_median": 47000,
+      "min_kamas_median": 40,
+      "max_kamas_median": 60
+    },
+    {
+      "level": 126,
+      "monster_grade_count": 5,
+      "base_xp_median": 100000,
+      "min_kamas_median": 500,
+      "max_kamas_median": 1500
+    },
+    {
+      "level": 127,
+      "monster_grade_count": 6,
+      "base_xp_median": 41000,
+      "min_kamas_median": 40,
+      "max_kamas_median": 60
+    },
+    {
+      "level": 128,
+      "monster_grade_count": 3,
+      "base_xp_median": 75000,
+      "min_kamas_median": 500,
+      "max_kamas_median": 1500
+    },
+    {
+      "level": 129,
+      "monster_grade_count": 5,
+      "base_xp_median": 42000,
+      "min_kamas_median": 40,
+      "max_kamas_median": 60
+    },
+    {
+      "level": 130,
+      "monster_grade_count": 13,
+      "base_xp_median": 47000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 131,
+      "monster_grade_count": 7,
+      "base_xp_median": 43000,
+      "min_kamas_median": 40,
+      "max_kamas_median": 60
+    },
+    {
+      "level": 132,
+      "monster_grade_count": 2,
+      "base_xp_median": 73000,
+      "min_kamas_median": 27,
+      "max_kamas_median": 62
+    },
+    {
+      "level": 133,
+      "monster_grade_count": 8,
+      "base_xp_median": 44500,
+      "min_kamas_median": 40,
+      "max_kamas_median": 60
+    },
+    {
+      "level": 134,
+      "monster_grade_count": 1,
+      "base_xp_median": 49000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 135,
+      "monster_grade_count": 7,
+      "base_xp_median": 130000,
+      "min_kamas_median": 500,
+      "max_kamas_median": 1500
+    },
+    {
+      "level": 138,
+      "monster_grade_count": 2,
+      "base_xp_median": 75000,
+      "min_kamas_median": 500,
+      "max_kamas_median": 1500
+    },
+    {
+      "level": 139,
+      "monster_grade_count": 9,
+      "base_xp_median": 54000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 140,
+      "monster_grade_count": 22,
+      "base_xp_median": 42500,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 141,
+      "monster_grade_count": 3,
+      "base_xp_median": 100000,
+      "min_kamas_median": 500,
+      "max_kamas_median": 1500
+    },
+    {
+      "level": 143,
+      "monster_grade_count": 1,
+      "base_xp_median": 50000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 144,
+      "monster_grade_count": 3,
+      "base_xp_median": 125000,
+      "min_kamas_median": 500,
+      "max_kamas_median": 1500
+    },
+    {
+      "level": 145,
+      "monster_grade_count": 2,
+      "base_xp_median": 145000,
+      "min_kamas_median": 175,
+      "max_kamas_median": 295
+    },
+    {
+      "level": 146,
+      "monster_grade_count": 2,
+      "base_xp_median": 15426,
+      "min_kamas_median": 10,
+      "max_kamas_median": 50
+    },
+    {
+      "level": 147,
+      "monster_grade_count": 2,
+      "base_xp_median": 150000,
+      "min_kamas_median": 500,
+      "max_kamas_median": 1500
+    },
+    {
+      "level": 148,
+      "monster_grade_count": 5,
+      "base_xp_median": 59000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 149,
+      "monster_grade_count": 1,
+      "base_xp_median": 60000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 150,
+      "monster_grade_count": 9,
+      "base_xp_median": 75000,
+      "min_kamas_median": 500,
+      "max_kamas_median": 1500
+    },
+    {
+      "level": 151,
+      "monster_grade_count": 1,
+      "base_xp_median": 90000,
+      "min_kamas_median": 20,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 152,
+      "monster_grade_count": 2,
+      "base_xp_median": 59000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 153,
+      "monster_grade_count": 1,
+      "base_xp_median": 64000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 155,
+      "monster_grade_count": 3,
+      "base_xp_median": 65000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 156,
+      "monster_grade_count": 1,
+      "base_xp_median": 100000,
+      "min_kamas_median": 20,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 158,
+      "monster_grade_count": 2,
+      "base_xp_median": 200000,
+      "min_kamas_median": 5005,
+      "max_kamas_median": 7525
+    },
+    {
+      "level": 159,
+      "monster_grade_count": 1,
+      "base_xp_median": 67000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 160,
+      "monster_grade_count": 23,
+      "base_xp_median": 50000,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 162,
+      "monster_grade_count": 3,
+      "base_xp_median": 70000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 163,
+      "monster_grade_count": 1,
+      "base_xp_median": 120000,
+      "min_kamas_median": 20,
+      "max_kamas_median": 30
+    },
+    {
+      "level": 164,
+      "monster_grade_count": 1,
+      "base_xp_median": 42000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 90
+    },
+    {
+      "level": 165,
+      "monster_grade_count": 4,
+      "base_xp_median": 72500,
+      "min_kamas_median": 75,
+      "max_kamas_median": 160
+    },
+    {
+      "level": 167,
+      "monster_grade_count": 1,
+      "base_xp_median": 74000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 168,
+      "monster_grade_count": 3,
+      "base_xp_median": 210000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 90
+    },
+    {
+      "level": 169,
+      "monster_grade_count": 2,
+      "base_xp_median": 107500,
+      "min_kamas_median": 12,
+      "max_kamas_median": 27
+    },
+    {
+      "level": 170,
+      "monster_grade_count": 8,
+      "base_xp_median": 86500,
+      "min_kamas_median": 50,
+      "max_kamas_median": 110
+    },
+    {
+      "level": 172,
+      "monster_grade_count": 1,
+      "base_xp_median": 46500,
+      "min_kamas_median": 50,
+      "max_kamas_median": 90
+    },
+    {
+      "level": 173,
+      "monster_grade_count": 2,
+      "base_xp_median": 160000,
+      "min_kamas_median": 35,
+      "max_kamas_median": 65
+    },
+    {
+      "level": 174,
+      "monster_grade_count": 1,
+      "base_xp_median": 79000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 175,
+      "monster_grade_count": 3,
+      "base_xp_median": 80000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 130
+    },
+    {
+      "level": 176,
+      "monster_grade_count": 2,
+      "base_xp_median": 64625,
+      "min_kamas_median": 27,
+      "max_kamas_median": 57
+    },
+    {
+      "level": 178,
+      "monster_grade_count": 2,
+      "base_xp_median": 220000,
+      "min_kamas_median": 5005,
+      "max_kamas_median": 7525
+    },
+    {
+      "level": 180,
+      "monster_grade_count": 18,
+      "base_xp_median": 55000,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 181,
+      "monster_grade_count": 1,
+      "base_xp_median": 84000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 184,
+      "monster_grade_count": 1,
+      "base_xp_median": 2000,
+      "min_kamas_median": 0,
+      "max_kamas_median": 0
+    },
+    {
+      "level": 185,
+      "monster_grade_count": 1,
+      "base_xp_median": 54000,
+      "min_kamas_median": 50,
+      "max_kamas_median": 130
+    },
+    {
+      "level": 188,
+      "monster_grade_count": 4,
+      "base_xp_median": 160000,
+      "min_kamas_median": 7,
+      "max_kamas_median": 37
+    },
+    {
+      "level": 189,
+      "monster_grade_count": 1,
+      "base_xp_median": 91000,
+      "min_kamas_median": 5,
+      "max_kamas_median": 25
+    },
+    {
+      "level": 190,
+      "monster_grade_count": 2,
+      "base_xp_median": 122750,
+      "min_kamas_median": 27,
+      "max_kamas_median": 57
+    },
+    {
+      "level": 198,
+      "monster_grade_count": 2,
+      "base_xp_median": 240000,
+      "min_kamas_median": 5005,
+      "max_kamas_median": 7525
+    },
+    {
+      "level": 200,
+      "monster_grade_count": 27,
+      "base_xp_median": 67500,
+      "min_kamas_median": 50,
+      "max_kamas_median": 90
+    }
+  ],
+  "defaults_by_level": [
+    {
+      "level": 1,
+      "source_level": 1,
+      "monster_grade_count": 55,
+      "base_xp": 100,
+      "min_kamas": 25,
+      "max_kamas": 45,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 2,
+      "source_level": 2,
+      "monster_grade_count": 50,
+      "base_xp": 100,
+      "min_kamas": 25,
+      "max_kamas": 45,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 3,
+      "source_level": 3,
+      "monster_grade_count": 46,
+      "base_xp": 122,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 4,
+      "source_level": 4,
+      "monster_grade_count": 33,
+      "base_xp": 150,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 5,
+      "source_level": 5,
+      "monster_grade_count": 39,
+      "base_xp": 180,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 6,
+      "source_level": 6,
+      "monster_grade_count": 32,
+      "base_xp": 300,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 7,
+      "source_level": 7,
+      "monster_grade_count": 15,
+      "base_xp": 350,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 8,
+      "source_level": 8,
+      "monster_grade_count": 17,
+      "base_xp": 633,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 9,
+      "source_level": 9,
+      "monster_grade_count": 17,
+      "base_xp": 800,
+      "min_kamas": 30,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 10,
+      "source_level": 10,
+      "monster_grade_count": 103,
+      "base_xp": 100,
+      "min_kamas": 1,
+      "max_kamas": 5,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 11,
+      "source_level": 11,
+      "monster_grade_count": 22,
+      "base_xp": 1000,
+      "min_kamas": 17,
+      "max_kamas": 42,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 12,
+      "source_level": 12,
+      "monster_grade_count": 45,
+      "base_xp": 1100,
+      "min_kamas": 10,
+      "max_kamas": 40,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 13,
+      "source_level": 13,
+      "monster_grade_count": 24,
+      "base_xp": 1250,
+      "min_kamas": 50,
+      "max_kamas": 60,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 14,
+      "source_level": 14,
+      "monster_grade_count": 29,
+      "base_xp": 1500,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 15,
+      "source_level": 15,
+      "monster_grade_count": 28,
+      "base_xp": 1817,
+      "min_kamas": 27,
+      "max_kamas": 55,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 16,
+      "source_level": 16,
+      "monster_grade_count": 29,
+      "base_xp": 1901,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 17,
+      "source_level": 17,
+      "monster_grade_count": 28,
+      "base_xp": 2117,
+      "min_kamas": 20,
+      "max_kamas": 40,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 18,
+      "source_level": 18,
+      "monster_grade_count": 40,
+      "base_xp": 2316,
+      "min_kamas": 25,
+      "max_kamas": 45,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 19,
+      "source_level": 19,
+      "monster_grade_count": 28,
+      "base_xp": 2482,
+      "min_kamas": 20,
+      "max_kamas": 40,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 20,
+      "source_level": 20,
+      "monster_grade_count": 129,
+      "base_xp": 1000,
+      "min_kamas": 1,
+      "max_kamas": 5,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 21,
+      "source_level": 21,
+      "monster_grade_count": 32,
+      "base_xp": 2895,
+      "min_kamas": 22,
+      "max_kamas": 40,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 22,
+      "source_level": 22,
+      "monster_grade_count": 38,
+      "base_xp": 3148,
+      "min_kamas": 20,
+      "max_kamas": 40,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 23,
+      "source_level": 23,
+      "monster_grade_count": 31,
+      "base_xp": 3000,
+      "min_kamas": 20,
+      "max_kamas": 40,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 24,
+      "source_level": 24,
+      "monster_grade_count": 35,
+      "base_xp": 3200,
+      "min_kamas": 20,
+      "max_kamas": 40,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 25,
+      "source_level": 25,
+      "monster_grade_count": 33,
+      "base_xp": 3900,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 26,
+      "source_level": 26,
+      "monster_grade_count": 27,
+      "base_xp": 3400,
+      "min_kamas": 50,
+      "max_kamas": 50,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 27,
+      "source_level": 27,
+      "monster_grade_count": 14,
+      "base_xp": 3400,
+      "min_kamas": 32,
+      "max_kamas": 52,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 28,
+      "source_level": 28,
+      "monster_grade_count": 31,
+      "base_xp": 4250,
+      "min_kamas": 10,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 29,
+      "source_level": 29,
+      "monster_grade_count": 9,
+      "base_xp": 4123,
+      "min_kamas": 15,
+      "max_kamas": 23,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 30,
+      "source_level": 30,
+      "monster_grade_count": 140,
+      "base_xp": 3000,
+      "min_kamas": 1,
+      "max_kamas": 5,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 31,
+      "source_level": 31,
+      "monster_grade_count": 13,
+      "base_xp": 4991,
+      "min_kamas": 10,
+      "max_kamas": 23,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 32,
+      "source_level": 32,
+      "monster_grade_count": 27,
+      "base_xp": 5200,
+      "min_kamas": 30,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 33,
+      "source_level": 33,
+      "monster_grade_count": 11,
+      "base_xp": 5150,
+      "min_kamas": 15,
+      "max_kamas": 50,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 34,
+      "source_level": 34,
+      "monster_grade_count": 31,
+      "base_xp": 5800,
+      "min_kamas": 15,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 35,
+      "source_level": 35,
+      "monster_grade_count": 55,
+      "base_xp": 6300,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 36,
+      "source_level": 36,
+      "monster_grade_count": 41,
+      "base_xp": 6000,
+      "min_kamas": 30,
+      "max_kamas": 42,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 37,
+      "source_level": 37,
+      "monster_grade_count": 12,
+      "base_xp": 6550,
+      "min_kamas": 40,
+      "max_kamas": 60,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 38,
+      "source_level": 38,
+      "monster_grade_count": 61,
+      "base_xp": 7000,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 39,
+      "source_level": 39,
+      "monster_grade_count": 30,
+      "base_xp": 7000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 40,
+      "source_level": 40,
+      "monster_grade_count": 169,
+      "base_xp": 4000,
+      "min_kamas": 1,
+      "max_kamas": 5,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 41,
+      "source_level": 41,
+      "monster_grade_count": 45,
+      "base_xp": 7700,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 42,
+      "source_level": 42,
+      "monster_grade_count": 41,
+      "base_xp": 7953,
+      "min_kamas": 10,
+      "max_kamas": 50,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 43,
+      "source_level": 43,
+      "monster_grade_count": 25,
+      "base_xp": 7500,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 44,
+      "source_level": 44,
+      "monster_grade_count": 64,
+      "base_xp": 8400,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 45,
+      "source_level": 45,
+      "monster_grade_count": 26,
+      "base_xp": 8525,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 46,
+      "source_level": 46,
+      "monster_grade_count": 33,
+      "base_xp": 9113,
+      "min_kamas": 10,
+      "max_kamas": 35,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 47,
+      "source_level": 47,
+      "monster_grade_count": 46,
+      "base_xp": 9100,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 48,
+      "source_level": 48,
+      "monster_grade_count": 37,
+      "base_xp": 9245,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 49,
+      "source_level": 49,
+      "monster_grade_count": 13,
+      "base_xp": 10000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 50,
+      "source_level": 50,
+      "monster_grade_count": 156,
+      "base_xp": 5000,
+      "min_kamas": 1,
+      "max_kamas": 5,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 51,
+      "source_level": 51,
+      "monster_grade_count": 17,
+      "base_xp": 10500,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 52,
+      "source_level": 52,
+      "monster_grade_count": 21,
+      "base_xp": 10800,
+      "min_kamas": 20,
+      "max_kamas": 60,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 53,
+      "source_level": 53,
+      "monster_grade_count": 5,
+      "base_xp": 11000,
+      "min_kamas": 10,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 54,
+      "source_level": 54,
+      "monster_grade_count": 20,
+      "base_xp": 11366,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 55,
+      "source_level": 55,
+      "monster_grade_count": 16,
+      "base_xp": 10000,
+      "min_kamas": 45,
+      "max_kamas": 50,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 56,
+      "source_level": 56,
+      "monster_grade_count": 14,
+      "base_xp": 12436,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 57,
+      "source_level": 57,
+      "monster_grade_count": 10,
+      "base_xp": 11444,
+      "min_kamas": 12,
+      "max_kamas": 50,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 58,
+      "source_level": 58,
+      "monster_grade_count": 15,
+      "base_xp": 12528,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 59,
+      "source_level": 59,
+      "monster_grade_count": 4,
+      "base_xp": 11485,
+      "min_kamas": 12,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 60,
+      "source_level": 60,
+      "monster_grade_count": 90,
+      "base_xp": 10000,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 61,
+      "source_level": 61,
+      "monster_grade_count": 7,
+      "base_xp": 11500,
+      "min_kamas": 10,
+      "max_kamas": 50,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 62,
+      "source_level": 62,
+      "monster_grade_count": 16,
+      "base_xp": 14750,
+      "min_kamas": 7,
+      "max_kamas": 27,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 63,
+      "source_level": 63,
+      "monster_grade_count": 6,
+      "base_xp": 13971,
+      "min_kamas": 12,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 64,
+      "source_level": 64,
+      "monster_grade_count": 16,
+      "base_xp": 15250,
+      "min_kamas": 7,
+      "max_kamas": 27,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 65,
+      "source_level": 65,
+      "monster_grade_count": 21,
+      "base_xp": 13246,
+      "min_kamas": 30,
+      "max_kamas": 50,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 66,
+      "source_level": 66,
+      "monster_grade_count": 18,
+      "base_xp": 15750,
+      "min_kamas": 10,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 67,
+      "source_level": 67,
+      "monster_grade_count": 1,
+      "base_xp": 10483,
+      "min_kamas": 30,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 68,
+      "source_level": 68,
+      "monster_grade_count": 15,
+      "base_xp": 17000,
+      "min_kamas": 10,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 69,
+      "source_level": 69,
+      "monster_grade_count": 10,
+      "base_xp": 15330,
+      "min_kamas": 10,
+      "max_kamas": 40,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 70,
+      "source_level": 70,
+      "monster_grade_count": 68,
+      "base_xp": 7000,
+      "min_kamas": 5,
+      "max_kamas": 9,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 71,
+      "source_level": 71,
+      "monster_grade_count": 1,
+      "base_xp": 18000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 72,
+      "source_level": 72,
+      "monster_grade_count": 13,
+      "base_xp": 18000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 73,
+      "source_level": 73,
+      "monster_grade_count": 8,
+      "base_xp": 17250,
+      "min_kamas": 7,
+      "max_kamas": 37,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 74,
+      "source_level": 74,
+      "monster_grade_count": 11,
+      "base_xp": 19000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 75,
+      "source_level": 75,
+      "monster_grade_count": 31,
+      "base_xp": 18750,
+      "min_kamas": 50,
+      "max_kamas": 60,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 76,
+      "source_level": 76,
+      "monster_grade_count": 9,
+      "base_xp": 20000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 77,
+      "source_level": 77,
+      "monster_grade_count": 4,
+      "base_xp": 17986,
+      "min_kamas": 50,
+      "max_kamas": 65,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 78,
+      "source_level": 78,
+      "monster_grade_count": 14,
+      "base_xp": 21000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 79,
+      "source_level": 79,
+      "monster_grade_count": 6,
+      "base_xp": 20000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 80,
+      "source_level": 80,
+      "monster_grade_count": 80,
+      "base_xp": 20000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 81,
+      "source_level": 81,
+      "monster_grade_count": 10,
+      "base_xp": 19850,
+      "min_kamas": 22,
+      "max_kamas": 32,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 82,
+      "source_level": 82,
+      "monster_grade_count": 11,
+      "base_xp": 21000,
+      "min_kamas": 10,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 83,
+      "source_level": 83,
+      "monster_grade_count": 10,
+      "base_xp": 20000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 84,
+      "source_level": 84,
+      "monster_grade_count": 18,
+      "base_xp": 21000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 85,
+      "source_level": 85,
+      "monster_grade_count": 11,
+      "base_xp": 18000,
+      "min_kamas": 30,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 86,
+      "source_level": 86,
+      "monster_grade_count": 14,
+      "base_xp": 23000,
+      "min_kamas": 10,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 87,
+      "source_level": 87,
+      "monster_grade_count": 10,
+      "base_xp": 51500,
+      "min_kamas": 10,
+      "max_kamas": 17,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 88,
+      "source_level": 88,
+      "monster_grade_count": 13,
+      "base_xp": 22200,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 89,
+      "source_level": 89,
+      "monster_grade_count": 12,
+      "base_xp": 24500,
+      "min_kamas": 7,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 90,
+      "source_level": 90,
+      "monster_grade_count": 27,
+      "base_xp": 26000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 91,
+      "source_level": 91,
+      "monster_grade_count": 10,
+      "base_xp": 25000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 92,
+      "source_level": 92,
+      "monster_grade_count": 27,
+      "base_xp": 25500,
+      "min_kamas": 10,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 93,
+      "source_level": 93,
+      "monster_grade_count": 2,
+      "base_xp": 13700,
+      "min_kamas": 15,
+      "max_kamas": 27,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 94,
+      "source_level": 94,
+      "monster_grade_count": 13,
+      "base_xp": 31000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 95,
+      "source_level": 95,
+      "monster_grade_count": 3,
+      "base_xp": 29000,
+      "min_kamas": 50,
+      "max_kamas": 90,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 96,
+      "source_level": 96,
+      "monster_grade_count": 20,
+      "base_xp": 27500,
+      "min_kamas": 20,
+      "max_kamas": 40,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 97,
+      "source_level": 97,
+      "monster_grade_count": 3,
+      "base_xp": 28000,
+      "min_kamas": 10,
+      "max_kamas": 50,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 98,
+      "source_level": 98,
+      "monster_grade_count": 9,
+      "base_xp": 34000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 99,
+      "source_level": 99,
+      "monster_grade_count": 3,
+      "base_xp": 30000,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 100,
+      "source_level": 100,
+      "monster_grade_count": 72,
+      "base_xp": 30000,
+      "min_kamas": 5,
+      "max_kamas": 10,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 101,
+      "source_level": 101,
+      "monster_grade_count": 8,
+      "base_xp": 30000,
+      "min_kamas": 2,
+      "max_kamas": 12,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 102,
+      "source_level": 102,
+      "monster_grade_count": 10,
+      "base_xp": 31000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 103,
+      "source_level": 103,
+      "monster_grade_count": 3,
+      "base_xp": 30000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 104,
+      "source_level": 104,
+      "monster_grade_count": 7,
+      "base_xp": 32000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 105,
+      "source_level": 105,
+      "monster_grade_count": 17,
+      "base_xp": 36000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 106,
+      "source_level": 106,
+      "monster_grade_count": 9,
+      "base_xp": 33000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 107,
+      "source_level": 107,
+      "monster_grade_count": 7,
+      "base_xp": 40000,
+      "min_kamas": 10,
+      "max_kamas": 10,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 108,
+      "source_level": 108,
+      "monster_grade_count": 6,
+      "base_xp": 34000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 109,
+      "source_level": 109,
+      "monster_grade_count": 5,
+      "base_xp": 35000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 110,
+      "source_level": 110,
+      "monster_grade_count": 34,
+      "base_xp": 37000,
+      "min_kamas": 50,
+      "max_kamas": 50,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 111,
+      "source_level": 111,
+      "monster_grade_count": 6,
+      "base_xp": 35000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 112,
+      "source_level": 112,
+      "monster_grade_count": 8,
+      "base_xp": 36000,
+      "min_kamas": 27,
+      "max_kamas": 47,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 113,
+      "source_level": 113,
+      "monster_grade_count": 8,
+      "base_xp": 56000,
+      "min_kamas": 252,
+      "max_kamas": 762,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 114,
+      "source_level": 114,
+      "monster_grade_count": 5,
+      "base_xp": 37000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 115,
+      "source_level": 115,
+      "monster_grade_count": 15,
+      "base_xp": 49000,
+      "min_kamas": 50,
+      "max_kamas": 90,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 116,
+      "source_level": 116,
+      "monster_grade_count": 9,
+      "base_xp": 39000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 117,
+      "source_level": 116,
+      "monster_grade_count": 9,
+      "base_xp": 39000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 118,
+      "source_level": 118,
+      "monster_grade_count": 6,
+      "base_xp": 39000,
+      "min_kamas": 50,
+      "max_kamas": 70,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 119,
+      "source_level": 119,
+      "monster_grade_count": 3,
+      "base_xp": 40000,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 120,
+      "source_level": 120,
+      "monster_grade_count": 37,
+      "base_xp": 32500,
+      "min_kamas": 10,
+      "max_kamas": 50,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 121,
+      "source_level": 121,
+      "monster_grade_count": 4,
+      "base_xp": 41000,
+      "min_kamas": 2,
+      "max_kamas": 12,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 122,
+      "source_level": 121,
+      "monster_grade_count": 4,
+      "base_xp": 41000,
+      "min_kamas": 2,
+      "max_kamas": 12,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 123,
+      "source_level": 123,
+      "monster_grade_count": 4,
+      "base_xp": 43000,
+      "min_kamas": 2,
+      "max_kamas": 12,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 124,
+      "source_level": 124,
+      "monster_grade_count": 1,
+      "base_xp": 42000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 125,
+      "source_level": 125,
+      "monster_grade_count": 14,
+      "base_xp": 47000,
+      "min_kamas": 40,
+      "max_kamas": 60,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 126,
+      "source_level": 126,
+      "monster_grade_count": 5,
+      "base_xp": 100000,
+      "min_kamas": 500,
+      "max_kamas": 1500,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 127,
+      "source_level": 127,
+      "monster_grade_count": 6,
+      "base_xp": 41000,
+      "min_kamas": 40,
+      "max_kamas": 60,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 128,
+      "source_level": 128,
+      "monster_grade_count": 3,
+      "base_xp": 75000,
+      "min_kamas": 500,
+      "max_kamas": 1500,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 129,
+      "source_level": 129,
+      "monster_grade_count": 5,
+      "base_xp": 42000,
+      "min_kamas": 40,
+      "max_kamas": 60,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 130,
+      "source_level": 130,
+      "monster_grade_count": 13,
+      "base_xp": 47000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 131,
+      "source_level": 131,
+      "monster_grade_count": 7,
+      "base_xp": 43000,
+      "min_kamas": 40,
+      "max_kamas": 60,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 132,
+      "source_level": 132,
+      "monster_grade_count": 2,
+      "base_xp": 73000,
+      "min_kamas": 27,
+      "max_kamas": 62,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 133,
+      "source_level": 133,
+      "monster_grade_count": 8,
+      "base_xp": 44500,
+      "min_kamas": 40,
+      "max_kamas": 60,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 134,
+      "source_level": 134,
+      "monster_grade_count": 1,
+      "base_xp": 49000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 135,
+      "source_level": 135,
+      "monster_grade_count": 7,
+      "base_xp": 130000,
+      "min_kamas": 500,
+      "max_kamas": 1500,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 136,
+      "source_level": 135,
+      "monster_grade_count": 7,
+      "base_xp": 130000,
+      "min_kamas": 500,
+      "max_kamas": 1500,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 137,
+      "source_level": 135,
+      "monster_grade_count": 7,
+      "base_xp": 130000,
+      "min_kamas": 500,
+      "max_kamas": 1500,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 138,
+      "source_level": 138,
+      "monster_grade_count": 2,
+      "base_xp": 75000,
+      "min_kamas": 500,
+      "max_kamas": 1500,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 139,
+      "source_level": 139,
+      "monster_grade_count": 9,
+      "base_xp": 54000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 140,
+      "source_level": 140,
+      "monster_grade_count": 22,
+      "base_xp": 42500,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 141,
+      "source_level": 141,
+      "monster_grade_count": 3,
+      "base_xp": 100000,
+      "min_kamas": 500,
+      "max_kamas": 1500,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 142,
+      "source_level": 141,
+      "monster_grade_count": 3,
+      "base_xp": 100000,
+      "min_kamas": 500,
+      "max_kamas": 1500,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 143,
+      "source_level": 143,
+      "monster_grade_count": 1,
+      "base_xp": 50000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 144,
+      "source_level": 144,
+      "monster_grade_count": 3,
+      "base_xp": 125000,
+      "min_kamas": 500,
+      "max_kamas": 1500,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 145,
+      "source_level": 145,
+      "monster_grade_count": 2,
+      "base_xp": 145000,
+      "min_kamas": 175,
+      "max_kamas": 295,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 146,
+      "source_level": 146,
+      "monster_grade_count": 2,
+      "base_xp": 15426,
+      "min_kamas": 10,
+      "max_kamas": 50,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 147,
+      "source_level": 147,
+      "monster_grade_count": 2,
+      "base_xp": 150000,
+      "min_kamas": 500,
+      "max_kamas": 1500,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 148,
+      "source_level": 148,
+      "monster_grade_count": 5,
+      "base_xp": 59000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 149,
+      "source_level": 149,
+      "monster_grade_count": 1,
+      "base_xp": 60000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 150,
+      "source_level": 150,
+      "monster_grade_count": 9,
+      "base_xp": 75000,
+      "min_kamas": 500,
+      "max_kamas": 1500,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 151,
+      "source_level": 151,
+      "monster_grade_count": 1,
+      "base_xp": 90000,
+      "min_kamas": 20,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 152,
+      "source_level": 152,
+      "monster_grade_count": 2,
+      "base_xp": 59000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 153,
+      "source_level": 153,
+      "monster_grade_count": 1,
+      "base_xp": 64000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 154,
+      "source_level": 153,
+      "monster_grade_count": 1,
+      "base_xp": 64000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 155,
+      "source_level": 155,
+      "monster_grade_count": 3,
+      "base_xp": 65000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 156,
+      "source_level": 156,
+      "monster_grade_count": 1,
+      "base_xp": 100000,
+      "min_kamas": 20,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 157,
+      "source_level": 156,
+      "monster_grade_count": 1,
+      "base_xp": 100000,
+      "min_kamas": 20,
+      "max_kamas": 30,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 158,
+      "source_level": 158,
+      "monster_grade_count": 2,
+      "base_xp": 200000,
+      "min_kamas": 5005,
+      "max_kamas": 7525,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 159,
+      "source_level": 159,
+      "monster_grade_count": 1,
+      "base_xp": 67000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 160,
+      "source_level": 160,
+      "monster_grade_count": 23,
+      "base_xp": 50000,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 161,
+      "source_level": 160,
+      "monster_grade_count": 23,
+      "base_xp": 50000,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 162,
+      "source_level": 162,
+      "monster_grade_count": 3,
+      "base_xp": 70000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 163,
+      "source_level": 163,
+      "monster_grade_count": 1,
+      "base_xp": 120000,
+      "min_kamas": 20,
+      "max_kamas": 30,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 164,
+      "source_level": 164,
+      "monster_grade_count": 1,
+      "base_xp": 42000,
+      "min_kamas": 50,
+      "max_kamas": 90,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 165,
+      "source_level": 165,
+      "monster_grade_count": 4,
+      "base_xp": 72500,
+      "min_kamas": 75,
+      "max_kamas": 160,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 166,
+      "source_level": 165,
+      "monster_grade_count": 4,
+      "base_xp": 72500,
+      "min_kamas": 75,
+      "max_kamas": 160,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 167,
+      "source_level": 167,
+      "monster_grade_count": 1,
+      "base_xp": 74000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 168,
+      "source_level": 168,
+      "monster_grade_count": 3,
+      "base_xp": 210000,
+      "min_kamas": 50,
+      "max_kamas": 90,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 169,
+      "source_level": 169,
+      "monster_grade_count": 2,
+      "base_xp": 107500,
+      "min_kamas": 12,
+      "max_kamas": 27,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 170,
+      "source_level": 170,
+      "monster_grade_count": 8,
+      "base_xp": 86500,
+      "min_kamas": 50,
+      "max_kamas": 110,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 171,
+      "source_level": 170,
+      "monster_grade_count": 8,
+      "base_xp": 86500,
+      "min_kamas": 50,
+      "max_kamas": 110,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 172,
+      "source_level": 172,
+      "monster_grade_count": 1,
+      "base_xp": 46500,
+      "min_kamas": 50,
+      "max_kamas": 90,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 173,
+      "source_level": 173,
+      "monster_grade_count": 2,
+      "base_xp": 160000,
+      "min_kamas": 35,
+      "max_kamas": 65,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 174,
+      "source_level": 174,
+      "monster_grade_count": 1,
+      "base_xp": 79000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 175,
+      "source_level": 175,
+      "monster_grade_count": 3,
+      "base_xp": 80000,
+      "min_kamas": 50,
+      "max_kamas": 130,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 176,
+      "source_level": 176,
+      "monster_grade_count": 2,
+      "base_xp": 64625,
+      "min_kamas": 27,
+      "max_kamas": 57,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 177,
+      "source_level": 176,
+      "monster_grade_count": 2,
+      "base_xp": 64625,
+      "min_kamas": 27,
+      "max_kamas": 57,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 178,
+      "source_level": 178,
+      "monster_grade_count": 2,
+      "base_xp": 220000,
+      "min_kamas": 5005,
+      "max_kamas": 7525,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 179,
+      "source_level": 178,
+      "monster_grade_count": 2,
+      "base_xp": 220000,
+      "min_kamas": 5005,
+      "max_kamas": 7525,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 180,
+      "source_level": 180,
+      "monster_grade_count": 18,
+      "base_xp": 55000,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 181,
+      "source_level": 181,
+      "monster_grade_count": 1,
+      "base_xp": 84000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 182,
+      "source_level": 181,
+      "monster_grade_count": 1,
+      "base_xp": 84000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 183,
+      "source_level": 181,
+      "monster_grade_count": 1,
+      "base_xp": 84000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 184,
+      "source_level": 184,
+      "monster_grade_count": 1,
+      "base_xp": 2000,
+      "min_kamas": 0,
+      "max_kamas": 0,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 185,
+      "source_level": 185,
+      "monster_grade_count": 1,
+      "base_xp": 54000,
+      "min_kamas": 50,
+      "max_kamas": 130,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 186,
+      "source_level": 185,
+      "monster_grade_count": 1,
+      "base_xp": 54000,
+      "min_kamas": 50,
+      "max_kamas": 130,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 187,
+      "source_level": 185,
+      "monster_grade_count": 1,
+      "base_xp": 54000,
+      "min_kamas": 50,
+      "max_kamas": 130,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 188,
+      "source_level": 188,
+      "monster_grade_count": 4,
+      "base_xp": 160000,
+      "min_kamas": 7,
+      "max_kamas": 37,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 189,
+      "source_level": 189,
+      "monster_grade_count": 1,
+      "base_xp": 91000,
+      "min_kamas": 5,
+      "max_kamas": 25,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 190,
+      "source_level": 190,
+      "monster_grade_count": 2,
+      "base_xp": 122750,
+      "min_kamas": 27,
+      "max_kamas": 57,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 191,
+      "source_level": 190,
+      "monster_grade_count": 2,
+      "base_xp": 122750,
+      "min_kamas": 27,
+      "max_kamas": 57,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 192,
+      "source_level": 190,
+      "monster_grade_count": 2,
+      "base_xp": 122750,
+      "min_kamas": 27,
+      "max_kamas": 57,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 193,
+      "source_level": 190,
+      "monster_grade_count": 2,
+      "base_xp": 122750,
+      "min_kamas": 27,
+      "max_kamas": 57,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 194,
+      "source_level": 190,
+      "monster_grade_count": 2,
+      "base_xp": 122750,
+      "min_kamas": 27,
+      "max_kamas": 57,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 195,
+      "source_level": 190,
+      "monster_grade_count": 2,
+      "base_xp": 122750,
+      "min_kamas": 27,
+      "max_kamas": 57,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 196,
+      "source_level": 190,
+      "monster_grade_count": 2,
+      "base_xp": 122750,
+      "min_kamas": 27,
+      "max_kamas": 57,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 197,
+      "source_level": 190,
+      "monster_grade_count": 2,
+      "base_xp": 122750,
+      "min_kamas": 27,
+      "max_kamas": 57,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 198,
+      "source_level": 198,
+      "monster_grade_count": 2,
+      "base_xp": 240000,
+      "min_kamas": 5005,
+      "max_kamas": 7525,
+      "fallback": "observed_level_median"
+    },
+    {
+      "level": 199,
+      "source_level": 198,
+      "monster_grade_count": 2,
+      "base_xp": 240000,
+      "min_kamas": 5005,
+      "max_kamas": 7525,
+      "fallback": "nearest_lower_observed_level"
+    },
+    {
+      "level": 200,
+      "source_level": 200,
+      "monster_grade_count": 27,
+      "base_xp": 67500,
+      "min_kamas": 50,
+      "max_kamas": 90,
+      "fallback": "observed_level_median"
+    }
+  ],
+  "coverage": {
+    "target_levels": 200,
+    "observed_source_levels": 176,
+    "filled_levels": 200,
+    "levels_using_nearest_lower_fallback": 24,
+    "excluded_source_rows": {
+      "wrong_type": 15,
+      "boss_or_archmonster": 356,
+      "invocation": 75,
+      "invalid_grade_data": 27,
+      "zero_xp_or_out_of_range": 1171
+    }
+  },
+  "schema_version": 1,
+  "source": "Starloco Dofus SQL monster table; local fallback aggregation for Wakemu",
+  "policy": {
+    "meaning": "Derived emulator fallback, not an official or universal per-level reward formula.",
+    "input_rows": "Final monsters table after seed and ordered db-init update_game files.",
+    "include": "monster_type=1; not boss or archmonster; name does not contain 'invoc'; grade XP > 0; grade level 1..200.",
+    "aggregation": "floor(integer median) independently for base XP, min kamas and max kamas among eligible monster-grade rows at each source level.",
+    "holes": "For an unobserved level, carry the nearest lower observed level; expose source_level so this is auditable.",
+    "wakemu_mapping": "No Dofus monster IDs are mapped to Wakfu references. Apply these values only as a level fallback, overridden by explicit Wakemu reference+level policy rows."
+  },
+  "source_files": [
+    {
+      "path": "db-init/04-game.sql",
+      "sha256": "8ea36dfd397941a0a9aa930cf379eb79a03ee1203bf005156c4bdb1716a89363",
+      "applied_monster_updates": 0
+    },
+    {
+      "path": "db-init/05-update_game_16.04.23.sql",
+      "sha256": "1be60c734048a78e31b8cd0d99c99c432a027e3912cb47b723d3a60e331cfa62",
+      "applied_monster_updates": 17
+    },
+    {
+      "path": "db-init/06-update_game_23.04.23.sql",
+      "sha256": "29e69220b5afc05e61687baaf01bacf95fa61d5373e11cc5da911f461434b0e7",
+      "applied_monster_updates": 0
+    },
+    {
+      "path": "db-init/07-update_game_24.04.23.sql",
+      "sha256": "b0a5ab7d416ddd8884d6fe4de4c5f51b9c624231e5cb37d9471f515fec2250d2",
+      "applied_monster_updates": 0
+    },
+    {
+      "path": "db-init/08-update_game_08.05.23.sql",
+      "sha256": "1f14ec797e434fddb6258cec06c54ab59b0499f0572e08d567cdcaace778b39d",
+      "applied_monster_updates": 6
+    },
+    {
+      "path": "db-init/09-update_game_10.03.2024.sql",
+      "sha256": "3dea99d82dd927e710b5856010801e5b85c12f7db842f4c5d53a4cf6fa0ad1f0",
+      "applied_monster_updates": 0
+    }
+  ],
+  "exporter": {
+    "path": "server/tools/export_dofus_reward_level_reference.py",
+    "sha256": "09f62479ae81692f10912983be20f91952782fa0fe30b57dde09100749267416"
+  },
+  "source_monster_rows": 1388
+}

@@ -53,3 +53,9 @@ El bit512 acredita natación, no la propiedad `DISABLE_MOUNT=125`, cuya asignaci
 ## Validación de mapas de natación actualizada
 
 742 mapas cotejados contra VF.k y 219 explícitamente sin catálogo: 192 archivos sin chunks y 27 errores de decoder nativo. No se consideran secos los mapas desconocidos. Gate de swimming: 6 pruebas OK, incluyendo coordenadas/altura, certificados vacíos y rechazo de contadores booleanos. El validador exige enteros estrictos para identidad y contadores. Esta fuente todavía no habilita por sí sola los handlers de montar.
+
+## Cotejo concluyente de propiedades del actor
+
+`rK` decodifica `01 00 01 55 01` como presencia1, contador u16=1 y par propiedad85/valor1. El enum85 es `RELIC_SPECIAL_JUMP`, no125 `DISABLE_MOUNT`. `eHd.fta→eGj.dqu→eGv` escucha `rK.DM`; `eGv.zm` aplica los pares mediante `pGI.b(wU)` y limpia pGI si XP es null. Esto acredita la hidratación del snapshot de propiedades del actor. El servidor actual conserva la propiedad de salto de su plantilla; no emite125 en esa sección. No se elimina85 como parte de monturas: afecta saltar obstáculos.
+
+El incremental12447 mide11 bytes: getLong seguido de3 get. Familia0 corresponde a eHQ; familia1 a ffe. Operaciones PG:1 ADDED,2 REMOVED,3 SUBTRACTED. No confundir el valor del snapshot con la operación incremental. Cotejo javap sobre el cliente instalado, sin modificaciones.

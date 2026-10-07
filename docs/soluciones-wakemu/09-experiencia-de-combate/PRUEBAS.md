@@ -34,3 +34,7 @@ Repetir operaciones confirmadas y cortes alrededor del commit/ACK; ninguna repet
 Invariante: El recibo fija recompensa y versión; el nivel visible, XP y hojas nunca quedan parcialmente actualizados.
 
 Registrar cada caso como PASS, FAIL o NO EJECUTADO, con evidencia. No convertir una omisión, un click optimista o un resultado de otro snapshot en PASS.
+
+## Aceptación visual Adael — 7 de octubre
+
+Usuario confirma dos victorias: primera121XP, nivel1→2, +38kamas y12325×3; segunda122XP, +30kamas y pila12325×6. PostgreSQL acredita fight12(start_xp0,end_xp121) y fight13(121→243). Ventana Personaje muestra141/360 dentro del nivel2:243 menos102 acumulados del nivel anterior. Wallet compartido de account2:161; suma de premios68. Persistencia tras selector/cliente/world pendiente de confirmación manual.

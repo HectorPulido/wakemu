@@ -22,8 +22,20 @@ def setup_abandon_state(store):
             (7,),
         )
         db.execute(
-            "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team) VALUES(%s,%s,%s,0)",
-            (7, character["id"], account),
+            "INSERT INTO combat_fight_participants"
+            "(fight_id,character_id,account_id,team,session_generation,entry_hp,"
+            "entry_max_hp,entry_hp_damage,entry_health_dead) "
+            "VALUES(%s,%s,%s,0,%s,%s,%s,%s,%s)",
+            (
+                7,
+                character["id"],
+                account,
+                generation,
+                character["hp"],
+                character["max_hp"],
+                character["hp_damage"],
+                character["health_dead"],
+            ),
         )
     fight = Fight(
         7,
@@ -305,3 +317,41 @@ class AbandonTests(PostgresCase):
                 ).fetchone()["count"],
                 0,
             )
+
+    def test_durable_abandon_locks_fight_before_owned_session_and_character(self):
+        from unittest.mock import patch
+
+        s, a, g, c, f, r = self.setup(None)
+        original_connection = s.connection
+        statements = []
+
+        @contextmanager
+        def observing_connection():
+            with original_connection() as db:
+
+                class ObservingConnection:
+                    def execute(self, query, *args, **kwargs):
+                        statements.append(" ".join(query.split()))
+                        return db.execute(query, *args, **kwargs)
+
+                    def __getattr__(self, name):
+                        return getattr(db, name)
+
+                yield ObservingConnection()
+
+        with patch.object(s, "connection", side_effect=observing_connection):
+            combat_abandon.prepare(s, a, g, c, r, b"")
+
+        fight_lock = next(
+            index
+            for index, statement in enumerate(statements)
+            if statement.startswith("SELECT id FROM combat_fights WHERE id=")
+            and statement.endswith("FOR UPDATE")
+        )
+        session_lock = next(
+            index
+            for index, statement in enumerate(statements)
+            if statement.startswith("SELECT character_id FROM sessions")
+            and statement.endswith("FOR UPDATE")
+        )
+        self.assertLess(fight_lock, session_lock)

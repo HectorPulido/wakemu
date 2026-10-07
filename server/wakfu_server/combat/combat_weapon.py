@@ -91,7 +91,7 @@ def animation(
         0,
         0,
         int(critical),
-        *target
+        *target,
     )
 
 
@@ -107,7 +107,9 @@ def prepare_server_weapon(
     action_id,
     line_of_sight,
     critical,
-    rng=None
+    rng=None,
+    player_characters=None,
+    deck_blobs=None,
 ):
     if (
         (critical is not None and type(critical) is not bool)
@@ -169,6 +171,8 @@ def prepare_server_weapon(
         critical=critical,
         rng=transaction_rng,
         compiled=compiled,
+        player_characters=player_characters,
+        deck_blobs=deck_blobs,
     )
     authority = factory.summon_authority(fight, actor)
     if authority.is_carrying is not False:

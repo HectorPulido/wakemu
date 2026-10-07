@@ -39,7 +39,7 @@ def topology_columns(map_id):
     shared = {}
     columns = {}
     for x, y, values in data["columns"]:
-        surfaces = tuple(tuple(surface) for surface in values)
+        surfaces = tuple(map(tuple, values))
         columns[x, y] = shared.setdefault(surfaces, surfaces)
     return columns
 

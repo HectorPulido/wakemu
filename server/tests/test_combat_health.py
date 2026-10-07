@@ -110,6 +110,52 @@ class FightExitHealthTests(PostgresCase):
                     "placement",
                 )
 
+    def test_old_disconnect_cannot_abort_fight_after_owner_takeover(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store, account, character, generation, fight = self.state(directory)
+            with store.connection() as db:
+                db.execute(
+                    "UPDATE combat_fights SET status='active' WHERE id=%s",
+                    (fight.id,),
+                )
+                db.execute(
+                    "UPDATE combat_fight_participants SET session_generation=%s "
+                    "WHERE fight_id=%s AND character_id=%s",
+                    (generation, fight.id, character["id"]),
+                )
+            next_generation = store.begin_session(account)
+            store.select_character(account, next_generation, character["id"])
+            from wakfu_server.fight_store import takeover_participant
+
+            self.assertTrue(
+                takeover_participant(
+                    store,
+                    account,
+                    next_generation,
+                    character["id"],
+                    fight.id,
+                    previous_generation=generation,
+                )
+            )
+            self.assertIsNone(
+                persist_aborted_fight(store, account, generation, character, fight)
+            )
+            with store.connection() as db:
+                self.assertEqual(
+                    db.execute(
+                        "SELECT status FROM combat_fights WHERE id=%s", (fight.id,)
+                    ).fetchone()["status"],
+                    "active",
+                )
+                self.assertEqual(
+                    db.execute(
+                        "SELECT COUNT(*) AS count FROM fight_health_exits "
+                        "WHERE fight_id=%s AND character_id=%s",
+                        (fight.id, character["id"]),
+                    ).fetchone()["count"],
+                    0,
+                )
+
     def test_abort_sql_failure_rolls_back_hp_receipt_and_fight_then_retry_succeeds(
         self,
     ):
@@ -309,10 +355,39 @@ class FightExitHealthTests(PostgresCase):
             f.winner = 1
             result = persist(s, a, g, c, f)
             self.assertEqual((result["character"]["hp"], result["coefficient"]), (0, 0))
+            with s.connection() as db:
+                exit_row = db.execute(
+                    "SELECT reason,return_acknowledged_at FROM fight_health_exits "
+                    "WHERE fight_id=%s AND character_id=%s",
+                    (f.id, c["id"]),
+                ).fetchone()
+                self.assertEqual(exit_row["reason"], "return")
+                self.assertIsNotNone(
+                    exit_row["return_acknowledged_at"],
+                    "a normal PvE persist call is the native return callback",
+                )
+                db.execute(
+                    "UPDATE combat_fight_participants SET session_generation=%s "
+                    "WHERE fight_id=%s AND character_id=%s",
+                    (g, f.id, c["id"]),
+                )
             reopened = health_store.initialize(s, a, g, c["id"], coefficient=1)
             self.assertEqual(reopened["hp"], 0)
+            replacement = s.begin_session(a)
+            s.select_character(a, replacement, c["id"])
+            from wakfu_server.fight_store import takeover_participant
+
+            with self.assertRaisesRegex(ValueError, "already acknowledged return"):
+                takeover_participant(
+                    s,
+                    a,
+                    replacement,
+                    c["id"],
+                    f.id,
+                    previous_generation=g,
+                )
             s.clock = lambda: 1005
-            current = health_store.tick(s, a, g, c["id"], 0)
+            current = health_store.tick(s, a, replacement, c["id"], 0)
             self.assertEqual(current["hp"], 0)
             self.assertEqual((current["xp"], current["kamas"]), (c["xp"], 0))
             with s.connection() as db:

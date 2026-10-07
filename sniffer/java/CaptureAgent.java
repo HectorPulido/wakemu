@@ -490,6 +490,84 @@ public final class CaptureAgent {
                         });
                         response = (JSON.toJson(actors) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     }
+                    case "/actor-registry" -> {
+                        Map<?, ?> input = JSON.fromJson(new String(exchange.getRequestBody().readNBytes(4096), java.nio.charset.StandardCharsets.UTF_8), Map.class);
+                        Object rawIds = input.get("actor_ids");
+                        if (!(rawIds instanceof List<?> ids) || ids.isEmpty() || ids.size() > 16)
+                            throw new IllegalArgumentException("actor_ids must contain 1..16 ids");
+                        List<Map<String, Object>> actors = new ArrayList<>();
+                        SwingUtilities.invokeAndWait(() -> {
+                            try {
+                                Class<?> managerClass = Class.forName("bio");
+                                Object manager = managerClass.getMethod("dpx").invoke(null);
+                                java.util.Iterator<?> iterator = (java.util.Iterator<?>) managerClass.getMethod("bak").invoke(manager);
+                                java.util.Set<Object> worldActors = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+                                while (iterator.hasNext()) worldActors.add(iterator.next());
+                                for (Object rawId : ids) {
+                                    if (!(rawId instanceof String idText))
+                                        throw new IllegalArgumentException("actor ids must be decimal strings");
+                                    long id = Long.parseLong(idText);
+                                    Object actor = managerClass.getMethod("jv", long.class).invoke(manager, id);
+                                    Map<String, Object> state = new LinkedHashMap<>();
+                                    state.put("id", id);
+                                    state.put("found_by_jv", actor != null);
+                                    state.put("in_world_actor_list", actor != null && worldActors.contains(actor));
+                                    if (actor != null) {
+                                        state.put("class", actor.getClass().getName());
+                                        for (String[] pair : new String[][]{{"native_id", "Sn"}, {"name", "getName"}, {"x", "getWorldX"}, {"y", "getWorldY"}, {"z", "getAltitude"}})
+                                            state.put(pair[0], actor.getClass().getMethod(pair[1]).invoke(actor));
+                                    }
+                                    actors.add(state);
+                                }
+                            } catch (Exception error) { throw new RuntimeException(error); }
+                        });
+                        response = (JSON.toJson(actors) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                    case "/native-replay" -> {
+                        Path profileRoot = sessionDir.getParent().getParent();
+                        if (!profileRoot.getFileName().toString().startsWith("issue16-marker-visual-"))
+                            throw new IllegalStateException("Native replay is restricted to issue16 visual test profiles");
+                        Map<?, ?> input = JSON.fromJson(new String(exchange.getRequestBody().readNBytes(140000), java.nio.charset.StandardCharsets.UTF_8), Map.class);
+                        if (!(input.get("opcode") instanceof Number opcodeValue) || !(input.get("body_base64") instanceof String encoded))
+                            throw new IllegalArgumentException("opcode and body_base64 are required");
+                        int opcode = opcodeValue.intValue();
+                        if (opcode != 12304 && opcode != 12608 && opcode != 13753)
+                            throw new IllegalArgumentException("Only native world actor and marker opcodes may be replayed");
+                        byte[] packet = Base64.getDecoder().decode(encoded);
+                        if (packet.length < 1 || packet.length > 65536)
+                            throw new IllegalArgumentException("Invalid native replay body size");
+                        Map<String, Object> result = new LinkedHashMap<>();
+                        SwingUtilities.invokeAndWait(() -> {
+                            try {
+                                String className = switch (opcode) {
+                                    case 12304 -> "ctA";
+                                    case 12608 -> "ctE";
+                                    default -> "cuY";
+                                };
+                                Class<?> messageClass = Class.forName(className);
+                                Object message = messageClass.getConstructor().newInstance();
+                                boolean decoded = (Boolean) call(message, "dp", packet);
+                                int decodedOpcode = ((Number) call(message, "d")).intValue();
+                                if (!decoded || decodedOpcode != opcode)
+                                    throw new IllegalArgumentException("Native packet decoder rejected body");
+                                boolean accepted;
+                                if (opcode == 13753) {
+                                    Class<?> handlerClass = Class.forName("ckM");
+                                    var constructor = handlerClass.getDeclaredConstructor();
+                                    constructor.setAccessible(true);
+                                    Object handler = constructor.newInstance();
+                                    accepted = (Boolean) call(handler, "a", message);
+                                } else {
+                                    Object dispatcher = call(Class.forName("cgN"), "eCA");
+                                    accepted = (Boolean) call(dispatcher, "b", message);
+                                }
+                                result.put("opcode", opcode);
+                                result.put("decoded", decoded);
+                                result.put("native_handler_accepted", accepted);
+                            } catch (Exception error) { throw new RuntimeException(error); }
+                        });
+                        response = (JSON.toJson(result) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    }
                     case "/position" -> {
                         Map<String, Object> position = new LinkedHashMap<>();
                         SwingUtilities.invokeAndWait(() -> {
@@ -656,6 +734,25 @@ public final class CaptureAgent {
                     case "/screen" -> {
                         response = screenshot();
                         exchange.getResponseHeaders().set("Content-Type", "image/png");
+                    }
+                    case "/canvas-info" -> {
+                        Map<String, Object> state = new LinkedHashMap<>();
+                        SwingUtilities.invokeAndWait(() -> {
+                            for (Frame frame : Frame.getFrames()) {
+                                GLAutoDrawable gl = drawable(frame);
+                                if (gl instanceof Component canvas) {
+                                    state.put("canvas_width", canvas.getWidth());
+                                    state.put("canvas_height", canvas.getHeight());
+                                    state.put("surface_width", gl.getSurfaceWidth());
+                                    state.put("surface_height", gl.getSurfaceHeight());
+                                    state.put("frame_x", frame.getX());
+                                    state.put("frame_y", frame.getY());
+                                    return;
+                                }
+                            }
+                            throw new IllegalStateException("No visible canvas");
+                        });
+                        response = (JSON.toJson(state) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     }
                     case "/mark" -> {
                         String label = new String(exchange.getRequestBody().readNBytes(2048), java.nio.charset.StandardCharsets.UTF_8);

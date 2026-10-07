@@ -6,7 +6,9 @@ Transferir gemas propias entre inventario y ranuras del merkasaco sin duplicarla
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+**Cambio hecho no confirmado.** Inserción y retirada están desplegadas en imagen78e8ae29 con migración051. Pilas, transferencia primaria/secundaria, rechazo de sala protegida, reintentos y reconexión pasaron pruebas PostgreSQL y TLS. Gate de imagen conjunto80/80; combate e inventario verificados sin modificar sus208 módulos.
+
+Falta la aceptación visual de la [prueba completa](PRUEBAS.md). No se declara resuelto por las pruebas automáticas solamente.
 
 ## Dependencias
 
@@ -17,3 +19,9 @@ Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta s
 Una UID está en inventario o slot, nunca ambos; retirada no elimina contenido ni concede gema nueva.
 
 [Contratos ejecutados de inserción y retirada](REVISION-RESPUESTAS.md).
+
+## Versión desplegada — 7 de octubre
+
+Imagen78e8ae29 (`wakfu-local-world:item-options-verified`), world healthy y HTTP200, migraciones049–051 aplicadas. Gate imagen80/80 y TLS elementos12487/13766, inserción/retirada de gemas con pilas, reintentos y reconexión aprobados. Smoke combate y recompensas aprobado;208 módulos de combate idénticos a la versión anterior. Backup previo comprobado754 entradas.
+
+Aceptación visual pendiente. La identificación/sorteo13787 y la autoridad de combate compartido052 siguen fuera de la imagen activa. Los apartados anteriores reflejan etapas históricas.

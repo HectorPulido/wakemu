@@ -37,6 +37,7 @@ EMPTY_SECTIONS = {
     "XP",
     "XP_CHARACTERISTICS",
     "CITIZEN_POINT",
+    "PASSEPORT_INFO",
     "PET",
     "ACHIEVEMENTS",
     "PERSONAL_EFFECTS",
@@ -96,10 +97,23 @@ def minimal_entity(body, character):
             replacement = struct.pack(">H", len(deck)) + deck
         elif section["name"] == "XP":
             replacement = struct.pack(">q", character_xp(character))
+        elif section["name"] == "XP_CHARACTERISTICS":
+            from .personal_ecology import value as ecology_value
+
+            replacement = struct.pack(
+                ">i", ecology_value(character.get("ecology_value", 0))
+            )
         elif section["name"] == "SHORTCUT_INVENTORIES":
             from wakfu_server.world_shortcuts import owned_collection
 
             replacement = owned_collection(character)
+        elif section["name"] == "PROTO_TEMPORARY_INVENTORY":
+            replacement = character.get("temporary_inventory_section", b"\x00\x00")
+            if not isinstance(replacement, bytes) or len(replacement) < 2:
+                raise ValueError("Invalid owned temporary inventory section")
+            size = struct.unpack_from(">h", replacement)[0]
+            if size < 0 or size != len(replacement) - 2:
+                raise ValueError("Invalid owned temporary inventory section length")
         elif section["name"] in EMPTY_SECTIONS:
             replacement = ENTITY_DEFAULTS[section["name"]]
         if replacement is not None:
@@ -284,10 +298,26 @@ def header(body, account_id, character):
 def position(body, character):
     if body.count(INITIAL_POSITION) != 1:
         raise ValueError("Ambiguous captured position")
-    return body.replace(
+    offset = body.index(INITIAL_POSITION)
+    result = body.replace(
         INITIAL_POSITION,
         struct.pack(">iih", character["x"], character["y"], character["z"]),
     )
+    if "direction" in character:
+        direction = character["direction"]
+        if type(direction) is not int or not 0 <= direction <= 7:
+            raise ValueError("Invalid native world direction")
+        # rE: x:i32,y:i32,z:i16,map:i64,direction:u8,present:u8,
+        # followed by the secondary rH position. Preserve all other fields.
+        direction_offset = offset + struct.calcsize(">iihq")
+        if direction_offset >= len(result):
+            raise ValueError("Truncated native world position")
+        result = (
+            result[:direction_offset]
+            + bytes([direction])
+            + result[direction_offset + 1 :]
+        )
+    return result
 
 
 def character_list(template, account_id, characters):
@@ -434,11 +464,13 @@ def private_chat(account_id, sender, recipient, text):
 
 
 def private_chat_error(code, recipient=None):
-    """NE349 uses a u16 name length for user-not-found101."""
-    if type(code) is not int or code not in (101, 104, 140):
+    """Encode NE349; native 101/102/103 all carry a u16-length target name."""
+    if type(code) is not int or code not in (101, 102, 103, 104, 140):
         raise ValueError("Unsupported private chat error")
     body = struct.pack(">h", code)
-    if code == 101:
+    if code in (101, 102, 103):
+        if not isinstance(recipient, str):
+            raise ValueError("Private chat error requires recipient name")
         name = recipient.encode("utf-8")
         if not 1 <= len(name) <= 127:
             raise ValueError("Invalid private chat recipient")
@@ -486,6 +518,12 @@ def adapt(opcode, body, account_id, character=None, *, kamas=None):
         if len(body) != 8:
             raise ValueError("Invalid kama update length")
         return struct.pack(">q", kamas)
+    if opcode == 12753:
+        # cye/chS mutates the already-installed account foF and notifies its
+        # observers. Keep the native absolute-balance carrier authoritative.
+        if len(body) != 8:
+            raise ValueError("Invalid account wallet refresh length")
+        return account_kamas_update(kamas)
     if opcode == 13873 and len(body) >= 8 and struct.unpack(">II", body[:8]) == (1, 4):
         r = Reader(body)
         r.take(8)
@@ -554,3 +592,10 @@ def account_kamas(amount):
     if type(amount) is not int or not 0 <= amount < (1 << 63):
         raise ValueError("Invalid kama balance")
     return struct.pack(">IIq", 1, 6, amount)
+
+
+def account_kamas_update(amount):
+    """12753/cye: absolute i64 balance applied to the existing wallet model."""
+    if type(amount) is not int or not 0 <= amount < (1 << 63):
+        raise ValueError("Invalid kama balance")
+    return struct.pack(">q", amount)

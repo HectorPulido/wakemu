@@ -6,7 +6,7 @@ Reducir retrasos reales de entrada, inicio y hechizos; cumplir Redis primero y f
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+**En revision.** Hay correcciones de ciclo y movimiento ya verificadas; sigue pendiente resolver y medir la latencia de la primera entrada sin alterar geometría, daños ni orden de acciones. Ningún benchmark aislado demuestra que la latencia de sesión esté resuelta.
 
 ## Dependencias
 
@@ -19,3 +19,32 @@ Una solicitud de valor se aplica una vez; ninguna revisión nueva se borra por u
 ## Evidencia adicional ejecutada
 
 [Cotejo posterior a las respuestas del usuario](REVISION-RESPUESTAS.md).
+
+
+## Cotejo de carga fría — 6 de octubre
+
+La primera entrada registrada tomó18,2s, de los cuales17,71s fueron `prewarm_map` antes de publicar colocación. La misma exportación337/62164 filas tarda195–211ms en procesos fríos del host y160ms en un proceso Python separado dentro de Docker world; hits0,196ms/0,013ms. El mapa1134 frío tarda596ms y existe su exportación. No se atribuye el intervalo restante a SQL/Redis ni al bridge Docker sin evidencia: se necesita medir contexto de sesión/contención/presión de memoria. Cache miss simultáneo puede duplicar carga (lru_cache no es singleflight); precalentar mapas indiscriminadamente sería costoso. Artefactos privados: `.runtime/local/forced-terrain-first-entry-diagnostic.json` y `.runtime/local/forced-terrain-docker-process-probe.json`. Sin cambios de hechizos ni ejecución de combate en esta investigación.
+
+### Arranque con población inicial ya registrada — 2026-10-06
+
+Los listeners del arranque4aae53dd se abrieron después de24,46s de catálogos y14,75s adicionales de validación de población. La segunda fase reconstruía geometría aunque las nueve regiones tenían marcadores permanentes. La fuente ahora lee esos marcadores antes del terreno: valida estructura e identidades del catálogo y omite geometría/siembra únicamente para habitats ya completados. Las regiones nuevas mantienen todas las comprobaciones y la transacción original.
+
+18 pruebas PostgreSQL aisladas pasan, incluida ausencia de consultas de geometría y ausencia de reposición tras reinicio; aristas inválidas de regiones nuevas fallan cerradas. Medición en un proceso Docker separado con los9 marcadores reales:3,22ms para validar9 planes, sin mutaciones. Esto mide esa fase, no el arranque entero ni la demora de17,7s de la primera entrada a combate. La corrección aún no está cargada en el proceso world; no se reinició mientras el usuario prueba.
+
+La imagen candidata7556e218 pasó105 pruebas sin montar fuentes/protocolos (evidencia `.runtime/local/startup-marker-image-gate-20261006.txt`). No desplegada. Se añadió en fuente medición de CPU del hilo y del proceso junto al tiempo de pared de `combat_forced_terrain_ready`, para diferenciar cálculo propio de espera/competencia antes de atribuir la demora; no cambia el calentamiento ni sus políticas. Pendiente capturar una entrada fría del proceso activo después de cargar el cambio.
+
+Cotejo histórico adicional: `.runtime/local/forced-terrain-historical-correlation.json`. No existe snapshot/digest suficiente para demostrar que el proceso del pico cargó los mismos bytes que el código actual. Carga fría actual de337 en Docker:212,2ms de pared/211,7ms de CPU del hilo. No se atribuye la demora histórica a un lock ni a SQL/Redis sin evidencia.
+
+Despliegue de optimización:imagen4166845e/boota0da568a healthy; transcurrieron318ms desde catálogos listos hasta listeners, incluyendo tres siembras nuevas y nueve regiones ya marcadas. Esto verifica la mejora de la fase posterior a catálogos frente a14,75s previa. Catálogos tardaron26,38s; la demora histórica17,7s de entrada a combate sigue sin reproducirse/atribuirse.
+
+## Aviso global de guardado
+
+Petición del usuario7octubre: chat de información global para guardados perceptibles. Fuente conecta GlobalTasks al observadorSlowSaveAnnouncements y World.information_all (todos mapas/instancias, escritura fuera de lockworld). Un guardado global >1s anuncia inicio y luego éxito/fallo; positions_flush normalcada2s queda silencioso si rápido. Checkpoints individuales y su atomicidad no se modificaron. Gate fuente40/40; imagenb14232c8 en verificación, sin despliegue.
+
+## Despliegue merge7octubre
+
+Imagen9af0658c (wakfu-local-world:merged-verified) desplegada healthy, PostgreSQL001–048. Gate de imagen200/200; socket de recuperación agrupada, GetAll propio, reciclado, abandono y reconexión aprobado; borrado socket validado en candidata equivalente. IA y todos los módulos de combate conservados desdee18verified. Respaldo privado pre-inventory-merge-20261007.dump. Confirmación manual UI pendiente.
+
+## Precarga de combate medida en release de fabricación
+
+Candidata3523:117731ms para combat_catalogs_ready (208módulos/59104efectos). Live3523:147311ms (208módulos/61227efectos), antes de listeners y seed_configured. El live reconoció los93hábitats existentes (duplicate=true); la demora ocurre antes de sembrar. La candidata fue detenida por root después del smoke, exit137 con OOMKilled=false. Se perfila por loader en instancia aislada; aún no se cambia el orden de precarga.

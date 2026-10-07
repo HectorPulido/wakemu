@@ -1,0 +1,12 @@
+[
+  {
+    "key": "jalato_normal",
+    "template_id": 91,
+    "definition_id": 90,
+    "entry_map_id": 527,
+    "entry_object_id": 26842,
+    "destination_id": 2504,
+    "start_map_id": 1086,
+    "criterion": "not IsNeoServer()"
+  }
+]

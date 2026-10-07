@@ -56,11 +56,13 @@ def _position(value):
             1 << (bits - 1)
         ):
             raise PositionJournalError("Invalid journal position range")
+    if type(value["direction"]) is not int or not 0 <= value["direction"] <= 7:
+        raise PositionJournalError("Invalid journal direction")
     return value
 
 
 class Journal:
-    def __init__(self, client, *, namespace="wakfu:positions:v1"):
+    def __init__(self, client, *, namespace="wakfu:positions:v2"):
         self.client = client
         self.namespace = namespace
 
@@ -74,7 +76,7 @@ class Journal:
 
     def put(self, key, entry, expected=None):
         value = dict(
-            version=1,
+            version=2,
             owner=list(key),
             revision=uuid.uuid4().hex,
             baseline={k: entry["persisted"][k] for k in _KEYS},
@@ -120,7 +122,7 @@ class Journal:
                 value = json.loads(encoded)
                 key = tuple(value["owner"])
                 if (
-                    value["version"] != 1
+                    value["version"] != 2
                     or field != _identity(key)
                     or not isinstance(value["revision"], str)
                     or len(value["revision"]) != 32
@@ -168,11 +170,12 @@ class Journal:
                     old = value["baseline"]
                     new = value["current"]
                     changed = db.execute(
-                        "UPDATE characters SET x=%s,y=%s,z=%s WHERE id=%s AND account_id=%s AND map_id=%s AND instance_id=%s AND x=%s AND y=%s AND z=%s",
+                        "UPDATE characters SET x=%s,y=%s,z=%s,direction=%s WHERE id=%s AND account_id=%s AND map_id=%s AND instance_id=%s AND x=%s AND y=%s AND z=%s AND direction=%s",
                         (
                             new["x"],
                             new["y"],
                             new["z"],
+                            new["direction"],
                             character_id,
                             account,
                             *[old[k] for k in _KEYS],
@@ -261,7 +264,7 @@ class RedisPositions(Positions):
             )
 
 
-def create(store, *, lease_active, url=None, namespace="wakfu:positions:v1"):
+def create(store, *, lease_active, url=None, namespace="wakfu:positions:v2"):
     """No URL means the existing memory-only backend, with no Redis import/network."""
     if not url:
         return Positions(store, lease_active=lease_active), None

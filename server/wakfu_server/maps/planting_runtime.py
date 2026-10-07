@@ -1,7 +1,7 @@
 """Native planting occupations, own resource snapshots and explicit local timing.
 
 Seed requirement/surface authorization come from installed data and caller.
-3000ms is the local server policy, not an official profession-duration formula.
+Duration comes from PostgreSQL local policy, not an official duration formula.
 """
 import struct
 import threading
@@ -14,12 +14,17 @@ from .inventory_items import _lease
 
 class Plantings:
     def __init__(
-        self, store, *, duration_ms=3000, open_test_policy=False, growth_seconds=30
+        self,
+        store,
+        *,
+        open_test_policy=False,
+        growth_seconds=30,
+        probability_context=None,
     ):
-        if type(duration_ms) is not int or not 0 < duration_ms < 2**31:
-            raise ValueError("Invalid local planting duration")
         self.store = store
-        self.duration = duration_ms
+        if probability_context is not None and not callable(probability_context):
+            raise ValueError("Invalid authoritative planting probability resolver")
+        self.probability_context = probability_context
         self.open_test_policy = bool(open_test_policy)
         self.growth_seconds = growth_seconds
         self.pending = {}
@@ -73,6 +78,21 @@ class Plantings:
                         raise ValueError("Growth publication still reserves this cell")
             if 1 not in prepared["definition"]["stages"]:
                 raise ValueError("Native resource has no initial planting stage")
+            with self.store.connection() as db:
+                policy = db.execute(
+                    "SELECT value FROM settings WHERE name='planting_duration_ms'"
+                ).fetchone()
+            duration = None if policy is None else policy["value"]
+            if type(duration) is not int or not 1 <= duration <= 300000:
+                raise ValueError("Invalid PostgreSQL planting duration")
+            # Freeze the server-owned context before accepting the occupation.
+            # The client result never supplies a probability or a random draw.
+            probability = None
+            if self.probability_context is not None:
+                from .planting_probability import succeeds
+
+                probability = self.probability_context(prepared)
+                succeeds(probability, 0.0)  # Validate without drawing or mutating.
             ticket = dict(
                 prepared=prepared,
                 account=account,
@@ -80,6 +100,8 @@ class Plantings:
                 started=self.store.clock(),
                 token=uuid.uuid4().hex,
                 cell=key,
+                probability=probability,
+                duration_ms=duration,
             )
             self.pending[cid] = ticket
             self.cells[key] = cid
@@ -90,7 +112,7 @@ class Plantings:
                 hvY=2,
                 actor_id=cid,
                 profession_id=prepared["seed"]["profession_id"],
-                duration=self.duration,
+                duration=duration,
                 egY=animation,
                 x=request["x"],
                 y=request["y"],
@@ -123,7 +145,10 @@ class Plantings:
             if result == 3:
                 self.cancel(cid, generation)
                 return dict(applied=False, packets=[])
-            if self.store.clock() - ticket["started"] + 0.05 < self.duration / 1000:
+            if (
+                self.store.clock() - ticket["started"] + 0.05
+                < ticket["duration_ms"] / 1000
+            ):
                 raise ValueError("Planting completed before native occupation duration")
             finished = planting.complete(
                 self.store,
@@ -134,6 +159,7 @@ class Plantings:
                 stage=1,
                 creation_time=int(self.store.clock() * 1000),
                 result_prefix=(cid, ticket["prepared"]["request"]["action_id"]),
+                probability=ticket["probability"],
             )
             self.cancel(cid, generation)
             finished["applied"] = not finished["duplicate"]
@@ -149,35 +175,81 @@ class Plantings:
             )
         return [planting.resource_packet(dict(row)) for row in rows]
 
-    def mature(self, groups, *, publish, authorize_spawn=lambda resource: True):
-        """Local30s growth policy; returns map-scoped broadcasts for main writer.
+    def mature(
+        self,
+        groups,
+        *,
+        publish,
+        authorize_spawn=lambda resource: True,
+        random_draw=lambda: secrets.randbelow(1 << 53) / (1 << 53),
+    ):
+        """Database-owned flora transitions and existing monster seed timing.
 
         SQL outbox survives Redis outages. Caller excludes live players/objects
         and group occupancy before spawn. No lease belongs to a planted world
         resource: it continues growing after its planter logs out.
         """
         due = int((self.store.clock() - self.growth_seconds) * 1000)
+        now_ms = int(self.store.clock() * 1000)
+        monster_references = [
+            ref
+            for ref, definition in planting.RESOURCES.items()
+            if definition["monster_resource"]
+        ]
         with self.store.connection() as db:
             resources = [
                 dict(row)
                 for row in db.execute(
-                    "SELECT * FROM planted_resources WHERE stage=1 AND creation_time<=%s",
-                    (due,),
+                    "SELECT * FROM planted_resources WHERE stage=1 AND creation_time<=%s "
+                    "AND resource_reference=ANY(%s)",
+                    (due, monster_references),
                 )
             ]
+            flora = list(
+                db.execute(
+                    "SELECT p.*,t.to_stage,t.delay_ms,t.probability FROM planted_resources p "
+                    "JOIN resource_growth_transitions t ON t.resource_reference=p.resource_reference "
+                    "AND t.from_stage=p.stage WHERE p.creation_time+t.delay_ms<=%s "
+                    "AND NOT EXISTS (SELECT 1 FROM resource_growth_decisions d "
+                    "WHERE d.resource_uid=p.resource_uid AND d.from_stage=p.stage)",
+                    (now_ms,),
+                )
+            )
         candidates = []
         for resource in resources:
             definition = planting.RESOURCES[resource["resource_reference"]]
             if definition["monster_resource"] and not authorize_spawn(resource):
                 continue
-            candidates.append((resource, definition))
+            candidates.append((resource, definition, None))
+        for row in flora:
+            resource = {
+                key: value
+                for key, value in row.items()
+                if key not in ("to_stage", "delay_ms", "probability")
+            }
+            definition = planting.RESOURCES[resource["resource_reference"]]
+            transition = (row["to_stage"], row["delay_ms"], row["probability"])
+            if (
+                definition["monster_resource"]
+                or row["to_stage"] not in definition["stages"]
+            ):
+                raise ValueError(
+                    "Growth transition is absent from native flora definition"
+                )
+            candidates.append((resource, definition, transition))
         with self.lock, self.store.connection() as db:
-            for resource, definition in candidates:
+            for resource, definition, transition in candidates:
                 current = db.execute(
                     "SELECT * FROM planted_resources WHERE resource_uid=%s FOR UPDATE",
                     (resource["resource_uid"],),
                 ).fetchone()
                 if current is None or dict(current) != resource:
+                    continue
+                if db.execute(
+                    "SELECT 1 FROM resource_harvest_occupations "
+                    "WHERE resource_uid=%s AND expires_at>%s",
+                    (resource["resource_uid"], self.store.now()),
+                ).fetchone():
                     continue
                 if definition["monster_resource"]:
                     member = monster_growth_member(resource, definition)
@@ -198,14 +270,58 @@ class Plantings:
                         "DELETE FROM planted_resources WHERE resource_uid=%s",
                         (resource["resource_uid"],),
                     )
-                elif 2 in definition["stages"]:
+                elif transition is not None:
+                    policy = db.execute(
+                        "SELECT to_stage,delay_ms,probability FROM resource_growth_transitions "
+                        "WHERE resource_reference=%s AND from_stage=%s FOR SHARE",
+                        (resource["resource_reference"], resource["stage"]),
+                    ).fetchone()
+                    if (
+                        policy is None
+                        or (
+                            policy["to_stage"],
+                            policy["delay_ms"],
+                            policy["probability"],
+                        )
+                        != transition
+                    ):
+                        continue
+                    next_stage, delay_ms, probability = transition
+                    if probability < 1:
+                        from .planting_probability import succeeds
+
+                        draw = random_draw()
+                        accepted = succeeds(probability, draw)
+                        inserted = db.execute(
+                            "INSERT INTO resource_growth_decisions VALUES(%s,%s,%s,%s,%s,%s) "
+                            "ON CONFLICT DO NOTHING RETURNING resource_uid",
+                            (
+                                resource["resource_uid"],
+                                resource["stage"],
+                                next_stage,
+                                probability,
+                                draw,
+                                accepted,
+                            ),
+                        ).fetchone()
+                        if inserted is None or not accepted:
+                            continue
+                    entered_at = resource["creation_time"] + delay_ms
                     db.execute(
-                        "UPDATE planted_resources SET stage=2 WHERE resource_uid=%s",
-                        (resource["resource_uid"],),
+                        "UPDATE planted_resources SET stage=%s,creation_time=%s WHERE resource_uid=%s",
+                        (next_stage, entered_at, resource["resource_uid"]),
                     )
                     db.execute(
-                        "INSERT INTO planting_growth_outbox(resource_uid,resource,group_payload) VALUES(%s,%s,NULL) ON CONFLICT(resource_uid) DO NOTHING",
-                        (resource["resource_uid"], Jsonb(dict(resource, stage=2))),
+                        "INSERT INTO planting_growth_outbox(resource_uid,resource,group_payload) VALUES(%s,%s,NULL) "
+                        "ON CONFLICT(resource_uid) DO UPDATE SET resource=EXCLUDED.resource,group_payload=NULL,published=FALSE",
+                        (
+                            resource["resource_uid"],
+                            Jsonb(
+                                dict(
+                                    resource, stage=next_stage, creation_time=entered_at
+                                )
+                            ),
+                        ),
                     )
         return self.publish_growth(groups, publish=publish)
 
@@ -224,15 +340,22 @@ class Plantings:
             for row in rows:
                 resource = row["resource"]
                 group = row["group_payload"] if row["group_payload"] else None
+                ecology = None
                 if group:
-                    groups.register(*group["key"], group["members"])
-                    packets = [
-                        state_packet(resource, 0),
-                        (
-                            12608,
-                            spawn_group(group["members"], group_id=group["key"][2]),
-                        ),
-                    ]
+                    from .monster_birth_ecology import activate
+
+                    with self.store.connection() as db:
+                        ecology = activate(db, groups, row["resource_uid"])
+                    packets = [state_packet(resource, 0)]
+                    if ecology["status"] == "available":
+                        packets.append(
+                            (
+                                12608,
+                                spawn_group(
+                                    ecology["members"], group_id=group["key"][2]
+                                ),
+                            )
+                        )
                 else:
                     packets = [state_packet(resource, resource["stage"])]
                 delivery = dict(
@@ -241,28 +364,39 @@ class Plantings:
                     resource_uid=resource["resource_uid"],
                     packets=packets,
                 )
+                if ecology is not None:
+                    delivery["ecology"] = ecology
                 # The durable event remains pending if world delivery fails.
                 # A crash after delivery can replay the exact state packet.
                 publish(delivery)
                 with self.store.connection() as db:
                     db.execute(
-                        "UPDATE planting_growth_outbox SET published=TRUE WHERE resource_uid=%s",
-                        (row["resource_uid"],),
+                        "UPDATE planting_growth_outbox SET published=TRUE WHERE resource_uid=%s "
+                        "AND resource=%s AND group_payload IS NOT DISTINCT FROM %s",
+                        (
+                            row["resource_uid"],
+                            Jsonb(resource),
+                            Jsonb(group) if group else None,
+                        ),
                     )
                 published.append(delivery)
         return published
 
 
 def state_packet(resource, stage):
-    # cAx12782 -> cFJ. stage0 plays native disappearance; temporary resources
-    # (13135 field6=false) mark kED on Fg.aAw then bOw/bOv removes them.
+    # cAx12782 -> cFJ updates an existing resource stage. Stage0 disables
+    # harvesting; this packet alone does not prove spatial actor removal.
+    # The separate Fg.aAw callback can mark temporary actors for removal,
+    # but its connection to this state update is not established.
     return 12782, struct.pack(
         ">iihhqi",
         resource["x"],
         resource["y"],
         resource["z"],
         stage,
-        resource["creation_time"],
+        # cFJ stores kEB as ownerAccountId, which cWn compares with the
+        # player's account. Public resources remain public after growth.
+        0,
         0,
     )
 
@@ -324,6 +458,6 @@ def monster_growth_member(resource, definition):
         x=resource["x"],
         y=resource["y"],
         z=resource["z"],
+        instance_id=resource["instance_id"],
     )
-    member["instance_id"] = resource["instance_id"]
     return member

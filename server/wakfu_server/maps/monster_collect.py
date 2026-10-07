@@ -443,6 +443,27 @@ class Harvests:
                 if existing is not None
                 else insertion(item, notification=True)
             )
+            from .profession_rewards import base_xp
+            from .profession_store import award
+
+            progress = award(
+                self.store,
+                db,
+                account_id,
+                generation,
+                character_id,
+                ticket["rule"]["profession_id"],
+                base_xp=base_xp(db, "harvest"),
+                operation="monster-harvest:" + ticket["token"],
+            )
+            from .monster_harvest_ecology import change as ecological_harvest
+
+            feedback = ecological_harvest(
+                db,
+                character_id,
+                monster,
+                operation="monster-harvest:" + ticket["token"],
+            )
         self.cancel(character_id)
         key = (
             monster["map_id"],
@@ -456,6 +477,6 @@ class Harvests:
         return dict(
             applied=True,
             item=item,
-            packets=[packet],
+            packets=[packet, *progress["packets"], *feedback],
             availability=(key[0], key[1], availability_packet(key[2], key[3], False)),
         )

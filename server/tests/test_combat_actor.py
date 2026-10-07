@@ -58,6 +58,7 @@ class CombatActorTests(unittest.TestCase):
             team=0,
             native_obstacle_id=0,
             position=(-11, -8, -1),
+            direction=7,
         )
         b = actual_actor_stats(self.character(), actor, 123, wp_current=4, wp_maximum=6)
         # format3, XP8, position20, fight10, then characteristic count2.
@@ -67,6 +68,7 @@ class CombatActorTests(unittest.TestCase):
             [(1, 29, 0, 60, 0), (2, 3, 0, 6, 0), (3, 1, 0, 3, 0), (4, 4, 0, 6, 0)],
         )
         self.assertEqual(struct.unpack_from(">iih", b, 9), (-11, -8, -1))
+        self.assertEqual(b[27], actor.direction)
         with self.assertRaises(ValueError):
             actual_actor_stats(self.character(), actor, 123, wp_current=7, wp_maximum=6)
 

@@ -6,7 +6,11 @@ Entrar, compartir salas, progresar y salir de mazmorras con encuentros/recompens
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+Auditoría e implementación parcial del **servidor**. La base durable de sesiones/miembros en migración 065, el resolvedor limitado a rutas verificadas y la transición atómica de roster en `maps/dungeon_transport.py`/`maps/dungeon_instances.py` están probados con PostgreSQL aislado. La entrada sigue desconectada del dispatcher: no hay caller para el evaluador de criterio/proximidad, no se emitió bootstrap de mapa y no se ha habilitado el acceso. Las pruebas no certifican el recorrido jugable.
+
+**Estado funcional actual (2026-10-07):** el acceso normal candidato a Jalató está identificado (mapa 527, transportador 26842, destino 2504, plantilla 91). El servicio puede crear/reutilizar el run y trasladar toda la party a una instancia recién generada en una sola transacción, sin usar `cyZ` como `instance_id`. La migración 068 guarda el modo de servidor explícitamente, y el helper acepta solo `IsNeoServer()` y `not IsNeoServer()`. El cliente declara `server.group.isneo` con valor predeterminado `false`; el vínculo exacto entre el visitor del criterio y esa clave se infiere por su nombre y alcance de configuración, porque el visitor no está en los artefactos disponibles. Aún falta conectar el callback de proximidad y el dispatcher. No se abrió el acceso. Ver [diagnóstico actualizado](DIAGNOSTICO.md).
+
+La regresión 12296 confirma que el transporte genérico mantiene el rechazo del criterio especial y no mueve al personaje. La prueba durable también confirma que el ID 91 no autoriza como ID de una instancia activa. El siguiente paso de integración sigue siendo una transición de party respaldada por autorización nativa, con el `instance_id` creado por el servicio.
 
 ## Dependencias
 

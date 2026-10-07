@@ -134,3 +134,18 @@ class FightStateTests(unittest.TestCase):
         f.apply_effect_damage(200, 100, 60)
         with self.assertRaises(ValueError):
             f.apply_effect_healing(-7, 100, 10)
+
+    def test_actor_directions_survive_durable_snapshot_roundtrip(self):
+        import json
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.fight_checkpoint_store import snapshot
+
+        fight = self.fight()
+        actors = list(fight.actors.values())
+        actors[0].direction = 7
+        actors[1].direction = 3
+        state = json.loads(json.dumps(snapshot(fight, runtime=RuntimeMessages(fight))))
+        self.assertEqual(
+            [state["actors"][str(actor.id)]["direction"] for actor in actors],
+            [7, 3],
+        )

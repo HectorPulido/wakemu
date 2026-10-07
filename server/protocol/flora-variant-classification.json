@@ -1,0 +1,1630 @@
+{
+  "source": "native aLO/bIJ.f/bJp.dAX/fof + plant-resources + seed-actions",
+  "scope": "item rarity and stage actions; no official transition probability",
+  "resources": [
+    {
+      "resource_reference": 23,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 4278,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 7932,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 79,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 1889,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 20590,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 351,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 11455,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23683,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 151,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 4443,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23479,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 353,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 11462,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23682,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 356,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 11467,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23478,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 349,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 11451,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 20587,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 352,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 11458,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23684,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 334,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 10009,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22152,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 179,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 6948,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23830,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 263,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 8172,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23681,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 152,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 5440,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23832,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 589,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 19167,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 19168,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 380,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 13163,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 13164,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 296,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 9270,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23833,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 387,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 13147,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 13148,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 386,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 13144,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 13145,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 388,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 1783,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 13149,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 381,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 13166,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 13167,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 298,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 9268,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 18790,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 400,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 13110,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 13111,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 382,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 5443,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 13168,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 162,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 5426,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22144,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 60,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 2504,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 11447,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 150,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 4441,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 13159,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 384,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 9805,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 9777,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 605,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 19764,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 19765,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 578,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 18474,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 18476,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 576,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 18481,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 18482,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 102,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 1832,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22142,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 76,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 1902,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23831,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 18,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 4279,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 20685,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 8,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 1719,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23829,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 317,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 10737,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23477,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 577,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 18473,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 18475,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 554,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 18115,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23166,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 606,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 19768,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 19769,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 555,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 18117,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22961,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 397,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 13096,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 13097,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 570,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 18469,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22786,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 385,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 13140,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23471,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 532,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 13114,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22960,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 556,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 18121,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23168,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 569,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 18467,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22785,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 557,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 18122,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22964,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 575,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 18479,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 18480,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 335,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 10958,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23472,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 396,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 12004,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 13094,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 590,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 19171,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 19172,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 613,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 20187,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22127,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 401,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 13151,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 13152,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 523,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 17369,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22962,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 614,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 20184,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 20185,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 174,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 6162,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23469,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 139,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 1723,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 11438,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 602,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 19757,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 19758,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 601,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 19754,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 19755,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 591,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 19174,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 19175,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 607,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 19771,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 19772,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 350,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 11454,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 20683,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 608,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 19774,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 19775,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 647,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 22063,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22128,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 649,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 22069,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22070,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 612,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 20181,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 20182,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 648,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 22066,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22068,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 646,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 22060,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22062,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 764,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 27855,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 27856,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 766,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 27861,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 27862,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 785,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 28751,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 28752,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 761,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 27846,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 27847,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 765,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 27858,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 27859,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 783,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 28745,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 28746,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 784,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 28748,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 28749,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 781,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 28739,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 28740,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 782,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 28742,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 28743,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 786,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 28754,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 28755,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 762,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 27849,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 27850,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 763,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 27852,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 27853,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 357,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 11469,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22145,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 354,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 11464,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 22499,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 834,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 2504,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 11447,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 825,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": false,
+      "normal_products": [
+        {
+          "item_reference": 31006,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 31006,
+          "rarity": "UNUSUAL"
+        }
+      ]
+    },
+    {
+      "resource_reference": 379,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 11472,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23470,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 833,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 1719,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 23829,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 844,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 31833,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 31834,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 842,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 31827,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 31828,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 838,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 31817,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 31818,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 841,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 31824,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 31825,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 837,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": true,
+      "normal_products": [
+        {
+          "item_reference": 31814,
+          "rarity": "UNUSUAL"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 31815,
+          "rarity": "RARE"
+        }
+      ]
+    },
+    {
+      "resource_reference": 843,
+      "from_stage": 3,
+      "to_stage": 4,
+      "optional_variant_policy": false,
+      "normal_products": [
+        {
+          "item_reference": 31830,
+          "rarity": "UNUSUAL"
+        },
+        {
+          "item_reference": 32405,
+          "rarity": "RARE"
+        }
+      ],
+      "later_products": [
+        {
+          "item_reference": 31831,
+          "rarity": "RARE"
+        }
+      ]
+    }
+  ]
+}

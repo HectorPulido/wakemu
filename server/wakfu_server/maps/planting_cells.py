@@ -1,7 +1,7 @@
 """Installed native planting surfaces and territories (aIl.U/bMh.dV).
 
-Open local-test policy can relax species territory, never native heights or
-zero ground suitability. Occupancy is checked against owned local resources.
+Open local-test policy relaxes species territory and ground suitability,
+including ground zero. Native height resolution and occupancy still apply.
 """
 import gzip
 import json
@@ -57,15 +57,35 @@ def position_context(
     open_test_policy=False,
 ):
     cell = surface(character["map_id"], character["x"], character["y"], character["z"])
-    definition = region(character["map_id"], cell["region_id"])
+    return region_context(
+        character,
+        cell["region_id"],
+        monster_counts=monster_counts,
+        plant_counts=plant_counts,
+        test_monster_families=test_monster_families,
+        open_test_policy=open_test_policy,
+    )
+
+
+def region_context(
+    character,
+    region_id,
+    *,
+    monster_counts=None,
+    plant_counts=None,
+    test_monster_families=(),
+    open_test_policy=False,
+):
+    """Encode a known native region independently of planting-cell availability."""
+    definition = region(character["map_id"], region_id)
     extra = set(test_monster_families)
     if open_test_policy:
-        extra.update(open_families(character["map_id"], cell["region_id"]))
+        extra.update(open_families(character["map_id"], region_id))
     allowed_monsters = {r["family_id"] for r in definition["monster_families"]} | extra
     allowed_plants = {r["family_id"] for r in definition["plant_families"]}
     return bootstrap(
         character["map_id"],
-        cell["region_id"],
+        region_id,
         monster_counts={
             k: v for k, v in (monster_counts or {}).items() if k in allowed_monsters
         },

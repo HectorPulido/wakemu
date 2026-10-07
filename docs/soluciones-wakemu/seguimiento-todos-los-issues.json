@@ -6,7 +6,7 @@
   "issues": [
     {
       "issue": "00-rendimiento-y-redis",
-      "status": "audit_in_progress",
+      "status": "En revision",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -22,7 +22,7 @@
     },
     {
       "issue": "01-semillas-sin-refresco",
-      "status": "resolved_verified_user_and_postgresql",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -45,49 +45,75 @@
     },
     {
       "issue": "02-maduracion-de-monstruos",
-      "status": "audit_in_progress",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-registro-tareas-poblacion.json"
       ],
-      "complete": false
+      "complete": true,
+      "manual_acceptance": "Usuario confirma funcionamiento el 6 de octubre de 2026",
+      "remaining_evidence": []
     },
     {
       "issue": "03-reproduccion-sin-respawn",
-      "status": "audit_in_progress",
+      "status": "Cambio hecho no confirmado",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-registro-tareas-poblacion.json"
       ],
-      "complete": false
+      "complete": false,
+      "manual_acceptance": "Nacimiento en grupo nuevo, ampliación de grupo y reentrada con hijos únicos confirmados",
+      "remaining_evidence": [
+        "Recuperación de hijos tras reiniciar el servidor"
+      ]
     },
     {
       "issue": "04-probabilidad-de-plantacion",
-      "status": "audit_in_progress",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-rama-exito-actual.json"
       ],
-      "complete": false
+      "complete": false,
+      "planting_failed_outcome_implemented": true,
+      "planting_failure_migration_live": false,
+      "planting_rng_integrated": false,
+      "status_evidence": "README.md: estado vigente respaldado por aceptación manual y gates descritos"
     },
     {
       "issue": "05-permisos-y-recoleccion-de-cardo",
-      "status": "En revision",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
-        "probe-propiedad-recursos.json"
+        "probe-propiedad-recursos.json",
+        "probe-replantacion-local.json"
       ],
-      "complete": false,
+      "complete": true,
       "verified_tests": 18,
       "implementation_evidence": "README.md",
-      "remaining_evidence": [
-        "Recargar corrección ownerAccount público0",
-        "Implementar y verificar flujo completo cosecha vegetal12995"
-      ]
+      "remaining_evidence": [],
+      "resource_occupation_gate_tests": 31,
+      "resource_occupation_live": true,
+      "resource_actor_snapshot_migration_live": 14,
+      "resource_actor_snapshot_gate_tests": 46,
+      "resource_harvest_completion_implemented": true,
+      "resource_harvest_completion_gate_tests": 92,
+      "resource_harvest_completion_live": true,
+      "latest_deployment": {
+        "image": "14d2bde313b38cd0d82f7df2b895880e542d79258326de985417952aba327541",
+        "migrations": [
+          16,
+          17
+        ],
+        "health": "ok",
+        "gate_tests": 92,
+        "visual_confirmation": false
+      },
+      "manual_acceptance": "Usuario confirma funcionamiento el 6 de octubre de 2026"
     },
     {
       "issue": "06-etapas-completas-de-cardo",
@@ -103,21 +129,38 @@
         "Extraer grafo legal etapas",
         "Vencimiento persistido y outbox por transición",
         "Publicar etapa del evento y verificar ciclo completo"
-      ]
+      ],
+      "growth_graph_implemented": true,
+      "growth_graph_edges": 401,
+      "growth_graph_plantable_references": 146,
+      "growth_graph_gate_tests": 92,
+      "growth_graph_live": true,
+      "latest_deployment": {
+        "image": "14d2bde313b38cd0d82f7df2b895880e542d79258326de985417952aba327541",
+        "migrations": [
+          16,
+          17
+        ],
+        "health": "ok",
+        "gate_tests": 92,
+        "visual_confirmation": false
+      }
     },
     {
       "issue": "07-wakfu-y-stasis",
-      "status": "audit_in_progress",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-jauge-personal-nativa.json"
       ],
-      "complete": false
+      "complete": true,
+      "manual_acceptance": "Usuario confirma recorrido completo Wakfu/Stasis; SQL034 parametriza incrementos de 25 basis points",
+      "remaining_evidence": []
     },
     {
       "issue": "08-experiencia-de-oficios",
-      "status": "audit_in_progress",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -126,55 +169,169 @@
         "probe-carrier-craft-cuenta.json",
         "probe-curva-y-delta-nativos.json"
       ],
-      "complete": false
+      "complete": true,
+      "native_xp_formula_verified": true,
+      "native_craft_snapshot_codec": "loaded_visual_verification_pending",
+      "native_profession_coefficients_verified": [
+        71,
+        72
+      ],
+      "account_professions_gate_tests": 56,
+      "account_professions_migration_live": 13,
+      "profession_reward_actions_integrated": false,
+      "planting_xp_integrated": true,
+      "planting_reward_gate_tests": 41,
+      "profession_action_rewards_migration_live": 15,
+      "planting_visual_verified": true,
+      "harvest_xp_integrated_in_source": true,
+      "harvest_xp_live": true,
+      "latest_deployment": {
+        "image": "14d2bde313b38cd0d82f7df2b895880e542d79258326de985417952aba327541",
+        "migrations": [
+          16,
+          17
+        ],
+        "health": "ok",
+        "gate_tests": 92,
+        "visual_confirmation": false
+      },
+      "manual_acceptance": "Plantación y recolección aceptadas; fabricación Herbolario10/2000XP y Minero100Bombas/20000XP/nivel16, confirmados UI y SQL",
+      "remaining_evidence": [],
+      "crafting_source_evidence": "Atomic distinct recipe slots x SQL recipe_slot_xp x batch_count;200/400XP regressions;28 full profession/craft tests passed"
     },
     {
       "issue": "09-experiencia-de-combate",
-      "status": "audit_in_progress",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-fuentes-dofus.json",
         "probe-recibos-y-generacion.json"
       ],
-      "complete": false
+      "complete": true,
+      "priority": "maxima",
+      "manual_acceptance_pending": false,
+      "active_image": "e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742",
+      "automated_gate": {
+        "tests": 200,
+        "result": "passed",
+        "scope": "merged frozen image directed regression suite"
+      },
+      "candidate_smoke": "native TLS entry and integrated rewards/drop/full-bag/claim/retry/reconnect passed",
+      "manual_test": "../09-experiencia-de-combate/PRUEBA-GENERAL-RECOMPENSAS.md",
+      "candidate_socket_smoke": "PASS native combat, return, grouped temporary claim, self GetAll, recycle receipt, discard and reconnect",
+      "deployment_note": "Merge de IA activa e inventario desplegado; world healthy; migraciones001–048.",
+      "manual_acceptance": "Usuario confirma Todo funciona bien en prueba general merge: recompensas, recuperación temporal y persistencia."
     },
     {
       "issue": "10-drops-y-kamas",
-      "status": "audit_in_progress",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-fuentes-loot-y-resumen.json",
         "probe-inventario-temporal-nativo.json"
       ],
-      "complete": false
+      "complete": false,
+      "priority": "maxima",
+      "manual_acceptance_pending": false,
+      "active_image": "e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742",
+      "automated_gate": {
+        "tests": 200,
+        "result": "passed",
+        "scope": "merged frozen image directed regression suite"
+      },
+      "candidate_smoke": "native TLS entry and integrated rewards/drop/full-bag/claim/retry/reconnect passed",
+      "manual_test": "../09-experiencia-de-combate/PRUEBA-GENERAL-RECOMPENSAS.md",
+      "temporary_manual_drop_policy": {
+        "version": 1,
+        "multiplier": 1,
+        "restored": true,
+        "reason": "native guaranteed drop12325x3 from Mimic4196 replaces invalid level1 Tofu test"
+      },
+      "remaining": [
+        "complex criteria",
+        "dungeon classification",
+        "external loot tables",
+        "rollMax and duplicate row semantics"
+      ],
+      "candidate_socket_smoke": "PASS native combat, return, grouped temporary claim, self GetAll, recycle receipt, discard and reconnect",
+      "deployment_note": "Merge de IA activa e inventario desplegado; world healthy; migraciones001–048.",
+      "manual_acceptance": "Usuario confirma Todo funciona bien en prueba general merge: recompensas, recuperación temporal y persistencia."
     },
     {
       "issue": "11-intercambio-entre-personajes",
-      "status": "audit_in_progress",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-contratos-intercambio.json",
         "probe-inventario-bilateral-rechazado.json"
       ],
-      "complete": false
+      "complete": false,
+      "exchange_source_status": "Usuario confirma cancelación/rechazo bilateral, actualización inmediata de kamas, cancelación activa y persistencia tras selector/reinicio en3b80ca96. Retiro parcial sigue fallando; retiro completo funciona. Usuario difiere detalle como baja prioridad",
+      "exchange_initial_tests": 33,
+      "exchange_commit_tests": "Aprobadas en gate integrado de imagen",
+      "verified_tests": 333,
+      "loaded_image": "3b80ca965a7f222b7af301d0603e86ced766fce70def0ebbff991001be5b0c36",
+      "manual_acceptance_pending": false,
+      "remaining_evidence": [
+        "Retiro parcial UI fallido confirmado por usuario; detalle diferido de baja prioridad"
+      ],
+      "user_confirmation": "2026-10-07: cancelación invitación/rechazo, kamas inmediatas, cancelación activa y reconexión/reinicio perfectos; retiro parcial aún falla"
     },
     {
       "issue": "12-duelos-pvp",
-      "status": "audit_in_progress",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-consentimiento-y-cancelacion.json",
         "probe-solicitud-desafio-nativa.json"
       ],
-      "complete": false
+      "complete": false,
+      "return_ack_source_migration": 63,
+      "group_lease_default_source": true,
+      "final_integrated_tls": false,
+      "manual_acceptance": "Wayo/Krozz: ataques, victoria sin premios, abandono y retorno correctos; invitación inversa y giros pendientes",
+      "manual_acceptance_enabled": true,
+      "duel_tls_candidate": "1bc77bb5cd69acd1df0ec5528dd5484d6c94fae2a9a236480170fb1080d357ce",
+      "duel_tls_pass": true,
+      "duel_tls_no_reward_sql_verified": true,
+      "duel_tls_evidence": ".runtime/local/duel-final-tls-smoke-20261007.txt",
+      "duel_deployed": false,
+      "shared_checkpoint_source_fixed": true,
+      "shared_checkpoint_source_gate_tests": 41,
+      "shared_checkpoint_image_gate_tests": 41,
+      "broad_final_gate": "running; explicit module manifest requested",
+      "shared_checkpoint_tls": "pending",
+      "integrated_candidate_image": "1ed06b10b4d28e77ef3316909437293c5cfb91a267e2ceddfddd0616cce54f7a",
+      "integrated_image_gate_tests": 278,
+      "integrated_duel_spectator_tls_pass": true,
+      "integrated_candidate_deployed": true,
+      "live_image": "1ed06b10b4d28e77ef3316909437293c5cfb91a267e2ceddfddd0616cce54f7a",
+      "manual_enabled": true,
+      "remaining_evidence": [
+        "Aceptación visual del usuario"
+      ],
+      "r6_action_return_tls": {
+        "passed": true,
+        "image": "2f909f67113ea9f4314dd7eee2f68a31c594a6f8246d368df9703c7292771b56",
+        "artifact": ".runtime/local/duel-core-final-context-20261007-r6/action-tls-smoke-rerun3.txt",
+        "remaining": "Guardar checkpoint antes de retirar Registry; candidata r7 en validación."
+      },
+      "r7_targeted_gate": {
+        "passed": true,
+        "tests": 62,
+        "skipped": 0,
+        "artifact": ".runtime/local/duel-core-final-context-20261007-r7/targeted-app-gate-r7-recovery.txt"
+      },
+      "deployed": true,
+      "deployed_image": "1c3bbea57e40a204da33025484c351f58246992de6f9798843c5d9ba4593119f"
     },
     {
       "issue": "13-chat-privado-y-canales",
-      "status": "private_router_loaded_pending_live_delivery_and_other_channels",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -190,37 +347,71 @@
       "verified_tests": 93,
       "implementation_evidence": "COTEJO-ACTUAL-POSTGRESQL.md",
       "remaining_evidence": [
-        "Recepción real entre dos clientes",
-        "Otros canales y preferencias DND/ignore",
+        "Ampliación contactos/DND/ignore conectada en fuente; gate imagen0996b53 405 pruebas OK, revisión nativa posterior y despliegue/aceptación pendientes",
+        "Canales gremio/intergame/admin/política/JcJ pendientes; privados y canales públicos aceptados por el usuario",
         "Cambios de sesión concurrentes con entrega de socket"
       ],
       "loaded_image": "3d5aee9d6c2e9e46389dbce16e64078bcbd2b536cdd1abaa043b9a13afa8fcd5",
-      "cleanup_and_chat_regression_tests": 88
+      "cleanup_and_chat_regression_tests": 88,
+      "private_chat_visual_verification": {
+        "date": "2026-10-06",
+        "source": "Capturas y confirmación del usuario",
+        "bidirectional": "PASS",
+        "offline_error": "PASS",
+        "reconnected_receive": "PASS",
+        "third_observer_isolation": "NO EJECUTADO"
+      },
+      "active_image": "e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742",
+      "candidate_changes_deployed": true,
+      "deployment_note": "Merge de IA activa e inventario desplegado; world healthy; migraciones001–048."
     },
     {
       "issue": "14-unirse-a-combates",
-      "status": "audit_in_progress",
+      "status": "Cambio hecho no confirmado",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-servicio-compartido.json",
         "probe-solicitud-nativa-join.json"
       ],
-      "complete": false
+      "complete": false,
+      "remaining_evidence": [
+        "Registry/session integration13241",
+        "Checkpoints y recompensas multiowner",
+        "TLS y aceptación completa2clientes"
+      ],
+      "combat_engine_changed": false,
+      "storage_gate": {
+        "tests": 43,
+        "passed": true,
+        "migration": "052",
+        "deployed": false,
+        "scope": "shared durable membership/checkpoints/settlement, no real join integration"
+      },
+      "shared_combat_source_dispatch_integrated": true,
+      "shared_combat_full_tls_verified": false,
+      "shared_combat_roster_settlement_pending": false,
+      "shared_combat_source_push_integrated": true,
+      "shared_combat_source_gate_tests": 65,
+      "shared_combat_source_push_gate_tests": 61,
+      "candidate_deployed": true,
+      "integrated_gate_tests": 198
     },
     {
       "issue": "15-grupos-de-jugadores",
-      "status": "audit_in_progress",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-invitaciones-y-cupo.json"
       ],
-      "complete": false
+      "complete": true,
+      "party_native_codecs": "Dispatcher y membresía durable desplegados en imagen7289b2de; gate430 OK",
+      "manual_acceptance": "2026-10-06: usuario confirma funciona perfecto grupos; disolución y chat incluidos"
     },
     {
       "issue": "16-espectadores-y-marcadores",
-      "status": "audit_in_progress",
+      "status": "En revision",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -228,11 +419,50 @@
         "probe-envelope-combate-externo.json",
         "probe-salida-espectador.json"
       ],
-      "complete": false
+      "complete": false,
+      "public_marker_source": true,
+      "public_marker_scope": "pve_instance_0",
+      "spectator_source_gate_tests": 60,
+      "final_integrated_tls": false,
+      "source_deployed": false,
+      "spectator_pending_entry_source": true,
+      "spectator_pending_entry_local_gate": 69,
+      "spectator_candidate": "afad4acebaa8d69953f7fa4d882bd2e3ee4fbbc3a2899e488c1e47f40a92e2a4",
+      "spectator_tls_ack_gap_verified": true,
+      "spectator_three_peer_tls_pass": true,
+      "spectator_tls_evidence": ".runtime/local/duel-ackgap-spectator-tls-smoke-20261007.txt",
+      "spectator_final_regression_pending": true,
+      "integrated_candidate_image": "1ed06b10b4d28e77ef3316909437293c5cfb91a267e2ceddfddd0616cce54f7a",
+      "integrated_image_gate_tests": 278,
+      "integrated_duel_spectator_tls_pass": true,
+      "integrated_candidate_deployed": true,
+      "manual_acceptance_enabled": true,
+      "live_image": "wakemu-world:markers-20261007-r14",
+      "manual_enabled": true,
+      "remaining_evidence": [
+        "Aceptación visual del usuario"
+      ],
+      "terminal_return_review": {
+        "marker_origin_tls_passed": true,
+        "entry_exit_reentry_passed": true,
+        "observer_rewards_absent": true,
+        "remaining": "Promoción integrada y aceptación visual del usuario.",
+        "terminal_tls_passed": true,
+        "image": "1c3bbea57e40a204da33025484c351f58246992de6f9798843c5d9ba4593119f",
+        "artifact": ".runtime/local/spectator-terminal-context-r9-20261007/spectator-terminal-tls-output.txt"
+      },
+      "deployed": true,
+      "deployed_image": "1c3bbea57e40a204da33025484c351f58246992de6f9798843c5d9ba4593119f",
+      "manual_acceptance": "r9: espadas ausentes en PvE Mimic; observar/unirse no disponibles",
+      "visual_r12": "marker absent despite delivered13753 myo46",
+      "marker_topology_scope": "public instance0",
+      "visual_verification": "own clients r14: no swords, reproduced fight33",
+      "manual_probe_enabled": false,
+      "native_registration_verified": true
     },
     {
       "issue": "17-aptitudes-y-calculo-de-estadisticas",
-      "status": "resolved_verified_full_user_acceptance_and_postgresql",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -246,19 +476,20 @@
     },
     {
       "issue": "18-orientacion-en-colocacion",
-      "status": "changed_pending_reload_and_visual",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-fases-orientacion.json"
       ],
-      "complete": false,
+      "complete": true,
       "verified_tests": 53,
       "implementation_evidence": "IMPLEMENTACION.md",
       "remaining_evidence": [
         "Validar orientación desde interfaz colocación",
         "Sincronización de participantes/observadores con issues14/16"
-      ]
+      ],
+      "status_evidence": "README.md: estado vigente respaldado por aceptación manual y gates descritos"
     },
     {
       "issue": "19-movimiento-aleatorio-eficiente",
@@ -279,38 +510,74 @@
     },
     {
       "issue": "20-poblacion-inicial-y-zonas-activas",
-      "status": "audit_in_progress",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-zona-sin-jugadores.json"
       ],
-      "complete": false
+      "complete": true,
+      "status_evidence": "README.md: estado vigente respaldado por aceptación manual y gates descritos"
     },
     {
       "issue": "21-conexion-remota-y-configuracion",
-      "status": "audit_in_progress",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-anuncio-endpoint.json"
       ],
-      "complete": false
+      "complete": false,
+      "network_config_tests": 2,
+      "remote_acceptance_pending": true
     },
     {
       "issue": "22-identificacion-elementos-y-encantamiento",
-      "status": "audit_in_progress",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-engastes-nativos.json",
         "probe-identificacion-nativa.json"
       ],
-      "complete": false
+      "complete": false,
+      "remaining_evidence": [
+        "Integración selección elemental12487",
+        "Identificación13787 y sorteo/costos nativos",
+        "Persistencia sockets050 en pruebas aisladas",
+        "Aceptación manual completa"
+      ],
+      "candidate_image": "78e8ae298ec052f6c91a6e76a6a1a373c0c78291eedc1e0f703b72953efefa47",
+      "candidate_gate": {
+        "frozen_tests": 80,
+        "passed": true,
+        "tls_pending": false,
+        "deployed": true,
+        "tls": "PASS elements13766, gems insertion/removal/retry/reconnect, combat/rewards/temporaryinventory"
+      },
+      "active_image": "e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742",
+      "manual_acceptance_pending": true,
+      "identification_deployed": true,
+      "identification_gate": {
+        "frozen_tests": 53,
+        "passed": true,
+        "tls": "PASS identification/level/retry/cost/reconnect, combat smoke",
+        "combat_modules_identical": 208
+      },
+      "enchantment_source_migration": 54,
+      "enchantment_source_review_gate_tests": 41,
+      "enchantment_runtime_deployed": false,
+      "enchantment_retry_semantics": "Sacrifice UID dedupe; no-nonce requests configurable short window, not perfect replay distinction",
+      "enchantment_candidate_with_bonuses_image": "4ba13dc0d340eccc521a3ee02c6fc2518a79ed2bd4e50054edfa8802caf3a5e8",
+      "enchantment_candidate_combat_reward_tls_verified": true,
+      "enchantment_native_response_consumer_verified": false,
+      "integrated_image": "e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742",
+      "integrated_gate_tests": 198,
+      "integrated_migrations_live": 59
     },
     {
       "issue": "23-bolso-sadida-apilado",
-      "status": "resolved_verified_all_user_cases",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -318,14 +585,12 @@
       ],
       "complete": true,
       "implementation_evidence": "IMPLEMENTACION.md",
-      "remaining_evidence": [
-        "Retirada visual del bolso y reconexión tras retirar; el defecto original de equipar stack está validado"
-      ],
+      "remaining_evidence": [],
       "user_validation": "Confirma !item12493 3: equipada1/restan2, interfaz válida, reconexión conserva; DB contiene stack12493 qty2 y bolso12493 kind2 capacity10."
     },
     {
       "issue": "24-nacion-y-pasaporte-neutral",
-      "status": "audit_in_progress",
+      "status": "En revision",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -337,7 +602,7 @@
     },
     {
       "issue": "25-brechas-dimensionales",
-      "status": "audit_in_progress",
+      "status": "Pendiente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -347,38 +612,87 @@
     },
     {
       "issue": "26-insertar-y-retirar-merkagemas",
-      "status": "audit_in_progress",
+      "status": "Cambio hecho no confirmado",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-insercion-retirada-nativas.json",
         "probe-respuestas-merkagemas.json"
       ],
-      "complete": false
+      "complete": false,
+      "candidate_image": "78e8ae298ec052f6c91a6e76a6a1a373c0c78291eedc1e0f703b72953efefa47",
+      "candidate_gate": {
+        "frozen_tests": 80,
+        "passed": true,
+        "tls_pending": false,
+        "deployed": true,
+        "tls": "PASS elements13766, gems insertion/removal/retry/reconnect, combat/rewards/temporaryinventory"
+      },
+      "active_image": "e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742",
+      "manual_acceptance_pending": true
     },
     {
       "issue": "27-clima-por-zona",
-      "status": "audit_in_progress",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-clima-y-ecologia.json"
       ],
-      "complete": false
+      "complete": false,
+      "remaining_evidence": [
+        "Native region mapping for online players",
+        "Scheduled updates/outbox055",
+        "Forecast13895 codec",
+        "Complete acceptance"
+      ],
+      "weather_source_gate_tests": 81,
+      "weather_source_gate_migrations": "001-055",
+      "weather_candidate_tls_verified": true,
+      "weather_new_runtime_deployed": true,
+      "weather_candidate_image": "2e64d4e0730be02026b337a4d6699b968394213fd39fd46aace57db89e1d939c",
+      "weather_candidate_frozen_gate_tests": 93,
+      "weather_candidate_combat_source_unchanged": true,
+      "weather_live_migrations": 55,
+      "weather_cron_verified": true,
+      "weather_candidate_combat_reward_tls_verified": true,
+      "weather_live_territory_rows_verified": 1,
+      "integrated_image": "e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742",
+      "integrated_gate_tests": 198,
+      "integrated_migrations_live": 59
     },
     {
       "issue": "28-bonus-de-area",
-      "status": "audit_in_progress",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "../27-clima-por-zona/probe-clima-y-ecologia.json"
       ],
-      "complete": false
+      "complete": false,
+      "regional_population_context_source": true,
+      "regional_population_context_tests": 3,
+      "regional_population_context_deployed": false,
+      "territorial_profession_xp_source": true,
+      "territorial_profession_gate_tests": 84,
+      "territorial_stat_bonus_deployed": false,
+      "territorial_outside_combat_stat_carrier_verified": false,
+      "territorial_tls": false,
+      "integrated_candidate_deployed": true,
+      "manual_acceptance_enabled": true,
+      "live_image": "1ed06b10b4d28e77ef3316909437293c5cfb91a267e2ceddfddd0616cce54f7a",
+      "calculation_deployed": true,
+      "deployed_image": "1c3bbea5",
+      "domain_gate_tests": 12,
+      "remaining_evidence": [
+        "Carrier visual fuera de combate",
+        "TLS de transición regional",
+        "Aceptación manual general"
+      ]
     },
     {
       "issue": "29-mazmorras-e-instancias",
-      "status": "audit_in_progress",
+      "status": "Pendiente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -404,7 +718,7 @@
     },
     {
       "issue": "30-mesas-de-oficio-y-crafting",
-      "status": "audit_in_progress",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -412,17 +726,61 @@
         "probe-presencia-ruta-mesas.json",
         "probe-solicitudes-crafting.json"
       ],
-      "complete": false
+      "complete": false,
+      "source_integration": "12231/13382 ordinary crafting;13429 type8 cancel/complete;330native tables,457VF filtered cells",
+      "candidate_socket_smoke": "PASS TLS bootstrap,12231,cancel,product+200XP,completion retry absolute sync,reconnect",
+      "candidate_image": "wakemu-crafting-candidate:20261007",
+      "deployment_pending": false,
+      "remaining_evidence": [
+        "Carga dinámica de interactivos falla y recarga recupera mesas: investigación conjunta35",
+        "Criterios especiales/contratos artisan separados"
+      ],
+      "active_image": "e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742",
+      "automated_gate": {
+        "tests": 182,
+        "result": "passed",
+        "scope": "frozen crafting candidate image"
+      },
+      "manual_acceptance_pending": false,
+      "manual_acceptance": "Usuario confirma mesas funcionan perfecto y lotes Herbolario/Minero; SQL completed2000/20000XP",
+      "static_sync_deployed": true,
+      "static_sync_manual_acceptance_pending": true,
+      "static_sync_gate": {
+        "source_tests": 114,
+        "frozen_applicable_tests": 99,
+        "frozen_context_tests": 8,
+        "combat_modules_identical": 208,
+        "note": "Un test de encounter_kind requiere mejora de drops no incluida; TLS extendido sigue en comprobación.",
+        "tls": "PASS: initial359 after exact replay fragments; quiet transition492; reconnect3; forced14689 52ms; combat socket PASS",
+        "artifact": ".runtime/local/static-map-sync-candidate-gate-20261007.txt"
+      }
     },
     {
       "issue": "31-diversidad-de-celdas-de-colocacion",
-      "status": "audit_in_progress",
+      "status": "Cambio hecho no confirmado",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-terreno-real-actual.json"
       ],
-      "complete": false
+      "complete": false,
+      "placement_policy_source_migration": 61,
+      "placement_layout_source_integrated": true,
+      "placement_gate_tests": 15,
+      "placement_layout_deployed": false,
+      "placement_frozen_tests": 49,
+      "placement_candidate": "83e400a3f4ecb398427bb27085545952c8d60d95431db0b1a706682a9f5226b5",
+      "placement_single_tls": true,
+      "placement_shared_tls": true,
+      "placement_sql_capacity_change_tls": true,
+      "placement_frozen_focused_tests": 26,
+      "native_geometry_variety_tested_maps": [
+        1134,
+        527
+      ],
+      "integrated_candidate_deployed": true,
+      "manual_acceptance_enabled": true,
+      "live_image": "1ed06b10b4d28e77ef3316909437293c5cfb91a267e2ceddfddd0616cce54f7a"
     },
     {
       "issue": "32-roles-admin-y-comandos",
@@ -439,20 +797,34 @@
     },
     {
       "issue": "33-rendicion-y-retorno-al-mundo",
-      "status": "resolved_verified_user_full_cycle_and_postgresql",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
         "probe-flags-retorno-actual.json"
       ],
-      "complete": true,
+      "complete": false,
       "verified_tests": 34,
       "implementation_evidence": "IMPLEMENTACION.md",
-      "remaining_evidence": [],
+      "remaining_evidence": [
+        "Rendición voluntaria multiowner"
+      ],
       "loaded_image": "3d5aee9d6c2e9e46389dbce16e64078bcbd2b536cdd1abaa043b9a13afa8fcd5",
       "disconnect_atomic_status": "verified_loaded",
       "cleanup_retry_status": "verified_loaded",
-      "cleanup_and_chat_regression_tests": 88
+      "cleanup_and_chat_regression_tests": 88,
+      "regression": "r9 sharedPvE13952 rechazado; selector cargando tras salida",
+      "live_image": "wakemu-world:return-20261007-r12",
+      "automated_validation": {
+        "postgres": 99,
+        "integrated": 116,
+        "tls": "pve surrender + disconnect/reconnect + fresh fight passed"
+      },
+      "manual_r12": {
+        "surrender": true,
+        "steps_5_6_7": true,
+        "xp_drop_return": true
+      }
     },
     {
       "issue": "34-builds-personalizadas",
@@ -475,7 +847,7 @@
     },
     {
       "issue": "E01-corrupcion-sqlite",
-      "status": "resolved",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -500,7 +872,7 @@
     },
     {
       "issue": "E02-resincronizacion-inventario-invalida",
-      "status": "implemented_pending_visual",
+      "status": "Cambio hecho no confirmado",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [],
@@ -513,7 +885,7 @@
     },
     {
       "issue": "E03-api-test-sin-autenticacion",
-      "status": "resolved_verified_docker",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -525,7 +897,7 @@
     },
     {
       "issue": "E04-activar-build-sin-handler",
-      "status": "resolved_verified_user_and_postgresql",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [],
@@ -543,7 +915,7 @@
     },
     {
       "issue": "E05-seleccion-build-y-deck-cero",
-      "status": "implemented_partial",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -558,7 +930,7 @@
     },
     {
       "issue": "E06-nivel-y-hojas-sin-atomicidad",
-      "status": "implemented_partial_deployed",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -577,11 +949,13 @@
         "builds_equipment_gate": 54,
         "console_rewards_gate": 16,
         "migrations": 8
-      }
+      },
+      "level_visual_verification": "PASS usuario Npers, nivel50",
+      "spell_unlock_visual_verification": "FAIL usuario: biblioteca bloqueada tras alcanzar nivel; reservado a sesión de hechizos"
     },
     {
       "issue": "E07-borrado-de-build-sin-handler",
-      "status": "resolved_verified_user_and_postgresql",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -598,11 +972,11 @@
     },
     {
       "issue": "E08-limite-de-builds-inconsistente",
-      "status": "capacity_carrier_verified_loaded_pending_visual",
+      "status": "Solucionado totalmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [],
-      "complete": false,
+      "complete": true,
       "implementation_evidence": "IMPLEMENTACION.md",
       "remaining_evidence": [
         "Contador visual con cupo DB inferior a24",
@@ -618,11 +992,21 @@
       "manual_counter_values": [
         "1/24",
         "2/24"
-      ]
+      ],
+      "capacity_visual_verification": "Usuario Npers confirma24/24, botón deshabilitado, borrar activa→default/23, reemplazo y reconexión",
+      "capacity_sql_verification": {
+        "character_id": 6,
+        "personal_builds": 24,
+        "indexes": "1–24",
+        "active_index": 24,
+        "selection_revision": 3,
+        "replacement": "CupoReemplazo",
+        "policy_limit": 24
+      }
     },
     {
       "issue": "E09-sql-redundante-con-redis",
-      "status": "replay_single_hydration_verified_loaded_pending_measurement",
+      "status": "Solucionado parcialmente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -657,7 +1041,7 @@
     },
     {
       "issue": "E11-test-desplazamiento-sin-terreno-exportado",
-      "status": "excluded_other_session",
+      "status": "Pendiente",
       "user_answers_present": true,
       "post_answer_review": false,
       "executed_probe_artifacts": [
@@ -667,7 +1051,7 @@
     },
     {
       "issue": "E12-curacion-al-alternar-aptitudes",
-      "status": "implemented_pending_visual",
+      "status": "Cambio hecho no confirmado",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -684,7 +1068,7 @@
     },
     {
       "issue": "E15-gremios",
-      "status": "audit_in_progress",
+      "status": "Pendiente",
       "user_answers_present": false,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -715,7 +1099,7 @@
     },
     {
       "issue": "E14-consumibles-barra-rapida-no-persisten",
-      "status": "resolved",
+      "status": "Solucionado totalmente",
       "user_answers_present": false,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -740,7 +1124,7 @@
     },
     {
       "issue": "E13-canales-de-chat",
-      "status": "audit_in_progress",
+      "status": "Pendiente",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -770,8 +1154,8 @@
     },
     {
       "issue": "E17-monturas-y-dragopavos",
-      "status": "audit_in_progress",
-      "complete": false,
+      "status": "Solucionado totalmente",
+      "complete": true,
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -785,11 +1169,18 @@
       "mount_foundation_tests": 19,
       "mount_models_loaded": 40,
       "swimming_helper_tests": 3,
-      "mount_handlers_loaded": false
+      "mount_handlers_loaded": false,
+      "mount_publication_gate_tests": 102,
+      "mount_publication_live": true,
+      "mount_durable_occupation_guard": "verified_postgresql",
+      "mount_handlers_live": true,
+      "mount_visual_confirmation": false,
+      "mount_loaded_image": "ca76e0f142d367da6bff101aa213a9feb111d29f0593e30aa6d6c3f8e9e6e42d",
+      "status_evidence": "README.md: estado vigente respaldado por aceptación manual y gates descritos"
     },
     {
       "issue": "E18-ia-tactica-enemigos",
-      "status": "audit_in_progress",
+      "status": "Pendiente",
       "complete": false,
       "user_answers_present": true,
       "post_answer_review": true,
@@ -804,7 +1195,7 @@
     },
     {
       "issue": "E19-logros",
-      "status": "audit_in_progress",
+      "status": "Pendiente",
       "complete": false,
       "user_answers_present": true,
       "post_answer_review": true,
@@ -838,7 +1229,7 @@
     },
     {
       "issue": "E21-accesos-zurkalia",
-      "status": "reported_investigating_server",
+      "status": "Pendiente",
       "complete": false,
       "implementation_evidence": "E21-accesos-zurkalia/README.md",
       "remaining_evidence": [
@@ -846,6 +1237,94 @@
         "Destinos y condiciones nativas de arenas",
         "Traslado, retorno y persistencia verificados"
       ]
+    },
+    {
+      "issue": "35-zaap-no-seleccionable",
+      "status": "Cambio hecho no confirmado",
+      "complete": false,
+      "implementation_evidence": "35-zaap-no-seleccionable/README.md",
+      "manual_acceptance": "Usuario confirma seleccionabilidad recuperada tras reiniciar cliente",
+      "remaining_evidence": [
+        "Causa de pérdida de seleccionabilidad; no hubo petición19249 ni rechazo backend"
+      ],
+      "active_image": "e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742",
+      "static_sync_deployed": true,
+      "static_sync_manual_acceptance_pending": true,
+      "static_sync_gate": {
+        "source_tests": 114,
+        "frozen_applicable_tests": 99,
+        "frozen_context_tests": 8,
+        "combat_modules_identical": 208,
+        "note": "Un test de encounter_kind requiere mejora de drops no incluida; TLS extendido sigue en comprobación.",
+        "tls": "PASS: initial359 after exact replay fragments; quiet transition492; reconnect3; forced14689 52ms; combat socket PASS",
+        "artifact": ".runtime/local/static-map-sync-candidate-gate-20261007.txt"
+      }
+    },
+    {
+      "issue": "36-destruir-objetos",
+      "status": "Cambio hecho no confirmado",
+      "complete": false,
+      "implementation_evidence": "36-destruir-objetos/README.md",
+      "user_confirmation": "Destruir definitivamente funciona; el botón de reciclado no hace nada",
+      "remaining_evidence": [
+        "Confirmar producto de reciclaje permanente con rendimiento suficiente; resultados fraccionarios pueden dar cero."
+      ],
+      "active_image": "e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742",
+      "candidate_changes_deployed": true,
+      "deployment_note": "Merge de IA activa e inventario desplegado; world healthy; migraciones001–048.",
+      "manual_acceptance": "Prueba general de inventario y reciclaje temporal confirmada por usuario; destrucción permanente ya confirmada."
+    },
+    {
+      "issue": "E22-giro-del-personaje-al-atacar",
+      "status": "En revision",
+      "complete": false,
+      "implementation_evidence": "E22-giro-del-personaje-al-atacar/README.md",
+      "remaining_evidence": [
+        "Distinguir animación nativa y facing autoritativo del puño; hechizos reservados a otra sesión"
+      ]
+    },
+    {
+      "issue": "E23-orientacion-no-visible-otros-jugadores",
+      "status": "En revision",
+      "complete": false,
+      "implementation_evidence": "E23-orientacion-no-visible-otros-jugadores/README.md",
+      "remaining_evidence": [
+        "Aceptación visual de orientación entre dos clientes; visibilidad externa del combate corresponde también a16"
+      ]
+    },
+    {
+      "issue": "38-eliminar-personajes",
+      "status": "Cambio hecho no confirmado",
+      "complete": false,
+      "implementation_evidence": "38-eliminar-personajes/README.md",
+      "remaining_evidence": [
+        "Aceptación visual de borrado desde selector y cupo/nombre liberados"
+      ],
+      "active_image": "e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742",
+      "candidate_socket_smoke": "PASS delete, roster, reconnect, name reuse, wallet preserved"
+    },
+    {
+      "issue": "39-alimentacion-monturas-y-mascotas",
+      "status": "Cambio hecho no confirmado",
+      "complete": false,
+      "implementation_evidence": "39-alimentacion-monturas-y-mascotas/README.md",
+      "remaining_evidence": [
+        "Aceptación visual del usuario"
+      ],
+      "feeding_request_opcode": 12767,
+      "feeding_request_body": ">qqi",
+      "feeding_wire_tests": 5,
+      "feeding_runtime_handler": true,
+      "feeding_domain_source_migration": 64,
+      "feeding_pg_tests": 38,
+      "feeding_policy_scope": "model_id and item_reference",
+      "feeding_food_classification": "native exported 40 models; healing and XP verified",
+      "feeding_temporal_policy": "native UTC calendar day for XP; SQL-configured replay debounce",
+      "feeding_deployed": false,
+      "feeding_candidate_image_tests": 332,
+      "feeding_remaining_tls": "Reconexión con13078 rico; corrección en fuente, pendiente candidata integrada",
+      "deployed": true,
+      "deployed_image": "1c3bbea57e40a204da33025484c351f58246992de6f9798843c5d9ba4593119f"
     }
   ],
   "priority_deepening": "29: composición exacta de salas y dificultades/multiplicadores; además34 de prioridad alta",

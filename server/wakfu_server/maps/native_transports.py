@@ -77,7 +77,9 @@ def resolve(character, body, *, known_ids, waive_criteria=False):
     }
 
 
-def bootstrap(character, *, direction=3):
+def bootstrap(character, *, direction=None):
+    if direction is None:
+        direction = character.get("direction", 3)
     if type(direction) is not int or not 0 <= direction <= 7:
         raise ValueError("Invalid native arrival direction")
     # eHf28=ID(qt),IDENTITY(qv),POSITION(rE). rH is an empty secondary

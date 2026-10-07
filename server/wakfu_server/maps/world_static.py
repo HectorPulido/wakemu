@@ -26,7 +26,10 @@ def objects(map_id):
 
 def snapshots(map_id):
     """13984 bodies preserving native state; batches respect signed-short counts."""
-    rows = objects(map_id)
+    return _snapshot_bodies(objects(map_id))
+
+
+def _snapshot_bodies(rows):
     result = []
     for offset in range(0, len(rows), 32767):
         chunk = rows[offset : offset + 32767]

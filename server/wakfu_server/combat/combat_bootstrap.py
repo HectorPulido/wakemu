@@ -193,6 +193,7 @@ def create_placement(
         character["account_id"],
         True,
         max_hp=character["max_hp"],
+        direction=0,
     )
     npcs = [
         Actor(
@@ -205,6 +206,7 @@ def create_placement(
             member["initiative"],
             member["level"],
             max_hp=member["max_hp"],
+            direction=3,
         )
         for member in members
     ]

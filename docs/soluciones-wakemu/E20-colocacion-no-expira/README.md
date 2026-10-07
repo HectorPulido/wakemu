@@ -1,5 +1,7 @@
 # E20 — La colocación permanece bloqueada al llegar a cero
 
+**Estado: Solucionado totalmente.** Cierre confirmado por el usuario tras probar el inicio automático. Los hechizos de los monstruos quedan fuera del alcance de este issue y no deben modificarse como parte de esta corrección.
+
 ## Reproducción
 
 El usuario observó a Audiluna en colocación con el contador en0 durante un tiempo prolongado. Al pulsar «Listo», el combate inició. No se atribuye el clic al agente de pruebas.
@@ -35,9 +37,9 @@ Audiluna nivel100 inició el combate2; Luna preservó la captura de colocación 
 
 ## Prueba del usuario y correlación de logs — 6 de octubre
 
-Fight9/Audiluna: colocación07:00:39 UTC; transición automática a activo07:01:39 y `combat_placement_expired`07:01:40. El usuario confirma que inicia al agotar el tiempo. Los Tofus no actuaron: logs `combat_monster_attack_rejected` con `No audited attack for this monster reference/level`, seguidos de paso de turno. Esta ausencia de acciones NPC se investiga separadamente del deadline, sin modificar reglas de hechizos.
+Fight9/Audiluna: colocación07:00:39 UTC; transición automática a activo07:01:39 y `combat_placement_expired`07:01:40. El usuario confirma que inicia al agotar el tiempo. Los Tofus no actuaron: logs `combat_monster_attack_rejected` con `No audited attack for this monster reference/level`, seguidos de paso de turno. Esta observación queda registrada como contexto; por instrucción del usuario, los hechizos de monstruos no se investigan ni modifican dentro de este trabajo.
 
-La interrupción observada después coincide con `server_shutdown`07:01:48 UTC, provocado por la recarga autorizada del root para cambios de flora. No demuestra un reinicio espontáneo del combate. Repetir ciclo automático sin un reinicio del servidor durante la prueba antes de atribuir esa interrupción a E20. Estado sigue parcialmente solucionado; multijugador pendiente.
+La interrupción observada después coincide con `server_shutdown`07:01:48 UTC, provocado por la recarga autorizada del root para cambios de flora. No demuestra un reinicio espontáneo del combate. **Estado actual: Solucionado totalmente**, conforme a la confirmación del usuario. La futura aceptación multijugador corresponde a su propio alcance y no mantiene abierto E20.
 
 
 ## Cierre confirmado por el usuario

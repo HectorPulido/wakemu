@@ -40,7 +40,7 @@ def statistics(ref, level):
     return stats
 
 
-def owned_instance(ref, level, actor_id, *, map_id, x, y, z, team=1):
+def owned_instance(ref, level, actor_id, *, map_id, x, y, z, team=1, instance_id=0):
     """Construct an explicitly placed local actor; no official population replay.
 
     World/combat encoders must consume the verified reference and supplied own
@@ -57,6 +57,8 @@ def owned_instance(ref, level, actor_id, *, map_id, x, y, z, team=1):
     if (
         type(map_id) is not int
         or map_id <= 0
+        or type(instance_id) is not int
+        or not 0 <= instance_id < 2**63
         or type(team) is not int
         or team not in (0, 1)
     ):
@@ -77,7 +79,7 @@ def owned_instance(ref, level, actor_id, *, map_id, x, y, z, team=1):
         level=level,
         effective_level=level,
         map_id=map_id,
-        instance_id=0,
+        instance_id=instance_id,
         x=x,
         y=y,
         z=z,

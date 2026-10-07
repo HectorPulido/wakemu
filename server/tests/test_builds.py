@@ -313,6 +313,14 @@ class BuildTests(PostgresCase):
             self.account, self.generation, self.character["id"], 0, active_blobs
         )
         self.assertEqual((saved_active["hp"], saved_active["max_hp"]), (1370, 1470))
+        self.assertEqual(saved_active["hp_damage"], 100)
+        repeated_save = self.store.save_build(
+            self.account, self.generation, self.character["id"], 0, active_blobs
+        )
+        self.assertEqual(
+            (repeated_save["hp"], repeated_save["max_hp"], repeated_save["hp_damage"]),
+            (1370, 1470, 100),
+        )
 
         # The 12772 success path uses this response after committing the build;
         # its final actor refresh must expose the saved active aptitude sheet.
@@ -385,8 +393,17 @@ class BuildTests(PostgresCase):
             (1370, 1470, 100),
         )
 
-        self.store.activate_build(
+        low_again = self.store.activate_build(
             self.account, self.generation, self.character["id"], 1, in_fight=False
+        )
+        self.assertEqual(
+            (low_again["hp"], low_again["max_hp"], low_again["hp_damage"]),
+            (950, 1050, 100),
+        )
+        reopened_low = self.reopen().character(self.account, self.character["id"])
+        self.assertEqual(
+            (reopened_low["hp"], reopened_low["max_hp"], reopened_low["hp_damage"]),
+            (950, 1050, 100),
         )
         deleted = self.store.delete_build(
             self.account, self.generation, self.character["id"], 1, in_fight=False

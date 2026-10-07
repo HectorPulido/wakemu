@@ -14,7 +14,9 @@
       "path": "protocol/combat-maps/index.json",
       "sha256": "9369082079b8f5b73c660e76e7137cb2cc84703d446711129d731366be2b65cc",
       "bytes": 394504,
-      "declared_provenance": {}
+      "declared_provenance": {
+        "client_jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+      }
     },
     {
       "path": "protocol/ecology-regions.json",
@@ -79,6 +81,17 @@
         "source": "Installed bIJ/fpC item effects; neutral healing generic25 eVi/eXs"
       },
       "records": 62
+    },
+    {
+      "path": "protocol/item-recycling-metadata.json",
+      "sha256": "58a3fda81d05827dcfc33a74c255f647e39a4b0935a436ca1eb67137817b68ad",
+      "bytes": 9113556,
+      "declared_provenance": {
+        "source": "Installed client/lib/wakfu-client.jar: aLO -> bIJ.f -> fpC; recycling kind/product from foh; yields, variable flag, template gjv, level, slots and criteria from fpC/fpY/aLO",
+        "client_jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+        "bdata_shards_sha256": "ae74b1294d22815a3de250b66404cc103111976970d133199ea49ad7f70bcc59"
+      },
+      "records": 20230
     },
     {
       "path": "protocol/item-stack-rules.json",
@@ -151,15 +164,7 @@
       "path": "protocol/plant-resources.json",
       "sha256": "2397948397dbd0ed9b30d3d7905f4b3e726bf384dd0766436f0fa02f5637a4e2",
       "bytes": 954604,
-      "records": 533,
-      "declared_provenance": {
-        "source": "ExportPlantResources.java traverses native aNl -> aNm -> aNn[]; resource stages/actions exported from installed client bdata",
-        "jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
-        "bdata_shards_sha256": "9ef3bcfa2589db304c3f703ea8a99e00b864d54a01961422e7960157bdcead18",
-        "bdata_index_sha256": "e64de278a22979552cd3d58ffb62e792d396acac0d9b7eb175f6dadf3133140d",
-        "exporter_sha256": "4c1b4b15687e87c8fc168a511b1b06caf9e7801d3654f314116cceddd3976d08",
-        "limits": "Raw getter values are preserved without assigning unverified reward quantities, probabilities, XP, or transitions."
-      }
+      "records": 533
     },
     {
       "path": "protocol/planting-grounds.json",

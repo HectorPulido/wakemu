@@ -110,3 +110,87 @@ class InventoryActionsTests(PostgresCase):
             store.character(account, char["id"])["inventory_items"][0]["quantity"],
             1,
         )
+
+    def test_destroying_loose_bag_item_preserves_bag_slots_and_contents(self):
+        store = self.store
+        account = store.register("destroy-bag-owner", "local-password")["id"]
+        char = store.create_character(account, "Destroy Bag Owner")
+        generation = store.begin_session(account)
+        store.select_character(account, generation, char["id"])
+        containers = {row["kind"]: row for row in char["inventory_containers"]}
+        base = containers[0]
+        extra = containers[1]
+        bag_item = grant(
+            store,
+            account,
+            generation,
+            char["id"],
+            reference=12493,
+            quantity=1,
+            container=base["uid"],
+            slot=0,
+            allowed_references={12493},
+        )
+        contained = grant(
+            store,
+            account,
+            generation,
+            char["id"],
+            reference=2021,
+            quantity=3,
+            container=extra["uid"],
+            slot=0,
+            allowed_references={2021},
+        )
+
+        result = destroy(
+            store, account, generation, char["id"], struct.pack(">q", bag_item["uid"])
+        )
+
+        self.assertEqual(
+            result["packets"], [(12470, struct.pack(">qh", bag_item["uid"], -1))]
+        )
+        reopened = self.reopen().character(account, char["id"])
+        self.assertEqual(char["inventory_containers"], reopened["inventory_containers"])
+        self.assertEqual([contained], reopened["inventory_items"])
+        self.assertEqual(
+            (extra["uid"], 3),
+            (
+                reopened["inventory_items"][0]["container"],
+                reopened["inventory_items"][0]["quantity"],
+            ),
+        )
+
+    def test_destroy_rejects_replaced_session_without_touching_item(self):
+        store = self.store
+        account = store.register("destroy-stale-owner", "local-password")["id"]
+        char = store.create_character(account, "Destroy Stale Owner")
+        old_generation = store.begin_session(account)
+        store.select_character(account, old_generation, char["id"])
+        item = grant(
+            store,
+            account,
+            old_generation,
+            char["id"],
+            reference=2021,
+            quantity=2,
+            container=char["inventory_containers"][0]["uid"],
+            slot=0,
+            allowed_references={2021},
+        )
+        store.begin_session(account)
+
+        with self.assertRaisesRegex(ValueError, "Invalid inventory session"):
+            destroy(
+                store,
+                account,
+                old_generation,
+                char["id"],
+                struct.pack(">q", item["uid"]),
+            )
+
+        reopened = self.reopen().character(account, char["id"])
+        self.assertEqual(
+            [(item["uid"], 2)],
+            [(row["uid"], row["quantity"]) for row in reopened["inventory_items"]],
+        )

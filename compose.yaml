@@ -16,6 +16,7 @@ services:
       timeout: 3s
       retries: 10
   world:
+    image: wakemu-world:markers-20261007-r14
     build: ./server
     init: true
     depends_on:
@@ -27,6 +28,8 @@ services:
         condition: service_healthy
     environment:
       WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
+      # Listen on the container network; published host ports stay localhost.
+      WAKFU_BIND_HOST: ${WAKFU_BIND_HOST:-0.0.0.0}
       WAKFU_DATABASE_PASSWORD_FILE: /data/secrets/postgres-password
       WAKFU_AI_URL: ${WAKFU_AI_URL:-http://ai:8090}
       WAKFU_REDIS_URL: ${WAKFU_REDIS_URL:-redis://redis:6379/0}
@@ -47,7 +50,6 @@ services:
       WAKFU_NATIVE_AREA_CALLBACKS: ${WAKFU_NATIVE_AREA_CALLBACKS:-1}
       WAKFU_MAX_CHARACTERS: ${WAKFU_MAX_CHARACTERS:-24}
       WAKFU_COMBAT_TEST_GROUP_SIZE: ${WAKFU_COMBAT_TEST_GROUP_SIZE:-2}
-      WAKFU_LOCAL_MONSTER_RESPAWN_SECONDS: ${WAKFU_LOCAL_MONSTER_RESPAWN_SECONDS:-0}
       # Empty uses the native breed resource; a number is an explicit test override.
       WAKFU_COMBAT_TEST_WP: ${WAKFU_COMBAT_TEST_WP:-}
       WAKFU_COMBAT_ARENA_RADIUS: ${WAKFU_COMBAT_ARENA_RADIUS:-89}
@@ -59,11 +61,10 @@ services:
       - "127.0.0.1:15558:15558"
       - "127.0.0.1:18081:18081"
     volumes:
-      - ./server/local_game_server.py:/app/local_game_server.py:ro
-      - ./server/protocol_codec.py:/app/protocol_codec.py:ro
-      - ./server/wakfu_server:/app/wakfu_server:ro
-      - ./server/protocol:/app/protocol:ro
+      # Runtime code, protocol and migrations come from the validated image.
+      # Source edits remain isolated until the next tested image is deployed.
       - ./.runtime/local:/data
+      - ./server/ai-service:/app/ai-service:ro
       - ./.runtime/captures/2026-10-03T03-40-46.413625Z-fe2520f4/decoded/frames.jsonl:/fixtures/frames.jsonl:ro
     networks: [isolated, client-access]
     healthcheck:

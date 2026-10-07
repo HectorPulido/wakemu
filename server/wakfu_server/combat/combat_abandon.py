@@ -2,8 +2,8 @@
 
 The client proves the GUI/protocol path, not an official server HP penalty.
 Local abandonment preserves authoritative damage already taken, grants no
-rewards and releases the encounter. A sole controlled participant is required;
-partially abandoning a shared multi-player fight is not implemented.
+rewards and releases the encounter. A sole remaining controlled participant is
+required; individual shared PvE exits use combat_pve_withdraw instead.
 """
 import copy
 import struct
@@ -14,7 +14,11 @@ from .combat_lifecycle import outside_progression
 def _participant(account_id, character, runtime):
     fight = runtime.fight
     actor = fight.actors.get(character["id"])
-    controlled = [a for a in fight.actors.values() if a.controlled]
+    controlled = [
+        a
+        for a in fight.actors.values()
+        if a.controlled and not getattr(a, "pve_withdrawn", False)
+    ]
     if (
         actor is None
         or not actor.controlled
@@ -80,6 +84,18 @@ def prepare(store, account_id, generation, character, runtime, body):
     # The durable outcome must not depend on the subsequent checkpoint or
     # client callback. Commit the abort and its health receipt together.
     with store.connection() as db:
+        # Keep the same fight-before-session/character ordering used by
+        # persist_aborted_fight, settlement, and join. Otherwise two callbacks
+        # can deadlock when this path owns the character row and another path
+        # already owns the fight row while waiting for that character.
+        if (
+            db.execute(
+                "SELECT id FROM combat_fights WHERE id=%s FOR UPDATE",
+                (runtime.fight.id,),
+            ).fetchone()
+            is None
+        ):
+            raise ValueError("Fight cannot be durably abandoned")
         exit_health = combat_health.persist(
             store,
             account_id,

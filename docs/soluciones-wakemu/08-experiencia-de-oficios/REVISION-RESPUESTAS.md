@@ -47,3 +47,55 @@ Se resolvió el carrier pendiente: **13873/cwf** entrega bytes a `cib`→`bdB.ci
 Se construyó du sintético con oficio40/XP150, se pasó por la envoltura y **el registro nativo eDP de cuenta987654321 restauró total150**. Esta prueba ejecuta el deserializador de estado completo, no solo dh. No usó la interfaz ni paquetes en vivo. [Resultados](probe-carrier-craft-cuenta.json).
 
 `local_game_server.replay` ya sustituye secciones13873 de transporte12 y tutorial13, pero no tiene sustitución propia CRAFT14. Integrar aquí el bloque autoritativo de oficios de cuenta y en refresh pertinentes, preservando otras secciones. No asumir un formato por personaje ni borrar el accountData completo. Falta decoder/encoder Python verificado de du/dh y prueba de reconexión en cliente; el layout exterior y la conservación de XP parcial ya están comprobados.
+
+## XP calculada para crafting de recetas (bytecode local)
+
+El método `boA.a(bol,int)` calcula la XP de una receta. `bol.cmG()` selecciona el oficio, `bol.dAS()` aporta el nivel requerido/de receta y `bol.cmI()` es el coeficiente XP de la receta. La primera llamada `eTD.a((short) nivelOficio, (short) bol.dAS(), definiciónOficio, datosCraftCuenta)` devuelve una base `long`. El bytecode la convierte a `float`, multiplica por `bol.cmI()` en precisión float32 y convierte con `f2l`, que trunca hacia cero; ese entero es la base escalada.
+
+Luego lee el modificador de crafting `eRL.a(eRJ.raI, professionId, context)`, calcula `(100 + modificador) / 100.0f`, multiplica por la base escalada convertida a float32, y vuelve a multiplicar en float32 por `eDv.foo()` (multiplicador global activo). Convierte ese resultado float a double y llama `GS.g(double)` para obtener el `long` final. Por tanto, los productos intermedios usan float32 y la primera conversión flotante a entero trunca; no se debe reemplazar esa etapa por una sola multiplicación decimal/double. El redondeo final depende de `GS.g`; el cotejo posterior de `client/lib/wakfu-client.jar` acredita redondeo hacia arriba de positivos fraccionarios dentro del rango int32; utiliza `d2i` y una suma int32, por lo que no equivale a ceil sin límites para valores extremos.
+
+El nivel de oficio sí tiene curva acreditada independientemente de la recompensa: `eTa.qJ(delta)` suma al total y obtiene nivel mediante `eTD.qM(total)`; al llegar a nivel200 limita el total a `eTD.ee(200)`. La ejecución nativa registrada confirma `ee(L)=75×L²` (nivel1=75, 2=300, 10=7500, 100=750000, 200=3000000). Esto define el nivel acumulado, no la XP que concede cada receta. El catálogo local `protocol/profession-actions.json` contiene 15 IDs de oficio y 443 definiciones de animación/interacción, no una tabla de XP de receta; no acredita recompensa por acción ni fórmula interna de `eTD.a`.
+
+Fuentes: `.runtime/local/review-continuacion-20261004/craft-recipe-boA-boQ.txt` (`boA.a(bol,int)`, descriptor `eTD.a:(SSLeTC;LeDw;)J`) y `profession-xp-eTa.txt` (`eTa.qJ`, `eTD.ee`, `eTD.qM`). Esta especificación cubre el cálculo y la curva demostrados en bytecode, pero deja pendiente cotejar `GS.g`, los operandos internos de `eTD.a` y la política/recompensa de acciones no-receta antes de fijar una fórmula completa de servidor.
+
+## Cotejo completado del cálculo base (6 de octubre)
+
+`eTD.a(L,R,def,rate,account)` usa rate100 en el overload habitual. Si el gate nativo SUBSCRIBER falla y L>=10, devuelve0. Sea d=L-(R+10): d>10 devuelve0; d<0 devuelve Math.round(100*def.cmI()*rate/100) en double; en el intervalo0..10 devuelve Math.round(50*(1+cos((R+10-L)*pi/10))*float32(def.cmI()*rate/100)). XP completa hasta R+10, reducción cosenoidal hasta R+20. `Math.round(double)` redondea al más cercano con empates hacia positivo. El gate de suscripción y los multiplicadores son conceptos separados.
+
+Las definiciones están en `client/contents/bdata/23.jar`, entrada23.bin. El lector independiente cotejado con apv/apC/apE/aKL decodifica15 filas con consumo exacto de15 bytes por fila. La clave del oficio es cmG, usada por eTC.d y eTw; para71 y72, cmI=1.0f. SHA256 JAR: `0dde97177dc5e7f609e5c2adbd920db9a1baa5c3a18b1ae4badac9bdc60d1b43`; bin: `d14c49794bcd972e8e2727313b774e42f64636847cc5e1149bc95a92a7dbf9ce`.
+
+`cWn.eVu()` consulta esta base para decidir el estado visual de cosecha, sin conceder XP. Los siete deltas131 observados para acción2269 no prueban una fórmula universal de cosecha: su coeficiente de acción es1.5 y faltan los modificadores de recompensa aplicables. No sustituir esa evidencia por la fórmula de recetas.
+
+La captura correlacionada contiene tres snapshots13873/CRAFT14 válidos: herbolario72 con0 XP a07:03:11 y07:08:03 UTC, y1697 XP (nivel4) a07:23:03. El replay actual no reemplaza CRAFT14; puede restaurar progreso de la captura en lugar de la autoridad SQL. Corregir tanto el bootstrap como los requisitos y recompensas. El snapshot du conserva mapa de dh, ajustes dA y estado do; dh conserva XP, contadores dk y acciones dJ. No reenviar deltas históricos al reconectar.
+
+## Codec absoluto en implementación
+
+`profession_wire.snapshot` genera13873/CRAFT14 con mapa du/dh: XP absoluta, cuatro contadores y acciones aprendidas. Exige dA y do explícitos del estado propio para conservar configuración adicional. `profession_wire.level` deriva nivel con aritmética entera y rechaza XP fuera de0..3000000. El codec todavía no reemplaza el replay ni lee PostgreSQL; su validación contra el lector nativo está en curso. No acredita recompensa en juego.
+
+## Integración PostgreSQL en verificación
+
+Migración013 reemplaza definitivamente character_professions por account_professions: XP acumulada única, nivel derivado y contadores/acciones nativos; account_craft_state conserva dA/do propios. No quedan consultas runtime al esquema anterior. Los niveles existentes se consolidan por máximo por cuenta/oficio, sin sumar ni mantener un adaptador del esquema anterior.
+
+`profession_store.award` participa en la transacción del producto/acción, valida lease, aplica multiplicador DB, recorta al cap y guarda un recibo por cuenta/operación/oficio. Repetir el recibo no envía otro delta. Los llamadores deben aportar recompensa acreditada y token propio del servidor; la función no inventa XP de cosecha.
+
+El replay reemplaza el carrier CRAFT14 y ensure_learned envía snapshot absoluto después de las notificaciones12675. Codec:6 pruebas Docker OK y parser Java du/eTb verificaron XP150, acciones100/203 y configuración adicional no vacía. La integración SQL y sus fixtures están en verificación aislada; migración013 y código todavía sin recargar en vivo. El gate nativo no sustituye pruebas de entrada y recompensa en cliente.
+
+Gate integrado aprobado:56 pruebas Docker/PostgreSQL aislado (`test_profession_wire test_profession_store test_planting test_resource_collect test_resource_occupations test_planting_runtime test_plant_resource_catalog`). Cubre cuenta compartida, aislamiento, XP parcial/dA/do al reabrir, recibos sin delta duplicado, rollback con efecto de acción, lease obsoleto, cap, multiplicador inválido y migración de varios personajes por máximo. Esta evidencia no acredita cosecha en cliente ni una fórmula oficial de recompensa.
+
+## Recarga verificada
+
+Imagen world `335c7ce4ef2abbbac70462fde08519299304967c72efd941f702be44709d17b6`, recreada con `docker compose up -d --no-deps world` tras gate56 y comprobación SQL de cero combates en colocación/activos. Backup previo1.215.613 bytes en `.runtime/backups/pre-account-professions-XXXXXX.dump`. Docker healthy; schema_migrations001..013, tabla character_professions ausente y12 filas account_professions. Generación de carrier propio13873 de82 bytes para cuenta de auditoría comprobada. Recarga aplica dos migraciones012/013; ninguna lógica de hechizos fue modificada. Validación visual de cuenta nueva encargada a Luna low; resultado todavía pendiente.
+
+Prueba visual delegada a Luna low con cuenta nueva5: los logs acreditan token y Authentication result0. No se pudo observar GUI: screenshot falló `could not create image from display` y System Events no enumeró ventanas. No se creó personaje ni se concedió XP en esa cuenta; entrada al mundo y barra de oficio no verificadas. El aviso userInfo.missing no bloqueó autenticación, según la secuencia posterior. El cliente/bridge propios de la prueba fueron cerrados; ningún otro cliente fue terminado.
+
+## XP efectiva de plantación — política local explícita
+
+La respuesta del usuario en `04-probabilidad-de-plantacion/FALTANTES.md` autoriza inventar una fórmula local: plantar entrega poca XP, cosechar más y recetas según casillas, todo configurable en PostgreSQL. No hace falta esperar una fórmula oficial para esta política. La migración015 introduce `profession_action_rewards` versión1: `planting_xp=10`, `harvest_xp=50`, `recipe_slot_xp=100`, valores enteros de0 a3.000.000. El multiplicador global ya existente se aplica después con división entera por10.000 y cap nativo3.000.000. Recetas admiten1–16 casillas en el lector de política; su ejecución está conectada en fuente a crafting.complete: casillas distintas de ingredientes × recipe_slot_xp × creaciones del lote, con recibo y consumo/producto/XP atómicos. Pendiente desplegar y aceptar visualmente.
+
+`planting.complete()` acredita la XP de plantación dentro de la misma transacción que consume la semilla, crea el recurso y registra el recibo. Solo ocurre tras finalizar exitosamente; cancelar, rechazar, fallar o repetir no concede XP. La clave de crédito usa dominio `planting:` y SHA256 del token para conservar el límite de128 caracteres y no colisionar con otras acciones. Se añade12916 únicamente si el crédito es positivo; a nivel máximo no hay delta. Política inválida o profesión ausente revierte toda la operación. Pruebas de integración y despliegue pendientes; esto no declara resuelta la XP de cosechas ni recetas.
+
+### Validación y carga de014–015
+
+Gate final: **41 pruebas OK** (`test_planting`, `test_planting_runtime`, `test_profession_store`, `test_resource_occupations`, `test_postgres_migrations`) en Docker/PostgreSQL aislado. Comprueba crédito real10XP/12916, duplicado sin segundo crédito, cancelación sin XP, rollback completo por configuración inválida, multiplicador con cap, token de128 caracteres y rechazo antes de iniciar sin oficio incluso con override. El lector de política de recetas está probado; no demuestra recetas ejecutadas.
+
+Imagen `c5da66d48c4b6994f149fe2b8c99be88f9a5f4d8291b2810d3514d40abfedb69` recargada tras comprobar cero combates y reservas activos. Respaldo privado previo `.runtime/backups/pre-profession-xp-XaEFLf` de1.226.143 bytes. Arranque aplica dos migraciones; PostgreSQL real enumera1–15, conserva política10/50/100 y devuelve10 al lector de plantación. Docker healthy y `/health` confirma PostgreSQL. No se modificaron hechizos ni lógica de combate. Aceptación visual de la XP de plantación pendiente; cosecha y recetas siguen sin conectar al crédito.

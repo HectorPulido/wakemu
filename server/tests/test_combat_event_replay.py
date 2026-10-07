@@ -91,15 +91,83 @@ class NativeEventReplayTests(unittest.TestCase):
             "event_reverse_subscription"
         ] = False
         contexts = []
+        activations = []
+        registered_container = row["native_retained_container"]
+        from wakfu_server.fight_checkpoint_store import snapshot
+
+        import json
+
+        checkpoint = json.loads(json.dumps(snapshot(self.fight)))
+        checkpoint_group = checkpoint["native_owned_group_effects"]["900"]
+        self.assertEqual(
+            checkpoint_group["native_retained_container"], registered_container
+        )
         authority = NativeCloneAuthority(
             lambda effect, inv, source: True,
             lambda effect, inv, source: (contexts.append(inv) or self.conditions()),
         )
+        execute_activation = self.dispatcher.execute_activation
+
+        def capture_activation(invocation, **kwargs):
+            activations.append(invocation.native_retained_container)
+            return execute_activation(invocation, **kwargs)
+
+        self.dispatcher.execute_activation = capture_activation
         self.replay(NativeExternalEvent(7, (1003,), 6), authority=authority)
         self.assertTrue(contexts)
         self.assertTrue(all(i.native_trigger_context is None for i in contexts))
         self.assertTrue(all((i.caster_id, i.target_id) == (7, 7) for i in contexts))
+        self.assertEqual(activations, [registered_container])
+        self.assertEqual(activations[0]["level"], 1)
         self.assertGreater(self.fight.native_effect_uid_next, 901)
+
+    def test_replay_container_rejects_missing_or_mismatched_spell_level_authority(self):
+        from dataclasses import replace
+
+        entry = next(item for item in self.retention.view().entries if item.uid == 900)
+        row = self.fight.native_owned_group_effects[900]
+        invocation = EffectInvocation(**row["invocation"])
+        missing = dict(row)
+        missing.pop("native_retained_container")
+        with self.assertRaisesRegex(ValueError, "Missing retained PL snapshot"):
+            self.retention.replay_container(missing, entry, invocation)
+
+        bad_level = dict(row)
+        bad_level["native_retained_container"] = dict(
+            row["native_retained_container"], level=True
+        )
+        with self.assertRaisesRegex(ValueError, "Invalid retained spell PL"):
+            self.retention.replay_container(bad_level, entry, invocation)
+
+        bad_identity = dict(row)
+        bad_identity["native_retained_container"] = dict(
+            row["native_retained_container"], id=entry.container_id + 1
+        )
+        with self.assertRaisesRegex(ValueError, "identity mismatch"):
+            self.retention.replay_container(bad_identity, entry, invocation)
+
+        absent = replace(
+            entry,
+            container_present=False,
+            container_type=None,
+            container_id=None,
+            container_is_spell=None,
+            spell_protected=None,
+        )
+        self.assertEqual(
+            self.retention.replay_container(
+                {"invocation": row["invocation"]}, absent, invocation
+            ),
+            {"present": False},
+        )
+
+        state_owned = replace(invocation, state_uid=123)
+        state_entry = replace(entry, owner_uid=123)
+        self.assertIsNone(
+            self.retention.replay_container(
+                {"native_retained_container": None}, state_entry, state_owned
+            )
+        )
 
     def conditions(self):
         actor = ConditionActor(

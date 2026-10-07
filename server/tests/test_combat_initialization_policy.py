@@ -25,9 +25,18 @@ class DevelopmentInitializationTests(unittest.TestCase):
             ],
             builds={
                 0: dict(
+                    sheet=b"".join(
+                        proto_field(tag, value)
+                        for tag, value in [
+                            (8, 0),
+                            (18, b"Default"),
+                            (24, (1 << 64) - 1),
+                            (56, 0),
+                        ]
+                    ).hex(),
                     equipment=proto_field(
                         10, proto_field(8, 900) + proto_field(16, 17)
-                    ).hex()
+                    ).hex(),
                 )
             },
         )

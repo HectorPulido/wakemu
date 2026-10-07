@@ -18,7 +18,7 @@ Fijar modoDUEL en encuentro y excluir las rutas `combat_rewards`/muerte PvE desd
 
 ## Límites pendientes
 
-Falta cotejar respuesta de invitación y opcodes de aceptar/rechazar, expiración nativa, restricciones multicuenta/compañeros y layout de resultadoDUEL. No hubo duelo en vivo. Las pruebas de hechizos siguen reservadas a otra sesión; este cotejo no las ejecuta.
+La invitación y respuesta están cotejadas, pero no se encontró un opcode nativo separado de cancelación/timeout ni una semántica de timeout. El modo soportado por la nueva política local es el byte default1; modalidad2 de arena queda fuera. No se ha validado visualmente el menú ni el layout final del resultadoDUEL. Las pruebas de hechizos siguen reservadas a otra sesión; este cotejo no las ejecuta.
 
 ## Invitación, consentimiento y cancelación cotejados
 
@@ -30,4 +30,10 @@ Servidor→cliente **12708/cvd**, byte causa:0 desconocido;1 rechazado;2 jugador
 
 13520 no transporta nonce: correlacionar con la **única invitación pendiente** de esa sesión destinataria y ese iniciador, validar generaciones/expiry y consumir de manera atómica. Probar respuesta tardía después de cancelar y crear otra con el mismo par; no afirmar que un UUID interno resuelve por sí solo esa ambigüedad. Puede requerir barrera temporal/política de no sustituir una invitación hasta drenar su cierre, que debe validarse con UI y latencia.
 
-12117/13520 carecen de handlers en el dispatcher inspeccionado. El contrato ya permite concretar invitación, respuesta y avisos; no demuestra combatePvP ni restauración final. No se inyectaron paquetes ni ejecutaron hechizos.
+### Rechazo reciente y sentido inverso — 2026-10-07
+
+El guard de 60 s tras respuesta para la misma dirección (mismo desafiante y destinatario) es una política local configurable, no un cooldown demostrado como regla nativa. Está justificado como barrera conservadora porque 13520 contiene el personaje iniciador y sí/no/autolock, pero ningún ID de invitación: una respuesta repetida del par puede coincidir con una invitación nueva del mismo par. El 12708 con causa4 (`initiatorCancelled`) es un mensaje servidor→cliente según el codec/consumidor `ckQ`; no se encontró una solicitud cliente→servidor de cancelar el desafío que sirva como ACK de cierre del modal.
+
+Por eso no se elimina la cuarentena basándose solo en el intento observado 21 s después del rechazo. La invitación inversa B→A no comparte esa clave dirigida; debe funcionar inmediatamente mientras la repetición A→B siga protegida. Se añadió `test_same_direction_quarantine_does_not_block_immediate_reverse_challenge` para fijar ambas condiciones. La política por defecto actual queda explícita como decisión local; cualquier reducción requiere medir la latencia/duplicación del cliente y mantener la barrera anti-respuesta obsoleta.
+
+12117/13520 todavía carecen de handlers en el dispatcher. La autoridad fuente ya persiste consentimiento, roster opuesto y settlement sin recompensas; el resultado restaura HP y la ubicación guardada. El gate PostgreSQL es aislado y no demuestra integración de red/GUI ni la presentación visual de salida. No se inyectaron paquetes ni ejecutaron hechizos.

@@ -111,7 +111,10 @@ class BuildCapacityTests(PostgresCase):
             decorator_list=[],
         )
         module = ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[]))
-        namespace = {"builds": __import__("wakfu_server.builds", fromlist=["*"])}
+        namespace = {
+            "builds": __import__("wakfu_server.builds", fromlist=["*"]),
+            "publish_mount_equipment": lambda previous, current: None,
+        }
         exec(compile(module, "server/local_game_server.py", "exec"), namespace)
         return namespace["handle_deletion"]
 
@@ -174,7 +177,10 @@ class BuildCapacityTests(PostgresCase):
             decorator_list=[],
         )
         module = ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[]))
-        namespace = {"builds": __import__("wakfu_server.builds", fromlist=["*"])}
+        namespace = {
+            "builds": __import__("wakfu_server.builds", fromlist=["*"]),
+            "publish_mount_equipment": lambda previous, current: None,
+        }
         exec(compile(module, "server/local_game_server.py", "exec"), namespace)
         return namespace["handle_activation"]
 

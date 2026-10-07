@@ -4,12 +4,11 @@
 
 | ID | Dato o decisión | Cómo resolverlo | Impacto |
 | --- | --- | --- | --- |
-| 1 | Protocolo completo de observar/salir y alcance de 13753. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
-| 2 | Política de privacidad, límites y ACK de observadores. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
-| 3 | Qué efectos deben ser visibles en un snapshot intermedio, no solo replay desde inicio. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
+| 1 | Construcción de `cva/12044` desde un encuentro activo y publicación/retirada de marcador `13753`. | Integrar snapshot de actores/topología/timeline actual y verificar consumidor de escena externa | Impide certificar entrada TLS; `13753` no está resuelto como marcador simplificado |
+| 2 | Política global de privacidad y respuesta ante entrada no permitida. | Conectar una política del servidor y comprobar rechazo/ocultamiento con el cliente | El registro exige autorización literal `True`, pero aún no hay handler ni respuesta de rechazo probada |
+| 3 | Entrega ordenada de eventos posteriores al snapshot y retorno al mundo al salir o terminar. | Conectar fanout a batches compartidos, `12154`, desconexión y cierre de combate; probar con dos clientes | La cola aislada está probada; no hay fanout ni restauración en el dispatcher |
 
-1, 2. Revisa todo. Nada que decidir
-3. todo debe ser visible en tiempo real, no hay replay desde el principio
+Decisión del usuario para 3: al entrar se debe ver el estado actual completo; después, solo actualizaciones en tiempo real, sin replay desde el inicio.
 
 ## Reglas para completar la especificación
 

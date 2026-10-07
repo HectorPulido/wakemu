@@ -64,11 +64,13 @@ def interaction(character, body):
 
 ## Correspondencia con el plan
 
+Actualización 2026-10-07: migración 065 y `maps/dungeon_instances.py` implementan parcialmente los pasos 2 y 3 a nivel de dominio/DB: sesión party-owned, roster transaccional e instancia viva distinta de plantilla. No hay conexión desde el dispatcher ni transición de mapa; la tabla de ruta configurada sirve para cotejar la fixture, y el callback de criterio/proximidad sigue obligatorio y sin implementación acreditada. Los pasos 4–6 continúan propuestos.
+
 | Paso | Situación |
 | --- | --- |
 | 1. Elegir vertical slice verificable | Propuesta; requiere cambio, prueba y revisión del contrato |
-| 2. Definir servicio de instancias | Propuesta; requiere cambio, prueba y revisión del contrato |
-| 3. Autorizar y confirmar entrada | Propuesta; requiere cambio, prueba y revisión del contrato |
+| 2. Definir servicio de instancias | Parcial: 065 + `maps/dungeon_instances.py` persisten sesión y roster; falta ciclo de habitaciones/estado |
+| 3. Autorizar y confirmar entrada | Parcial: servicio valida leader, sesiones seleccionadas y party; falta evaluar criterio/proximidad nativos y conectarlo al dispatcher |
 | 4. Ejecutar salas y progreso | Propuesta; requiere cambio, prueba y revisión del contrato |
 | 5. Finalizar y recuperar | Propuesta; requiere cambio, prueba y revisión del contrato |
 | 6. Extender catálogo tras aceptación | Propuesta; requiere cambio, prueba y revisión del contrato |

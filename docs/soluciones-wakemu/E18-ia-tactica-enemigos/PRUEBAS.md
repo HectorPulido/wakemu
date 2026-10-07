@@ -1,6 +1,6 @@
 # Pruebas del motor de IA
 
-Ejecutadas: 18 tests de la IA actual; tres fixtures de movimiento con metadata de ranged/support ignorada; cotejo de 3091 habilidades propias contra tablas nativas, sin ausencias. [Evidencia](probe-ia-actual-y-fuentes.json). Dofus solo leído; no ejecutado ni modificado localmente. Nuevo motor no implementado.
+Ejecutadas: 18 tests de la IA actual; tres fixtures de movimiento con metadata de ranged/support ignorada; cotejo de 3091 habilidades propias contra tablas nativas, sin ausencias. [Evidencia](probe-ia-actual-y-fuentes.json). Dofus solo leído; no ejecutado ni modificado localmente. Esta evidencia es de la línea base; el motor nuevo está implementado y su validación actual figura en el README y VALIDACION del servicio.
 
 ## Corpus requerido
 

@@ -1,5 +1,14 @@
 # Motor propuesto: reutilización amplia con adaptadores Wakfu
 
+> Actualización de arquitectura — 2026-10-07: por instrucción explícita del
+> usuario, el destino final es el puente completo v3. Server entrega runtime,
+> Store, autoridades y fuentes completas al SDK ubicado en `server/ai-service`;
+> AI genera candidatos y decide mediante consultas nativas. El SDK certifica
+> y ejecuta en el hilo propietario, conservando FIFO y ACK. El párrafo v2 de
+> abajo describe el antecedente, no el contrato final autorizado. Toda
+> evolución del SDK/decisiones debe permanecer en AI tras integrar una sola vez
+> el loader estable. Nunca recortar datos para ajustarse al tamaño del paquete.
+
 ## 1. Contrato y responsabilidad
 
 Mantener servicio separado `/v1/decide`, evolucionando explícitamente a protocolo 2. World genera snapshot y candidatos legales; IA puntúa y devuelve un plan indicativo. World revalida y ejecuta **una acción por vez**, espera sincronización y vuelve a planificar si cambió el estado. Nunca confiar en daño/costes calculados por el servicio.
@@ -27,7 +36,7 @@ Generar primero casillas alcanzables dentro del presupuesto real; para cada posi
 
 **Elevación:** evaluar desde `(x,y,z)` real; probar aristas, obstáculos y alturas de LOS. Premiar una altura si mejora disparo, protección, control o movilidad futura; no introducir bonus de daño por Z sin regla nativa. Dos casillas con mismo XY/diferente Z no se fusionan. Caminos cortos en XY pueden estar desconectados por altura. Aplicar áreas/reacciones de terreno al recorrido, no solo al destino.
 
-**Roles:** derivar afinidades del repertorio, no del nombre del monstruo. Melee busca alcance y presión; ranged conserva distancia útil y retirada; soporte cura déficit real y evita sobrecuración; controlador prioriza pérdida de recursos/posición útil; invocador solo invoca si el motor autoriza creación/cupo. Afinidades combinables y overrides de boss versionados. Un NPC con curación y daño no debe quedar encerrado en una etiqueta exclusiva.
+**Roles:** derivar afinidades del repertorio, no del nombre del monstruo. Melee busca alcance y presión; ranged conserva distancia útil y retirada; soporte cura déficit real y evita sobrecuración; controlador prioriza pérdida de recursos/posición útil; invocador solo invoca si el motor autoriza creación/cupo. Arquetipos combinables; excepciones versionadas solo para mecánicas explícitas de monstruos de tipo puzzle. No introducir reglas por nombre, especie o ID de monstruo. Un NPC con curación y daño no debe quedar encerrado en una etiqueta exclusiva.
 
 ## 4. Evaluación y coordinación
 
@@ -39,7 +48,7 @@ Blackboard por `fightInstanceId/team`: foco compartido, daño ya comprometido, d
 
 ## 5. Configuración, rendimiento y etapas
 
-DB: perfiles/roles y overrides por referencia/familia, pesos, presupuesto de búsqueda, máximo de candidatos/acciones, cooldowns de decisión y reglas de dificultad, todos con versión. Infraestructura (URL, timeouts de transporte, credenciales) sigue en configuración de servicio. Catálogos compilados en memoria por hash; no consultar DB por nodo. Geometría registrada por hash para evitar reenviar miles de aristas por decisión. Limitar concurrencia y cancelación por encuentro; separar HTTP/búsqueda del hilo crítico del combate. Ante timeout elegir acción legal simple o terminar, con límite total de turno.
+DB: perfiles/arquetipos reutilizables y asignación de perfil por referencia/familia, pesos, presupuesto de búsqueda, máximo de candidatos/acciones, cooldowns de decisión y reglas de dificultad, todos con versión. Infraestructura (URL, timeouts de transporte, credenciales) sigue en configuración de servicio. Catálogos compilados en memoria por hash; no consultar DB por nodo. Geometría registrada por hash para evitar reenviar miles de aristas por decisión. Limitar concurrencia y cancelación por encuentro; separar HTTP/búsqueda del hilo crítico del combate. Ante timeout elegir acción legal simple o terminar, con límite total de turno.
 
 Orden concreto:
 

@@ -1,6 +1,6 @@
 # Plan de implementación y criterios de entrega
 
-No se ha escrito el motor nuevo. Cada etapa tiene resultado revisable y puerta de aceptación; ordenado para no duplicar el motor de hechizos de la otra sesión.
+El motor nuevo y el puente inicial están implementados; la aceptación completa de las etapas sigue en curso. Cada etapa tiene resultado revisable y puerta de aceptación; ordenado para no duplicar el motor de hechizos de la otra sesión.
 
 | Etapa | Cambios concretos | Salida y aceptación |
 |---|---|---|

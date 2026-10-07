@@ -20,7 +20,7 @@ PYTHONPATH=server:server/tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tes
 | Privado A→B | C cercano escucha | Solo B y ecoA según contrato | Pendiente de implementar/verificar |
 | Local | B misma instancia/C distinta | Solo alcance definido | Pendiente de implementar/verificar |
 | Grupo | A/B en party,C fuera | C no recibe | Pendiente de implementar/verificar |
-| No conectado | Nombre válido sin sesión | Error preciso, no broadcast | Pendiente de implementar/verificar |
+| No conectado | Audiluna sin sesión | Error nativo de jugador inexistente/desconectado | PASS visual del usuario; aislamiento ante tercero pendiente |
 | Nombre normalizado | Mayúsculas/acentos según nombres permitidos | Destino inequívoco y sin colisión | Pendiente de implementar/verificar |
 | Comando no admin | Normal manda ! por canales | Rechazo 32 sin ejecutar ni revelar datos | Pendiente de implementar/verificar |
 
@@ -33,3 +33,11 @@ Repetir operaciones confirmadas y cortes alrededor del commit/ACK; ninguna repet
 Invariante: Un privado nunca usa broadcast; solo destinatarios autorizados reciben el contenido.
 
 Registrar cada caso como PASS, FAIL o NO EJECUTADO, con evidencia. No convertir una omisión, un click optimista o un resultado de otro snapshot en PASS.
+
+Privados bidireccionales y recepción después de reconectar: **PASS visual del usuario (2026-10-06)**. El caso de tercer observador sigue pendiente; no se confunde con el envío básico confirmado.
+
+
+CANALES DISPONIBLES:
+canales-chat.png <- canales disponibles, algunos tienen condiciones especiales como gremio (ser parte de un gremio), informacion (solo los envia el sistema), conversacion ankama (solo lo envian los admins todos reciben), grupo (solo disponible para grupos)
+
+pero comercio, reclutamiento, comunidad, reclutamiento, son generales cualquiera puede hablar

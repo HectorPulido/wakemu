@@ -26,6 +26,7 @@ CATALOGS = {
     "combat-los/index.json": None,
     "item-stack-rules.json": "items",
     "item-action-rules.json": "items",
+    "item-recycling-metadata.json": "items",
     "inventory-bag-rules.json": None,
     "item-healing-rules.json": "items",
     "world-maps.json": "routes",
@@ -53,7 +54,14 @@ def manifest():
         if isinstance(data, dict):
             entry["declared_provenance"] = {
                 key: data[key]
-                for key in ("source", "jar_sha256", "bdata_sha256", "limits")
+                for key in (
+                    "source",
+                    "jar_sha256",
+                    "client_jar_sha256",
+                    "bdata_sha256",
+                    "bdata_shards_sha256",
+                    "limits",
+                )
                 if key in data
             }
         if isinstance(data, list):

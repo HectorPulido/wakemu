@@ -17,12 +17,12 @@ PYTHONPATH=server:server/tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tes
 
 | Caso | Acción | Resultado exigido | Estado |
 | --- | --- | --- | --- |
-| Personaje nuevo | Perfil limpio y DBtemporal | Nación/pasaporte neutral coherentes | Pendiente de implementar/verificar |
-| Mapa nacional | Entrar a región del catálogo de Amakna | Sin alineamiento territorial activo según requisito | Pendiente de implementar/verificar |
-| Otra región | Cambiar a región de otra nación | No valor heredado diferenciado accidentalmente | Pendiente de implementar/verificar |
-| Ítem pasaporte | Si realmente existe instancia inicial | Origen/propiedad correcto, no borrado ciego | Pendiente de implementar/verificar |
-| Reconnect | Recargar todas las pantallas | No vuelve nationcapturada | Pendiente de implementar/verificar |
-| Legacy | Migrar copia con ciudadanía legítima | Política explícita preserva datos necesarios | Pendiente de implementar/verificar |
+| Personaje nuevo | Perfil limpio y DB temporal | El serializador emite `NATION_ID=0` y `PASSEPORT_INFO=00` | Automático: cubierto por los serializers; visual aún no probado |
+| Pasaporte | `/passport` abre `passportDialog` | `pvpLadderEntry.nationId == 0` y texto Neutral | Binding nativo cotejado; aceptación visual pendiente |
+| Mapa nacional | Entrar a región asociada a Amakna | Sin alineamiento territorial activo según requisito | Pendiente: no hay autoridad mapa→nación verificada en los catálogos inspeccionados |
+| Otra región | Cambiar a otra región | No cambia la ciudadanía del personaje ni hereda nación ajena | Pendiente de aceptación visual; contexto territorial sigue separado |
+| Reconnect | Recargar las pantallas | No reaparece estado de pasaporte de la plantilla | Prueba de serializador PASS; aceptación visual pendiente |
+| Carriers propios | Cotejar formatos 5/10/11, `PASSEPORT_INFO` y sincronización 15984 | Nación0, pasaporte `00`, sincronización nacional vacía sin alterar campos vecinos | 39 pruebas wire/social OK; incluye fixtures sintéticas, no aceptación visual |
 
 ## Método y criterios
 
@@ -33,3 +33,8 @@ Repetir operaciones confirmadas y cortes alrededor del commit/ACK; ninguna repet
 Invariante: Ni personaje ni lugar reciben alineamiento de otra cuenta o captura; neutralidad es explícita y consistente.
 
 Registrar cada caso como PASS, FAIL o NO EJECUTADO, con evidencia. No convertir una omisión, un click optimista o un resultado de otro snapshot en PASS.
+
+
+## Gate actualizado — 7 de octubre
+
+En el entorno local de verificación, `PYTHONPATH=server:server/tests .runtime/local/verification-venv/bin/python -m unittest test_wire test_social -q`: **39 pruebas OK**. Incluye la regresión nueva de `PASSEPORT_INFO`: un byte de plantilla no-default se sustituye por `00`, conservando los bytes vecinos. Son pruebas de serialización, no una observación visual de `/passport` ni una prueba de ownership territorial. El roster qZ, el modelo nativo del pasaporte y el locale están cotejados por separado en [REVISION-RESPUESTAS.md](REVISION-RESPUESTAS.md).

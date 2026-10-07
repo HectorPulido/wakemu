@@ -35,7 +35,15 @@ def load(db, character):
 
 
 def award(
-    store, account_id, generation, character_id, fight, policy=Policy(), *, db=None
+    store,
+    account_id,
+    generation,
+    character_id,
+    fight,
+    policy=Policy(),
+    *,
+    db=None,
+    _durable_member=False,
 ):
     """Award a winning controlled participant once, under the current lease.
 
@@ -60,19 +68,27 @@ def award(
     borrowed = db is not None
     if borrowed and db.info.transaction_status != TransactionStatus.INTRANS:
         raise ValueError("Reward requires an active transaction")
+    if _durable_member and not borrowed:
+        raise ValueError(
+            "Shared participant reward requires the settlement transaction"
+        )
     with nullcontext(db) if borrowed else store.connection() as db:
-        store.lock_character(db, account_id, generation, character_id)
         participant = db.execute(
-            "SELECT p.team,f.status FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+            "SELECT p.team,p.session_generation,f.status,f.fight_kind "
+            "FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
             "WHERE p.fight_id=%s AND p.character_id=%s AND p.account_id=%s FOR UPDATE OF f",
             (fight.id, character_id, account_id),
         ).fetchone()
         if (
             participant is None
+            or participant["fight_kind"] != "pve"
             or participant["team"] != fight.winner
             or participant["status"] != "finished"
+            or (_durable_member and participant["session_generation"] != generation)
         ):
             raise ValueError("Missing finished owned durable fight participant")
+        if not _durable_member:
+            store.lock_character(db, account_id, generation, character_id)
         db.execute(
             "SELECT account_id FROM account_wallets WHERE account_id=%s FOR UPDATE",
             (account_id,),
@@ -111,9 +127,16 @@ def award(
             (level, account_id, character_id),
         )
         if level != character["level"]:
-            from . import health_store
+            if _durable_member:
+                _initialize_health_for_durable_member(
+                    store, db, account_id, character_id
+                )
+            else:
+                from . import health_store
 
-            health_store.initialize(store, account_id, generation, character_id, db=db)
+                health_store.initialize(
+                    store, account_id, generation, character_id, db=db
+                )
         db.execute(
             "INSERT INTO fight_rewards(generation,fight_id,character_id,account_id,xp,kamas,created_at,start_xp,end_xp,start_level,end_level) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (
@@ -146,6 +169,46 @@ def award(
                 end_level=level,
             ),
         )
+
+
+def award_shared_member(
+    store, db, account_id, joined_generation, character_id, fight, policy
+):
+    """Apply a shared-fight award to its durable member inside settlement.
+
+    The finalizer's current lease authorizes the complete roster settlement.
+    A disconnected teammate is still paid against its recorded join generation;
+    this helper never accepts a client request and requires the settlement TX.
+    """
+    if db.info.transaction_status != TransactionStatus.INTRANS:
+        raise ValueError("Shared participant reward requires an active transaction")
+    return award(
+        store,
+        account_id,
+        joined_generation,
+        character_id,
+        fight,
+        policy,
+        db=db,
+        _durable_member=True,
+    )
+
+
+def _initialize_health_for_durable_member(store, db, account_id, character_id):
+    """Reconfigure level-derived HP without requiring an offline session lease."""
+    from wakfu_server.characters import health_policy, health_store
+    from .equipment_stats import effective_character
+
+    character = store.character(account_id, character_id, db)
+    maximum = effective_character(character)["max_hp"]
+    hp = health_policy.reconfigure(db, character, maximum)
+    now = health_store.timestamp(int(store.clock() * 1000))
+    db.execute(
+        "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) "
+        "VALUES(%s,%s,%s,0,%s) ON CONFLICT(character_id) DO UPDATE SET "
+        "initial_hp=excluded.initial_hp,started_at=excluded.started_at,coefficient=0,last_at=excluded.last_at",
+        (character_id, hp, now, now),
+    )
 
 
 def wallet(store, account_id):

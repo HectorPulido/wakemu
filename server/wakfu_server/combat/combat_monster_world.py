@@ -17,6 +17,7 @@ def world_actor(monster, *, name=None, group_id, direction=3, members=None):
         y=monster["y"],
         z=monster["z"],
         team=monster["team"],
+        instance_id=monster["instance_id"],
     )
     if monster != verified or monster["id"] >= 0:
         raise ValueError("Expected verified own negative NPC instance")
@@ -73,10 +74,12 @@ def world_actor(monster, *, name=None, group_id, direction=3, members=None):
             y=member["y"],
             z=member["z"],
             team=member["team"],
+            instance_id=member["instance_id"],
         )
         if (
             member != actual
             or member["map_id"] != monster["map_id"]
+            or member["instance_id"] != monster["instance_id"]
             or member["id"] >= 0
         ):
             raise ValueError("Group member is not a verified own NPC on this map")

@@ -37,4 +37,4 @@ Estado: **Solucionado totalmente**. Gate actualizado:41 pruebas OK en PostgreSQL
 
 ## Cierre confirmado por el usuario
 
-El usuario volvió a probar el movimiento y confirmó el cierre el6 de octubre. La optimización de locks del daemon corresponde al issue0; no mantiene abierto el comportamiento funcional19.
+**Estado: Solucionado totalmente.** El usuario volvió a probar el movimiento y confirmó el cierre el6 de octubre. La optimización de locks del daemon corresponde al issue0; no mantiene abierto el comportamiento funcional19.

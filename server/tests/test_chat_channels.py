@@ -1,0 +1,325 @@
+import struct
+import unittest
+import uuid
+
+from postgres_case import PostgresCase
+from psycopg.types.json import Jsonb
+from protocol_codec import decode_body
+from wakfu_server import chat_channels, player_parties
+from wakfu_server.world import World
+
+
+class Peer:
+    def __init__(self, name):
+        self.name = name
+        self.closed = False
+
+    def shutdown(self, _how):
+        self.closed = True
+
+
+class ChatChannelTests(PostgresCase):
+    def setUp(self):
+        super().setUp()
+        self.store.clock = lambda: 2_000_000_000.0
+        self.sent = []
+        self.world = World(lambda c: b"", lambda c: b"", self._deliver)
+        self.channels = chat_channels.Channels(self.store, self.world)
+
+    def _deliver(self, peer, opcode, body):
+        if peer.closed:
+            raise BrokenPipeError("peer is disconnected")
+        self.sent.append((peer.name, opcode, body))
+
+    def player(self, label, *, map_id=1134, instance_id=0):
+        account = self.store.register("cc" + uuid.uuid4().hex[:10], "test-password")[
+            "id"
+        ]
+        letters = str.maketrans("0123456789", "abcdefghij")
+        name = (label[:5] + uuid.uuid4().hex[:8]).translate(letters)
+        # Keep account and character identity namespaces distinct even when
+        # their independent sequences would otherwise both begin at 1.
+        self.store.create_character(account, name + "B")
+        character = self.store.create_character(account, name)
+        generation = self.store.begin_session(account, ttl=10_000)
+        character = self.store.select_character(account, generation, character["id"])
+        character.update(map_id=map_id, instance_id=instance_id)
+        peer = Peer(name)
+        self.world.join(generation, peer, character)
+        return {
+            "account": account,
+            "generation": generation,
+            "character": character,
+            "peer": peer,
+        }
+
+    def preference(self, player, *, mask, community):
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO account_chat_preferences(account_id,language_mask,community) "
+                "VALUES(%s,%s,%s) ON CONFLICT(account_id) DO UPDATE SET "
+                "language_mask=EXCLUDED.language_mask,community=EXCLUDED.community",
+                (player["account"], mask, community),
+            )
+
+    def send(self, player, opcode, request):
+        return self.channels.handle(
+            opcode,
+            request,
+            player["account"],
+            player["generation"],
+            player["character"]["id"],
+        )
+
+    @staticmethod
+    def native_request(opcode, text, *, language=1, group_id=0):
+        encoded = text.encode("utf-8")
+        string = struct.pack(">H", len(encoded)) + encoded
+        if opcode == 13224:
+            body = struct.pack(">q", group_id) + string
+        elif opcode in (13188, 13831):
+            body = bytes((language,)) + string
+        else:
+            body = string
+        return decode_body("out", opcode, body)
+
+    def test_trade_channel_payload_uses_account_id_and_reaches_public_peers_across_maps(
+        self,
+    ):
+        sender = self.player("sender", map_id=1134, instance_id=0)
+        remote = self.player("remote", map_id=527, instance_id=9)
+        other = self.player("other", map_id=32, instance_id=1)
+        self.preference(sender, mask=5, community=2)
+        self.sent.clear()
+
+        delivered = self.send(
+            sender, 13074, self.native_request(13074, "  hola comercio  ")
+        )
+
+        self.assertEqual(delivered, 3)
+        self.assertEqual(
+            {(peer, opcode) for peer, opcode, _ in self.sent},
+            {(p["peer"].name, 626) for p in (sender, remote, other)},
+        )
+        packet = self.sent[0][2]
+        name_length = packet[0]
+        offset = 1 + name_length
+        mask, community, account_id, reserved = struct.unpack_from(
+            ">BBqB", packet, offset
+        )
+        text_length = struct.unpack_from(">h", packet, offset + 11)[0]
+        text = packet[offset + 13 : offset + 13 + text_length].decode()
+        self.assertEqual(
+            (mask, community, account_id, reserved, text),
+            (5, 2, sender["account"], 0, "hola comercio"),
+        )
+        self.assertNotEqual(account_id, sender["character"]["id"])
+        self.assertEqual(text_length, len(text.encode("utf-8")))
+
+    def test_language_channels_filter_sender_authorization_and_recipient_masks(self):
+        sender = self.player("sender")
+        allowed = self.player("allowed", map_id=527)
+        blocked = self.player("blocked", map_id=42)
+        self.preference(sender, mask=0b0010, community=4)
+        self.preference(allowed, mask=0b0010, community=1)
+        self.preference(blocked, mask=0b0100, community=3)
+        self.sent.clear()
+
+        request = self.native_request(13188, "reclutamiento", language=1)
+        self.assertEqual(self.send(sender, 13188, request), 2)
+        self.assertEqual(
+            {(peer, opcode) for peer, opcode, _ in self.sent},
+            {(sender["peer"].name, 769), (allowed["peer"].name, 769)},
+        )
+        packet = next(
+            body for peer, _, body in self.sent if peer == sender["peer"].name
+        )
+        self.assertEqual(packet[0], 1)
+        name_length = packet[1]
+        offset = 2 + name_length
+        self.assertEqual(
+            struct.unpack_from(">BBqB", packet, offset),
+            (0b0010, 4, sender["account"], 0),
+        )
+
+        for invalid_language in (-1, 4, True):
+            with self.subTest(language=invalid_language), self.assertRaisesRegex(
+                ValueError, "idioma"
+            ):
+                self.send(
+                    sender,
+                    13188,
+                    {"language_id": invalid_language, "text": "no permitido"},
+                )
+        self.preference(sender, mask=0b0001, community=4)
+        with self.assertRaisesRegex(ValueError, "idioma"):
+            self.send(sender, 13831, {"language_id": 1, "text": "fuera de cuenta"})
+
+    def test_party_channel_is_private_to_members_even_across_maps(self):
+        leader = self.player("leader", map_id=1134)
+        member = self.player("member", map_id=527, instance_id=15)
+        outsider = self.player("outsider", map_id=1134)
+        token = player_parties.invite(
+            self.store,
+            leader["account"],
+            leader["generation"],
+            leader["character"]["id"],
+            member["character"]["id"],
+        )
+        party_id = player_parties.answer(
+            self.store,
+            member["account"],
+            member["generation"],
+            member["character"]["id"],
+            token,
+            True,
+        )
+        self.sent.clear()
+
+        delivered = self.send(
+            leader,
+            13224,
+            self.native_request(13224, "mensaje privado", group_id=party_id),
+        )
+
+        self.assertEqual(delivered, 2)
+        self.assertEqual(
+            {(peer, opcode) for peer, opcode, _ in self.sent},
+            {(leader["peer"].name, 606), (member["peer"].name, 606)},
+        )
+        self.assertNotIn(outsider["peer"].name, {peer for peer, _, _ in self.sent})
+        body = self.sent[0][2]
+        name_length = body[0]
+        offset = name_length + 1
+        self.assertEqual(
+            struct.unpack_from(">q", body, offset + 2)[0], leader["account"]
+        )
+        self.assertNotEqual(
+            struct.unpack_from(">q", body, offset + 2)[0], leader["character"]["id"]
+        )
+
+        with self.assertRaisesRegex(ValueError, "No perteneces"):
+            self.send(
+                leader,
+                13224,
+                self.native_request(13224, "spoof", group_id=party_id + 1),
+            )
+
+    def test_malformed_stale_identity_and_invalid_text_never_deliver(self):
+        sender, other = self.player("sender"), self.player("other")
+        self.sent.clear()
+        with self.assertRaisesRegex(ValueError, "stale"):
+            self.channels.handle(
+                13074,
+                {"text": "spoof"},
+                other["account"],
+                sender["generation"],
+                sender["character"]["id"],
+            )
+        with self.assertRaisesRegex(ValueError, "comandos"):
+            self.send(sender, 13074, {"text": "!give-admin"})
+        with self.assertRaisesRegex(ValueError, "Invalid channel"):
+            self.send(sender, 13074, {"text": "\x00hello"})
+        with self.assertRaisesRegex(ValueError, "Invalid channel"):
+            self.send(sender, 13074, {"text": "   "})
+        with self.assertRaisesRegex(ValueError, "long"):
+            self.send(sender, 13074, {"text": "é" * 1025})
+        sender["generation"] = self.store.begin_session(sender["account"], ttl=10_000)
+        with self.assertRaisesRegex(ValueError, "stale"):
+            self.channels.handle(
+                13074,
+                {"text": "obsoleto"},
+                sender["account"],
+                sender["generation"],
+                sender["character"]["id"],
+            )
+        self.assertEqual(self.sent, [])
+
+    def test_preferences_and_database_rate_policy_are_read_on_each_call(self):
+        sender, other = self.player("sender"), self.player("other", map_id=9)
+        self.assertAlmostEqual(self.channels.minimum_interval(), 0.2)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='chat_channel_policy'",
+                (
+                    Jsonb(
+                        {
+                            "version": 1,
+                            "language_mask": 6,
+                            "community": 4,
+                            "maximum_bytes": 2048,
+                            "minimum_interval_ms": 777,
+                        }
+                    ),
+                ),
+            )
+        self.assertAlmostEqual(self.channels.minimum_interval(), 0.777)
+        self.sent.clear()
+        self.send(sender, 13074, self.native_request(13074, "primero"))
+        self.preference(sender, mask=1, community=2)
+        self.preference(other, mask=1, community=3)
+        self.sent.clear()
+        self.send(sender, 13074, self.native_request(13074, "actualizado"))
+        self.assertTrue(
+            all(
+                struct.unpack_from(">BB", body, 1 + body[0]) == (1, 2)
+                for _, _, body in self.sent
+            )
+        )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='chat_channel_policy'",
+                (
+                    Jsonb(
+                        {
+                            "version": 1,
+                            "language_mask": 6,
+                            "community": 4,
+                            "maximum_bytes": True,
+                            "minimum_interval_ms": True,
+                        }
+                    ),
+                ),
+            )
+        with self.assertRaisesRegex(ValueError, "rate policy"):
+            self.channels.minimum_interval()
+        self.sent.clear()
+        with self.assertRaisesRegex(ValueError, "policy"):
+            self.send(sender, 13074, {"text": "policy inválida"})
+        self.assertEqual(self.sent, [])
+
+    def test_community_native_language_prefix_and_language_selection_decoder(self):
+        sender, receiver = self.player("sender"), self.player("receiver", map_id=777)
+        self.preference(sender, mask=0b0100, community=2)
+        self.preference(receiver, mask=0b0100, community=1)
+        self.sent.clear()
+        request_body = b"\x02" + struct.pack(">H", len("bonjour")) + b"bonjour"
+        request = decode_body("out", 13831, request_body)
+        self.assertEqual(request, {"language_id": 2, "text": "bonjour"})
+        self.assertEqual(self.send(sender, 13831, request), 2)
+        for _peer, opcode, body in self.sent:
+            self.assertEqual(opcode, 655)
+            self.assertEqual(body[0], 2)
+            length = body[1]
+            offset = 2 + length
+            self.assertEqual(
+                struct.unpack_from(">BBqB", body, offset),
+                (0b0100, 2, sender["account"], 0),
+            )
+
+    def test_protocol_decoder_rejects_truncated_or_trailing_channel_bodies(self):
+        valid = struct.pack(">H", 2) + b"ok"
+        for opcode, body in (
+            (13074, valid[:-1]),
+            (13074, valid + b"x"),
+            (13188, b"\x01" + valid[:-1]),
+            (13224, struct.pack(">q", 1) + valid[:-1]),
+        ):
+            with self.subTest(opcode=opcode, body=body.hex()), self.assertRaises(
+                ValueError
+            ):
+                decode_body("out", opcode, body)
+
+
+if __name__ == "__main__":
+    unittest.main()

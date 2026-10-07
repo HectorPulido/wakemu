@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "source": {
     "kind": "installed client bdata native mount catalog",
     "client_jar": "client/lib/wakfu-client.jar",
@@ -21,9 +21,11 @@
       "meal_item_refs": "fwr.gqr() -> azo.bUw()",
       "xp_per_meal": "fwr.gqu() -> fwv.gqu()",
       "meal_min_interval_seconds": "fwr.gqs() -> TT.bjT()",
-      "meal_max_interval_seconds": "fwr.gqt() -> TT.bjT()"
+      "meal_max_interval_seconds": "fwr.gqt() -> TT.bjT()",
+      "healing_food_values": "aMo.ctc()[aMp] -> bbp.a(aMo) -> fwn.gz(ref,value) -> fwr.YH(ref)/YJ(ref)",
+      "xp_food_flags": "aMo.ctd()[aMr] -> bbp.a(aMo) -> fwn.ai(ref,isVisible) -> fwr.YI(ref)"
     },
-    "food_semantics": "The native mount definition toString names these fields mealItemRefIds, xpPerMeal, mealMinInterval, and mealMaxInterval; TT/TS duration values are seconds."
+    "food_semantics": "Per-model native food effects: YH is heal-item membership and YJ is its heal amount; YI=true classifies XP food. fwr.gqr meal_item_refs match the YH item refs. XP amount uses fwr.gqu (xpPerMeal)."
   },
   "count": 40,
   "models": [
@@ -44,7 +46,64 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752
+        ],
+        "feed_item_refs": [
+          1752,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -64,7 +123,64 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752
+        ],
+        "feed_item_refs": [
+          1752,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -84,7 +200,64 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752
+        ],
+        "feed_item_refs": [
+          1752,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -104,7 +277,64 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752
+        ],
+        "feed_item_refs": [
+          1752,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -124,7 +354,64 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752
+        ],
+        "feed_item_refs": [
+          1752,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -144,7 +431,64 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752
+        ],
+        "feed_item_refs": [
+          1752,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -164,7 +508,64 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752
+        ],
+        "feed_item_refs": [
+          1752,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -184,7 +585,64 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752
+        ],
+        "feed_item_refs": [
+          1752,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -204,7 +662,82 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 2731
+          },
+          {
+            "enabled": true,
+            "reference": 2734
+          },
+          {
+            "enabled": true,
+            "reference": 26399
+          },
+          {
+            "enabled": true,
+            "reference": 26416
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          2731,
+          2734,
+          26399,
+          26416
+        ],
+        "feed_item_refs": [
+          2731,
+          2734,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785,
+          26399,
+          26416
+        ]
       }
     },
     {
@@ -224,7 +757,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 86400,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          },
+          {
+            "enabled": true,
+            "reference": 4275
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752,
+          4275
+        ],
+        "feed_item_refs": [
+          1752,
+          4275,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -244,7 +840,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 86400,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          },
+          {
+            "enabled": true,
+            "reference": 4275
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752,
+          4275
+        ],
+        "feed_item_refs": [
+          1752,
+          4275,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -264,7 +923,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 86400,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          },
+          {
+            "enabled": true,
+            "reference": 4275
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752,
+          4275
+        ],
+        "feed_item_refs": [
+          1752,
+          4275,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -284,7 +1006,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 86400,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          },
+          {
+            "enabled": true,
+            "reference": 4275
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752,
+          4275
+        ],
+        "feed_item_refs": [
+          1752,
+          4275,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -304,7 +1089,82 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 2731
+          },
+          {
+            "enabled": true,
+            "reference": 2734
+          },
+          {
+            "enabled": true,
+            "reference": 26399
+          },
+          {
+            "enabled": true,
+            "reference": 26416
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          2731,
+          2734,
+          26399,
+          26416
+        ],
+        "feed_item_refs": [
+          2731,
+          2734,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785,
+          26399,
+          26416
+        ]
       }
     },
     {
@@ -324,7 +1184,82 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 2731
+          },
+          {
+            "enabled": true,
+            "reference": 2734
+          },
+          {
+            "enabled": true,
+            "reference": 26399
+          },
+          {
+            "enabled": true,
+            "reference": 26416
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          2731,
+          2734,
+          26399,
+          26416
+        ],
+        "feed_item_refs": [
+          2731,
+          2734,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785,
+          26399,
+          26416
+        ]
       }
     },
     {
@@ -344,7 +1279,82 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 2731
+          },
+          {
+            "enabled": true,
+            "reference": 2734
+          },
+          {
+            "enabled": true,
+            "reference": 26399
+          },
+          {
+            "enabled": true,
+            "reference": 26416
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          2731,
+          2734,
+          26399,
+          26416
+        ],
+        "feed_item_refs": [
+          2731,
+          2734,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785,
+          26399,
+          26416
+        ]
       }
     },
     {
@@ -364,7 +1374,82 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 2731
+          },
+          {
+            "enabled": true,
+            "reference": 2734
+          },
+          {
+            "enabled": true,
+            "reference": 26399
+          },
+          {
+            "enabled": true,
+            "reference": 26416
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          2731,
+          2734,
+          26399,
+          26416
+        ],
+        "feed_item_refs": [
+          2731,
+          2734,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785,
+          26399,
+          26416
+        ]
       }
     },
     {
@@ -384,7 +1469,82 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 2731
+          },
+          {
+            "enabled": true,
+            "reference": 2734
+          },
+          {
+            "enabled": true,
+            "reference": 26399
+          },
+          {
+            "enabled": true,
+            "reference": 26416
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          2731,
+          2734,
+          26399,
+          26416
+        ],
+        "feed_item_refs": [
+          2731,
+          2734,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785,
+          26399,
+          26416
+        ]
       }
     },
     {
@@ -404,7 +1564,82 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 2731
+          },
+          {
+            "enabled": true,
+            "reference": 2734
+          },
+          {
+            "enabled": true,
+            "reference": 26399
+          },
+          {
+            "enabled": true,
+            "reference": 26416
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          2731,
+          2734,
+          26399,
+          26416
+        ],
+        "feed_item_refs": [
+          2731,
+          2734,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785,
+          26399,
+          26416
+        ]
       }
     },
     {
@@ -424,7 +1659,82 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 2731
+          },
+          {
+            "enabled": true,
+            "reference": 2734
+          },
+          {
+            "enabled": true,
+            "reference": 26399
+          },
+          {
+            "enabled": true,
+            "reference": 26416
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          2731,
+          2734,
+          26399,
+          26416
+        ],
+        "feed_item_refs": [
+          2731,
+          2734,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785,
+          26399,
+          26416
+        ]
       }
     },
     {
@@ -440,7 +1750,42 @@
         "meal_item_refs": [],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785
+        ],
+        "feed_item_refs": [
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -456,7 +1801,42 @@
         "meal_item_refs": [],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785
+        ],
+        "feed_item_refs": [
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -472,7 +1852,42 @@
         "meal_item_refs": [],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785
+        ],
+        "feed_item_refs": [
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -492,7 +1907,88 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1846
+          },
+          {
+            "enabled": true,
+            "reference": 2355
+          },
+          {
+            "enabled": true,
+            "reference": 11479
+          },
+          {
+            "enabled": true,
+            "reference": 1851
+          },
+          {
+            "enabled": true,
+            "reference": 5407
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1846,
+          2355,
+          11479,
+          1851,
+          5407
+        ],
+        "feed_item_refs": [
+          1846,
+          1851,
+          2355,
+          5407,
+          11479,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -512,7 +2008,88 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1846
+          },
+          {
+            "enabled": true,
+            "reference": 2355
+          },
+          {
+            "enabled": true,
+            "reference": 11479
+          },
+          {
+            "enabled": true,
+            "reference": 1851
+          },
+          {
+            "enabled": true,
+            "reference": 5407
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1846,
+          2355,
+          11479,
+          1851,
+          5407
+        ],
+        "feed_item_refs": [
+          1846,
+          1851,
+          2355,
+          5407,
+          11479,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -532,7 +2109,88 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1846
+          },
+          {
+            "enabled": true,
+            "reference": 2355
+          },
+          {
+            "enabled": true,
+            "reference": 11479
+          },
+          {
+            "enabled": true,
+            "reference": 1851
+          },
+          {
+            "enabled": true,
+            "reference": 5407
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1846,
+          2355,
+          11479,
+          1851,
+          5407
+        ],
+        "feed_item_refs": [
+          1846,
+          1851,
+          2355,
+          5407,
+          11479,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -552,7 +2210,88 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1846
+          },
+          {
+            "enabled": true,
+            "reference": 2355
+          },
+          {
+            "enabled": true,
+            "reference": 11479
+          },
+          {
+            "enabled": true,
+            "reference": 1851
+          },
+          {
+            "enabled": true,
+            "reference": 5407
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1846,
+          2355,
+          11479,
+          1851,
+          5407
+        ],
+        "feed_item_refs": [
+          1846,
+          1851,
+          2355,
+          5407,
+          11479,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -572,7 +2311,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 11482
+          },
+          {
+            "enabled": true,
+            "reference": 1848
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          11482,
+          1848
+        ],
+        "feed_item_refs": [
+          1848,
+          11482,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -592,7 +2394,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 11482
+          },
+          {
+            "enabled": true,
+            "reference": 1848
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          11482,
+          1848
+        ],
+        "feed_item_refs": [
+          1848,
+          11482,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -612,7 +2477,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 11482
+          },
+          {
+            "enabled": true,
+            "reference": 1848
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          11482,
+          1848
+        ],
+        "feed_item_refs": [
+          1848,
+          11482,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -632,7 +2560,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 11482
+          },
+          {
+            "enabled": true,
+            "reference": 1848
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          11482,
+          1848
+        ],
+        "feed_item_refs": [
+          1848,
+          11482,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -652,7 +2643,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 11482
+          },
+          {
+            "enabled": true,
+            "reference": 1848
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          11482,
+          1848
+        ],
+        "feed_item_refs": [
+          1848,
+          11482,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -672,7 +2726,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 11482
+          },
+          {
+            "enabled": true,
+            "reference": 1848
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          11482,
+          1848
+        ],
+        "feed_item_refs": [
+          1848,
+          11482,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -692,7 +2809,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 11482
+          },
+          {
+            "enabled": true,
+            "reference": 1848
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          11482,
+          1848
+        ],
+        "feed_item_refs": [
+          1848,
+          11482,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -712,7 +2892,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 11482
+          },
+          {
+            "enabled": true,
+            "reference": 1848
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          11482,
+          1848
+        ],
+        "feed_item_refs": [
+          1848,
+          11482,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -732,7 +2975,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1752
+          },
+          {
+            "enabled": true,
+            "reference": 5407
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1752,
+          5407
+        ],
+        "feed_item_refs": [
+          1752,
+          5407,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -752,7 +3058,82 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 2254
+          },
+          {
+            "enabled": true,
+            "reference": 2698
+          },
+          {
+            "enabled": true,
+            "reference": 2702
+          },
+          {
+            "enabled": true,
+            "reference": 8104
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          2254,
+          2698,
+          2702,
+          8104
+        ],
+        "feed_item_refs": [
+          2254,
+          2698,
+          2702,
+          8104,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     },
     {
@@ -772,7 +3153,88 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 2731
+          },
+          {
+            "enabled": true,
+            "reference": 6257
+          },
+          {
+            "enabled": true,
+            "reference": 20651
+          },
+          {
+            "enabled": true,
+            "reference": 8105
+          },
+          {
+            "enabled": true,
+            "reference": 9268
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          2731,
+          6257,
+          20651,
+          8105,
+          9268
+        ],
+        "feed_item_refs": [
+          2731,
+          6257,
+          8105,
+          9268,
+          12284,
+          13358,
+          18377,
+          18378,
+          20651,
+          20785
+        ]
       }
     },
     {
@@ -792,7 +3254,82 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 1851
+          },
+          {
+            "enabled": true,
+            "reference": 20595
+          },
+          {
+            "enabled": true,
+            "reference": 8414
+          },
+          {
+            "enabled": true,
+            "reference": 26399
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          1851,
+          20595,
+          8414,
+          26399
+        ],
+        "feed_item_refs": [
+          1851,
+          8414,
+          12284,
+          13358,
+          18377,
+          18378,
+          20595,
+          20785,
+          26399
+        ]
       }
     },
     {
@@ -812,7 +3349,70 @@
         ],
         "xp_per_meal": 50,
         "meal_min_interval_seconds": 72000,
-        "meal_max_interval_seconds": 259200
+        "meal_max_interval_seconds": 259200,
+        "healing_food_values": [
+          {
+            "reference": 12284,
+            "health_per_item": 1
+          },
+          {
+            "reference": 13358,
+            "health_per_item": 1
+          },
+          {
+            "reference": 18377,
+            "health_per_item": 20
+          }
+        ],
+        "xp_food_flags": [
+          {
+            "enabled": false,
+            "reference": 27578
+          },
+          {
+            "enabled": false,
+            "reference": 18376
+          },
+          {
+            "enabled": false,
+            "reference": 18431
+          },
+          {
+            "enabled": true,
+            "reference": 18378
+          },
+          {
+            "enabled": false,
+            "reference": 13346
+          },
+          {
+            "enabled": true,
+            "reference": 20785
+          },
+          {
+            "enabled": true,
+            "reference": 11482
+          },
+          {
+            "enabled": true,
+            "reference": 1848
+          }
+        ],
+        "xp_item_refs": [
+          18378,
+          20785,
+          11482,
+          1848
+        ],
+        "feed_item_refs": [
+          1848,
+          11482,
+          12284,
+          13358,
+          18377,
+          18378,
+          20785
+        ]
       }
     }
   ]

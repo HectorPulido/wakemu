@@ -76,8 +76,7 @@ def bonuses(character, *, build_index=None):
                     reason="missing-effect-template",
                 )
             )
-            continue
-        for effect in template["effects"]:
+        for effect in () if template is None else template["effects"]:
             # eHi.a never registers these in the actor's passive equipment
             # context. Keep identity for the separate item action executor;
             # do not turn weapon attacks into bonuses or unsupported passives.
@@ -121,10 +120,27 @@ def bonuses(character, *, build_index=None):
                 continue
             stat, delta = flat
             stats[stat] = stats.get(stat, 0) + delta
+        from .shard_bonuses import bonuses as shard_bonuses
+
+        socketed = shard_bonuses(item, entry["slot"])
+        for stat, delta in socketed["stats"].items():
+            stats[stat] = stats.get(stat, 0) + delta
+        unsupported.extend(socketed["unsupported"])
     from .aptitudes import bonuses as aptitude_bonuses
 
     aptitudes = aptitude_bonuses(character, build_index=index)
     for stat, delta in aptitudes["stats"].items():
+        stats[stat] = stats.get(stat, 0) + delta
+    territory_stats = character.get("territory_stat_bonuses", {})
+    if not isinstance(territory_stats, dict) or any(
+        type(stat) is not int
+        or stat not in (33, 36)
+        or type(delta) is not int
+        or not -1000 <= delta <= 1000
+        for stat, delta in territory_stats.items()
+    ):
+        raise ValueError("Invalid derived territory characteristic bonuses")
+    for stat, delta in territory_stats.items():
         stats[stat] = stats.get(stat, 0) + delta
     return dict(
         stats=stats,

@@ -1,5 +1,13 @@
 # Revisión de código y contrato — mesas de oficio
 
+## Actualización de sincronización — 7 de octubre de 2026
+
+El patrón reportado (mesas/Zaaps que reaparecen al recargar el cliente) coincide con un hueco de publicación: `local_game_server.py` respondía con el snapshot completo solo al recibir `14689`, pero los cambios de mapa con caché no siempre generan esa solicitud. El request nativo `cDt/14689` usa envoltorio de categoría6 con cuerpo de cero bytes; no especifica chunks ni radio. El consumidor de `13984` (`cEX`) busca cada ID en el registro de interactivos ya cargados y omite los IDs que no existen, por lo que `13984` actualiza estado y no crea objetos.
+
+La fuente actual arma un snapshot de mapa completo tras cada `join_world`, mantiene el envío pendiente si el personaje aún está en combate, valida `account_id/generation` antes de publicar y hace hasta tres reintentos desde `idle()` con intervalo750ms. Un request14689 lo adelanta; una acción validada de movimiento/interacción también lo adelanta y cancela los reintentos. El patrón evita depender de una inferencia de radio de chunks y cubre objetos junto a los límites de chunk. Los mapas instalados producen cuerpos de hasta60,078 bytes; Astrub1134 usa21,155 bytes.
+
+La corrección está en fuente, sin imagen nueva, despliegue o confirmación visual. Gate Docker aislado: **114 pruebas aprobadas**, incluidas `test_world_static` 3/3 y `test_static_map_sync_dispatch` 9/9, más despacho crafting, estaciones, inventario, transportes y recompensas de combate. La [prueba manual conjunta](PRUEBA-GENERAL.md) queda pendiente de imagen candidata.
+
 ## Presencia y ruta actual
 
 El catálogo actual contiene **330 CraftTable en 33 mapas**, incluidas 26 mesas en Astrub 1134. El [probe ejecutado](probe-presencia-ruta-mesas.json) registra todas las de ese mapa y hashes de las fuentes. Ejemplo próximo a la posición reportada: 31515 en (-20,10,-4); no todas están en la altura del personaje. La presencia en el catálogo no prueba que el entorno nativo las haya registrado o renderizado.
@@ -35,3 +43,11 @@ Ejemplo verificado: receta **2047**, oficio 40, nivel 0; ingredientes item 2279 
 La modalidad de 13515 se acotó: `boA.dBh()` compara el ID local (`aTJ.xl()`) con `iKq`; `boA.dBV()` busca `iKq` como personaje `bjo`. Es la rama con otro artesano, no simplemente una receta ordinaria con más bytes. `boQ.dCv()` consulta el oficio del artesano mediante `eTo.a(receta,boolean)` y convierte su resultado i32 a i64; todavía falta resolver la regla concreta del valor (no se le atribuye un coste en kamas sin verificarla). El servidor debe validar ambos personajes y condiciones vigentes, sin aceptar el valor declarado por el cliente como autoridad.
 
 El probe anterior usaba dirección `client` y devolvía `None`; se repitió con la dirección real del codec, **`out`**. 12231 decodifica mesa 31515 / receta sintética 123 / cantidad 2 correctamente. 13515 devuelve `None`, sin rama de decodificación. Ambos carecen de handler en el dispatcher inspeccionado. El error del harness no se presenta como fallo del servidor.
+
+## Definiciones nativas de mesa y receta
+
+`sniffer/java/ExportRecipes.java` exporta ahora también el registro nativo `CRAFT_IE_PARAM` (`aKM`), su transformación (`baL` → `bFv`) y las 330 instancias `CraftTable` del catálogo de mapas. La compilación/ejecución offline en Docker produjo 5.449 recetas, 79 definiciones y 330/330 instancias resueltas, sin errores de lectura. El artefacto reproducible es `server/protocol/craft-recipes.json`; el exportador conserva `bBK` como dato bruto porque su significado sigue sin confirmarse.
+
+El recorrido de bytecode distingue campos que antes se confundían: el parámetro textual de `CraftTable` (`bAp.dSG()`) es `definition_id`; `aKM.ckK()` pasa a `bFv.clx()` y selecciona la familia de estación (`fyB.aae()`); `aKM.ckL()` pasa a `bFv.cmG()` y el chequeo de disponibilidad lo entrega a `eTo.tW()` como oficio del personaje; `aKM.cmM()` pasa a `bFv.ged()` y `bAp.GE(recipeId)` / `bAp.i(recipeId, mode)` comprueban pertenencia a esa lista de recetas permitidas. Por tanto, “81” en el parámetro es una clave de definición, no el oficio 81. Por ejemplo, la definición 81 indica oficio 73, familia 77 y lista permitida vacía.
+
+La validación cruzada conserva anomalías del origen en lugar de corregirlas implícitamente: cuatro definiciones tienen lista vacía (81, 138, 139, 191); 2.019 entradas de las listas no aparecen entre las recetas exportadas; y el ID de receta 10153 aparece en las definiciones 94 y 154 con oficio de tabla 81, pero oficio de receta 76. Esto puede indicar registros asociados a otro conjunto/dominio o datos incompletos; la exportación no prueba por sí sola que esas recetas se puedan ejecutar en cada estación. Las filas de receta incluyen el oficio y nivel mínimo, ingredientes, productos y duración cruda para que el consumidor del catálogo pueda validarlos. El campo adicional `aNi.cvm()` de los ingredientes sigue preservado sin atribuirle semántica.

@@ -4,9 +4,10 @@
 
 | ID | Dato o decisión | Cómo resolverlo | Impacto |
 | --- | --- | --- | --- |
-| 1 | Solicitudes/ACK de insert/remove y comportamiento primario/secundario. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
-| 2 | Reglas de retirada con muebles/plantas/visitantes y gema fija. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
-| 3 | Asignación UID estable de gemas iniciales y migration de layouts viejos. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
+| 1 | Request/ACK y selector primaria/secundaria | Confirmado offline: 12177/12234, 13090/12451; bool 13090 elige primaria (`true`) o secundaria (`false`) | Branch fuente conectado; falta aceptación cliente |
+| 2 | Retirada con muebles/plantas/visitantes | No borrar ni mover sala con bienes o actores; no se ha verificado política nativa de cierre | Impide certificar salas ocupadas |
+| 3 | UID durable de gemas iniciales y compatibilidad de layouts viejos | La gema fija de entrada sigue usando UID virtual `character_id*256+1`; 051 solo registra transferencias físicas | Falta migración/normalización de instalaciones preexistentes si las hay |
+| 4 | Stack split y respuesta incremental | Helper propone 12470 → 12471 → 12234 para que el cliente resuelva el UID nuevo | Falta verificar visualmente esta secuencia |
 
 1. Revisa todo. Nada que decidir
 

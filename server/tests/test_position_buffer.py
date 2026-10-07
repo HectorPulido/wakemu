@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 from postgres_case import PostgresCase
 from wakfu_server.position_buffer import Positions
 
@@ -34,6 +35,85 @@ class PositionBufferTests(PostgresCase):
         self.assertEqual(self.store.character(a, c["id"])["x"], c["x"])
         self.assertEqual(self.buffer.flush(), 0)
         self.buffer.release(a, g, c["id"])
+
+    def test_direction_is_buffered_with_walk_and_flushed_once(self):
+        a, g, char = self.attach("Direction")
+        current = char
+        with patch.object(
+            self.store,
+            "connection",
+            side_effect=AssertionError(
+                "movement direction must stay in the position buffer"
+            ),
+        ):
+            for direction in range(8):
+                current = self.buffer.move(
+                    a,
+                    g,
+                    char["id"],
+                    current,
+                    {
+                        **{k: current[k] for k in ("x", "y", "z")},
+                        "direction": direction,
+                    },
+                )
+        self.assertEqual(7, current["direction"])
+        self.assertEqual(3, self.store.character(a, char["id"])["direction"])
+        self.assertEqual(
+            1, self.buffer.flush(account_id=a, generation=g, character_id=char["id"])
+        )
+        reopened = self.reopen()
+        self.assertEqual(7, reopened.character(a, char["id"])["direction"])
+
+    def test_invalid_buffered_direction_does_not_change_dirty_entry(self):
+        a, g, char = self.attach("BadDirection")
+        current = self.buffer.move(
+            a,
+            g,
+            char["id"],
+            char,
+            {**{k: char[k] for k in ("x", "y", "z")}, "direction": 6},
+        )
+        entry = self.buffer.entries[(a, g, char["id"])]
+        before = dict(entry["current"])
+        for direction in (True, -1, 8):
+            with self.subTest(direction=direction), self.assertRaisesRegex(
+                ValueError, "direction"
+            ):
+                self.buffer.move(
+                    a,
+                    g,
+                    char["id"],
+                    current,
+                    {
+                        **{k: current[k] for k in ("x", "y", "z")},
+                        "direction": direction,
+                    },
+                )
+            self.assertEqual(before, entry["current"])
+
+    def test_manual_orientation_write_conflicts_with_unflushed_walk_direction_cas(self):
+        from wakfu_server.world_orientation import save
+
+        a, g, char = self.attach("DirectionCas")
+        current = self.buffer.move(
+            a,
+            g,
+            char["id"],
+            char,
+            {
+                **{k: char[k] for k in ("x", "y", "z")},
+                "x": char["x"] + 1,
+                "direction": 6,
+            },
+        )
+        save(self.store, a, g, char["id"], 4)
+        with self.assertRaisesRegex(ValueError, "CAS conflict"):
+            self.buffer.flush(account_id=a, generation=g, character_id=char["id"])
+        self.assertTrue(self.buffer.entries[(a, g, char["id"])]["dirty"])
+        saved = self.store.character(a, char["id"])
+        self.assertEqual((char["x"], 4), (saved["x"], saved["direction"]))
+        self.assertEqual((char["x"] + 1, 6), (current["x"], current["direction"]))
 
     def test_stale_generation_cannot_write_or_erase_replacement(self):
         a, g, c = self.attach("One")

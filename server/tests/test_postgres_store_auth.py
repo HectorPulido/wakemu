@@ -1112,7 +1112,11 @@ class StoreAuthTests(PostgresCase):
                 db.execute("DELETE FROM combat_fights WHERE id=%s", (fight_id,))
 
         self.addCleanup(cleanup_groups)
-        members = [owned_instance(5525, 1, -200, map_id=1134, x=-7, y=-7, z=-1)]
+        members = [
+            owned_instance(
+                5525, 1, -200, map_id=1134, instance_id=instance_id, x=-7, y=-7, z=-1
+            )
+        ]
         first, second = PersistentGroups(self.store), PersistentGroups(self.store)
         key = first.register(1134, instance_id, 501, members)
         self.assertEqual(second.register(1134, instance_id, 501, members), key)
@@ -1211,6 +1215,7 @@ class StoreAuthTests(PostgresCase):
 
     def test_monster_harvest_receipt_and_explicit_cooldown(self):
         from wakfu_server.monster_collect import Harvests
+        from wakfu_server.profession_store import ensure_learned
         from wakfu_server.wire import proto_field
         from psycopg.types.json import Jsonb
 
@@ -1218,12 +1223,17 @@ class StoreAuthTests(PostgresCase):
         character = self.store.create_character(self.account, name)
         generation = self.store.begin_session(self.account)
         self.store.select_character(self.account, generation, character["id"])
+        ensure_learned(self.store, self.account, generation, character["id"], [74])
         monster = dict(
             id=-int(uuid.uuid4().hex[:15], 16),
             ref=1,
             hp=10,
             map_id=character["map_id"],
             instance_id=character["instance_id"],
+            # Verified walkable surface in map 1134, region 79301.
+            x=-18,
+            y=116,
+            z=-4,
         )
         body = proto_field(8, 3723) + proto_field(16, monster["id"] % (1 << 64))
         harvests = Harvests(self.store)
@@ -1295,6 +1305,9 @@ class StoreAuthTests(PostgresCase):
                 (instance, character["id"]),
             )
         character = self.store.character(self.account, character["id"])
+        from wakfu_server.profession_store import ensure_learned
+
+        ensure_learned(self.store, self.account, generation, character["id"], [72])
 
         def cleanup_resources():
             with self.store.connection() as db:

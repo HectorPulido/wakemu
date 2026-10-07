@@ -26,34 +26,47 @@ class PersistentGroups:
         return tuple(row["members"])
 
     def register(self, map_id, instance_id, group_id, members):
-        # Reuse the complete native ownership/roster validation.
+        with self.lock, self.store.connection() as db, db.transaction():
+            return self.register_transaction(db, map_id, instance_id, group_id, members)
+
+    def register_transaction(self, db, map_id, instance_id, group_id, members):
+        """Register in the caller's transaction; caller owns locking and commit.
+
+        This permits durable world births and their receipts to commit together.
+        It never publishes packets or starts a fight.
+        """
+        if db.info.transaction_status != TransactionStatus.INTRANS:
+            raise ValueError("Group registration requires an active transaction")
         validator = Groups()
         key = validator.register(map_id, instance_id, group_id, members)
         canonical = validator.groups[key]["members"]
-        with self.lock, self.store.connection() as db:
-            inserted = db.execute(
-                "INSERT INTO combat_groups(map_id,instance_id,group_id,members,status) "
-                "VALUES(%s,%s,%s,%s,'available') ON CONFLICT(map_id,instance_id,group_id) "
-                "DO NOTHING RETURNING group_id",
-                (*key, Jsonb(canonical)),
+        db.execute(
+            "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+            ("monster-population:" + ":".join(map(str, key[:2])),),
+        )
+        inserted = db.execute(
+            "INSERT INTO combat_groups(map_id,instance_id,group_id,members,status) "
+            "VALUES(%s,%s,%s,%s,'available') ON CONFLICT(map_id,instance_id,group_id) "
+            "DO NOTHING RETURNING group_id",
+            (*key, Jsonb(canonical)),
+        ).fetchone()
+        if inserted is None:
+            row = db.execute(
+                "SELECT members FROM combat_groups WHERE map_id=%s AND instance_id=%s AND group_id=%s",
+                key,
             ).fetchone()
-            if inserted is None:
-                row = db.execute(
-                    "SELECT members FROM combat_groups WHERE map_id=%s AND instance_id=%s AND group_id=%s",
-                    key,
-                ).fetchone()
-                if self._members(row) != canonical:
-                    raise ValueError("Conflicting existing group")
-                return key
-            for member in canonical:
-                claimed = db.execute(
-                    "INSERT INTO combat_group_members(map_id,instance_id,monster_id,group_id) "
-                    "VALUES(%s,%s,%s,%s) ON CONFLICT(map_id,instance_id,monster_id) "
-                    "DO NOTHING RETURNING monster_id",
-                    (map_id, instance_id, member["id"], group_id),
-                ).fetchone()
-                if claimed is None:
-                    raise ValueError("NPC identity already exists in this map instance")
+            if self._members(row) != canonical:
+                raise ValueError("Conflicting existing group")
+            return key
+        for member in canonical:
+            claimed = db.execute(
+                "INSERT INTO combat_group_members(map_id,instance_id,monster_id,group_id) "
+                "VALUES(%s,%s,%s,%s) ON CONFLICT(map_id,instance_id,monster_id) "
+                "DO NOTHING RETURNING monster_id",
+                (map_id, instance_id, member["id"], group_id),
+            ).fetchone()
+            if claimed is None:
+                raise ValueError("NPC identity already exists in this map instance")
         return key
 
     def register_seed(self, map_id, instance_id, group_id, members):
@@ -72,7 +85,9 @@ class PersistentGroups:
             return {k: v for k, v in member.items() if k not in ("x", "y", "z")}
 
         if [identity(m) for m in row["members"]] != [identity(m) for m in members]:
-            raise ValueError("Conflicting existing group seed identity or stats")
+            from .monster_maturation import reconcile_seed
+
+            return reconcile_seed(self.store, key, members, row["members"])
         return key
 
     def move_members(self, key, expected_members, moved_members):
@@ -88,6 +103,10 @@ class PersistentGroups:
         validator = Groups()
         validator.register(*key, moved_members)
         with self.store.connection() as db:
+            db.execute(
+                "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                ("monster-population:" + ":".join(map(str, key[:2])),),
+            )
             return (
                 db.execute(
                     "UPDATE combat_groups SET members=%s,revision=revision+1 "
@@ -216,34 +235,3 @@ class PersistentGroups:
                 "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,revision=revision+1 WHERE status='fighting'"
             )
             return cursor.rowcount
-
-    def respawn_due(self, delay_seconds):
-        """Atomically restore due groups; returned entries require world broadcast.
-
-        Legacy defeated rows with no timestamp remain defeated until explicit
-        respawn. Recovery never assigns a fabricated defeat time to those rows.
-        """
-        if type(delay_seconds) not in (int, float) or not 0 <= delay_seconds < float(
-            "inf"
-        ):
-            raise ValueError("Respawn delay must be finite and nonnegative")
-        cutoff = datetime.fromtimestamp(self.clock() - delay_seconds, timezone.utc)
-        with self.lock, self.store.connection() as db:
-            rows = list(
-                db.execute(
-                    "SELECT * FROM combat_groups WHERE status='defeated' AND defeated_at IS NOT NULL AND defeated_at<=%s ORDER BY map_id,instance_id,group_id FOR UPDATE SKIP LOCKED",
-                    (cutoff,),
-                )
-            )
-            for row in rows:
-                db.execute(
-                    "UPDATE combat_groups SET status='available',defeated_at=NULL,generation=NULL,fight_id=NULL,revision=revision+1 WHERE map_id=%s AND instance_id=%s AND group_id=%s",
-                    (row["map_id"], row["instance_id"], row["group_id"]),
-                )
-            return [
-                dict(
-                    key=(r["map_id"], r["instance_id"], r["group_id"]),
-                    members=self._members(r),
-                )
-                for r in rows
-            ]

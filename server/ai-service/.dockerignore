@@ -1,4 +1,10 @@
-*
-!Dockerfile
-!server.py
-!planner.py
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.env
+.env.*
+*.log
+native-benchmark.json

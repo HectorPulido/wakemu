@@ -4,6 +4,27 @@ from protocol_codec import Reader
 from .combat_wire import _blob, _read_blob
 
 
+# Local server namespace reserved for synthetic external-fight map markers.
+# Native `fbm` accepts a signed 64-bit actor UID; this range is disjoint from
+# this server's positive character/NPC IDs and negative monster IDs.
+EXTERNAL_MARKER_UID_BASE = 1 << 62
+
+
+def external_marker_actor_id(fight_id):
+    """Derive a stable, collision-separated marker UID from the fight ID.
+
+    This is a Wakemu local allocation policy, not a claim about Ankama's ID
+    convention. Fight IDs are positive signed i32 values, so the mapping is
+    injective and remains below the signed i64 ceiling.
+    """
+    if type(fight_id) is not int or not 0 < fight_id < 2**31:
+        raise ValueError("Invalid fight ID for external marker")
+    actor_id = EXTERNAL_MARKER_UID_BASE + fight_id
+    if not 0 < actor_id < 2**63:
+        raise ValueError("External marker actor ID exceeds native i64")
+    return actor_id
+
+
 def decode_join(body):
     if len(body) != 9:
         raise ValueError("Invalid13241 join request length")

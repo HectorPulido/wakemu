@@ -6,14 +6,9 @@
 !wakfu_server/
 !wakfu_server/**/*.py
 !wakfu_server/*.py
-wakfu_server/__pycache__/
 !protocol/
-!protocol/*.json
-!protocol/*.json.gz
-!protocol/combat-maps/
-!protocol/combat-maps/*
-!protocol/combat-los/
-!protocol/combat-los/*
+!protocol/**
+wakfu_server/__pycache__/
 
 !requirements.txt
 !cron-service/
@@ -26,3 +21,6 @@ wakfu_server/__pycache__/
 !tools/
 !tools/migrate_postgres.py
 !tools/manage_permissions.py
+
+!tools/plan_initial_monster_habitat.py
+!tools/generate_initial_monster_population.py

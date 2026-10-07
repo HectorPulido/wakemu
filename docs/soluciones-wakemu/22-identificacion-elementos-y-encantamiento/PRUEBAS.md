@@ -37,3 +37,17 @@ Repetir operaciones confirmadas y cortes alrededor del commit/ACK; ninguna repet
 Invariante: Propiedades pertenecen a una unidad; reintento no vuelve a sortear; consumo/reembolso y modificación se confirman juntos.
 
 Registrar cada caso como PASS, FAIL o NO EJECUTADO, con evidencia. No convertir una omisión, un click optimista o un resultado de otro snapshot en PASS.
+
+## TLS de identificación en candidata aislada
+
+El smoke `server/tools/candidate_shard_identification_socket_smoke.py` pasó en la candidata `wakemu-identification-candidate:20261007` (SHA `130ec9fd`) y una base desechable. Comprueba el request nativo 13787 y el resultado 13766 para la regla local, una sola deducción de kamas configurada para el smoke, repetición de la misma respuesta y reconexión con ProtoShard en campo52/`vA`. El costo7 se fijó solo en esa base de prueba. Smoke separado de combate/inventario también pasó. Esto no valida visualmente la ventana ni constituye despliegue.
+
+## Prueba manual — desplegada130ec9fd
+
+En el mundo activo, usa los comandos existentes de chat general:
+
+1. Para el rechazo por nivel, usa Adael, de nivel inferior a60 y ejecuta `!item 12 1` (Laminadora, plantilla nativa de nivel60). Abre el inventario y solicita identificación sobre esa unidad. Debe recibirse `TOO_HIGH_LEVEL` (13766 status2); el objeto permanece y no se crea recibo, engaste ni cargo.
+2. Para el éxito, selecciona el personaje existente `Audiluna` (nivel suficiente) y ejecuta `!item 2869 1` (Espada Mento, plantilla nativa de nivel80). Solicita identificación sobre esa unidad. Debe mostrar resultado exitoso, con1–3 casillas vacías, y conservar las propiedades elementales existentes. No uses Adael3 como personaje de prueba para este objeto.
+3. Cierra y reabre el inventario; luego reconecta. Debe seguir siendo la misma unidad, con las mismas casillas/colores y sin cargos adicionales. Si se repite el request por retry, la respuesta 13766 debe ser idéntica y no debe aparecer otro recibo.
+
+La cantidad/colores salen de una política local versionada y pueden variar entre unidades; no se espera un resultado aleatorio específico. El costo de esa política en la configuración habitual es0. El smoke de servidor fijó costo7 únicamente para demostrar que el primer commit cobra una vez y el retry no vuelve a cobrar. No se solicita cambiar hechizos, combate ni generar esquirlas durante esta prueba.

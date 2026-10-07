@@ -22,7 +22,9 @@ def prepare_area_event(
     event,
     rng=None,
     from_cell=None,
-    to_cell=None
+    to_cell=None,
+    player_characters=None,
+    deck_blobs=None,
 ):
     from .combat_server_spell import server_runtime
 
@@ -49,7 +51,14 @@ def prepare_area_event(
         raise ValueError("Turn boundary does not accept movement coordinates")
     preview = deepcopy(fight)
     factory, _ = server_runtime(
-        character, monsters, deck_blob, action_id=action_id, critical=False, rng=rng
+        character,
+        monsters,
+        deck_blob,
+        action_id=action_id,
+        critical=False,
+        rng=rng,
+        player_characters=player_characters,
+        deck_blobs=deck_blobs,
     )
     dispatcher, packets = factory(
         preview, {"native_retained_container": {"present": False}}
@@ -75,7 +84,9 @@ def prepare_area_movement(
     action_id,
     path,
     origin,
-    rng=None
+    rng=None,
+    player_characters=None,
+    deck_blobs=None,
 ):
     """Qs callbacks for each native step, on one unpublished final-move Fight."""
     from .combat_server_spell import server_runtime
@@ -93,7 +104,14 @@ def prepare_area_movement(
         raise ValueError("Effect-area movement requires committed final path")
     preview = deepcopy(fight)
     factory, _ = server_runtime(
-        character, monsters, deck_blob, action_id=action_id, critical=False, rng=rng
+        character,
+        monsters,
+        deck_blob,
+        action_id=action_id,
+        critical=False,
+        rng=rng,
+        player_characters=player_characters,
+        deck_blobs=deck_blobs,
     )
     dispatcher, packets = factory(
         preview, {"native_retained_container": {"present": False}}

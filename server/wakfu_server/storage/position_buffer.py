@@ -6,7 +6,7 @@ The caller owns the live-session registry and validated movement paths.
 """
 import threading
 
-_KEYS = ("map_id", "instance_id", "x", "y", "z")
+_KEYS = ("map_id", "instance_id", "x", "y", "z", "direction")
 
 
 class Positions:
@@ -52,7 +52,11 @@ class Positions:
                     axis
                 ] < (1 << (bits - 1)):
                     raise ValueError("Invalid buffered position coordinate")
+            direction = end.get("direction", current["direction"])
+            if type(direction) is not int or not 0 <= direction <= 7:
+                raise ValueError("Invalid buffered position direction")
             current.update({k: end[k] for k in ("x", "y", "z")})
+            current["direction"] = direction
             entry["dirty"] = any(current[k] != entry["persisted"][k] for k in _KEYS)
             return dict(current)
 
@@ -100,12 +104,13 @@ class Positions:
                     old = entry["persisted"]
                     new = entry["current"]
                     result = db.execute(
-                        "UPDATE characters SET x=%s,y=%s,z=%s WHERE id=%s AND account_id=%s "
-                        "AND map_id=%s AND instance_id=%s AND x=%s AND y=%s AND z=%s",
+                        "UPDATE characters SET x=%s,y=%s,z=%s,direction=%s WHERE id=%s AND account_id=%s "
+                        "AND map_id=%s AND instance_id=%s AND x=%s AND y=%s AND z=%s AND direction=%s",
                         (
                             new["x"],
                             new["y"],
                             new["z"],
+                            new["direction"],
                             cid,
                             account,
                             *[old[k] for k in _KEYS],

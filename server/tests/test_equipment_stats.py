@@ -142,3 +142,117 @@ class EquipmentStatsTests(unittest.TestCase):
             },
         ):
             self.assertEqual(bonuses(char)["stats"], {})
+
+    def test_native_shard_effect_level_and_matching_equipment_family(self):
+        char = self.character()
+        from wakfu_server.wire import proto_field
+
+        # Add a low-level head item to the active sheet.
+        hat = dict(uid=1001, character_id=1, reference=6823, quantity=1)
+        char["inventory_items"].append(hat)
+        head = proto_field(10, proto_field(8, 1001) + proto_field(16, 0))
+        char["builds"][0]["equipment"] = (
+            bytes.fromhex(char["builds"][0]["equipment"]) + head
+        ).hex()
+        baseline = bonuses(char)["stats"]
+
+        # Native ProtoShard slot: position 0, shard ref 27109, non-empty color,
+        # slot level 3 -> effective level 2. Its family includes HEAD (0),
+        # matching the hat's validated equipment slot; the level-2 native
+        # value is 8 HP and the native family match doubles it.
+        slot = (
+            proto_field(80, 0)
+            + proto_field(88, 27109)
+            + proto_field(96, 1)
+            + proto_field(112, 3)
+        )
+        hat["shard_state"] = proto_field(10, slot)
+        self.assertEqual(bonuses(char)["stats"][1] - baseline[1], 16)
+
+        # fpG.WA saturates for values above its final native threshold. A
+        # signed-int32 wire value still maps to that same final effect level.
+        slot = (
+            proto_field(80, 0)
+            + proto_field(88, 27109)
+            + proto_field(96, 1)
+            + proto_field(112, 2**31 - 1)
+        )
+        hat["shard_state"] = proto_field(10, slot)
+        self.assertEqual(bonuses(char)["stats"][1] - baseline[1], 176)
+
+        negative_level = b"\x70\xff\xff\xff\xff\x0f"
+        slot = (
+            proto_field(80, 0)
+            + proto_field(88, 27109)
+            + proto_field(96, 1)
+            + negative_level
+        )
+        hat["shard_state"] = proto_field(10, slot)
+        with self.assertRaises(ValueError):
+            bonuses(char)
+
+    def test_nonmatching_family_adds_once_and_empty_color_adds_nothing(self):
+        char = self.character()
+        item = char["inventory_items"][0]
+        from wakfu_server.wire import proto_field
+
+        slot = (
+            proto_field(80, 0)
+            + proto_field(88, 27094)
+            + proto_field(96, 1)
+            + proto_field(112, 0)
+        )
+        item["shard_state"] = proto_field(10, slot)
+        # 27094 targets CHEST/BACK, not this NECK equipment slot.
+        self.assertEqual(bonuses(char)["stats"][20], 10)
+
+        slot = (
+            proto_field(80, 0)
+            + proto_field(88, 27094)
+            + proto_field(96, 0)
+            + proto_field(112, 0)
+        )
+        item["shard_state"] = proto_field(10, slot)
+        self.assertEqual(bonuses(char)["stats"][20], 9)
+
+    def test_malformed_native_socket_positions_and_colors_fail_closed(self):
+        from wakfu_server.shard_bonuses import bonuses as shard_bonuses
+
+        item = dict(uid=1001, reference=6823)
+
+        def slot(position, color=1, reference=27109, level=0):
+            return proto_field(
+                10,
+                proto_field(80, position)
+                + proto_field(88, reference)
+                + proto_field(96, color)
+                + proto_field(112, level),
+            )
+
+        item["shard_state"] = slot(0) + slot(0)
+        with self.assertRaisesRegex(ValueError, "positions"):
+            shard_bonuses(item, 0)
+
+        item["shard_state"] = slot(0, color=99)
+        with self.assertRaisesRegex(ValueError, "color enum"):
+            shard_bonuses(item, 0)
+
+        item["shard_state"] = b"".join(slot(position) for position in range(5))
+        with self.assertRaisesRegex(ValueError, "position"):
+            shard_bonuses(item, 0)
+
+    def test_socket_effect_is_independent_of_host_effect_catalog_row(self):
+        char = self.character()
+        item = char["inventory_items"][0]
+        from wakfu_server.wire import proto_field
+
+        slot = (
+            proto_field(80, 0)
+            + proto_field(88, 27110)
+            + proto_field(96, 1)
+            + proto_field(112, 0)
+        )
+        item["shard_state"] = proto_field(10, slot)
+        with patch.dict(CATALOG, {2021: None}):
+            result = bonuses(char)
+        self.assertEqual(result["stats"][18], 2)

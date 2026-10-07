@@ -86,16 +86,42 @@ def prewarm_runtime_catalogs():
 
 
 def server_runtime(
-    character, monsters, deck_blob, *, action_id, critical, rng=None, compiled=None
+    character,
+    monsters,
+    deck_blob,
+    *,
+    action_id,
+    critical,
+    rng=None,
+    compiled=None,
+    player_characters=None,
+    deck_blobs=None,
 ):
     """One transaction-owned RNG shared by ordinary and relative decisions."""
     transaction_rng = random.Random() if rng is None else rng
-    deck = validate_deck(deck_blob, character["breed"], character["level"])
+    if player_characters is None:
+        player_characters = {character["id"]: character}
+    else:
+        player_characters = dict(player_characters)
+        if player_characters.get(character["id"]) != character:
+            raise ValueError("Caster must match the owned combat character snapshot")
+    if deck_blobs is None:
+        deck_blobs = {character["id"]: deck_blob}
+    else:
+        deck_blobs = dict(deck_blobs)
+    if set(deck_blobs) != set(player_characters):
+        raise ValueError("Every controlled player requires its own deck snapshot")
+    decks = {}
+    for actor_id, source in player_characters.items():
+        if type(actor_id) is not int or source.get("id") != actor_id:
+            raise ValueError("Invalid controlled player snapshot identity")
+        parsed = validate_deck(deck_blobs[actor_id], source["breed"], source["level"])
+        decks[actor_id] = frozenset(parsed["active"] + parsed["passive"])
     actors = OrdinaryActorAuthority(
-        characters={character["id"]: character},
+        characters=player_characters,
         monsters=monsters,
-        decks={character["id"]: frozenset(deck["active"] + deck["passive"])},
-        excluded_decks={character["id"]: frozenset()},
+        decks=decks,
+        excluded_decks={actor_id: frozenset() for actor_id in player_characters},
     )
     from .combat_summon import RegisteredSummonAuthority
 
@@ -152,7 +178,9 @@ def prepare_server_spell(
     action_id,
     line_of_sight,
     critical,
-    rng=None
+    rng=None,
+    player_characters=None,
+    deck_blobs=None,
 ):
     from .combat_critical import choose_critical, spell_critical_available
     from .combat_cast import decode_cast
@@ -189,6 +217,8 @@ def prepare_server_spell(
         action_id=action_id,
         critical=critical,
         rng=transaction_rng,
+        player_characters=player_characters,
+        deck_blobs=deck_blobs,
     )
     if not isinstance(actor.effect_stats, dict) or 4 not in actor.effect_stats:
         raise ValueError("Initialize native characteristics before casting")
@@ -221,7 +251,9 @@ def prepare_server_initialization(
     *,
     action_id,
     rng=None,
-    fight_start=False
+    fight_start=False,
+    player_characters=None,
+    deck_blobs=None,
 ):
     """Install own innates/passives; optionally deliver inferred server fight start.
 
@@ -234,7 +266,14 @@ def prepare_server_initialization(
     from .combat_class_initialization import plan, initialize_transaction
 
     factory, _ = server_runtime(
-        character, monsters, deck_blob, action_id=action_id, critical=False, rng=rng
+        character,
+        monsters,
+        deck_blob,
+        action_id=action_id,
+        critical=False,
+        rng=rng,
+        player_characters=player_characters,
+        deck_blobs=deck_blobs,
     )
     states = states_catalog()
     actor = fight.actors.get(character["id"])
@@ -264,7 +303,16 @@ def prepare_server_initialization(
 @rollback_external_rng
 @rollback_external_rng
 def prepare_server_turn_end(
-    character, monsters, fight, deck_blob, *, actor_id, action_id, rng=None
+    character,
+    monsters,
+    fight,
+    deck_blob,
+    *,
+    actor_id,
+    action_id,
+    rng=None,
+    player_characters=None,
+    deck_blobs=None,
 ):
     """Atomic owned1002 end boundary; execution precedes timer expiration."""
     from copy import deepcopy
@@ -272,7 +320,14 @@ def prepare_server_turn_end(
 
     preview = deepcopy(fight)
     factory, _ = server_runtime(
-        character, monsters, deck_blob, action_id=action_id, critical=False, rng=rng
+        character,
+        monsters,
+        deck_blob,
+        action_id=action_id,
+        critical=False,
+        rng=rng,
+        player_characters=player_characters,
+        deck_blobs=deck_blobs,
     )
     dispatcher, packets = factory(
         preview, {"native_retained_container": {"present": False}}
@@ -293,7 +348,9 @@ def prepare_server_turn_start(
     action_id,
     rng=None,
     native_events=True,
-    area_callbacks=False
+    area_callbacks=False,
+    player_characters=None,
+    deck_blobs=None,
 ):
     """One preview for start1001 and optional Qs callbacks, after start expiry.
 
@@ -307,7 +364,14 @@ def prepare_server_turn_start(
         raise ValueError("Turn-start requires the actual active actor")
     preview = deepcopy(fight)
     factory, _ = server_runtime(
-        character, monsters, deck_blob, action_id=action_id, critical=False, rng=rng
+        character,
+        monsters,
+        deck_blob,
+        action_id=action_id,
+        critical=False,
+        rng=rng,
+        player_characters=player_characters,
+        deck_blobs=deck_blobs,
     )
     dispatcher, packets = factory(
         preview, {"native_retained_container": {"present": False}}

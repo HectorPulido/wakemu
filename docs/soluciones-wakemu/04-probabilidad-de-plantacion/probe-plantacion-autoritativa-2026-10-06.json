@@ -1,0 +1,25 @@
+{
+  "status": "Cambio hecho no confirmado",
+  "scope": "Deployed source, PostgreSQL settings and isolated tests; live game acceptance pending",
+  "image": "ffd6979a8006e4adc88d13f6e713613be8b56bfeb9066c68714b3f8c10afb888",
+  "migrations_applied": [
+    18,
+    19,
+    20,
+    21
+  ],
+  "open_planting_probability": 0.01,
+  "planting_duration_ms": 3000,
+  "runtime_resolver_connected": true,
+  "transactional_rng": true,
+  "isolated_test_count": 72,
+  "native_bonus_base": 0,
+  "client_modified": false,
+  "live_game_acceptance": false,
+  "limitations": [
+    "Native weather coverage is one verified territory; other native contexts fail closed",
+    "Open profile display is hardcoded1%; SQL changes do not change that client indicator",
+    "No claim of official server formula"
+  ],
+  "source_sha256": "2b31a194b63e8bd5080cb593b325800f59710c64c9657bfc68bc30dc8a6b4dd1"
+}

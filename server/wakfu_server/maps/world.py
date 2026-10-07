@@ -3,13 +3,24 @@ import threading
 
 
 class World:
-    def __init__(self, spawn, remove, deliver, *, delivery_failure=None):
+    def __init__(
+        self,
+        spawn,
+        remove,
+        deliver,
+        *,
+        deliver_batch=None,
+        delivery_failure=None,
+        state_packets=None,
+    ):
         self.lock = threading.RLock()
         self.players = {}
         self.spawn = spawn
         self.remove = remove
         self.deliver = deliver
+        self.deliver_batch = deliver_batch
         self.delivery_failure = delivery_failure
+        self.state_packets = state_packets or (lambda character: ())
 
     @staticmethod
     def location(character):
@@ -39,8 +50,79 @@ class World:
                 pass
             return False
 
+    def _send_batch(self, peer, packets):
+        try:
+            if self.deliver_batch is None:
+                for opcode, body in packets:
+                    self.deliver(peer, opcode, body)
+            else:
+                self.deliver_batch(peer, packets)
+            return True
+        except OSError as error:
+            if self.delivery_failure is not None:
+                try:
+                    self.delivery_failure(
+                        peer, packets[0][0] if packets else None, error
+                    )
+                except Exception:
+                    pass
+            try:
+                peer.shutdown(2)
+            except OSError:
+                pass
+            return False
+
+    def live_identity(self, *, character_id=None, name=None):
+        """Capture an identity and lease, without exposing its socket."""
+        from copy import deepcopy
+
+        with self.lock:
+            entry = (
+                self.players.get(character_id)
+                if character_id is not None
+                else next(
+                    (
+                        entry
+                        for entry in self.players.values()
+                        if entry[2]["name"].casefold() == name.casefold()
+                    ),
+                    None,
+                )
+            )
+            return None if entry is None else (entry[0], deepcopy(entry[2]))
+
+    def send_to(self, character_id, generation, opcode, body):
+        """Send across maps to a captured lease; never redirect to its replacement.
+
+        Socket writes happen outside the world membership lock. A disconnect
+        after capture may fail delivery to the old peer, never the new one.
+        """
+        with self.lock:
+            entry = self.players.get(character_id)
+            if entry is None or entry[0] != generation:
+                return False
+            peer = entry[1]
+        return self._send(peer, opcode, body)
+
+    def send_batch_to(self, character_id, generation, packets):
+        """Deliver a captured lease's ordered packet batch as one write."""
+        with self.lock:
+            entry = self.players.get(character_id)
+            if entry is None or entry[0] != generation:
+                return False
+            peer = entry[1]
+        return self._send_batch(peer, tuple(packets))
+
     def private_chat(
-        self, generation, sender_id, account_id, recipient, text, *, valid_session
+        self,
+        generation,
+        sender_id,
+        account_id,
+        recipient,
+        text,
+        *,
+        valid_session,
+        block_reason=None,
     ):
         """Route native720 to current loaded peers across maps; never broadcast."""
         from wakfu_server import wire
@@ -89,6 +171,13 @@ class World:
         if target[2]["id"] == sender_id:
             self._send(sender[1], 349, wire.private_chat_error(104))
             return False
+        # Social policy may query PostgreSQL. Keep it outside the membership
+        # lock, and evaluate against the captured account identities only.
+        if block_reason is not None:
+            reason = block_reason(account_id, target[2]["account_id"])
+            if reason is not None:
+                self._send(sender[1], 349, wire.private_chat_error(reason, recipient))
+                return False
         payload = wire.private_chat(account_id, sender[2], target[2], text)
         if not self._send(target[1], 720, payload):
             self._send(sender[1], 349, wire.private_chat_error(140))
@@ -106,8 +195,53 @@ class World:
             for _, other_peer, other in self.players.values():
                 if self.location(other) == self.location(character):
                     self._send(peer, 12608, self.spawn(other))
+                    for opcode, body in self.state_packets(other):
+                        self._send(peer, opcode, body)
                     self._send(other_peer, 12608, self.spawn(character))
+                    for opcode, body in self.state_packets(character):
+                        self._send(other_peer, opcode, body)
             self.players[character["id"]] = entry
+            for opcode, body in self.state_packets(character):
+                self._send(peer, opcode, body)
+
+    def resynchronize(self, generation, peer, character):
+        """Restore this loaded client's current visible actors and retained state.
+
+        Unlike `join`, this is directed only to the current peer: it must not
+        announce a second player arrival to the other occupants of the map.
+        The native client may clear its world view while leaving an external
+        fight, so this rebuilds the same current snapshot that `join` sends to
+        a newly loaded client.
+        """
+        from copy import deepcopy
+
+        with self.lock:
+            own = self.players.get(character["id"])
+            if (
+                own is None
+                or own[0] != generation
+                or own[1] is not peer
+                or self.location(own[2]) != self.location(character)
+            ):
+                raise ValueError("World resynchronization session is stale")
+            location = self.location(character)
+            others = tuple(
+                (other_peer, deepcopy(other))
+                for _, other_peer, other in self.players.values()
+                if other["id"] != character["id"] and self.location(other) == location
+            )
+            own_state = tuple(self.state_packets(character))
+
+        for _, other in others:
+            if not self._send(peer, 12608, self.spawn(other)):
+                return False
+            for opcode, body in self.state_packets(other):
+                if not self._send(peer, opcode, body):
+                    return False
+        for opcode, body in own_state:
+            if not self._send(peer, opcode, body):
+                return False
+        return True
 
     def leave(self, character_id, generation):
         with self.lock:
@@ -132,6 +266,59 @@ class World:
                 generation, character["id"], opcode, body, include_sender=include_sender
             )
 
+    def publish_ecology(self, character):
+        """Publish committed ecology to the current session, wherever it is.
+
+        Preserve its current location and reject older revisions from delayed
+        asynchronous world births. Offline characters restore on next join.
+        """
+        from wakfu_server.personal_ecology import packet
+
+        payload = packet(character["id"], character["ecology_value"])
+        revision = character["ecology_revision"]
+        if type(revision) is not int or revision < 0:
+            raise ValueError("Invalid ecology revision")
+        with self.lock:
+            current = self.players.get(character["id"])
+            if current is None:
+                return False
+            if revision < current[2].get("ecology_revision", 0):
+                return False
+            updated = dict(
+                current[2],
+                ecology_value=character["ecology_value"],
+                ecology_revision=revision,
+            )
+            self.players[character["id"]] = (current[0], current[1], updated)
+            self.broadcast(current[0], character["id"], *payload)
+            return True
+
+    def information(self, character_id, text):
+        """Private game-log feedback for the currently loaded actor."""
+        from wakfu_server.ecology_feedback import information
+
+        message = information(text)
+        with self.lock:
+            current = self.players.get(character_id)
+            return False if current is None else self._send(current[1], *message)
+
+    def information_all(self, text):
+        """Deliver an informational game-log entry to a snapshot of all peers.
+
+        Copy sockets while membership is locked, then write after releasing the
+        lock so a slow connection cannot stall joins, leaves, or world updates.
+        """
+        from wakfu_server.ecology_feedback import information
+
+        message = information(text)
+        with self.lock:
+            peers = [peer for _, peer, _ in self.players.values()]
+        delivered = 0
+        for peer in peers:
+            if self._send(peer, *message):
+                delivered += 1
+        return delivered
+
     def broadcast(self, generation, character_id, opcode, body, *, include_sender=True):
         with self.lock:
             existing = self.players.get(character_id)
@@ -144,13 +331,22 @@ class World:
                     self._send(peer, opcode, body)
 
     def emit_location(
-        self, map_id, instance_id, opcode, body, *, exclude_generation=None
+        self,
+        map_id,
+        instance_id,
+        opcode,
+        body,
+        *,
+        exclude_generation=None,
+        exclude_sessions=(),
     ):
         """Broadcast a location event without requiring a player sender."""
+        exclude_sessions = frozenset(exclude_sessions)
         with self.lock:
             for generation, peer, character in self.players.values():
-                if generation != exclude_generation and self.location(character) == (
-                    map_id,
-                    instance_id,
+                if (
+                    generation != exclude_generation
+                    and (character["id"], generation) not in exclude_sessions
+                    and self.location(character) == (map_id, instance_id)
                 ):
                     self._send(peer, opcode, body)

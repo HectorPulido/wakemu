@@ -1,19 +1,32 @@
-# 27. Clima
+# 27. Clima por territorio
 
-Simular clima consistente por zona y sincronizarlo con crecimiento y probabilidad.
+El servidor mantiene clima compartido por territorio, conserva el estado al reconectar y aplica transiciones explícitas desde PostgreSQL. La cobertura general activa usa la política local `ABSENT`; no copia el único snapshot nativo a otras regiones ni se presenta como clima upstream.
 
-[Diagnóstico](DIAGNOSTICO.md) · [Cotejo de código](COTEJO.md) · [Solución](SOLUCION.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md)
+## Estado actual
 
-## Estado y alcance
+Root informó que la imagen `6319c87d` está activa sobre la base que conserva la IA. La migración056 inicializa las274 regiones nativas con política local y materializa el estado por instancia sin modificar filas preexistentes. El cron climático publica las transiciones de13948 cada5s; las pruebas TLS previas verificaron scoping por región/instancia y reconexión. La aceptación visual del panel meteorológico sigue pendiente.
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+El parser nativo de forecast13895 está cotejado con el cliente instalado. La fuente añade un codec estructurado, política local versionada por mapa/instancia/región, outbox durable y conexión de13895 al bootstrap y al tick. El bootstrap publica primero el snapshot ecológico, luego13948 y finalmente13895. No existe evidencia de un productor oficial de forecast ni de unidades físicas para sus campos. La migración058 y esa conexión son cambios de fuente y aún no están desplegados.
 
-## Dependencias
+## Validación de la fuente de forecast
 
-4, 6, 20, 28. Ver el [índice general](../README.md) y las [reglas transversales](../TRANSVERSALES.md).
+La prueba Java `ForecastNativeProbe` decodificó correctamente un vector nombrado con el parser `bRV.fe` instalado. El encoder cubre el envelope, registros de12bytes, enum meteorológico, ajustes estacionales y el padding estructural. El vector es de política local; no es una captura nativa.
 
-## Invariante de aceptación
+El outbox usa versión creciente y clave exacta `(map_id, instance_id, region_id, policy_version)`. Una nueva versión supersede las anteriores sin perder el evento vigente. Publicar revalida la sesión actual y solo envía13895 a personajes del mapa, instancia y región destinatarios. Si el envío falla, la fila permanece pendiente para reintento. El bootstrap devuelve un paquete vacío explícito cuando esa instancia no tiene forecast y así puede limpiar un forecast anterior del cliente.
 
-Clima de una zona es compartido, versionado y no recalculado por jugador.
+Gate Docker con PostgreSQL aislado y las59 migraciones presentes al correrlo: **76/76 pasaron** entre codec, política/outbox, clima existente, bootstrap ecológico/meteorológico, transiciones, movimiento, flora, scheduler y migraciones. El smoke TLS estricto pasó en `wakemu-sublimation-weather-level-candidate:20261007-final2` (digest `e839fd35…`), con 12789, 13948 y13895 en dos regiones e instancia no-cero; verificó clear vacío, update regional por outbox, reconexión y probabilidad de plantación. La migración058 no está desplegada; la aceptación visual sigue pendiente.
 
-- [Cotejo ampliado, contratos y límites](REVISION-RESPUESTAS.md).
+## Prueba manual general
+
+Con un personaje de prueba en el mapa1134, ejecutar `!pos`, después `!tp 1134 -39 -72 47` (territorio79301) y `!pos`. Abrir **Panel meteorológico** y anotar estado y valores. Ejecutar `!tp 1134 -23 -143 70` (territorio79201), confirmar el estado de esa región, volver a79301 y comprobar que conserva su estado. Salir y volver a entrar en ambos territorios para verificar el bootstrap actual. Las coordenadas son posiciones transitables del mapa.
+
+La ruta de fuente envía el payload configurado o un paquete vacío de limpieza al bootstrap; el tick publica cambios pendientes. El smoke usa valores de política local y no valida fórmulas meteorológicas oficiales, que no están disponibles.
+
+## Referencias
+
+[Cotejo nativo y límites](COTEJO.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md) · [Revisión y decisiones](REVISION-RESPUESTAS.md)
+
+
+### Despliegue integrado verificado
+
+Imagen `e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742` desplegada en world; Docker healthy y `/health` PostgreSQL correcto. Migraciones057–059 aplicadas;388 patrones de sublimación en SQL. Gate de la imagen198/198 aprobado y TLS de combate individual/compartido, sublimaciones y clima acreditados. Respaldo previo privado `.runtime/backups/pre-integrated-20261007.dump`, archivo CUSTOM con793 entradas TOC. Aceptación visual pendiente; no implica cierre completo del issue.

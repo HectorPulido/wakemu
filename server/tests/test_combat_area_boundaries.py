@@ -77,7 +77,6 @@ class AreaBoundaryTests(unittest.TestCase):
             7,
             struct.pack(">q", 1) + struct.pack(">iihiih", 1, 0, 0, 2, 0, 0),
             lambda a: b"owned",
-            direction=2,
             area_provider=provider,
         )
         self.assertIs(runtime.fight, original)
@@ -99,7 +98,6 @@ class AreaBoundaryTests(unittest.TestCase):
                 7,
                 struct.pack(">qiih", 1, 1, 0, 0),
                 lambda a: b"owned",
-                direction=2,
                 area_provider=reject,
             )
         self.assertEqual(source_snapshot(runtime.fight), before)

@@ -1,6 +1,6 @@
 import struct
 import unittest
-from wakfu_server import generic_transports as g
+from wakfu_server import dungeon_instances, generic_transports as g
 
 
 class GenericTransportTests(unittest.TestCase):
@@ -65,3 +65,25 @@ class GenericTransportTests(unittest.TestCase):
                 struct.pack(">qiBi", source["id"], dest["destination_id"], 0, 2),
                 source_allowed=lambda c, s: True,
             )
+
+    def test_jalato_dungeon_template_is_not_a_live_instance_transport(self):
+        route = dungeon_instances.route("jalato_normal")
+        source = g.source(route.entry_map_id, route.entry_object_id)
+        self.assertIsNotNone(source)
+        destination = next(
+            item
+            for item in source["destinations"]
+            if item["destination_id"] == route.destination_id
+        )
+        self.assertEqual(destination["cyZ"], route.template_id)
+        self.assertEqual(destination["map_id"], route.start_map_id)
+        self.assertNotEqual(destination["cyZ"], 0)
+
+        # cpJ12296 supplies the native destination choice, but not a live
+        # dungeon-instance ID. The generic-world transport must keep rejecting
+        # this special route until the party-owned dungeon authority is wired.
+        character = {"map_id": route.entry_map_id, "instance_id": 0}
+        body = struct.pack(">qiBi", route.entry_object_id, route.destination_id, 0, 2)
+        with self.assertRaisesRegex(ValueError, "access criterion"):
+            g.resolve(character, body, source_allowed=lambda _c, _s: True)
+        self.assertEqual(character, {"map_id": route.entry_map_id, "instance_id": 0})

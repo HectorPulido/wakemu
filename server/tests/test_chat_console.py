@@ -158,9 +158,21 @@ class ConsoleTests(PostgresCase):
         self.assertEqual(after["level"], 50)
         self.assertEqual(result["character"]["effective_level"], 49)
         self.assertGreaterEqual(after["xp"], before["xp"])
+        # The native build unlock boundary is 51. Crossing it must not
+        # invalidate a lower fixed sheet or recompute its HP from level 51.
+        result = self.run_command("!nivel 51")
+        at_unlock = self.store.character(self.account, self.char["id"])
+        self.assertEqual(at_unlock["level"], 51)
+        self.assertEqual(result["character"]["effective_level"], 49)
         for key in ("hp", "max_hp", "builds"):
-            self.assertEqual(after[key], before[key])
+            self.assertEqual(at_unlock[key], before[key])
+        with self.assertRaises(ValueError):
+            self.run_command("!nivel 50")
+        after_rejected_downgrade = self.store.character(self.account, self.char["id"])
+        self.assertEqual(after_rejected_downgrade["level"], 51)
+        self.assertEqual(after_rejected_downgrade["xp"], at_unlock["xp"])
+        self.assertEqual(after_rejected_downgrade["builds"], at_unlock["builds"])
         self.assertEqual(
             self.reopen().character(self.account, self.char["id"])["builds"],
-            after["builds"],
+            at_unlock["builds"],
         )

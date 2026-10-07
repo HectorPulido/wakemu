@@ -25,3 +25,11 @@ El contexto anterior conserva la evidencia del informe; puede describir una inst
 ## Evidencia de origen
 
 [Informe completo](../../reports/auditoria-problemas-wakemu-2026-10-04.md). No se copian capturas privadas, bases, credenciales ni archivos del cliente.
+
+## Revisión actual — 7 de octubre
+
+El pasaporte no es un item que haya que localizar: el comando nativo `PassportCommand` abre `passportDialog` y su frame enlaza `pvpLadderEntry` al modelo construido desde la nación del personaje activo. El getter nativo devuelve la nación de ese personaje. El parser qZ reconoce `0` como la nación neutral; el locale muestra ese valor como “Neutral”.
+
+La serialización de personaje ya neutralizaba `NATION_ID`, pero dejaba sin sustituir el byte separado `PASSEPORT_INFO` (offset/longitud salen de `entity-layouts.json`, default `00`). Se añadió ese campo a los defaults vacíos y una prueba de regresión que verifica el reemplazo y conserva los bytes vecinos. Esto corrige un posible residuo de la plantilla; no prueba por sí solo cómo se ve `/passport` en el cliente actual.
+
+La petición de neutralizar “los lugares” sigue sin carrier acreditado. `territory_cells` y los datos de mapa consultados ubican mapas/regiones/celdas; no proporcionan una nación propietaria. `15984` contiene sincronización pública nacional por ID y sus registros formato17 se normalizan, pero eso no demuestra ownership nacional de cada lugar. Mantener ese límite explícito evita borrar datos o asignar un ID de nación a una estructura desconocida.

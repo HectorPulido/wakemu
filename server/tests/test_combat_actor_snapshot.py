@@ -68,6 +68,24 @@ class ActorSnapshotTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             snap.install(actor)
 
+    def test_derived_territory_wisdom_and_prospection_are_actor_stats_without_drift(
+        self,
+    ):
+        char, actor = self.player()
+        char["territory_stat_bonuses"] = {36: 30, 33: 30}
+        snapshot = build_player_snapshot(
+            char, actor, wp_current=6, wp_maximum=6, running_effects=()
+        )
+        self.assertEqual((snapshot.stats[36], snapshot.stats[33]), (30, 30))
+        snapshot.install(actor)
+        self.assertEqual((actor.effect_stats[36], actor.effect_stats[33]), (30, 30))
+
+        base_char, base_actor = self.player()
+        base = build_player_snapshot(
+            base_char, base_actor, wp_current=6, wp_maximum=6, running_effects=()
+        )
+        self.assertEqual((base.stats[36], base.stats[33]), (0, 0))
+
     def test_existing_cost_modifier_snapshot_is_never_reset(self):
         char, actor = self.player()
         self.assertIsNone(actor.spell_ap_cost_modifiers)

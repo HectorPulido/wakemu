@@ -112,6 +112,15 @@ def transfer(store, account_id, generation, character_id, body):
             "SELECT * FROM inventory_items WHERE container=%s AND slot=%s",
             (destination["uid"], position),
         ).fetchone()
+        socketed = {
+            row["uid"]
+            for row in db.execute(
+                "SELECT uid FROM inventory_item_shards WHERE uid=ANY(%s)",
+                ([item["uid"]] + ([] if other is None else [other["uid"]]),),
+            )
+        }
+        if clone is not None and item["uid"] in socketed:
+            raise ValueError("Socketed item cannot be split")
         if other is not None and other["uid"] == item["uid"]:
             if clone is not None:
                 raise ValueError("Cannot split item into itself")
@@ -128,6 +137,8 @@ def transfer(store, account_id, generation, character_id, body):
         if other is not None and not merge and clone is not None:
             raise ValueError("Native partial transfer cannot swap incompatible items")
         if merge:
+            if socketed:
+                raise ValueError("Socketed items cannot be merged")
             from .inventory_elements import hydrate, masks
 
             source_item, target_item = hydrate(db, [dict(item), dict(other)])

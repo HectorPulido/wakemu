@@ -1,11 +1,193 @@
 import struct
 import json
+import ast
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from postgres_case import PostgresCase
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.fight_checkpoint_store import Checkpoints
+from wakfu_server.combat_shared import SharedFight
 
 
 class CheckpointTests(PostgresCase):
+    def _add_shared_owner(self):
+        other_account = self.store.register(
+            f"checkpoint-{self.character}", "second-checkpoint-owner"
+        )["id"]
+        other_character = self.store.create_character(
+            other_account, "Second Checkpoint Hero"
+        )["id"]
+        other_generation = self.store.begin_session(other_account)
+        self.store.select_character(other_account, other_generation, other_character)
+        other_actor = Actor(
+            other_character,
+            0,
+            (2, 0, 0),
+            60,
+            6,
+            3,
+            90,
+            1,
+            other_account,
+            True,
+        )
+        self.fight.actors[other_character] = other_actor
+        self.fight.walkable.add(other_actor.position)
+        self.fight.placement[0].add(other_actor.position)
+        self.fight._check_positions()
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_fight_participants SET session_generation=%s "
+                "WHERE fight_id=%s AND character_id=%s",
+                (self.generation, 77, self.character),
+            )
+            db.execute(
+                "INSERT INTO combat_fight_participants"
+                "(fight_id,character_id,account_id,team,session_generation) "
+                "VALUES(%s,%s,%s,0,%s)",
+                (77, other_character, other_account, other_generation),
+            )
+        return other_account, other_character, other_generation, other_actor
+
+    def test_shared_checkpoint_revision_is_shared_across_owner_sockets(self):
+        (
+            other_account,
+            other_character,
+            other_generation,
+            other_actor,
+        ) = self._add_shared_owner()
+        shared = SharedFight(self.fight, 1134, 0, None)
+
+        first_revision, terminal = self.checkpoints.save_shared(
+            shared, self.account, self.generation
+        )
+        self.assertEqual((first_revision, terminal), (1, False))
+
+        # B checkpoints after joining and may then advance the same fight; it
+        # must see the fight-wide CAS revision rather than a socket-local None.
+        other_actor.hp = 47
+        second_revision, terminal = self.checkpoints.save_shared(
+            shared, other_account, other_generation
+        )
+        self.assertEqual((second_revision, terminal), (2, False))
+        self.assertEqual(
+            Checkpoints(self.store).read(self.account, 77)["snapshot"]["actors"][
+                str(other_character)
+            ]["hp"],
+            47,
+        )
+
+        third_revision, terminal = self.checkpoints.save_shared(
+            shared, self.account, self.generation
+        )
+        self.assertEqual((third_revision, terminal), (3, False))
+        self.assertEqual(shared.checkpoint_revision, 3)
+
+    def test_concurrent_owner_checkpoints_advance_one_monotonic_revision(self):
+        other_account, _, other_generation, _ = self._add_shared_owner()
+        shared = SharedFight(self.fight, 1134, 0, None)
+        self.checkpoints.save_shared(shared, self.account, self.generation)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = tuple(
+                pool.map(
+                    lambda owner: self.checkpoints.save_shared(
+                        shared, owner[0], owner[1]
+                    )[0],
+                    (
+                        (self.account, self.generation),
+                        (other_account, other_generation),
+                    ),
+                )
+            )
+        self.assertEqual(sorted(results), [2, 3])
+        self.assertEqual(shared.checkpoint_revision, 3)
+        self.assertEqual(Checkpoints(self.store).read(self.account, 77)["revision"], 3)
+
+    def test_stale_owner_generation_does_not_advance_shared_checkpoint(self):
+        other_account, other_character, other_generation, _ = self._add_shared_owner()
+        shared = SharedFight(self.fight, 1134, 0, None)
+        self.checkpoints.save_shared(shared, self.account, self.generation)
+        replacement = self.store.begin_session(other_account)
+        self.store.select_character(other_account, replacement, other_character)
+        with self.assertRaisesRegex(ValueError, "stale"):
+            self.checkpoints.save_shared(shared, other_account, other_generation)
+        self.assertEqual(shared.checkpoint_revision, 1)
+        self.assertEqual(Checkpoints(self.store).read(self.account, 77)["revision"], 1)
+
+    def test_terminal_shared_checkpoint_is_idempotent(self):
+        shared = SharedFight(self.fight, 1134, 0, None)
+        revision, terminal = self.checkpoints.save_shared(
+            shared, self.account, self.generation, status="ended"
+        )
+        self.assertEqual((revision, terminal), (2, True))
+        with self.store.connection() as db:
+            before = db.execute(
+                "SELECT revision,status,updated_at FROM fight_checkpoints WHERE fight_id=77"
+            ).fetchone()
+        self.assertEqual(
+            self.checkpoints.save_shared(shared, self.account, self.generation),
+            (revision, True),
+        )
+        with self.store.connection() as db:
+            after = db.execute(
+                "SELECT revision,status,updated_at FROM fight_checkpoints WHERE fight_id=77"
+            ).fetchone()
+        self.assertEqual(before, after)
+
+    def test_end_failure_keeps_checkpoint_revision_and_allows_retry(self):
+        shared = SharedFight(self.fight, 1134, 0, None)
+        original_end = self.checkpoints.end
+        calls = 0
+
+        def fail_once(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise ValueError("injected end failure")
+            return original_end(*args, **kwargs)
+
+        self.checkpoints.end = fail_once
+        with self.assertRaisesRegex(ValueError, "injected end failure"):
+            self.checkpoints.save_shared(
+                shared, self.account, self.generation, status="ended"
+            )
+        self.assertEqual(shared.checkpoint_revision, 1)
+        self.assertFalse(shared.checkpoint_terminal)
+        revision, terminal = self.checkpoints.save_shared(
+            shared, self.account, self.generation, status="ended"
+        )
+        self.assertEqual((revision, terminal), (3, True))
+        row = Checkpoints(self.store).read(self.account, 77)
+        self.assertEqual((row["revision"], row["status"]), (3, "ended"))
+
+    def test_shared_checkpoint_dispatch_uses_canonical_fightwide_saver(self):
+        source_path = Path(__file__).resolve().parents[1] / "local_game_server.py"
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        session = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "session"
+        )
+        checkpoint = next(
+            node
+            for node in ast.walk(session)
+            if isinstance(node, ast.FunctionDef) and node.name == "checkpoint_fight"
+        )
+        shared_calls = [
+            node
+            for node in ast.walk(checkpoint)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "save_shared"
+        ]
+        self.assertEqual(len(shared_calls), 1)
+        self.assertTrue(
+            any(
+                isinstance(node, ast.Attribute) and node.attr == "registry"
+                for node in ast.walk(checkpoint)
+            )
+        )
+
     def test_cast_limits_preserved_in_durable_checkpoint(self):
         from wakfu_server.combat_spell_usage import validate_usage, consume_usage
 

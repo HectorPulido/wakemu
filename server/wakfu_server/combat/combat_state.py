@@ -39,6 +39,11 @@ class Actor:
     native_los_height: int | None = (
         None  # Exact eGH.bcK creation profile; unknown is not zero.
     )
+    # Exact facing included in the native actor bootstrap. Fresh actor
+    # serializers emit direction 0 unless a creation path supplies another
+    # native direction; keeping it in the FSM makes that transmitted state
+    # authoritative for orientation-dependent effects and checkpoints.
+    direction: int = 0
 
     def __post_init__(self):
         if any(
@@ -60,6 +65,8 @@ class Actor:
             raise ValueError("Controlled actor needs an owner")
         if len(self.position) != 3 or any(type(n) is not int for n in self.position):
             raise ValueError("Invalid actor position")
+        if type(self.direction) is not int or not 0 <= self.direction < 8:
+            raise ValueError("Invalid native actor direction")
         if self.max_hp is None:
             self.max_hp = self.hp
         if type(self.max_hp) is not int or self.max_hp < self.hp:

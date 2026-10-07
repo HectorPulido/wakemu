@@ -39,3 +39,33 @@ La plantilla de producción se obtiene con `character_list_local`, que seleccion
 En PostgreSQL aislado se creó un personaje y se serializó `store.characters` con `wire.character_list` y la plantilla correcta. La entidad resultante medía193 bytes; su qZ apareció en offset173 después de compactar las secciones previas, con bytes `00000000`. El probe Java offline de `qZ.aG` confirmó `parse=true`, `Wi=0`. El locale español asigna `nation.short.0=Neutral` y `nation.short.30=Amakna`.
 
 Esto acredita la neutralidad del campo serializado actual de selección. No acredita el binding concreto de la tarjeta ni el paquete recibido por la sesión de la captura anterior. Tampoco cierra pasaporte, ciudadanía o territorios. Queda cotejar la selección recién cargada y los carriers de esas otras superficies; no se requiere modificar el cliente.
+
+
+## Cotejo de bootstrap y modelo del pasaporte — 6 de octubre
+
+El recorrido de selección `replay(45,114,...,character)` y login aplica `social.adapt` y `wire.adapt`. Roster propio, entidades13713/12666 y compañía13873 sustituyen la nación capturada por0. La sincronización15984 conserva regiones y limpia únicamente records nacionales formato17. Los fixtures antiguos muestran30, pero eso no acredita que el bootstrap actual conserve Amakna.
+
+En el JAR, `ddU/cMC` gestionan apertura/categoría; el modelo `bVX` alimenta `nationId`, `isLocalNation` y `flagIconUrl` desde su record`luQ`. No se encontró en los carriers inspeccionados otra escritura de nación30. El log JSONL actual solo contiene opcode/tamaño, por lo que falta el cotejo de cuerpo real o lectura visual del pasaporte tras nuevo login. No atribuir una captura antigua a regresión actual ni declarar neutralidad visual sin comprobarla.
+
+
+## Binding concreto corregido y prueba preparada
+
+El descriptor nativo registra el comando `passport` con `PassportCommand`. Su frame `ddU` enlaza **`pvpLadderEntry` mediante `bMO.a(personaje,false)`**. El modelo obtiene la nación de `fri.fqe().Xt()` y expone `nationId` mediante `fxl.Xt()`. La aserción correcta dentro de `passportDialog` es `pvpLadderEntry.nationId == 0`. La referencia previa a `bVX.luQ` no demuestra el pasaporte: sus callsites corresponden a otros widgets nacionales/protectores, no al modelo enlazado por `ddU`.
+
+Prueba nativa preparada: entrar con personaje de auditoría, ejecutar `/passport` en consola de comandos, comprobar ventana/modelo y texto nacional, cerrar con Escape, reentrar y repetir. Correlacionar con nación0 del actor en23548/12666/13713. `PASSEPORT_INFO` es una sección independiente y no sustituye esa aserción. Esta ruta fue cotejada en código nativo; aún no se ha ejecutado la aceptación visual.
+
+## Revisión estática y log local — 7 de octubre
+
+La lectura del serializador confirma que el valor que alimenta `bMO.nationId` proviene de la nación del personaje activo (`fri.fqe().Xt()` → `fxl.Xt()`), y el `wire.minimal_entity()` actual fija a `0` las secciones `NATION_ID` y `CHARACTER_LIST_NATION_ID` para las plantillas reconocidas. La prueba aislada previa verificó que el parser `qZ.aG` obtiene `0`; la localización asocia `nation.short.0` a “Neutral”. La captura visual antigua de Amakna no demuestra el comportamiento de la versión actual.
+
+El log local de selección contiene envíos `15984`, pero registra solo opcode y tamaño; no contiene el cuerpo, por lo que no acredita en vivo los bytes nacionales. Sigue pendiente ejecutar `/passport` con un personaje actual y observar `passportDialog.pvpLadderEntry.nationId == 0` y el texto Neutral tras reconectar. Se dejó preparada la secuencia en [PRUEBA-GENERAL.md](PRUEBA-GENERAL.md).
+
+La neutralidad del pasaporte/personaje está separada de la propiedad territorial: `territory_cells` conserva únicamente la correspondencia mapa/celda/región, y la adaptación de `15984` vacía solo el subtipo nacional formato17. No se encontró en esos datos una nación territorial autorizada para borrar o cambiar; esa parte sigue abierta hasta identificar un carrier/autoridad nativos específicos.
+
+## Corrección de serializer y alcance territorial — 7 de octubre
+
+La referencia a un item no era necesaria para investigar: `PassportCommand` activa `ddU`, `ddU` abre `passportDialog` y enlaza `pvpLadderEntry` a `bMO.a(personaje,false)`. El modelo nacional obtiene `nationId` de `personaje.fqe().Xt()`; por eso el carrier decisivo es `NATION_ID`, no un objeto del inventario. El parser qZ y el locale acreditan que `0` se representa como “Neutral”. La ficha antigua que mostró Amakna corresponde a una observación anterior, no a una captura actual del cuerpo del paquete.
+
+La inspección de los layouts también encontró una sección independiente `PASSEPORT_INFO` (clase `rr`, longitud 1). Aunque el default del catálogo es `00`, `wire.minimal_entity()` no la reemplazaba: podía dejar pasar ese byte desde la plantilla. Se añadió `PASSEPORT_INFO` a `EMPTY_SECTIONS`; el serializer ahora sustituye esa sección por `ENTITY_DEFAULTS["PASSEPORT_INFO"]` y la prueba `test_passport_info_is_reset_with_character_nation` verifica que reemplaza `7f` por `00` sin alterar los bytes vecinos. El gate dirigido actualizado `test_wire test_social` pasó **39/39** con el entorno de verificación local. Aún falta confirmar en cliente el texto visible de `/passport` después de entrar y reconectar.
+
+Para la petición territorial revisé los puntos de entrada y catálogos actuales: `territory_cells` resuelve map/cell a region para contexto ecológico, no a nation; no aparece en esos catálogos un campo de nación propietaria. La rama de `15984` reconoce registros públicos de nación formato17 y los sustituye por el constructor neutral vacío para el mismo ID, dejando intactos otros formatos. Eso es sincronización del estado público nacional, no una asignación/neutralización demostrada de los lugares. No se cambió esa semántica sin un carrier y consumidor nativo verificables; ownership territorial permanece pendiente.

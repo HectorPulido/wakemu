@@ -70,7 +70,8 @@ def serve_api(
                 # Ownership is enforced separately from the administrative role.
                 with store.connection() as db:
                     owner = db.execute(
-                        "SELECT account_id FROM characters WHERE id=%s", (character_id,)
+                        "SELECT account_id FROM characters WHERE id=%s AND deleted_at IS NULL",
+                        (character_id,),
                     ).fetchone()
                 if owner is None or owner["account_id"] != current["account_id"]:
                     raise PermissionError("El personaje pertenece a otra cuenta")

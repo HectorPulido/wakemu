@@ -231,6 +231,15 @@ class NativeEventReplay:
                     native_value_scope=None,
                 )
             )
+            retained_container = self.retention.replay_container(row, entry, original)
+            if retained_container is not None:
+                # Replay runs under a fight-scoped dispatcher, not the
+                # original spell's runtime plan. Restore the exact container
+                # snapshot captured when this listener was registered.
+                original = replace(
+                    original,
+                    native_retained_container=dict(retained_container),
+                )
             caster, target = subscription_actor_ids(
                 target_code=definition["event_target_code"],
                 caster_code=definition["event_caster_code"],

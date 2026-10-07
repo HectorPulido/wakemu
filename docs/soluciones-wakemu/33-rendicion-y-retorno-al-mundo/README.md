@@ -6,7 +6,11 @@ Finalizar abandono una vez y liberar sesión/grupo aun con continuación nativa 
 
 ## Estado y alcance
 
-Los cambios de backend para abandono, retorno, checkpoint, liberación de grupo y transición de mapa están implementados en el checkout actual. La revalidación PostgreSQL de [PRUEBAS.md](PRUEBAS.md) pasó 64 tests e incluye rollback/reintento de desconexión atómica, protección ante lease obsoleta, rechazo de conexión autocommit, abandono → transporte nativo → nuevo fight durable y desconexión sin callback desde un checkpoint terminal. La prueba combinada invoca directamente las funciones del backend; no conduce el dispatcher real ni el cliente visual, y no inyecta fallos posteriores al commit durante la limpieza del grupo/checkpoint. El issue queda con esa brecha de integración documentada, no certificado como recorrido completo.
+**Cambio hecho no confirmado:** r12 (`bcfd5fe7`) desplegada en el único world, base `wakemu_runtime`, healthy y66 migraciones. Corrige rendición PvE con propietario único y aborto tras última desconexión: guarda heridas de participantes, termina la reserva exacta y retira índices solo después de persistir. No concede premios por abandono.
+
+Evidencia actual:99/99 pruebas PostgreSQL de persistencia y116/116 pruebas puras integradas. El harness TLS real acredita duelo con ataques de ambos, vencimiento del turno,13952→12238→12925→mundo en PvE, nuevo combate en la misma sesión y desconexión/reconexión seguida de otro combate sin registro residual. Salida: `.runtime/local/world-return-update-20261007/tls-r12.log`.
+
+[Prueba manual completa habilitada](PRUEBA-GENERAL.md). Falta aceptación visual. La rendición voluntaria de un miembro mientras otros siguen combatiendo permanece pendiente; no extrapolar el recorrido de propietario único.
 
 ## Dependencias
 
@@ -20,8 +24,16 @@ Abandonar no concede XP/kamas/drop; toda reserva y referencia de sesión quedan 
 
 El usuario confirma rendirse, regresar, utilizar Zaap hacia Astrub, entrar a otro combate, inicio por vencimiento del tiempo y Fulgor correcto. La orientación se rechazó, defecto independiente del issue18. Gate actual de rendición/retorno pendiente de repetir antes de actualizar cierre total.
 
-## Cierre funcional
+## Aceptación histórica y regresión
 
-**Solucionado totalmente** para el defecto reportado: prueba manual completa del usuario y34 pruebas actuales OK (`test_combat_abandon`, `test_combat_exit_reentry`, `test_combat_lifecycle`, `test_session_cleanup`, `test_combat_health`, `test_health`) en PostgreSQL aislado/Redis15. Cubren fallo SQL con rollback/retry, fallo de encoder, callback duplicado y transporte seguido de nueva pelea durable.
+La aceptación previa de combate individual quedó invalidada para PvE compartido por la regresión r9:13952 rechazaba `Shared combat abandonment is not available`; salir y volver dejaba «Fight/actor already registered». La corrección r12 supera el recorrido real de rendición y desconexión con propietario único. La cobertura PostgreSQL incluye heridas y reserva del iniciador tras desconexión de varios propietarios; todavía falta rendición voluntaria de un miembro sin terminar la pelea restante.
 
-Límite de la inyección automatizada: no se simula un fallo postcommit en la liberación del grupo/checkpoint del dispatcher. La GUI y sesión real se acreditan mediante la prueba del usuario, no mediante ese gate.
+## Aceptación r12 en curso
+
+El usuario confirma «rendicion ok». Falta completar desconexión, selector, nuevo combate y transporte; no cerrar el issue por este único paso. Las espadas siguen ausentes en el cliente externo, defecto original16 independiente.
+
+El usuario confirma pasos5,6,7 correctos y «xp, drop y todo sigue correcto». Rendición del propietario único, reconexión, selector y nuevos combates aceptados en r12. La retirada multiowner permanece en desarrollo; no certificarla con esta prueba.
+
+## Rendición de un miembro: desarrollo separado
+
+Fuente con migración067 integrada al dispatcher, aún sin desplegar. Verificación de root en el contenedor world existente y base aislada wakemu_migration_test: 92/92 pruebas, sin omitidas, en 62,336 segundos. Incluye retirada individual, persistencia y recuperación del recibo de retorno, preservación del combate restante, selector y limpieza del marcador del último propietario. Pendientes: revisión final de la imagen y aceptación en clientes reales. Caso completo: [prueba PvE compartido](PRUEBA-PVE-COMPARTIDO.md).

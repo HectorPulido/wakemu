@@ -54,6 +54,8 @@ class BootstrapTests(unittest.TestCase):
             duration_ms=12345,
         )
         self.assertEqual(fight.actors[100].effective_level, 49)
+        self.assertEqual(fight.actors[100].direction, 0)
+        self.assertEqual(fight.actors[-200].direction, 3)
         self.assertEqual((char["level"], char["xp"]), (50, level_xp(50)))
         payload, _ = player_payload(char, fight.actors[100], 7, wp=6)
         # Format3 carries real progression; actor's effective level is separate.

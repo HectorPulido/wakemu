@@ -19,7 +19,20 @@ def equipped(character, reference, uid=1000):
         dict(uid=uid, character_id=character["id"], reference=reference, quantity=1)
     ]
     blob = proto_field(10, proto_field(8, uid) + proto_field(16, 15))
-    character["builds"] = {0: dict(equipment=blob.hex())}
+    character["builds"] = {
+        0: dict(
+            sheet=b"".join(
+                proto_field(tag, value)
+                for tag, value in [
+                    (8, 0),
+                    (18, b"Default"),
+                    (24, (1 << 64) - 1),
+                    (56, 0),
+                ]
+            ).hex(),
+            equipment=blob.hex(),
+        )
+    }
     return character
 
 
@@ -172,7 +185,9 @@ class WeaponTests(unittest.TestCase):
         ), patch(
             "wakfu_server.combat_weapon.weapon_runtime_catalog"
         ) as compile_catalog:
-            with self.assertRaisesRegex(ValueError, "no native critical"):
+            with self.assertRaisesRegex(
+                ValueError, "Native critical branch is unavailable"
+            ):
                 prepare_server_weapon(
                     struct.pack(">qqbiih", 7, 1000, 15, 1, 0, 0),
                     character,

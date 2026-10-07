@@ -113,7 +113,7 @@ class OrdinaryAuthorityTests(unittest.TestCase):
         for direction, expected in enumerate(native_front):
             target.direction = direction
             self.assertEqual(native_facing_front(source, target), expected)
-        del target.direction
+        target.direction = None
         with self.assertRaisesRegex(ValueError, "direction"):
             native_facing_front(source, target)
 
@@ -151,6 +151,64 @@ class OrdinaryAuthorityTests(unittest.TestCase):
         self.assertEqual(self.preview.actors[-7].hp, 15)
         self.assertEqual(self.preview.actors[8].hp, 33)  # BACK native multiplier.
         self.assertEqual(len(packets), 2)
+
+    def test_ordinary_player_casts_between_both_duel_owners_have_native_facing(self):
+        import random
+        from wakfu_server.combat_ordinary_authority import (
+            OrdinaryActorAuthority,
+            ordinary_cast_authority,
+        )
+        from wakfu_server.combat_runtime_adapter import NativeServerRuntimeAdapter
+        from wakfu_server.combat_effect_dispatch import EffectInvocation
+
+        # Reclassify the fixture's opposing native actor as the second owned
+        # player. Both actors begin at the exact direction encoded by their
+        # own actor bootstrap, then attack each other through the ordinary
+        # damage authority, which evaluates target facing.
+        second = self.preview.actors[-7]
+        second.controlled = True
+        second.owner_id = 4
+        first = self.preview.actors[7]
+        first.direction = 0
+        second.direction = 0
+        authority = OrdinaryActorAuthority(
+            characters={
+                7: dict(id=7, breed=15, map_id=1134, level=1),
+                -7: dict(id=-7, breed=15, map_id=1134, level=1),
+            },
+            monsters={8: dict(id=8, ref=5525)},
+            decks={7: [6266], -7: [6266]},
+            excluded_decks={7: [], -7: []},
+        )
+
+        class Timing:
+            state = staticmethod(lambda *args: None)
+            stat = staticmethod(lambda *args: None)
+
+        self.preview.native_obstacle_cells = frozenset()
+        self.preview.native_effect_uid_next = 200
+        for actor in self.preview.actors.values():
+            actor.effect_stats[87] = 0
+        cast = ordinary_cast_authority(
+            actors=authority,
+            timing=Timing(),
+            rng=random.Random(4),
+            critical=False,
+        )
+        adapter = NativeServerRuntimeAdapter(actor_authority=authority, cast=cast)
+        dispatcher, _packets = self.f.factory(contexts=adapter.contexts())(
+            self.preview, {"spell_id": 6266, "evaluation_level": 1}
+        )
+
+        # Face each target toward the opposing actor using valid native
+        # direction values. Both real ordinary damage invocations must pass
+        # the same direction guard and apply their audited effect.
+        first.direction, second.direction = 1, 5
+        dispatcher.execute(EffectInvocation(339526, 1, 7, -7, (1, 0, 0)))
+        second.direction, first.direction = 1, 5
+        dispatcher.execute(EffectInvocation(339526, 1, -7, 7, (0, 0, 0)))
+        self.assertLess(first.hp, 60)
+        self.assertLess(second.hp, 20)
 
 
 if __name__ == "__main__":

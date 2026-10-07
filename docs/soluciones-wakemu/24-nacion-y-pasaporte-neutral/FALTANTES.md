@@ -4,11 +4,11 @@
 
 | ID | Dato o decisión | Cómo resolverlo | Impacto |
 | --- | --- | --- | --- |
-| 1 | Qué widget/objeto representa el pasaporte y referencia si es item. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
-| 2 | Identificador neutral para cada carrier nacional/territorial. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
-| 3 | Alcance de neutralizar datos antiguos sin destruir ciudadanía futura. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
+| 1 | Resuelto en fuente: `PASSEPORT_INFO` se reemplaza por el default `00` al serializar los layouts que lo contienen; antes se copiaba de la plantilla. | `wire.py`, `test_wire.py`; binding `ddU` → `pvpLadderEntry` → nación del personaje en REVISION-RESPUESTAS.md | Gate automático pasó; falta aceptación visual `/passport` tras entrar y reconectar |
+| 2 | Nación propia `0` es “Neutral” en el locale y es el valor que lee el modelo del pasaporte. | Parser qZ y revisión nativa documentados | No confundir territorio con ciudadanía; falta confirmar UI actual |
+| 3 | Ciudadanía, compañía, sincronización pública de nación y geografía territorial son carriers distintos. | `social.py`, `wire.py`, `territory_cells.py` | Falta identificar autoridad nativa de propiedad/alineamiento de lugares; no hay mapeo de nación territorial verificado |
 
-Revisa todo. Nada que decidir, te dije que buscaras, el primer item me comprueba que nisiquiera intentaste buscar o revisar de que hablo
+La referencia de item no es necesaria para investigar el pasaporte: el comando nativo `/passport` abre `passportDialog` y enlaza `pvpLadderEntry`. La brecha hallada en el serializador era el byte independiente `PASSEPORT_INFO`, no un objeto de inventario.
 
 ## Reglas para completar la especificación
 

@@ -1,0 +1,23 @@
+{
+  "source": "server/protocol/monster-encyclopedia.json.gz",
+  "source_sha256": "38ad16ed614537e4f54540b6988cbddee55e668d458b76110abcabddcce1dc21",
+  "monster_count": 2874,
+  "combat_drop_rows": 16138,
+  "condition_occurrences": {
+    "NOT_IN_DUNGEON": 177,
+    "MIN_STASIS_LEVEL": 3069,
+    "ONLY_IN_DUNGEON": 212,
+    "ONLY_WHEN_DOWNSCALED": 160,
+    "NOT_IN_INFINITE_WAVES": 134,
+    "CAN_BE_LOOTED_IN_STELE": 634,
+    "MIN_SCORE": 268
+  },
+  "complex_rows": 686,
+  "native_roll_max": {
+    "-1": 14795,
+    "1": 1343
+  },
+  "external_loot_tables": 2204,
+  "combat_links_to_external_tables": 0,
+  "interpretation": "Occurrences may overlap within one row. Counts do not authorize conditions or establish rollMax semantics."
+}

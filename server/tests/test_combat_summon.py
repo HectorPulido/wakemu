@@ -132,6 +132,7 @@ class SummonTests(unittest.TestCase):
             (1, 0, 0, 0),
         )
         self.assertEqual(summoned.effective_level, 20)
+        self.assertEqual(summoned.direction, spec.direction)
         self.assertEqual(
             preview.order, [7, -7]
         )  # Native property114, not a missing insertion.

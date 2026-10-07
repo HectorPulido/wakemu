@@ -19,13 +19,28 @@ class LOSTests(unittest.TestCase):
         fight = SimpleNamespace(
             actors={
                 1: SimpleNamespace(
-                    id=1, hp=10, team=0, position=source, native_los_height=6
+                    id=1,
+                    hp=10,
+                    team=0,
+                    position=source,
+                    native_los_height=6,
+                    native_obstacle_id=None,
                 ),
                 2: SimpleNamespace(
-                    id=2, hp=10, team=1, position=target, native_los_height=6
+                    id=2,
+                    hp=10,
+                    team=1,
+                    position=target,
+                    native_los_height=6,
+                    native_obstacle_id=None,
                 ),
                 3: SimpleNamespace(
-                    id=3, hp=10, team=1, position=(-13, -10, -1), native_los_height=6
+                    id=3,
+                    hp=10,
+                    team=1,
+                    position=(-13, -10, -1),
+                    native_los_height=6,
+                    native_obstacle_id=None,
                 ),
             },
             walkable={(x, -10, -1) for x in range(-14, -10)},
@@ -60,7 +75,10 @@ class LOSTests(unittest.TestCase):
 
         source, target = (27, -25, 1), (27, -24, 1)
         fight = SimpleNamespace(
-            actors={i: SimpleNamespace(id=i, hp=10, team=i - 1) for i in (1, 2)},
+            actors={
+                i: SimpleNamespace(id=i, hp=10, team=i - 1, native_obstacle_id=None)
+                for i in (1, 2)
+            },
             walkable={source, target},
         )
         self.assertTrue(

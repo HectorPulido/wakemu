@@ -1,17 +1,11 @@
-# Información pendiente — 27
+# Pendientes — 27. Clima por territorio
 
-## Pendientes específicos
+| Pendiente | Estado y cierre requerido |
+| --- | --- |
+| Forecast oficial para todos los territorios | Sin productor/catálogo oficial disponible. La fuente admite políticas locales explícitas; sus valores no representan clima oficial. |
+| Aceptación visual del panel | El smoke TLS en candidata cubre bootstrap, regiones, clear, outbox y reconexión; falta confirmar visualmente el panel meteorológico. |
+| Configurar una previsión local de prueba | La política está versionada y durable, pero aún no hay una configuración de prueba publicada en el servidor. |
+| Aceptación visual | Verificar el panel meteorológico y la limpieza al entrar en un ámbito sin forecast después de uno configurado. |
+| Unidades y fórmulas de muestras/clima | El parser consume las unidades nativas de byte; no se comprobó conversión a grados ni efecto de los seis floats en crecimiento. Mantenerlas nombradas y sin efectos no probados. |
 
-| ID | Dato o decisión | Cómo resolverlo | Impacto |
-| --- | --- | --- | --- |
-| 1 | Carriers/IDs del clima en esta versión y reglas estacionales. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
-| 2 | Política reloj global versus pausa 20. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
-| 3 | Efectos exactos sobre plantas/probabilidad y frecuencia de cambios. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
-
-1. Revisa todo. Nada que decidir
-
-## Reglas para completar la especificación
-
-No inventar fórmulas oficiales, opcodes, flags o carriers. Para una regla configurable, fijar rango, default, redondeo, límites y versión. Para mensajes, demostrar encoder/decoder con fixture y consumidor nativo; no publicar archivos propietarios. Para una política de producto, documentar la elección antes de escribir tests que la congelen.
-
-Los pasos que dependen de estos datos siguen siendo propuestas. Se puede avanzar en medición y pruebas de regresión de piezas confirmadas sin declarar cerrado el recorrido. Actualizar el cotejo si cambia la implementación concurrente.
+No inferir temporadas, clima o efectos de flora desde otra región ni desde el orden de los campos. El gate de código no sustituye la integración del dispatcher ni la aceptación visual.

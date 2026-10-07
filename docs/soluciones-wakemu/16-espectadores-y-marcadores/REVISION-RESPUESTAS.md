@@ -43,3 +43,11 @@ Con esto quedan identificadas solicitudes **13413 entrada / 12154 salida**, adem
 ## Codec de anuncio ya existente
 
 `combat_multiplayer_wire.external()/decode_external()` ya codifican 13753 y exigen dos líderes existentes y topología propia. Reutilizar este codec; la brecha es integración/ciclo y significado de datos, no ausencia de encoder. Las doce pruebas `test_combat_shared` pasaron, con payloads sintéticos que no acreditan visibilidad nativa.
+
+## Actualización: envelope de observador cotejado
+
+La entrada y el bootstrap ya están confirmados por consumidor nativo. `cva/12044` reutiliza el prefijo de `cvb/12847`, agrega el byte de fase `fbZ` y termina con un blob i32-length-prefixed que `feM.dT` lee como estado `feN`. Se implementaron `combat_spectator_wire.py` y `combat_spectators.py`; el registro mantiene observadores fuera de los actores y recibe un snapshot vigente antes de encolar futuros batches.
+
+Verificación ejecutada: 9 pruebas Python en `test_combat_spectators.py` y `VerifySpectatorBootstrap.java` con el JAR instalado. El Java nativo acepta el envelope sintético de 143 bytes y confirma igualdad byte a byte al serializar de nuevo el segmento `feN`. Reentrar instala el snapshot más reciente y elimina batches antiguos ya superados. Esto acredita el layout del paquete y el registro aislado, no que los campos enviados ya representen un combate activo propio.
+
+El dispatcher no tiene todavía handlers 13413/12154 ni construcción del `cva` desde el `SharedFight`; tampoco se publica ni se elimina un marker 13753 válido, se fanoutean batches hacia observadores o se restaura su escena al salir/cerrar. No declarar el recorrido terminado hasta probar ese ciclo por TLS con participantes y observador separados.

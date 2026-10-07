@@ -8,19 +8,23 @@ import struct
 
 def load(db, character_id):
     from .inventory_elements import hydrate
+    from .inventory_shards import hydrate as hydrate_shards
     from .mount_inventory import hydrate as hydrate_mounts
 
     return hydrate_mounts(
         db,
-        hydrate(
+        hydrate_shards(
             db,
-            [
-                dict(row)
-                for row in db.execute(
-                    "SELECT * FROM inventory_items WHERE character_id=%s ORDER BY container,slot",
-                    (character_id,),
-                )
-            ],
+            hydrate(
+                db,
+                [
+                    dict(row)
+                    for row in db.execute(
+                        "SELECT * FROM inventory_items WHERE character_id=%s ORDER BY container,slot",
+                        (character_id,),
+                    )
+                ],
+            ),
         ),
     )
 
@@ -159,6 +163,7 @@ def item_proto(item):
     ):
         raise ValueError("Invalid minimal item")
     from .inventory_elements import proto
+    from .inventory_shards import proto as shard_proto
 
     mount_proto = b""
     if "mount" in item:
@@ -176,6 +181,7 @@ def item_proto(item):
         + b"\x18"
         + _varint(qty)
         + proto(item)
+        + shard_proto(item)
         + mount_proto
     )
 

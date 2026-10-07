@@ -259,7 +259,7 @@ class Store:
                 ):
                     raise ValueError("Cuenta inválida.")
                 count = db.execute(
-                    "SELECT count(*) AS count FROM characters WHERE account_id=%s",
+                    "SELECT count(*) AS count FROM characters WHERE account_id=%s AND deleted_at IS NULL",
                     (account_id,),
                 ).fetchone()["count"]
                 if count >= self.max_characters:
@@ -310,7 +310,7 @@ class Store:
             with self.connection() as connection:
                 return self.character(account_id, character_id, connection)
         row = db.execute(
-            "SELECT * FROM characters WHERE account_id=%s AND id=%s",
+            "SELECT * FROM characters WHERE account_id=%s AND id=%s AND deleted_at IS NULL",
             (account_id, character_id),
         ).fetchone()
         if row is None:
@@ -378,10 +378,157 @@ class Store:
             return [
                 self.character(account_id, row["id"], db)
                 for row in db.execute(
-                    "SELECT id FROM characters WHERE account_id=%s ORDER BY id",
+                    "SELECT id FROM characters WHERE account_id=%s AND deleted_at IS NULL ORDER BY id",
                     (account_id,),
                 )
             ]
+
+    def delete_character(self, account_id, generation, character_id):
+        """Hide an owned character while retaining rows referenced by history.
+
+        Character selection and deletion serialize on the account session row.
+        Active operations that must finish against the character are rejected;
+        party membership is removed transactionally and reported for publication.
+        """
+        if (
+            type(account_id) is not int
+            or account_id <= 0
+            or not isinstance(generation, str)
+            or not generation
+            or type(character_id) is not int
+            or character_id <= 0
+        ):
+            raise ValueError("Invalid character deletion request")
+
+        from wakfu_server.maps.player_parties import _lock_members
+
+        with self.connection() as db:
+            # Match party mutations' advisory-lock order before taking the
+            # session/character locks used by selection and owned changes.
+            _lock_members(db, (character_id,))
+            if (
+                db.execute(
+                    "SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,)
+                ).fetchone()
+                is None
+            ):
+                raise ValueError("Account not found")
+            lease = db.execute(
+                "SELECT character_id FROM sessions WHERE account_id=%s AND generation=%s "
+                "AND expires_at>%s FOR UPDATE",
+                (account_id, generation, self.now()),
+            ).fetchone()
+            if lease is None or lease["character_id"] is not None:
+                raise ValueError("Return to character selection before deletion")
+            character = db.execute(
+                "SELECT id,name FROM characters WHERE id=%s AND account_id=%s "
+                "AND deleted_at IS NULL FOR UPDATE",
+                (character_id, account_id),
+            ).fetchone()
+            if character is None:
+                raise ValueError("Character not found")
+
+            if db.execute(
+                "SELECT 1 FROM combat_fight_participants p "
+                "JOIN combat_fights f ON f.id=p.fight_id "
+                "WHERE p.character_id=%s AND f.status IN ('placement','active') LIMIT 1",
+                (character_id,),
+            ).fetchone():
+                raise ValueError("Character has an active fight")
+            if db.execute(
+                "SELECT 1 FROM player_exchange_members m "
+                "JOIN player_exchanges e ON e.id=m.exchange_id "
+                "WHERE m.character_id=%s AND (e.state='active' OR "
+                "(e.state='invitation' AND e.expires_at>%s)) LIMIT 1",
+                (character_id, self.now()),
+            ).fetchone():
+                raise ValueError("Character has an active exchange")
+            if db.execute(
+                "SELECT 1 FROM resource_harvest_occupations WHERE character_id=%s "
+                "AND expires_at>%s LIMIT 1",
+                (character_id, self.now()),
+            ).fetchone():
+                raise ValueError("Character has an active harvest")
+            if db.execute(
+                "SELECT 1 FROM craft_occupations WHERE character_id=%s "
+                "AND state='active' LIMIT 1",
+                (character_id,),
+            ).fetchone():
+                raise ValueError("Character has an active craft")
+
+            party_change = None
+            party = db.execute(
+                "SELECT p.id,p.leader_id FROM player_parties p "
+                "JOIN player_party_members m ON m.party_id=p.id "
+                "WHERE m.character_id=%s FOR UPDATE OF p",
+                (character_id,),
+            ).fetchone()
+            if party is not None:
+                before = db.execute(
+                    "SELECT character_id FROM player_party_members WHERE party_id=%s "
+                    "ORDER BY joined_order",
+                    (party["id"],),
+                ).fetchall()
+                db.execute(
+                    "DELETE FROM player_party_invitations WHERE inviter_id=%s OR invitee_id=%s",
+                    (character_id, character_id),
+                )
+                db.execute(
+                    "DELETE FROM player_party_members WHERE character_id=%s",
+                    (character_id,),
+                )
+                remaining = db.execute(
+                    "SELECT character_id FROM player_party_members WHERE party_id=%s "
+                    "ORDER BY joined_order",
+                    (party["id"],),
+                ).fetchall()
+                removed = [character_id]
+                if len(remaining) < 2:
+                    removed.extend(row["character_id"] for row in remaining)
+                    if remaining:
+                        survivor = remaining[0]["character_id"]
+                        db.execute(
+                            "DELETE FROM player_party_invitations WHERE inviter_id=%s OR invitee_id=%s",
+                            (survivor, survivor),
+                        )
+                    db.execute("DELETE FROM player_parties WHERE id=%s", (party["id"],))
+                    remaining_ids = []
+                else:
+                    leader = (
+                        remaining[0]["character_id"]
+                        if party["leader_id"] == character_id
+                        else party["leader_id"]
+                    )
+                    db.execute(
+                        "UPDATE player_parties SET leader_id=%s,revision=revision+1 WHERE id=%s",
+                        (leader, party["id"]),
+                    )
+                    remaining_ids = [row["character_id"] for row in remaining]
+                party_change = {
+                    "party_id": party["id"],
+                    "deleted_character_id": character_id,
+                    "removed": removed,
+                    "remaining": remaining_ids,
+                    "previous_members": [row["character_id"] for row in before],
+                }
+            db.execute(
+                "DELETE FROM player_party_invitations WHERE inviter_id=%s OR invitee_id=%s",
+                (character_id, character_id),
+            )
+            db.execute(
+                "UPDATE sessions SET character_id=NULL WHERE account_id=%s AND character_id=%s",
+                (account_id, character_id),
+            )
+            db.execute(
+                "UPDATE characters SET deleted_at=%s WHERE id=%s AND account_id=%s "
+                "AND deleted_at IS NULL",
+                (self.now(), character_id, account_id),
+            )
+            return {
+                "character_id": character_id,
+                "name": character["name"],
+                "party_change": party_change,
+            }
 
     def clear_character(self, account_id, generation):
         with self.connection() as db:
@@ -405,7 +552,7 @@ class Store:
             raise ValueError("Sesión o personaje inválidos.")
         if (
             db.execute(
-                "SELECT id FROM characters WHERE id=%s AND account_id=%s FOR UPDATE",
+                "SELECT id FROM characters WHERE id=%s AND account_id=%s AND deleted_at IS NULL FOR UPDATE",
                 (character_id, account_id),
             ).fetchone()
             is None

@@ -1,5 +1,5 @@
 {
-  "scope": "Current authoritative completion code, not GUI reproduction",
+  "scope": "Historical completion code before migrations018\u2013021; superseded by probe-plantacion-autoritativa-2026-10-06.json",
   "complete_has_probability_parameter": false,
   "complete_returns_success_true": true,
   "user_rules": {

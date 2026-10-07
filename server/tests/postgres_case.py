@@ -4,12 +4,27 @@ from pathlib import Path
 import unittest
 import uuid
 
+from psycopg.conninfo import conninfo_to_dict
+
+
+def isolated_test_url():
+    """Require an explicit non-runtime DSN before any test migration runs."""
+    url = os.environ.get("WAKFU_POSTGRES_TEST_URL")
+    if not url:
+        raise RuntimeError("Set WAKFU_POSTGRES_TEST_URL to an isolated test database")
+    database = conninfo_to_dict(url).get("dbname")
+    if not database or database in {"wakemu", "wakemu_runtime"}:
+        raise RuntimeError(
+            "Refusing to run PostgreSQL tests against a runtime database"
+        )
+    return url
+
 
 class PostgresCase(unittest.TestCase):
     def setUp(self):
-        url = os.environ.get("WAKFU_POSTGRES_TEST_URL")
-        if not url:
+        if not os.environ.get("WAKFU_POSTGRES_TEST_URL"):
             self.skipTest("Isolated PostgreSQL required")
+        url = isolated_test_url()
         from psycopg.conninfo import make_conninfo
         from wakfu_server.postgres import Database, migrate
         from wakfu_server.store import Store

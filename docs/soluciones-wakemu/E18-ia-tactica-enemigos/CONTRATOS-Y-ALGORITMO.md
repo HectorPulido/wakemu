@@ -2,7 +2,9 @@
 
 ## Modelo interno propuesto
 
-Interfaces Python propuestas, no implementadas:
+Interfaces conceptuales del diseño. La implementación actual usa
+`NativeProvider` en world y `ForecastAdapter`/búsqueda acotada en ai-service;
+no existe una clase única con todas estas firmas:
 
 ```python
 class TacticalAdapter:
@@ -40,7 +42,16 @@ Modelo propuesto:
 
 Separar componentes para explicar decisiones. Beneficio usa daño neto y bajas, curación realmente restaurada, protección que evita daño probable, control que impide acciones y posición útil. No sumar HP curado fuera de déficit, ni daño sobre muerto, ni armadura que vence antes de amenaza. Penalizar daños propios/friendly fire; sacrificio solo se acepta si el resultado de equipo compensa y la operación está soportada.
 
-Amenaza: para cada rival relevante generar su mejor ataque legal desde sus posiciones alcanzables con presupuesto pequeño. Evaluar cantidad de rivales capaces de golpear y daño neto, incluyendo espalda propia, AoE y control. No sumar todos sus hechizos como si pudiera lanzarlos sin presupuesto. Usar proyección aproximada explícita si no hay soporte; una mecánica boss desconocida puede requerir perfil específico.
+Amenaza: para cada rival relevante generar su mejor ataque legal desde sus posiciones alcanzables con presupuesto pequeño. Evaluar cantidad de rivales capaces de golpear y daño neto, incluyendo espalda propia, AoE y control. No sumar todos sus hechizos como si pudiera lanzarlos sin presupuesto. Usar proyección aproximada explícita si no hay soporte; una mecánica de tipo puzzle puede requerir un adaptador explícito de esa mecánica. Las conductas normales se resuelven con arquetipos/capacidades, sin reglas por monstruo.
+
+El servicio ya admite `rivalForecasts`: compara secuencias certificadas desde
+una proyección inicial del turno de cada rival y toma su mejor respuesta.
+Valida cobertura consistente entre alternativas, rosters, pasos tipados y
+cotas globales; expone modo/dependencias y plan elegido en la traza. La suma
+de mejores respuestas independientes es una estimación de riesgo, no una
+simulación conjunta de la iniciativa. El productor world todavía debe
+conectar esas proyecciones; no confundir este contrato con amenaza activa
+en los encuentros desplegados. Véase el README de `server/ai-service`.
 
 Roles no sustituyen utilidad: ranged no huye si puede rematar sin riesgo; healer no desperdicia turno curando a alguien full HP; melee no busca el foco lejano si tiene blanco útil alcanzable. El foco compartido es una preferencia, no un mandato.
 
@@ -54,7 +65,7 @@ Roles no sustituyen utilidad: ranged no huye si puede rematar sin riesgo; healer
 
 ## Configuración y almacenamiento
 
-Tablas propuestas: `ai_policy_versions` (versión/hash/esquema), `ai_profiles` (pesos y límites), `monster_ai_profiles` (ref/familia→perfil), `ai_semantic_overrides` (referencia/condición/justificación para mecánicas especiales). Validar pesos/rangos al cargar y conservar versión por combate; un cambio en DB no altera silenciosamente un plan pendiente. Perfil normal sin script específico usa capacidades del repertorio.
+Tablas propuestas: `ai_policy_versions` (versión/hash/esquema), `ai_profiles` (pesos y límites), `monster_ai_profiles` (ref/familia→perfil), `ai_semantic_overrides` (condición y justificación exclusivamente para mecánicas de tipo puzzle). Las referencias/familias solo asignan arquetipos reutilizables; no definen árboles de reglas específicos por monstruo. Validar pesos/rangos al cargar y conservar versión por combate; un cambio en DB no altera silenciosamente un plan pendiente. Perfil normal sin script específico usa capacidades del repertorio.
 
 Memoria operativa de equipo en Redis o en runtime del encuentro: UUID/equipo/revisión, foco, reservas, historial acotado y TTL. Configuración es durable; reservas son temporales/reconstruibles. No hace falta almacenar un plan SQL por cada nodo. Si una reserva ayuda a coordinar workers, commit compare-and-set con revisión; no compartir solo por ID numérico de pelea.
 

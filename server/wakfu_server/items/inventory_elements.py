@@ -120,7 +120,21 @@ def proto(item):
 
 def binary_options(item):
     values = masks(item)
+    from .inventory_shards import option as shard_option
+
+    sockets = shard_option(item)
+    # vj.aF option order: vv, vE, vA, vm, vk, vo, vs, vu. vA's payload is
+    # the native yp representation; vo carries the two elemental masks.
+    result = bytearray((0, 0))
+    if sockets is None:
+        result.append(0)
+    else:
+        result.append(1)
+        result.extend(sockets)
+    result.extend((0, 0))
     if values is None:
-        return bytes(8)
-    # vj.aF: five absent option flags, vo-present, vR masks, two absent flags.
-    return bytes(5) + bytes((1, *values, 0, 0))
+        result.append(0)
+    else:
+        result.extend((1, *values))
+    result.extend((0, 0))
+    return bytes(result)

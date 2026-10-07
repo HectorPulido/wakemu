@@ -1,6 +1,6 @@
 # Solución del servidor — mazmorras
 
-Esta especificación parte de código y contratos cotejados. No se aplicaron fixes. Los puntos sin fuente acreditada siguen abiertos; no se sustituyen por reglas arbitrarias.
+Esta especificación parte de código y contratos cotejados. Migración 065 y `maps/dungeon_instances.py` implementan el núcleo durable de sesión/roster como componente aislado; no lo conecta al transporte ni cambia posiciones. Los puntos sin fuente acreditada siguen abiertos; no se sustituyen por reglas arbitrarias.
 
 ## Datos de entrada y salas
 
@@ -12,7 +12,7 @@ Extraer metadatos de `aKU`/`aLY` y enlaces del catálogo `native-generic-telepor
 
 ## Hooks de acceso que hay que sustituir por autoridad de instancia
 
-`maps/generic_transports.py::resolve` rechaza hoy condiciones y `cyZ >= 0`, y solo admite instancia 0. Las pruebas directas confirman que entrada y puerta interior fallan por criterio, y una puerta instanciada falla por contexto. `world_static.interaction` también exige instancia 0. Estos guards deben pasar a validar pertenencia, proximidad, variante y puerta habilitada contra la sesión de mazmorra. **No eliminar los guards ni aceptar cualquier instance_id.**
+`maps/generic_transports.py::resolve` rechaza hoy condiciones y `cyZ >= 0`, y solo admite instancia 0. Las pruebas directas confirman que entrada y puerta interior fallan por criterio, y una puerta instanciada falla por contexto. `world_static.interaction` también exige instancia 0. La nueva autoridad de sesión no está conectada a esos handlers. Estos guards deben pasar a validar pertenencia, proximidad, variante y puerta habilitada contra la sesión de mazmorra. **No eliminar los guards ni aceptar cualquier instance_id.**
 
 Separar definición90, plantilla91 y sesión viva: cada ejecución tendrá un ID propio, membresía, dificultad, sector actual y encuentros resueltos. Mantener grupos de monstruos y presencia por `(map_id, instance_id)`, y encuentros por `(instance_id, room_id, encounter_id)`. Entradas repetidas al mismo recorrido deben recuperar la sesión autorizada, sin crear otra ni repoblar.
 

@@ -1,6 +1,13 @@
 import unittest
+import gzip
+import json
 from types import SimpleNamespace
-from wakfu_server.combat_native_los_ray import static_ray, cast_rays
+from wakfu_server.combat_native_los_ray import (
+    DATA_ROOT,
+    static_ray,
+    cast_rays,
+    topology_columns,
+)
 from wakfu_server.combat_los import authoritative_visible
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_actor_snapshot import build_npc_snapshot, native_actor_catalog
@@ -8,6 +15,37 @@ from wakfu_server.fight_checkpoint_store import snapshot
 
 
 class NativeGenericLOSTests(unittest.TestCase):
+    def test_topology_columns_preserve_native_order_values_and_shared_aliases(self):
+        path = DATA_ROOT / "native-los-topology" / "1134.json.gz"
+        with gzip.open(path, "rt") as stream:
+            native = json.load(stream)
+
+        columns = topology_columns(1134)
+        expected = {
+            (x, y): tuple(tuple(surface) for surface in values)
+            for x, y, values in native["columns"]
+        }
+        self.assertEqual(list(columns.items()), list(expected.items()))
+        self.assertEqual(columns, expected)
+        self.assertTrue(all(type(surfaces) is tuple for surfaces in columns.values()))
+        self.assertTrue(
+            all(
+                type(surface) is tuple
+                for surfaces in columns.values()
+                for surface in surfaces
+            )
+        )
+
+        canonical = {}
+        found_alias = False
+        for surfaces in columns.values():
+            if surfaces in canonical:
+                self.assertIs(surfaces, canonical[surfaces])
+                found_alias = True
+            else:
+                canonical[surfaces] = surfaces
+        self.assertTrue(found_alias)
+
     def test_reported_gui_endpoints_use_native_cast_height(self):
         source = (-15, -3, 0)
         for target in ((-14, -4, 0), (-15, -5, -1), source):
@@ -25,13 +63,28 @@ class NativeGenericLOSTests(unittest.TestCase):
         fight = SimpleNamespace(
             actors={
                 1: SimpleNamespace(
-                    id=1, hp=10, position=source, native_los_height=6, team=0
+                    id=1,
+                    hp=10,
+                    position=source,
+                    native_los_height=6,
+                    native_obstacle_id=None,
+                    team=0,
                 ),
                 2: SimpleNamespace(
-                    id=2, hp=10, position=target, native_los_height=6, team=1
+                    id=2,
+                    hp=10,
+                    position=target,
+                    native_los_height=6,
+                    native_obstacle_id=None,
+                    team=1,
                 ),
                 3: SimpleNamespace(
-                    id=3, hp=10, position=(-13, -10, -1), native_los_height=6, team=1
+                    id=3,
+                    hp=10,
+                    position=(-13, -10, -1),
+                    native_los_height=6,
+                    native_obstacle_id=None,
+                    team=1,
                 ),
             },
             walkable={(x, -10, -1) for x in range(-14, -10)},

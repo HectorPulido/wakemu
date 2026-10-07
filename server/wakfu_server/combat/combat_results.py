@@ -17,6 +17,37 @@ def _message(field, value):
     return proto_field((field << 3) | 2, value)
 
 
+def _loots(rows):
+    """Encode committed FightLoot entries; item instances travel separately."""
+    if not isinstance(rows, (list, tuple)):
+        raise ValueError("Invalid committed loot list")
+    output = bytearray()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("Invalid committed loot entry")
+        reference, quantity = row.get("reference"), row.get("quantity")
+        purse, pvp = row.get("is_purse_loot", False), row.get("is_pvp_loot", False)
+        if (
+            type(reference) is not int
+            or not 0 < reference < 2**31
+            or type(quantity) is not int
+            or not 1 <= quantity <= 32767
+            or type(purse) is not bool
+            or type(pvp) is not bool
+        ):
+            raise ValueError("Invalid native committed loot fields")
+        output.extend(
+            _message(
+                7,
+                _number(1, reference)
+                + _number(2, quantity)
+                + _number(3, int(purse))
+                + _number(4, int(pvp)),
+            )
+        )
+    return bytes(output)
+
+
 def _player(actor, metadata):
     name = metadata.get("name")
     account = metadata.get("account_id")
@@ -71,6 +102,7 @@ def _player(actor, metadata):
         + _number(4, breed)
         + _number(5, int(metadata["is_male"]))
         + _number(6, int(metadata.get("is_hero", False)))
+        + _loots(metadata.get("loots", ()))
         + xp
         + _number(9, kamas)
         + _number(10, int(actor.hp == 0))
@@ -145,18 +177,38 @@ def finish_messages(
         initiator_id=initiator_id,
         fight_model=fight_model,
     )
-    winners = [a.id for a in fight.actors.values() if a.team == fight.winner]
-    losers = [a.id for a in fight.actors.values() if a.team != fight.winner]
+    runtime.awaiting_ack = None
+    runtime.pending = []
+    return [terminal_event(runtime), (12755, runtime._prefix() + report)]
+
+
+def terminal_event(runtime):
+    """Build the native normal cvF/12238 end packet without a private report.
+
+    Spectators need the same terminal UI cleanup as participants, but must not
+    receive 12755 or any owner's settlement packets. This is the exact normal
+    `huN=false` body assembled by `finish_messages`.
+    """
+    fight = getattr(runtime, "fight", None)
+    if (
+        fight is None
+        or fight.phase != "finished"
+        or fight.winner not in (0, 1)
+        or not callable(getattr(runtime, "_prefix", None))
+    ):
+        raise ValueError("Native terminal event requires a resolved fight")
+    winners = [
+        actor.id for actor in fight.actors.values() if actor.team == fight.winner
+    ]
+    losers = [actor.id for actor in fight.actors.values() if actor.team != fight.winner]
     if max(len(winners), len(losers)) > 127:
         raise ValueError("Too many result participants")
     body = runtime._prefix() + b"\x00"
-    for ids in (winners, losers, []):
-        body += struct.pack(">b", len(ids)) + b"".join(
-            struct.pack(">q", identity) for identity in ids
+    for identities in (winners, losers, []):
+        body += struct.pack(">b", len(identities)) + b"".join(
+            struct.pack(">q", identity) for identity in identities
         )
-    runtime.awaiting_ack = None
-    runtime.pending = []
-    return [(12238, body), (12755, runtime._prefix() + report)]
+    return 12238, body
 
 
 def continuation(fight_id, body):
