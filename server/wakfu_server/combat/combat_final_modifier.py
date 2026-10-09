@@ -91,13 +91,21 @@ class NativeFinalModifierHandler:
         self.allocate_uid, self.context = allocate_uid, context
 
     def __call__(self, effect, values, invocation):
+        from .combat_native_actor_lookup import native_actor
+        from .combat_state_managers import registered_area_pv
+
+        def actual_pv(identity):
+            return native_actor(self.fight, identity) or registered_area_pv(
+                self.fight, identity
+            )
+
         if (
             effect["effect_class"] != 1093
             or self.fight.phase != "active"
-            or invocation.caster_id not in self.fight.actors
-            or invocation.target_id not in self.fight.actors
+            or actual_pv(invocation.caster_id) is None
+            or actual_pv(invocation.target_id) is None
         ):
-            raise ValueError("Native eZJ requires owned ordinary actors")
+            raise ValueError("Native eZJ requires owned native PVs")
         if set(effect["native_effect_flags"]) - {1, 3, 14, 16, 17, 26}:
             raise ValueError("Unaudited native eZJ flags")
         context = self.context(effect, invocation)
@@ -110,6 +118,13 @@ class NativeFinalModifierHandler:
             raise ValueError("Missing native eZJ execution/timing authority")
         if not context.executable:
             return False
+        if context.retained:
+            from .combat_state_managers import state_manager
+
+            if state_manager(self.fight, invocation.target_id) is None:
+                raise ValueError("Retained native eZJ requires actual target Qf")
+        # eZJ.c changes only its source faq.SX accumulator. A real area PV
+        # is a valid selected target and does not need actor characteristics.
         value = parameter_value(effect["parameters"], 0, invocation.level)
         update_triggering_final(invocation, value)
         uid = invocation.native_running_uid or self.allocate_uid()

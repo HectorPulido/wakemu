@@ -97,7 +97,7 @@ def group_payload(
     container_id,
     timing_payload,
     context_payload=None,
-    initial_value=0
+    initial_value=0,
 ):
     if base_uid is None:
         base_uid = uid
@@ -381,7 +381,7 @@ class NativeRetainedRuntime:
                 else row["target_id"],
                 definition_type=definition["definition_type"],
                 definition_dispellable=definition["definition_dispellable"],
-                **container
+                **container,
             )
         )
 
@@ -434,7 +434,7 @@ class NativeRetainedRuntime:
                 manager_id=row["native_manager_id"],
                 definition_type=definition["definition_type"],
                 definition_dispellable=definition["definition_dispellable"],
-                **container
+                **container,
             )
         )
 
@@ -462,7 +462,7 @@ class NativeRetainedRuntime:
                 if state.protected is None
                 else state.protected,
                 state_dispellable=flags["dispellable"],
-                **container
+                **container,
             )
         )
 
@@ -626,7 +626,7 @@ class NativeRetainedRuntime:
                             manager_id=row["caster_id"],
                             definition_type=definition["definition_type"],
                             definition_dispellable=definition["definition_dispellable"],
-                            **container
+                            **container,
                         )
                     )
             self.normalize_owned_delivery(effect, invocation, first_packet)
@@ -872,7 +872,7 @@ class NativeRetainedRuntime:
         *,
         default_level,
         event_activation=False,
-        native_override=None
+        native_override=None,
     ):
         """One native SP for both child evaluation and serialized eVt.
 
@@ -912,7 +912,7 @@ class NativeRetainedRuntime:
         invocation,
         *,
         event_activation=False,
-        native_override=None
+        native_override=None,
     ):
         from .combat_state_level_group import runtime_child_level
         from .combat_level_group import level_group_override
@@ -1051,6 +1051,27 @@ class NativeRetainedRuntime:
             and effect["effect_class"] not in GROUP_SUBSCRIPTION_FAMILIES
         ):
             raise ValueError("Unaudited target-less retained native runner")
+        manager_id = (
+            invocation.caster_id
+            if invocation.target_id is None or definition["owner_on_caster"]
+            else invocation.target_id
+        )
+        if state_manager(self.fight, manager_id) is None:
+            from .combat_state_managers import registered_area_pv
+
+            manager = registered_area_pv(self.fight, manager_id)
+            if (
+                manager is None
+                or manager.native_running_effect_manager is not False
+                or definition.get("subscription") is not True
+            ):
+                raise ValueError("Missing actual retained group manager")
+            # Qe.d(Collection), 284..289/486..642/759..795: a subscribed
+            # clone skips n(); null bax() enters release rather than Qf.p/PR.
+            return {
+                "native_null_qf": True,
+                "uid": self.fight.allocate_effect_uid(),
+            }
         container, identity = self.container(invocation)
         replay_container = None
         if invocation.state_uid is None:
@@ -1131,12 +1152,10 @@ class NativeRetainedRuntime:
             effect["effect_class"],
             invocation.reference,
             owner_uid=invocation.state_uid,
-            manager_id=invocation.caster_id
-            if invocation.target_id is None or definition["owner_on_caster"]
-            else invocation.target_id,
+            manager_id=manager_id,
             definition_type=definition["definition_type"],
             definition_dispellable=definition["definition_dispellable"],
-            **container
+            **container,
         )
         return dict(
             _delivery_effect=effect,
@@ -1193,7 +1212,11 @@ class NativeRetainedRuntime:
                 continue  # Ty=false runners must not be forced into Qf.
             manager = record["manager_id"]
             if state_manager(self.fight, manager) is None:
-                raise ValueError("Missing actual retained delivery manager")
+                raise ValueError(
+                    "Missing actual retained delivery manager "
+                    f"(uid={fields.get(1)}, manager={manager!r}, "
+                    f"reference={invocation.reference})"
+                )
             caster, target = invocation.caster_id, invocation.target_id
             if definition["owner_on_caster"] or caster == target:
                 observation_owner = full_owner = caster
@@ -1230,6 +1253,8 @@ class NativeRetainedRuntime:
         if type(notify) is not bool:
             raise ValueError("Explicit native group PR notification decision required")
         if pending is None:
+            return
+        if pending.get("native_null_qf") is True:
             return
         row = dict(pending)
         record = row.pop("record")

@@ -126,6 +126,50 @@ def shared_fixture(*, native_qi=False):
 
 
 class WithdrawnOrdinaryAuthorityTests(unittest.TestCase):
+    def test_owned_reconnect_omits_only_certified_withdrawal_and_keeps_history(self):
+        from types import SimpleNamespace
+
+        from wakfu_server.combat_pve_departure import retired_pve_actor_ids
+        from wakfu_server.combat_reconnect_snapshot import owned_snapshot
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_wire import arena, decode_bootstrap
+
+        _first, _second, _monster, fight, _deck = shared_fixture(native_qi=True)
+        withdrawn = fight.actors[7]
+        self.assertTrue(withdrawn.pve_withdrawn)
+        self.assertEqual(retired_pve_actor_ids(fight), {7})
+
+        shared = SimpleNamespace(
+            fight=fight,
+            map_id=1134,
+            runtime=RuntimeMessages(fight),
+            join_context={
+                "arena": arena(1134, 0, fight.walkable, fight.placement),
+                "terrain_effect_id": 378,
+                "terrain_instance_id": -300,
+                "leaders": {0: 8, 1: -7},
+            },
+            ack=SimpleNamespace(turn=None, received=set()),
+        )
+        packets = owned_snapshot(
+            fight,
+            shared,
+            SimpleNamespace(account_id=4),
+            actor_payload=lambda *_args: (b"stats", b"effects"),
+        )
+
+        bootstrap = decode_bootstrap(
+            next(body for opcode, body in packets if opcode == 12847)
+        )
+        participant_ids = {row["actor_id"] for row in bootstrap["participants"]}
+        self.assertEqual(participant_ids, {8, -7})
+        self.assertNotIn(7, participant_ids)
+        self.assertIn(7, fight.actors)  # Historical actor remains in the encounter.
+        self.assertEqual(retired_pve_actor_ids(fight), {7})
+        for opcode, payload in packets:
+            if opcode in {13912, 12873}:
+                self.assertNotEqual(struct.unpack_from(">q", payload, 4)[0], 7)
+
     def test_withdrawal_synchronizes_historical_actor_hp_snapshot(self):
         from wakfu_server.combat_pve_withdraw import plan
         from wakfu_server.combat_runtime_messages import RuntimeMessages
@@ -202,14 +246,16 @@ class WithdrawnOrdinaryAuthorityTests(unittest.TestCase):
         )
 
     def test_remaining_owner_can_use_native_unarmed_attack(self):
-        _, second, monster, fight, _deck = shared_fixture()
-        body = struct.pack(">qqbiih", 8, -1, 15, 1, 0, 0)
+        _, second, monster, fight, deck = shared_fixture(native_qi=True)
+        monster_cell = monster["x"], monster["y"], monster["z"]
+        withdrawn_cell = fight.actors[7].position
+        body = struct.pack(">qqbiih", 8, -1, 15, *monster_cell)
         with self.assertRaisesRegex(ValueError, "Melee requires"):
-            # Cell (1,0) is the live NPC; control case below proves the same
+            # The withdrawn actor's cell cannot become a target; control below proves the same
             # setup can attack it. A withdrawn actor itself is never a melee
             # target because it has zero HP and is excluded from the roster.
             execute_unarmed(
-                struct.pack(">qqbiih", 8, -1, 15, -1, 0, 0),
+                struct.pack(">qqbiih", 8, -1, 15, *withdrawn_cell),
                 second,
                 [monster],
                 fight,
@@ -228,7 +274,7 @@ class WithdrawnOrdinaryAuthorityTests(unittest.TestCase):
                 rng=random.Random(3),
                 prepare_only=True,
                 player_characters={8: second},
-                deck_blobs={8: _deck},
+                deck_blobs={8: deck},
             )
 
         transaction = execute_unarmed(
@@ -251,7 +297,7 @@ class WithdrawnOrdinaryAuthorityTests(unittest.TestCase):
             rng=random.Random(3),
             prepare_only=True,
             player_characters={8: second},
-            deck_blobs={8: _deck},
+            deck_blobs={8: deck},
         )
         self.assertLess(transaction.fight.actors[-7].hp, fight.actors[-7].hp)
         self.assertEqual(transaction.fight.actors[7].hp, 0)

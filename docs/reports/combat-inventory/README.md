@@ -1,5 +1,15 @@
 # Inventario de combate y seguimiento
 
+## Environmental retained-effect lifecycle — 2026-10-09
+
+[Preparation and native null-Qf lifecycle](preparation-null-qf-lifecycle-20261009.md): general environmental subscription release and final-modifier PV correction; actual Jabs/Bofetada environmental regressions and Cra regression pass.
+
+## Multiplayer lifecycle — 2026-10-09
+
+[Shared fight 97 recovery](shared-recovery-fight97-20261009.md): r51 deployed and healthy; map context, NPC retry, disconnected ACK membership and departed-player reconnect corrections. Dungeon recovery verified at room 2 with the original group available. Manual acceptance remains pending.
+
+[Consolidated errors and acceptance](multiplayer-errors-20261009.md): joining, first-turn timeline, reconnect fencing, completion disconnects and friendly-duel QI registration. Automatic validation is recorded separately from manual acceptance.
+
 ## Multiple-death timeline delivery
 
 Delivered and healthy: `timeline-death-complete-20261008-r35`. The next turn restores native12053/12514 after roster deaths, preserving normal later turns.14/14 focused tests pass. See [fight80 evidence and manual steps](fight80-multiple-death-timeline-20261008.md). The wrong-actor death-animation report remains separate and unverified.

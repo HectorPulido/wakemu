@@ -302,7 +302,9 @@ class CombatSessionAdapter:
             if actor.id in getattr(current, "native_summon_registrations", {}):
                 from .combat_summon_stats import registered_summon_stats
 
-                return registered_summon_stats(actor, current, current.map_id)
+                return registered_summon_stats(
+                    actor, current, characters[session.character_id]["map_id"]
+                )
             if actor.controlled:
                 source = characters.get(actor.id)
                 if source is None:

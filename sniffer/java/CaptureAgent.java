@@ -137,6 +137,14 @@ public final class CaptureAgent {
  private static Map<String,Object> combatDiagnostic() {
   Map<String,Object> out=new LinkedHashMap<>();out.put("time",java.time.Instant.now().toString());
   try {
+   Object ownPlayer=call(call(Class.forName("aTx"),"cWt"),"cWu");
+   out.put("own_player_present",ownPlayer!=null);
+   if(ownPlayer!=null) {
+    out.put("own_player_id",String.valueOf(call(ownPlayer,"Sn")));
+    out.put("own_player_fight",String.valueOf(call(ownPlayer,"doI")));
+   }
+  }catch(Throwable error){out.put("own_player_error",error.toString());}
+  try {
    Object dbe=call(Class.forName("dbe"),"fcF"),dba=call(Class.forName("dba"),"fcm");
    for(String key:new String[]{"NO","cEV","okd","oke","okf"})out.put("dbe."+key,field(dbe,key));
    for(String key:new String[]{"fcs","fct","fcA"})out.put("dba."+key,call(dba,key));

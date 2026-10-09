@@ -841,6 +841,31 @@ class Registry:
                 if shared.participants.get(session.account_id) == session:
                     shared.connected.discard(session.account_id)
                     shared.outboxes[session.account_id].clear()
+                    if shared.connected and shared.ack.turn is not None:
+                        # The departed transport cannot finish presentation.
+                        # Retain every remaining recipient's real ACK; never
+                        # synthesize one or clear a last-owner reconnect pause.
+                        barrier = deepcopy(shared.ack)
+                        if (
+                            barrier.expected.get(session.account_id)
+                            == session.generation
+                        ):
+                            barrier.expected.pop(session.account_id)
+                            barrier.received.discard(session.account_id)
+                            if barrier.complete:
+                                import struct
+
+                                candidate, runtime = deepcopy(
+                                    (shared.fight, shared.runtime)
+                                )
+                                counter = barrier.release()
+                                packets = self._packets(
+                                    runtime.acknowledge_turn(struct.pack(">i", counter))
+                                )
+                                shared.fight, shared.runtime = candidate, runtime
+                                self._retire_join_aliases_locked(shared)
+                                self._broadcast(shared, packets)
+                            shared.ack = barrier
                     if (
                         not shared.connected
                         and not getattr(shared, "is_duel", False)

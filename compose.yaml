@@ -22,7 +22,7 @@ services:
       retries: 30
       start_period: 180s
   world:
-    image: ${WAKFU_WORLD_IMAGE:-wakemu-world:multiplayer-complete-20261009-r48}
+    image: ${WAKFU_WORLD_IMAGE:-wakemu-world:retained-area-release-20261009-r52}
     build: ./server
     init: true
     depends_on:

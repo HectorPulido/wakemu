@@ -1286,17 +1286,19 @@ class SharedCombatTests(unittest.TestCase):
             self.registry.drain(99, self.one)[0].packets, ((13482, b"next-turn"),)
         )
 
-    def test_disconnect_does_not_synthesize_missing_turn_ack(self):
+    def test_disconnect_removes_only_departed_transport_from_turn_ack_barrier(self):
         self.join()
         self.registry.arm_ack(99, 7)
         self.registry.disconnect(self.two)
-        self.assertFalse(
+        self.assertEqual(self.shared.ack.expected, {1: "first"})
+        self.assertEqual(self.shared.ack.received, set())
+        self.assertFalse(self.shared.ack.complete)
+        self.assertTrue(
             self.registry.acknowledge(
                 99, self.one, struct.pack(">i", 7), lambda *args: []
             )
         )
-        self.assertEqual(self.shared.ack.expected, {1: "first", 2: "second"})
-        self.assertFalse(self.shared.ack.complete)
+        self.assertIsNone(self.shared.ack.turn)
 
     def test_runtime_fsm_reference_remains_same_authority_after_dispatch(self):
         self.shared.runtime = {"fight": self.shared.fight}

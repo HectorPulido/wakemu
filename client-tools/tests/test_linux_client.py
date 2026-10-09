@@ -22,28 +22,44 @@ class LinuxClientTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             source, runtime, agents = root / "source", root / "runtime", root / "agents"
-            java = source / ("jre/Contents/Home/bin/java" if platform == "darwin" else "jre/bin/java")
+            java = source / (
+                "jre/Contents/Home/bin/java" if platform == "darwin" else "jre/bin/java"
+            )
             java.parent.mkdir(parents=True)
             java.touch()
             agents.mkdir()
             for agent in ("network-guard.jar", "open-planting.jar", "desktop-fix.jar"):
                 (agents / agent).touch()
             (runtime / "logs").mkdir(parents=True)
-            cfg = dict(server_name="127.0.0.1", server_host="127.0.0.1", open_planting=True)
-            env = dict(WAKFU_AGENT_ROOT=str(agents), ZAAP_PORT="1234", ZAAP_HASH="test",
-                       WAKFU_CAPTURE_AGENT=str(root / "capture-agent.jar"))
+            cfg = dict(
+                server_name="127.0.0.1", server_host="127.0.0.1", open_planting=True
+            )
+            env = dict(
+                WAKFU_AGENT_ROOT=str(agents),
+                ZAAP_PORT="1234",
+                ZAAP_HASH="test",
+                WAKFU_CAPTURE_AGENT=str(root / "capture-agent.jar"),
+            )
             if display:
                 env["DISPLAY"] = ":0"
             warning = io.StringIO()
-            with patch.dict(os.environ, env, clear=True), patch.object(sys, "platform", platform), \
-                 patch.object(sys, "argv", ["run-client.py", *arguments]), \
-                 patch.object(runner, "settings", return_value=cfg), \
-                 patch.object(runner, "pin_dns"), \
-                 patch.object(runner, "prepare", return_value=(source, runtime, {15556})), \
-                 patch.object(Path, "is_file", return_value=True), \
-                 patch.object(subprocess, "call", return_value=0) as call, \
-                 patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0)) as run, \
-                 contextlib.redirect_stderr(warning):
+            with patch.dict(os.environ, env, clear=True), patch.object(
+                sys, "platform", platform
+            ), patch.object(sys, "argv", ["run-client.py", *arguments]), patch.object(
+                runner, "settings", return_value=cfg
+            ), patch.object(
+                runner, "pin_dns"
+            ), patch.object(
+                runner, "prepare", return_value=(source, runtime, {15556})
+            ), patch.object(
+                Path, "is_file", return_value=True
+            ), patch.object(
+                subprocess, "call", return_value=0
+            ) as call, patch.object(
+                subprocess, "run", return_value=subprocess.CompletedProcess([], 0)
+            ) as run, contextlib.redirect_stderr(
+                warning
+            ):
                 result = runner.main()
                 command = (run if "--check" in arguments else call).call_args.args[0]
             return result, command, warning.getvalue()

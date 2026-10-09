@@ -40,6 +40,8 @@ if action == "project-cell":
     payload = json.dumps(dict(zip(("x", "y", "z"), map(float, sys.argv[2:5])))).encode()
 if action == "combat-actor":
     payload = json.dumps({"actor_id": str(int(sys.argv[2]))}).encode()
+if action == "actor-registry":
+    payload = json.dumps({"actor_ids": [str(int(v)) for v in sys.argv[2:]]}).encode()
 if action == "spell-availability":
     payload = json.dumps(
         {

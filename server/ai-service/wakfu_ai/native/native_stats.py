@@ -3,11 +3,16 @@ from copy import deepcopy
 
 
 class NativeStats:
-    def __init__(self, *, characters, monsters, fight_id, registrations=None):
+    def __init__(
+        self, *, characters, monsters, fight_id, registrations=None, map_id=None
+    ):
         self.characters = deepcopy(characters)
         self.monsters = deepcopy(monsters)
         self.fight_id = fight_id
         self.registrations = deepcopy(registrations or {})
+        if map_id is not None and (type(map_id) is not int or map_id <= 0):
+            raise ValueError("Invalid owned native statistics map")
+        self.map_id = map_id
 
     def for_fight(self, fight):
         if fight.id != self.fight_id:
@@ -17,6 +22,7 @@ class NativeStats:
             monsters=self.monsters,
             fight_id=self.fight_id,
             registrations=getattr(fight, "native_summon_registrations", {}),
+            map_id=self.map_id,
         )
 
     def __call__(self, actor, fight=None):
@@ -67,4 +73,6 @@ class NativeStats:
             != registration
         ):
             raise ValueError("Missing current registered summon authority")
-        return registered_summon_stats(actor, fight, fight.map_id)
+        if self.map_id is None:
+            raise ValueError("Registered summon stats require owned encounter map")
+        return registered_summon_stats(actor, fight, self.map_id)

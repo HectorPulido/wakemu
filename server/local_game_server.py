@@ -2048,7 +2048,7 @@ def session(raw, peer, service, context):
                 packets = (actor_packet, packet)
             else:
                 packets = (packet,)
-            WORLD.emit_location_batch(
+            delivered_recipients = WORLD.emit_location_batch(
                 map_id,
                 instance_id,
                 packets,
@@ -2060,6 +2060,7 @@ def session(raw, peer, service, context):
                 map_id=map_id,
                 instance_id=instance_id,
                 opcode=packet[0],
+                delivered_recipients=delivered_recipients,
             )
         except (KeyError, TypeError, ValueError) as error:
             record(
@@ -2678,6 +2679,19 @@ def session(raw, peer, service, context):
                     )
             if fight_messages is not None and fight is not None:
                 if combat_session is not None:
+                    # A failed Ready/ACK callback can leave an unpublished NPC
+                    # action pending. Any remaining owner may retry it; the AI
+                    # bridge claims the actual shared actor/turn under its lock.
+                    if (
+                        fight.phase == "active"
+                        and fight.current is not None
+                        and not fight.current.controlled
+                        and fight_messages.awaiting_ack is None
+                        and not fight_messages.pending
+                    ):
+                        pass_test_monster_turn()
+                        refresh_shared_combat()
+                        drain_shared_combat()
                     expired, expiry_error = COMBAT_SESSIONS.expire_current_turn(
                         fight.id,
                         combat_session,

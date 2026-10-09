@@ -1,5 +1,6 @@
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 from wakfu_server.combat_final_modifier import (
     NativeFinalModifier,
     NativeFinalModifierHandler,
@@ -112,6 +113,41 @@ class FinalModifierTests(unittest.TestCase):
         self.assertEqual(packets[0][0], 13497)
         self.assertFalse(fight.owned_stat_effects)
         self.assertEqual(set(fight.actors), {7, -7})
+
+    def test_modifier_accepts_verified_area_pv_without_actor_statistics_or_qf(self):
+        fight = SimpleNamespace(
+            id=100, phase="active", actors={7: object()}, owned_stat_effects={}
+        )
+        packets = []
+        handler = NativeFinalModifierHandler(
+            fight,
+            packets,
+            action_id=200,
+            allocate_uid=lambda: 902,
+            context=lambda *a: StatExecutionContext(True, True, None, False, b"", None),
+        )
+        modifier = NativeFinalModifier(901, 1)
+        invocation = EffectInvocation(
+            411428, 1, 7, 81, (1, 0, 0), native_trigger_context={"uid": 901}
+        )
+        effect = {
+            "effect_class": 1093,
+            "parameters": [50.0, 0.0],
+            "native_effect_flags": [],
+        }
+        with patch(
+            "wakfu_server.combat_state_managers.registered_area_pv",
+            return_value=SimpleNamespace(id=81, native_running_effect_manager=False),
+        ), final_modifier_source(source(modifier)):
+            self.assertTrue(handler(effect, {}, invocation))
+        self.assertEqual(modifier.value, 50)
+        self.assertEqual(set(fight.actors), {7})
+        self.assertEqual(fight.owned_stat_effects, {})
+
+        with patch(
+            "wakfu_server.combat_state_managers.registered_area_pv", return_value=None
+        ), self.assertRaisesRegex(ValueError, "owned native PVs"):
+            handler(effect, {}, invocation)
 
     def test_damage_modifier_applies_before_native_rounding_and_obeys_mode(self):
         context = dict(

@@ -82,12 +82,21 @@ def selected_height(qi, surfaces, x, y):
 def native_cell_group_population(fight, effect, values, invocation):
     """Actual QI masks and native surface indices, never movement walkability."""
     from .combat_qi_fight import current_registry
-    from .combat_qi_surface_catalog import native_qi_surfaces
+    from .combat_qi_surface_catalog import (
+        native_qi_surfaces,
+        native_qi_surface_provenance,
+    )
 
     mode = cell_group_mode(values)
     criterion_present = native_cell_criterion_presence(effect, invocation)
     qi = current_registry(fight).snapshot()
-    surfaces = native_qi_surfaces(fight.map_id)
+    provenance = getattr(fight, "native_qi_surface_provenance", None)
+    if not isinstance(provenance, dict):
+        raise ValueError("Cell group requires actual selected-surface provenance")
+    map_id = provenance.get("map_id")
+    if provenance != native_qi_surface_provenance(map_id):
+        raise ValueError("Cell group selected-surface provenance mismatch")
+    surfaces = native_qi_surfaces(map_id)
     caster = fight.actors.get(invocation.caster_id)
     if caster is None:
         raise ValueError("Missing native eYk caster position and direction")

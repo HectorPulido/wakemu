@@ -100,10 +100,15 @@ def main():
     os.environ["WAKFU_SERVER_IPV4"] = cfg["server_host"]
     pin_dns(cfg)
     source, runtime, ports = prepare(args.profile)
-    sandbox = ["/usr/bin/sandbox-exec", "-f", str(runtime / "network.sb")] if macos else []
+    sandbox = (
+        ["/usr/bin/sandbox-exec", "-f", str(runtime / "network.sb")] if macos else []
+    )
     if not macos:
-        print("Linux isolation: Java network guard active; no OS network sandbox. "
-              "The Python launcher bridge and native libraries are not sandboxed.", file=sys.stderr)
+        print(
+            "Linux isolation: Java network guard active; no OS network sandbox. "
+            "The Python launcher bridge and native libraries are not sandboxed.",
+            file=sys.stderr,
+        )
     java = source / ("jre/Contents/Home/bin/java" if macos else "jre/bin/java")
     if not java.is_file():
         raise ValueError("Installed Wakfu Java runtime not found")

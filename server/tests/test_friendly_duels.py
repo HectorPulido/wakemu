@@ -101,7 +101,18 @@ class FriendlyDuelWireTests(unittest.TestCase):
                 for test in ast.walk(node.test)
             )
         )
-        calls = [node for node in ast.walk(route) if isinstance(node, ast.Call)]
+        duel_branch = next(
+            node
+            for node in ast.walk(route)
+            if isinstance(node, ast.If)
+            and isinstance(node.test, ast.Call)
+            and isinstance(node.test.func, ast.Name)
+            and node.test.func.id == "getattr"
+            and len(node.test.args) >= 2
+            and isinstance(node.test.args[1], ast.Constant)
+            and node.test.args[1].value == "is_duel"
+        )
+        calls = [node for node in ast.walk(duel_branch) if isinstance(node, ast.Call)]
         forfeit = next(
             node
             for node in calls
@@ -195,13 +206,8 @@ class FriendlyDuelWireTests(unittest.TestCase):
             node
             for node in ast.walk(adopt)
             if isinstance(node, ast.If)
-            and isinstance(node.test, ast.Compare)
-            and isinstance(node.test.left, ast.Name)
-            and node.test.left.id == "account_id"
-            and any(
-                isinstance(value, ast.Attribute) and value.attr == "returned"
-                for value in node.test.comparators
-            )
+            and "account_id in shared.returned" in ast.unparse(node.test)
+            and "account_id in shared.withdrawals" in ast.unparse(node.test)
         )
         takeover = next(
             node
@@ -288,6 +294,7 @@ class FriendlyDuelRegistryTests(unittest.TestCase):
         self.assertEqual(
             self.registry.drain(99, self.second)[0].packets, ((12847, b"second"),)
         )
+        self.assertIs(self.registry.lookup(99), shared)
         self.assertIs(self.registry.lookup_character(11), shared)
         self.assertIs(self.registry.lookup_character(22), shared)
 
@@ -351,7 +358,9 @@ class FriendlyDuelRegistryTests(unittest.TestCase):
             )
         )
         self.assertFalse(self.registry.mark_returned(99, self.first))
-        self.assertIs(self.registry.lookup_character(11), shared)
+        self.assertIs(self.registry.lookup(99), shared)
+        self.assertIsNone(self.registry.lookup_character(11))
+        self.assertIs(self.registry.lookup_character(22), shared)
         self.assertTrue(self.registry.mark_returned(99, self.second))
         self.assertIsNone(self.registry.lookup_character(11))
         self.assertIsNone(self.registry.lookup_character(22))

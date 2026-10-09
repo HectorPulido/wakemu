@@ -40,7 +40,12 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
     current_timeline = timeline(fight, deadline_ms=deadline_ms)
     participants = []
     payloads = {}
+    from .combat_pve_departure import retired_pve_actor_ids
+
+    departed = retired_pve_actor_ids(fight)
     for actor in fight.actors.values():
+        if actor.id in departed:
+            continue
         stats, effects = actor_payload(fight, actor, session)
         payloads[actor.id] = (stats, effects)
         participants.append(
@@ -79,7 +84,7 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
     registrations = getattr(fight, "native_summon_registrations", {})
     births = getattr(fight, "native_summon_creation_deliveries", {})
     for identity in registrations:
-        if identity not in fight.actors:
+        if identity not in fight.actors or identity in departed:
             continue
         birth = births.get(identity)
         if (
@@ -109,6 +114,8 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
     from .combat_death_script_snapshot import immediate_death_script_packet
 
     for actor in fight.actors.values():
+        if actor.id in departed:
+            continue
         immediate = immediate_death_script_packet(
             fight, actor, runtime.native_action_id
         )

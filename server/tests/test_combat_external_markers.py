@@ -62,6 +62,17 @@ def sample_shared(*, instance_id=0, duel=False):
 
 
 class ExternalFightMarkerTests(unittest.TestCase):
+    def test_marker_identity_survives_client_number_bridge_without_aliases(self):
+        identities = [external_marker_actor_id(n) for n in (1, 91, 92, 2**31 - 1)]
+        self.assertEqual(len(set(map(float, identities))), len(identities))
+        for identity in identities:
+            self.assertEqual(int(float(identity)), identity)
+            self.assertEqual(
+                struct.unpack(">q", struct.pack(">q", identity))[0], identity
+            )
+        # The previous namespace aliased the actual consecutive fight markers.
+        self.assertEqual(float((1 << 62) + 91), float((1 << 62) + 92))
+
     def test_create_update_snapshot_and_remove_lifecycle(self):
         markers = ExternalFightMarkers()
         shared = sample_shared()

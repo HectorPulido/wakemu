@@ -7,6 +7,20 @@ from wakfu_ai.native.native_stats import NativeStats
 
 
 class NativeStatsTests(unittest.TestCase):
+    def test_summon_without_owned_map_rejects_before_encoding(self):
+        actor = SimpleNamespace(id=901, effect_stats={4: 0}, effect_maxima={4: 0})
+        registration = {"actor_id": 901}
+        fight = SimpleNamespace(id=41, native_summon_registrations={901: registration})
+        serializer = NativeStats(
+            characters={}, monsters={}, fight_id=41, registrations={901: registration}
+        )
+        with patch(
+            "wakfu_server.combat_summon_stats.registered_summon_stats"
+        ) as encode:
+            with self.assertRaisesRegex(ValueError, "owned encounter map"):
+                serializer(actor, fight)
+            encode.assert_not_called()
+
     def test_registered_positive_summon_preserves_native_flag_on_bulk_refresh(self):
         source = dict(
             ref=3791,
@@ -47,12 +61,15 @@ class NativeStatsTests(unittest.TestCase):
         )
         fight = SimpleNamespace(
             id=41,
-            map_id=1134,
             actors={901: actor},
             native_summon_registrations={901: registration},
         )
         serializer = NativeStats(
-            characters={}, monsters={}, fight_id=41, registrations={901: registration}
+            characters={},
+            monsters={},
+            fight_id=41,
+            registrations={901: registration},
+            map_id=1134,
         )
         with patch(
             "wakfu_server.combat_summon_stats.snapshot_characteristics",

@@ -172,6 +172,7 @@ def _prepare_npc_turn(
                 monsters=authorities["monsters"],
                 fight_id=runtime.fight.id,
                 registrations=authorities["registrations"],
+                map_id=viewer_character["map_id"],
             )
             preparation_ms["stats"] = (time.monotonic() - stage_started) * 1000
             stage_started = time.monotonic()

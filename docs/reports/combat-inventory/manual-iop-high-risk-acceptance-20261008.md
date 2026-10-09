@@ -55,3 +55,16 @@ Fixed damage/healing numbers depend on effective level, native evaluated paramet
 Root reports automatic actual-route validation of Juicio FIRE-positive/EARTH-negative, Carga distances1/2/3, Uppercut→legal2MP retreat→Carga3 advancing3448 level1→2, Borrasca×2→Uppercut producing3462 level20→Jabs4785 applying family5 modifier+20 and consuming3462, and actual-granted8405 creation of8965 followed by legitimate movement/removal. Complete r47 build/deployment is being handled by root; verify the loaded release before manual execution. This document does not independently claim deployment or100% class completion.
 
 Events500 and1005 use explicit Wakemu server policies; the original server callers were not recovered. Actual-route results remain automatic evidence, not live-client acceptance. Consolidated final validation is pending the integration agent's report.
+
+## User observations on 2026-10-09
+
+- Preparation: Borrasca twice, Uppercut, then Jabs was manually accepted by the user (level 20 and consumption).
+- Distance-three Carga: the user reports Combo de PA level 1 after the sequence and level 2 after repeating it. This does not accept the expected single-sequence 1-to-2 transition; investigate the actual initial state and events before requesting another full test.
+- Juicio: Fulgor displayed Element Fire, already visible at combat start; Sacudida displayed Element Earth. Those labels alone do not establish activation or cleanup of state 8912. The previous conversational acceptance instruction was insufficiently observable; manual acceptance remains open.
+
+## Banner ownership clarification
+
+Estandarte de Valentía 8405 is granted by innate Guerrero 7553 through opening
+listener 340630 and family-649 child 397463 from level 36, independently of
+passive 8422. Portaestandarte modifies the action; it is not its unlock condition.
+The passive-equipped test above exercises that specific variant, not basic ownership.
