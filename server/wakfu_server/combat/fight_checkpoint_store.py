@@ -4,12 +4,36 @@ Recovery marks interrupted fights aborted; it never reconstructs a client fight
 or silently resumes a timeline. Runtime callbacks and network peers are omitted.
 """
 import json
+import time
 from psycopg.types.json import Jsonb
 from dataclasses import asdict
 from .combat_state_ledger import StateLedger
 
 
+def _trace_stage(
+    trace, stage, fight_id, *, elapsed_ms=None, count=None, operation="save"
+):
+    if trace is None:
+        return
+    event = {"fight_id": fight_id, "operation": operation}
+    if elapsed_ms is not None:
+        event["elapsed_ms"] = round(max(0.0, elapsed_ms), 3)
+    if count is not None:
+        event["count"] = count
+    try:
+        trace(stage, **event)
+    except Exception:
+        # Instrumentation is strictly observational.
+        pass
+
+
 def _plain(value):
+    from .combat_carrying import NativeCarryPair
+
+    if isinstance(value, NativeCarryPair):
+        # Persistent reciprocal carry authority is a typed immutable record,
+        # not a runtime callback. Preserve every field in the checkpoint.
+        return _plain(asdict(value))
     if isinstance(value, StateLedger):
         return dict(
             actor_id=value.actor_id,
@@ -28,7 +52,9 @@ def _plain(value):
 
 def snapshot(fight, *, runtime=None):
     state = {
-        key: _plain(value) for key, value in fight.__dict__.items() if key != "actors"
+        key: _plain(value)
+        for key, value in fight.__dict__.items()
+        if key not in ("actors", "native_rail_movement_authority")
     }
     state["actors"] = {
         str(identity): _plain(actor.__dict__)
@@ -55,7 +81,7 @@ class Checkpoints:
     def __init__(self, store):
         self.store = store
 
-    def save_shared(self, shared, account_id, generation, *, status=None):
+    def save_shared(self, shared, account_id, generation, *, status=None, trace=None):
         """Checkpoint one canonical shared FSM with a fight-wide revision.
 
         Each owner has a socket-local dispatcher closure, but all those
@@ -63,7 +89,15 @@ class Checkpoints:
         revision advancement under the shared fight lock so a joiner or the
         other owner cannot race a stale per-socket revision into storage.
         """
+        lock_started = time.monotonic()
+        _trace_stage(trace, "lock_wait", shared.fight.id)
         with shared.lock:
+            _trace_stage(
+                trace,
+                "lock_acquired",
+                shared.fight.id,
+                elapsed_ms=(time.monotonic() - lock_started) * 1000,
+            )
             if shared.checkpoint_terminal:
                 return shared.checkpoint_revision, True
             fight = shared.fight
@@ -73,6 +107,7 @@ class Checkpoints:
                 fight,
                 expected_revision=shared.checkpoint_revision,
                 runtime=shared.runtime,
+                trace=trace,
             )
             shared.checkpoint_revision = revision
             if status is not None:
@@ -82,6 +117,7 @@ class Checkpoints:
                     fight.id,
                     expected_revision=revision,
                     status=status,
+                    trace=trace,
                 )
                 shared.checkpoint_revision = revision
                 shared.checkpoint_terminal = True
@@ -126,10 +162,13 @@ class Checkpoints:
             )
         )
         durable = {row["character_id"]: row["account_id"] for row in rows}
+        from .combat_terminal_metadata import registered_summon_actor_ids
+
+        summon_ids = registered_summon_actor_ids(fight)
         controlled = {
             actor.id: actor.owner_id
             for actor in fight.actors.values()
-            if actor.controlled
+            if actor.controlled and actor.id not in summon_ids
         }
         if not durable or durable != controlled:
             raise ValueError("Checkpoint fight roster differs from durable members")
@@ -137,24 +176,87 @@ class Checkpoints:
             raise ValueError("Checkpoint participant team differs from durable member")
 
     def save(
-        self, account_id, generation, fight, *, expected_revision=None, runtime=None
+        self,
+        account_id,
+        generation,
+        fight,
+        *,
+        expected_revision=None,
+        runtime=None,
+        trace=None,
     ):
         if not any(
             a.controlled and a.owner_id == account_id for a in fight.actors.values()
         ):
             raise ValueError("Account does not own a fight participant")
+        snapshot_started = time.monotonic()
+        _trace_stage(trace, "snapshot_started", fight.id, count=len(fight.actors))
         state = snapshot(fight, runtime=runtime)
-        json.dumps(state, allow_nan=False)  # Reject non-finite floats before SQL.
+        _trace_stage(
+            trace,
+            "snapshot_finished",
+            fight.id,
+            elapsed_ms=(time.monotonic() - snapshot_started) * 1000,
+            count=len(fight.actors),
+        )
+        return self.save_prepared(
+            account_id,
+            generation,
+            fight,
+            state,
+            expected_revision=expected_revision,
+            trace=trace,
+        )
+
+    def save_prepared(
+        self,
+        account_id,
+        generation,
+        fight,
+        state,
+        *,
+        expected_revision=None,
+        trace=None,
+        allow_terminal_receipt=False,
+    ):
+        """Persist a detached immutable checkpoint through the same ownership CAS."""
+        if not any(
+            a.controlled and a.owner_id == account_id for a in fight.actors.values()
+        ):
+            raise ValueError("Account does not own a fight participant")
+        json.dumps(state, allow_nan=False)
         encoded = Jsonb(state)
+        pool_started = time.monotonic()
+        _trace_stage(trace, "pool_wait", fight.id, count=len(fight.actors))
         with self.store.connection() as db:
-            if (
-                db.execute(
-                    "SELECT id FROM combat_fights WHERE id=%s FOR UPDATE", (fight.id,)
+            _trace_stage(
+                trace,
+                "pool_acquired",
+                fight.id,
+                elapsed_ms=(time.monotonic() - pool_started) * 1000,
+                count=len(fight.actors),
+            )
+            _trace_stage(trace, "fight_query_started", fight.id)
+            try:
+                durable_fight = db.execute(
+                    "SELECT id,status FROM combat_fights WHERE id=%s FOR UPDATE",
+                    (fight.id,),
                 ).fetchone()
-                is None
-            ):
+            finally:
+                _trace_stage(trace, "fight_query_finished", fight.id)
+            if durable_fight is None:
                 raise ValueError("Missing durable fight")
-            session = self._session(db, account_id, generation)
+            session_started = time.monotonic()
+            _trace_stage(trace, "session_query_started", fight.id)
+            try:
+                session = self._session(db, account_id, generation)
+            finally:
+                _trace_stage(
+                    trace,
+                    "session_query_finished",
+                    fight.id,
+                    elapsed_ms=(time.monotonic() - session_started) * 1000,
+                )
             actor = fight.actors.get(session["character_id"])
             if actor is None or not actor.controlled or actor.owner_id != account_id:
                 raise ValueError(
@@ -175,6 +277,15 @@ class Checkpoints:
                 and (row["account_id"] != account_id or row["generation"] != generation)
             ):
                 raise ValueError("Stale shared fight writer generation")
+            if (
+                allow_terminal_receipt
+                and row is not None
+                and durable_fight["status"] == "finished"
+                and row["status"] == "ended"
+                and row["snapshot"].get("phase") == "finished"
+                and (expected_revision is None or row["revision"] >= expected_revision)
+            ):
+                return dict(revision=row["revision"], terminal=True)
             if row is None:
                 if expected_revision is not None:
                     raise ValueError("Fight checkpoint revision does not exist")
@@ -190,15 +301,35 @@ class Checkpoints:
                         self.store.now(),
                     ),
                 )
-                return 1
-            if row["status"] != "active" or row["revision"] != expected_revision:
-                raise ValueError("Stale or foreign fight checkpoint")
-            revision = row["revision"] + 1
-            db.execute(
-                "UPDATE fight_checkpoints SET account_id=%s,generation=%s,revision=%s,snapshot=%s,updated_at=%s WHERE fight_id=%s",
-                (account_id, generation, revision, encoded, self.store.now(), fight.id),
+                revision = 1
+            else:
+                if row["status"] != "active" or row["revision"] != expected_revision:
+                    raise ValueError("Stale or foreign fight checkpoint")
+                revision = row["revision"] + 1
+                db.execute(
+                    "UPDATE fight_checkpoints SET account_id=%s,generation=%s,revision=%s,snapshot=%s,updated_at=%s WHERE fight_id=%s",
+                    (
+                        account_id,
+                        generation,
+                        revision,
+                        encoded,
+                        self.store.now(),
+                        fight.id,
+                    ),
+                )
+            from .combat_captured_roster_checkpoint import (
+                persist_captured_roster_updates,
             )
-            return revision
+
+            persist_captured_roster_updates(db, fight)
+        _trace_stage(
+            trace,
+            "committed",
+            fight.id,
+            elapsed_ms=(time.monotonic() - pool_started) * 1000,
+            count=len(fight.actors),
+        )
+        return revision
 
     @staticmethod
     def _read_snapshot(raw):
@@ -234,17 +365,33 @@ class Checkpoints:
             )
 
     def end(
-        self, account_id, generation, fight_id, *, expected_revision, status="ended"
+        self,
+        account_id,
+        generation,
+        fight_id,
+        *,
+        expected_revision,
+        status="ended",
+        trace=None,
+        allow_terminal_receipt=False,
     ):
         if status not in ("ended", "aborted"):
             raise ValueError("Invalid checkpoint terminal status")
+        pool_started = time.monotonic()
+        _trace_stage(trace, "pool_wait", fight_id, operation="end")
         with self.store.connection() as db:
-            if (
-                db.execute(
-                    "SELECT id FROM combat_fights WHERE id=%s FOR UPDATE", (fight_id,)
-                ).fetchone()
-                is None
-            ):
+            _trace_stage(
+                trace,
+                "pool_acquired",
+                fight_id,
+                elapsed_ms=(time.monotonic() - pool_started) * 1000,
+                operation="end",
+            )
+            durable_fight = db.execute(
+                "SELECT id,status FROM combat_fights WHERE id=%s FOR UPDATE",
+                (fight_id,),
+            ).fetchone()
+            if durable_fight is None:
                 raise ValueError("Missing durable fight")
             self._session(db, account_id, generation)
             member = db.execute(
@@ -256,7 +403,7 @@ class Checkpoints:
             if member is None or member["session_generation"] not in (None, generation):
                 raise ValueError("Missing or stale shared fight participant")
             checkpoint = db.execute(
-                "SELECT account_id,generation FROM fight_checkpoints WHERE fight_id=%s",
+                "SELECT account_id,generation,status,revision,snapshot FROM fight_checkpoints WHERE fight_id=%s",
                 (fight_id,),
             ).fetchone()
             if checkpoint is None:
@@ -266,6 +413,15 @@ class Checkpoints:
                 or checkpoint["generation"] != generation
             ):
                 raise ValueError("Stale shared fight writer generation")
+            if (
+                allow_terminal_receipt
+                and status == "ended"
+                and durable_fight["status"] == "finished"
+                and checkpoint["status"] == "ended"
+                and checkpoint["snapshot"].get("phase") == "finished"
+                and checkpoint["revision"] >= expected_revision
+            ):
+                return checkpoint["revision"]
             cursor = db.execute(
                 "UPDATE fight_checkpoints SET account_id=%s,generation=%s,status=%s,revision=revision+1,updated_at=%s WHERE fight_id=%s AND revision=%s AND status='active'",
                 (
@@ -284,7 +440,15 @@ class Checkpoints:
                     "UPDATE combat_fights SET status='aborted' WHERE id=%s AND status IN ('placement','active')",
                     (fight_id,),
                 )
-            return expected_revision + 1
+            revision = expected_revision + 1
+        _trace_stage(
+            trace,
+            "committed",
+            fight_id,
+            elapsed_ms=(time.monotonic() - pool_started) * 1000,
+            operation="end",
+        )
+        return revision
 
     def recover_interrupted(self):
         """Startup-only; preserve last actor HP/resources while marking lost fights."""
@@ -293,7 +457,10 @@ class Checkpoints:
                 "UPDATE combat_fights SET status='aborted' WHERE status IN ('placement','active')"
             )
             cursor = db.execute(
-                "UPDATE fight_checkpoints SET status='aborted',revision=revision+1,updated_at=%s WHERE status='active'",
+                "UPDATE fight_checkpoints c SET status='aborted',"
+                "revision=revision+1,updated_at=%s WHERE c.status='active' "
+                "AND NOT EXISTS(SELECT 1 FROM combat_fights f "
+                "WHERE f.id=c.fight_id AND f.status='finished')",
                 (self.store.now(),),
             )
             return cursor.rowcount

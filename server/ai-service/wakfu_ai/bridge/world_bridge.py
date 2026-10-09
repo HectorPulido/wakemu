@@ -5,12 +5,16 @@ assets, actors or history are selected away to satisfy a packet-size limit.
 Large objects are streamed as verified content-addressed blocks.
 """
 import base64
+import importlib.util
 import hashlib
 import io
 import gzip
 import json
 from pathlib import Path
 import urllib.request
+import http.client
+import socket
+import urllib.parse
 import urllib.error
 import uuid
 import tempfile
@@ -20,6 +24,8 @@ import re
 import threading
 import time
 from types import SimpleNamespace
+from contextvars import ContextVar
+from contextlib import contextmanager
 
 from ..context.native_context import encode
 from ..context.native_fingerprint import fingerprint
@@ -38,15 +44,41 @@ def _file_hash(path):
     return checksum.hexdigest()
 
 
+class DatabaseCatalogSource:
+    """Read immutable catalog bytes only when the receiver needs an asset."""
+
+    def __init__(self, revision, path, digest, size):
+        self.revision, self.path, self.digest, self.size = revision, path, digest, size
+
+    def open(self, mode="rb"):
+        if mode != "rb":
+            raise ValueError("Catalog context sources are binary and read-only")
+        from wakfu_server import native_catalog
+
+        with native_catalog._database().connection() as db:
+            row = db.execute(
+                "SELECT raw FROM native_catalog_documents WHERE revision=%s AND path=%s",
+                (self.revision, self.path),
+            ).fetchone()
+        if row is None:
+            raise ValueError("Missing pinned database catalog document")
+        raw = bytes(row["raw"])
+        if len(raw) != self.size or hashlib.sha256(raw).hexdigest() != self.digest:
+            raise ValueError("Database catalog context checksum mismatch")
+        return io.BytesIO(raw)
+
+
 class CompleteContextExporter:
-    def __init__(self, roots, *, files=None, cache_root=None):
+    def __init__(self, roots, *, files=None, cache_root=None, source_only=False):
         if not isinstance(roots, dict) or not roots:
             raise ValueError("Complete context needs native source roots")
         self.roots = {name: Path(path) for name, path in roots.items()}
         self.files = {name: Path(path) for name, path in (files or {}).items()}
+        self.source_only = source_only
         self.cache = {}
         self._snapshot_identities = {}
         self._cache_index = None
+        self._cache_index_identity = None
         if cache_root is None:
             self._snapshots = tempfile.TemporaryDirectory(
                 prefix="wakfu-native-catalog-"
@@ -93,6 +125,7 @@ class CompleteContextExporter:
 
     def _restore_cache_index(self):
         try:
+            index_identity = self._file_identity(self._cache_index.stat())
             records = json.loads(self._cache_index.read_bytes())
             if not isinstance(records, list):
                 return
@@ -136,6 +169,9 @@ class CompleteContextExporter:
                 self._snapshot_identities[record["sha256"]] = tuple(
                     record["snapshotIdentity"]
                 )
+            self._cache_index_identity = index_identity
+        except TimeoutError:
+            raise
         except (OSError, ValueError, UnicodeError):
             # A missing/damaged hint can only cause a full recapture. It can
             # never remove a source or truncate the freshly enumerated graph.
@@ -167,6 +203,7 @@ class CompleteContextExporter:
         try:
             check()
             os.replace(temporary, self._cache_index)
+            self._cache_index_identity = self._file_identity(self._cache_index.stat())
         finally:
             temporary.unlink(missing_ok=True)
 
@@ -298,6 +335,17 @@ class CompleteContextExporter:
                         self._inventory_condition.notify_all()
 
     def _inventory_scan(self):
+        # Provisioning can publish an index while this exporter is already
+        # alive. Import those verified hints before fresh full enumeration;
+        # source signatures and snapshot identities are still checked below.
+        if self._cache_index is not None:
+            try:
+                identity = self._file_identity(self._cache_index.stat())
+            except FileNotFoundError:
+                identity = None
+            if identity is not None and identity != self._cache_index_identity:
+                self._restore_cache_index()
+        check()
         entries, sources, names = [], {}, set()
 
         def files(root):
@@ -401,11 +449,75 @@ class CompleteContextExporter:
             entries.append(dict(path=name, sha256=digest, size=stat.st_size))
             sources[digest] = snapshot
 
+        database_catalog = None
+        protocol_root = None
+        if not self.source_only and "catalog" in self.roots:
+            from wakfu_server.paths import DATA_ROOT
+
+            # Older sealed-file world images do not ship the optional database
+            # catalogue module. Keep their existing complete file authority;
+            # an installed module still fails closed on database errors.
+            if (
+                self.roots["catalog"].resolve() == DATA_ROOT.resolve()
+                and importlib.util.find_spec("wakfu_server.native_catalog") is not None
+            ):
+                from wakfu_server import native_catalog
+
+                protocol_root = DATA_ROOT.resolve()
+                revision = native_catalog.release()
+                with native_catalog._database().connection() as db:
+                    database_catalog = db.execute(
+                        "SELECT path,sha256,source_bytes FROM native_catalog_documents "
+                        "WHERE revision=%s ORDER BY path",
+                        (revision,),
+                    ).fetchall()
+                if not database_catalog:
+                    raise ValueError("Empty authoritative database catalog")
         for name, root in sorted(self.roots.items()):
+            if database_catalog is not None and name == "catalog":
+                for row in database_catalog:
+                    asset_name = name + "/" + row["path"]
+                    names.add(asset_name)
+                    entries.append(
+                        dict(
+                            path=asset_name,
+                            sha256=row["sha256"],
+                            size=row["source_bytes"],
+                        )
+                    )
+                    sources[row["sha256"]] = DatabaseCatalogSource(
+                        revision,
+                        row["path"],
+                        row["sha256"],
+                        row["source_bytes"],
+                    )
+                continue
             if not root.is_dir():
                 raise ValueError("Missing complete context source root: " + name)
             for relative, path in files(root):
+                if (
+                    protocol_root is not None
+                    and path.suffix == ".json"
+                    and path.resolve().is_relative_to(protocol_root)
+                ):
+                    continue
                 register(name + "/" + relative, path)
+            if database_catalog is not None and protocol_root.is_relative_to(
+                root.resolve()
+            ):
+                prefix = protocol_root.relative_to(root.resolve()).as_posix()
+                for row in database_catalog:
+                    asset_name = name + "/" + prefix + "/" + row["path"]
+                    if asset_name in names:
+                        raise ValueError("Duplicate database catalog context path")
+                    names.add(asset_name)
+                    entries.append(
+                        dict(
+                            path=asset_name,
+                            sha256=row["sha256"],
+                            size=row["source_bytes"],
+                        )
+                    )
         for name, path in sorted(self.files.items()):
             if not path.is_file():
                 raise ValueError("Missing complete context source file: " + name)
@@ -431,10 +543,23 @@ class CompleteContextExporter:
 
 class ContextTransport:
     def __init__(
-        self, url, *, timeout=10, block_bytes=1024 * 1024, native_graph_parts=False
+        self,
+        url,
+        *,
+        timeout=10,
+        block_bytes=1024 * 1024,
+        native_graph_parts=False,
+        persistent=True
     ):
         if type(block_bytes) is not int or not 1 <= block_bytes <= 2 * 1024 * 1024:
             raise ValueError("Invalid context transport block size")
+        if type(persistent) is not bool:
+            raise ValueError("Invalid persistent transport switch")
+        self.persistent = persistent
+        self._connection = None
+        self.metrics = dict(
+            requests=0, tcpOpens=0, sentBytes=0, receivedBytes=0, requestSeconds=0.0
+        )
         self.url = url.rstrip("/")
         self.timeout = timeout
         self.block_bytes = block_bytes
@@ -453,19 +578,140 @@ class ContextTransport:
             self._upload(io.BytesIO(body), digest, len(body))
         return self.instance_bytes(_json_bytes(manifest))
 
-    def request(self, endpoint, payload):
-        check()
-        request = urllib.request.Request(
-            self.url + endpoint,
-            data=_json_bytes(payload),
-            headers={"Content-Type": "application/json"},
-        )
+    def __del__(self):
+        # Explicit turn cleanup is primary; abandoned fixtures and standalone
+        # callers must not leak their owned socket during object collection.
+        connection = getattr(self, "_connection", None)
+        if connection is not None:
+            connection.close()
+
+    def close(self):
+        connection, self._connection = self._connection, None
+        if connection is not None:
+            connection.close()
+
+    def _timeout(self, connection=None):
         available = remaining()
         timeout = self.timeout if available is None else min(self.timeout, available)
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            result = json.load(response)
+        if connection is not None:
+            connection.timeout = timeout
+            if connection.sock is not None:
+                connection.sock.settimeout(timeout)
+        return timeout
+
+    def request(self, endpoint, payload):
         check()
-        return result
+        body = _json_bytes(payload)
+        check()
+        started = time.monotonic()
+        self.metrics["requests"] += 1
+        self.metrics["sentBytes"] += len(body)
+        try:
+            if not self.persistent:
+                request = urllib.request.Request(
+                    self.url + endpoint,
+                    data=body,
+                    headers={"Content-Type": "application/json"},
+                )
+                self.metrics["tcpOpens"] += 1
+                with urllib.request.urlopen(
+                    request, timeout=self._timeout()
+                ) as response:
+                    data = response.read()
+                self.metrics["receivedBytes"] += len(data)
+                check()
+                return json.loads(data)
+            parsed = urllib.parse.urlsplit(self.url)
+            if parsed.scheme not in ("http", "https") or not parsed.hostname:
+                raise ValueError("Invalid native transport URL")
+            connection = self._connection
+            if connection is None:
+                cls = (
+                    http.client.HTTPSConnection
+                    if parsed.scheme == "https"
+                    else http.client.HTTPConnection
+                )
+                connection = self._connection = cls(
+                    parsed.hostname, parsed.port, timeout=self._timeout()
+                )
+            expired = threading.Event()
+            peer_socket = connection.sock
+
+            def expire():
+                expired.set()
+                # Socket timeouts alone can be renewed indefinitely by a
+                # dripping peer. Interrupt this request at its absolute limit.
+                peer = peer_socket if peer_socket is not None else connection.sock
+                if peer is not None:
+                    try:
+                        peer.shutdown(socket.SHUT_RDWR)
+                    except OSError:
+                        pass
+                connection.close()
+
+            timer = threading.Timer(self._timeout(), expire)
+            timer.daemon = True
+            timer.start()
+            try:
+                self._timeout(connection)
+                if connection.sock is None:
+                    connection.connect()
+                    self.metrics["tcpOpens"] += 1
+                peer_socket = connection.sock
+                check()
+                if expired.is_set():
+                    raise TimeoutError("Native HTTP request deadline reached")
+                connection.request(
+                    "POST",
+                    parsed.path.rstrip("/") + endpoint,
+                    body=body,
+                    headers={
+                        "Content-Type": "application/json",
+                        "X-Wakfu-Keepalive": "1",
+                    },
+                )
+                self._timeout(connection)
+                response = connection.getresponse()
+                chunks = []
+                while True:
+                    self._timeout(connection)
+                    chunk = response.read1(65536)
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                    self.metrics["receivedBytes"] += len(chunk)
+                    check()
+                data = b"".join(chunks)
+                if response.length not in (None, 0):
+                    raise http.client.IncompleteRead(data, response.length)
+                check()
+                if expired.is_set():
+                    raise TimeoutError("Native HTTP request deadline reached")
+                if response.status >= 400:
+                    raise urllib.error.HTTPError(
+                        self.url + endpoint,
+                        response.status,
+                        response.reason,
+                        response.headers,
+                        io.BytesIO(data),
+                    )
+                if response.will_close:
+                    self.close()
+                return json.loads(data)
+            except BaseException as error:
+                self.close()
+                if expired.is_set():
+                    raise TimeoutError(
+                        "Native HTTP request deadline reached"
+                    ) from error
+                if isinstance(error, http.client.HTTPException):
+                    raise urllib.error.URLError(error) from error
+                raise
+            finally:
+                timer.cancel()
+                timer.join()
+        finally:
+            self.metrics["requestSeconds"] += time.monotonic() - started
 
     def _retry_request(self, endpoint, payload):
         for attempt in range(3):
@@ -522,10 +768,25 @@ class ContextTransport:
             self._upload(io.BytesIO(payload), digest, len(payload))
         return digest
 
+    def _measure_context(self, stage, operation):
+        started = time.monotonic()
+        try:
+            return operation()
+        finally:
+            phases = self.metrics.setdefault("contextPreparationMs", {})
+            phases[stage] = phases.get(stage, 0.0) + (time.monotonic() - started) * 1000
+
     def catalog(self, exporter):
-        manifest, sources = exporter.inventory()
-        digest = self.bytes(_json_bytes(manifest))
-        sealed = self._retry_request("/v3/context/seal", dict(sha256=digest))
+        manifest, sources = self._measure_context("inventory", exporter.inventory)
+        manifest_bytes = self._measure_context(
+            "manifest_encoding", lambda: _json_bytes(manifest)
+        )
+        digest = self._measure_context(
+            "manifest_transfer", lambda: self.bytes(manifest_bytes)
+        )
+        sealed = self._measure_context(
+            "seal", lambda: self._retry_request("/v3/context/seal", dict(sha256=digest))
+        )
         if (
             not isinstance(sealed, dict)
             or type(sealed.get("complete")) is not bool
@@ -560,8 +821,13 @@ class ContextTransport:
             check()
             entry = objects[checksum]
             with sources[checksum].open("rb") as source:
-                self._upload(source, checksum, entry["size"])
-        sealed = self._retry_request("/v3/context/seal", dict(sha256=digest))
+                self._measure_context(
+                    "asset_transfer",
+                    lambda: self._upload(source, checksum, entry["size"]),
+                )
+        sealed = self._measure_context(
+            "seal", lambda: self._retry_request("/v3/context/seal", dict(sha256=digest))
+        )
         if sealed.get("complete") is not True or sealed.get("entries") != len(entries):
             raise ValueError("Native context catalogue is incomplete")
         return digest
@@ -588,6 +854,19 @@ class ContextTransport:
         return self._upload(io.BytesIO(compressed), digest, len(compressed))
 
 
+_TURN_CATALOGUES = ContextVar("wakfu_native_turn_catalogues", default=None)
+
+
+@contextmanager
+def turn_catalogue_scope():
+    """Reuse complete immutable manifests only within one owner turn."""
+    token = _TURN_CATALOGUES.set({})
+    try:
+        yield
+    finally:
+        _TURN_CATALOGUES.reset(token)
+
+
 class NativeSession:
     """One source-bound native oracle session for service-directed exploration.
 
@@ -608,6 +887,12 @@ class NativeSession:
         catalog_manifest=None
     ):
         self.oracle, self.transport = oracle, transport
+        self.preparation_stages_ms = {}
+        self.native_query_metrics = {}
+        transport_metrics = getattr(transport, "metrics", None)
+        if isinstance(transport_metrics, dict):
+            transport_metrics["nativeSessionPreparationMs"] = self.preparation_stages_ms
+            transport_metrics["nativeQueryMetrics"] = self.native_query_metrics
         self.policy, self.policy_version = policy, policy_version
         self.fight_instance_id = fight_instance_id
         check()
@@ -616,19 +901,43 @@ class NativeSession:
             or not re.fullmatch(r"[0-9a-f]{64}", catalog_manifest)
         ):
             raise ValueError("Invalid complete native catalogue manifest")
+        catalogue_scope = _TURN_CATALOGUES.get()
+        catalogue_key = (
+            id(exporter),
+            getattr(transport, "url", None),
+            fight_instance_id,
+        )
+        if catalog_manifest is None and catalogue_scope is not None:
+            catalog_manifest = catalogue_scope.get(catalogue_key)
         # A turn can reuse its fully transferred catalogue. The receiver
         # still verifies the complete manifest on each new search session;
         # runtime snapshots and source guards remain fresh for every action.
         self.catalog = (
-            transport.catalog(exporter)
+            self._measure_preparation(
+                "catalog_transfer", lambda: transport.catalog(exporter)
+            )
             if catalog_manifest is None
             else catalog_manifest
         )
+        if catalogue_scope is not None:
+            catalogue_scope[catalogue_key] = self.catalog
         self.request_id = uuid.uuid4().hex
         self.states = {}
         self.state_identities = {}
-        self.source = self._source_hash()
-        self.root = self.register(oracle.runtime)
+        self.source = self._measure_preparation("source_hash", self._source_hash)
+        self.root = self._measure_preparation(
+            "root_register", lambda: self.register(oracle.runtime)
+        )
+
+    def _measure_preparation(self, stage, operation):
+        started = time.monotonic()
+        try:
+            return operation()
+        finally:
+            self.preparation_stages_ms[stage] = (
+                self.preparation_stages_ms.get(stage, 0.0)
+                + (time.monotonic() - started) * 1000
+            )
 
     def _source_hash(self):
         return fingerprint(
@@ -647,7 +956,7 @@ class NativeSession:
 
     def guard(self):
         check()
-        if self.source != self._source_hash():
+        if self.source != self._measure_native_query("source_guard", self._source_hash):
             raise ValueError("Native oracle source changed during decision")
 
     def register(self, runtime, *, transition=None):
@@ -684,15 +993,20 @@ class NativeSession:
         elif hasattr(self.oracle, "complete_state_bytes") and hasattr(
             self.transport, "instance_bytes"
         ):
-            digest = self.transport.instance_bytes(
-                self.oracle.complete_state_bytes(runtime)
+            payload = self._measure_preparation(
+                "state_encoding", lambda: self.oracle.complete_state_bytes(runtime)
+            )
+            digest = self._measure_preparation(
+                "state_publication", lambda: self.transport.instance_bytes(payload)
             )
         else:
             digest = self.transport.instance(self.oracle.complete_state(runtime))
         if digest not in self.states:
             self.states[digest] = runtime
             self.state_identities[digest] = (
-                self.oracle.state_identity(runtime)
+                self._measure_preparation(
+                    "runtime_identity", lambda: self.oracle.state_identity(runtime)
+                )
                 if hasattr(self.oracle, "state_identity")
                 else hashlib.sha256(
                     _json_bytes(self.oracle.complete_state(runtime))
@@ -888,7 +1202,38 @@ class NativeSession:
             id=request["id"], supported=True, result=result, **self._budget_hint()
         )
 
+    def _measure_native_query(self, name, operation):
+        started, cpu_started = time.monotonic(), time.thread_time()
+        failed = False
+        try:
+            return operation()
+        except BaseException:
+            failed = True
+            raise
+        finally:
+            wall_ms = max(0.0, (time.monotonic() - started) * 1000)
+            cpu_ms = max(0.0, (time.thread_time() - cpu_started) * 1000)
+            metric = self.native_query_metrics.setdefault(
+                name,
+                dict(calls=0, failures=0, wallMs=0.0, threadCpuMs=0.0, maxWallMs=0.0),
+            )
+            metric["calls"] += 1
+            metric["failures"] += int(failed)
+            metric["wallMs"] += wall_ms
+            metric["threadCpuMs"] += cpu_ms
+            metric["maxWallMs"] = max(metric["maxWallMs"], wall_ms)
+
     def _query(self, operation, key, request):
+        name = operation
+        action = request.get("action")
+        if operation == "preview" and isinstance(action, dict):
+            kind = action.get("type")
+            name += ":" + (kind if kind in ("cast", "move", "end_turn") else "other")
+        return self._measure_native_query(
+            name, lambda: self._query_unmeasured(operation, key, request)
+        )
+
+    def _query_unmeasured(self, operation, key, request):
         runtime = self.states[key]
         if operation == "state":
             result = self.describe(key)
@@ -901,9 +1246,14 @@ class NativeSession:
                     packets,
                     transaction,
                     samples,
-                ) = self.oracle.preview_with_evidence(runtime, action)
+                ) = self._measure_native_query(
+                    "preview_execution",
+                    lambda: self.oracle.preview_with_evidence(runtime, action),
+                )
             else:
-                private, packets, transaction = self.oracle.preview(runtime, action)
+                private, packets, transaction = self._measure_native_query(
+                    "preview_execution", lambda: self.oracle.preview(runtime, action)
+                )
             result = self.describe(
                 self.register(
                     private,
@@ -949,6 +1299,48 @@ class NativeSession:
                     for spell, level in sorted(owned.items())
                 ],
             )
+            prerequisite_provider = getattr(
+                self.oracle, "native_casting_root_prerequisites", None
+            )
+            prerequisites = (
+                self._measure_native_query(
+                    "repertoire_casting_prerequisites",
+                    lambda: prerequisite_provider(
+                        runtime.fight,
+                        actor_id,
+                        source_state=key,
+                        owned_spells=owned,
+                    ),
+                )
+                if callable(prerequisite_provider)
+                else None
+            )
+            if prerequisites is not None:
+                metadata["nativeCastingPrerequisites"] = prerequisites
+            from ..planning.casting_prerequisites import (
+                all_owned_spells_unavailable,
+            )
+
+            all_unavailable = all_owned_spells_unavailable(
+                metadata,
+                dict(key=key, stateRevision=runtime.fight.sequence),
+                actor_id,
+            )
+            target_envelope_provider = getattr(
+                self.oracle, "native_target_envelope", None
+            )
+            target_envelope = (
+                self._measure_native_query(
+                    "repertoire_target_envelope",
+                    lambda: target_envelope_provider(
+                        runtime.fight, actor_id, action_id=runtime.action_id
+                    ),
+                )
+                if callable(target_envelope_provider) and not all_unavailable
+                else None
+            )
+            if target_envelope is not None:
+                metadata["nativeTargetEnvelope"] = target_envelope
             result = dict(nativeMetadata=self.transport.instance(encode(metadata)))
         elif operation == "project_turn":
             target = request.get("actorId")
@@ -961,7 +1353,9 @@ class NativeSession:
                 or not 1 <= maximum <= len(runtime.fight.actors)
             ):
                 raise ValueError("Invalid native turn projection")
-            private = self.oracle.fork(runtime=runtime)
+            private = self._measure_native_query(
+                "projection_fork", lambda: self.oracle.fork(runtime=runtime)
+            )
             skipped = []
             for _ in range(maximum):
                 if private.fight.phase != "active" or private.fight.current is None:
@@ -969,7 +1363,10 @@ class NativeSession:
                 if private.fight.current.id == target:
                     break
                 skipped.append(private.fight.current.id)
-                private, _, _ = self.oracle.preview(private, {"type": "end_turn"})
+                private, _, _ = self._measure_native_query(
+                    "projection_boundary",
+                    lambda: self.oracle.preview(private, {"type": "end_turn"}),
+                )
             if private.fight.current is None or private.fight.current.id != target:
                 raise ValueError("Native turn projection horizon exhausted")
             result = dict(

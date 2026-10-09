@@ -2,7 +2,7 @@
 
 ## Fuente existente que se había omitido
 
-`server/protocol/monster-encyclopedia.json.gz` ya contiene **2874 monstruos,16138 filas de drops de combate y2204 tablas externas**. Se obtiene de los datos instalados mediante `sniffer/java/ExportMonsterEncyclopedia.java` y `server/tools/export-monster-encyclopedia.py`. El exportador carga localmente `aMb/aMf` y`fFc`; no necesita conexión con servidores oficiales. No se regeneró el catálogo ni se modificó el cliente durante esta revisión. Además se ejecutó un probe offline que volvió a cargar los datos binarios actuales con`apw/aMb` y confirmó directamente las cuatro filas de Esquirlas de Kralaman, independientes del JSON exportado.
+`server/protocol/monster-encyclopedia.json` ya contiene **2874 monstruos,16138 filas de drops de combate y2204 tablas externas**. Se obtiene de los datos instalados mediante `sniffer/java/ExportMonsterEncyclopedia.java` y `server/tools/export-monster-encyclopedia.py`. El exportador carga localmente `aMb/aMf` y`fFc`; no necesita conexión con servidores oficiales. No se regeneró el catálogo ni se modificó el cliente durante esta revisión. Además se ejecutó un probe offline que volvió a cargar los datos binarios actuales con`apw/aMb` y confirmó directamente las cuatro filas de Esquirlas de Kralaman, independientes del JSON exportado.
 
 Cada monstruo tiene`ref`, `family_id` y`combat_drops`. Cada fila conserva referencia, probabilidad, número de tiradas, cantidades mínima/máxima, bandera de tabla externa, criterios simples/complejos y campos nativos todavía sin nombre semántico. **Los drops se relacionan por referencia de monstruo**, no basta asignar la misma lista a toda su familia. Los datos permiten una política del servidor apoyada en el catálogo real.
 

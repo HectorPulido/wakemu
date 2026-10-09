@@ -21,7 +21,22 @@ class NativeGroupCellRoutingTests(unittest.TestCase):
                     )
 
     def test_unknown_runner_and_invalid_contract_not_misrouted(self):
-        self.assertFalse(native_group_cell_mode(dict(effect_class=341)))
+        for count, raw, expected in (
+            (0, None, "actors"),
+            (1, None, "actors"),
+            (2, 1, "actors"),
+            (2, 0, "cell"),
+            (2, 2, "none"),
+            (3, -1, "none"),
+        ):
+            effect = {"effect_class": 341, "parameter_count": count}
+            if raw is not None:
+                effect["parameters"] = [17, raw, 99]
+            with self.subTest(count=count, raw=raw):
+                self.assertEqual(native_group_route(effect), expected)
+                self.assertEqual(native_group_cell_mode(effect), expected == "cell")
+        with self.assertRaises(UnsupportedEffectGroup):
+            native_group_route({"effect_class": 341, "parameter_count": 2})
         with self.assertRaises(UnsupportedEffectGroup):
             native_group_cell_mode(
                 dict(effect_class=330, parameter_count=3, parameters=[0] * 4)

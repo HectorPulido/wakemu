@@ -33,6 +33,10 @@ class NativeEventSource:
     effect_action_id: int | None = None
     zone_trigger_policy: dict | None = None
     effect_flags: tuple[int, ...] | None = None  # Actual source PK/eVn REP flags.
+    native_definition_present: bool | None = None
+    native_definition_variant: int | None = None  # Actual PK.dd(1) source value.
+    native_execution_status: int | None = None  # Actual eZR.cYh when observed.
+    native_execution_blocked: bool | None = None  # Proven cYh()==7 predicate.
     final_modifier: object = (
         None  # Transient live faq accumulator; never retained on Fight.
     )
@@ -41,10 +45,28 @@ class NativeEventSource:
     )
 
     def validate(self):
+        synthetic_payment = (
+            self.uid == -1
+            and self.generic_effect == -1
+            and self.native_definition_present is False
+            and self.native_container == {"present": False}
+            and self.effect_action_id is None
+            and self.effect_flags is None
+            and self.native_execution_status == -1
+            and isinstance(self.cost_source, dict)
+            and self.cost_source.get("runner_class") == "eWf"
+            and self.cost_source.get("spell_context") == {"present": False}
+            and isinstance(self.cost_source.get("action_costs"), dict)
+            and set(self.cost_source["action_costs"]) == {"ap", "mp", "wp"}
+            and all(
+                type(v) is int and -128 <= v <= 127
+                for v in self.cost_source["action_costs"].values()
+            )
+        )
         if (
             self.native_events_verified is not True
             or type(self.uid) is not int
-            or not 0 < self.uid < (1 << 63)
+            or not (0 < self.uid < (1 << 63) or synthetic_payment)
         ):
             raise ValueError("Verified native running-effect event source required")
         if (
@@ -66,6 +88,26 @@ class NativeEventSource:
             type(v) is not int or v < 0 for v in self.event_ids
         ):
             raise ValueError("Native source event IDs required")
+
+        for observed in (self.native_definition_present, self.native_execution_blocked):
+            if observed is not None and type(observed) is not bool:
+                raise ValueError("Invalid native source predicate observation")
+        if self.native_definition_variant is not None and (
+            type(self.native_definition_variant) is not int
+            or not -(1 << 63) <= self.native_definition_variant < (1 << 63)
+        ):
+            raise ValueError("Invalid native source PK variant")
+        if self.native_execution_status is not None and (
+            type(self.native_execution_status) is not int
+            or not -128 <= self.native_execution_status <= 127
+        ):
+            raise ValueError("Invalid native source execution status")
+        if (
+            self.native_execution_status is not None
+            and self.native_execution_blocked is not None
+            and self.native_execution_blocked != (self.native_execution_status == 7)
+        ):
+            raise ValueError("Inconsistent native source blocked observation")
 
         if self.final_modifier is not None:
             from .combat_final_modifier import NativeFinalModifier
@@ -95,8 +137,15 @@ class NativeExternalEvent:
     suppresses_level_one: bool = False
     suppresses_all: bool = False
     suppressed: bool = False
+    cast_boundary_context: dict | None = None
 
     def validate(self):
+        if self.cast_boundary_context is not None:
+            from .combat_cast_events import validate_cast_boundary_context
+
+            validate_cast_boundary_context(self.cast_boundary_context)
+            if self.event_ids not in ((1024,), (1025,)):
+                raise ValueError("Cast boundary facts require external cast event")
         if (
             type(self.manager_actor_id) is not int
             or self.manager_actor_id == 0
@@ -195,7 +244,7 @@ class NativeEventReplay:
                 queued.append((entry, row, definition))
         # Native eZX.a removes queued listeners before sorting/activating survivors.
         if remove:
-            self.retention.removal().remove(remove)
+            self.retention.removal(view).remove(remove)
         queued.sort(
             key=lambda item: activation_order_key(
                 priority=item[2]["event_priority"],
@@ -218,7 +267,13 @@ class NativeEventReplay:
                     or runner.family != source.effect_action_id
                 ):
                     raise ValueError("Native source runner amount identity mismatch")
-                source = replace(source, value=runner.value)
+                from .combat_runner_target import current_runner_target
+
+                source = replace(
+                    source,
+                    value=runner.value,
+                    target_id=current_runner_target(runner, source.target_id),
+                )
             if entry.uid not in self.retention.fight.native_owned_group_effects:
                 continue
             count = row.get("execution_count")
@@ -252,8 +307,20 @@ class NativeEventReplay:
             )
             if caster is None:
                 raise ValueError("Native group clone requires caster actor")
+            from .combat_state_managers import registered_area_pv
+
+            target_manager = (
+                (
+                    self.retention.fight.actors.get(target)
+                    or registered_area_pv(self.retention.fight, target)
+                )
+                if target is not None
+                else None
+            )
+            if target is not None and target_manager is None:
+                raise ValueError("Native group clone target manager absent")
             cell = (
-                self.retention.fight.actors[target].position
+                target_manager.position
                 if target is not None
                 else (
                     source.cell
@@ -267,6 +334,15 @@ class NativeEventReplay:
                 else None
             )
             if source_context is not None:
+                from .combat_state_runner import NativeRunnerStateLevel
+
+                if isinstance(source.runner_modifier, NativeRunnerStateLevel):
+                    source_context[
+                        "native_apply_state_reference"
+                    ] = source.runner_modifier.reference
+                    source_context["native_source_is_eWu"] = True
+                elif source.runner_modifier is not None:
+                    source_context["native_source_is_eWu"] = False
                 source_context.pop("final_modifier", None)
                 source_context.pop("runner_modifier", None)
             invocation = replace(
@@ -276,6 +352,11 @@ class NativeEventReplay:
                 cell=cell,
                 base_uid=entry.uid,
                 native_trigger_context=(source_context),
+                native_cast_boundary_context=(
+                    source.cast_boundary_context
+                    if isinstance(source, NativeExternalEvent)
+                    else None
+                ),
             )
             key = self.history.enter(entry.generic_effect, caster, target)
             if key is None:

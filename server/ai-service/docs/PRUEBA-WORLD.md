@@ -2,6 +2,33 @@
 
 Estado actualizado y evidencia: [README de E18](../../../docs/soluciones-wakemu/E18-ia-tactica-enemigos/README.md).
 
+## Actualización 2026-10-08
+
+AI `a4ab93efe1a7`, world `f126442d1960`; catálogo completo de 18.037 entradas
+sellado. `/health` confirma 16 búsquedas activas y 64 conexiones/hilos HTTP.
+449 pruebas generales OK y 5 pruebas HTTP del ajuste final OK. Mediana Docker
+de solicitud mínima persistente: 0,318 ms con `TCP_NODELAY`.
+
+La integración nativa y la aceptación del turno lento siguen en validación.
+El motor actual carece de casting root 361119 para Wonejo spell 7962; las
+expectativas de ataques Wonejo de la prueba histórica inferior no se aplican
+a esta imagen hasta completar esa autoridad nativa. No fabricar efectos.
+
+Prueba de movimiento completa cuando se confirme el banco nativo:
+
+1. Entrar al mapa donde se observó el fallo, comprobarlo con `!pos`.
+2. Crear un grupo con `!mob 5462 1 2` (dos jalatós nivel 1, sin habilidades).
+3. Empezar combate y dejar varias celdas libres entre personaje y enemigos.
+4. Pasar turnos del personaje. Ambos enemigos deben acercarse por rutas
+   legales y terminar sus turnos; al estar adyacentes pueden pasar sin atacar.
+5. Derrotar uno y completar la pelea. El otro debe seguir actuando sobre el
+   roster actualizado. Iniciar otra pelea y repetir: observar primer turno
+   y siguientes, sin arrastrar la identidad o acciones del encuentro anterior.
+6. Informar mapa, número de combate y hora si aparece otro turno sin movimiento
+   estando lejos con PM, o una espera larga; no acreditar ataques pendientes.
+
+Estado y evidencia anteriores, conservados como historia:
+
 World `3af10843cbc6`, AI `26576b10f2bb`. Sin reinicio nuevo de world;
 contador propio **1/3**. Catálogo completo sellado: 13.269 entradas.
 Suite final: **459 pruebas OK**, 115,552 s de tests/116,222 s de validación,

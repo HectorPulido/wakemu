@@ -7,6 +7,7 @@ from wakfu_server.combat_native_timing_context import (
     native_definition_timing,
 )
 from wakfu_server.combat_state_timing import StateTimer
+from wakfu_server import native_catalog
 
 
 class NativeTimingTests(unittest.TestCase):
@@ -14,7 +15,9 @@ class NativeTimingTests(unittest.TestCase):
         import json
         from wakfu_server.paths import DATA_ROOT
 
-        catalog = json.loads((DATA_ROOT / "spell-effect-trees.json").read_text())
+        catalog = json.loads(
+            native_catalog.read_text(DATA_ROOT / "spell-effect-trees.json")
+        )
         for reference in ("167716", "339526"):
             effect = catalog["effects"][reference]
             for level in (0, 1, 200, 32767):
@@ -43,16 +46,14 @@ class NativeTimingTests(unittest.TestCase):
         )
 
     def test_real_state_context_uses_state_profile_clock_and_carrier_defaults(self):
-        import json, gzip
+        import json
         from wakfu_server.paths import DATA_ROOT
         from wakfu_server.combat_state_ledger import StateLedger
 
         catalog = json.loads(
-            gzip.decompress(
-                (DATA_ROOT / "combat-state-definitions.json.gz").read_bytes()
-            )
+            native_catalog.read_bytes(DATA_ROOT / "combat-state-definitions.json")
         )
-        with open(DATA_ROOT / "spell-effect-trees.json") as f:
+        with native_catalog.open(DATA_ROOT / "spell-effect-trees.json") as f:
             effect = json.load(f)["effects"]["167716"]
         first = NS(id=11, turn_count=2, hp=100, state_ledger=StateLedger(11))
         second = NS(id=22, turn_count=1, hp=100, state_ledger=StateLedger(22))

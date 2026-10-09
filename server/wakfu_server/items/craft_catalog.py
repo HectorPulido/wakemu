@@ -3,6 +3,7 @@
 Loading a recipe does not authorize it. Raw criteria, ingredient qualifiers
 and timing fields remain available for the native rule adapter to interpret.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from copy import deepcopy
 from dataclasses import dataclass
@@ -60,7 +61,7 @@ class CraftCatalog:
 
 
 def load_catalog(path=DATA_ROOT / "craft-recipes.json"):
-    document = json.loads(Path(path).read_text())
+    document = protocol_catalog.load(Path(path))
     summary, recipes = document.get("summary"), document.get("recipes")
     if not isinstance(summary, dict) or not isinstance(recipes, list):
         raise ValueError("Missing native crafting catalog")

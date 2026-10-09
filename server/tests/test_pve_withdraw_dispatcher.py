@@ -26,6 +26,93 @@ class WithdrawalDispatcherTests(unittest.TestCase):
             "<real-withdraw-return-handler>",
             "exec",
         )
+        abandon = next(
+            node
+            for node in ast.walk(cls.tree)
+            if isinstance(node, ast.If)
+            and ast.unparse(node.test) == "opcode == 13952 and loaded"
+        )
+        cls.abandon_code = compile(
+            ast.fix_missing_locations(
+                ast.Module(
+                    body=[
+                        ast.For(
+                            target=ast.Name(id="_dispatch_once", ctx=ast.Store()),
+                            iter=ast.Tuple(elts=[ast.Constant(0)], ctx=ast.Load()),
+                            body=abandon.body,
+                            orelse=[],
+                        )
+                    ],
+                    type_ignores=[],
+                )
+            ),
+            "<real-shared-abandon-handler>",
+            "exec",
+        )
+
+    def abandon_context(self):
+        fight = SimpleNamespace(id=87, phase="placement")
+        shared = SimpleNamespace(
+            fight=fight,
+            runtime=None,
+            participants={1: object(), 2: object()},
+            withdrawals={},
+        )
+        adapter = Mock()
+        receipt = dict(
+            character={"hp": 42},
+            withdrawal=SimpleNamespace(private_packets=[(12238, b"private")]),
+        )
+        adapter.withdraw_pve.return_value = receipt
+        return dict(
+            COMBAT_SESSIONS=adapter,
+            combat_session="departing-owner",
+            character={"id": 4},
+            body=b"",
+            refresh_shared_combat=lambda: shared,
+            fight=fight,
+            fight_messages=None,
+            group_lease="shared-lease",
+            loaded=True,
+            pve_withdrawal_pending=None,
+            send=Mock(),
+            record=Mock(),
+            connection=object(),
+            service="world",
+            wire=SimpleNamespace(chat=lambda *args: b"reject"),
+            shared_source=shared,
+        )
+
+    def test_actual_placement_abandon_without_runtime_preserves_other_owner(self):
+        context = self.abandon_context()
+        shared = context["shared_source"]
+        other = shared.participants[2]
+        exec(self.abandon_code, context)
+        context["COMBAT_SESSIONS"].withdraw_pve.assert_called_once_with(
+            "departing-owner", context["character"], b""
+        )
+        self.assertIsNone(context["fight"])
+        self.assertIsNone(context["combat_session"])
+        self.assertFalse(context["loaded"])
+        self.assertIs(
+            context["pve_withdrawal_pending"],
+            context["COMBAT_SESSIONS"].withdraw_pve.return_value,
+        )
+        self.assertEqual(shared.fight.phase, "placement")
+        self.assertIsNone(shared.runtime)
+        self.assertIs(shared.participants[2], other)
+        context["send"].assert_called_once_with(
+            context["connection"], "world", 12238, b"private"
+        )
+
+    def test_actual_malformed_placement_abandon_does_not_withdraw(self):
+        context = self.abandon_context()
+        context["body"] = b"unexpected"
+        exec(self.abandon_code, context)
+        context["COMBAT_SESSIONS"].withdraw_pve.assert_not_called()
+        self.assertTrue(context["loaded"])
+        self.assertEqual(context["combat_session"], "departing-owner")
+        self.assertIsNone(context["pve_withdrawal_pending"])
 
     def context(self):
         receipt = {"withdrawal": SimpleNamespace(fight=SimpleNamespace(id=17))}
@@ -52,6 +139,7 @@ class WithdrawalDispatcherTests(unittest.TestCase):
             native_transports=SimpleNamespace(
                 bootstrap=lambda character: [(234, b"y")]
             ),
+            owned_native_bootstrap=lambda character: [(234, b"y")],
             join_world=Mock(),
             mark_static_sync_pending=Mock(),
             record=Mock(),
@@ -154,7 +242,6 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                 shared = sample_shared()
                 shared.withdrawals = {}
                 shared.settlement_ready = False
-                shared.group_lease = None
                 shared.runtime = Mock()
                 import threading
 
@@ -165,6 +252,7 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                     )
                 markers = ExternalFightMarkers()
                 markers.update(shared)
+                observers = [SimpleNamespace(character_id=33, generation="observer")]
                 context.update(
                     body=b"\x00",
                     fight=shared.fight,
@@ -180,9 +268,15 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                     struct=__import__("struct"),
                     wire=SimpleNamespace(account_kamas=lambda value: b""),
                     COMBAT_TEST=True,
+                    COMBAT_GROUPS=Mock(),
                     EXTERNAL_FIGHT_MARKERS=markers,
-                    SPECTATORS=SimpleNamespace(sessions=lambda fight_id: ()),
+                    SPECTATORS=SimpleNamespace(
+                        sessions=lambda fight_id: tuple(observers)
+                    ),
                     refresh_shared_combat=lambda: shared,
+                    publish_spectator_state=Mock(
+                        side_effect=lambda *args: observers.clear()
+                    ),
                 )
                 context["COMBAT_SESSIONS"].recover_withdrawn_pve.return_value = {
                     "hp": 42
@@ -207,7 +301,7 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                 def prepare(*args):
                     shared.fight.phase = "finished"
                     shared.fight.winner = None
-                    return {"character": {"hp": 42}}
+                    return {"character": {"hp": 42}, "packets": [(12238, b"terminal")]}
 
                 with patch(
                     "wakfu_server.combat_abandon.prepare", side_effect=prepare
@@ -225,6 +319,15 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                     ].registry.retire_abandoned_single_owner.assert_not_called()
                 else:
                     self.assertIsNone(markers.location(shared.fight.id))
+                    # Simulate poll detaching immediately after terminal publication.
+                    # Marker removal must capture its exclusion before that happens.
+                    self.assertIn(
+                        (33, "observer"),
+                        context["WORLD"].emit_location_batch.call_args.kwargs[
+                            "exclude_sessions"
+                        ],
+                    )
+                    self.assertEqual(observers, [])
                     context[
                         "COMBAT_SESSIONS"
                     ].registry.retire_abandoned_single_owner.assert_called_once()

@@ -4,13 +4,13 @@ P = pathlib.Path("server/protocol")
 
 
 def load(n):
-    return json.load(gzip.open(P / n, "rt") if n.endswith(".gz") else open(P / n))
+    return json.load(open(P / n))
 
 
 base = load("spells.json")["spells"]
 trees = load("spell-effect-trees.json")
-granted = load("granted-spell-effect-trees.json.gz")
-states = load("combat-state-definitions.json.gz")
+granted = load("granted-spell-effect-trees.json")
+states = load("combat-state-definitions.json")
 areas = load("native-effect-areas.json")["areas"]
 breeds = load("breed-innate-definitions.json")["breeds"]
 effects = {**trees["effects"], **states["effects"], **granted["effects"]}
@@ -136,9 +136,9 @@ report = {
         "spells.json",
         "breed-innate-definitions.json",
         "spell-effect-trees.json",
-        "combat-state-definitions.json.gz",
+        "combat-state-definitions.json",
         "native-effect-areas.json",
-        "granted-spell-effect-trees.json.gz",
+        "granted-spell-effect-trees.json",
         "client/contents/i18n/i18n_es.jar!texts_es.properties",
     ],
     "base_spell_count": len(base),

@@ -1,14 +1,15 @@
 """Native ZAAP test routes from installed client data; no inherited world actors."""
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json, struct
 from pathlib import Path
 
-CATALOG = json.loads((DATA_ROOT / "native-transports.json").read_text())
+CATALOG = protocol_catalog.load(DATA_ROOT / "native-transports.json")
 ZAAPS = {row["id"]: row for row in CATALOG if row["kind"] == 1}
 TRANSPORTS = {row["id"]: row for row in CATALOG if row["kind"] in (1, 2)}
 OBJECTS = {
     row["id"]: row
-    for row in json.loads((DATA_ROOT / "native-transport-objects.json").read_text())
+    for row in protocol_catalog.load(DATA_ROOT / "native-transport-objects.json")
 }
 
 
@@ -77,7 +78,7 @@ def resolve(character, body, *, known_ids, waive_criteria=False):
     }
 
 
-def bootstrap(character, *, direction=None):
+def bootstrap(character, *, direction=None, dungeon_context=None):
     if direction is None:
         direction = character.get("direction", 3)
     if type(direction) is not int or not 0 <= direction <= 7:
@@ -102,7 +103,14 @@ def bootstrap(character, *, direction=None):
         0,
     )
     # eVa.b(new eUZ()) verified by current JAR: clean non-dungeon defaults.
-    context = bytes.fromhex("0800100218002001280030004000")
+    # A caller may supply an authoritative ProtoDungeon context; this function
+    # deliberately does not infer an instance ID or dungeon state from map data.
+    if dungeon_context is None:
+        context = bytes.fromhex("0800100218002001280030004000")
+    else:
+        from .proto_dungeon import encode as encode_proto_dungeon
+
+        context = encode_proto_dungeon(dungeon_context)
     body = b"".join(
         struct.pack(">H", len(block)) + block
         for block in (entity, b"\0\0", b"\0\0", context)

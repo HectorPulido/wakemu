@@ -1,6 +1,7 @@
 import struct
 import json
 import ast
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from postgres_case import PostgresCase
@@ -83,6 +84,76 @@ class CheckpointTests(PostgresCase):
         self.assertEqual((third_revision, terminal), (3, False))
         self.assertEqual(shared.checkpoint_revision, 3)
 
+    def test_checkpoint_trace_reports_stages_without_affecting_commit(self):
+        shared = SharedFight(self.fight, 1134, 0, None)
+        events = []
+        revision, terminal = self.checkpoints.save_shared(
+            shared,
+            self.account,
+            self.generation,
+            trace=lambda stage, **details: events.append((stage, details)),
+        )
+        self.assertEqual((revision, terminal), (1, False))
+        stages = [stage for stage, _ in events]
+        for stage in (
+            "lock_wait",
+            "lock_acquired",
+            "snapshot_started",
+            "snapshot_finished",
+            "pool_wait",
+            "pool_acquired",
+            "fight_query_started",
+            "fight_query_finished",
+            "session_query_started",
+            "session_query_finished",
+            "committed",
+        ):
+            self.assertIn(stage, stages)
+        for stage, details in events:
+            self.assertEqual(details["fight_id"], self.fight.id)
+            self.assertNotIn("account_id", details)
+            self.assertNotIn("generation", details)
+            self.assertNotIn("body", details)
+            if "elapsed_ms" in details:
+                self.assertGreaterEqual(details["elapsed_ms"], 0)
+
+    def test_shared_checkpoint_trace_measures_lock_wait_without_sleep(self):
+        shared = SharedFight(self.fight, 1134, 0, None)
+        waiting = threading.Event()
+        events = []
+
+        def trace(stage, **details):
+            events.append((stage, details))
+            if stage == "lock_wait":
+                waiting.set()
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with shared.lock:
+                future = pool.submit(
+                    self.checkpoints.save_shared,
+                    shared,
+                    self.account,
+                    self.generation,
+                    trace=trace,
+                )
+                self.assertTrue(waiting.wait(timeout=2))
+            self.assertEqual(future.result(timeout=10), (1, False))
+        stages = [stage for stage, _ in events]
+        self.assertLess(stages.index("lock_wait"), stages.index("lock_acquired"))
+
+    def test_trace_callback_failure_does_not_change_checkpoint(self):
+        shared = SharedFight(self.fight, 1134, 0, None)
+
+        def broken_trace(*_args, **_kwargs):
+            raise RuntimeError("diagnostic sink unavailable")
+
+        self.assertEqual(
+            self.checkpoints.save_shared(
+                shared, self.account, self.generation, trace=broken_trace
+            ),
+            (1, False),
+        )
+
     def test_concurrent_owner_checkpoints_advance_one_monotonic_revision(self):
         other_account, _, other_generation, _ = self._add_shared_owner()
         shared = SharedFight(self.fight, 1134, 0, None)
@@ -160,37 +231,31 @@ class CheckpointTests(PostgresCase):
         row = Checkpoints(self.store).read(self.account, 77)
         self.assertEqual((row["revision"], row["status"]), (3, "ended"))
 
-    def test_shared_checkpoint_dispatch_uses_canonical_fightwide_saver(self):
-        source_path = Path(__file__).resolve().parents[1] / "local_game_server.py"
-        tree = ast.parse(source_path.read_text(encoding="utf-8"))
-        session = next(
-            node
-            for node in tree.body
-            if isinstance(node, ast.FunctionDef) and node.name == "session"
-        )
-        checkpoint = next(
-            node
-            for node in ast.walk(session)
-            if isinstance(node, ast.FunctionDef) and node.name == "checkpoint_fight"
-        )
-        shared_calls = [
-            node
-            for node in ast.walk(checkpoint)
-            if isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr == "save_shared"
-        ]
-        self.assertEqual(len(shared_calls), 1)
-        self.assertTrue(
-            any(
-                isinstance(node, ast.Attribute) and node.attr == "registry"
-                for node in ast.walk(checkpoint)
-            )
-        )
+    def test_async_owner_checkpoints_preserve_canonical_shared_fight(self):
+        from wakfu_server.checkpoint_worker import CheckpointWorker
+
+        other_account, _, other_generation, other_actor = self._add_shared_owner()
+        shared = SharedFight(self.fight, 1134, 0, None)
+        worker = CheckpointWorker(self.checkpoints, workers=2)
+        self.addCleanup(worker.close)
+        worker.submit(shared, self.account, self.generation)
+        self.assertTrue(worker.flush_fight(self.fight.id, timeout=10))
+        other_actor.hp = 47
+        worker.submit(shared, other_account, other_generation)
+        self.assertTrue(worker.flush_fight(self.fight.id, timeout=10))
+        saved = self.checkpoints.read(self.account, self.fight.id)
+        self.assertEqual(saved["snapshot"]["actors"][str(other_actor.id)]["hp"], 47)
+        self.assertEqual(saved["revision"], shared.checkpoint_revision)
+        self.assertEqual(saved["revision"], 2)
 
     def test_cast_limits_preserved_in_durable_checkpoint(self):
         from wakfu_server.combat_spell_usage import validate_usage, consume_usage
 
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+        )
+
+        initialize_global_pv_collections(self.fight, tuple(self.fight.actors))
         caster = self.fight.actors[self.character]
         for actor in self.fight.actors.values():
             actor.physical_radius = 0

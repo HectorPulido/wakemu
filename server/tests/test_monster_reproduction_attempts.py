@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from postgres_case import PostgresCase
 from psycopg.types.json import Jsonb
-from wakfu_server import monster_reproduction, monster_maturation
+from wakfu_server import monster_reproduction, npc_actor_identity, monster_maturation
 from wakfu_server.combat_group_store import PersistentGroups
 from wakfu_server.monsters import REFERENCES, owned_instance
 from wakfu_server.monster_wander import edge_index
@@ -167,7 +167,9 @@ class MonsterReproductionAttemptTests(PostgresCase):
         child_group = result["child_group_id"]
         child_id = result["child_id"]
         self.assertNotEqual(self.group_id, child_group)
-        self.assertGreater(child_group, 1 << 62)
+        self.assertGreaterEqual(child_group, npc_actor_identity.MINIMUM)
+        self.assertLessEqual(child_group, npc_actor_identity.MAXIMUM)
+        self.assertTrue(npc_actor_identity.lua_exact_identity(child_id))
         self.assertEqual(-child_group, child_id)
         self.assertEqual(8, len(self._group()["members"]))
         spawned = self._group(child_group)

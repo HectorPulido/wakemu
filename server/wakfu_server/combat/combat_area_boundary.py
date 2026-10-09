@@ -4,6 +4,9 @@ from functools import wraps
 
 
 def adopt_fight(destination, candidate):
+    from .combat_characteristic_link import characteristic_adoption_bindings
+
+    bindings = characteristic_adoption_bindings(candidate)
     # Main and serializers retain this Fight reference. Preserve existing actor
     # references too; actual new summon actors are adopted without fabrication.
     actors = {}
@@ -17,6 +20,8 @@ def adopt_fight(destination, candidate):
     destination.__dict__.clear()
     destination.__dict__.update(candidate.__dict__)
     destination.actors = actors
+    for stats in bindings:
+        stats._fight = destination
 
 
 def adopt_runtime(destination, candidate):

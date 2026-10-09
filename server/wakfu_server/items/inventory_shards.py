@@ -78,6 +78,35 @@ def validate(blob):
     return blob
 
 
+def initialized_wire_state(blob):
+    """Complete legacy empty slots for native lK required field11.
+
+    Missing item reference is the legacy empty-slot zero only when no shard
+    quantity exists. Do not repair an occupied slot with an unknown reference.
+    Persisted bytes remain unchanged; this is a protocol boundary adapter.
+    """
+    from wakfu_server.wire import proto_field
+
+    validate(blob)
+    fields = list(proto_fields(blob))
+    changed = False
+    result = []
+    for tag, value in fields:
+        if tag == 10:
+            row = _scalar_map(value, {80, 88, 96, 112})
+            if 80 not in row:
+                raise ValueError("Native shard slot missing required position")
+            if 88 not in row:
+                if row.get(112, 0) != 0:
+                    raise ValueError(
+                        "Occupied native shard slot missing item reference"
+                    )
+                value += proto_field(88, 0)
+                changed = True
+        result.append(proto_field(tag, value))
+    return b"".join(result) if changed else blob
+
+
 def legacy_option(blob):
     """Encode native yp bytes from a ProtoShard/lD protobuf blob.
 
@@ -174,7 +203,7 @@ def proto(item):
     from wakfu_server.wire import proto_field
 
     # ProtoItem.shard is protobuf field 52, length-delimited (wire tag 418).
-    return proto_field(418, validate(state))
+    return proto_field(418, initialized_wire_state(state))
 
 
 def option(item):

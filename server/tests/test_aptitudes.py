@@ -122,4 +122,5 @@ class AptitudeTests(PostgresCase):
         char["builds"][0]["aptitudes"] = sheet([(2, 1)]).hex()
         self.assertEqual(combat_resources(char, wp=6)["ap"], 8)
         char["builds"][0]["aptitudes"] = sheet([(3, 1)]).hex()
-        self.assertEqual(bonuses(char)["unsupported"][0]["bonus"], 3)
+        self.assertEqual(bonuses(char)["stats"], {3: 1, 20: 20})
+        self.assertEqual(bonuses(char)["unsupported"], [])

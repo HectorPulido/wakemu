@@ -1,5 +1,4 @@
 import unittest
-import gzip
 import json
 from types import SimpleNamespace
 from wakfu_server.combat_native_los_ray import (
@@ -12,12 +11,13 @@ from wakfu_server.combat_los import authoritative_visible
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_actor_snapshot import build_npc_snapshot, native_actor_catalog
 from wakfu_server.fight_checkpoint_store import snapshot
+from wakfu_server import native_catalog
 
 
 class NativeGenericLOSTests(unittest.TestCase):
     def test_topology_columns_preserve_native_order_values_and_shared_aliases(self):
-        path = DATA_ROOT / "native-los-topology" / "1134.json.gz"
-        with gzip.open(path, "rt") as stream:
+        path = DATA_ROOT / "native-los-topology" / "1134.json"
+        with native_catalog.open(path, "rt") as stream:
             native = json.load(stream)
 
         columns = topology_columns(1134)

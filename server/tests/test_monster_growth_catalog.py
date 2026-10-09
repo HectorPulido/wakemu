@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from collections import Counter
 from pathlib import Path
+from wakfu_server import native_catalog
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -19,15 +20,19 @@ EXPORTER_PATH = ROOT / "server" / "tools" / "export_monster_growth_catalog.py"
 class MonsterGrowthCatalogTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.monsters = json.loads(MONSTERS_PATH.read_text())["monsters"]
-        cls.resources = json.loads(RESOURCES_PATH.read_text())
-        cls.catalog_bytes = CATALOG_PATH.read_bytes()
+        cls.monsters = json.loads(native_catalog.read_text(MONSTERS_PATH))["monsters"]
+        cls.resources = json.loads(native_catalog.read_text(RESOURCES_PATH))
+        cls.catalog_bytes = native_catalog.read_bytes(CATALOG_PATH)
         cls.catalog = json.loads(cls.catalog_bytes)
 
     def test_embedded_source_hashes_match_current_inputs(self):
         expected = {
-            "monsters": hashlib.sha256(MONSTERS_PATH.read_bytes()).hexdigest(),
-            "resources": hashlib.sha256(RESOURCES_PATH.read_bytes()).hexdigest(),
+            "monsters": hashlib.sha256(
+                native_catalog.read_bytes(MONSTERS_PATH)
+            ).hexdigest(),
+            "resources": hashlib.sha256(
+                native_catalog.read_bytes(RESOURCES_PATH)
+            ).hexdigest(),
         }
         self.assertEqual(expected, self.catalog["source_sha256"])
 
@@ -138,8 +143,11 @@ class MonsterGrowthCatalogTests(unittest.TestCase):
                     capture_output=True,
                     text=True,
                 )
-            self.assertEqual(outputs[0].read_bytes(), outputs[1].read_bytes())
-            self.assertEqual(self.catalog_bytes, outputs[0].read_bytes())
+            self.assertEqual(
+                native_catalog.read_bytes(outputs[0]),
+                native_catalog.read_bytes(outputs[1]),
+            )
+            self.assertEqual(self.catalog_bytes, native_catalog.read_bytes(outputs[0]))
 
 
 if __name__ == "__main__":

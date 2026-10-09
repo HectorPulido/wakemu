@@ -151,9 +151,24 @@ def running_effect_removal(
     messages = {}
     fields = _identity_fields(running_effect_payload, messages=messages)
     from .combat_subscription_runners import GROUP_SUBSCRIPTION_FAMILIES
+    from .combat_delivery_owners import owner_catalog
+
+    owner_contract = owner_catalog()["effects"].get(str(effect_class))
+    configured_area = (
+        isinstance(owner_contract, dict) and owner_contract.get("runner") == "eYQ"
+    )
+    if configured_area:
+        actor_mode, cell_mode = owner_contract.get("bbA"), owner_contract.get("bbB")
+        if type(actor_mode) is not bool or type(cell_mode) is not bool:
+            raise ValueError("Missing native configured-area removal owner contract")
+        if (7 in fields and not actor_mode) or (7 not in fields and not cell_mode):
+            raise ValueError(
+                "Native configured-area removal recipient violates owner flags"
+            )
 
     cell_only = (
         effect_class in (315, 402)
+        or (configured_area and 7 not in fields)
         or (effect_class == 935 and 7 not in fields)
         or (7 not in fields and effect_class in GROUP_SUBSCRIPTION_FAMILIES)
     )
@@ -166,7 +181,8 @@ def running_effect_removal(
     if cell_only and (
         5 not in messages
         or 7 in fields
-        or (effect_class not in (315, 935) and fields[4] != 0)
+        # eYQ serializes its area reference as Qe value, not zero.
+        or (not configured_area and effect_class != 935 and fields[4] != 0)
     ):
         raise ValueError("Native cell null payload must have absent target/zero value")
     if cell_only:
@@ -197,7 +213,9 @@ def running_effect_removal(
         generic_valid = True  # eZR.bcc -> eVJ(-1) for a standalone native carrier.
     if not generic_valid or fields[6] == 0:
         raise ValueError("Missing owned effect/caster identity in original payload")
-    if effect_class == STATE_CARRIER_EFFECT_CLASS and notify_unapplication:
+    if effect_class in (STATE_CARRIER_EFFECT_CLASS, 649, 933) and notify_unapplication:
+        # aVz requires fMV before Qf.q. These authoritative book/carrier
+        # removals must carry iB1 even when PK has no subscriptions or delay.
         running_effect_payload = state_unapplication_payload(running_effect_payload)
     return (
         struct.pack(

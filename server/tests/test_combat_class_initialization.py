@@ -43,10 +43,29 @@ class ClassInitializationTests(unittest.TestCase):
 
     def test_foreign_passive_rejected(self):
         foreign = next(
-            s["id"] for s in available_spells(15, 200) if s["kind"] == "passive"
+            s["id"]
+            for s in available_spells(15, 200)
+            if s["kind"] == "passive" and s["breed"] == 15
         )
         with self.assertRaises(ValueError):
             plan(self.char(11), encode_deck((), [foreign]), self.spells, self.states)
+
+    def test_universal_passive_roots_are_owned_by_every_playable_breed(self):
+        for breed in BREEDS:
+            for spell in available_spells(breed, 200):
+                if spell["breed"] != -2 or spell["kind"] != "passive":
+                    continue
+                with self.subTest(breed=breed, passive=spell["id"]):
+                    initial = plan(
+                        self.char(breed),
+                        encode_deck((), [spell["id"]]),
+                        self.spells,
+                        self.states,
+                    )
+                    expected = self.spells["spells"][str(spell["id"])]["levels"][199][2]
+                    self.assertEqual(
+                        [i.reference for i in initial.passive_invocations], expected
+                    )
 
     def test_owned_innate_protection_survives_catalog_default(self):
         from wakfu_server.combat_state_ledger import StateLedger

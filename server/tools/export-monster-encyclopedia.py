@@ -71,8 +71,8 @@ def main():
     payload = json.dumps(
         data, separators=(",", ":"), ensure_ascii=False, allow_nan=False
     ).encode()
-    dest = ROOT / "server/protocol/monster-encyclopedia.json.gz"
-    dest.write_bytes(gzip.compress(payload, mtime=0))
+    dest = ROOT / "server/protocol/monster-encyclopedia.json"
+    dest.write_bytes(payload)
     print(
         "Saved",
         dest,

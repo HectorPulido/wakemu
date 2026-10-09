@@ -13,6 +13,11 @@ from .scoring import evaluate
 from .tactical import DEFAULT_WEIGHTS
 from .capability_evidence import observed
 from .topology_distance import directed_adjacencies, distance_field_from_reverse
+from .casting_prerequisites import (
+    certified_unavailable_spell_keys,
+    all_owned_spells_unavailable,
+)
+from ..native.native_deadline import check
 from .query_identity import identity as state_identity
 from .feature_values import validate_features
 
@@ -72,6 +77,80 @@ def _sequence(graph, reference, memo=None):
         decode = None
 
 
+def _certified_target_bounds(repertoire, actor_id, origin):
+    """Consume only native upper bounds bound to this exact caster state."""
+    envelope = repertoire.get("nativeTargetEnvelope")
+    if not isinstance(envelope, dict) or set(envelope) != {
+        "version",
+        "actorId",
+        "origin",
+        "metric",
+        "complete",
+        "maximum",
+        "basis",
+        "spells",
+        "unrestrictedSpellIds",
+        "unknownSpellIds",
+    }:
+        return {}
+    if (
+        envelope["version"] != "native-target-envelope-v1"
+        or envelope["basis"] != "native-casting-range-upper-bound"
+        or envelope["metric"] != "xy-manhattan"
+        or envelope["actorId"] != actor_id
+        or not isinstance(envelope["origin"], list)
+        or len(envelope["origin"]) != 3
+        or any(type(value) is not int for value in envelope["origin"])
+        or envelope["origin"] != list(origin)
+        or type(envelope["complete"]) is not bool
+        or not isinstance(envelope["spells"], list)
+    ):
+        return {}
+    excluded = set()
+    for field in ("unknownSpellIds", "unrestrictedSpellIds"):
+        values = envelope[field]
+        if not isinstance(values, list) or any(
+            type(value) is not int for value in values
+        ):
+            return {}
+        excluded.update(values)
+    result = {}
+    seen = set()
+    for row in envelope["spells"]:
+        if (
+            not isinstance(row, dict)
+            or set(row) - {"spellId", "level", "minimum", "maximum", "source", "reason"}
+            or type(row.get("spellId")) is not int
+            or type(row.get("level")) is not int
+        ):
+            return {}
+        key = row["spellId"], row["level"]
+        if key in seen:
+            return {}
+        seen.add(key)
+        if (
+            row["spellId"] not in excluded
+            and row.get("source") == "baseline+all-conditional-branches"
+            and type(row.get("maximum")) is int
+            and 0 <= row["maximum"] <= (1 << 31) - 1
+        ):
+            result[key] = row["maximum"]
+    return result
+
+
+def _within_target_bound(origin, cell, maximum):
+    # The native distance uses Java int32 arithmetic. Keep all targets whose
+    # wraparound behavior cannot be represented by an ordinary XY radius.
+    coordinates = (*origin[:2], *cell[:2])
+    if any(
+        type(value) is not int or not -(1 << 31) <= value < (1 << 31)
+        for value in coordinates
+    ):
+        return True
+    distance = abs(cell[0] - origin[0]) + abs(cell[1] - origin[1])
+    return distance > (1 << 31) - 1 or distance <= maximum
+
+
 def candidates(
     graph, state, repertoire, actor_id, capability_evidence=None, prepare=None
 ):
@@ -115,15 +194,49 @@ def candidates(
     def prepared(operation):
         return operation() if prepare is None else prepare(operation)
 
-    targets = prepared(lambda: sorted(cells, key=priority))
+    unavailable_spells = certified_unavailable_spell_keys(repertoire, state, actor_id)
     spells = prepared(
         lambda: sorted(
-            repertoire["spells"], key=lambda spell: (spell["spellId"], spell["level"])
+            (
+                spell
+                for spell in repertoire["spells"]
+                if (spell.get("spellId"), spell.get("level")) not in unavailable_spells
+            ),
+            key=lambda spell: (spell["spellId"], spell["level"]),
         )
     )
+    bounds = _certified_target_bounds(repertoire, actor_id, origin)
+    # Retain full geometry for approach planning and native certification.
+    # Only the current state's spell targets use an advisory relevance mask.
+    bounded_all = bool(spells) and all(
+        (spell["spellId"], spell["level"]) in bounds for spell in spells
+    )
+    maximum = max(bounds.values(), default=0)
+    target_cells = (
+        prepared(
+            lambda: [
+                cell for cell in cells if _within_target_bound(origin, cell, maximum)
+            ]
+        )
+        if bounded_all
+        else cells
+    )
+    targets = prepared(lambda: sorted(target_cells, key=priority))
     cast_streams = []
     move_before_first_cast = bool(spells and targets)
     for spell in spells:
+        bound = bounds.get((spell["spellId"], spell["level"]))
+        spell_targets = (
+            prepared(
+                lambda: [
+                    cell
+                    for cell in targets
+                    if _within_target_bound(origin, cell, bound)
+                ]
+            )
+            if bound is not None
+            else targets
+        )
         roles = (capability_evidence or {}).get(
             (spell["spellId"], spell["level"]), set()
         )
@@ -147,9 +260,11 @@ def candidates(
         # cast-first order. The native preview remains the only legality test.
         first_target = prepared(
             lambda: (
-                next((cell for cell in targets if relevant(cell)), targets[0])
-                if roles
-                else (targets[0] if targets else None)
+                next(
+                    (cell for cell in spell_targets if relevant(cell)), spell_targets[0]
+                )
+                if roles and spell_targets
+                else (spell_targets[0] if spell_targets else None)
             )
         )
         ranges = prepared(lambda: _native_range_hints(spell))
@@ -158,16 +273,18 @@ def candidates(
         elif _in_any_range(origin, first_target, ranges):
             move_before_first_cast = False
 
-        def casts(spell=spell, roles=roles, relevant=relevant):
+        def casts(
+            spell=spell, roles=roles, relevant=relevant, spell_targets=spell_targets
+        ):
             # Observations order exploration only. A multi-purpose spell keeps
             # both sides eligible, including empty cells and future mechanics.
             def role_priority(cell):
                 return (not relevant(cell), priority(cell))
 
             ordered = (
-                prepared(lambda: sorted(targets, key=role_priority))
+                prepared(lambda: sorted(spell_targets, key=role_priority))
                 if roles
-                else targets
+                else spell_targets
             )
             for cell in ordered:
                 action = dict(
@@ -370,9 +487,35 @@ def _movement_orders(edges, cells, actors, actor_id):
         return approach.get(end, len(cells) + 1), distance, len(route), route
 
     # Promote complete reachable routes without discarding their shorter
-    # prefixes. One-edge expansion remains available for alternate paths;
-    # callbacks, occupancy/footprints and costs are certified by the oracle.
+    # prefixes. Keep the ordinary nearest-threat order first, then interleave
+    # one route representative for every rival. This prevents a nearby actor
+    # from starving every route toward other opponents under a small search
+    # budget; it does not classify or exclude any actor, and the full route
+    # stream remains available for native preview.
     route_orders = [iter(sorted(routes, key=route_priority))]
+    if routes:
+        for enemy in sorted(enemies, key=lambda value: value["id"]):
+            check()
+            target = tuple(enemy["position"])
+            origin_distance = abs(origin[0] - target[0]) + abs(origin[1] - target[1])
+            inspected = 0
+
+            def representative_priority(route, target=target):
+                nonlocal inspected
+                if inspected % 256 == 0:
+                    check()
+                inspected += 1
+                end = route[-1]
+                distance = abs(end[0] - target[0]) + abs(end[1] - target[1])
+                # If a route can close XY distance to this particular rival,
+                # promote that route. Otherwise keep a deterministic closest
+                # reachable representative. XY is only a shortlist tie-break;
+                # route legality and final ranking remain native-certified.
+                progress_rank = 0 if distance < origin_distance else 1
+                return progress_rank, distance, route_priority(route)
+
+            representative = min(routes, key=representative_priority)
+            route_orders.append(iter((representative,)))
     wounded = {
         tuple(other["position"])
         for other in actors.values()
@@ -622,6 +765,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
     root = _metrics(envelope["root"], actor_id)
     if root["actors"][actor_id]["hp"] <= 0:
         raise ValueError("Native search requires a live source actor")
+    root_movement_available = root["actors"][actor_id]["mp"] > 0
     root_cell_count = envelope["root"].get("topologyCellCount")
     unreachable_penalty = (
         root_cell_count + 1
@@ -658,6 +802,17 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
     deadline = None
     waiting = 0.0
     preparation = 0.0
+    root_action_attempted = False
+    root_action_certified = False
+    rival_forecast_skipped = False
+    movement_only = False
+    movement_only_deadline = None
+    movement_only_budget_ms = policy.get("movementOnlySearchMs", 100)
+    if (
+        type(movement_only_budget_ms) is not int
+        or not 1 <= movement_only_budget_ms <= 10000
+    ):
+        raise ValueError("Invalid native movement-only search budget")
     turn_deadline = None
     decision_deadline = None
     decision_wall_budget = None
@@ -706,8 +861,29 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         reasons = []
         if deadline is not None and now >= deadline:
             reasons.append("search_work_budget")
-        if decision_deadline is not None and now >= decision_deadline:
+        # A slow mandatory root repertoire/context lookup must not spend the
+        # whole decision slice before the first own action can be certified.
+        # Until a root transition is accepted, allow the first movement
+        # preview even after a slow mandatory context lookup. If the actor has
+        # no MP, a rejected root cast cannot lead to movement, so consume the
+        # decision slice after that first attempt instead of enumerating every
+        # target on the full map. Otherwise a rejected cast must not starve a
+        # later movement candidate.
+        if (
+            decision_deadline is not None
+            and now >= decision_deadline
+            and (
+                root_action_certified
+                or (root_action_attempted and not root_movement_available)
+            )
+        ):
             reasons.append("decision_wall_budget")
+        if (
+            movement_only_deadline is not None
+            and now >= movement_only_deadline
+            and root_action_certified
+        ):
+            reasons.append("movement_only_budget")
         if turn_deadline is not None and now >= turn_deadline - reserve / 1000:
             reasons.append("native_commit_reserve")
         if reasons and not stop_reasons:
@@ -781,6 +957,52 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             preparing = clock()
             metadata = load_graph(store, repertoire["nativeMetadata"])
             repertoire = metadata.plain(metadata.data["root"])
+            if node["key"] == root_key and all_owned_spells_unavailable(
+                repertoire, node["state"], actor_id
+            ):
+                movement_only = True
+                if movement_only_deadline is None:
+                    # Spending the full tactical slice on walking cannot find
+                    # an attack when the native authority proves none can run.
+                    # Keep the first certified action guarantee and allocate a
+                    # short additional wall budget to position alternatives.
+                    movement_only_deadline = clock() + movement_only_budget_ms / 1000
+            unavailable_spells = certified_unavailable_spell_keys(
+                repertoire, node["state"], actor_id
+            )
+            certificate = repertoire.get("nativeCastingPrerequisites", {})
+            if not isinstance(certificate, dict):
+                certificate = {}
+            unavailable_rows = {
+                (row["spellId"], row["level"]): row
+                for row in certificate.get("unavailable", [])
+                if isinstance(row, dict)
+                and type(row.get("spellId")) is int
+                and type(row.get("level")) is int
+                and (row["spellId"], row["level"]) in unavailable_spells
+            }
+            for spell in repertoire.get("spells", []):
+                key = spell.get("spellId"), spell.get("level")
+                if key not in unavailable_spells:
+                    continue
+                row = unavailable_rows.get(key)
+                if row is None:
+                    continue
+                if row["reason"] == "missing_casting_table":
+                    unsupported.append(
+                        "native_casting_table_missing:{}:{}".format(
+                            spell["spellId"], spell["level"]
+                        )
+                    )
+                elif row["reason"] == "missing_root_metadata":
+                    roots = ",".join(
+                        str(root) for root in sorted(row["missingRootIds"])
+                    )
+                    unsupported.append(
+                        "native_casting_root_metadata_missing:{}:{}:{}".format(
+                            spell["spellId"], spell["level"], roots
+                        )
+                    )
             if node["key"] == root_key and root_graph is not None:
                 if not isinstance(root_graph, NativeGraph):
                     raise ValueError("Invalid validated native root graph")
@@ -818,10 +1040,14 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             expanded += 1
             depth = frame["depth"] + 1
             expanded_by_depth[depth] = expanded_by_depth.get(depth, 0) + 1
+            if frame["depth"] == 0 and node["key"] == root_key:
+                root_action_attempted = True
             query = request("preview", node["key"], action=action)
             state = yield from exchange(query)
             if state is None or state_identity(state) in node["visited"]:
                 continue
+            if frame["depth"] == 0 and node["key"] == root_key:
+                root_action_certified = True
             metrics = _metrics(state, actor_id, unreachable_penalty=unreachable_penalty)
             if metrics["actors"][actor_id]["hp"] <= 0:
                 metrics["position"] = root["position"]
@@ -953,9 +1179,15 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             risk_deadline = min(risk_deadline, turn_deadline - reserve / 1000)
         if decision_deadline is not None:
             risk_deadline = min(risk_deadline, decision_deadline)
+        if not root_action_certified or exhausted():
+            # Rival forecasting is optional and can require several native
+            # round trips. Do not let it consume the owner reserve or displace
+            # the first own action when mandatory context was slow.
+            rival_forecast_skipped = True
+            unsupported.append("rival_forecast_skipped_after_root_action_budget")
         baseline_penalty = None
         evaluated = []
-        for option in shortlist:
+        for option in [] if rival_forecast_skipped else shortlist:
             risk = (
                 dict(
                     risk=0,
@@ -1006,14 +1238,15 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                     forecast=risk,
                 )
             )
-        best = min(
-            evaluated,
-            key=lambda option: (
-                -option["score"],
-                len(option["actions"]),
-                option["key"],
-            ),
-        )
+        if evaluated:
+            best = min(
+                evaluated,
+                key=lambda option: (
+                    -option["score"],
+                    len(option["actions"]),
+                    option["key"],
+                ),
+            )
     else:
         unsupported.append("native_rival_projection_operation_unavailable")
     selected = _metrics(
@@ -1038,12 +1271,22 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             searchWorkMsAtLastBudgetCheck=work_at_budget_check,
             decisionWallBudgetMs=decision_wall_budget,
             searchTimeFraction=time_fraction,
+            movementOnly=movement_only,
+            movementOnlyBudgetMs=movement_only_budget_ms if movement_only else None,
             contextPreparationMs=preparation * 1000,
             commitReserveMs=reserve,
             expandedByDepth={
                 str(depth): count for depth, count in sorted(expanded_by_depth.items())
             },
             peakContinuationFrames=peak_continuations,
+            rootActionCertified=root_action_certified,
+            rootActionAttempted=root_action_attempted,
+            rootActionReserveUsed=(
+                root_action_certified
+                and decision_deadline is not None
+                and clock() >= decision_deadline
+            ),
+            rivalForecastSkipped=rival_forecast_skipped,
         ),
         positionEvidence=dict(
             basis=selected["position_basis"],

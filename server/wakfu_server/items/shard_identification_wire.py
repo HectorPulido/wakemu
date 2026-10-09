@@ -1,7 +1,7 @@
 """Native identification response for existing inventory item UIDs."""
 import struct
 
-from wakfu_server.inventory_shards import validate
+from wakfu_server.inventory_shards import initialized_wire_state
 
 
 def response(result):
@@ -22,7 +22,7 @@ def response(result):
             raise ValueError("Successful identification lacks shard state")
         shard = b""
     else:
-        validate(shard)
+        shard = initialized_wire_state(shard)
     return (
         13766,
         struct.pack(">iqBI", status, uid, 0, len(elements))

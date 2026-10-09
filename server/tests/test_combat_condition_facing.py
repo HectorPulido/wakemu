@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 import unittest
 
-from wakfu_server.combat_condition_facing import native_backstabbed
+from wakfu_server.combat_condition_facing import native_backstabbed, native_facestabbed
 from wakfu_server.combat_conditions import (
     ConditionActor,
     ConditionContext,
@@ -38,6 +38,34 @@ class NativeFacingConditionTests(unittest.TestCase):
         self.assertFalse(evaluate_condition("IsBackstabbed()", context))
         self.target.position = (1, 0, 0)
         self.assertTrue(evaluate_condition("IsBackstabbed()", context))
+
+    def test_front_predicate_shares_native_selector_and_locator_guards(self):
+        def front(selector):
+            selected, opposite = (-7, 7) if selector == "target" else (7, -7)
+            return native_facestabbed(self.fight, selected, opposite, self.metadata)
+
+        context = ConditionContext({}, facestabbed_query=front)
+        self.caster.direction = 5
+        self.target.direction = 1
+        for expression in (
+            "IsFacestabbed()",
+            'IsFacestabbed("anything")',
+            'IsFacestabbed("TARGET")',
+        ):
+            self.assertTrue(evaluate_condition(expression, context))
+        self.target.position = (0, 1, 0)
+        self.assertFalse(evaluate_condition("IsFacestabbed()", context))
+        self.assertFalse(native_facestabbed(self.fight, 7, None, self.metadata))
+        hidden = ConditionActor(
+            is_native_fighter=True, fight_properties=frozenset({47})
+        )
+        self.assertFalse(native_facestabbed(self.fight, 7, -7, hidden))
+        for expression in (
+            "True or IsFacestabbed(1)",
+            'False and IsFacestabbed("target", "caster")',
+        ):
+            with self.assertRaises(UnknownCondition):
+                evaluate_condition(expression, context)
 
     def test_explicit_cell_not_pv_but_registered_area_is_pv(self):
         self.assertFalse(native_backstabbed(self.fight, 7, None, self.metadata))

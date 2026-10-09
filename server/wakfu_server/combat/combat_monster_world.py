@@ -4,7 +4,7 @@ The breed reference supplies its native NPC visual data; sN only toggles
 visibility and never contains a player ProtoAppearance or arbitrary sprite ID.
 """
 import struct
-from .monsters import owned_instance, reference
+from wakfu_server.monsters import owned_instance, reference
 
 
 def world_actor(monster, *, name=None, group_id, direction=3, members=None):

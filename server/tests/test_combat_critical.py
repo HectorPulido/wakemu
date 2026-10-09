@@ -119,9 +119,22 @@ class CriticalTests(unittest.TestCase):
         import struct
         from unittest.mock import patch
         from wakfu_server.combat_server_spell import prepare_server_spell
+        from wakfu_server.spells import encode_deck
 
-        actor = SimpleNamespace(id=1, effect_stats={4: 6, 9: 40}, effective_level=20)
-        fight = SimpleNamespace(actors={1: actor}, native_spell_grants={})
+        actor = SimpleNamespace(
+            id=1,
+            effect_stats={4: 6, 9: 40},
+            effective_level=20,
+            controlled=True,
+            owner_id=1,
+            hp=100,
+        )
+        fight = SimpleNamespace(
+            actors={1: actor},
+            native_spell_grants={},
+            phase="active",
+            current=actor,
+        )
         rng = random.Random(7)
         before = rng.getstate()
         body = struct.pack(">qqiih", 1, (1 << 32) | 6908, 0, 0, 0)
@@ -146,11 +159,11 @@ class CriticalTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 prepare_server_spell(
                     body,
-                    {"id": 1},
+                    {"id": 1, "breed": 16, "level": 20},
                     [],
                     fight,
                     1,
-                    b"",
+                    encode_deck([6908], []),
                     action_id=1,
                     line_of_sight=None,
                     critical=None,
@@ -169,11 +182,11 @@ class CriticalTests(unittest.TestCase):
         ) as prepare:
             out = prepare_server_spell(
                 body,
-                {"id": 1},
+                {"id": 1, "breed": 16, "level": 20},
                 [],
                 fight,
                 1,
-                b"",
+                encode_deck([6908], []),
                 action_id=1,
                 line_of_sight=None,
                 critical=None,

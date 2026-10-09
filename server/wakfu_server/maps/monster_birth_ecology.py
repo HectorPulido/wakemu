@@ -37,6 +37,11 @@ def activate(db, groups, resource_uid):
         raise ValueError("Monster birth event is missing")
     group = event["group_payload"]
     key = tuple(group["key"])
+    from .npc_actor_identity_repair import actor_aliases, aliased_members
+
+    group = dict(
+        group, members=aliased_members(group["members"], actor_aliases(db, key))
+    )
     resource = event["resource"]
     if key[:2] != (resource["map_id"], resource["instance_id"]):
         raise ValueError("Monster birth location disagrees")

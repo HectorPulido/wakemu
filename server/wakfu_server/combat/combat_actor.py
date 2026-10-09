@@ -5,6 +5,12 @@ from wakfu_server.progression import character_xp
 EMPTY_EFFECTS = bytes(2)  # eZV.a: signed i16 running-effect count.
 
 
+def _ai_control_byte(enabled):
+    if type(enabled) is not bool:
+        raise ValueError("Missing actual native po.SX control authority")
+    return bytes((int(enabled),))
+
+
 def characteristics(
     character, *, wp, ap=6, mp=3, max_ap=None, max_mp=None, max_wp=None
 ):
@@ -47,7 +53,8 @@ def actor_stats(
     max_ap=None,
     max_mp=None,
     max_wp=None,
-    characteristics_payload=None
+    characteristics_payload=None,
+    native_controlled_by_ai=False,
 ):
     """myE/Mn: eHf.FIGHTER_DATAS_WITH_XP (3), read by big.ev/eHd.ew.
 
@@ -72,7 +79,7 @@ def actor_stats(
         )
         if type(initiative) is not int or not -(1 << 31) <= initiative < (1 << 31):
             raise ValueError("Invalid fight initiative")
-        from .equipment_stats import bonuses
+        from wakfu_server.equipment_stats import bonuses
 
         extra = {
             identity: value
@@ -114,7 +121,7 @@ def actor_stats(
         + position
         + fight
         + stats
-        + b"\x00"
+        + _ai_control_byte(native_controlled_by_ai)
         + struct.pack(">hB", character["breed"], 0)
         + stats
         + struct.pack(
@@ -135,7 +142,9 @@ def monster_actor_stats(
     direction=0,
     *,
     characteristics_payload=None,
-    obstacle_id=None
+    obstacle_id=None,
+    native_controlled_by_ai=False,
+    native_qi_retired=False,
 ):
     """NPC eHj format2; public stats use sP, not the player's pl section."""
     identity = actor["id"]
@@ -169,7 +178,9 @@ def monster_actor_stats(
         ">iihqBB", actor["x"], actor["y"], actor["z"], actor["map_id"], direction, 0
     )
     obstacle = team if obstacle_id is None else obstacle_id
-    if type(obstacle) is not int or not 0 <= obstacle <= 126:
+    if type(obstacle) is not int or not (
+        0 <= obstacle <= 126 or native_qi_retired is True and obstacle == -1
+    ):
         raise ValueError("Invalid native obstacle byte")
     fight = struct.pack(">iBBBBbB", fight_id, 0, 0, 0, 0, obstacle, 0)
     return (
@@ -177,7 +188,7 @@ def monster_actor_stats(
         + position
         + fight
         + stats
-        + b"\x00"
+        + _ai_control_byte(native_controlled_by_ai)
         + struct.pack(">hB", actor["ref"], 1)
         + struct.pack(">hH", actor["level"], 0)
         + struct.pack(">qBqBh", identity, 1, -1, 0, 0)
@@ -188,6 +199,11 @@ def actual_actor_stats(
     character, actor, fight_id, *, wp_current, wp_maximum, direction=0
 ):
     """PC snapshot after movement/cast; resources remain current/max distinct."""
+    if (
+        getattr(actor, "native_summon_source", None) is not None
+        or getattr(actor, "is_summon", False) is True
+    ):
+        raise ValueError("Summon stats require current native registration")
     if actor.id != character["id"] or not actor.controlled:
         raise ValueError("Runtime actor does not match owned player")
     current = dict(
@@ -219,6 +235,7 @@ def actual_actor_stats(
         max_wp=wp_maximum,
         initiative=actor.initiative,
         direction=getattr(actor, "direction", direction),
+        native_controlled_by_ai=getattr(actor, "native_controlled_by_ai", None),
     )
 
 
@@ -226,6 +243,11 @@ def actual_monster_actor_stats(
     monster, actor, fight_id, *, wp_current, wp_maximum, direction=0
 ):
     """NPC snapshot from live fight resources, preserving its native reference."""
+    if (
+        getattr(actor, "native_summon_source", None) is not None
+        or getattr(actor, "is_summon", False) is True
+    ):
+        raise ValueError("Summon stats require current native registration")
     if actor.id != monster["id"] or actor.controlled:
         raise ValueError("Runtime actor does not match owned monster")
     current = dict(
@@ -257,4 +279,9 @@ def actual_monster_actor_stats(
         obstacle_id=actor.native_obstacle_id,
         direction=getattr(actor, "direction", direction),
         characteristics_payload=snapshot,
+        native_controlled_by_ai=getattr(actor, "native_controlled_by_ai", None),
+        native_qi_retired=(
+            getattr(actor, "native_ordinary_qi_retirement", {}).get("source")
+            == "wakemu.owned-npc-state2-qi-completion-v1"
+        ),
     )

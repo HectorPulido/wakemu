@@ -5,6 +5,7 @@ characteristics. Active item actions remain separately reported; unconditional
 eWN maximum+current and scalar eWQ passives are evaluated.
 Other effects remain explicitly reported, never converted to invented bonuses.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.equipment import validate_sheet
@@ -12,7 +13,7 @@ from wakfu_server.health import maximum
 
 CATALOG = {
     item["reference"]: item
-    for item in json.loads((DATA_ROOT / "item-equipment-effects.json").read_text())[
+    for item in protocol_catalog.load(DATA_ROOT / "item-equipment-effects.json")[
         "items"
     ]
 }

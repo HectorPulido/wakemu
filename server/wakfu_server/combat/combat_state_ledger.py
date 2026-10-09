@@ -73,7 +73,8 @@ class StateLedger:
         uid,
         applying_effect_has_delay=None,
         timeline=None,
-        protected=None
+        protected=None,
+        before_replace=None,
     ):
         if type(caster_id) is not int or caster_id == 0:
             raise ValueError("Missing state caster")
@@ -162,6 +163,11 @@ class StateLedger:
             instance_protected,
         )
         removed = tuple(matching[index] for index in plan.remove_indices)
+        if before_replace is not None:
+            if not callable(before_replace):
+                raise ValueError("Invalid authoritative state replacement callback")
+            for entry in removed:
+                before_replace(entry)
         removed_uids = {entry.uid for entry in removed}
         survivors = tuple(
             entry for entry in self._entries if entry.uid not in removed_uids

@@ -4,6 +4,7 @@ Territorial authorization and outcome/growth are caller policies; unknown
 conditions are not fabricated. Resource and seed commit together in PostgreSQL.
 Publishing a prepared monster group to Redis is retried from the durable outbox.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
 import secrets
 import struct
@@ -19,11 +20,11 @@ from .wire import proto_field
 
 SEEDS = {
     r["item_reference"]: r
-    for r in json.loads((DATA_ROOT / "seed-actions.json").read_text())
+    for r in protocol_catalog.load(DATA_ROOT / "seed-actions.json")
 }
 RESOURCES = {
     r["resource_reference"]: r
-    for r in json.loads((DATA_ROOT / "plant-resources.json").read_text())
+    for r in protocol_catalog.load(DATA_ROOT / "plant-resources.json")
 }
 
 
@@ -346,6 +347,12 @@ def publish_groups(store, groups):
     for row in pending:
         group = row["group_payload"]
         key = tuple(group["key"])
+        from .npc_actor_identity_repair import actor_aliases, aliased_members
+
+        with store.connection() as db:
+            group = dict(
+                group, members=aliased_members(group["members"], actor_aliases(db, key))
+            )
         groups.register(*key, group["members"])
         with store.connection() as db:
             db.execute(

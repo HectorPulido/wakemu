@@ -211,11 +211,22 @@ def decode_topology(body):
     return value
 
 
-def arena(map_id, instance_id, cells, placement, *, obstacle_values=None):
+def arena(
+    map_id,
+    instance_id,
+    cells,
+    placement,
+    *,
+    obstacle_values=None,
+    surface_indices=None,
+    border_cells=()
+):
     """Build a bounded arena from prevalidated (x,y,z) client-map cells.
 
     Caller must obtain cells from installed map topology. Unselected rectangle
     cells receive the QI blocked bit0x100. Only two placement teams0/1 are supported.
+    Native producers supply complete XY surface indices. Omission is reserved
+    for synthetic fixtures whose selected surface is explicitly index zero.
     """
     cells = list(cells)
     if not cells or len({(x, y) for x, y, z in cells}) != len(cells):
@@ -228,8 +239,28 @@ def arena(map_id, instance_id, cells, placement, *, obstacle_values=None):
     masks = [0x100] * (width * height)
     flags = bytearray([255] * len(masks))
     available = {(x, y): z for x, y, z in cells}
+    if surface_indices is not None and (
+        not isinstance(surface_indices, dict)
+        or set(surface_indices) != set(available)
+        or any(
+            not isinstance(key, tuple)
+            or len(key) != 2
+            or any(type(coordinate) is not int for coordinate in key)
+            for key in surface_indices
+        )
+        or any(
+            type(value) is not int or not 0 <= value <= 63
+            for value in surface_indices.values()
+        )
+    ):
+        raise ValueError("Invalid or incomplete native arena surface indices")
+    borders = {tuple(cell) for cell in border_cells}
+    if not borders <= set(cells):
+        raise ValueError("Native arena border cell is not a selected surface")
     for x, y in available:
-        masks[(y - y0) * width + x - x0] = 0
+        masks[(y - y0) * width + x - x0] = (
+            0 if surface_indices is None else surface_indices[(x, y)]
+        ) | (128 if (x, y, available[(x, y)]) in borders else 0)
     # fct trailing (byte,int) pairs are QL obstacle occupancies, not team slots.
     # Placement lives only in the cell_flags array.
     teams = [] if obstacle_values is None else list(obstacle_values)

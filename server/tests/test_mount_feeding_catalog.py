@@ -1,12 +1,15 @@
 import json
 from pathlib import Path
 import unittest
+from wakfu_server import native_catalog
 
 
 class MountFeedingCatalogTests(unittest.TestCase):
     def test_native_effect_classification_for_reported_and_xp_foods(self):
         catalog = json.loads(
-            (Path(__file__).parents[1] / "protocol" / "mount-models.json").read_text()
+            native_catalog.read_text(
+                Path(__file__).parents[1] / "protocol" / "mount-models.json"
+            )
         )
         self.assertEqual(catalog["count"], 40)
         self.assertEqual(len(catalog["models"]), 40)

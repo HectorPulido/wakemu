@@ -1,5 +1,5 @@
 import unittest
-from wakfu_server.combat_arena_selection import bounded_arena
+from wakfu_server.combat_arena_selection import MAX_CELL_BUDGET, bounded_arena
 
 
 def topology(cells, edges):
@@ -73,3 +73,98 @@ class ArenaSelectionTests(unittest.TestCase):
             )
         with self.assertRaises(ValueError):
             bounded_arena(data, (0, 0, 40000), [cells[1]])
+
+
+class CompactEncounterTests(unittest.TestCase):
+    def test_all_remote_monsters_relocate_inside_mutually_reachable_compact_component(
+        self,
+    ):
+        from wakfu_server.combat_arena_selection import compact_encounter, _reachable
+
+        floor = [(x, 0, 0) for x in range(-20, 21)]
+        platform = [(x, 0, 9) for x in range(20, 25)]
+        result = compact_encounter(
+            topology(floor + platform, pairs(floor) + pairs(platform)),
+            (0, 0, 0),
+            [(20, 0, 9), (24, 0, 9), (-20, 0, 0)],
+        )
+        positions = result["placement"][1]
+        self.assertEqual(len(set(positions)), 3)
+        self.assertTrue(all(p[2] == 0 for p in positions))
+        self.assertLessEqual(len(result["cells"]), MAX_CELL_BUDGET)
+        for position in positions:
+            self.assertIn(
+                (0, 0, 0), _reachable(position, result["cells"], result["edges"])
+            )
+
+    def test_one_way_drop_is_not_valid_monster_destination(self):
+        from wakfu_server.combat_arena_selection import compact_encounter
+
+        path = [(0, 0, 0), (1, 0, 0), (2, 0, -5)]
+        result = compact_encounter(
+            topology(path, pairs(path[:2]) + [(path[1], path[2])]), path[0], [path[2]]
+        )
+        self.assertEqual(result["placement"][1], [path[1]])
+        self.assertNotIn(path[2], result["cells"])
+
+    def test_capacity_failure_never_invents_walkable_cells(self):
+        from wakfu_server.combat_arena_selection import compact_encounter
+
+        path = [(0, 0, 0), (1, 0, 0)]
+        with self.assertRaisesRegex(ValueError, "capacity"):
+            compact_encounter(
+                topology(path, pairs(path)), path[0], [(50, 0, 0), (51, 0, 0)]
+            )
+
+
+class EncounterCellBudgetTests(unittest.TestCase):
+    def grid(self, width, height):
+        cells = {(x, y, 0) for x in range(width) for y in range(height)}
+        edges = [
+            (c, (c[0] + dx, c[1] + dy, 0))
+            for c in cells
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+            if (c[0] + dx, c[1] + dy, 0) in cells
+        ]
+        return topology(cells, edges)
+
+    def test_ten_by_twohundredfifty_is_not_limited_by_radius_or_side_length(self):
+        from wakfu_server.combat_arena_selection import compact_encounter
+
+        result = compact_encounter(self.grid(10, 250), (0, 0, 0), [(9, 249, 0)])
+        self.assertEqual(len(result["cells"]), MAX_CELL_BUDGET)
+        self.assertEqual(result["bounds"], (0, 0, 9, 249))
+        self.assertEqual(result["placement"][1], [(9, 249, 0)])
+
+    def test_fifty_square_budget_and_oversized_grid_are_connected(self):
+        from wakfu_server.combat_arena_selection import compact_encounter, _reachable
+
+        for size in (50, 80):
+            result = compact_encounter(
+                self.grid(size, size), (0, 0, 0), [(size - 1, size - 1, 0)]
+            )
+            self.assertEqual(len(result["cells"]), MAX_CELL_BUDGET)
+            self.assertEqual(
+                _reachable((0, 0, 0), result["cells"], result["edges"]), result["cells"]
+            )
+            enemy = result["placement"][1][0]
+            self.assertIn(enemy, result["cells"])
+            self.assertIn(
+                (0, 0, 0), _reachable(enemy, result["cells"], result["edges"])
+            )
+            self.assertLessEqual(
+                (result["bounds"][2] + 1) * (result["bounds"][3] + 1), 32767
+            )
+
+    def test_sparse_l_shape_counts_blocked_rectangle_holes_in_map_budget(self):
+        from wakfu_server.combat_arena_selection import compact_encounter, _reachable
+
+        path = [(x, 0, 0) for x in range(150)] + [(149, y, 0) for y in range(1, 150)]
+        result = compact_encounter(topology(path, pairs(path)), path[0], [path[-1]])
+        x0, y0, x1, y1 = result["bounds"]
+        self.assertLessEqual((x1 - x0 + 1) * (y1 - y0 + 1), MAX_CELL_BUDGET)
+        self.assertLess(len(result["cells"]), MAX_CELL_BUDGET)
+        self.assertNotIn(path[-1], result["cells"])
+        enemy = result["placement"][1][0]
+        self.assertIn(enemy, result["cells"])
+        self.assertIn(path[0], _reachable(enemy, result["cells"], result["edges"]))

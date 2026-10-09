@@ -20,6 +20,8 @@ Observar nunca concede control; un cliente lento o desconectado no bloquea el co
 
 [Salida nativa y separación de subscriptions](REVISION-RESPUESTAS.md).
 
+La prueba manual conjunta de dos cuentas para entrada, observación, cierre, rendición y resincronización está en [PRUEBA-COMPLETA-14-16-33-MAPA.md](PRUEBA-COMPLETA-14-16-33-MAPA.md). Ejecutarla solo después de que root confirme la imagen integrada.
+
 La entrada comprobada es `coL/13413` con i32 `fight_id`; la salida es `cpg/12154` con el mismo layout. La respuesta de entrada es `cva/12044`: hereda el bootstrap `cvb/12847` y añade fase `fbZ` e i32-length-prefixed bytes del timeline `feN`. Un verificador contra el JAR instalado acepta el fixture producido por el encoder Python y confirma que el timeline vuelve a serializarse igual.
 
 `combat_spectator_snapshot.current_snapshot` toma stats/efectos actorales del serializador autoritativo, topología y líderes del contexto compartido, y reconstruye `myG` desde placement o desde el timeline de recuperación actual. Comprueba la población retained completa en su orden guardado y vuelve a entregar carriers con ejecución desactivada. `combat_spectators.SpectatorRegistry` mantiene sesiones aparte, valida lease/mapa/instancia y autorización explícita, entrega el último snapshot al entrar y solo encola eventos posteriores. Los observadores nunca se agregan a `Fight.actors`, participantes compartidos ni settlement. Estas piezas aún necesitan el cableado del dispatcher, el ciclo de marcador 13753 y la restauración del mundo.
@@ -110,3 +112,7 @@ Se corrigió el emisor para conservar QI en la celda del mundo y codificar `mys`
 ## Reproducción propia visual r14
 
 Dos cuentas de prueba propias entraron al mapa1134. Observador recibió13753 de fight33 en colocación/activo con mys(-1,-1), myo46 y QIinstancia0. Captura propia `issue16-marker-visual-observer/fight33-observer-after.png` confirma que no aparecen las espadas. La asociación de partición corregida no basta para renderizar. El error cdE de resource[-15,18] ocurrió42s antes del marcador y no se atribuye al combate. Investigar registro de líderes/sprite y semántica de actualizaciones; no pedir otra prueba al usuario.
+
+## Aceptación parcial r16 y desconexión posterior
+
+El usuario confirma que pudo observar un combate completo. Después, al intentar iniciar otra pelea, se desconectó. No hubo reinicio: world sigue con inicio2026-10-07T21:43:03Z y RestartCount0. En fight34, el guardado empezó22:31:05.148Z y rechazó la sesión obsoleta22:32:19.532Z, unos74 segundos después. El espectador y el combatiente expiraron en ese intervalo. La espera exacta dentro del checkpoint aún no está identificada; no atribuirla a PostgreSQL o al retorno visual sin evidencia. Evidencia local privada: `.runtime/local/r16-spectator-disconnect-evidence.json`. Observación aceptada parcialmente, continuidad y nuevo combate pendientes.

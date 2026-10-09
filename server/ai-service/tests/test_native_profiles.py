@@ -102,6 +102,19 @@ class NativeProfileTests(unittest.TestCase):
             profiles[None]["data"]["future_metadata"], global_row["future_metadata"]
         )
 
+    def test_reused_runtime_reloads_profiles_for_new_fight_uuid(self):
+        from types import SimpleNamespace
+
+        encounter = runtime()
+        encounter.fight = SimpleNamespace(id=42, native_ai_fight_uuid="first")
+        store = ProfileStore([row(None, "steady", 1, {})])
+        encounter_profiles(encounter, store, {})
+        encounter.fight.native_ai_fight_uuid = "second"
+        store.db.rows = [row(None, "steady", 2, {})]
+        profiles = encounter_profiles(encounter, store, {})
+        self.assertEqual(store.entries, 2)
+        self.assertEqual(profiles[None]["data"]["version"], 2)
+
     def test_future_column_changes_stable_profile_identity(self):
         timestamp = datetime(2026, 10, 7, tzinfo=timezone.utc)
         first = encounter_profiles(

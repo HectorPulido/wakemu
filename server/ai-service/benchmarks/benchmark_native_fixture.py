@@ -2,64 +2,101 @@
 from types import SimpleNamespace
 
 
-def fixture(*, npc_position=(-7, -7, -1), pc_hp=60):
-    from wakfu_server.combat_state import Actor, Fight
-    from wakfu_server.combat_actor_snapshot import (
-        build_player_snapshot,
-        build_npc_snapshot,
-    )
-    from wakfu_server.combat_geometry_snapshot import freeze_terrain
+def fixture(
+    *,
+    npc_position=(-7, -7, -1),
+    pc_position=(-8, -7, -1),
+    map_id=1134,
+    pc_hp=60,
+    monster_reference=5525,
+    monster_level=1,
+):
+    from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
+    from wakfu_server.combat_bootstrap import create_placement
     from wakfu_server.combat_runtime_messages import RuntimeMessages
     from wakfu_server.combat_terrain import local_arena
+    from wakfu_server.monsters import owned_instance
     from wakfu_server.spells import default_deck
 
-    if type(pc_hp) is not int or not 1 <= pc_hp <= 60:
-        raise ValueError("Invalid benchmark PC HP")
-    pc = Actor(
-        7, 0, (-8, -7, -1), pc_hp, 6, 3, 0, 1, owner_id=9, controlled=True, max_hp=60
-    )
-    npc = Actor(-200, 1, tuple(npc_position), 20, 3, 3, 10, 1)
-    fight = Fight(
-        1, [pc, npc], {pc.position, npc.position}, {0: {pc.position}, 1: {npc.position}}
-    )
-    fight.ready(9)
-    monster = dict(id=npc.id, ref=5525, level=1, map_id=1134, wp=6)
+    if (
+        type(pc_hp) is not int
+        or not 1 <= pc_hp <= 60
+        or type(map_id) is not int
+        or map_id <= 0
+        or any(type(value) is not int for value in (*pc_position, *npc_position))
+    ):
+        raise ValueError("Invalid benchmark encounter inputs")
+
     character = dict(
-        id=pc.id,
+        id=7,
         account_id=9,
         breed=15,
         level=1,
-        map_id=1134,
-        hp=pc.hp,
-        max_hp=pc.max_hp,
+        active_build_index=0,
+        map_id=map_id,
+        instance_id=0,
+        x=pc_position[0],
+        y=pc_position[1],
+        z=pc_position[2],
+        hp=pc_hp,
+        max_hp=60,
         builds={},
         inventory_items=[],
     )
-    pc.direction, npc.direction = 0, 3
-    build_player_snapshot(
-        character, pc, wp_current=6, wp_maximum=6, running_effects=()
-    ).install(pc)
-    build_npc_snapshot(
-        monster, npc, wp_current=6, wp_maximum=6, running_effects=()
-    ).install(npc)
-    fight.native_effect_uid_next = 1
-    fight.native_obstacle_cells = frozenset()
-    terrain = local_arena(1134, fight.id, pc.position, npc.position)
-    fight.walkable, fight.edges = terrain["validated_cells"], terrain["valid_edges"]
-    if pc.position not in fight.walkable or npc.position not in fight.walkable:
-        raise ValueError("Benchmark actor lies outside complete native arena")
-    freeze_terrain(fight)
-    fight.order, fight.turn_index = [npc.id, pc.id], 0
-    npc.turn_count = 1
+    monster = owned_instance(
+        monster_reference,
+        monster_level,
+        -200,
+        map_id=map_id,
+        x=npc_position[0],
+        y=npc_position[1],
+        z=npc_position[2],
+        instance_id=0,
+    )
+    terrain = local_arena(map_id, 1, tuple(pc_position), tuple(npc_position))
+    fight, _ = create_placement(
+        character,
+        monster,
+        terrain,
+        fight_id=1,
+        player_ap=6,
+        player_mp=3,
+        player_wp=6,
+        player_initiative=0,
+        terrain_effect_id=46,
+        terrain_instance_id=-300,
+    )
+    initialize_fight_snapshots(
+        fight,
+        characters={character["id"]: character},
+        monsters={monster["id"]: monster},
+        wp_resources={
+            character["id"]: (6, 6),
+            monster["id"]: (monster["wp"], monster["wp"]),
+        },
+        running_effects={character["id"]: (), monster["id"]: ()},
+        initial_effect_uid=1,
+    )
+    fight.ready(character["account_id"])
+    # The benchmark begins at the NPC's activation while retaining the exact
+    # placement-produced actor, terrain, QI slots and serialized sources.
+    fight.order = [monster["id"], character["id"]]
+    fight.turn_index = 0
+    fight.current.turn_count = 1
     runtime = RuntimeMessages(fight)
     description = SimpleNamespace(
-        pc=pc, npc=npc, fight=fight, character=character, monster=monster
+        pc=fight.actors[character["id"]],
+        npc=fight.actors[monster["id"]],
+        fight=fight,
+        character=character,
+        monster=monster,
+        arena=terrain,
     )
     return (
         runtime,
-        {pc.id: character},
-        {npc.id: monster},
-        {pc.id: default_deck(character)},
-        {pc.id: frozenset()},
+        {character["id"]: character},
+        {monster["id"]: monster},
+        {character["id"]: default_deck(character)},
+        {character["id"]: frozenset()},
         description,
     )

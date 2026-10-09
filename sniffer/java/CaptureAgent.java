@@ -89,6 +89,51 @@ public final class CaptureAgent {
   return out;
  }
 
+ private static Map<String,Object> movementDiagnostic() {
+  Map<String,Object> out=new LinkedHashMap<>();out.put("time",Instant.now().toString());
+  try {
+   Object player=call(call(Class.forName("aTx"),"cWt"),"cWu");
+   if(player==null){out.put("status","not_loaded");return out;}
+   out.put("actor_id",call(player,"Sn"));out.put("name",call(player,"getName"));
+   out.put("position",List.of(call(player,"getWorldX"),call(player,"getWorldY"),call(player,"getAltitude")));
+   Object movement=call(player,"dhw");
+   out.put("movement_class",movement.getClass().getName());
+   for(String key:new String[]{"cjs","cjt","cju","cjv","cjz","cjA","hPu"})
+    try{out.put(key,field(movement,key));}catch(Throwable error){out.put(key+"_error",error.toString());}
+   for(String key:new String[]{"cjr","cjx","cjB","cjC","hPv","hPw"}) {
+    try {
+     Object value=field(movement,key);Map<String,Object> row=new LinkedHashMap<>();
+     row.put("present",value!=null);
+     if(value!=null){row.put("class",value.getClass().getName());
+      if(key.equals("cjr"))row.put("points",call(value,"bDT"));
+      if(key.equals("hPv")||key.equals("hPw"))row.put("steps",call(value,"bWv"));
+     }
+     out.put(key,row);
+    }catch(Throwable error){out.put(key+"_error",error.toString());}
+   }
+   out.put("native_mode",call(movement,"bvy"));
+   out.put("idle_fallback",NativeMovementStop.diagnostic());
+   for(String animationMethod:new String[]{"bkG","bpT","bvM"})
+    try{out.put(animationMethod,call(movement,animationMethod));}
+    catch(Throwable error){out.put(animationMethod+"_error",error.toString());}
+   java.util.Collection<?> listeners=(java.util.Collection<?>)field(movement,"cjl");
+   out.put("listener_count",listeners.size());List<Map<String,Object>> rows=new ArrayList<>();
+   for(Object listener:listeners) {
+    if(rows.size()==16)break;
+    Map<String,Object> row=new LinkedHashMap<>();row.put("class",listener.getClass().getName());
+    if(listener.getClass().getName().equals("cWt"))try {
+     Object interaction=field(listener,"nGb");row.put("interaction_present",interaction!=null);
+     Object target=interaction==null?null:call(interaction,"dTN");
+     row.put("interaction_target_present",target!=null);
+     if(target!=null)row.put("interaction_target_id",call(target,"Xi"));
+    }catch(Throwable error){row.put("interaction_error",error.toString());}
+    rows.add(row);
+   }
+   out.put("path_end_listeners",rows);out.put("listeners_truncated",listeners.size()>16);
+  }catch(Throwable error){out.put("error",error.toString());}
+  return out;
+ }
+
  private static Map<String,Object> combatDiagnostic() {
   Map<String,Object> out=new LinkedHashMap<>();out.put("time",java.time.Instant.now().toString());
   try {
@@ -118,6 +163,84 @@ public final class CaptureAgent {
    out.put("actor_id",call(actor,"Xi"));out.put("actor_owned",call(actor,"doz"));out.put("actor_position",String.valueOf(call(actor,"baM")));
    out.put("actor_mp",call(actor,"c",field(Class.forName("ffw"),"sgE")));
   }catch(Throwable t){out.put("error",t.toString());}
+  return out;
+ }
+
+ private static Map<String,Object> interactiveRegistryDiagnostic(List<Long> ids) {
+  Map<String,Object> out=new LinkedHashMap<>();out.put("time",Instant.now().toString());
+  try {
+   Object game=call(Class.forName("aTx"),"cWt");
+   if(game==null||call(game,"cWv")==null){out.put("status","not_loaded");return out;}
+   Object rawRegistry=call(Class.forName("bEC"),"dVG");
+   Object scene=call(Class.forName("cdE"),"exN");
+   List<?> loaded=(List<?>)call(scene,"exP");
+   Map<Long,Object> rendered=new LinkedHashMap<>();
+   int sceneObjectCount=0;
+   for(Object candidate:loaded) {
+    sceneObjectCount++;
+    if(Class.forName("bEG").isInstance(candidate))
+     rendered.put(((Number)call(candidate,"Sn")).longValue(),candidate);
+   }
+   out.put("scene_object_count",sceneObjectCount);
+   out.put("scene_interactive_count",rendered.size());
+   try {
+    Object screen=call(Class.forName("cdG"),"exW"),meta=call(screen,"exX");
+    out.put("map_id",meta==null?null:field(meta,"cgb"));
+    out.put("world_map_id",field(screen,"bqh"));
+   } catch(Throwable error) {out.put("map_error",error.toString());}
+   List<Map<String,Object>> rows=new ArrayList<>();
+   for(long id:ids) {
+    Map<String,Object> row=new LinkedHashMap<>();row.put("id",id);
+    Object raw=call(rawRegistry,"ds",id);row.put("raw_exists",raw!=null);
+    if(raw!=null) {
+     short type=((Number)field(raw,"bkI")).shortValue();byte[] payload=(byte[])field(raw,"bkJ");
+     row.put("raw_type_id",type);row.put("raw_payload_bytes",payload.length);
+     try {Object definition=call(Class.forName("bEE"),"cb",type);row.put("raw_type",definition==null?null:call(definition,"aYh"));}
+     catch(Throwable ignored){}
+    }
+    Object object=rendered.get(id);row.put("rendered_exists",object!=null);
+    if(object!=null) {
+     row.put("class",object.getClass().getName());row.put("name",call(object,"getName"));
+     Object x=call(object,"getWorldX"),y=call(object,"getWorldY"),z=call(object,"getAltitude");
+     row.put("x",x);row.put("y",y);row.put("z",z);
+     row.put("visible",call(object,"isVisible"));row.put("usable",call(object,"isUsable"));
+     row.put("selectable",call(object,"isSelectable"));row.put("state_short",call(object,"dVL"));
+     row.put("state_int",call(object,"dVM"));row.put("state",String.valueOf(call(object,"dVN")));
+     short type=((Number)call(object,"bem")).shortValue();row.put("native_type_id",type);
+     try {Object definition=call(Class.forName("bEE"),"cb",type);row.put("native_type",definition==null?null:call(definition,"aYh"));}
+     catch(Throwable ignored){}
+     List<Map<String,Object>> actions=new ArrayList<>();
+     for(Object action:(Object[])call(object,"bee")) {
+      Map<String,Object> a=new LinkedHashMap<>();a.put("id",call(action,"beb"));
+      a.put("name",call(action,"aYh"));a.put("label",call(action,"aYi"));actions.add(a);
+     }
+     row.put("actions",actions);
+     try {
+      int cellX=(int)Math.floor(((Number)x).doubleValue()),cellY=(int)Math.floor(((Number)y).doubleValue());
+      for(Object partition:(List<?>)call(scene,"ble")) {
+       if(Boolean.TRUE.equals(call(partition,"aF",cellX,cellY))) {
+        Map<String,Object> chunk=new LinkedHashMap<>();
+        chunk.put("x",call(partition,"getX"));chunk.put("y",call(partition,"getY"));
+        chunk.put("width",call(partition,"getWidth"));chunk.put("height",call(partition,"getHeight"));
+        row.put("current_loaded_chunk",chunk);break;
+       }
+      }
+     } catch(Throwable error) {row.put("chunk_error",error.toString());}
+    }
+    rows.add(row);
+   }
+   out.put("objects",rows);
+  } catch(Throwable error) {
+   out.put("status","error");
+   List<String> causes=new ArrayList<>();
+   Throwable current=error;
+   for(int i=0;current!=null&&i<8;i++,current=current.getCause()) {
+    String message=current.getMessage();
+    if(message!=null&&message.length()>256)message=message.substring(0,256);
+    causes.add(current.getClass().getName()+(message==null?"":": "+message));
+   }
+   out.put("cause_chain",causes);
+  }
   return out;
  }
 
@@ -208,6 +331,50 @@ public final class CaptureAgent {
         instrumentation.addTransformer(new ClassFileTransformer() {
             @Override
             public byte[] transform(ClassLoader loader, String name, Class<?> clazz, ProtectionDomain domain, byte[] data) {
+                if ("bPO".equals(name)) {
+                    ClassReader reader = new ClassReader(data);
+                    ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+                    reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
+                        @Override
+                        public MethodVisitor visitMethod(int access, String method, String desc, String signature, String[] exceptions) {
+                            MethodVisitor target = super.visitMethod(access, method, desc, signature, exceptions);
+                            if (!method.equals("eH") || !desc.equals("(Ljava/lang/String;)Ljava/lang/Object;")) return target;
+                            return new MethodVisitor(Opcodes.ASM8, target) {
+                                @Override
+                                public void visitMethodInsn(int opcode, String owner, String called, String descriptor, boolean iface) {
+                                    if (opcode == Opcodes.INVOKEVIRTUAL && owner.equals("buH") && called.equals("a") && descriptor.equals("(LeGj;LfyG;LaBn;Z)LfyJ;")) {
+                                        // Consume exactly the original receiver/arguments; preserve stack maps.
+                                        super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativeSpellPreflight", "query", "(LbuH;LeGj;LfyG;LaBn;Z)LfyJ;", false);
+                                    } else {
+                                        super.visitMethodInsn(opcode, owner, called, descriptor, iface);
+                                    }
+                                }
+                            };
+                        }
+                    }, 0);
+                    return writer.toByteArray();
+                }
+                if ("adf".equals(name)) {
+                    ClassReader reader = new ClassReader(data);
+                    ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+                    reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
+                        @Override
+                        public MethodVisitor visitMethod(int access, String method, String desc, String signature, String[] exceptions) {
+                            MethodVisitor target = super.visitMethod(access, method, desc, signature, exceptions);
+                            if (!method.equals("b") || !desc.equals("(LacX;)V")) return target;
+                            return new MethodVisitor(Opcodes.ASM8, target) {
+                                @Override
+                                public void visitMethodInsn(int opcode, String owner, String called, String descriptor, boolean iface) {
+                                    if (opcode == Opcodes.INVOKEINTERFACE && owner.equals("acX") && called.equals("eg") && descriptor.equals("(Ljava/lang/String;)Z")) {
+                                        // Identical operand consumption; no added local loads or frames.
+                                        super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativeMovementStop", "finish", "(LacX;Ljava/lang/String;)Z", false);
+                                    } else super.visitMethodInsn(opcode, owner, called, descriptor, iface);
+                                }
+                            };
+                        }
+                    }, 0);
+                    return writer.toByteArray();
+                }
                 boolean unsafe = "io/netty/channel/AbstractChannel$AbstractUnsafe".equals(name);
                 if (!unsafe && !"io/netty/channel/AbstractChannelHandlerContext".equals(name)) return null;
                 ClassReader reader = new ClassReader(data);
@@ -516,6 +683,33 @@ public final class CaptureAgent {
                                         state.put("class", actor.getClass().getName());
                                         for (String[] pair : new String[][]{{"native_id", "Sn"}, {"name", "getName"}, {"x", "getWorldX"}, {"y", "getWorldY"}, {"z", "getAltitude"}})
                                             state.put(pair[0], actor.getClass().getMethod(pair[1]).invoke(actor));
+                                        Map<String, Object> graphicState = new LinkedHashMap<>();
+                                        try {
+                                            Object graphic = call(actor, "dhw");
+                                            graphicState.put("present", graphic != null);
+                                            if (graphic != null) {
+                                                graphicState.put("class", graphic.getClass().getName());
+                                                graphicState.put("identity", System.identityHashCode(graphic));
+                                                graphicState.put("visible", call(graphic, "isVisible"));
+                                                Object scene = call(Class.forName("cdE"), "exN");
+                                                Object loaded = call(scene, "exP");
+                                                if (loaded instanceof Iterable<?> objects) {
+                                                    boolean found = false;
+                                                    for (Object object : objects) if (object == graphic) { found = true; break; }
+                                                    graphicState.put("in_scene_object_list", found);
+                                                }
+                                            }
+                                            Object model = call(actor, "bwX");
+                                            graphicState.put("model_present", model != null);
+                                            if (model != null) {
+                                                graphicState.put("model_class", model.getClass().getName());
+                                                graphicState.put("model_identity", System.identityHashCode(model));
+                                            }
+                                        } catch (Exception error) {
+                                            graphicState.put("error_class", error.getClass().getName());
+                                            graphicState.put("error_message", error.getMessage());
+                                        }
+                                        state.put("graphic", graphicState);
                                     }
                                     actors.add(state);
                                 }
@@ -638,6 +832,37 @@ public final class CaptureAgent {
                         SwingUtilities.invokeAndWait(() -> diagnostic.putAll(equipmentDiagnostic()));
                         response = (JSON.toJson(diagnostic) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     }
+                    case "/spell-availability" -> {
+                        Map<?,?> input=JSON.fromJson(new String(exchange.getRequestBody().readNBytes(512),java.nio.charset.StandardCharsets.UTF_8),Map.class);
+                        long actorId=Long.parseLong(String.valueOf(input.get("actor_id")));
+                        long spellUid=Long.parseLong(String.valueOf(input.get("spell_uid")));
+                        Map<String,Object> diagnostic=new LinkedHashMap<>();
+                        SwingUtilities.invokeAndWait(() -> {
+                            try {
+                                Object fight=call(call(Class.forName("dba"),"fcm"),"cXY");
+                                Object actor=call(fight,"rj",actorId);
+                                Object book=call(actor,"js",spellUid);
+                                diagnostic.put("actor_id",actorId);
+                                diagnostic.put("spell_uid",spellUid);
+                                diagnostic.put("count",call(actor,"dTB"));
+                                Object original=call(fight,"a",actor,book,null,true);
+                                diagnostic.put("null_target",String.valueOf(original));
+                                diagnostic.put("policy",String.valueOf(NativeSpellAvailability.withNativeContext(original,fight,actor,book)));
+                                List<Map<String,Object>> candidates=new ArrayList<>();
+                                for(Object target:(java.util.Collection<?>)call(fight,"dLy")) {
+                                    Map<String,Object> row=new LinkedHashMap<>();
+                                    row.put("id",call(target,"Sn"));
+                                    row.put("breed",call(target,"aXA"));
+                                    Object owner=call(target,"dpr");
+                                    row.put("owner",owner==null?null:call(owner,"Sn"));
+                                    row.put("query",String.valueOf(call(fight,"a",actor,book,call(target,"baM"),true)));
+                                    candidates.add(row);
+                                }
+                                diagnostic.put("candidates",candidates);
+                            }catch(Throwable error){diagnostic.put("error",error.toString());}
+                        });
+                        response=(JSON.toJson(diagnostic)+"\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    }
                     case "/combat-actor" -> {
                         Map<?,?> input=JSON.fromJson(new String(exchange.getRequestBody().readNBytes(512),java.nio.charset.StandardCharsets.UTF_8),Map.class);
                         long identity=Long.parseLong(String.valueOf(input.get("actor_id")));
@@ -650,6 +875,23 @@ public final class CaptureAgent {
                                 diagnostic.put("fight",String.valueOf(fight));
                                 if(fighter==null)throw new IllegalStateException("Combat actor absent");
                                 diagnostic.put("id",call(fighter,"Sn"));
+                                Map<String,Object> summonCount=new LinkedHashMap<>();
+                                summonCount.put("count",call(fighter,"dTB"));
+                                List<Map<String,Object>> countPopulation=new ArrayList<>();
+                                for(Object candidate:(java.util.Collection<?>)call(fight,"dLy")) {
+                                    Map<String,Object> row=new LinkedHashMap<>();
+                                    row.put("id",call(candidate,"Sn"));
+                                    row.put("breed",call(candidate,"aXA"));
+                                    row.put("is_summon",call(candidate,"dTE"));
+                                    row.put("is_dead",call(candidate,"dsA"));
+                                    Object controller=call(candidate,"dpr");
+                                    row.put("controller_id",controller==null?null:call(controller,"Sn"));
+                                    row.put("controller_is_selected_actor",controller==fighter);
+                                    row.put("excluded_property_103",call(candidate,"i",call(Class.forName("ffe"),"Ua",103)));
+                                    countPopulation.add(row);
+                                }
+                                summonCount.put("population",countPopulation);
+                                diagnostic.put("native_summon_count",summonCount);
                                 diagnostic.put("position",List.of(call(fighter,"getWorldX"),call(fighter,"getWorldY"),call(fighter,"getAltitude")));
                                 Map<String,Object> stats=new LinkedHashMap<>();
                                 for(Object definition:(Object[])call(Class.forName("ffw"),"values")){
@@ -685,10 +927,34 @@ public final class CaptureAgent {
                         });
                         response=(JSON.toJson(diagnostic)+"\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     }
+                    case "/movement-diagnostic" -> {
+                        Map<String,Object> diagnostic=new LinkedHashMap<>();
+                        SwingUtilities.invokeAndWait(() -> diagnostic.putAll(movementDiagnostic()));
+                        response=(JSON.toJson(diagnostic)+"\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    }
                     case "/combat-diagnostic" -> {
                         Map<String,Object> diagnostic = new LinkedHashMap<>();
                         SwingUtilities.invokeAndWait(() -> diagnostic.putAll(combatDiagnostic()));
                         response = (JSON.toJson(diagnostic) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                    case "/interactive-registry" -> {
+                        Map<?,?> input=JSON.fromJson(new String(exchange.getRequestBody().readNBytes(8192),java.nio.charset.StandardCharsets.UTF_8),Map.class);
+                        Object rawIds=input==null?null:input.get("object_ids");
+                        if(rawIds==null&&input!=null)rawIds=input.get("generalObjectIds");
+                        List<Long> ids=new ArrayList<>();
+                        if(rawIds==null)ids.addAll(List.of(26865L,26842L));
+                        else {
+                            if(!(rawIds instanceof List<?> values)||values.isEmpty()||values.size()>64)
+                                throw new IllegalArgumentException("object_ids must contain 1..64 IDs");
+                            for(Object value:values) {
+                                if(value instanceof Number n)ids.add(n.longValue());
+                                else if(value instanceof String s)ids.add(Long.parseLong(s));
+                                else throw new IllegalArgumentException("object IDs must be integers or decimal strings");
+                            }
+                        }
+                        Map<String,Object> diagnostic=new LinkedHashMap<>();
+                        SwingUtilities.invokeAndWait(() -> diagnostic.putAll(interactiveRegistryDiagnostic(ids)));
+                        response=(JSON.toJson(diagnostic)+"\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     }
                     case "/project-cell" -> {
                         Map<?, ?> cell = JSON.fromJson(new String(exchange.getRequestBody().readNBytes(512), java.nio.charset.StandardCharsets.UTF_8), Map.class);

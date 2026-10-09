@@ -465,7 +465,7 @@ def settle(
             duel["target_character_id"],
         }:
             raise ValueError("Friendly duel roster differs from its consent")
-        from .equipment_stats import effective_character
+        from wakfu_server.equipment_stats import effective_character
         from wakfu_server.health_policy import visible
 
         actors = {

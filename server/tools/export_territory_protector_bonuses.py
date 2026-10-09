@@ -3,15 +3,14 @@
 
 from __future__ import annotations
 
-import gzip
 import hashlib
 import json
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "server/protocol/combat-state-definitions.json.gz"
-PROTECTORS = ROOT / "server/protocol/monster-encyclopedia.json.gz"
+SOURCE = ROOT / "server/protocol/combat-state-definitions.json"
+PROTECTORS = ROOT / "server/protocol/monster-encyclopedia.json"
 REGIONS = ROOT / "server/protocol/ecology-regions.json"
 OUTPUT = ROOT / "server/protocol/territory-protector-bonuses.json"
 STATE_IDS = (1915, 1916, 1917)
@@ -19,9 +18,9 @@ STATE_IDS = (1915, 1916, 1917)
 
 def export() -> dict:
     source_bytes = SOURCE.read_bytes()
-    with gzip.open(SOURCE, "rt", encoding="utf-8") as stream:
+    with open(SOURCE, "rt", encoding="utf-8") as stream:
         catalog = json.load(stream)
-    with gzip.open(PROTECTORS, "rt", encoding="utf-8") as stream:
+    with open(PROTECTORS, "rt", encoding="utf-8") as stream:
         protector_catalog = json.load(stream)
     regions = json.loads(REGIONS.read_text(encoding="utf-8"))
     region_to_map = {

@@ -19,3 +19,6 @@ Bind y anuncio son distintos; acceso de red nunca reemplaza autenticación ni au
 ## Avance — 7 de octubre
 
 **Solucionado parcialmente.** Se añadió `.env.example` y `server/tools/check_server_network.py`; distingue bind/anuncio, valida IPv4/puerto, respeta precedencia del entorno y no imprime secretos. Compose permite WAKFU_BIND_HOST conservando0.0.0.0 como default interno y publicaciones localhost. Tres pruebas de configuración pasaron (incluidos comentarios tras valores entre comillas) y `docker compose config --quiet` aprobó. No hay exposición remota ni cambios de cliente; la conexión desde otro equipo sigue pendiente.
+
+
+Implementación remota directa en fuente: [guía de servidor y cliente](../../reports/wakemu-remote-client.md), override compose opt-in, IP/puertos explícitos y proxy HTTPS limitado a login/remember/game-token. API completa permanece en loopback y DB/Redis no se publican. Validación:2 pruebas de configuración, render Compose, nginx efímero sin puertos publicados con handshakeTLS y rechazo404/403. Falta conectar desde otro equipo con IP/certificado reales y acreditar upstream de autenticación. No instalada ni exposición remota habilitada.

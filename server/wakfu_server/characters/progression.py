@@ -1,11 +1,12 @@
 """XP thresholds extracted offline from the installed client's own MP curve."""
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 from pathlib import Path
 
 XP_BY_LEVEL = {
     int(level): xp
-    for level, xp in json.loads((DATA_ROOT / "level-xp.json").read_text())[
+    for level, xp in protocol_catalog.load(DATA_ROOT / "level-xp.json")[
         "xp_by_level"
     ].items()
 }

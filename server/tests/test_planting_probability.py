@@ -7,6 +7,7 @@ from wakfu_server.planting_probability import (
     for_cell,
     succeeds,
 )
+from wakfu_server import native_catalog
 
 
 class PlantingProbabilityTests(unittest.TestCase):
@@ -16,8 +17,12 @@ class PlantingProbabilityTests(unittest.TestCase):
 
         from wakfu_server.paths import DATA_ROOT
 
-        resources = json.loads((DATA_ROOT / "plant-resources.json").read_text())
-        climates = json.loads((DATA_ROOT / "resource-climates.json").read_text())
+        resources = json.loads(
+            native_catalog.read_text(DATA_ROOT / "plant-resources.json")
+        )
+        climates = json.loads(
+            native_catalog.read_text(DATA_ROOT / "resource-climates.json")
+        )
         resource_refs = [row["resource_reference"] for row in resources]
         climate_refs = [row["resource_reference"] for row in climates]
         self.assertEqual(len(resource_refs), 533)
@@ -38,7 +43,7 @@ class PlantingProbabilityTests(unittest.TestCase):
             / "probe-climas-recursos.json"
         )
         if probe.exists():
-            probe_rows = json.loads(probe.read_text())["records"]
+            probe_rows = json.loads(native_catalog.read_text(probe))["records"]
             self.assertEqual(
                 {row["resource_reference"] for row in probe_rows},
                 set(resource_refs),

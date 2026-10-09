@@ -53,15 +53,22 @@ def area_offsets(effect, *, origin=None, reference=None, direction=None):
             for x, y in ((0, -n), (0, n), (n, 0), (-n, 0))
         )
     elif kind == "anw" and (
-        match := re.fullmatch(r"cross-h(\d+)b(\d+)-g(\d+)d(\d+)", description or "")
+        match := re.fullmatch(
+            r"cross-h(-?\d+)b(-?\d+)-g(-?\d+)d(-?\d+)", description or ""
+        )
     ):
-        lengths = tuple(map(int, match.groups()))
-        if len(set(lengths)) != 1:
-            raise UnsupportedEffectArea("Asymmetric cross needs native rotation")
-        radius = lengths[0]
+        # anw.bEj=true: arms stay in world XY independently of direction
+        # and owner reference. Native p/bEl includes the center even when
+        # an arm length is negative; its positive-index loop is then empty.
         return frozenset(
-            {(n, 0) for n in range(-radius, radius + 1)}
-            | {(0, n) for n in range(-radius, radius + 1)}
+            {(0, 0)}
+            | {
+                (dx * n, dy * n)
+                for length, (dx, dy) in zip(
+                    map(int, match.groups()), ((1, 0), (-1, 0), (0, -1), (0, 1))
+                )
+                for n in range(1, length + 1)
+            }
         )
     elif kind == "anx" and (
         match := re.fullmatch(
@@ -100,7 +107,15 @@ def target_relation(caster, target):
 
 
 def select_effect_targets(
-    effect, caster, center, actors, *, relations, orientation=None, native_radius=False
+    effect,
+    caster,
+    center,
+    actors,
+    *,
+    relations,
+    orientation=None,
+    native_radius=False,
+    available=None,
 ):
     """Select living actors in an audited area under an explicit policy.
 
@@ -110,6 +125,7 @@ def select_effect_targets(
     relations = frozenset(relations)
     if not relations <= {"self", "ally", "enemy"}:
         raise ValueError("Unknown target relation")
+    available = target_available if available is None else available
     shape = native_area_shape(effect)
     offsets = None if shape is not None else area_offsets(effect)
 
@@ -142,7 +158,7 @@ def select_effect_targets(
     return tuple(
         actor
         for actor in actors
-        if target_available(actor)
+        if available(actor)
         and inside(actor)
         and target_relation(caster, actor) in relations
     )
@@ -178,12 +194,15 @@ def native_selector_policy(effect):
         | 128
         | 256
         | 4096
+        | 16384
         | 8192
         | (1 << 34)
         | (1 << 40)
         | (1 << 42)
         | (1 << 43)
+        | (1 << 44)
         | (1 << 45)
+        | (1 << 46)
         | (1 << 47)
         | (1 << 49)
         | (1 << 50)
@@ -215,7 +234,7 @@ def _native_value(context, key):
     return context[key]
 
 
-def _native_target_valid(mask, caster, actor, contexts):
+def _native_target_valid(mask, caster, actor, contexts, *, include_fah=True):
     """fcE + faH predicates, with exact native-method context names."""
     try:
         target = contexts[actor.id]
@@ -253,16 +272,44 @@ def _native_target_valid(mask, caster, actor, contexts):
             return False  # Native exclusion is own summons, not every summon.
     if mask & 32 and (not value("is_eGj") or not value("dTE")):
         return False
+    if mask & (1 << 44) and (not value("is_eGj") or value("dTE")):
+        return False  # fcE requires an actual eGj which is not a summon.
     if mask & 4096:
         if not value("is_eGj") or not value("dTE"):
             return False
         if value("dpu_id") != caster.id or value("baG") or value("baK"):
             return False
-    if mask & (1 << 43):
-        if not value("is_Qq") or value("q_owner_id") != caster.id:
-            return False
+    if mask & 16384:
+        if not value("is_eGj") or not value("baG"):
+            return False  # fcE requires target eGj.baG(); distinct from bit4096.
     if mask & (1 << 47) and not value("is_eGj"):
         return False
+    if mask & (1 << 43):
+        if not value("is_Qq"):
+            return False
+        # A native Qq can have a proven NULL owner (e.g. faP border).
+        if "q_owner_id" not in target:
+            raise UnsupportedTargetSelector("Missing native Qq target owner")
+        owner = target["q_owner_id"]
+        if owner is not None and (
+            type(owner) is not int or not -(1 << 63) <= owner < (1 << 63)
+        ):
+            raise UnsupportedTargetSelector("Invalid native Qq target owner")
+        if owner != caster.id:
+            return False
+    if mask & (1 << 46):
+        if not source_value("is_Qq"):
+            return False
+        # Qq.bch is the direct native owner pointer, not an owner chain.
+        if "q_owner_id" not in source:
+            raise UnsupportedTargetSelector("Missing native Qq source owner")
+        owner = source["q_owner_id"]
+        if owner is not None and (
+            type(owner) is not int or not -(1 << 63) <= owner < (1 << 63)
+        ):
+            raise UnsupportedTargetSelector("Invalid native Qq source owner")
+        if owner != actor.id:
+            return False
     if mask & (1 << 49) and value("is_Qq"):
         return False
     if mask & (1 << 50) and value("bcN") < 0:
@@ -276,7 +323,13 @@ def _native_target_valid(mask, caster, actor, contexts):
         and value("UNTARGETTABLE_BY_OTHER")
     ):
         return False  # fcE does not exempt self from this predicate.
-    if actor.id != caster.id and value("is_eHH") and not mask & 8192 and value("buX"):
+    if (
+        include_fah
+        and actor.id != caster.id
+        and value("is_eHH")
+        and not mask & 8192
+        and value("buX")
+    ):
         return False  # faH filtering after selection; meaning kept native.
     return True
 
@@ -303,13 +356,15 @@ def select_native_effect_targets(
             relations=policy["relations"],
             orientation=center if selector is None else caster.position,
             native_radius=selector is not None,
+            # faH enumerates the supplied PV collection and applies fcE;
+            # eZR.i owns the later corpse gate. HP is not that collection.
+            available=lambda _actor: True,
         )
     else:
         candidates = tuple(
             actor
             for actor in actors
-            if target_available(actor)
-            and target_relation(caster, actor) in policy["relations"]
+            if target_relation(caster, actor) in policy["relations"]
         )
     return tuple(
         actor

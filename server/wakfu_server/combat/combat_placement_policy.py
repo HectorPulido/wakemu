@@ -32,8 +32,34 @@ def _arena(map_id, instance_id, layout):
         int(team): {tuple(c) for c in group}
         for team, group in layout["placement"].items()
     }
-    result = arena(map_id, layout["wire_instance_id"], sorted(cells), placement)
-    result.update(validated_cells=cells, valid_edges=edges, placement_cells=placement)
+    from .combat_qi_surface_catalog import (
+        native_qi_surfaces,
+        native_qi_surface_provenance,
+    )
+    from .combat_qi_surface_selection import native_surface_indices
+
+    # Placement regenerates wire masks, so preserve the actual native Vy
+    # selection rather than silently replacing every surface index with zero.
+    indices = native_surface_indices(native_qi_surfaces(map_id), cells)
+    result = arena(
+        map_id,
+        layout["wire_instance_id"],
+        sorted(cells),
+        placement,
+        surface_indices=indices,
+        border_cells=layout.get("native_border_cells", []),
+    )
+    result.update(
+        validated_cells=cells,
+        valid_edges=edges,
+        placement_cells=placement,
+        native_qi_surface_provenance=native_qi_surface_provenance(map_id),
+        participant_positions=layout.get("participant_positions", []),
+        native_border_cells=frozenset(
+            tuple(c) for c in layout.get("native_border_cells", [])
+        ),
+        native_border_policy=layout.get("native_border_policy"),
+    )
     return result
 
 
@@ -78,6 +104,11 @@ def freeze(
         ).fetchone()
         policy = _policy(None if row is None else row["value"])
         cells, edges = selected_arena["validated_cells"], selected_arena["valid_edges"]
+        relocations = selected_arena.get("participant_positions", [])
+        if relocations:
+            if [tuple(pair[0]) for pair in relocations] != [tuple(c) for c in seeds[1]]:
+                raise ValueError("Encounter relocation source changed")
+            seeds = {0: seeds[0], 1: [tuple(pair[1]) for pair in relocations]}
         placement = generate(
             cells,
             edges,
@@ -88,6 +119,9 @@ def freeze(
             else None,
         )
         layout = dict(
+            native_border_cells=sorted(selected_arena.get("native_border_cells", [])),
+            native_border_policy=selected_arena.get("native_border_policy"),
+            participant_positions=relocations,
             cells=sorted(cells),
             edges=sorted(edges),
             wire_instance_id=selected_arena["instance_id"],

@@ -2,6 +2,17 @@
 
 PUBLIC_COMMANDS_SETTING = "player_allowed_commands"
 DEFAULT_PLAYER_COMMANDS = ("!ayuda", "!pos")
+COMMAND_ALIASES = {
+    "!help": "!ayuda",
+    "!position": "!pos",
+    "!level": "!nivel",
+    "!teleport": "!tp",
+    "!monster": "!mob",
+}
+
+
+def canonical_command(command):
+    return COMMAND_ALIASES.get(command.lower(), command.lower())
 
 
 def is_admin(store, account_id):
@@ -17,7 +28,7 @@ def is_admin(store, account_id):
 def authorize_command(store, account_id, text):
     if not isinstance(text, str) or not text.split() or not text.startswith("!"):
         raise ValueError("Comando inválido")
-    command = text.split()[0].lower()
+    command = canonical_command(text.split()[0])
     with store.connection() as db:
         row = db.execute(
             "SELECT is_admin FROM accounts WHERE id=%s", (account_id,)
@@ -35,7 +46,7 @@ def authorize_command(store, account_id, text):
         for c in allowed
     ):
         raise PermissionError("Política de comandos inválida")
-    if command not in allowed:
+    if command not in {canonical_command(value) for value in allowed}:
         raise PermissionError("Comando no autorizado para esta cuenta")
 
 

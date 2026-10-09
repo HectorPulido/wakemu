@@ -3,6 +3,7 @@ import copy
 import json
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -18,6 +19,95 @@ from wakfu_server.combat_state import Actor, Fight
 
 
 class NativeOracleTests(unittest.TestCase):
+    def test_npc_casting_root_prerequisite_is_exact_and_fail_open(self):
+        oracle = object.__new__(NativeOracle)
+        actor_id = -77
+        oracle.characters = {}
+        oracle.monsters = {actor_id: {"id": actor_id}}
+        oracle.owned_spells = lambda fight, identity: {
+            100: 1,
+            200: 0,
+            300: 1,
+        }
+        fight = SimpleNamespace(
+            actors={actor_id: SimpleNamespace(id=actor_id, hp=20)},
+            native_summon_registrations={},
+            sequence=13,
+        )
+        casting = {
+            "100": {
+                "levels": [[1, 0, [81, 82]]],
+                # Conditional target/range data does not change the baseline
+                # roots selected by NativeOracle.cast.
+                "conditional": [{"levels": [[2, 0, [999]]]}],
+            },
+            "300": {"levels": [[1, 0, [83]]]},
+        }
+        roots = {
+            "roots": {
+                "81": {"native_casting_collision_area": None},
+                "83": {"native_casting_collision_area": None},
+            }
+        }
+        with patch(
+            "wakfu_server.combat_native_spell_casting.catalog",
+            return_value=casting,
+        ), patch(
+            "wakfu_server.combat_casting_context.casting_root_catalog",
+            return_value=roots,
+        ):
+            result = oracle.native_casting_root_prerequisites(
+                fight, actor_id, "state-13"
+            )
+
+        self.assertEqual(
+            result,
+            dict(
+                schema="native-casting-root-prerequisites-v1",
+                sourceState="state-13",
+                actorId=actor_id,
+                stateRevision=13,
+                complete=True,
+                unavailable=[
+                    dict(
+                        spellId=100,
+                        level=1,
+                        reason="missing_root_metadata",
+                        missingRootIds=[82],
+                    )
+                ],
+            ),
+        )
+        oracle.characters = {actor_id: {"id": actor_id}}
+        self.assertIsNone(
+            oracle.native_casting_root_prerequisites(fight, actor_id, "state-13")
+        )
+
+    def test_npc_casting_root_prerequisite_omits_unknown_rows_fail_open(self):
+        oracle = object.__new__(NativeOracle)
+        actor_id = -78
+        oracle.characters = {}
+        oracle.monsters = {actor_id: {"id": actor_id}}
+        oracle.owned_spells = lambda fight, identity: {400: 1}
+        fight = SimpleNamespace(
+            actors={actor_id: SimpleNamespace(id=actor_id, hp=20)},
+            native_summon_registrations={},
+            sequence=14,
+        )
+        with patch(
+            "wakfu_server.combat_native_spell_casting.catalog",
+            return_value={"400": {"levels": "future-schema"}},
+        ), patch(
+            "wakfu_server.combat_casting_context.casting_root_catalog",
+            return_value={"roots": {"1": {}}},
+        ):
+            result = oracle.native_casting_root_prerequisites(
+                fight, actor_id, "state-14"
+            )
+
+        self.assertEqual(result["unavailable"], [])
+        self.assertIs(result["complete"], True)
+
     def test_native_search_selects_back_route_only_for_real_damage_gain(self):
         from wakfu_ai.context.native_context import encode
         from wakfu_ai.planning.query_search import search
@@ -29,7 +119,13 @@ class NativeOracleTests(unittest.TestCase):
         fixture = self.wonejo_fixture()
         fixture.pc.direction = 1
         fixture.npc.mp = fixture.npc.effect_stats[2] = 4
-        route = [(1, 0, 0), (1, 1, 0), (0, 1, 0), (-1, 1, 0), (-1, 0, 0)]
+        route = [
+            (-7, -7, -1),
+            (-7, -6, -1),
+            (-8, -6, -1),
+            (-9, -6, -1),
+            (-9, -7, -1),
+        ]
         fixture.fight.walkable = set(route) | {fixture.pc.position}
         fixture.fight.edges = set(zip(route, route[1:])) | set(zip(route[1:], route))
         freeze_terrain(fixture.fight)
@@ -73,7 +169,7 @@ class NativeOracleTests(unittest.TestCase):
                     decision = completed.value
                     break
         self.assertEqual(decision["plan"][0]["type"], "move")
-        self.assertEqual(decision["plan"][0]["path"][-1], [-1, 0, 0])
+        self.assertEqual(decision["plan"][0]["path"][-1], [-9, -7, -1])
         self.assertEqual(decision["plan"][1]["type"], "cast")
         self.assertGreater(
             decision["components"]["damage"],
@@ -142,13 +238,54 @@ class NativeOracleTests(unittest.TestCase):
     @staticmethod
     def wonejo_fixture():
         from tests.test_combat_npc_attack import NativeNpcAttackTests
+        from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
+        from wakfu_server.combat_bootstrap import create_placement
+        from wakfu_server.combat_terrain import local_arena
+        from wakfu_server.monsters import owned_instance
 
         fixture = NativeNpcAttackTests()
         fixture.setUp()
-        fixture.fight.edges = {
-            ((0, 0, 0), (1, 0, 0)),
-            ((1, 0, 0), (0, 0, 0)),
-        }
+        character = dict(fixture.character)
+        character.update(
+            map_id=1134, instance_id=0, x=-8, y=-7, z=-1, active_build_index=0
+        )
+        monster = owned_instance(
+            5525,
+            1,
+            fixture.npc.id,
+            map_id=1134,
+            x=-7,
+            y=-7,
+            z=-1,
+            instance_id=0,
+        )
+        terrain = local_arena(1134, 77, (-8, -7, -1), (-7, -7, -1))
+        fight, _ = create_placement(
+            character,
+            monster,
+            terrain,
+            fight_id=77,
+            player_ap=6,
+            player_mp=3,
+            player_wp=6,
+            player_initiative=fixture.pc.initiative,
+            terrain_effect_id=46,
+            terrain_instance_id=-300,
+        )
+        initialize_fight_snapshots(
+            fight,
+            characters={character["id"]: character},
+            monsters={monster["id"]: monster},
+            wp_resources={7: (6, 6), fixture.npc.id: (monster["wp"], monster["wp"])},
+            running_effects={7: (), fixture.npc.id: ()},
+            initial_effect_uid=1,
+        )
+        fight.ready(character["account_id"])
+        fixture.character = character
+        fixture.monster = monster
+        fixture.fight = fight
+        fixture.pc = fight.actors[character["id"]]
+        fixture.npc = fight.actors[monster["id"]]
         return fixture
 
     @staticmethod
@@ -246,7 +383,14 @@ class NativeOracleTests(unittest.TestCase):
 
         fixture = self.wonejo_fixture()
         fight = fixture.fight
-        fight.walkable.add((-1, 0, 0))
+        summon_cell = next(
+            cell
+            for cell in sorted(fight.walkable)
+            if cell not in {fixture.pc.position, fixture.npc.position}
+            and abs(cell[0] - fixture.npc.position[0])
+            + abs(cell[1] - fixture.npc.position[1])
+            == 1
+        )
         fight.order, fight.turn_index = [fixture.npc.id, fixture.pc.id], 0
         runtime = RuntimeMessages(fight)
         oracle = self.oracle_for(
@@ -256,10 +400,10 @@ class NativeOracleTests(unittest.TestCase):
         authority = adapter.actor_authority
         actor, registration = NativeSummonBuilder(authority)(
             fight,
-            SummonSpecification(5525, 1, False, 3, 1, "caster", 1),
+            SummonSpecification(5528, 1, False, 3, 1, "caster", 1),
             fixture.npc.id,
             901,
-            (-1, 0, 0),
+            summon_cell,
         )
         authority.register(
             fight,
@@ -271,7 +415,7 @@ class NativeOracleTests(unittest.TestCase):
         fight.turn_index = 1
         actor.turn_count = 1
         before = encode(runtime)
-        self.assertEqual(oracle.owned_spells(fight), {7962: 1})
+        self.assertEqual(oracle.owned_spells(fight), {7988: 1})
         with patch("wakfu_server.combat_los.authoritative_visible", return_value=True):
             with self.assertRaisesRegex(
                 ValueError, "Summoned-actor lifecycle propagation remains unaudited"
@@ -280,10 +424,10 @@ class NativeOracleTests(unittest.TestCase):
                     runtime,
                     dict(
                         type="cast",
-                        spellId=7962,
+                        spellId=7988,
                         level=1,
                         targetId=fixture.pc.id,
-                        target=[0, 0, 0],
+                        target=list(fixture.pc.position),
                     ),
                 )
         # Do not bypass the native event guard to produce presumed damage.
@@ -295,13 +439,13 @@ class NativeOracleTests(unittest.TestCase):
             fight.id,
             1,
             oracle.descriptor(fight, actor),
-            7962,
+            7988,
             (0, 0, 0),
-            native_uid=7962,
+            native_uid=7988,
             native_level=1,
         )
         self.assertEqual(struct.unpack_from(">q", wire, 12)[0], 901)
-        self.assertEqual(struct.unpack_from(">qih", wire, 20), (7962, 7962, 1))
+        self.assertEqual(struct.unpack_from(">qih", wire, 20), (7988, 7988, 1))
         serializer = NativeStats(
             characters=oracle.characters,
             monsters=oracle.monsters,
@@ -431,7 +575,7 @@ class NativeOracleTests(unittest.TestCase):
         from wakfu_server.spells import encode_deck
 
         fixture = SpellTransactionTests()
-        character, monster, fight = fixture.native_server_fixture(2, 19)
+        character, monster, fight = fixture.native_server_fixture(2, 19, native_qi=True)
         fight.actors[7].owner_id = 3
         fight.actors[7].position = (-8, -7, -1)
         fight.actors[-7].position = (-6, -7, -1)
@@ -495,7 +639,7 @@ class NativeOracleTests(unittest.TestCase):
 
         def setup():
             character, monster, fight = SpellTransactionTests().native_server_fixture(
-                2, 19
+                2, 19, native_qi=True
             )
             monster.update(id=-7, ref=5525, level=1, map_id=1134)
             fight.actors[7].position = (-8, -7, -1)
@@ -619,36 +763,41 @@ class NativeOracleTests(unittest.TestCase):
             runtime, fixture.character, fixture.monster, default_deck(fixture.character)
         )
         los_source, los_target = (-23, -143, 70), (-22, -143, 70)
-        fixture.npc.position = los_source
-        fixture.pc.position = los_target
+        from wakfu_server.combat_qi_fight import move_registered_actor
+
+        move_registered_actor(fixture.fight, fixture.npc, los_source)
+        move_registered_actor(fixture.fight, fixture.pc, los_target)
         fixture.npc.direction = 3
         fixture.pc.direction = 0
-        fixture.fight.walkable = {los_source, los_target}
-        fixture.fight.edges = {(los_source, los_target), (los_target, los_source)}
-        freeze_terrain(fixture.fight)
         self.assertTrue(oracle.visible(fixture.fight, los_source, los_target))
 
-        fixture.npc.position = (0, 0, 0)
-        fixture.pc.position = (3, 0, 0)
-        fixture.fight.walkable = {(x, 0, 0) for x in range(4)}
-        fixture.fight.edges = {((x, 0, 0), (x + 1, 0, 0)) for x in range(3)}
-        fixture.fight.edges |= {((x + 1, 0, 0), (x, 0, 0)) for x in range(3)}
+        move_registered_actor(fixture.fight, fixture.npc, (-7, -7, -1))
+        move_registered_actor(fixture.fight, fixture.pc, (-4, -7, -1))
+        fight_cells = {(-7, -7, -1), (-6, -7, -1), (-5, -7, -1), (-4, -7, -1)}
+        fixture.fight.walkable = fight_cells
+        fixture.fight.edges = {
+            (source, target)
+            for source, target in zip(sorted(fight_cells), sorted(fight_cells)[1:])
+        }
+        fixture.fight.edges |= {
+            (target, source) for source, target in fixture.fight.edges
+        }
         freeze_terrain(fixture.fight)
         before = self.effects(fixture.fight)
 
         private, packets, _ = oracle.preview(
-            runtime, {"type": "move", "path": [[1, 0, 0]]}
+            runtime, {"type": "move", "path": [[-6, -7, -1]]}
         )
-        self.assertEqual(private.fight.actors[fixture.npc.id].position, (1, 0, 0))
+        self.assertEqual(private.fight.actors[fixture.npc.id].position, (-6, -7, -1))
         self.assertEqual(private.fight.actors[fixture.npc.id].direction, 1)
         self.assertTrue(packets)
         self.assertEqual(self.effects(fixture.fight), before)
 
         missing_edge = oracle.fork(runtime=runtime)
-        missing_edge.fight.walkable = {(0, 0, 0), (1, 0, 0), (2, 0, 0), (3, 0, 0)}
-        missing_edge.fight.edges = {((0, 0, 0), (1, 0, 0))}
+        missing_edge.fight.walkable = fight_cells
+        missing_edge.fight.edges = {((-7, -7, -1), (-6, -7, -1))}
         with self.assertRaisesRegex(ValueError, "path|transition|edge|walkable"):
-            oracle.preview(missing_edge, {"type": "move", "path": [[2, 0, 0]]})
+            oracle.preview(missing_edge, {"type": "move", "path": [[-5, -7, -1]]})
 
     def test_private_end_start_callbacks_expiration_and_turn_ack(self):
         from tests.test_combat_timed_expiration import TimedExpirationTests

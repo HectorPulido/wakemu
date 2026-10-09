@@ -1,0 +1,49 @@
+# Native casting and teleport target terrain
+
+This investigation is read-only during the integrated audit. It separates selected Vy surface identity, native terrain masks, movement occupancy and LOS. A movement `walkable` coordinate set cannot stand in for all four.
+
+## Teleport eZB, eZC and eZD
+
+The shared original eZB.C first requires a real QI, an actual eGj recipient and a destination. It always calls `QI.i(destinationXYZ)` at offset84. Null selected surface sets rIw=false and returns before subsequent checks. There is no bLD or QI.j check in this branch: a selected surface with bLD=-1 remains a valid surface for this first gate.
+
+Property restrictions follow this surface gate. After them, rIy/check-cells at offset277 determines whether `QI.a(amP,destination)` runs. False skips that operation alone. True requires actual footprint/occupancy authority, including the ignored moving obstacle and actual QI.g terrain flags. Thus check-cells=false permits blocking cells but never permits a missing, wrong-altitude or out-of-bounds selected surface. It must not be implemented as an unconditional destination success.
+
+## Normal casting fcj
+
+fcj is different. After range checks it requires target XY within QI.aK. The caller's forbid-QI-P flag optionally rejects QI.P. QI.R is always required. The LOS=false branch invokes QI.j at offset261: it requires the exact selected surface and bLD!=-1. Signed values other than -1 are not rejected as negative walkability flags. The LOS=true branch invokes the separate fcr ray check; that branch has no direct selected-Vy i/j/bLD gate. fcr uses actual actor heights and dynamic obstacle handling.
+
+Consequently, replacing all normal casting targets with `QI.i!=null` would wrongly permit no-LOS targets whose selected bLD is -1, while replacing all targets with QI.j would introduce an extra terrain restriction into the LOS branch. Existing full static alignment remains separate: linear OR diagonal, optional Sn traversal through selected cwV and independent path option cwN. A terrain callback must expose these primitives independently, rather than report one generic walkability boolean.
+
+## Available producers and integration boundary
+
+Root's `NativeQISurfaces` preserves first matching chunk, ordered Vy surfaces, selected index mask&63, exact signed-short altitude, null selection and exact bLD. `NativeQISnapshot` supplies serialized aK/P/R and the separately proven W-only Z lookup. The surface bulk exporter has 934 successful maps and27 native decoding failures. Export failure is unknown authority, never an empty topology.
+
+A loader can validate the pinned bulk manifest hash, select only an exported map record, verify the actual installed topology source hash and compressed output hash, and construct NativeQISurfaces with matching map_id/source_sha256. This should be explicitly configured against the staged/exported catalog; no automatic fallback to movement geometry or LOS columns. Runtime Fight must carry its actual map identity and matching terrain snapshot. The callback may then provide selected i/j separately. Full Sn traversal still requires its physical floor/height-transition producers; surface lookup alone is insufficient.
+
+Native evidence was inspected with targeted javap only: original fcj offsets170–270, original fcr.a, and original eZB.C offsets0–329. Private disassemblies are `/tmp/wakemu-fcj-full-range.txt`, `/tmp/wakemu-fcr-range.txt` and `/tmp/wakemu-eZB-range.txt`. No Python sources, catalogs or services changed during this investigation.
+
+## Arena selected-surface producer discrepancy
+
+`combat_wire.arena` currently writes mask0 for every selected XYZ cell. QI.i interprets the low six bits as an actual ordered Vy index, so this is correct only when the chosen altitude matches surface0. Root's full map1134 comparison found502 of37157 selected walkable cells require an index greater than0;36655 match index0. There were no missing or ambiguous matches in that comparison. At `(60,-245,19)`, index0 is `(-4,-1)` while the actual selected surface is index1 `(19,0)`. A client QI constructed from the current arena mask therefore selects the wrong altitude at this location.
+
+The live server entry point already uses a general producer: opcode13130 calls `combat_terrain.local_arena`, which selects a bounded region through `map_geometry`, generates placement, and calls `combat_wire.arena`. No unrelated `local_game_server` edit is required. The correction can load the verified ordered map surfaces in local_arena, find the unique exact altitude index within the first matching native chunk for every selected cell, require index0..63, and pass these indices explicitly to arena. Missing or duplicate altitude matches must remain errors. This changes only the selected-surface low bits and preserves independent blocked, border, placement and occupancy data.
+
+The staged bulk surface directory occupies25 MiB. Importing only934 successful manifest records into `server/protocol/native-qi-surfaces` would make the complete producer available under the existing Docker protocol COPY, without needing private runtime paths or a live client. An offline importer should verify the pinned manifest, all successful compressed-output hashes and actual topology source hashes before publishing;27 native failures remain explicit unavailable records. The runtime loader verifies the published output against that provenance. It must not opportunistically discover an unvalidated runtime directory or substitute movement geometry. Existing fixture-only arena construction should supply explicit selected indices or remain clearly synthetic; the normal server producer always supplies native authority.
+
+This investigation does not establish border-bit128 generation. Border policy must not be inferred merely from a selected rectangle's edges. No source or catalog edits were made during this audit freeze.
+
+## Offline teleport consumer implementation
+
+`NativeDisplacementHandler` now always consumes the actual selected `QI.i` surface before teleport property checks, including when check-cells is false. Its production consumer requires the exact published map-surface provenance and the actual serialized arena masks. An explicitly supplied callback is available for synthetic, provenance-labelled test fixtures; movement walkability is never a selected-surface fallback. Missing, wrong-altitude and out-of-arena selections refuse movement. A selected surface whose bLD is -1 can be accepted when check-cells is false.
+
+For check-cells true, the verified ordinary radius-zero path consumes the complete owned `NativeQIRegistry`, actual mask bits256/512, the actual QI movement override and temporary ignored-slot producer. It excludes the moving actor's actual QK slot without changing published membership, as native QI.a temporarily adds that slot to biN. This occupancy query does not inspect bLD, actor HP guesses, LOS columns or movement walkability. Unknown override/ignored-slot or stale population remains an error. Larger footprints remain unsupported rather than silently using the radius-zero path.
+
+Six pure tests pass with `PYTHONPATH=server:server/tests /tmp/wakemu-combat-review-venv/bin/python3 -m unittest test_combat_teleport_surface -q`. These verify selected index1/altitude19 with bLD=-1, wrong selected altitude and OOB refusal, missing registration rejection, independent terrain blocking with the override enabled, and own-QK exclusion. The tests mock only the already-tested parameter and timing producers; real `NativeQISurfaces`, `NativeQISnapshot`, `NativeQIRegistry`, displacement wire encoding and coordinate update execute. Catalog-wide integration and the original client application are not established by this focused checkpoint.
+
+## Prepared teleport calculation before level two
+
+Teleport acceptance is now stored in a UID-scoped execution-local prepared calculation. The prepare hook allocates the fresh native runner, emits L1, evaluates selected-surface/property/occupancy acceptance and captures the destination. Execution consumes that captured calculation before L2 and applies its result afterward. L2 changes do not cause a second QI.i query or a new property/occupancy decision. `cancel_prepared` removes skipped calculations through the dispatcher's existing cleanup hook. The prepared dictionary contains no persisted combat/checkpoint data.
+
+Three additional pure tests cover the sequence L1, selected-surface calculation, L2, L3, L4; mutation at L2 does not recompute acceptance. They also verify refusal causes no coordinate change and leaves no prepared entry, and dispatcher cancellation discards the prepared calculation. Together the teleport and collision suites now pass15 tests. A native C refusal does not imply that a runner UID or L1 never existed: those precede C. Spell-resource transaction rollback, full native refused-teleport notification policy, native eZB destination modifiers and GUI observation are distinct requirements and are not certified by these focused tests. Forced displacement eXD path calculation retains its separate native placement after L2.
+
+The L2 amount-modifier distinction is now separately verified: original `Qe.a(int,float,boolean)` is an immediate return (`/tmp/wakemu-displacement-Qe.txt`), and the published mutation-owner catalog records Qe for eZC302/eZD340 as well as the other displacement families. A scoped L2 amount modification therefore returns false and cannot rewrite teleport coordinates. A regression exercises the real `mutate_triggering_runner` helper at L2 and confirms the captured destination is applied unchanged. The combined focused suite now passes16 tests. This closes the local destination-versus-amount distinction without creating a mutable eWN/eXt-style amount for a Qe-owned runner.

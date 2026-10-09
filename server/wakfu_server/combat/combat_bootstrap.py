@@ -81,6 +81,8 @@ def placement_messages(
                 myF=effects,
             )
         )
+    from .combat_environment_glyphs import environment_sections
+
     value = dict(
         fight_id=fight.id,
         kind=kind,
@@ -96,14 +98,17 @@ def placement_messages(
         myH=[],
         myM=[],
         myN=[],
-        myK=[],
+        myK=environment_sections(fight),
     )
-    return [
+    messages = [
         (13652, placement_positions(fight)),
         (12847, bootstrap(value)),
         (13684, struct.pack(">ii", fight.id, duration_ms)),
         (13026, struct.pack(">i", fight.id)),
     ]
+    # cvb.eHb -> ckP -> buS.a -> fcz.Tv consumes this exact wire byte.
+    fight.native_fight_model = kind
+    return messages
 
 
 def player_payload(character, actor, fight_id, *, wp):
@@ -154,11 +159,14 @@ def create_placement(
     """
     from .combat_state import Actor, Fight
     from .combat_actor import monster_actor_stats
-    from .monsters import owned_instance
+    from wakfu_server.monsters import owned_instance
 
     members = list(monster) if isinstance(monster, (list, tuple)) else [monster]
     if not members:
         raise ValueError("Monster group must not be empty")
+    owned_instance_id = character.get("instance_id", 0)
+    if type(owned_instance_id) is not int or not 0 <= owned_instance_id < 2**63:
+        raise ValueError("Invalid authoritative character instance")
     for member in members:
         verified = owned_instance(
             member["ref"],
@@ -169,14 +177,17 @@ def create_placement(
             y=member["y"],
             z=member["z"],
             team=1,
+            instance_id=member["instance_id"],
         )
         if member != verified:
             raise ValueError("Monster state differs from its verified own reference")
+        if member["instance_id"] != owned_instance_id:
+            raise ValueError("Fight actors belong to a different owned instance")
         if member["map_id"] != arena["map_id"]:
             raise ValueError("Fight actors belong to a different map")
     if character["map_id"] != arena["map_id"]:
         raise ValueError("Fight actors belong to a different map")
-    from .builds import effective_sheet_level
+    from wakfu_server.builds import effective_sheet_level
 
     effective_level = effective_sheet_level(
         character, character.get("active_build_index", 0)
@@ -195,11 +206,23 @@ def create_placement(
         max_hp=character["max_hp"],
         direction=0,
     )
+    relocations = arena.get("participant_positions", [])
+    if relocations and (
+        len(relocations) != len(members)
+        or [tuple(pair[0]) for pair in relocations]
+        != [(m["x"], m["y"], m["z"]) for m in members]
+    ):
+        raise ValueError("Encounter relocation does not match verified monster roster")
+    npc_positions = (
+        [tuple(pair[1]) for pair in relocations]
+        if relocations
+        else [(m["x"], m["y"], m["z"]) for m in members]
+    )
     npcs = [
         Actor(
             member["id"],
             1,
-            (member["x"], member["y"], member["z"]),
+            position,
             member["hp"],
             member["ap"],
             member["mp"],
@@ -208,7 +231,7 @@ def create_placement(
             max_hp=member["max_hp"],
             direction=3,
         )
-        for member in members
+        for member, position in zip(members, npc_positions)
     ]
     # Read selected terrain cells from the serialized mask rectangle. Actual
     # altitudes must be supplied by caller; one position per selected XY.
@@ -224,7 +247,59 @@ def create_placement(
     fight = Fight(
         fight_id, [pc, *npcs], cells, placement_cells, arena.get("valid_edges")
     )
+    from .combat_cosmetic_conditions import initialize_fresh_player_cosmetics
+
+    initialize_fresh_player_cosmetics(pc, character)
+    from .combat_global_pv_collections import initialize_global_pv_collections
+
+    # This is the participant order serialized by placement_messages, hence
+    # the actual fresh client fdt registration order rather than initiative.
+    initialize_global_pv_collections(fight, tuple(fight.actors))
+    # QI.P reads the serialized terrain mask, so retain only a plain copy of
+    # the actual mask rectangle. Missing arena fields stay unknown; partial
+    # serialized QI authority is rejected instead of padded or reconstructed.
+    qi_names = ("x", "y", "width", "height", "cell_masks")
+    present_qi_names = set(qi_names) & set(arena)
+    if not present_qi_names:
+        fight.native_qi_snapshot = None
+    elif present_qi_names != set(qi_names):
+        raise ValueError("Incomplete serialized native QI arena snapshot")
+    else:
+        from .combat_qi_snapshot import NativeQISnapshot
+
+        qi_source = {name: arena[name] for name in qi_names}
+        qi_validated = NativeQISnapshot(qi_source)
+        fight.native_qi_snapshot = {
+            "x": qi_validated.x,
+            "y": qi_validated.y,
+            "width": qi_validated.width,
+            "height": qi_validated.height,
+            "cell_masks": list(qi_validated.masks),
+        }
     freeze_terrain(fight)
+    if arena.get("native_border_policy") is not None:
+        # The QI actor registration boundary must remain empty until ordinary
+        # actor snapshots have installed. The first runtime then registers
+        # the same faP clone as the placement cvb consumer.
+        fight.native_border_constructor = dict(
+            reference=terrain_effect_id,
+            identity=terrain_instance_id,
+            arena={
+                key: arena[key]
+                for key in ("native_border_policy", "native_border_cells", "min_z")
+            },
+        )
+    from .combat_environment_glyphs import prepare_environment_glyphs
+
+    prepare_environment_glyphs(fight, arena, terrain_instance_id)
+    provenance = arena.get("native_qi_surface_provenance")
+    if provenance is not None:
+        from .combat_qi_surface_catalog import native_qi_surface_provenance
+
+        expected_provenance = native_qi_surface_provenance(arena["map_id"])
+        if provenance != expected_provenance:
+            raise ValueError("Arena native QI surface provenance mismatch")
+        fight.native_qi_surface_provenance = dict(provenance)
     # QL obstacle occupancy is serialized separately from terrain masks and
     # placement teams. Only the explicitly empty owned table proves no QI.V
     # obstacles; absence or populated unknown entries remain unavailable.
@@ -236,7 +311,12 @@ def create_placement(
         {
             member["id"]: (
                 monster_actor_stats(
-                    member,
+                    {
+                        **member,
+                        **dict(
+                            zip(("x", "y", "z"), fight.actors[member["id"]].position)
+                        ),
+                    },
                     fight_id,
                     direction=3,
                     obstacle_id=fight.actors[member["id"]].native_obstacle_id,

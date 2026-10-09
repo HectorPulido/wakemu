@@ -1,10 +1,10 @@
 """Offline native faz.B/Sm first-surface priority, separate from walking edges."""
+from wakfu_server import native_catalog as protocol_catalog
 from collections.abc import Mapping
-import gzip
 import json
 from functools import lru_cache
 from types import MappingProxyType
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 
 
 class HeightPolicy(Mapping):
@@ -29,9 +29,8 @@ class HeightPolicy(Mapping):
 
 @lru_cache(maxsize=4)
 def compact_index(map_id, radius, jump):
-    path = DATA_ROOT / "forced-transitions" / f"{map_id}.json.gz"
-    with gzip.open(path, "rt", encoding="utf8") as source:
-        data = json.load(source)
+    path = DATA_ROOT / "forced-transitions" / f"{map_id}.json"
+    data = protocol_catalog.load(path)
     if (
         data.get("schema_version"),
         data.get("map_id"),
@@ -81,17 +80,16 @@ def transitions(map_id, height, radius=0, jump=4):
     if any(type(v) is not int for v in (map_id, height, radius, jump)):
         raise ValueError("Native forced terrain policy requires exact integer metadata")
     directory = DATA_ROOT / "forced-transitions"
-    if (directory / f"{map_id}.json.gz").is_file():
+    if protocol_catalog.exists(directory / f"{map_id}.json"):
         if not 1 <= height <= 25:
             raise ValueError("Missing native forced terrain policy for physical height")
         return HeightPolicy(compact_index(map_id, radius, jump), height)
-    path = directory / f"{map_id}-h{height}-r{radius}-j{jump}.json.gz"
-    if not path.is_file():
+    path = directory / f"{map_id}-h{height}-r{radius}-j{jump}.json"
+    if not protocol_catalog.exists(path):
         raise ValueError(
             "Missing native forced terrain policy for map/height/radius/jump"
         )
-    with gzip.open(path, "rt", encoding="utf8") as source:
-        data = json.load(source)
+    data = protocol_catalog.load(path)
     if tuple(data.get(k) for k in ("map_id", "height", "radius", "jump")) != (
         map_id,
         height,
@@ -122,7 +120,7 @@ def prewarm_map(map_id):
     """
     if type(map_id) is not int:
         raise ValueError("Native map ID requires an exact integer")
-    if not (DATA_ROOT / "forced-transitions" / f"{map_id}.json.gz").is_file():
+    if not protocol_catalog.exists(DATA_ROOT / "forced-transitions" / f"{map_id}.json"):
         return False
     compact_index(map_id, 0, 4)
     return True

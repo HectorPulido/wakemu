@@ -8,6 +8,9 @@ independently while retries for one encounter remain serialized.
 import threading
 import time
 import math
+from contextlib import nullcontext
+
+from ..native.native_deadline import bounded, check
 
 from .query_search import search
 from ..context.native_context import NativeGraph
@@ -47,7 +50,13 @@ class QuerySessions:
         expired = [
             key
             for key, entry in self.sessions.items()
-            if entry["users"] == 0 and now - entry["updated"] > self.ttl
+            if entry["users"] == 0
+            and (
+                now - entry["updated"] > self.ttl
+                or entry["final"] is None
+                and entry.get("ownerDeadline") is not None
+                and now >= entry["ownerDeadline"]
+            )
         ]
         for key in expired:
             entry = self.sessions.pop(key)
@@ -150,6 +159,8 @@ class QuerySessions:
                         lock=session_lock,
                         source=source,
                         updated=now,
+                        received=now,
+                        ownerDeadline=None,
                         initial=payload,
                         initialReply=None,
                         answers={},
@@ -177,15 +188,56 @@ class QuerySessions:
                 self.sessions.pop(identity)
 
     def _initialize(self, identity, entry, payload, store):
+        """Owner time includes full context verification, not just search work."""
+        if "nativeBudgetMs" in payload:
+            budget = payload["nativeBudgetMs"]
+            if (
+                type(budget) not in (int, float)
+                or not math.isfinite(budget)
+                or budget < 0
+            ):
+                raise ValueError("Invalid native owner budget hint")
+            entry["ownerDeadline"] = entry["received"] + budget / 1000
+        deadline = entry["ownerDeadline"]
+        scope = (
+            nullcontext() if deadline is None else bounded(deadline, clock=self.clock)
+        )
+        with scope:
+            self._initialize_ready(identity, entry, payload, store)
+
+    def _initialize_ready(self, identity, entry, payload, store):
         """Perform all complete-context I/O outside the global registry lock."""
-        if not store.seal_manifest(payload["catalogManifest"])["complete"]:
+        metrics = entry["initializationMetrics"] = {}
+
+        def measure(name, operation):
+            started, cpu_started = time.monotonic(), time.thread_time()
+            try:
+                return operation()
+            finally:
+                metrics[name] = dict(
+                    wallMs=(time.monotonic() - started) * 1000,
+                    threadCpuMs=(time.thread_time() - cpu_started) * 1000,
+                )
+
+        if not measure(
+            "catalogSeal", lambda: store.seal_manifest(payload["catalogManifest"])
+        )["complete"]:
             raise ValueError("Incomplete native search catalogue")
         # Verify the entire source graph before retaining an executable search.
-        root_graph = load_graph(store, payload["rootState"])
+        check()
+        root_graph = measure(
+            "rootGraph", lambda: load_graph(store, payload["rootState"])
+        )
+        check()
+        if entry["ownerDeadline"] is not None:
+            payload = dict(
+                payload,
+                nativeBudgetMs=max(0.0, (entry["ownerDeadline"] - self.clock()) * 1000),
+            )
         generator = search(payload, store, clock=self.clock, root_graph=root_graph)
         entry["generator"] = generator
         try:
-            query = next(generator)
+            query = measure("firstQuery", lambda: next(generator))
         except StopIteration as finished:
             entry["final"] = finished.value
             query = None
@@ -218,7 +270,14 @@ class QuerySessions:
         if entry["query"] is None or identifier != entry["query"]["id"]:
             raise ValueError("Out-of-order native search response")
         try:
-            entry["query"] = entry["generator"].send(response)
+            deadline = entry["ownerDeadline"]
+            scope = (
+                nullcontext()
+                if deadline is None
+                else bounded(deadline, clock=self.clock)
+            )
+            with scope:
+                entry["query"] = entry["generator"].send(response)
         except StopIteration as finished:
             entry["query"], entry["final"] = None, finished.value
         except Exception:
@@ -321,11 +380,14 @@ class QuerySessions:
 
     @staticmethod
     def _reply(identity, entry):
+        metrics = entry.get("initializationMetrics")
+        diagnostics = {} if metrics is None else dict(backendPreparation=metrics)
         if entry["final"] is not None:
-            return dict(status="decided", decision=entry["final"])
+            return dict(status="decided", decision=entry["final"], **diagnostics)
         return dict(
             status="query",
             requestId=identity,
             sourceKey=entry["source"],
             queries=[entry["query"]],
+            **diagnostics,
         )

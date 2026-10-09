@@ -41,8 +41,9 @@ class AreaTransactionTests(unittest.TestCase):
         self.assertEqual(rng.getstate(), before)
         self.assertEqual(fight.actors[7].position, (1, 2, 3))
 
-    @patch.dict(os.environ, {"WAKFU_NATIVE_AREA_CALLBACKS": "1"})
+    @patch.dict(os.environ)
     def test_path_callbacks_observe_every_native_step_without_mutating_source(self):
+        os.environ.pop("WAKFU_NATIVE_AREA_CALLBACKS", None)
         from test_combat_movement_runtime import MovementRuntimeTests
         from wakfu_server.combat_area_transaction import prepare_area_movement
 
@@ -51,14 +52,34 @@ class AreaTransactionTests(unittest.TestCase):
         path = [(1, 0, 0), (2, 0, 0)]
         fight.move(7, 1, path)
         calls = []
+        movement_events = []
 
         def factory(preview, plan):
             def movement(identity, **boundary):
                 calls.append((preview.actors[identity].position, boundary))
+                movement_events.append(
+                    ("area", preview.actors[identity].position, None)
+                )
                 preview.actors[identity].hp -= 1
 
+            from wakfu_server.combat.combat_global_pv_collections import (
+                initialize_global_pv_collections,
+            )
+
+            initialize_global_pv_collections(preview, tuple(preview.actors))
+            authority = object()
+
+            def replay_event(event, *, authority):
+                movement_events.append(("event", preview.actors[1].position, event))
+                return (True,)
+
             return (
-                SimpleNamespace(native_area_events=SimpleNamespace(movement=movement)),
+                SimpleNamespace(
+                    native_area_events=SimpleNamespace(movement=movement),
+                    native_retention=SimpleNamespace(fight=preview),
+                    native_clone_authority=authority,
+                    replay_event=replay_event,
+                ),
                 [],
             )
 
@@ -74,6 +95,21 @@ class AreaTransactionTests(unittest.TestCase):
         self.assertEqual(candidate.actors[1].hp, 58)
         self.assertEqual(fight.actors[1].hp, 60)
         self.assertEqual(candidate.actors[1].position, (2, 0, 0))
+        self.assertEqual(
+            [entry[0] for entry in movement_events],
+            ["event"] * 8 + ["area"] + ["event"] * 8 + ["area"],
+        )
+        self.assertEqual(
+            [entry[2].channel for entry in movement_events if entry[0] == "event"][:4],
+            [6, 60, 4, 40],
+        )
+        self.assertTrue(
+            all(
+                entry[2].event_ids == (1005,)
+                for entry in movement_events
+                if entry[0] == "event"
+            )
+        )
 
     @patch.dict(os.environ, {"WAKFU_NATIVE_AREA_CALLBACKS": "1"})
     def test_early_lethal_path_rejects_without_partial_damage(self):
@@ -89,8 +125,23 @@ class AreaTransactionTests(unittest.TestCase):
             def movement(identity, **boundary):
                 preview.actors[identity].hp = 0
 
+            from wakfu_server.combat_global_pv_collections import (
+                initialize_global_pv_collections,
+            )
+
+            initialize_global_pv_collections(preview, tuple(preview.actors))
+            authority = object()
+
+            def replay_event(event, *, authority):
+                return (True,)
+
             return (
-                SimpleNamespace(native_area_events=SimpleNamespace(movement=movement)),
+                SimpleNamespace(
+                    native_area_events=SimpleNamespace(movement=movement),
+                    native_retention=SimpleNamespace(fight=preview),
+                    native_clone_authority=authority,
+                    replay_event=replay_event,
+                ),
                 [],
             )
 

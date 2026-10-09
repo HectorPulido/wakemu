@@ -7,7 +7,7 @@ outer value4 stores actual applied delta, which is needed for exact removal.
 """
 import math
 from .combat_parameters import parameter_value
-from .equipment_damage import _float
+from wakfu_server.equipment_damage import _float
 from .combat_effects import _integer, _varint
 from .combat_effect_removal import running_effect_removal
 
@@ -311,6 +311,7 @@ def owned_effect_application(
         uid=uid,
         running_effect_payload=running_effect_payload,
         sequence=sequence,
+        notify_unapplication=False,
     )[:-16]
 
 
@@ -326,3 +327,18 @@ def owned_effect_delivery(fight_id, action_id, *, native_opcode=13497, **argumen
     if native_opcode != 13497:
         raise ValueError("Unsupported native owned delivery opcode")
     return 13497, payload
+
+
+def evaluated_effect_delivery(fight_id, action_id, *, retained, **arguments):
+    """Execute a decoded native mutation without recalculating its parameters.
+
+    aVo/eIK=true applies an immediate runner directly. Its false branch retains
+    a persistent runner on the actual native manager before c(); Qf ownership
+    stays governed by the runner's own Ty/PK rather than a fabricated record.
+    """
+    from .combat_observation_delivery import evaluated_application_from_observation
+
+    if type(retained) is not bool:
+        raise ValueError("Explicit native application retention required")
+    body = owned_effect_application(fight_id, action_id, **arguments)
+    return 12613, evaluated_application_from_observation(body, execute=not retained)

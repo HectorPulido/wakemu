@@ -6,6 +6,107 @@ from protocol_codec import decode_body
 
 
 class BootstrapTests(unittest.TestCase):
+    def test_compacted_encounter_relocation_is_the_position_sent_to_clients(self):
+        from wakfu_server.combat_bootstrap import create_placement
+        from wakfu_server.monsters import owned_instance
+
+        origin, relocated = (0, 0, 0), (1, 0, 0)
+        char = dict(
+            id=100,
+            account_id=1,
+            breed=8,
+            level=1,
+            xp=0,
+            hp=60,
+            max_hp=60,
+            map_id=1134,
+            x=origin[0],
+            y=origin[1],
+            z=origin[2],
+            instance_id=0,
+            active_build_index=0,
+            inventory_items=[],
+            builds={},
+        )
+        source_position = (100, 100, 0)
+        monster = owned_instance(
+            5525,
+            1,
+            -200,
+            map_id=1134,
+            x=source_position[0],
+            y=source_position[1],
+            z=source_position[2],
+            instance_id=0,
+        )
+        cells = [origin, relocated]
+        terrain = arena(1134, 1, cells, {0: origin, 1: relocated})
+        terrain.update(
+            validated_cells=set(cells),
+            valid_edges={(origin, relocated), (relocated, origin)},
+            participant_positions=[(source_position, relocated)],
+        )
+
+        fight, messages = create_placement(
+            char,
+            monster,
+            terrain,
+            fight_id=19,
+            player_ap=6,
+            player_mp=3,
+            player_wp=6,
+            player_initiative=1,
+            terrain_effect_id=46,
+            terrain_instance_id=123,
+        )
+
+        self.assertEqual(fight.actors[-200].position, relocated)
+        packet = decode_body("in", 13652, messages[0][1])
+        monster_wire = next(row for row in packet["actors"] if row["actor_id"] == -200)
+        self.assertEqual(
+            (monster_wire["x"], monster_wire["y"], monster_wire["z"]), relocated
+        )
+        self.assertNotEqual(
+            (monster_wire["x"], monster_wire["y"], monster_wire["z"]), source_position
+        )
+
+    def test_selected_native_model_matches_bootstrap_byte(self):
+        cells = [(0, 0, 0), (1, 0, 0)]
+        fight = Fight(
+            7,
+            [
+                Actor(100, 0, cells[0], 60, 6, 3, 100, 1, 1, True),
+                Actor(-200, 1, cells[1], 20, 4, 2, 10, 1),
+            ],
+            cells,
+            {0: {cells[0]}, 1: {cells[1]}},
+        )
+        self.assertEqual(fight.native_fight_model, 2)
+        terrain = arena(1134, 1, cells, {0: cells[0], 1: cells[1]})
+        for model in (14, 2):
+            messages = placement_messages(
+                fight,
+                terrain,
+                {100: (b"player", b""), -200: (b"monster", b"")},
+                terrain_effect_id=378,
+                terrain_instance_id=-300,
+                leaders={0: 100, 1: -200},
+                kind=model,
+            )
+            self.assertEqual(decode_bootstrap(messages[1][1])["kind"], model)
+            self.assertEqual(fight.native_fight_model, model)
+        with self.assertRaises(ValueError):
+            placement_messages(
+                fight,
+                terrain,
+                {100: (b"player", b""), -200: (b"monster", b"")},
+                terrain_effect_id=378,
+                terrain_instance_id=-300,
+                leaders={0: 100, 1: -200},
+                kind=65,
+            )
+        self.assertEqual(fight.native_fight_model, 2)
+
     def test_selected_fixed_build_controls_actor_level_without_rewriting_real_xp(self):
         from wakfu_server.combat_bootstrap import create_placement, player_payload
         from wakfu_server.monsters import owned_instance
@@ -32,6 +133,7 @@ class BootstrapTests(unittest.TestCase):
                     sheet=proto_field(24, 49).hex(), equipment="", aptitudes="", deck=""
                 )
             },
+            appearance={"currentTitle": 42, "headRefId": 777},
         )
         monster = owned_instance(5525, 1, -200, map_id=1134, x=1, y=0, z=0)
         cells = [(0, 0, 0), (1, 0, 0)]
@@ -53,9 +155,31 @@ class BootstrapTests(unittest.TestCase):
             terrain_instance_id=123,
             duration_ms=12345,
         )
+        import json
+        from wakfu_server.combat_qi_snapshot import NativeQISnapshot
+        from wakfu_server.fight_checkpoint_store import snapshot as fight_snapshot
+
+        captured_qi = fight.native_qi_snapshot
+        self.assertEqual(set(captured_qi), {"x", "y", "width", "height", "cell_masks"})
+        self.assertEqual(captured_qi["cell_masks"], terrain["cell_masks"])
+        source_qi = NativeQISnapshot(terrain)
+        captured_view = NativeQISnapshot(captured_qi)
+        for x, y in ((0, 0), (1, 0), (2, 0)):
+            self.assertEqual(captured_view.P(x, y), source_qi.P(x, y))
+        saved = json.loads(json.dumps(fight_snapshot(fight)))
+        self.assertEqual(saved["native_qi_snapshot"], captured_qi)
+        terrain["cell_masks"][0] ^= 128
+        self.assertEqual(fight.native_qi_snapshot, captured_qi)
         self.assertEqual(fight.actors[100].effective_level, 49)
         self.assertEqual(fight.actors[100].direction, 0)
         self.assertEqual(fight.actors[-200].direction, 3)
+        self.assertEqual(
+            fight.actors[100].native_cosmetic_state,
+            {
+                "selected_values": {3: 0, 4: 0, 5: (), 6: 0, 7: 42},
+                "active_cosmetics": {},
+            },
+        )
         self.assertEqual((char["level"], char["xp"]), (50, level_xp(50)))
         payload, _ = player_payload(char, fight.actors[100], 7, wp=6)
         # Format3 carries real progression; actor's effective level is separate.

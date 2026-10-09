@@ -55,8 +55,8 @@ class NativeFightPropertyTests(unittest.TestCase):
         self.assertIn(11, a.native_fight_properties)
         remove_fight_property(SimpleNamespace(fight=f, action_id=3, packets=p), 904)
         self.assertEqual(a.native_fight_property_counts, {})
-        self.assertEqual([o for o, _ in p], [13497, 13497, 13560, 13560])
-        self.assertEqual(p[0][1][18:], p[2][1][18:-16])
+        self.assertEqual([o for o, _ in p], [12613, 12613, 13560, 13560])
+        self.assertEqual(p[0][1][19:], p[2][1][18:-16])
 
     def test_pa_minimum_is_one_time_assignment_not_freeze_or_restore(self):
         for prop, stat, name in ((31, 2, "ap"), (34, 3, "mp")):
@@ -146,7 +146,7 @@ class NativeFightPropertyTests(unittest.TestCase):
         self.apply(h, 5)
         self.assertEqual(f.native_los_ignored_affiliations, frozenset({1}))
         self.assertEqual(f.native_walk_ignored_affiliations, frozenset({1}))
-        extra = dict(proto_fields(p[0][1][18:]))[66]
+        extra = dict(proto_fields(p[0][1][19:]))[66]
         self.assertEqual(extra.hex(), "7a0f080210fdffffffffffffffff011804800103880201")
         a.position = (3, -3, 4)
         remove_fight_property(SimpleNamespace(fight=f, action_id=3, packets=p), 903)

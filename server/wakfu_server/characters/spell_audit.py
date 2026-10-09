@@ -3,28 +3,27 @@
 This intentionally does not enable spell execution. Even a lone damage effect
 needs targeting, critical, passive and conditional cost/range rules verified.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 from functools import lru_cache
 import json
-import gzip
 from .combat_definitions import effect_profile, state_profile
 from pathlib import Path
 
 
 @lru_cache(maxsize=1)
 def catalog():
-    return json.loads((DATA_ROOT / "spell-effect-trees.json").read_text())
+    return protocol_catalog.load(DATA_ROOT / "spell-effect-trees.json")
 
 
 @lru_cache(maxsize=1)
 def costs_catalog():
-    return json.loads((DATA_ROOT / "spell-costs.json").read_text())["spells"]
+    return protocol_catalog.load(DATA_ROOT / "spell-costs.json")["spells"]
 
 
 @lru_cache(maxsize=1)
 def states_catalog():
-    with gzip.open(DATA_ROOT / "combat-state-definitions.json.gz", "rt") as stream:
-        return json.load(stream)
+    return protocol_catalog.load(DATA_ROOT / "combat-state-definitions.json")
 
 
 def inspect_spell(spell_id, level):

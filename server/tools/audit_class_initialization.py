@@ -18,6 +18,13 @@ from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_terrain import map_geometry
 from wakfu_server.combat_arena_selection import bounded_arena
+from wakfu_server.combat_wire import arena as encode_arena
+from wakfu_server.combat_qi_snapshot import NativeQISnapshot
+from wakfu_server.combat_qi_surface_catalog import (
+    native_qi_surfaces,
+    native_qi_surface_provenance,
+)
+from wakfu_server.combat_qi_surface_selection import native_surface_indices
 from wakfu_server.combat_ordinary_authority import (
     OrdinaryActorAuthority,
     ordinary_cast_authority,
@@ -34,15 +41,48 @@ from wakfu_server.fight_checkpoint_store import snapshot
 
 def source_hashes():
     root = Path(__file__).resolve().parents[1] / "wakfu_server/combat"
-    return {
+    result = {
         p.name: hashlib.sha256(p.read_bytes()).hexdigest()
         for p in sorted(root.glob("*.py"))
     }
+    # Casting and initialization also consume wire inventory producers and
+    # protocol catalogs. Runtime-only hashes cannot attest those data changes.
+    for p in sorted(root.parent.joinpath("characters").glob("*.py")):
+        result["characters/" + p.name] = hashlib.sha256(p.read_bytes()).hexdigest()
+    for p in sorted(DATA_ROOT.glob("*.json*")):
+        result["protocol/" + p.name] = hashlib.sha256(p.read_bytes()).hexdigest()
+    for directory in (
+        "combat-maps",
+        "forced-transitions",
+        "native-los-topology",
+        "combat-los",
+    ):
+        for p in sorted(DATA_ROOT.joinpath(directory).glob("1134.json*")):
+            result["protocol/" + directory + "/" + p.name] = hashlib.sha256(
+                p.read_bytes()
+            ).hexdigest()
+    for name in ("publication.json", "manifest.json", "1134.json"):
+        p = DATA_ROOT / "native-qi-surfaces" / name
+        result["protocol/native-qi-surfaces/" + name] = hashlib.sha256(
+            p.read_bytes()
+        ).hexdigest()
+    for name in ("audit_class_initialization.py", "audit_active_spells.py"):
+        p = Path(__file__).resolve().parent / name
+        result["tools/" + name] = hashlib.sha256(p.read_bytes()).hexdigest()
+    return result
 
 
-def run(cases=None, *, with_relative_probability=False):
+def run(
+    cases=None,
+    *,
+    with_relative_probability=False,
+    on_initialized=None,
+    runtime_effects=None,
+):
     source_before = source_hashes()
-    spells, states = catalog(), states_catalog()
+    spells, states = dict(catalog()), states_catalog()
+    if runtime_effects is not None:
+        spells["effects"] = runtime_effects
     registry = json.loads(
         (DATA_ROOT / "effect-characteristic-registry.json").read_text()
     )
@@ -50,6 +90,19 @@ def run(cases=None, *, with_relative_probability=False):
     geometry = map_geometry(1134)
     origin, target = next((tuple(a), tuple(b)) for a, b in geometry["edges"] if a != b)
     terrain = bounded_arena(geometry, origin, [target], radius=12)
+    # Exercise the exact own wire arena policy, not a walkability-derived
+    # criterion fallback. This establishes masks only, never QL occupancy.
+    serialized_arena = encode_arena(
+        1134,
+        0,
+        terrain["cells"],
+        terrain["placement"],
+        surface_indices=native_surface_indices(
+            native_qi_surfaces(1134), terrain["cells"]
+        ),
+    )
+    surface_provenance = native_qi_surface_provenance(1134)
+    qi_masks = NativeQISnapshot(serialized_arena)
     rows = []
     shared_factory = None
     if cases is None:
@@ -60,12 +113,20 @@ def run(cases=None, *, with_relative_probability=False):
         ]
     for case in cases:
         breed, level = case["breed"], case["level"]
+        sex = case.get(
+            "sex", 0
+        )  # Explicit offline male fixture; caller may select female.
+        if type(sex) is not int or sex not in (0, 1):
+            raise ValueError(
+                "Offline initialization fixture requires native sex 0 or 1"
+            )
         definition = BREEDS[breed]
         resource = definition["resources"]
         hp = maximum(breed, level)
         character = dict(
             id=7,
             account_id=3,
+            sex=sex,
             breed=breed,
             level=level,
             hp=hp,
@@ -122,6 +183,14 @@ def run(cases=None, *, with_relative_probability=False):
             {0: {origin}, 1: {target}},
             terrain["edges"],
         )
+        fight.native_qi_snapshot = dict(
+            x=qi_masks.x,
+            y=qi_masks.y,
+            width=qi_masks.width,
+            height=qi_masks.height,
+            cell_masks=list(qi_masks.masks),
+        )
+        fight.native_qi_surface_provenance = dict(surface_provenance)
         initialize_fight_snapshots(
             fight,
             characters={7: character},
@@ -234,6 +303,10 @@ def run(cases=None, *, with_relative_probability=False):
                     for s in preview.actors[7].state_ledger.entries
                 ],
             )
+            if on_initialized is not None:
+                row["spell_access"] = on_initialized(
+                    preview, character, deck, packets, authority
+                )
         except Exception as error:
             ref = getattr(error, "audit_reference", None)
             effect = shared_factory.effects.get(str(ref)) if ref is not None else None
@@ -267,9 +340,9 @@ def run(cases=None, *, with_relative_probability=False):
             p: hashlib.sha256((DATA_ROOT / p).read_bytes()).hexdigest()
             for p in (
                 "breed-innate-definitions.json",
-                "native-actor-characteristics.json.gz",
+                "native-actor-characteristics.json",
                 "spell-effect-trees.json",
-                "combat-state-definitions.json.gz",
+                "combat-state-definitions.json",
                 "spells.json",
                 "native-actor-properties.json",
                 "native-retained-effect-metadata.json",

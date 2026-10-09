@@ -11,6 +11,36 @@ from .combat_parameters import _float32
 from .combat_effects import _integer, _varint
 
 
+def triggering_resource_loss(source, stat):
+    """eVZ.C copies eWf's per-resource byte, otherwise Qe.getValue."""
+    if stat not in (2, 3, 4):
+        raise ValueError("Unknown native triggering resource characteristic")
+    if source is None:
+        return 0  # Original eVZ.C logs the null triggering Qe and assigns0.
+    if not isinstance(source, dict):
+        raise ValueError("Missing actual native triggering runner snapshot")
+    costs = source.get("cost_source")
+    if isinstance(costs, dict) and costs.get("runner_class") == "eWf":
+        amounts = costs.get("action_costs")
+        if (
+            not isinstance(amounts, dict)
+            or set(amounts) != {"ap", "mp", "wp"}
+            or any(
+                type(value) is not int or not -128 <= value <= 127
+                for value in amounts.values()
+            )
+        ):
+            raise ValueError("Missing actual signed-byte eWf triggering resource costs")
+        return amounts[{2: "ap", 3: "mp", 4: "wp"}[stat]]
+    if source.get("runner_class") == "eWf":
+        raise ValueError("Missing actual eWf triggering resource costs")
+    if source.get("effect_action_id") is None or type(source.get("value")) is not int:
+        raise ValueError("Missing native eVZ triggering value/category")
+    from .combat_trigger_value import triggering_descriptor_value
+
+    return triggering_descriptor_value(source)
+
+
 def _i32(value):
     return ((value + (1 << 31)) % (1 << 32)) - (1 << 31)
 
@@ -63,7 +93,7 @@ def resolve_resource_loss(
     frozen=False,
     suppresses_loss_state=False,
     random_fraction=None,
-    value_context=None
+    value_context=None,
 ):
     """eVZ.C -> eWR.d, explicit native characteristic presence already resolved.
 
@@ -166,7 +196,16 @@ def rebase_resource_loss_application(
 
 
 def collision_ap_packet(
-    fight_id, action_id, *, uid, caster_id, target_id, amount, base_uid=0, sequence=-1
+    fight_id,
+    action_id,
+    *,
+    uid,
+    caster_id,
+    target_id,
+    amount,
+    base_uid=0,
+    sequence=-1,
+    timing_payload=None,
 ):
     """12613/eVZ55 using genuine synthetic eVI(-13), originValue rCB=0."""
     if (
@@ -175,7 +214,7 @@ def collision_ap_packet(
         or type(base_uid) is not int
         or not 0 <= base_uid < (1 << 63)
         or type(amount) is not int
-        or not 0 <= amount <= 1
+        or not -(1 << 31) <= amount < (1 << 31)
     ):
         raise ValueError("Invalid owned synthetic collision AP effect")
     if any(
@@ -196,6 +235,11 @@ def collision_ap_packet(
     )
     additional = _integer(12, 2) + _integer(25, 0)
     payload += b"\x42" + _varint(len(additional)) + additional
+    if timing_payload is not None:
+        if not isinstance(timing_payload, bytes):
+            raise ValueError("Unknown native collision TimeDatas")
+        timing_payload += _integer(2, 0) + _integer(5, 1)
+        payload += b"\x5a" + _varint(len(timing_payload)) + timing_payload
     return (
         12613,
         struct.pack(">iiiBih", fight_id, action_id, sequence, 0, 55, len(payload))
@@ -238,7 +282,7 @@ def apply_resource_loss(
     secondary_state,
     after_apply,
     native_guards_verified,
-    executable
+    executable,
 ):
     """Apply on a private transaction preview with mandatory native callbacks.
 
@@ -263,8 +307,24 @@ def apply_resource_loss(
         or target.effect_stats.get(stat_id) != plan.before
     ):
         raise ValueError("Missing coherent native resource-loss characteristic")
-    setattr(target, name, plan.after)
-    target.effect_stats[stat_id] = plan.after
+    if getattr(target, "effect_resource_raw_currents", None) is not None:
+        from .combat_resource_pa_notifications import (
+            resource_shift_result,
+            shift_resource_current,
+        )
+
+        _, after, actual = resource_shift_result(
+            target, stat_id, plan.calculated, subtract=True
+        )
+        if (after, actual) != (plan.after, plan.actual):
+            raise ValueError("Stale actual native raw resource-loss plan")
+        shift_resource_current(fight, target, stat_id, plan.calculated, subtract=True)
+    else:
+        setattr(target, name, plan.after)
+        target.effect_stats[stat_id] = plan.after
+        from .combat_resource_pa_notifications import notify_resource_pa
+
+        notify_resource_pa(fight, target, stat_id, before_current=plan.before)
     if plan.state_5227_parameters is not None:
         secondary_state(target_id, target_id, plan.state_5227_parameters, plan)
     after_apply(caster_id, target_id, stat_id, plan)

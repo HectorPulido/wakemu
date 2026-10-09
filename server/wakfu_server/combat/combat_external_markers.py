@@ -1,8 +1,8 @@
-"""Public map markers for ordinary-world fights.
+"""Scoped world markers for ordinary and owned-instance fights.
 
 Markers are presentation-only. They are derived from the current shared fight
-and are published only in public map instance zero; no duel or private-instance
-fight is discoverable through this registry.
+and are published only to the exact server map/instance audience. Duels remain
+ineligible; private fights are never visible in another owned instance.
 """
 
 from dataclasses import dataclass
@@ -88,10 +88,9 @@ def _marker_topology(arena, world_origin):
     dz = world_origin[2] - value["min_z"]
     value["x"] += dx
     value["y"] += dy
-    # This topology is consumed by a client currently in the public map
-    # instance. Keeping the participant arena's private instance here makes
-    # the effect resolve successfully but places it outside the viewer's
-    # world instance, so the marker never appears in the map scene.
+    # Exploration bootstrap uses native scene instance zero, including owned
+    # dungeons. Durable server instance IDs isolate delivery, but cannot enter
+    # this signed-int16 field. Participant arena instances are separate scenes.
     value["instance_id"] = 0
     translated_min_z = value["min_z"] + dz
     translated_max_z = value["max_z"] + dz
@@ -182,7 +181,8 @@ class ExternalFightMarkers:
         if (
             fight is None
             or getattr(shared, "is_duel", False)
-            or getattr(shared, "instance_id", None) != 0
+            or type(getattr(shared, "instance_id", None)) is not int
+            or shared.instance_id < 0
             or getattr(fight, "phase", None) not in ("placement", "active")
             or not isinstance(context, dict)
         ):
@@ -270,7 +270,7 @@ class ExternalFightMarkers:
                 or not isinstance(monster, dict)
                 or monster.get("id") != monster_id
                 or monster.get("map_id") != shared.map_id
-                or monster.get("instance_id", 0) != 0
+                or monster.get("instance_id", 0) != shared.instance_id
                 or monster_id not in actors
                 or actors[monster_id].team != 1
                 for monster_id, monster in monsters.items()
@@ -368,9 +368,7 @@ class ExternalFightMarkers:
                 phase_code,
             )
             if current is not None:
-                phase_changed_to_action = (
-                    current.phase_code == 1 and phase_code == 2
-                )
+                phase_changed_to_action = current.phase_code == 1 and phase_code == 2
                 # Keep phase, turn, and roster fresh for a later join without
                 # re-sending 13753 to clients that already registered this
                 # fight ID. The native 12233 END_PLACEMENT message moves an
@@ -417,8 +415,6 @@ class ExternalFightMarkers:
             )
         ):
             raise ValueError("Invalid public marker snapshot scope")
-        if instance_id != 0:
-            return ()
         with self.lock:
             return tuple(
                 (13753, marker.body)
@@ -446,8 +442,6 @@ class ExternalFightMarkers:
             )
         ):
             raise ValueError("Invalid public marker snapshot scope")
-        if instance_id != 0:
-            return ()
         with self.lock:
             packets = []
             for _, marker in sorted(self.markers.items()):

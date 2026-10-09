@@ -10,6 +10,7 @@ from postgres_case import PostgresCase
 from wakfu_server import inventory_items, mount_feeding, mount_feeding_wire
 from wakfu_server.items.inventory_items import grant
 from wakfu_server.wire import proto_fields
+from wakfu_server import native_catalog
 
 
 class MountFeedingTests(PostgresCase):
@@ -115,7 +116,9 @@ class MountFeedingTests(PostgresCase):
 
     def test_seeded_food_policy_matches_every_model_native_catalog_entry(self):
         catalog = json.loads(
-            (Path(__file__).parents[1] / "protocol" / "mount-models.json").read_text()
+            native_catalog.read_text(
+                Path(__file__).parents[1] / "protocol" / "mount-models.json"
+            )
         )
         expected = set()
         for model in catalog["models"]:

@@ -47,10 +47,19 @@ def resolve_request(entry_map_id, body):
     if (
         destination is None
         or destination["criterion"] != configured.criterion
-        or destination["cyZ"] != configured.template_id
+        or destination["cyZ"]
+        != (
+            configured.native_template_id
+            if configured.native_template_id is not None
+            else configured.template_id
+        )
         or destination["map_id"] != configured.start_map_id
     ):
         raise ValueError("Configured dungeon route no longer matches native catalog")
+    if destination.get("cyW", 0) > 0 and destination.get("item_reference", 0) > 0:
+        raise ValueError("Dungeon entry requires an authoritative item transaction")
+    if destination.get("cyX", 0) != 0:
+        raise ValueError("Dungeon entry requires an authoritative kama transaction")
     if not destination["native_altitude_walkable"]:
         raise ValueError("Dungeon entry destination altitude is not verified walkable")
     return {
@@ -77,6 +86,8 @@ def enter(
     *,
     criterion_allowed,
     source_allowed,
+    initialize_instance=None,
+    resolve_destination=None,
 ):
     """Authorize and atomically create/reuse a party run plus move its roster.
 
@@ -111,6 +122,8 @@ def enter(
         character_id,
         route.key,
         authorize_entry=authorize,
+        initialize_instance=initialize_instance,
+        resolve_destination=resolve_destination,
         transition_destination={
             key: resolved["destination"][key] for key in ("map_id", "x", "y", "z")
         },
@@ -119,6 +132,7 @@ def enter(
         **session,
         "destination": {
             **resolved["destination"],
+            **{key: session["transition"][key] for key in ("map_id", "x", "y", "z")},
             "instance_id": session["instance_id"],
         },
         "criterion": route.criterion,

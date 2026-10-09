@@ -8,13 +8,20 @@ import json
 import copy
 import random
 import sys
+from importlib import import_module
+from unittest.mock import patch
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import audit_active_spells as native
+from combat_audit_turns import advance_actual_turn
+from wakfu_server.combat_runtime_messages import RuntimeMessages
 from wakfu_server.combat_server_spell import (
     prepare_server_initialization,
     prepare_server_spell,
+    prepare_server_turn_end,
+    prepare_server_turn_start,
+    server_runtime,
 )
 from wakfu_server.combat_los import authoritative_visible
 from wakfu_server.spells import encode_deck
@@ -25,6 +32,9 @@ def observe(fight):
     return {
         str(i): dict(
             hp=a.hp,
+            max_hp=a.max_hp,
+            stats=dict(a.effect_stats),
+            virtual_hp_max=a.effect_maxima[92],
             armor=a.effect_stats[97],
             position=list(a.position),
             states=[
@@ -49,6 +59,7 @@ def run(
     )
     before_hash = native.init.source_hashes()
     definitions = native.catalog()
+    native_casting = native.native_casting_catalog()
     origin = (-8, -7, -1)
     terrain = native.bounded_arena(
         native.map_geometry(1134), origin, [(-7, -7, -1)], radius=12
@@ -58,7 +69,14 @@ def run(
         for level in (max(20, native.SPELLS[spell]["unlock_level"]), 200):
             candidates = dict(
                 native.target_candidates(
-                    definitions["spells"][str(spell)], level, terrain, origin
+                    definitions["spells"][str(spell)],
+                    level,
+                    terrain,
+                    origin,
+                    native=native.native_casting_baseline(
+                        native_casting[str(spell)], level
+                    ),
+                    spell_reference=spell,
                 )
             )
             variant = "enemy" if spell in (5041, 5030) else "empty_cell"
@@ -106,10 +124,13 @@ def run(
                     monster, id=-8, x=adjacent[0], y=adjacent[1], z=adjacent[2]
                 )
             base.ready(3)
-            if scenario == "berserker":
-                base.apply_effect_damage(-7, 7, base.actors[7].max_hp * 2 // 3)
-                character["hp"] = base.actors[7].hp
-            deck = encode_deck(list(dict.fromkeys([spell, followup])))
+            deck = encode_deck(
+                list(
+                    dict.fromkeys(
+                        [spell, followup] + ([5028] if scenario == "berserker" else [])
+                    )
+                )
+            )
             rng = random.Random(0)
             initialization_before = snapshot(base)
             try:
@@ -140,20 +161,26 @@ def run(
                     )
                 )
                 continue
-            while source.current.id != 7:
-                source.end_server_turn(source.current.id, source.turn_id)
-            source_before = snapshot(source)
-            row = dict(
-                spell_id=spell,
-                level=level,
-                scenario=scenario,
-                critical=critical,
-                followup=followup,
-                variant=variant,
-                cell=cell,
-                before=observe(source),
-                gameplay_verified=False,
+            turn_runtime = RuntimeMessages(
+                source,
+                turn_end_provider=lambda preview, **boundary: prepare_server_turn_end(
+                    character, monsters, preview, deck, rng=rng, **boundary
+                ),
+                turn_start_provider=lambda preview, **boundary: prepare_server_turn_start(
+                    character, monsters, preview, deck, rng=rng, **boundary
+                ),
+                expiration_runtime_factory=lambda *, action_id: server_runtime(
+                    character,
+                    monsters,
+                    deck,
+                    action_id=action_id,
+                    critical=False,
+                    rng=rng,
+                )[0],
             )
+            while turn_runtime.fight.current.id != 7:
+                advance_actual_turn(turn_runtime)
+            source = turn_runtime.fight
 
             def los(a, b, p):
                 return authoritative_visible(
@@ -167,6 +194,84 @@ def run(
                         if actor.hp > 0
                     },
                 )
+
+            preparation_casts = []
+            if scenario == "berserker":
+                # Real Blood for Blood self-loss after actual innate registration.
+                # Empty legal recipients preserve the original NPC HP for the chain.
+                for attempt in range(12):
+                    if any(
+                        entry.reference == 9315
+                        for entry in source.actors[7].state_ledger.entries
+                    ):
+                        break
+                    prepared = None
+                    for candidate in sorted(terrain["cells"]):
+                        if candidate in (
+                            source.actors[7].position,
+                            source.actors[-7].position,
+                        ):
+                            continue
+                        try:
+                            prepared = prepare_server_spell(
+                                native.struct.pack(
+                                    ">qqiih", 7, (7 << 32) | 5028, *candidate
+                                ),
+                                character,
+                                monsters,
+                                source,
+                                3,
+                                deck,
+                                action_id=10 + attempt * 4,
+                                line_of_sight=los,
+                                critical=False,
+                                rng=rng,
+                            )
+                            break
+                        except ValueError:
+                            continue
+                    if prepared is None:
+                        raise ValueError(
+                            "No legal owned Blood for Blood preparation recipient"
+                        )
+                    previous_hp = source.actors[7].hp
+                    source = prepared.fight
+                    preparation_casts.append(
+                        dict(
+                            reference=5028,
+                            cell=candidate,
+                            before_hp=previous_hp,
+                            after_hp=source.actors[7].hp,
+                        )
+                    )
+                    turn_runtime.fight = source
+                    advance_actual_turn(turn_runtime)
+                    while (
+                        turn_runtime.fight.phase == "active"
+                        and turn_runtime.fight.current.id != 7
+                    ):
+                        advance_actual_turn(turn_runtime)
+                    source = turn_runtime.fight
+                if not any(
+                    entry.reference == 9315
+                    for entry in source.actors[7].state_ledger.entries
+                ):
+                    raise ValueError(
+                        "Actual Blood for Blood and turn-start did not produce9315"
+                    )
+            source_before = snapshot(source)
+            row = dict(
+                spell_id=spell,
+                level=level,
+                scenario=scenario,
+                critical=critical,
+                followup=followup,
+                variant=variant,
+                cell=cell,
+                before=observe(source),
+                gameplay_verified=False,
+                preparation_casts=preparation_casts,
+            )
 
             try:
                 result = prepare_server_spell(
@@ -193,21 +298,69 @@ def run(
                     current = result.fight
                     current_before = snapshot(current)
                     target = current.actors[-7].position
-                    next_result = prepare_server_spell(
-                        native.struct.pack(">qqiih", 7, (7 << 32) | followup, *target),
-                        character,
-                        monsters,
-                        current,
-                        3,
-                        deck,
-                        action_id=3,
-                        line_of_sight=los,
-                        critical=critical,
-                        rng=rng,
+                    damage_calculations = []
+                    damage_module = import_module(
+                        prepare_server_spell.__module__.rsplit(".", 1)[0]
+                        + ".combat_damage_handler"
                     )
+                    calculate_damage = damage_module.damage_amount
+                    consume_damage = damage_module.consume_damage
+                    damage_consumptions = []
+
+                    def observe_damage(
+                        base, element, source_stats, target_stats, **context
+                    ):
+                        amount = calculate_damage(
+                            base, element, source_stats, target_stats, **context
+                        )
+                        damage_calculations.append(
+                            dict(
+                                base=base,
+                                element=element,
+                                source_stats=dict(source_stats),
+                                target_stats=dict(target_stats),
+                                coefficient_mask=context["coefficient_mask"],
+                                arithmetic_context=dict(context["arithmetic_context"]),
+                                amount=amount,
+                            )
+                        )
+                        return amount
+
+                    def observe_consumption(value, **context):
+                        consumed = consume_damage(value, **context)
+                        damage_consumptions.append(
+                            dict(
+                                value=value,
+                                context=dict(context),
+                                result=dict(consumed),
+                            )
+                        )
+                        return consumed
+
+                    with patch.object(
+                        damage_module, "damage_amount", side_effect=observe_damage
+                    ), patch.object(
+                        damage_module, "consume_damage", side_effect=observe_consumption
+                    ):
+                        next_result = prepare_server_spell(
+                            native.struct.pack(
+                                ">qqiih", 7, (7 << 32) | followup, *target
+                            ),
+                            character,
+                            monsters,
+                            current,
+                            3,
+                            deck,
+                            action_id=3,
+                            line_of_sight=los,
+                            critical=critical,
+                            rng=rng,
+                        )
                     row.update(
                         after_pull=observe(next_result.fight),
                         pull_costs=next_result.plan["costs"],
+                        damage_calculations=damage_calculations,
+                        damage_consumptions=damage_consumptions,
                         pull_events=list(next_result.events),
                         pull_rollback_preserved=snapshot(current) == current_before,
                     )

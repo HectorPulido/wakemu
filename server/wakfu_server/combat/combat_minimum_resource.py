@@ -81,8 +81,13 @@ class NativeMinimumResourceHandler:
             uid=uid,
             running_effect_payload=payload,
         )
-        actor.effect_base_minima[1], actor.effect_minima[1] = raw, new_min
-        actor.hp = actor.effect_stats[1] = after
+        from .combat_hp_raw import hp_raw_present, set_hp_raw_minimum
+
+        if hp_raw_present(actor):
+            set_hp_raw_minimum(actor, amount)
+        else:
+            actor.effect_base_minima[1], actor.effect_minima[1] = raw, new_min
+            actor.hp = actor.effect_stats[1] = after
         if ctx.retained:
             self.fight.owned_stat_effects[uid] = dict(
                 uid=uid,
@@ -117,7 +122,12 @@ def remove_minimum_resource(handler, uid):
         uid=uid,
         running_effect_payload=bytes.fromhex(entry["payload"]),
     )
-    actor.effect_base_minima[1], actor.effect_minima[1] = raw, new_min
-    actor.hp = actor.effect_stats[1] = after
+    from .combat_hp_raw import hp_raw_present, set_hp_raw_minimum
+
+    if hp_raw_present(actor):
+        set_hp_raw_minimum(actor, _int32(minimum - entry["actual"]))
+    else:
+        actor.effect_base_minima[1], actor.effect_minima[1] = raw, new_min
+        actor.hp = actor.effect_stats[1] = after
     del handler.fight.owned_stat_effects[uid]
     handler.packets.append((13560, packet))

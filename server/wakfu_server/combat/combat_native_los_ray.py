@@ -4,10 +4,10 @@ The narrowly validated program is exported from the installed Sf.bfZ class.
 Only its integer/local/field/control operations and m/bfX hooks are supported.
 Static results are cached; live actor blockers are evaluated by the caller.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from functools import lru_cache
-import gzip
 import json
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 from .combat_parameters import _float32
 
 
@@ -21,7 +21,7 @@ def _short(value):
 
 @lru_cache(maxsize=1)
 def ray_program():
-    data = json.loads((DATA_ROOT / "native-los-ray-program.json").read_text())
+    data = protocol_catalog.load(DATA_ROOT / "native-los-ray-program.json")
     if data.get("schema") != "native-Sf-bfZ-int-v1":
         raise ValueError("Unsupported native LOS raster program")
     return tuple(tuple(row) for row in data["instructions"])
@@ -29,11 +29,10 @@ def ray_program():
 
 @lru_cache(maxsize=4)
 def topology_columns(map_id):
-    path = DATA_ROOT / "native-los-topology" / f"{map_id}.json.gz"
-    if not path.is_file():
+    path = DATA_ROOT / "native-los-topology" / f"{map_id}.json"
+    if not protocol_catalog.exists(path):
         raise ValueError("Missing native LOS topology columns for this map")
-    with gzip.open(path, "rt") as stream:
-        data = json.load(stream)
+    data = protocol_catalog.load(path)
     if data.get("map_id") != map_id or data.get("schema") != "native-Sf-Vz-columns-v1":
         raise ValueError("Native LOS topology identity mismatch")
     shared = {}

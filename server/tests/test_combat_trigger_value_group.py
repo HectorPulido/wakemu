@@ -64,9 +64,10 @@ class TriggerValueGroupTests(unittest.TestCase):
     def test_native_codec_matches_original_eYb_context(self):
         from pathlib import Path
 
-        path = Path(".runtime/local/native-trigger-value1103-context.bin")
-        if not path.exists():
-            self.skipTest("Original Java probe not run")
+        path = (
+            Path(__file__).resolve().parents[1]
+            / "test-fixtures/combat/trigger-value1103-context.bin"
+        )
         expected = _identity_fields(
             path.read_bytes(), integer_fields=(1, 2, 4, 5, 6, 7, 8, 9)
         )

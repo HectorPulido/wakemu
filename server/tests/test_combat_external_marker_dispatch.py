@@ -48,7 +48,7 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
             )
         )
 
-        refresh = _function(self.tree, "refresh_owned_world_after_spectating")
+        refresh = _function(self.tree, "send_loaded_world_snapshot")
         self.assertTrue(
             any(
                 isinstance(node.func.value, ast.Name)

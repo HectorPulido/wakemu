@@ -1,14 +1,13 @@
 """Native eVE.cym and Qe.a explicit PV target policy, backed by all aNw rows."""
-import gzip
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 
 
 @lru_cache(maxsize=1)
 def native_direct_target_policies():
-    with gzip.open(DATA_ROOT / "native-direct-target-policies.json.gz", "rt") as source:
-        metadata = json.load(source)
+    metadata = protocol_catalog.load(DATA_ROOT / "native-direct-target-policies.json")
     if metadata.get("schema") != 1 or metadata.get("source_count") != len(
         metadata.get("effects", {})
     ):

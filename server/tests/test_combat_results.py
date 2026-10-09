@@ -97,9 +97,9 @@ class FightResultTests(unittest.TestCase):
         packets = finish_messages(
             r, m, duration_ms=6000, fight_instance_id=8, initiator_id=100
         )
-        self.assertEqual([op for op, b in packets], [12238, 12755])
+        self.assertEqual([op for op, b in packets], [12755, 12238])
         self.assertEqual(
-            packets[0][1][12:],
+            packets[1][1][12:],
             b"\0\1" + struct.pack(">q", 100) + b"\1" + struct.pack(">q", -200) + b"\0",
         )
         self.assertTrue(continuation(7, struct.pack(">iB", 7, 1)))
@@ -126,11 +126,26 @@ class FightResultTests(unittest.TestCase):
         )
 
     def test_report_turn_count_is_rounds_not_global_actor_turns(self):
-        f, r, m = self.state()
-        f.phase = "active"
-        f.winner = None
-        f.actors[-200].hp = 12
-        f.order = [100, -200]
+        # Start with a live timeline and let both actual actors complete their
+        # turns. Do not resurrect the helper's already-killed NPC by assigning
+        # HP directly; that would bypass native SY membership insertion.
+        f = Fight(
+            7,
+            [
+                Actor(100, 0, (0, 0, 0), 60, 6, 3, 100, 1, 1, True),
+                Actor(-200, 1, (1, 0, 0), 12, 4, 2, 10, 1),
+            ],
+            [(0, 0, 0), (1, 0, 0)],
+            {0: {(0, 0, 0)}, 1: {(1, 0, 0)}},
+        )
+        f.ready(1)
+        r = RuntimeMessages(f)
+        m = {
+            100: dict(
+                kind="player", account_id=1, name="Prueba local", breed=2, is_male=True
+            ),
+            -200: dict(kind="monster", ref=5525),
+        }
         f.end_turn(1, 100, 1)
         f.end_server_turn(-200, 2)
         f.apply_damage(100, -200, 12)

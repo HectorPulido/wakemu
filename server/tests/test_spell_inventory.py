@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from wakfu_server import native_catalog
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location(
@@ -34,12 +35,12 @@ class InventoryTests(unittest.TestCase):
             }
             review = output / "review.json"
             review.write_text(json.dumps(notes, ensure_ascii=False))
-            original = review.read_bytes()
+            original = native_catalog.read_bytes(review)
             builder.main(output)
-            inventory = json.loads((output / "inventory.json").read_text())
-            catalog = json.loads((ROOT / "server/protocol/spells.json").read_text())[
-                "spells"
-            ]
+            inventory = json.loads(native_catalog.read_text(output / "inventory.json"))
+            catalog = json.loads(
+                native_catalog.read_text(ROOT / "server/protocol/spells.json")
+            )["spells"]
             self.assertEqual(
                 {r["id"] for r in inventory["spells"]}, {r["id"] for r in catalog}
             )
@@ -65,16 +66,18 @@ class InventoryTests(unittest.TestCase):
             self.assertEqual(row["owner"], "Revisor")
             self.assertEqual(row["evidence"], ["ejemplo"])
             self.assertFalse(row["game_verified"])
-            self.assertEqual(review.read_bytes(), original)
+            self.assertEqual(native_catalog.read_bytes(review), original)
             self.assertEqual(inventory["summary"]["individual_game_verified"], 0)
             definitions = {r["id"] for r in inventory["effects"]}
             for spell in inventory["spells"]:
                 self.assertTrue(set(spell["root_effects"]) <= set(spell["effect_refs"]))
                 self.assertTrue(set(spell["effect_refs"]) <= definitions)
-            digest = (output / "inventory.json").read_bytes()
+            digest = native_catalog.read_bytes(output / "inventory.json")
             builder.main(output)
-            self.assertEqual(review.read_bytes(), original)
-            self.assertEqual((output / "inventory.json").read_bytes(), digest)
+            self.assertEqual(native_catalog.read_bytes(review), original)
+            self.assertEqual(
+                native_catalog.read_bytes(output / "inventory.json"), digest
+            )
 
 
 if __name__ == "__main__":

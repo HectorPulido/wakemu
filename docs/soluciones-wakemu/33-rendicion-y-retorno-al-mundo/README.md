@@ -12,6 +12,8 @@ Evidencia actual:99/99 pruebas PostgreSQL de persistencia y116/116 pruebas puras
 
 [Prueba manual completa habilitada](PRUEBA-GENERAL.md). Falta aceptación visual. La rendición voluntaria de un miembro mientras otros siguen combatiendo permanece pendiente; no extrapolar el recorrido de propietario único.
 
+La aceptación conjunta de dos cuentas para rendición individual, continuidad del compañero, observación y retorno/resincronización del mundo está preparada en [PRUEBA-COMPLETA-14-16-33-MAPA.md](../16-espectadores-y-marcadores/PRUEBA-COMPLETA-14-16-33-MAPA.md). Ejecutar solo cuando root confirme que la imagen integrada ya está lista.
+
 ## Dependencias
 
 9, 10, 14, 21. Ver el [índice general](../README.md) y las [reglas transversales](../TRANSVERSALES.md).
@@ -36,4 +38,8 @@ El usuario confirma pasos5,6,7 correctos y «xp, drop y todo sigue correcto». R
 
 ## Rendición de un miembro: desarrollo separado
 
-Fuente con migración067 integrada al dispatcher, aún sin desplegar. Verificación de root en el contenedor world existente y base aislada wakemu_migration_test: 92/92 pruebas, sin omitidas, en 62,336 segundos. Incluye retirada individual, persistencia y recuperación del recibo de retorno, preservación del combate restante, selector y limpieza del marcador del último propietario. Pendientes: revisión final de la imagen y aceptación en clientes reales. Caso completo: [prueba PvE compartido](PRUEBA-PVE-COMPARTIDO.md).
+Migración067 instalada en r16 sobre la base habitual wakemu_runtime; contenedor world saludable. Verificación de root en el contenedor world existente y base aislada wakemu_migration_test: 92/92 pruebas, sin omitidas, en 62,336 segundos. Incluye retirada individual, persistencia y recuperación del recibo de retorno, preservación del combate restante, selector y limpieza del marcador del último propietario. Validación instalada:159 pruebas de imagen,95 de persistencia y prueba TLS real aprobadas. Pendiente aceptación completa en clientes reales; una espera intermitente de142 segundos sigue en revisión. Caso completo: [prueba PvE compartido](PRUEBA-PVE-COMPARTIDO.md).
+
+## Diagnóstico de espera intermitente
+
+La causa del intento TLS de142 segundos sigue sin demostrarse: no hay una traza guardada que identifique espera de lock, pool o PostgreSQL. El harness ahora permite `WAKFU_TLS_GATE_TRACE=1` para registrar rol, opcode, operación, tiempo monotónico y duración, sin cuerpos ni credenciales. Tres pruebas offline verifican silencio cuando está desactivado, orden de eventos y preservación de excepciones sin filtrar texto privado. No modifica el servidor instalado ni la política de leases.

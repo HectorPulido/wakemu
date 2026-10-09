@@ -2,7 +2,7 @@
   "objective": "Resolver todos los issues uno a uno, priorizando importancia y sencillez; implementar y verificar cambios del servidor y mantener status en README.",
   "ui_delegation": "Luna, reasoning low; root no interactúa con UI.",
   "spells": "Excluidos; otra sesión.",
-  "goal_tool_status": "active",
+  "goal_tool_status": "paused at user request after dungeon deployment and manual handoff; broader objective remains incomplete",
   "issues": [
     {
       "issue": "00-rendimiento-y-redis",
@@ -376,9 +376,7 @@
       ],
       "complete": false,
       "remaining_evidence": [
-        "Registry/session integration13241",
-        "Checkpoints y recompensas multiowner",
-        "TLS y aceptación completa2clientes"
+        "Aceptación visual completa de unión de jugadores y continuidad tras retirada"
       ],
       "combat_engine_changed": false,
       "storage_gate": {
@@ -389,13 +387,25 @@
         "scope": "shared durable membership/checkpoints/settlement, no real join integration"
       },
       "shared_combat_source_dispatch_integrated": true,
-      "shared_combat_full_tls_verified": false,
+      "shared_combat_full_tls_verified": true,
       "shared_combat_roster_settlement_pending": false,
       "shared_combat_source_push_integrated": true,
       "shared_combat_source_gate_tests": 65,
       "shared_combat_source_push_gate_tests": 61,
       "candidate_deployed": true,
-      "integrated_gate_tests": 198
+      "integrated_gate_tests": 198,
+      "three_player_tls": {
+        "result": "PASS",
+        "placement_fight": 46,
+        "active_fight": 49,
+        "subsequent_fights": [
+          47,
+          50
+        ],
+        "reconnect_no_duplicate_rewards": true,
+        "deployed_image": "be1ae553",
+        "manual_acceptance_pending": true
+      }
     },
     {
       "issue": "15-grupos-de-jugadores",
@@ -458,7 +468,16 @@
       "marker_topology_scope": "public instance0",
       "visual_verification": "own clients r14: no swords, reproduced fight33",
       "manual_probe_enabled": false,
-      "native_registration_verified": true
+      "native_registration_verified": true,
+      "terminal_world_recovery_source": {
+        "installed": false,
+        "postgres_shared_checkpoint_tests": 68,
+        "postgres_lifecycle_rewards_health_tests": 26,
+        "dispatcher_pure_gate": 51,
+        "restart_recovery": "Terminal snapshot in settlement transaction; empty Registry recovery; no reward replay",
+        "remaining": "Release all returned owner actor indices, then frozen image and real socket acceptance",
+        "evidence": ".runtime/local/shared-pve-terminal-recovery-gate-20261007.txt"
+      }
     },
     {
       "issue": "17-aptitudes-y-calculo-de-estadisticas",
@@ -529,7 +548,27 @@
       ],
       "complete": false,
       "network_config_tests": 2,
-      "remote_acceptance_pending": true
+      "remote_acceptance_pending": true,
+      "remote_direct_source": {
+        "implemented": true,
+        "installed": false,
+        "config_tests": 2,
+        "compose_render": "PASS",
+        "files": [
+          "compose.remote.yaml",
+          "server/remote-auth/nginx.conf",
+          "client-tools/dropin/config.remote.example.json",
+          "client-tools/dropin/remote-login.py"
+        ],
+        "remaining": "proxy runtime validation and remote host/certificate acceptance"
+      },
+      "remote_auth_gate": {
+        "image": "cbc3a4ce",
+        "postgres_tests": 41,
+        "skipped": 0,
+        "deployed": true,
+        "external_connection_pending": true
+      }
     },
     {
       "issue": "22-identificacion-elementos-y-encantamiento",
@@ -692,7 +731,7 @@
     },
     {
       "issue": "29-mazmorras-e-instancias",
-      "status": "Pendiente",
+      "status": "Cambio hecho no confirmado",
       "user_answers_present": true,
       "post_answer_review": true,
       "executed_probe_artifacts": [
@@ -709,12 +748,75 @@
       ],
       "complete": false,
       "remaining_evidence": [
-        "Composición por sala",
-        "Vida/daño/resistencias",
-        "Recorrido real de instancia y party",
-        "Reglas de derrota/reentrada",
-        "Selector y actualización de UI durante instancia"
-      ]
+        "Complete manual two-player acceptance of all room fights, automatic transfers and final return",
+        "Surrender/retry and reconnect manual verification",
+        "Unknown official roster compositions remain explicitly local generated policy",
+        "Native access requiring unavailable trusted states or unsupported item costs remains rejected"
+      ],
+      "context_policy_070": {
+        "installed": true,
+        "postgres_tests": 32,
+        "seeded_native_policy": false,
+        "room_encounters": "All87 local policy configurations installed; durable room progression and automatic whole-party transport active"
+      },
+      "json_automation": {
+        "reviewed_guides": 87,
+        "recorded_rooms": 221,
+        "resolved_monster_occurrences": 314,
+        "fully_resolved_rosters": 12,
+        "native_dungeon_matches": 82,
+        "first_deployment": "All 87 local automatic configurations after complete two-player TLS gate",
+        "jalato_identity": {
+          "definition_id": 90,
+          "template_id": 91,
+          "asset_map_id": 1086
+        },
+        "runtime_deployed": true,
+        "progression_postgres_tests": 9,
+        "compiler_encounters_hydration_reference_tests": 34,
+        "candidate_image": "wakemu-world:dungeons-20261008-r20",
+        "initial_image_gate": {
+          "tests": 231,
+          "skips": 0,
+          "obsolete_dispatch_tests": 2,
+          "ordinary_healing_failures_also_on_r19": 2
+        },
+        "entry_interaction_review": "Native approach and authoritative access retained; local automatic topology disables unreviewed native teleporters",
+        "manual_acceptance": "Ready: MANUAL-ACCEPTANCE.md and INSTALLED-DUNGEONS.md",
+        "candidate_image_sha256": "d408f19d0301e1ac14a3bc4f66b0b78c46a3cebfcf799aabd9178fd26bede9a5",
+        "entry_tls_gate": {
+          "passed": true,
+          "two_clients": true,
+          "first_room_monsters": 3,
+          "full_room_cycle_verified": false,
+          "world_restored": "r19"
+        },
+        "prepared_configurations": 87,
+        "prepared_rooms": 246,
+        "local_legacy_map_registrations": 5,
+        "bundle_sha256": "711cde288397a2017d1941818891ee19c1518da475ce5f923a758e6a0a252125",
+        "exact_image_gate": {
+          "tests": 338,
+          "dungeon_tests": 335,
+          "fixture_heartbeat_tests": 3,
+          "skips": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        "full_tls_gate": {
+          "passed": false,
+          "rooms_verified_in_prior_run": 2,
+          "two_players_per_fight": true,
+          "last_result": "one-hour timeout",
+          "manual_acceptance_authorized_by_user": true
+        },
+        "composition_policy": "Known reviewed rosters retained; unknown slots generated from validated native species pools and explicitly nonofficial",
+        "deployment_database": "wakemu_runtime",
+        "installed_configurations": 87,
+        "installed_routes": 87,
+        "installed_rooms": 246,
+        "runtime_health": "healthy"
+      }
     },
     {
       "issue": "30-mesas-de-oficio-y-crafting",
@@ -824,6 +926,15 @@
         "surrender": true,
         "steps_5_6_7": true,
         "xp_drop_return": true
+      },
+      "terminal_world_recovery_source": {
+        "installed": false,
+        "postgres_shared_checkpoint_tests": 68,
+        "postgres_lifecycle_rewards_health_tests": 26,
+        "dispatcher_pure_gate": 51,
+        "restart_recovery": "Terminal snapshot in settlement transaction; empty Registry recovery; no reward replay",
+        "remaining": "Release all returned owner actor indices, then frozen image and real socket acceptance",
+        "evidence": ".runtime/local/shared-pve-terminal-recovery-gate-20261007.txt"
       }
     },
     {
@@ -1325,6 +1436,45 @@
       "feeding_remaining_tls": "Reconexión con13078 rico; corrección en fuente, pendiente candidata integrada",
       "deployed": true,
       "deployed_image": "1c3bbea57e40a204da33025484c351f58246992de6f9798843c5d9ba4593119f"
+    },
+    {
+      "issue": "40-cadaveres-de-monstruos",
+      "status": "Pendiente",
+      "complete": false,
+      "implementation_evidence": "40-cadaveres-de-monstruos/README.md",
+      "remaining_evidence": [
+        "Native protocol review",
+        "Implementation",
+        "Automated verification",
+        "Complete manual acceptance"
+      ],
+      "source": "User request and official capture 2026-10-08"
+    },
+    {
+      "issue": "41-cofre-de-merkasaco",
+      "status": "Pendiente",
+      "complete": false,
+      "implementation_evidence": "41-cofre-de-merkasaco/README.md",
+      "remaining_evidence": [
+        "Native protocol review",
+        "Implementation",
+        "Automated verification",
+        "Complete manual acceptance"
+      ],
+      "source": "User request and official capture 2026-10-08"
+    },
+    {
+      "issue": "42-tienda-personalizada-por-kamas",
+      "status": "Pendiente",
+      "complete": false,
+      "implementation_evidence": "42-tienda-personalizada-por-kamas/README.md",
+      "remaining_evidence": [
+        "Native protocol review",
+        "Implementation",
+        "Automated verification",
+        "Complete manual acceptance"
+      ],
+      "source": "User request and official capture 2026-10-08"
     }
   ],
   "priority_deepening": "29: composición exacta de salas y dificultades/multiplicadores; además34 de prioridad alta",

@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from wakfu_server import swimming
+from wakfu_server import native_catalog
 
 
 class SwimmingTopologyTests(unittest.TestCase):
@@ -40,7 +41,7 @@ class SwimmingTopologyTests(unittest.TestCase):
 
     def test_manifest_accounts_for_verified_and_unknown_maps_without_fallback(self):
         manifest_path = swimming.DATA_ROOT / "swimming-maps-manifest.json"
-        manifest = json.loads(manifest_path.read_text())
+        manifest = json.loads(native_catalog.read_text(manifest_path))
         verified = set(manifest["verified_map_ids"])
         unknown = set(manifest["unverified_map_ids"])
         installed = {

@@ -10,13 +10,16 @@ from wakfu_server.combat_definitions import effect_profile
 from wakfu_server.combat_effect_dispatch import EffectInvocation
 from wakfu_server.combat_level_group import runtime_group_level
 from types import SimpleNamespace
+from wakfu_server import native_catalog
 
 
 class NativeLevelGroupTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.effects = json.loads(
-            (Path(__file__).parents[1] / "protocol/spell-effect-trees.json").read_text()
+            native_catalog.read_text(
+                Path(__file__).parents[1] / "protocol/spell-effect-trees.json"
+            )
         )["effects"]
 
     def test_real_catalog_linear_fractional_float_parameters(self):
@@ -64,6 +67,22 @@ class NativeLevelGroupTests(unittest.TestCase):
         self.assertEqual(level_group_override(effect, 12, 200), 12)
         effect["parameters"][16] = 65538
         self.assertEqual(level_group_override(effect, 12, 200), 2)
+
+    def test_runtime_preserves_native_signed_negative_child_level(self):
+        effect = deepcopy(self.effects["368107"])
+        effect["parameters"][16] = -4
+        effect["parameters"][18] = 0
+        invocation = EffectInvocation(368107, 1, 7, -7, (4, 0, 0))
+        actors = {
+            7: SimpleNamespace(effective_level=200),
+            -7: SimpleNamespace(effective_level=20),
+        }
+        self.assertEqual(
+            runtime_group_level(
+                effect, effect_profile(effect, 1), invocation, actors, active=True
+            ),
+            -4,
+        )
 
     def test_real_group_children_use_actor_level_keep_identity(self):
         effect = self.effects["368107"]

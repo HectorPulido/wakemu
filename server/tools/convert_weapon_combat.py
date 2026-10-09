@@ -1,5 +1,4 @@
 """Preserve names, compile native weapon effects and list damage-only candidates."""
-import gzip
 import json
 from collections import Counter
 from pathlib import Path
@@ -52,7 +51,7 @@ def convert(rules_path, effects_tsv, effects_output, names_path, audit_path):
     )
     os.close(descriptor)
     try:
-        with gzip.open(temporary, "wt") as output:
+        with open(temporary, "wt") as output:
             json.dump(
                 dict(source="Installed native weapon effect trees", effects=effects),
                 output,

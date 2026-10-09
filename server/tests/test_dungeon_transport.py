@@ -53,3 +53,64 @@ class DungeonTransportResolutionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DungeonLegacyTransportGuardTests(unittest.TestCase):
+    def setUp(self):
+        from wakfu_server.dungeon_instances import EntryRoute
+
+        self.route = EntryRoute(
+            key="legacy",
+            template_id=1000312,
+            definition_id=1000312,
+            entry_map_id=527,
+            entry_object_id=1,
+            destination_id=10,
+            start_map_id=312,
+            criterion="",
+            native_template_id=-1,
+        )
+        self.destination = dict(
+            destination_id=10,
+            map_id=312,
+            criterion="",
+            cyZ=-1,
+            x=1,
+            y=2,
+            z=3,
+            direction=0,
+            native_altitude_walkable=True,
+            item_reference=0,
+            cyW=0,
+            cyX=0,
+        )
+
+    def resolve(self):
+        from unittest.mock import patch
+
+        with patch.object(
+            dungeon_transport.dungeon_instances,
+            "route_for_entry",
+            return_value=self.route,
+        ), patch.object(
+            dungeon_transport.generic_transports,
+            "source",
+            return_value={"destinations": [self.destination]},
+        ):
+            return dungeon_transport.resolve_request(
+                527, struct.pack(">qiBi", 1, 10, 0, 2)
+            )
+
+    def test_native_template_is_separate_from_local_run_template(self):
+        self.assertEqual(self.resolve()["route"].template_id, 1000312)
+        self.destination["cyZ"] = 0
+        with self.assertRaisesRegex(ValueError, "no longer matches"):
+            self.resolve()
+
+    def test_item_and_kama_requirements_are_not_waived(self):
+        self.destination.update(item_reference=7, cyW=1)
+        with self.assertRaisesRegex(ValueError, "item transaction"):
+            self.resolve()
+        self.destination.update(item_reference=0, cyW=0, cyX=10)
+        with self.assertRaisesRegex(ValueError, "kama transaction"):
+            self.resolve()

@@ -91,6 +91,14 @@ class MeasuredTransport(ContextTransport):
         try:
             reply = super().request(endpoint, payload)
             if endpoint == "/v3/decide":
+                if "protocol" in payload and "backendPreparation" in reply:
+                    self.stages.append(
+                        dict(
+                            stage="backend_initial_preparation",
+                            measurements=reply["backendPreparation"],
+                            elapsedStart=started - self.turn_started,
+                        )
+                    )
                 expected = self.searches[payload["requestId"]]
                 identity = (
                     reply.get("decision", {})

@@ -44,3 +44,9 @@ def remove_property(counts, property_id):
 def property_present(counts, property_id):
     _validate(counts, property_id)
     return counts.get(property_id, 0) != 0
+
+
+def clear_property(counts, property_id):
+    """PB.e removes the complete entry; this is not PB.d decrement."""
+    _validate(counts, property_id)
+    counts.pop(property_id, None)

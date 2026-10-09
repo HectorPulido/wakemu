@@ -12,6 +12,7 @@ from psycopg.types.json import Jsonb
 from wakfu_server import monster_initial_population
 from wakfu_server.combat_group_store import PersistentGroups
 from wakfu_server.monsters import REFERENCES, owned_instance
+from wakfu_server import native_catalog
 
 
 class MonsterInitialPopulationTests(PostgresCase):
@@ -359,9 +360,9 @@ class MonsterInitialPopulationTests(PostgresCase):
     def test_configured_pilot_catalog_has_unique_walkable_adjacent_native_plans(self):
         plans = monster_initial_population.configured_plans()
         catalog = json.loads(
-            (
+            native_catalog.read_text(
                 monster_initial_population.DATA_ROOT / "initial-monster-population.json"
-            ).read_text()
+            )
         )
         self.assertEqual(len(plans), len(catalog["plans"]))
         identities = {
@@ -460,7 +461,7 @@ class MonsterInitialPopulationTests(PostgresCase):
 
     def test_configured_catalog_rejects_a_nonwalkable_cell_before_seeding(self):
         path = monster_initial_population.DATA_ROOT / "initial-monster-population.json"
-        catalog = json.loads(path.read_text())
+        catalog = json.loads(native_catalog.read_text(path))
         catalog["plans"][0]["members"][0]["x"] = 2**31 - 1
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as temporary:
             json.dump(catalog, temporary)

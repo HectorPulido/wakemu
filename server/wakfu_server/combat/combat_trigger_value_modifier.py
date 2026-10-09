@@ -3,17 +3,16 @@
 This arithmetic is independent of actor stats. Wiring requires the live
 source runner; state levels and damage auxiliary fields use other contracts.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import math
 import json
 from pathlib import Path
 from .combat_parameters import _float32
 
-_OWNERS = json.loads(
-    (
-        Path(__file__).resolve().parents[2]
-        / "protocol"
-        / "native-trigger-value-owners.json"
-    ).read_text()
+_OWNERS = protocol_catalog.load(
+    Path(__file__).resolve().parents[2]
+    / "protocol"
+    / "native-trigger-value-owners.json"
 )["effects"]
 
 

@@ -8,6 +8,19 @@ from wakfu_server.combat_state_carrier import (
 
 
 class StateCarrierTests(unittest.TestCase):
+    def test_parent_container_is_serialized_and_scope_does_not_leak(self):
+        from wakfu_server.combat_running_container import running_container_scope
+        from wakfu_server.combat_effect_removal import _identity_fields
+
+        plain = state_carrier_payload(**self.parameters())
+        with running_container_scope(
+            {"container_present": True, "container_type": 11}, (4807 << 16) | 200
+        ):
+            payload = state_carrier_payload(**self.parameters())
+        fields = _identity_fields(payload, integer_fields=(9, 10))
+        self.assertEqual(fields, {9: 11, 10: (4807 << 16) | 200})
+        self.assertEqual(state_carrier_payload(**self.parameters()), plain)
+
     def parameters(self):
         return dict(
             uid=2345,

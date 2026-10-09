@@ -2,7 +2,7 @@
 
 `ExportActorCharacteristics.java` runs entirely against the bundled client.
 It exports92 ffw definitions and2874 NPC profiles to
-`server/protocol/native-actor-characteristics.json.gz`. New ffh supplies current,
+`server/protocol/native-actor-characteristics.json`. New ffh supplies current,
 minimum (`aYW`, not `aYV`), effective maximum and fff.sfT freeze state. The
 exporter also preserves hard bounds and expandability. Metadata comes from
 native initialization, never synthetic universal zero values.

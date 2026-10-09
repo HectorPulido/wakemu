@@ -37,7 +37,7 @@ public class ExportForcedCombatTransitions {
      rows.add(Arrays.asList(new int[]{from.x,from.y,src.bbl},new int[]{x,y},destination));
     }
    }
-   try(Writer writer=new OutputStreamWriter(new GZIPOutputStream(Files.newOutputStream(output.resolve(map+"-h"+height+"-r0-j4.json.gz"))),java.nio.charset.StandardCharsets.UTF_8)) {
+   try(Writer writer=new OutputStreamWriter(Files.newOutputStream(output.resolve(map+"-h"+height+"-r0-j4.json")),java.nio.charset.StandardCharsets.UTF_8)) {
     new Gson().toJson(Map.of("map_id",map,"height",height,"radius",0,"jump",4,"source","Native faz.B first Sm.boE destination; Sm(height,0,4,true); all VB/Vy columns", "archive_sha256",ExportAllCombatMaps.sha(archivePath),"rows",rows),writer);
    }
   }

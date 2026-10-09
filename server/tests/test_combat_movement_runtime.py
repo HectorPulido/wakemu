@@ -9,6 +9,30 @@ from wakfu_server.combat_movement_runtime import apply_client, decode_request
 
 
 class MovementRuntimeTests(unittest.TestCase):
+    def test_current_fight_serializer_receives_exact_movement_preview(self):
+        runtime, original = self.setup_fight()
+        body = struct.pack(">qiih", original.id, 1, 0, 0)
+        seen = []
+
+        def serialize(actor, state):
+            self.assertIs(state.actors[actor.id], actor)
+            self.assertIsNot(state, runtime.fight)
+            self.assertEqual((actor.position, actor.mp), ((1, 0, 0), 2))
+            self.assertEqual((original.position, original.mp), ((0, 0, 0), 3))
+            seen.append(actor.id)
+            return b"owned-current-preview"
+
+        packets, _ = apply_client(
+            runtime,
+            7,
+            body,
+            lambda actor: self.fail("Unary source must not receive preview actor"),
+            runtime_stats_serializer=serialize,
+        )
+        self.assertEqual(seen, [original.id])
+        self.assertTrue(packets[-1][1].endswith(b"owned-current-preview"))
+        self.assertEqual((original.position, original.mp), ((1, 0, 0), 2))
+
     def test_direction_follows_last_planar_path_step_and_preserves_vertical_facing(
         self,
     ):

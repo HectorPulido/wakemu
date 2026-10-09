@@ -7,6 +7,7 @@ interaction cells for that table. Native bEG.dST derives the cells from the
 direction mask, object orientation, and static map elevation. Client-supplied
 position is never used.
 """
+from wakfu_server import native_catalog as protocol_catalog
 
 import json
 from functools import lru_cache
@@ -39,7 +40,7 @@ _DIRECTIONS = {
 
 
 def load_interactions(path=DATA_ROOT / "craft-table-interaction-candidates.json"):
-    document = json.loads(Path(path).read_text())
+    document = protocol_catalog.load(Path(path))
     if not isinstance(document, dict):
         raise ValueError("Invalid native crafting interaction export")
     rows = document.get("instances")

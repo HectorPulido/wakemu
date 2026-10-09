@@ -18,5 +18,5 @@ public class ProbeNativeAreaCallbacks {
   public boolean e(amP target){return true;}
   public void f(amP target){}
  }
- public static void main(String[] args){Area a=new Area();a.a(10001,null,null);if(a.entries!=1||a.exits!=0)throw new AssertionError();a.a(10002,null,null);if(a.entries!=1||a.exits!=1)throw new AssertionError();a.a(9999,null,null);if(a.entries!=1||a.exits!=1)throw new AssertionError();BitSet both=new BitSet();both.set(10001);both.set(10002);a.a(both,null,null);if(a.entries!=2||a.exits!=2)throw new AssertionError();System.out.println("PASS Qq native event-mask routing: entry, exit, irrelevant, combined");}
+ public static void main(String[] args){Area a=new Area();a.a(10001,null,null);if(a.entries!=1||a.exits!=0)throw new AssertionError();a.a(10002,null,null);if(a.entries!=1||a.exits!=1)throw new AssertionError();a.a(9999,null,null);if(a.entries!=1||a.exits!=1)throw new AssertionError();BitSet both=new BitSet();both.set(10001);both.set(10002);a.a(both,null,null);if(a.entries!=2||a.exits!=2)throw new AssertionError();a.bgS.set(10016);a.a(10016,null,null);if(a.entries!=3||a.exits!=2)throw new AssertionError("10016 actual mask routing");System.out.println("PASS Qq native event-mask routing: entry, exit, irrelevant, combined,10016");}
 }

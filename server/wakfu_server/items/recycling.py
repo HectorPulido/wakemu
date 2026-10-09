@@ -4,6 +4,7 @@ The client/server result does not reveal the authoritative yield RNG. This
 service therefore labels stochastic rounding as local policy, captures its
 draws in the receipt, and fails closed when required per-item state is absent.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import hashlib
 import json
 import math
@@ -16,7 +17,7 @@ from .paths import DATA_ROOT
 from . import recycling_wire
 
 
-_CATALOG_DOCUMENT = json.loads((DATA_ROOT / "item-recycling-metadata.json").read_text())
+_CATALOG_DOCUMENT = protocol_catalog.load(DATA_ROOT / "item-recycling-metadata.json")
 if (
     _CATALOG_DOCUMENT.get("record_count") != 20230
     or _CATALOG_DOCUMENT.get("error_count") != 0

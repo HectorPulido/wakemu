@@ -4,6 +4,7 @@ The stable world shim passes its Store and encounter, never a projected DTO.
 No candidate policy or spell formulas live in this database adapter.
 """
 from copy import deepcopy
+from .native_database import connection
 
 
 def load_authorities(runtime, store, monsters, *, viewer_id):
@@ -13,7 +14,7 @@ def load_authorities(runtime, store, monsters, *, viewer_id):
     fight = runtime.fight
     registrations = getattr(fight, "native_summon_registrations", {})
     characters, descriptors, decks, excluded = {}, {}, {}, {}
-    with store.connection() as db:
+    with connection(store) as db:
         db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         for identity, actor in sorted(fight.actors.items()):
             if identity in registrations:

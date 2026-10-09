@@ -4,7 +4,7 @@ This report accepts committed local XP/kamas receipts and generates no loot. It 
 identity and does not copy official result, reward or fight instance data.
 """
 import struct
-from .wire import proto_field
+from wakfu_server.wire import proto_field
 
 
 def _number(field, value):
@@ -68,7 +68,7 @@ def _player(actor, metadata):
     xp = b""
     info = metadata.get("xp_info")
     if info is not None:
-        from .progression import level_xp
+        from wakfu_server.progression import level_xp
 
         if not isinstance(info, dict) or set(info) != {
             "end_xp",
@@ -110,7 +110,7 @@ def _player(actor, metadata):
 
 
 def _monster(actor, metadata):
-    from .monsters import reference
+    from wakfu_server.monsters import reference
 
     breed = metadata.get("ref")
     reference(breed)
@@ -164,7 +164,7 @@ def fight_report(
 def finish_messages(
     runtime, metadata, *, duration_ms, fight_instance_id, initiator_id, fight_model=2
 ):
-    """cvF normal winners/losers then cvJ report; client aUH sends12925.
+    """Queue cvJ report before cvF closes the native fight action owner.
 
     Runtime caller waits for matching12925 before restoring exploration state.
     """
@@ -179,7 +179,9 @@ def finish_messages(
     )
     runtime.awaiting_ack = None
     runtime.pending = []
-    return [terminal_event(runtime), (12755, runtime._prefix() + report)]
+    # cju queues aUI on the live fight action owner. aUH terminal cleanup
+    # removes that owner (aUb.Af) and sends12925; enqueue the report first.
+    return [(12755, runtime._prefix() + report), terminal_event(runtime)]
 
 
 def terminal_event(runtime):

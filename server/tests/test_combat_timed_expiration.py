@@ -14,16 +14,17 @@ from wakfu_server.combat_state_timing import StateTimer
 from wakfu_server.combat_timed_expiration import prepare_timed_expiration
 from wakfu_server.combat_runtime_messages import RuntimeMessages
 import test_combat_state_child_removal as child_fixture
+from wakfu_server import native_catalog
 
 
 class TimedExpirationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.effects = json.loads((DATA_ROOT / "spell-effect-trees.json").read_text())[
-            "effects"
-        ]
+        cls.effects = json.loads(
+            native_catalog.read_text(DATA_ROOT / "spell-effect-trees.json")
+        )["effects"]
         cls.registry = json.loads(
-            (DATA_ROOT / "effect-characteristic-registry.json").read_text()
+            native_catalog.read_text(DATA_ROOT / "effect-characteristic-registry.json")
         )
         child_fixture.StateChildRemovalTests.setUpClass()
 

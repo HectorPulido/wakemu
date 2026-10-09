@@ -7,6 +7,85 @@ from wakfu_server.combat_force_characteristic import (
 
 
 class ForcedCharacteristicTests(unittest.TestCase):
+    def test_original_fzb_differs_from_expandability_for_wp_and_hp(self):
+        from wakfu_server.combat_character_copy_metadata import (
+            native_copy_characteristics,
+        )
+
+        definitions = native_copy_characteristics()["fresh_characteristics"]
+        self.assertTrue(definitions["4"]["expandable"])
+        self.assertFalse(definitions["4"]["over_max_current"])
+        self.assertTrue(definitions["1"]["over_max_current"])
+        common = dict(
+            value=5,
+            set_maximum=False,
+            current=1,
+            raw=2,
+            maximum=2,
+            minimum=0,
+            raw_min=0,
+            percent=0,
+            low=0,
+            high=20,
+        )
+        self.assertEqual(
+            forced_transition(
+                **common, over_max_current=definitions["4"]["over_max_current"]
+            ),
+            (2, 2, 2),
+        )
+        self.assertEqual(
+            forced_transition(
+                **common, over_max_current=definitions["1"]["over_max_current"]
+            ),
+            (5, 2, 2),
+        )
+
+    def test_ordinary_wp_assignment_uses_effective_bound_after_maximum_loss(self):
+        from wakfu_server.combat_state import Actor, Fight
+        from wakfu_server.combat_force_characteristic import (
+            NativeForcedCharacteristicHandler,
+        )
+        from wakfu_server.combat_stat_handler import StatExecutionContext
+        from wakfu_server.combat_effect_dispatch import EffectInvocation
+
+        actor = Actor(7, 0, (0, 0, 0), 60, 6, 3, 0, 1, 3, True)
+        other = Actor(-7, 1, (1, 0, 0), 20, 6, 3, 0, 1)
+        fight = Fight(
+            8, [actor, other], {(0, 0, 0), (1, 0, 0)}, {0: {(0, 0, 0)}, 1: {(1, 0, 0)}}
+        )
+        fight.ready(3)
+        for name, value in (
+            ("effect_stats", 1),
+            ("effect_maxima", 2),
+            ("effect_minima", 0),
+            ("effect_base_maxima", 2),
+            ("effect_base_minima", 0),
+            ("effect_percentages", 0),
+        ):
+            setattr(actor, name, {4: value})
+        actor.effect_frozen = frozenset()
+        packets = []
+        handler = NativeForcedCharacteristicHandler(
+            fight,
+            packets,
+            {"effects": {"952": {"runner": "eYO", "fixed_stat_id": 4}}},
+            action_id=1,
+            allocate_uid=lambda: 101,
+            context=lambda *args: StatExecutionContext(True, True, None, False, None),
+            rng=random.Random(1),
+        )
+        self.assertTrue(
+            handler(
+                {"effect_class": 952, "parameters": [5.0, 0.0]},
+                [],
+                EffectInvocation(413083, 200, actor.id, actor.id, actor.position),
+            )
+        )
+        self.assertEqual((actor.effect_stats[4], actor.effect_maxima[4]), (2, 2))
+        self.assertFalse(hasattr(actor, "wp"))
+        self.assertEqual(len(packets), 1)
+
     def test_parameters_native_copy_flags_and_percentage(self):
         rng = random.Random(1)
         self.assertEqual(
@@ -32,7 +111,7 @@ class ForcedCharacteristicTests(unittest.TestCase):
             percent=0,
             low=0,
             high=6,
-            expandable=False,
+            over_max_current=False,
         )
         for amount, flag, expected in (
             (4, False, (4, 6, 6)),

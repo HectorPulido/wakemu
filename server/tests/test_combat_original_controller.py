@@ -36,6 +36,30 @@ class OriginalControllerTests(unittest.TestCase):
                 ),
             )
 
+    def test_original_caster_numeric_domain_and_signature(self):
+        for value in (0, -200, 91):
+            context = ConditionContext(
+                {}, effect_caster_original_controller_query=lambda: value
+            )
+            self.assertTrue(
+                evaluate_condition(
+                    f"GetEffectCasterOriginalController() == {value}", context
+                )
+            )
+        for expression in (
+            "GetEffectCasterOriginalController() == 0",
+            "True or GetEffectCasterOriginalController('caster') == 0",
+        ):
+            with self.assertRaises(UnknownCondition):
+                evaluate_condition(expression, ConditionContext({}))
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition(
+                "GetEffectCasterOriginalController() == 0",
+                ConditionContext(
+                    {}, effect_caster_original_controller_query=lambda: True
+                ),
+            )
+
     def test_controller_authority_is_not_account_owner_or_identity_guess(self):
         actor = SimpleNamespace(id=-200, owner_id=7)
         fight = SimpleNamespace(actors={-200: actor})
@@ -64,20 +88,31 @@ class OriginalControllerTests(unittest.TestCase):
     def test_replay_criteria_passes_retained_target_not_rebound_or_source(self):
         class Adapter:
             def condition(
-                self, p, plan, effect, invocation, *, native_original_target_id
+                self,
+                p,
+                plan,
+                effect,
+                invocation,
+                *,
+                native_original_target_id,
+                native_original_caster_id,
             ):
+                self.original_caster = native_original_caster_id
                 return native_original_target_id
 
         events = object.__new__(OrdinaryHealingEvents)
         events.adapter = Adapter()
         events.plan = {}
         events.preview = SimpleNamespace(
-            native_owned_group_effects={33: dict(invocation=dict(target_id=91))}
+            native_owned_group_effects={
+                33: dict(invocation=dict(target_id=91, caster_id=71))
+            }
         )
         invocation = SimpleNamespace(base_uid=33, target_id=202)
         self.assertEqual(
             events.conditions({}, invocation, SimpleNamespace(target_id=303)), 91
         )
+        self.assertEqual(events.adapter.original_caster, 71)
         events.preview.native_owned_group_effects[33]["invocation"]["target_id"] = None
         self.assertIsNone(events.conditions({}, invocation, None))
 

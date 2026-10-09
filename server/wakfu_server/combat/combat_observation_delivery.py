@@ -55,11 +55,13 @@ def choose_delivery(
     raise ValueError("Native action cannot retain runner on its authoritative manager")
 
 
-def evaluated_application_from_observation(body):
-    """Convert cvY to cvX/eIK=false without rebuilding its owned protobuf."""
+def evaluated_application_from_observation(body, *, execute=False):
+    """Convert cvY to cvX with an explicit decoded-runner execution flag."""
+    if type(execute) is not bool:
+        raise ValueError("Explicit native decoded-runner execution flag required")
     if not isinstance(body, bytes) or len(body) < 18:
         raise ValueError("Incomplete native observation packet")
     size = struct.unpack_from(">h", body, 16)[0]
     if size <= 0 or len(body) != 18 + size:
         raise ValueError("Native observation protobuf length mismatch")
-    return body[:12] + b"\x00" + body[12:]
+    return body[:12] + bytes((int(execute),)) + body[12:]

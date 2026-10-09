@@ -5,13 +5,14 @@ import unittest
 from pathlib import Path
 
 from wakfu_server import craft_catalog
+from wakfu_server import native_catalog
 
 
 class CraftCatalogTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.document = json.loads(
-            (craft_catalog.DATA_ROOT / "craft-recipes.json").read_text()
+            native_catalog.read_text(craft_catalog.DATA_ROOT / "craft-recipes.json")
         )
 
     def load_document(self, document):

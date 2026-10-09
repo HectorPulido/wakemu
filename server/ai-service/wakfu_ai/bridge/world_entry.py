@@ -1,8 +1,12 @@
 """Complete native SDK entry point loaded by the final stable world shim."""
 import os
+from copy import deepcopy
 from pathlib import Path
 import threading
 import tempfile
+import time
+
+from ..native.native_deadline import bounded, check
 
 from ..native.native_store import load_authorities
 from ..native.native_profiles import encounter_profiles
@@ -76,6 +80,7 @@ def run_npc_turn(
     # owning game session before the turn driver can apply its fallback.
     from psycopg import Error as DatabaseError
 
+    bridge_started = time.monotonic()
     try:
         yield from _run_npc_turn(
             runtime,
@@ -90,6 +95,8 @@ def run_npc_turn(
             reason="complete_native_bridge_rejected",
             detail=str(error),
             error=type(error).__name__,
+            stage="bridge_preparation",
+            bridgeElapsedMs=(time.monotonic() - bridge_started) * 1000,
         )
         yield [], diagnostic
         fight = runtime.fight
@@ -104,9 +111,34 @@ def run_npc_turn(
 
 
 def _run_npc_turn(runtime, *, store, viewer_character, monsters, stats_serializer):
+    started = min(
+        time.monotonic(),
+        getattr(runtime, "native_ai_preparation_started_at", time.monotonic()),
+    )
+    # Preparation consumes the same allowance as planning and transport.
+    with bounded(started + 10):
+        yield from _prepare_npc_turn(
+            runtime,
+            store=store,
+            viewer_character=viewer_character,
+            monsters=monsters,
+            stats_serializer=stats_serializer,
+            started=started,
+        )
+
+
+def _prepare_npc_turn(
+    runtime, *, store, viewer_character, monsters, stats_serializer, started
+):
     viewer_id = viewer_character["id"]
+    stage_started = time.monotonic()
     authorities = load_authorities(runtime, store, monsters, viewer_id=viewer_id)
+    preparation_ms = {"authorities": (time.monotonic() - stage_started) * 1000}
+    check()
+    stage_started = time.monotonic()
     profiles = encounter_profiles(runtime, store, authorities["monsters"])
+    preparation_ms["profiles"] = (time.monotonic() - stage_started) * 1000
+    check()
     current = runtime.fight.current
     descriptor = (
         authorities["monsters"].get(current.id) if current is not None else None
@@ -132,24 +164,51 @@ def _run_npc_turn(runtime, *, store, viewer_character, monsters, stats_serialize
     )
     url = os.environ.get("WAKFU_AI_URL", "http://ai:8090")
     transport = ContextTransport(url)
-    serializer = NativeStats(
-        characters=authorities["characters"],
-        monsters=authorities["monsters"],
-        fight_id=runtime.fight.id,
-        registrations=authorities["registrations"],
-    )
-    yield from run_turn(
-        runtime,
-        characters=authorities["characters"],
-        monsters=authorities["monsters"],
-        decks=authorities["decks"],
-        excluded_decks=authorities["excluded_decks"],
-        viewer_id=viewer_id,
-        flags=flags,
-        transport=transport,
-        exporter=native_exporter(),
-        policy=profile["policy"],
-        policy_version=profile["identity"],
-        stats_serializer=serializer,
-        budget_seconds=turn_ms / 1000,
-    )
+    try:
+        with bounded(started + turn_ms / 1000):
+            stage_started = time.monotonic()
+            serializer = NativeStats(
+                characters=authorities["characters"],
+                monsters=authorities["monsters"],
+                fight_id=runtime.fight.id,
+                registrations=authorities["registrations"],
+            )
+            preparation_ms["stats"] = (time.monotonic() - stage_started) * 1000
+            stage_started = time.monotonic()
+            exporter = native_exporter()
+            preparation_ms["exporter"] = (time.monotonic() - stage_started) * 1000
+            check()
+            for delivery in run_turn(
+                runtime,
+                characters=authorities["characters"],
+                monsters=authorities["monsters"],
+                decks=authorities["decks"],
+                excluded_decks=authorities["excluded_decks"],
+                viewer_id=viewer_id,
+                flags=flags,
+                transport=transport,
+                exporter=exporter,
+                policy=profile["policy"],
+                policy_version=profile["identity"],
+                stats_serializer=serializer,
+                budget_seconds=turn_ms / 1000,
+            ):
+                if (
+                    isinstance(delivery, tuple)
+                    and len(delivery) == 2
+                    and isinstance(delivery[1], dict)
+                ):
+                    packets, diagnostic = delivery
+                    diagnostic = dict(
+                        diagnostic,
+                        preparationElapsedMs=dict(preparation_ms),
+                        bridgeElapsedMs=(time.monotonic() - started) * 1000,
+                        transportMetrics=deepcopy(getattr(transport, "metrics", {})),
+                    )
+                    yield packets, diagnostic
+                else:
+                    yield delivery
+    finally:
+        close = getattr(transport, "close", None)
+        if callable(close):
+            close()

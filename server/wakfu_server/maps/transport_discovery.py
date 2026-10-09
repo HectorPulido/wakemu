@@ -2,6 +2,7 @@
 
 Discovery is distinct from routing: a known ID does not authorize a destination.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import struct
 
@@ -81,8 +82,8 @@ def known_all(*, include_dragos=False):
     import json
     from pathlib import Path
 
-    catalog = json.loads((DATA_ROOT / "native-transports.json").read_text())
-    objects = json.loads((DATA_ROOT / "native-transport-objects.json").read_text())
+    catalog = protocol_catalog.load(DATA_ROOT / "native-transports.json")
+    objects = protocol_catalog.load(DATA_ROOT / "native-transport-objects.json")
     routable = {
         row["id"] for row in objects if len(row.get("arrival_heights", ())) == 1
     }

@@ -11,8 +11,10 @@ def prepare_ready(
     initialize,
     stats_serializer,
     effects_serializer,
+    runtime_stats_serializer=None,
     turn_end_provider=None,
     turn_start_provider=None,
+    expiration_runtime_factory=None,
     previous_native_action_id=0
 ):
     from .combat_native_action_ids import MAX_NATIVE_ACTION_ID
@@ -40,8 +42,10 @@ def prepare_ready(
     messages = RuntimeMessages(
         preview,
         stats_serializer=stats_serializer,
+        runtime_stats_serializer=runtime_stats_serializer,
         turn_end_provider=turn_end_provider,
         turn_start_provider=turn_start_provider,
+        expiration_runtime_factory=expiration_runtime_factory,
     )
     messages.action_id = 1  # reserve the transaction's native action identifier
     messages.native_action_id = previous_native_action_id

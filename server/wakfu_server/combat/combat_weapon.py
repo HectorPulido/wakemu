@@ -4,13 +4,13 @@ Costs and target validation are fcH/fcj; ordinary damage/areas/conditions are
 executed by the same native dispatcher as spells. Critical branch is explicit.
 Only direct damage roots are admitted; other item actions remain unsupported.
 """
-import gzip
+from wakfu_server import native_catalog as protocol_catalog
 import json
 import struct
 from copy import deepcopy
 from functools import lru_cache
-from .paths import DATA_ROOT
-from .equipment import validate_sheet
+from wakfu_server.paths import DATA_ROOT
+from wakfu_server.equipment import validate_sheet
 from .combat_effect_dispatch import EffectInvocation
 from .combat_spell_transaction import SpellTransaction
 from .combat_geometry_snapshot import source_snapshot
@@ -23,7 +23,7 @@ from .combat_damage_healing import DAMAGE_FAMILIES
 def catalog():
     return {
         row["reference"]: row
-        for row in json.loads((DATA_ROOT / "weapon-combat-rules.json").read_text())[
+        for row in protocol_catalog.load(DATA_ROOT / "weapon-combat-rules.json")[
             "items"
         ]
     }
@@ -33,12 +33,10 @@ def catalog():
 def weapon_runtime_catalog():
     from .combat_server_spell import compiled_runtime_catalog
     from .combat_static_catalogs import CompiledEffects
-    from .spell_audit import states_catalog
+    from wakfu_server.spell_audit import states_catalog
 
     base = compiled_runtime_catalog()
-    extra = json.loads(
-        gzip.decompress((DATA_ROOT / "weapon-combat-effects.json.gz").read_bytes())
-    )["effects"]
+    extra = protocol_catalog.load(DATA_ROOT / "weapon-combat-effects.json")["effects"]
     from .combat_effect_runtime import _merge_effects
 
     merged = _merge_effects(base.source_effects, {"effects": extra})
@@ -181,8 +179,9 @@ def prepare_server_weapon(
     if 41 in properties:  # ffe.sel / fcH.a
         raise ValueError("Native actor property forbids item casting")
     costs = {key: rule[key + "_cost"] for key in ("ap", "mp", "wp")}
-    if costs["ap"] > 0 and 50 in properties:  # ffe.seu/AP_AS_MP, fcH.a
-        raise ValueError("Native AP_AS_MP property forbids positive-AP item casting")
+    from .combat_ap_property_cost import require_native_ap_cost
+
+    require_native_ap_cost(costs["ap"], properties, weapon=True)
     if any(type(value) is not int or value < 0 for value in costs.values()):
         raise ValueError("Invalid native weapon costs")
     stats = actor.effect_stats
@@ -229,8 +228,19 @@ def prepare_server_weapon(
             present=True, type=12, id=item["reference"], is_spell=False, protected=None
         ),
     )
-    caster.ap -= costs["ap"]
-    caster.mp -= costs["mp"]
+    if getattr(caster, "effect_resource_raw_currents", None) is not None:
+        from .combat_resource_pa_notifications import shift_resource_current
+
+        shift_resource_current(preview, caster, 2, costs["ap"], subtract=True)
+        shift_resource_current(preview, caster, 3, costs["mp"], subtract=True)
+    else:
+        before_ap = caster.ap
+        caster.ap -= costs["ap"]
+        caster.effect_stats[2] = caster.ap
+        from .combat_resource_pa_notifications import notify_resource_pa
+
+        notify_resource_pa(preview, caster, 2, before_current=before_ap)
+        caster.mp -= costs["mp"]
     caster.effect_stats.update({2: caster.ap, 3: caster.mp, 4: stats[4] - costs["wp"]})
     dispatcher, packets = factory(preview, plan)
     with preview.effect_resolution():

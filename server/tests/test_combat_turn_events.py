@@ -16,6 +16,8 @@ class OwnedTurnEndTests(unittest.TestCase):
             77, [a, b], {a.position, b.position}, {0: {a.position}, 1: {b.position}}
         )
         f.ready(3)
+        a.native_turn_suppression_bits = 0  # Actual fresh eGj BitSet snapshot.
+        b.native_turn_suppression_bits = 0
         f.native_start_event_delivered = True
         seen = []
         d = SimpleNamespace(
@@ -188,7 +190,7 @@ class RealNativeTurnEndReactionTests(unittest.TestCase):
         from random import Random
 
         character, monster, fight = SpellTransactionTests().native_server_fixture(
-            breed, 20
+            breed, 20, native_qi=True
         )
         deck = encode_deck((), passives)
         fight, _ = prepare_server_initialization(

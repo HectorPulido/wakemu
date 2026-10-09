@@ -40,7 +40,7 @@ from test_combat_weapon import equipped
 def source_hashes():
     paths = list((ROOT / "server/wakfu_server").rglob("*.py"))
     paths += list((ROOT / "server/protocol").glob("*.json"))
-    paths += list((ROOT / "server/protocol").glob("*.json.gz"))
+    paths += list((ROOT / "server/protocol").glob("*.json"))
     return {
         str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted(paths)

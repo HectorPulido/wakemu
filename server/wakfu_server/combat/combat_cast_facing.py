@@ -3,6 +3,7 @@
 Unsupported script contracts remain metadata pending; they do not invent a
 rotation or reject otherwise valid spells. Cardinal/diagonal sectors follow aBz.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
 import math
 import struct
@@ -16,10 +17,10 @@ DIRECTIONS = {(1, 0): 1, (0, 1): 3, (-1, 0): 5, (0, -1): 7}
 @lru_cache(maxsize=1)
 def native_cast_facing():
     path = Path(__file__).parents[2] / "protocol/native-cast-facing.json"
-    return json.loads(path.read_text())["spells"]
+    return protocol_catalog.load(path)["spells"]
 
 
-def mirror_cast_facing(caster, plan, *, contracts=None):
+def mirror_cast_facing(caster, plan, *, fight=None, contracts=None):
     record = (native_cast_facing() if contracts is None else contracts).get(
         str(plan["spell_id"])
     )
@@ -36,7 +37,11 @@ def mirror_cast_facing(caster, plan, *, contracts=None):
     direction = cast_direction(*delta, diagonals=record["useDiags"])
     if direction is None:
         return False  # aiL ignores the native NONE result.
-    caster.direction = direction
+    if fight is None or fight.actors.get(caster.id) is not caster:
+        raise ValueError("Casting facing requires the actual registered preview actor")
+    from .combat_carrying import set_registered_direction
+
+    set_registered_direction(fight, caster, direction)
     return True
 
 

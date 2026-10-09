@@ -115,7 +115,30 @@ class NativeCopyCharacteristicHandler:
             uid=uid,
             running_effect_payload=payload,
         )
-        _write(target, stat, after, updated_raw, updated)
+        from .combat_hp_raw import (
+            hp_raw_present,
+            set_hp_raw_maximum,
+            set_hp_raw_current,
+        )
+
+        if stat == 1 and hp_raw_present(target):
+            set_hp_raw_maximum(target, copied.maximum)
+            set_hp_raw_current(target, copied.current)
+            after = target.hp
+        elif (
+            stat in (2, 3)
+            and getattr(target, "effect_resource_raw_currents", None) is not None
+        ):
+            from .combat_resource_pa_notifications import (
+                set_resource_maximum,
+                set_resource_current,
+            )
+
+            set_resource_maximum(self.fight, target, stat, copied.maximum)
+            set_resource_current(self.fight, target, stat, copied.current)
+            after = target.effect_stats[stat]
+        else:
+            _write(target, stat, after, updated_raw, updated)
         self.fight._event(
             "characteristic_changed",
             source_id=caster.id,

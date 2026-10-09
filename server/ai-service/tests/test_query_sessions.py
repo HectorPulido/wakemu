@@ -1010,22 +1010,11 @@ class NativeQueryRoundTripTests(unittest.TestCase):
 
         # Search the actual Wonejo's native attack from its own turn, using the
         # complete installed arena rather than a reduced target-cell fixture.
-        from tests.test_combat_npc_attack import NativeNpcAttackTests
+        from test_native_oracle import NativeOracleTests
         from wakfu_server.spells import default_deck
 
-        fixture = NativeNpcAttackTests()
-        fixture.setUp()
+        fixture = NativeOracleTests.wonejo_fixture()
         character, monster, fight = fixture.character, fixture.monster, fixture.fight
-        monster.update(id=fixture.npc.id, map_id=1134)
-        from wakfu_server.combat_geometry_snapshot import freeze_terrain
-        from wakfu_server.combat_terrain import local_arena
-
-        fight.actors[7].position = (-8, -7, -1)
-        fight.actors[fixture.npc.id].position = (-7, -7, -1)
-        terrain = local_arena(1134, fight.id, (-8, -7, -1), (-7, -7, -1))
-        fight.walkable = terrain["validated_cells"]
-        fight.edges = terrain["valid_edges"]
-        freeze_terrain(fight)
         fight.order = [fixture.npc.id, fixture.pc.id]
         fight.turn_index = 0
         fixture.npc.turn_count = 1

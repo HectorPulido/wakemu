@@ -7,6 +7,7 @@ import time
 from .combat_wire import actor_state
 from .combat_area_boundary import atomic_area_turn, adopt_fight
 from .combat_native_action_ids import native_delivery_boundary
+from .combat_additional_turn import timeline_round
 
 
 class RuntimeMessages:
@@ -16,22 +17,34 @@ class RuntimeMessages:
         turn_duration_ms=30000,
         *,
         stats_serializer=None,
+        runtime_stats_serializer=None,
         turn_end_provider=None,
         turn_start_provider=None,
+        expiration_runtime_factory=None,
         clock=time.monotonic
     ):
         if type(turn_duration_ms) is not int or not 0 < turn_duration_ms < 2**63:
             raise ValueError("Invalid turn duration")
         if stats_serializer is not None and not callable(stats_serializer):
             raise ValueError("Stats serializer must be callable")
+        if runtime_stats_serializer is not None and not callable(
+            runtime_stats_serializer
+        ):
+            raise ValueError("Runtime stats serializer must be callable")
         if turn_end_provider is not None and not callable(turn_end_provider):
             raise ValueError("Turn-end provider must be callable")
         if turn_start_provider is not None and not callable(turn_start_provider):
             raise ValueError("Turn-start provider must be callable")
+        if expiration_runtime_factory is not None and not callable(
+            expiration_runtime_factory
+        ):
+            raise ValueError("Expiration runtime factory must be callable")
+        self.expiration_runtime_factory = expiration_runtime_factory
         self.turn_start_provider = turn_start_provider
         self.area_started_turn = None
         self.turn_end_provider = turn_end_provider
         self.stats_serializer = stats_serializer
+        self.runtime_stats_serializer = runtime_stats_serializer
         self.fight = fight
         self.duration = turn_duration_ms
         self.action_id = 0
@@ -60,8 +73,12 @@ class RuntimeMessages:
         return delivery
 
     def _arm_turn(self):
+        from .combat_turn_duration import current_turn_duration
+
         self.deadline_turn = self.fight.turn_id
-        self.turn_deadline = self.clock() + self.duration / 1000
+        self.turn_deadline = (
+            self.clock() + current_turn_duration(self.fight, self.duration) / 1000
+        )
 
     def expire_current_once(self):
         """Call on the session's own thread; never synthesize a missing ACK.
@@ -107,15 +124,27 @@ class RuntimeMessages:
         return (13420, struct.pack(">i", self.fight.id))
 
     def _expire_owned(self, *, actor_id, round_number, phase, round_cleanup=False):
+        from .combat_state_managers import state_managers
+
         if not (
             any(
                 entry.timer is not None
-                for actor in self.fight.actors.values()
+                for actor in state_managers(self.fight)
                 for entry in actor.state_ledger.entries
             )
             or any(
                 entry.get("timer") is not None
                 for entry in self.fight.owned_stat_effects.values()
+            )
+            or any(
+                entry.get("timer") is not None
+                for entry in self.fight.native_owned_group_effects.values()
+            )
+            or any(
+                entry.get("timer") is not None
+                for entry in getattr(
+                    self.fight, "native_owned_area_effects", {}
+                ).values()
             )
         ):
             return []
@@ -131,6 +160,7 @@ class RuntimeMessages:
             phase=phase,
             round_cleanup=round_cleanup,
             action_id=next_action,
+            runtime_factory=self.expiration_runtime_factory,
         )
         if packets:
             self.action_id = next_action
@@ -139,7 +169,7 @@ class RuntimeMessages:
     def _end_owned(self, actor):
         if self.turn_end_provider is None:
             return self._expire_owned(
-                actor_id=actor.id, round_number=actor.turn_count, phase="end"
+                actor_id=actor.id, round_number=timeline_round(self.fight), phase="end"
             )
         from .combat_timed_expiration import prepare_timed_expiration
 
@@ -153,18 +183,16 @@ class RuntimeMessages:
             candidate, expiry = prepare_timed_expiration(
                 candidate,
                 actor_id=actor.id,
-                round_number=actor.turn_count,
+                round_number=timeline_round(candidate),
                 phase="end",
                 action_id=next_action,
+                runtime_factory=self.expiration_runtime_factory,
             )
         if set(candidate.actors) != set(self.fight.actors):
             raise ValueError("Turn-end policy changed actor roster")
-        for identity, updated in candidate.actors.items():
-            self.fight.actors[identity].__dict__.clear()
-            self.fight.actors[identity].__dict__.update(updated.__dict__)
-        for key, value in candidate.__dict__.items():
-            if key != "actors":
-                setattr(self.fight, key, value)
+        from .combat_area_boundary import adopt_fight
+
+        adopt_fight(self.fight, candidate)
         self.action_id = next_action
         packets = list(events) + list(expiry)
         return packets + ([self._flush()] if packets else [])
@@ -183,7 +211,7 @@ class RuntimeMessages:
         packets = []
         # SU.bhO advances the round and enters BETWEEN_FIGHTER_TURNS.
         # Round boundaries follow complete timeline cycles, not individual actors.
-        current_round = actor.turn_count
+        current_round = timeline_round(self.fight)
         new_round = current_round > self.round
         if new_round:
             if current_round >= 2**15:
@@ -223,8 +251,15 @@ class RuntimeMessages:
             if actor is None:
                 self.turn_deadline = self.deadline_turn = None
                 return packets
-        if self.stats_serializer is not None:
-            stats = self.stats_serializer(actor)
+        if (
+            self.stats_serializer is not None
+            or self.runtime_stats_serializer is not None
+        ):
+            stats = (
+                self.runtime_stats_serializer(actor, self.fight)
+                if self.runtime_stats_serializer is not None
+                else self.stats_serializer(actor)
+            )
             packets.append((12873, actor_state(12873, self.fight.id, actor.id, stats)))
         if new_round:
             packets.extend(
@@ -233,9 +268,52 @@ class RuntimeMessages:
                     self._flush(),
                 ]
             )
+        removed = getattr(self.fight, "native_timeline_removed", ())
+        delivered_count = getattr(self, "native_timeline_removal_delivery_count", 0)
+        restore_initial = getattr(
+            self, "native_initial_timeline_restore_pending", False
+        )
+        if len(removed) > delivered_count or restore_initial:
+            # Native aTS overlaps death animation: its queue resumes after
+            # 250ms, while SU removal waits for the full animation callback.
+            # Restore the authoritative current SU instead of incrementing a
+            # client timeline that may still contain those defeated actors.
+            from .combat_recovery import recovery_packet
+            from .combat_phase import action_transition
+            from .combat_turn_duration import current_turn_duration
+
+            packets.extend(
+                [
+                    recovery_packet(
+                        self.fight,
+                        struct.pack(">i", self.fight.id),
+                        deadline_ms=int(time.time() * 1000)
+                        + current_turn_duration(self.fight, self.duration),
+                    ),
+                    action_transition(self.fight.id),
+                    self._flush(),
+                ]
+            )
+            self.native_timeline_removal_delivery_count = len(removed)
+            self.native_initial_timeline_restore_pending = False
+            if not arm_deadline:
+                self.native_timeline_restore_pending_turn = self.fight.turn_id
+            if arm_deadline:
+                self._arm_turn()
+            return packets
         for opcode in (13337, 13482):
+            from .combat_turn_duration import current_turn_duration
+
             packets.append(
-                (opcode, self._prefix() + struct.pack(">qq", actor.id, self.duration))
+                (
+                    opcode,
+                    self._prefix()
+                    + struct.pack(
+                        ">qq",
+                        actor.id,
+                        current_turn_duration(self.fight, self.duration),
+                    ),
+                )
             )
             packets.append(self._flush())
         if arm_deadline:
@@ -248,15 +326,39 @@ class RuntimeMessages:
         if (
             self.fight.phase != "active"
             or self.fight.turn_id != 1
-            or set(actor_payloads) != set(self.fight.actors)
+            or not set(actor_payloads).issubset(self.fight.actors)
         ):
             raise ValueError("Invalid initial combat state")
+        # Innates execute after baseline capture and may create actual summons.
+        # Only their exact registered 307 delivery can account for added PVs;
+        # arbitrary missing actor snapshots remain an invalid initial state.
+        added = set(self.fight.actors) - set(actor_payloads)
+        deliveries = getattr(self.fight, "native_summon_creation_deliveries", {})
+        registrations = getattr(self.fight, "native_summon_registrations", {})
+        for identity in added:
+            evidence = deliveries.get(identity)
+            if (
+                not isinstance(evidence, dict)
+                or type(evidence.get("opcode")) is not int
+                or not isinstance(evidence.get("payload_hex"), str)
+            ):
+                raise ValueError("Missing native initial actor creation delivery")
+            try:
+                packet = (evidence["opcode"], bytes.fromhex(evidence["payload_hex"]))
+            except ValueError as error:
+                raise ValueError(
+                    "Malformed native initial actor creation delivery"
+                ) from error
+            if identity not in registrations or packet not in initialization_packets:
+                raise ValueError("Missing native initial actor creation delivery")
         packets = []
         for identity, (stats, effects) in actor_payloads.items():
             packets.extend(
                 [
-                    (12873, actor_state(12873, self.fight.id, identity, stats)),
                     (13912, actor_state(13912, self.fight.id, identity, effects)),
+                    # big.a(buH,stats,effects) applies effects before stats:
+                    # dU/13912 resets frm before replay, including gear RANGE.
+                    (12873, actor_state(12873, self.fight.id, identity, stats)),
                 ]
             )
         packets.append((12233, struct.pack(">i", self.fight.id)))
@@ -266,6 +368,16 @@ class RuntimeMessages:
         if initialization_packets:
             packets.extend(initialization_packets)
             packets.append(self._flush())
+        # Joining PCs may have equal INIT but different effective levels. The
+        # client recomputes placement order as actor snapshots arrive; publish
+        # the complete owned Ready timeline before its first actor advance.
+        # Recovery/ACTION restores the existing turn, never begins another one.
+        owners = {
+            actor.owner_id
+            for actor in self.fight.actors.values()
+            if actor.controlled and actor.id in actor_payloads
+        }
+        self.native_initial_timeline_restore_pending = len(owners) > 1
         packets.extend(self.turn_started())
         return packets
 
@@ -331,6 +443,24 @@ class RuntimeMessages:
         self.awaiting_ack = None
         packets = self.pending
         self.pending = []
+        if (
+            getattr(self, "native_timeline_restore_pending_turn", None)
+            == self.fight.turn_id
+        ):
+            from .combat_recovery import recovery_packet
+            from .combat_turn_duration import current_turn_duration
+
+            restored = recovery_packet(
+                self.fight,
+                struct.pack(">i", self.fight.id),
+                deadline_ms=int(time.time() * 1000)
+                + current_turn_duration(self.fight, self.duration),
+            )
+            packets = [
+                restored if opcode == 12053 else (opcode, payload)
+                for opcode, payload in packets
+            ]
+            self.native_timeline_restore_pending_turn = None
         self._arm_turn()
         return packets
 
@@ -347,15 +477,22 @@ class RuntimeMessages:
             raise ValueError("Account does not participate in this fight")
         from .combat_recovery import recovery_packet
 
-        packet = recovery_packet(self.fight, body, deadline_ms=now_ms + self.duration)
+        from .combat_turn_duration import current_turn_duration
+
+        duration = current_turn_duration(self.fight, self.duration)
+        packet = recovery_packet(self.fight, body, deadline_ms=now_ms + duration)
         stats = (
             None
-            if self.stats_serializer is None
-            else self.stats_serializer(self.fight.current)
+            if self.stats_serializer is None and self.runtime_stats_serializer is None
+            else (
+                self.runtime_stats_serializer(self.fight.current, self.fight)
+                if self.runtime_stats_serializer is not None
+                else self.stats_serializer(self.fight.current)
+            )
         )
         self.awaiting_ack = None
         self.pending = []
-        self.round = self.fight.current.turn_count
+        self.round = timeline_round(self.fight)
         self.fight.native_table_turn = self.round
         self._arm_turn()
         packets = [packet]
@@ -363,18 +500,15 @@ class RuntimeMessages:
             actor = self.fight.current
             packets.append((12873, actor_state(12873, self.fight.id, actor.id, stats)))
             packets.append(self._flush())
-        # SU is already ON_FIGHTER_TURN: reannounce TURN_START only. A PRE_TURN
-        # would incorrectly require BETWEEN_FIGHTER_TURNS and trigger recovery.
-        packets.extend(
-            [
-                (
-                    13482,
-                    self._prefix()
-                    + struct.pack(">qq", self.fight.current.id, self.duration),
-                ),
-                self._flush(),
-            ]
+        # A restored SU already identifies the current actor. ACTION installs
+        # its controller without replaying buH.bp's turn-begin lifecycle.
+        from .combat_phase import action_transition
+
+        packets.extend([action_transition(self.fight.id), self._flush()])
+        self.native_timeline_removal_delivery_count = len(
+            getattr(self.fight, "native_timeline_removed", ())
         )
+        self.native_timeline_restore_pending_turn = None
         return packets
 
     @native_delivery_boundary

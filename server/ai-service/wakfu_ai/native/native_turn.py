@@ -54,20 +54,78 @@ def run_turn(
         runtime.tactical_encounter_id = (
             getattr(fight, "native_ai_fight_uuid", None) or uuid.uuid4().hex
         )
-    oracle = NativeOracle(
-        runtime,
-        characters=characters,
-        monsters=monsters,
-        decks=decks,
-        excluded_decks=excluded_decks,
-        viewer_id=viewer_id,
-        flags=flags,
-        outcome_features=outcome_features,
+    entered_at = clock()
+    preparation_started = getattr(
+        runtime, "native_ai_preparation_started_at", entered_at
     )
-    deadline = clock() + budget_seconds
+    if type(preparation_started) not in (int, float) or not math.isfinite(
+        preparation_started
+    ):
+        raise ValueError("Invalid native owner preparation start")
+    # A fresh action driver must retain the original encounter-owned turn
+    # allowance. Future timestamps cannot extend it beyond the current entry.
+    started_at = min(entered_at, preparation_started)
+    deadline = started_at + budget_seconds
+    stage_elapsed_ms = {}
+
+    def record_stage(name, stage_started):
+        stage_elapsed_ms[name] = stage_elapsed_ms.get(name, 0.0) + max(
+            0.0, (clock() - stage_started) * 1000
+        )
+
+    def end_turn_packets(oracle):
+        if oracle is not None:
+            try:
+                return oracle.commit(
+                    {"type": "end_turn"}, stats_serializer=stats_serializer
+                )
+            except TimeoutError:
+                # The action deadline may already be exhausted. End-turn is
+                # the safety barrier, not another AI action; let the live
+                # encounter owner advance it even when oracle checks time out.
+                pass
+        # Oracle construction itself can fail. The live runtime still owns
+        # the turn barrier, so complete it directly without adopting a plan.
+        return runtime.end_server_turn(actor_id, turn_id)
+
+    oracle = None
+    initialization_failed = False
     catalog_manifest = None
     ending = dict(action={"type": "end_turn"}, reason="native_action_budget_exhausted")
+    stage = "oracle_create"
+    stage_started = clock()
+    try:
+        with bounded(deadline, clock=clock):
+            oracle = NativeOracle(
+                runtime,
+                characters=characters,
+                monsters=monsters,
+                decks=decks,
+                excluded_decks=excluded_decks,
+                viewer_id=viewer_id,
+                flags=flags,
+                outcome_features=outcome_features,
+            )
+            check()
+    except (ValueError, OSError, TypeError) as error:
+        initialization_failed = True
+        record_stage("oracle_create", stage_started)
+        ending = dict(
+            action={"type": "end_turn"},
+            reason="native_ai_query_or_commit_rejected",
+            detail=str(error),
+            error=type(error).__name__,
+            stage="oracle_create",
+            elapsedMs=max(0.0, (clock() - started_at) * 1000),
+            turnBudgetMs=budget_seconds * 1000,
+            stageElapsedMs=dict(stage_elapsed_ms),
+        )
+        yield [], ending
+    else:
+        record_stage("oracle_create", stage_started)
     for _ in range(max_actions):
+        if initialization_failed or oracle is None:
+            break
         fight = runtime.fight
         if runtime.awaiting_ack is not None or runtime.pending:
             return
@@ -82,9 +140,10 @@ def run_turn(
             ending["reason"] = "native_turn_deadline_reached"
             break
         session = None
-        stage = "session_preparation"
+        stage = "catalog_session"
         try:
             with bounded(deadline, clock=clock):
+                stage_started = clock()
                 session = NativeSession(
                     oracle,
                     transport,
@@ -95,9 +154,14 @@ def run_turn(
                     catalog_manifest=catalog_manifest,
                 )
                 catalog_manifest = session.catalog
-                stage = "decision_search"
+                record_stage("catalog_session", stage_started)
+                stage = "search"
+                stage_started = clock()
                 decision = session.decide(certify=False)
                 check()
+                record_stage("search", stage_started)
+                stage = "coordination"
+                stage_started = clock()
                 if hasattr(oracle, "coordination_for_action"):
                     try:
                         decision["coordinationDraft"] = oracle.coordination_for_action(
@@ -109,13 +173,23 @@ def run_turn(
                         decision["coordinationUnknown"] = str(error)
                         decision["coordinationDraft"] = None
                 check()
+                record_stage("coordination", stage_started)
                 stage = "source_guard"
+                stage_started = clock()
                 session.guard()
-                stage = "native_commit"
+                record_stage("source_guard", stage_started)
+                stage = "commit"
+                stage_started = clock()
                 packets = oracle.commit(
                     decision["action"], stats_serializer=stats_serializer
                 )
+                record_stage("commit", stage_started)
+                decision["stageElapsedMs"] = dict(stage_elapsed_ms)
+                decision["elapsedMs"] = max(0.0, (clock() - started_at) * 1000)
+                decision["turnBudgetMs"] = budget_seconds * 1000
         except (ValueError, OSError, TypeError) as error:
+            if stage in {"catalog_session", "search", "source_guard", "commit"}:
+                record_stage(stage, stage_started)
             if session is not None and hasattr(session, "cancel"):
                 try:
                     # Release a suspended coroutine even after the turn's
@@ -132,8 +206,9 @@ def run_turn(
                 detail=str(error),
                 error=type(error).__name__,
                 stage=stage,
-                elapsedMs=(clock() - (deadline - budget_seconds)) * 1000,
+                elapsedMs=max(0.0, (clock() - started_at) * 1000),
                 turnBudgetMs=budget_seconds * 1000,
+                stageElapsedMs=dict(stage_elapsed_ms),
             )
             yield [], ending
             break
@@ -149,6 +224,10 @@ def run_turn(
         and runtime.awaiting_ack is None
         and not runtime.pending
     ):
-        yield oracle.commit(
-            {"type": "end_turn"}, stats_serializer=stats_serializer
-        ), ending
+        stage_started = clock()
+        packets = end_turn_packets(oracle)
+        record_stage("commit", stage_started)
+        ending["stageElapsedMs"] = dict(stage_elapsed_ms)
+        ending["elapsedMs"] = max(0.0, (clock() - started_at) * 1000)
+        ending["turnBudgetMs"] = budget_seconds * 1000
+        yield packets, ending

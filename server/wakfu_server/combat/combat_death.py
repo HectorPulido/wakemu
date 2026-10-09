@@ -3,8 +3,12 @@ import struct
 
 
 def death_messages(runtime, actor_id):
-    """State2 dispatches aTS.r (death/AnimMort) and B (fight.die).
+    """NPC state0 removes the timeline member before state2/AnimMort.
 
+    Official dungeon captures send state0 then state2 for each dead NPC.
+    aTS.cbj immediately calls D for state0; state2 defers that call until its
+    animation callback. Sending only state2 lets the next-turn action overtake
+    timeline removal. Player death retains its existing distinct delivery.
     State0 is KO, state1 resurrection, state3 another removal mode. Only
     actual HP-zero actors belonging to this fight can receive a death event.
     Send after the lethal damage action and before normal fight results.
@@ -15,9 +19,42 @@ def death_messages(runtime, actor_id):
     sent = getattr(runtime, "_reported_deaths", set())
     if actor_id in sent:
         raise ValueError("Death was already reported")
-    body = runtime._prefix() + struct.pack(">qB", actor_id, 2)
+    queued = getattr(runtime.fight, "native_finisher_after_death_packets", {})
+    if not isinstance(queued, dict):
+        raise ValueError("Malformed owned finisher post-death deliveries")
+    cleanup = queued.get(str(actor_id), ())
+    decoded = []
+    for row in cleanup:
+        if not isinstance(row, (tuple, list)) or len(row) != 2:
+            raise ValueError("Malformed owned finisher cleanup delivery")
+        opcode, payload_hex = row
+        if opcode not in (12613, 13497, 13560) or not isinstance(payload_hex, str):
+            raise ValueError("Unknown owned finisher cleanup delivery")
+        payload = bytes.fromhex(payload_hex)
+        if (
+            len(payload) < 18
+            or struct.unpack_from(">i", payload)[0] != runtime.fight.id
+        ):
+            raise ValueError("Finisher cleanup belongs to another fight")
+        decoded.append((opcode, payload))
+    from .combat_ordinary_qi_retirement import complete_ordinary_qi_death
+
+    complete_ordinary_qi_death(runtime.fight, actor)
+    prefix = runtime._prefix()
+    body = prefix + struct.pack(">qB", actor_id, 2)
+    from .combat_native_death_status import apply_native_fighter_state_transition
+
+    apply_native_fighter_state_transition(actor, 2)
     runtime._reported_deaths = sent | {actor_id}
-    return [(12727, body), runtime._flush()]
+    packets = []
+    if not actor.controlled:
+        packets.append((12727, prefix + struct.pack(">qB", actor_id, 0)))
+    packets.extend(((12727, body), runtime._flush()))
+    if decoded:
+        queued.pop(str(actor_id))
+        packets.extend(decoded)
+        packets.append(runtime._flush())
+    return packets
 
 
 def despawn_monster(fight, actor_id):

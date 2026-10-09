@@ -1,5 +1,6 @@
 """Freeze full database profile rows once per encounter, inside the AI SDK."""
 from copy import deepcopy
+from .native_database import connection
 import hashlib
 import json
 
@@ -7,10 +8,18 @@ from ..context.native_context import encode
 
 
 def encounter_profiles(runtime, store, monsters):
+    fight = getattr(runtime, "fight", None)
+    encounter = (
+        getattr(fight, "id", None),
+        getattr(fight, "native_ai_fight_uuid", None),
+    )
     cached = getattr(runtime, "native_ai_profiles", None)
-    if cached is not None:
+    if (
+        cached is not None
+        and getattr(runtime, "native_ai_profile_encounter", None) == encounter
+    ):
         return deepcopy(cached)
-    with store.connection() as db:
+    with connection(store) as db:
         db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         rows = list(
             db.execute(
@@ -65,4 +74,5 @@ def encounter_profiles(runtime, store, monsters):
     if None not in profiles:
         raise ValueError("Missing default native AI profile")
     runtime.native_ai_profiles = deepcopy(profiles)
+    runtime.native_ai_profile_encounter = encounter
     return profiles

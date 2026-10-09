@@ -15,7 +15,7 @@ La evidencia sí demuestra un cargador y consumidor del cliente para el catálog
 
 Artefactos inspeccionados:
 
-- `server/protocol/monster-encyclopedia.json.gz`, SHA-256 `38ad16ed614537e4f54540b6988cbddee55e668d458b76110abcabddcce1dc21`.
+- `server/protocol/monster-encyclopedia.json`, SHA-256 `38ad16ed614537e4f54540b6988cbddee55e668d458b76110abcabddcce1dc21`.
 - `.runtime/local/review-continuacion-20261004/loot/loot-loader-bat.txt`, SHA-256 `8fb4db5bbbad4830f80dae95d92aae61e5d3913e73fb87dd7fb75b98e79bc132`.
 - `.runtime/local/review-continuacion-20261004/loot/loot-formula-brq.txt`, SHA-256 `367f2f3eee2f58cbf3388b583681bb6c16c04dd780e0790999d636ef7d23c71f`.
 - `.runtime/local/monster-content-loader.txt`, SHA-256 `96f4d8db870b0f1a5ee72a999297cfdd8fb5d5d503b16724d74aacb87579e38f`.

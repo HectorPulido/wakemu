@@ -1,0 +1,2289 @@
+{
+  "scope": "Explicit offline owned class-summon captured fixture5347; native320 target ordinaryNPCkind1/dTEfalse, CAN40 andnotCANNOT28",
+  "source_hashes": {
+    "server/protocol/native-actor-characteristics.json": "1195988dd485a5cf0d37503b231a55b7404f379b1cbf1570546cbc40241d23eb",
+    "server/protocol/native-actor-properties.json": "cc1d00ba8243b31792ac8c1c9e639c0adac4590d7fbbef578f2fad8fac26e5f7",
+    "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+    "sniffer/java/ExportOwnedCapturedProfiles.java": "fd89489aa6364730735103d4e1719df0a9313efda27f59639e92d80568b687a4"
+  },
+  "actor_catalog": {
+    "npc_profiles": {
+      "5347": {
+        "physical_radius": 0,
+        "at_base_level": {
+          "1": {
+            "current": 1,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 1
+          },
+          "10": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "100": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "101": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "102": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "103": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "104": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "105": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "106": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "107": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "108": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "109": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "11": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "110": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "111": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "112": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -100,
+            "maximum": 100
+          },
+          "113": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -100,
+            "maximum": 100
+          },
+          "114": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "115": {
+            "current": 100,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "116": {
+            "current": 100,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "117": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 30
+          },
+          "118": {
+            "current": 100,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "119": {
+            "current": 100,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "12": {
+            "current": 1,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "120": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "121": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "122": {
+            "current": 4,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 10
+          },
+          "123": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "14": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "16": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "17": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "18": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "2": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "20": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 50000
+          },
+          "21": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 50000
+          },
+          "22": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 50000
+          },
+          "23": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 50000
+          },
+          "24": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 50000
+          },
+          "27": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "28": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "29": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "3": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "30": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "31": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "32": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "33": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "35": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "36": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -500,
+            "maximum": 200
+          },
+          "37": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "38": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "39": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "4": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "40": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "48": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "49": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "50": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "52": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "53": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -100,
+            "maximum": 100
+          },
+          "54": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "55": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "56": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "57": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "58": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "59": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "60": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "61": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "62": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "63": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "64": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "65": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "66": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "67": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "68": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "7": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "74": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 10
+          },
+          "77": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 100
+          },
+          "78": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "8": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "86": {
+            "current": 50,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "87": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "88": {
+            "current": 50,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "89": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "9": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "90": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "91": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "92": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "93": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "94": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "95": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "96": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "97": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "98": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "maximum_level": 245,
+        "base_level": 1,
+        "at_maximum_level": {
+          "1": {
+            "current": 1,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 1
+          },
+          "10": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "100": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "101": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "102": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "103": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "104": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "105": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "106": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "107": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "108": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "109": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "11": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "110": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "111": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "112": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -100,
+            "maximum": 100
+          },
+          "113": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -100,
+            "maximum": 100
+          },
+          "114": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "115": {
+            "current": 100,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "116": {
+            "current": 100,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "117": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 30
+          },
+          "118": {
+            "current": 100,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "119": {
+            "current": 100,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "12": {
+            "current": 1,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "120": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "121": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "122": {
+            "current": 4,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 10
+          },
+          "123": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "14": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "16": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "17": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "18": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "2": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "20": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 50000
+          },
+          "21": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 50000
+          },
+          "22": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 50000
+          },
+          "23": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 50000
+          },
+          "24": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 50000
+          },
+          "27": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "28": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "29": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "3": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "30": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "31": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "32": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "33": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "35": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "36": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -500,
+            "maximum": 200
+          },
+          "37": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "38": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "39": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "4": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "40": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "48": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "49": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "50": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "52": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "53": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -100,
+            "maximum": 100
+          },
+          "54": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "55": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "56": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "57": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "58": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "59": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "60": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "61": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "62": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "63": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "64": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "65": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "66": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "67": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "68": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "7": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "74": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 10
+          },
+          "77": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 100
+          },
+          "78": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "8": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          },
+          "86": {
+            "current": 50,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "87": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "88": {
+            "current": 50,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "89": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "9": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -1000,
+            "maximum": 1000
+          },
+          "90": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "91": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "92": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "93": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "94": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "95": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -5000,
+            "maximum": 5000
+          },
+          "96": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "97": {
+            "current": 0,
+            "frozen": false,
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "98": {
+            "current": 0,
+            "frozen": false,
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "curves": {
+          "1": [
+            1,
+            0.0
+          ],
+          "10": [
+            0,
+            0.0
+          ],
+          "11": [
+            0,
+            0.0
+          ],
+          "14": [
+            0,
+            0.0
+          ],
+          "2": [
+            0,
+            0.0
+          ],
+          "21": [
+            0,
+            0.0
+          ],
+          "22": [
+            0,
+            0.0
+          ],
+          "23": [
+            0,
+            0.0
+          ],
+          "24": [
+            0,
+            0.0
+          ],
+          "28": [
+            0,
+            0.0
+          ],
+          "29": [
+            0,
+            0.0
+          ],
+          "3": [
+            0,
+            0.0
+          ],
+          "30": [
+            0,
+            0.0
+          ],
+          "31": [
+            0,
+            0.0
+          ],
+          "35": [
+            0,
+            0.0
+          ],
+          "4": [
+            0,
+            0.0
+          ],
+          "7": [
+            0,
+            0.0
+          ],
+          "8": [
+            0,
+            0.0
+          ],
+          "86": [
+            50,
+            0.0
+          ],
+          "87": [
+            0,
+            0.0
+          ],
+          "9": [
+            0,
+            0.0
+          ]
+        },
+        "native_los_height": 4
+      }
+    },
+    "characteristics": {
+      "1": {
+        "current": 50,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 50,
+        "name": "HP",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 50,
+        "expandable": true
+      },
+      "10": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100,
+        "name": "FUMBLE_RATE",
+        "hard_minimum": 0,
+        "hard_maximum": 100,
+        "native_default": 0,
+        "expandable": false
+      },
+      "100": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "name": "BARRIER",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "101": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 5000,
+        "name": "INDIRECT_DMG",
+        "hard_minimum": -5000,
+        "hard_maximum": 5000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "102": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 5000,
+        "name": "NON_CRIT_DMG",
+        "hard_minimum": -5000,
+        "hard_maximum": 5000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "103": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "MELEE_DMG",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "104": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "RANGED_DMG",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "105": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "SINGLE_TARGET_DMG",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "106": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "AOE_DMG",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "107": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "BERSERK_DMG",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "108": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "name": "LIGHT_MASTERY",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "109": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 5000,
+        "name": "DMG_LIGHT_PERCENT",
+        "hard_minimum": -5000,
+        "hard_maximum": 5000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "11": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "RANGE",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "110": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 5000,
+        "name": "RES_LIGHT_PERCENT",
+        "hard_minimum": -5000,
+        "hard_maximum": 5000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "111": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 50,
+        "name": "HUPPERMAGE_RESOURCE",
+        "hard_minimum": 0,
+        "hard_maximum": 999,
+        "native_default": 0,
+        "expandable": true
+      },
+      "112": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -100,
+        "maximum": 100,
+        "name": "HUPPERMAGE_RESOURCE_COST_MODIFIER_CONSUME",
+        "hard_minimum": -100,
+        "hard_maximum": 100,
+        "native_default": 0,
+        "expandable": false
+      },
+      "113": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -100,
+        "maximum": 100,
+        "name": "HUPPERMAGE_RESOURCE_COST_MODIFIER_GENERATE",
+        "hard_minimum": -100,
+        "hard_maximum": 100,
+        "native_default": 0,
+        "expandable": false
+      },
+      "114": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "FINAL_HEAL_IN_PERCENT",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "115": {
+        "current": 100,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 1000,
+        "name": "XP_EARNED_FACTOR",
+        "hard_minimum": 0,
+        "hard_maximum": 1000,
+        "native_default": 100,
+        "expandable": false
+      },
+      "116": {
+        "current": 100,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 1000,
+        "name": "DROP_RATE_FACTOR",
+        "hard_minimum": 0,
+        "hard_maximum": 1000,
+        "native_default": 100,
+        "expandable": false
+      },
+      "117": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 30,
+        "name": "OUGINAK_RESOURCE",
+        "hard_minimum": 0,
+        "hard_maximum": 40,
+        "native_default": 0,
+        "expandable": false
+      },
+      "118": {
+        "current": 100,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 1000,
+        "name": "SHOP_CONSUMABLE_XP_BONUS_FACTOR",
+        "hard_minimum": 0,
+        "hard_maximum": 1000,
+        "native_default": 100,
+        "expandable": false
+      },
+      "119": {
+        "current": 100,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 1000,
+        "name": "SHOP_CONSUMABLE_DROP_BONUS_FACTOR",
+        "hard_minimum": 0,
+        "hard_maximum": 1000,
+        "native_default": 100,
+        "expandable": false
+      },
+      "12": {
+        "current": 1,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "name": "LEADERSHIP",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 1,
+        "expandable": false
+      },
+      "120": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "ARMOR_GIVEN",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "121": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "ARMOR_RECEIVED",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "122": {
+        "current": 4,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 10,
+        "name": "OSAMODAS_SUMMON_COOLDOWN",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 4,
+        "expandable": false
+      },
+      "123": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 6,
+        "name": "SP",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": true
+      },
+      "14": {
+        "current": 3,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 3,
+        "name": "KO_TIME_BEFORE_DEATH",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 3,
+        "expandable": true
+      },
+      "16": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 5000,
+        "name": "BACKSTAB_BONUS",
+        "hard_minimum": -5000,
+        "hard_maximum": 5000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "17": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 5000,
+        "name": "RES_BACKSTAB",
+        "hard_minimum": -5000,
+        "hard_maximum": 5000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "18": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "HEAL_IN_PERCENT",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "2": {
+        "current": 6,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 6,
+        "name": "AP",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 6,
+        "expandable": true
+      },
+      "20": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 50000,
+        "name": "DMG_IN_PERCENT",
+        "hard_minimum": -5000,
+        "hard_maximum": 50000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "21": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 50000,
+        "name": "DMG_FIRE_PERCENT",
+        "hard_minimum": -5000,
+        "hard_maximum": 50000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "22": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 50000,
+        "name": "DMG_WATER_PERCENT",
+        "hard_minimum": -5000,
+        "hard_maximum": 50000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "23": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 50000,
+        "name": "DMG_EARTH_PERCENT",
+        "hard_minimum": -5000,
+        "hard_maximum": 50000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "24": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 50000,
+        "name": "DMG_AIR_PERCENT",
+        "hard_minimum": -5000,
+        "hard_maximum": 50000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "27": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "RES_IN_PERCENT",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "28": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "RES_FIRE_PERCENT",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "29": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "RES_WATER_PERCENT",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "3": {
+        "current": 3,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 3,
+        "name": "MP",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 3,
+        "expandable": true
+      },
+      "30": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "RES_EARTH_PERCENT",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "31": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "RES_AIR_PERCENT",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "32": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 10000,
+        "name": "RES_HEAL_PER_THOUSAND",
+        "hard_minimum": 0,
+        "hard_maximum": 10000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "33": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "PROSPECTION",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "35": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "INIT",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "36": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -500,
+        "maximum": 200,
+        "name": "WISDOM",
+        "hard_minimum": -500,
+        "hard_maximum": 200,
+        "native_default": 0,
+        "expandable": false
+      },
+      "37": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "name": "WATER_MASTERY",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "38": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "name": "AIR_MASTERY",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "39": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "name": "EARTH_MASTERY",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "4": {
+        "current": 10,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 10,
+        "name": "WP",
+        "hard_minimum": 0,
+        "hard_maximum": 20,
+        "native_default": 10,
+        "expandable": true
+      },
+      "40": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "name": "FIRE_MASTERY",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "48": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "FINAL_DMG_IN_PERCENT",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "49": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "FINAL_RES_IN_PERCENT",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "50": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "CHRAGE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "52": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 5000,
+        "name": "CRITICAL_BONUS",
+        "hard_minimum": -5000,
+        "hard_maximum": 5000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "53": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -100,
+        "maximum": 100,
+        "name": "LIFE_STOLEN_BONUS",
+        "hard_minimum": -100,
+        "hard_maximum": 100,
+        "native_default": 0,
+        "expandable": false
+      },
+      "54": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "FECA_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "55": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "XELOR_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "56": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "CRA_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "57": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "ROGUE_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "58": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "ELIOTROPE_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "59": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "OSAMODAS_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "60": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "ECAFLIP_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "61": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "SADIDA_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "62": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "ZOBAL_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "63": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "HUPPERMAGE_RUNE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "64": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "ENUTROF_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "65": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "ENIRIPSA_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "66": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "SRAM_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "67": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "IOP_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "68": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "PANDAWA_RESOURCE",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "7": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "TACKLE",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "74": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 10,
+        "name": "BOMB_COOLDOWN",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "77": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 100,
+        "name": "STATE_APPLICATION_BONUS",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 100,
+        "native_default": 0,
+        "expandable": false
+      },
+      "78": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "STATE_RESISTANCE_BONUS",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "8": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "DODGE",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "86": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "WILLPOWER",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "87": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "BLOCK",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "88": {
+        "current": 50,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "name": "ARMOR_MAX",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 50,
+        "expandable": false
+      },
+      "89": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "name": "ARMOR_EROSION",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "9": {
+        "current": 3,
+        "frozen": false,
+        "minimum": -1000,
+        "maximum": 1000,
+        "name": "FEROCITY",
+        "hard_minimum": -1000,
+        "hard_maximum": 1000,
+        "native_default": 3,
+        "expandable": false
+      },
+      "90": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 5000,
+        "name": "DMG_STASIS_PERCENT",
+        "hard_minimum": -5000,
+        "hard_maximum": 5000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "91": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 5000,
+        "name": "RES_STASIS_PERCENT",
+        "hard_minimum": -5000,
+        "hard_maximum": 5000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "92": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 0,
+        "name": "VIRTUAL_HP",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": true
+      },
+      "93": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100,
+        "name": "STEAMER_MICROBOT_MAX_DISTANCE",
+        "hard_minimum": 0,
+        "hard_maximum": 100,
+        "native_default": 0,
+        "expandable": false
+      },
+      "94": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 0,
+        "name": "TOTAL_HP",
+        "hard_minimum": 0,
+        "hard_maximum": 0,
+        "native_default": 0,
+        "expandable": false
+      },
+      "95": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -5000,
+        "maximum": 5000,
+        "name": "CRITICAL_RES",
+        "hard_minimum": -5000,
+        "hard_maximum": 5000,
+        "native_default": 0,
+        "expandable": false
+      },
+      "96": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 100,
+        "name": "OSA_INVOCATION_KNOWLEDGE",
+        "hard_minimum": 0,
+        "hard_maximum": 100,
+        "native_default": 0,
+        "expandable": false
+      },
+      "97": {
+        "current": 0,
+        "frozen": false,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "name": "ARMOR",
+        "hard_minimum": 0,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      },
+      "98": {
+        "current": 0,
+        "frozen": false,
+        "minimum": -2147483648,
+        "maximum": 2147483647,
+        "name": "STASIS_MASTERY",
+        "hard_minimum": -2147483648,
+        "hard_maximum": 2147483647,
+        "native_default": 0,
+        "expandable": false
+      }
+    }
+  },
+  "native_profile_export": {
+    "seed_identity": {
+      "schema": "owned-captured-profile-seeds-v1",
+      "rosters": [
+        {
+          "owner_id": 42,
+          "record_sha256": "4c4c2396a6fa2b24a27d21c06b681d9e06ab2ebf3680cfc30a504c074575d939",
+          "profile_ids": [
+            5347
+          ]
+        }
+      ],
+      "profile_ids": [
+        5347
+      ],
+      "input_file_sha256": "bfcdcfce8778c4e9e054da0ef86c2ec5f36f620c41900dfe174d696806fd1519"
+    },
+    "native_book_checks": 15,
+    "profiles": {
+      "5347": {
+        "profile_id": 5347,
+        "abilities": [
+          {
+            "maximum_level": 245,
+            "casting_uid": 7356,
+            "reference": 7356,
+            "override_level": -1
+          },
+          {
+            "maximum_level": 245,
+            "casting_uid": 7357,
+            "reference": 7357,
+            "override_level": -1
+          },
+          {
+            "maximum_level": 245,
+            "casting_uid": 7358,
+            "reference": 7358,
+            "override_level": -1
+          }
+        ],
+        "initial_state_triples": [],
+        "fight_properties": [
+          40
+        ],
+        "world_properties": [
+          7
+        ],
+        "minimum_level": 1,
+        "descriptor_initial_hp": 1,
+        "native_profile_name": "",
+        "authority": "actual_owned_roster_seed -> bbo/blj; bPq descriptor minimum-HP source; native bPD verified"
+      }
+    },
+    "schema": "owned-captured-native-profiles-v1"
+  },
+  "capture_eligibility": {
+    "CAN_BE_SEDUCED": 40,
+    "CANNOT_BE_SEDUCED": 28,
+    "target_kind": 1,
+    "target_is_summon": false
+  }
+}

@@ -5,7 +5,9 @@ from pathlib import Path
 import struct
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "client/tools"))
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1] / "client-tools/diagnostics")
+)
 from gui_capture_tail import CaptureTail, integer_fields
 
 parser = argparse.ArgumentParser()

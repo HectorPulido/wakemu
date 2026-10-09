@@ -121,25 +121,49 @@ class RelativeGroupAuthority:
         if caster is None:
             raise ValueError("Missing native relative caster")
         actors = tuple(preview.actors.values())
-        contexts = {}
-        for actor in actors:
-            # Existing native membership uses point-sized ordinary actors.
-            # Corpses/wrapped actors require their own complete amJ authority.
-            if actor.hp <= 0 or actor.physical_radius != 0:
-                raise ValueError(
-                    "Relative amQ requires audited alive point-sized roster"
-                )
-            contexts[actor.id] = self.actors(preview, actor).targeting
+        contexts = None
         rows = []
         for reference in children:
             definition = self.effects.get(str(reference))
             if definition is None:
                 raise ValueError("Unknown native relative child definition")
-            populated = bool(
-                select_native_effect_targets(
-                    definition, caster, invocation.cell, actors, native_context=contexts
+            from .combat_native_pt import null_exclusion_references
+
+            # Original eYg passes child.fKX to amQ, not its aZP application
+            # area. amQ returns an empty iterable for a proven null fKX.
+            if reference in null_exclusion_references():
+                populated = False
+            else:
+                from .combat_casting_context import casting_root_catalog
+
+                root = casting_root_catalog()["roots"].get(str(reference))
+                if root is None or root["native_casting_collision_area"] is None:
+                    raise ValueError("Missing native relative child fKX geometry")
+                if contexts is None:
+                    contexts = {}
+                    for actor in actors:
+                        # Scalar HP does not determine native bak membership.
+                        # The typed authority verifies the actual PV status.
+                        if actor.physical_radius != 0:
+                            raise ValueError(
+                                "Relative amQ requires audited point-sized roster"
+                            )
+                        contexts[actor.id] = self.actors(preview, actor).targeting
+                shape = root["native_casting_collision_area"]
+                candidate = dict(
+                    definition,
+                    **shape,
+                    native_target_selector=root["native_target_selector"]
                 )
-            )
+                populated = bool(
+                    select_native_effect_targets(
+                        candidate,
+                        caster,
+                        invocation.cell,
+                        actors,
+                        native_context=contexts,
+                    )
+                )
             row = dict(
                 reference=reference,
                 native_area_has_actor=populated,

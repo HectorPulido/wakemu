@@ -101,6 +101,13 @@ class RangeConditionsTests(unittest.TestCase):
         actor.hp = 5
         self.assertIsNone(creation_in_play(preview, actor))
 
+    def test_withdrawn_actor_is_out_of_play_without_death_event(self):
+        preview = SimpleNamespace(events=[])
+        actor = SimpleNamespace(id=2, hp=0, pve_withdrawn=True)
+
+        self.assertFalse(creation_in_play(preview, actor))
+        self.assertEqual(preview.events, [])
+
     def test_parser_native_signatures_and_missing_target(self):
         actor = ConditionActor(
             characteristics={"HP": 81, "VIRTUAL_HP": 10},

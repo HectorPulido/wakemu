@@ -2,7 +2,9 @@
 from . import combat_health
 
 
-def persist(store, session, character, original_fight, *, db=None):
+def persist(
+    store, session, character, original_fight, *, db=None, captured_departure_fight=None
+):
     """Save authoritative wounds and exclusion receipt in one fight-first TX.
 
     ``original_fight`` must still have the participant's actual HP. The detached
@@ -11,7 +13,14 @@ def persist(store, session, character, original_fight, *, db=None):
     """
     if db is None:
         with store.connection() as connection:
-            return persist(store, session, character, original_fight, db=connection)
+            return persist(
+                store,
+                session,
+                character,
+                original_fight,
+                db=connection,
+                captured_departure_fight=captured_departure_fight,
+            )
     from psycopg.pq import TransactionStatus
 
     if db.info.transaction_status != TransactionStatus.INTRANS:
@@ -38,6 +47,19 @@ def persist(store, session, character, original_fight, *, db=None):
         reason="abort",
         db=db,
     )
+    if captured_departure_fight is not None:
+        if captured_departure_fight.id != original_fight.id:
+            raise ValueError("Captured teardown belongs to another fight")
+        from .combat_captured_roster_checkpoint import persist_captured_roster_updates
+
+        persist_captured_roster_updates(
+            db, captured_departure_fight, owner_ids={session.character_id}
+        )
+        reset = getattr(
+            captured_departure_fight, "native_captured_roster_updates", {}
+        ).get(str(session.character_id))
+        if reset is not None:
+            health["character"] = {**health["character"], "captured_roster": reset}
     inserted = db.execute(
         "INSERT INTO combat_pve_withdrawals "
         "(fight_id,character_id,account_id,session_generation,created_at) "

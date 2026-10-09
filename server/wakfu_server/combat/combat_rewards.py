@@ -6,7 +6,7 @@ replacement. PostgreSQL migrations own the schema. No item loot is generated.
 from dataclasses import dataclass
 from contextlib import nullcontext
 from psycopg.pq import TransactionStatus
-from .progression import level_xp, XP_BY_LEVEL
+from wakfu_server.progression import level_xp, XP_BY_LEVEL
 
 
 @dataclass(frozen=True)
@@ -197,7 +197,7 @@ def award_shared_member(
 def _initialize_health_for_durable_member(store, db, account_id, character_id):
     """Reconfigure level-derived HP without requiring an offline session lease."""
     from wakfu_server.characters import health_policy, health_store
-    from .equipment_stats import effective_character
+    from wakfu_server.equipment_stats import effective_character
 
     character = store.character(account_id, character_id, db)
     maximum = effective_character(character)["max_hp"]

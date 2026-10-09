@@ -1,5 +1,36 @@
 # Brechas dimensionales: fuente nativa y límites concretos
 
+## Catálogo separado de oleadas encontrado — 2026-10-07
+
+El loader `baV`, denominado `contentLoader.infiniteWaves`, carga **aLF**, separado
+de aKU. Su consumidor construye `byY` y conserva los enteros `aLI.cpi()` como
+lista de referencias. Extracción ejecutada: **17 definiciones, 188 entradas y
+162 referencias distintas**; 161 existen en el catálogo de monstruos del
+servidor, mientras **3228** queda sin resolver en ese catálogo. No habilitar esa
+referencia mediante estadísticas inventadas.
+
+La definición aLF **3** contiene `cpb=1314`, `rI=21`, `cpf=527`, `cnn=5` y una
+lista no vacía de referencias; estos valores enlazan con la definición aKU
+168 ya localizada. El consumidor `bpZ.arM()` usa `byY.cpb()`, confirmando su
+papel como mapa interior. `aLF.cpe()` retiene pares mapa/tipo; la lista de
+referencias **no acredita cantidades ni orden de cada oleada**. `cpc` se
+conserva bruto, sin atribuirle una regla de juego no demostrada.
+
+Extractor reproducible propio:
+
+```sh
+python3 server/tools/extract_native_infinite_waves.py \
+  --jdk /Library/Java/JavaVirtualMachines/jdk-22.jdk/Contents/Home \
+  --output .runtime/local/infinite-waves-catalog-private.json
+```
+
+Sustituye la ruta JDK por la instalada. Los datos derivados permanecen privados;
+el extractor conserva procedencia/hash y referencias sin resolver. Prueba de
+validación del esquema y rechazo de duplicados/tipos inválidos: **1/1 PASS**.
+Primera pieza implementada: extracción y validación general del catálogo. No
+se modificó combate, instancias ni runtime. Siguen pendientes entrada real,
+composiciones por oleada, temporizador, dificultad y premios.
+
 ## Localización comprobada
 
 La búsqueda literal de `breach` no identifica el sistema en este cliente. Se encontró el menú nativo `cJa.teleportToRift()` → `cgC.TP_TO_RIFT`: sus parámetros son **x=-192, y=-29, mapa 527**. Es una pista de localización procedente del propio cliente, no una autorización de entrada, altura caminable ni prueba de portal funcional. No se ha teletransportado un personaje a una altura inventada.

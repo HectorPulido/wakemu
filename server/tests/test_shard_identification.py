@@ -52,7 +52,8 @@ class ShardIdentificationTests(PostgresCase):
         )
         self.assertEqual(result["wallet_kamas"], 0)
         self.assertEqual(
-            list(proto_fields(result["shard_state"])), [(10, b"\x50\x00\x60\x01")]
+            list(proto_fields(result["shard_state"])),
+            [(10, b"\x50\x00\x58\x00\x60\x01")],
         )
         retry = identify(
             self.store,

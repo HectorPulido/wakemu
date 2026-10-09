@@ -3,7 +3,6 @@
 import argparse
 import ast
 import csv
-import gzip
 import hashlib
 import json
 import re
@@ -17,7 +16,7 @@ OUT = ROOT / "docs/reports/combat-inventory"
 
 def read(path):
     raw = path.read_bytes()
-    return json.loads(gzip.decompress(raw) if path.suffix == ".gz" else raw)
+    return json.loads(raw)
 
 
 def csv_write(path, rows, columns):
@@ -90,7 +89,7 @@ def main(output=OUT):
     output.mkdir(parents=True, exist_ok=True)
     spell_data = read(PROTOCOL / "spells.json")["spells"]
     tree = read(PROTOCOL / "spell-effect-trees.json")
-    state_data = read(PROTOCOL / "combat-state-definitions.json.gz")
+    state_data = read(PROTOCOL / "combat-state-definitions.json")
     registry = read(PROTOCOL / "effect-characteristic-registry.json")["effects"]
     names_path = PROTOCOL / "spell-names.json"
     name_data = read(names_path) if names_path.exists() else {}
@@ -456,7 +455,7 @@ def main(output=OUT):
         for f in (
             "spells.json",
             "spell-effect-trees.json",
-            "combat-state-definitions.json.gz",
+            "combat-state-definitions.json",
             "effect-characteristic-registry.json",
         )
     ] + [source, ROOT / "server/wakfu_server/combat/combat_server_spell.py"]

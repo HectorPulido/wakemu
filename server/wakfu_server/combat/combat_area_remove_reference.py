@@ -5,7 +5,7 @@ from .combat_stat_handler import StatExecutionContext
 from .combat_retained_runtime import group_payload
 from .combat_stat_effects import owned_effect_application
 from .combat_effects import _integer, _varint
-from .wire import proto_fields
+from wakfu_server.wire import proto_fields
 
 
 class NativeAreaReferenceRemovalHandler:

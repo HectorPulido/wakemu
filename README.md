@@ -3,6 +3,7 @@
 ## Carpetas
 
 - `client/`: carpeta excluida íntegramente de Git. Cada usuario debe aportar su propia copia del cliente y sus assets; este repositorio no los distribuye.
+- `client-tools/`: herramientas propias de lanzamiento, autenticación, diagnóstico y parches; usan el cliente de la carpeta hermana `client/`.
 - `sniffer/`: captura y decodificación. `java/` contiene los agentes y exportadores; `tools/`, las comparaciones externas.
 - `server/`: servidor Python, servicio de IA, catálogos del protocolo, pruebas y Dockerfile.
 - `docs/`: documentación, informes y evidencia del protocolo. El historial completo está en `docs/reports/progress.txt`.
@@ -10,21 +11,29 @@
 
 ## Requisitos y archivos externos
 
-Coloca tu propia copia del cliente en `client/`. Ningún archivo de esa carpeta, incluidas las herramientas locales, se distribuye en este repositorio. Los comandos de cliente siguientes describen el entorno original y requieren que esas herramientas estén disponibles por separado.
+Prepara las carpetas y credenciales privadas con `python3 tools/prepare-local-runtime.py`. No reemplaza secretos existentes. El [informe de portabilidad](docs/reports/runtime-portability-audit.md) detalla las dependencias privadas que todavía impiden arrancar desde un clon vacío.
+
+
+Coloca tu propia copia del cliente en `client/`. Ningún archivo de esa carpeta se distribuye en este repositorio. Las herramientas propias están en `client-tools/` y se incluyen por separado. El cliente debe contener directamente `config.properties`, `classpath`, `contents/`, `lib/` y `jre/`.
 
 Compose también requiere la captura externa indicada en su volumen `/fixtures/frames.jsonl`; `.runtime/` no se distribuye. El informe grande `docs/reports/combat-inventory/inventory.json` se incluye comprimido como `inventory.json.gz`.
+
+Client tools usage and requirements: [client-tools/README.md](client-tools/README.md).
 
 ## Arranque local
 
 Desde esta carpeta:
 
 ```bash
-docker compose up -d --build
+git lfs pull
+python3 tools/prepare-local-runtime.py
+bash tools/build-local.sh
+docker compose up -d
 docker compose ps
-bash client/tools/local-client.sh
+bash client-tools/client.sh play
 ```
 
-Para abrir otra instancia: `bash client/tools/local-client.sh --profile nombre`.
+Para abrir otra instancia: `bash client-tools/client.sh play --profile nombre`.
 
 ```bash
 docker compose logs -f world
@@ -46,3 +55,11 @@ El servidor usa PostgreSQL en el servicio `postgres`, base `wakemu_runtime`, con
 `server/ai-service/` es un proceso HTTP independiente. Compose mantiene IA y Redis en una red interna; el servidor publica los puertos del cliente solo en localhost.
 
 El objetivo completo del emulador sigue en desarrollo. La separación de carpetas no implica que todos los sistemas del juego estén implementados.
+
+
+Client version: 1.93.1+79 <- no other version compatible
+
+
+## Iop repair delivery update
+
+The shared Iop context, Preparation and voluntary-movement repairs are delivered in the complete r47 image. Current code and catalogs were verified before restart; actual Iop/Cra regressions and summon retirement checks passed. See the [delivery and validation record](docs/reports/combat-inventory/iop-shared-repair-delivery-20261009.md). Manual whole-class acceptance remains pending.

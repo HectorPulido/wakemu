@@ -2,6 +2,7 @@
 from copy import deepcopy
 from .combat_effects import _integer
 from .combat_effect_removal import _identity_fields, _proto_replace
+from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
 
 
 def reconstruct_state_containers(saved):
@@ -17,7 +18,7 @@ def reconstruct_state_containers(saved):
     manager_ids.update(
         int(key)
         for key, row in areas.items()
-        if row.get("native_area_contract") in ("faZ", "faY")
+        if row.get("native_area_contract") in SUPPORTED_AREA_CONTRACTS
         and row.get("state_ledger", {}).get("actor_id") == int(key)
     )
     for manager in managers:

@@ -120,6 +120,6 @@ Las celdas de los monstruos se muestran como `(x, y, z)`. La última columna da 
 
 ## Fuentes de coordenadas
 
-Los miembros vienen del catálogo fuente. El vecino se eligió en la geometría nativa `combat-maps/<id>.json.gz` y se cotejó contra las superficies/regiones de `planting-maps/<id>.json.gz`. Los accesos considerados incluyen objetos nativos Door/Teleporter/Zaap/Drago/Boat/entradas, generic teleporters y posiciones de transporte; se aplicó un margen XY Manhattan de cuatro. La derivación y las 93 filas con verificaciones están preservadas en el artefacto privado `.runtime/reports/issue20-manual-reference-tp-cells.json` (modo `0600`).
+Los miembros vienen del catálogo fuente. El vecino se eligió en la geometría nativa `combat-maps/<id>.json` y se cotejó contra las superficies/regiones de `planting-maps/<id>.json`. Los accesos considerados incluyen objetos nativos Door/Teleporter/Zaap/Drago/Boat/entradas, generic teleporters y posiciones de transporte; se aplicó un margen XY Manhattan de cuatro. La derivación y las 93 filas con verificaciones están preservadas en el artefacto privado `.runtime/reports/issue20-manual-reference-tp-cells.json` (modo `0600`).
 
 La etiqueta del mapa no aparece en esa tabla fuente para 51 mapas; por eso esta guía usa IDs para ellos.

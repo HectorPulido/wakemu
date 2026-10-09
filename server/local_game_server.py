@@ -55,6 +55,12 @@ from wakfu_server.live_console import LiveConsole
 TEST_CONSOLE = LiveConsole()
 from wakfu_server import world_clock
 from wakfu_server import health, health_store
+from wakfu_server.maps import dungeon_transition_delivery, dungeon_hydration
+from wakfu_server.maps.world_scene_sync import (
+    SceneSync,
+    snapshot_ids,
+    refresh_snapshots,
+)
 
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent if ROOT.name == "server" else ROOT
@@ -75,6 +81,19 @@ STORE = Store(
     password_file=os.environ.get("WAKFU_DATABASE_PASSWORD_FILE"),
 )
 STORE.database.acquire_runtime_lock()
+with STORE.connection() as _startup_db:
+    DUNGEON_TRANSITION_OUTBOX_AVAILABLE = _startup_db.execute(
+        "SELECT to_regclass('dungeon_transition_outbox') IS NOT NULL AS available"
+    ).fetchone()["available"]
+    DUNGEON_ROOM_RUNTIME_AVAILABLE = _startup_db.execute(
+        "SELECT to_regclass('dungeon_room_runs') IS NOT NULL AND "
+        "to_regclass('dungeon_room_spawn_receipts') IS NOT NULL AND EXISTS("
+        "SELECT 1 FROM pg_constraint WHERE conrelid=to_regclass('dungeon_room_encounters') "
+        "AND pg_get_constraintdef(oid) LIKE '%aborted%') AS available"
+    ).fetchone()["available"]
+from wakfu_server import dungeon_instances
+
+dungeon_instances.load_runtime_routes(STORE)
 SOCIAL_CONTACTS = SocialContacts(STORE)
 SOCIAL_ACTIONS = SocialDispatcher(SOCIAL_CONTACTS)
 from wakfu_server.monster_collect import Harvests
@@ -181,6 +200,11 @@ if COMBAT_TEST:
     from wakfu_server.combat_group_store import PersistentGroups
 
     COMBAT_GROUPS = PersistentGroups(STORE, recover=True)
+    if DUNGEON_ROOM_RUNTIME_AVAILABLE:
+        from wakfu_server.maps.dungeon_fight_binding import reconcile_aborted_encounters
+
+        with STORE.connection() as dungeon_recovery_db:
+            reconcile_aborted_encounters(dungeon_recovery_db)
     TEST_GROUP_KEY = COMBAT_GROUPS.register_seed(1134, 0, 200, TEST_MONSTERS)
     from wakfu_server.combat_session_adapter import CombatSessionAdapter
 
@@ -360,6 +384,18 @@ def record(**fields):
             active.flush()
     else:
         write_records([row])
+
+
+from wakfu_server.checkpoint_worker import CheckpointWorker
+
+CHECKPOINT_WRITER = CheckpointWorker(
+    CHECKPOINTS,
+    failed=lambda fight_id, error: record(
+        event="combat_checkpoint_failed",
+        fight_id=fight_id,
+        reason=redact(str(error)),
+    ),
+)
 
 
 def receive(connection, count, on_idle=None):
@@ -597,6 +633,81 @@ def release_groups(generation):
                 WORLD.emit_location(map_id, instance_id, *packet)
 
 
+def is_dungeon_run(instance_id):
+    if (
+        not DUNGEON_ROOM_RUNTIME_AVAILABLE
+        or type(instance_id) is not int
+        or instance_id <= 0
+    ):
+        return False
+    with STORE.connection() as db:
+        return db.execute(
+            "SELECT EXISTS(SELECT 1 FROM dungeon_instances WHERE instance_id=%s AND status='active') AS present",
+            (instance_id,),
+        ).fetchone()["present"]
+
+
+def owned_native_bootstrap(character, **options):
+    if is_dungeon_run(character.get("instance_id", 0)):
+        from wakfu_server.maps import dungeon_context
+
+        with STORE.connection() as db:
+            fighting = db.execute(
+                "SELECT EXISTS(SELECT 1 FROM combat_fights f JOIN dungeon_room_encounters e "
+                "ON e.fight_id=f.id WHERE e.instance_id=%s AND e.status='active' "
+                "AND f.status IN ('placement','active')) AS fighting",
+                (character["instance_id"],),
+            ).fetchone()["fighting"]
+        options["dungeon_context"] = dungeon_context.for_instance(
+            STORE, character["instance_id"], fight_in_progress=fighting
+        )
+    messages = native_transports.bootstrap(character, **options)
+    if not is_dungeon_run(character.get("instance_id", 0)):
+        return messages
+    from wakfu_server import dungeon_object_states, dungeon_runtime, generic_transports
+
+    with STORE.connection() as db:
+        _, configuration = dungeon_runtime.configuration_for_instance(
+            db, character["instance_id"]
+        )
+        progress = db.execute(
+            "SELECT current_room, status FROM dungeon_room_runs WHERE instance_id=%s",
+            (character["instance_id"],),
+        ).fetchone()
+    if progress is None:
+        raise ValueError("Dungeon bootstrap has no committed room progress")
+    sources = [
+        row
+        for row in generic_transports._CATALOG
+        if row["map_id"] == character["map_id"]
+    ]
+    return tuple(messages) + dungeon_object_states.packets(
+        configuration["topology"],
+        sources,
+        map_id=character["map_id"],
+        instance_id=character["instance_id"],
+        unlocked_room=progress["current_room"],
+        completed=progress["status"] == "completed",
+    )
+
+
+def owned_haven_leave(body, character):
+    from wakfu_server.haven_bag import leave_messages
+
+    messages = leave_messages(body, character)
+    if not is_dungeon_run(character.get("instance_id", 0)):
+        return messages
+    context_packet = next(
+        payload
+        for message_id, payload in owned_native_bootstrap(character)
+        if message_id == 13974
+    )
+    return tuple(
+        (message_id, context_packet if message_id == 13974 else payload)
+        for message_id, payload in messages
+    )
+
+
 def replay(connection, start, end, account_id, character=None, *, generation=None):
     account_characters = None
     if character is not None:
@@ -641,6 +752,15 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
             ):
                 # These fixture packets belong to the original1134 map. A
                 # verified destination bootstrap supplies its own world data.
+                continue
+            if (
+                frame["opcode"] == 13974
+                and character is not None
+                and is_dungeon_run(character.get("instance_id", 0))
+            ):
+                for message_id, payload in owned_native_bootstrap(character):
+                    if message_id == 13974:
+                        send(connection, "world", message_id, payload)
                 continue
             original = base64.b64decode(frame["body_base64"])
             if frame["opcode"] == 630 and generation is not None:
@@ -695,7 +815,22 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
                 else None
             )
             social_body = social.adapt(
-                frame["opcode"], original, account_id, character, owned
+                frame["opcode"],
+                original,
+                account_id,
+                character,
+                owned,
+                cosmetic_record=(
+                    STORE.cosmetic_record(account_id)
+                    if frame["opcode"] == 13873
+                    and original[:8]
+                    in (
+                        struct.pack(">II", 1, 8),
+                        struct.pack(">II", 1, 9),
+                        struct.pack(">II", 2, 8),
+                    )
+                    else None
+                ),
             )
             if social_body is not None:
                 send(connection, "world", frame["opcode"], social_body)
@@ -768,6 +903,7 @@ def harvest_target(character, target):
 
 def session(raw, peer, service, context):
     selected = loaded = False
+    scene_sync = SceneSync()
     static_sync_pending = False
     static_sync_attempts = 0
     static_sync_due = time.monotonic() + 0.75
@@ -791,12 +927,15 @@ def session(raw, peer, service, context):
     TEST_MONSTERS = ()
     TEST_MONSTERS_BY_ID = {}
     TEST_GROUP_KEY = None
+    checkpoint_local_shared = None
     checkpoint_revision = checkpoint_id = None
     checkpoint_terminal = False
     connected_at = time.monotonic()
     last_chat = 0
     last_health_tick = 0
     last_session_renewal = 0
+    last_dungeon_transition_poll = 0.0
+    last_dungeon_transition_report = None
     from wakfu_server.placement_deadline import Deadline
 
     def sync_static_world(*, force=False, validated=False):
@@ -815,9 +954,16 @@ def session(raw, peer, service, context):
             or not STORE.current_session(account_id, generation)
         ):
             return
-        if character.get("instance_id", 0) == 0:
+        if character["map_id"] != 9:
             for message_body in world_static.snapshots(character["map_id"]):
                 send(connection, service, 13984, message_body)
+            # The asset baseline also belongs to private dungeon scenes. Replay
+            # its dynamic state first, then restore the run-owned door policy;
+            # native default states must never reopen progression exits.
+            if is_dungeon_run(character.get("instance_id", 0)):
+                for message_id, message_body in owned_native_bootstrap(character):
+                    if message_id == 12344:
+                        send(connection, service, message_id, message_body)
         if validated:
             static_sync_pending = False
             static_sync_attempts = 0
@@ -837,7 +983,51 @@ def session(raw, peer, service, context):
             validated=validated,
         )
 
-    def send_loaded_world_snapshot(*, static_validated=False):
+    def sync_scene_world():
+        """Hydrate newly loaded native scene partitions after local travel."""
+        if (
+            not loaded
+            or character is None
+            or fight is not None
+            or spectator_session is not None
+        ):
+            return
+        if character["map_id"] == 9:
+            return
+        packets = scene_sync.poll(
+            character["map_id"], character.get("instance_id", 0), time.monotonic()
+        )
+        if not packets:
+            return
+        # csV/cgN shifts the native interactive registry independently of the
+        # terrain camera. Raw assets must be registered before state hydration.
+        send(
+            connection,
+            service,
+            12318,
+            struct.pack(">ii", character["x"], character["y"]),
+        )
+        for payload in packets:
+            send(connection, service, 13984, payload)
+            # Native duplicate attachment retains an existing instance. Apply
+            # the authoritative state directly to that retained instance too.
+            for state in refresh_snapshots(payload):
+                send(connection, service, 12344, state)
+        if is_dungeon_run(character.get("instance_id", 0)):
+            for message_id, payload in owned_native_bootstrap(character):
+                if message_id == 12344:
+                    send(connection, service, message_id, payload)
+        record(
+            event="scene_objects_synchronized",
+            actor_id=character["id"],
+            map_id=character["map_id"],
+            instance_id=character.get("instance_id", 0),
+            packets=len(packets),
+            bytes=sum(map(len, packets)),
+            object_ids=snapshot_ids(packets),
+        )
+
+    def send_loaded_world_snapshot():
         """Rebuild the current loaded map for this peer after scene transitions."""
         if character is None or not loaded or account_id is None or generation is None:
             raise ValueError("Loaded world session is required")
@@ -930,13 +1120,19 @@ def session(raw, peer, service, context):
         """Restore the loaded observer's current world snapshot after 12154."""
         if character is None or account_id is None or generation is None:
             raise ValueError("Loaded observer session is required")
-        send_loaded_world_snapshot(static_validated=True)
+        send_loaded_world_snapshot()
         nonlocal world_snapshot_pending
         world_snapshot_pending = False
 
     def mark_static_sync_pending(*, world_ready=False):
         nonlocal static_sync_pending, static_sync_attempts, static_sync_due
         nonlocal world_snapshot_pending, world_snapshot_due, world_snapshot_identity
+        scene_sync.arm(
+            character["map_id"],
+            character.get("instance_id", 0),
+            [character],
+            time.monotonic(),
+        )
         static_sync_pending = True
         static_sync_attempts = 0
         static_sync_due = time.monotonic() + 0.75
@@ -948,6 +1144,124 @@ def session(raw, peer, service, context):
             character["map_id"],
             character.get("instance_id", 0),
         )
+
+    def deliver_dungeon_transitions(*, before_action=False):
+        """Poll this worker's durable transition without crossing combat/context.
+
+        Prepare the authoritative destination and pinned context before any
+        runtime mutation. Acknowledge only after complete bootstrap delivery.
+        """
+        nonlocal last_dungeon_transition_poll, last_dungeon_transition_report
+        if (
+            not DUNGEON_TRANSITION_OUTBOX_AVAILABLE
+            or not selected
+            or not loaded
+            or character is None
+            or account_id is None
+            or generation is None
+        ):
+            return None
+        if fight is not None or combat_session is not None:
+            return {"state": "deferred_combat", "pending_event_ids": ()}
+        now = time.monotonic()
+        if not before_action and now - last_dungeon_transition_poll < 1.0:
+            return None
+        last_dungeon_transition_poll = now
+        if DUNGEON_ROOM_RUNTIME_AVAILABLE and is_dungeon_run(
+            character.get("instance_id", 0)
+        ):
+            from wakfu_server import (
+                dungeon_auto_transition,
+                dungeon_auto_exit,
+                dungeon_runtime,
+            )
+
+            with STORE.connection() as db:
+                pending = db.execute(
+                    "SELECT e.fight_id,COALESCE((e.result->>'completed')::boolean,false) AS completed "
+                    "FROM dungeon_room_encounters e "
+                    "JOIN dungeon_room_runs r ON r.instance_id=e.instance_id "
+                    "WHERE e.instance_id=%s AND e.status='victory' "
+                    "AND e.result_revision=r.revision "
+                    "AND ((e.result->>'auto_transition_revision' IS NULL "
+                    "AND NOT COALESCE((e.result->>'completed')::boolean,false)) "
+                    "OR (e.result->>'auto_exit_revision' IS NULL "
+                    "AND COALESCE((e.result->>'completed')::boolean,false))) "
+                    "ORDER BY e.fight_id DESC LIMIT 1",
+                    (character["instance_id"],),
+                ).fetchone()
+                if pending is not None:
+                    _, configuration = dungeon_runtime.configuration_for_instance(
+                        db, character["instance_id"]
+                    )
+            if pending is not None:
+                transition = (
+                    dungeon_auto_exit.complete
+                    if pending.get("completed")
+                    else dungeon_auto_transition.advance
+                )
+                transition(
+                    STORE,
+                    character["instance_id"],
+                    pending["fight_id"],
+                    topology=configuration["topology"],
+                    in_fight=lambda character_id: COMBAT_SESSIONS.lookup_character(
+                        character_id
+                    )
+                    is not None,
+                )
+
+        def current_location():
+            return {
+                key: character.get(key, 0)
+                for key in ("map_id", "instance_id", "x", "y", "z")
+            }
+
+        def bootstrap_dungeon_event(event):
+            nonlocal character, position, movement_state
+            plan = dungeon_hydration.prepare_transition(
+                STORE, account_id, generation, character["id"], event
+            )
+            cancel_crafting()
+            WORLD.leave(character["id"], generation)
+            character = plan.character
+            POSITIONS.attach(account_id, generation, character)
+            position = {key: character[key] for key in ("x", "y", "z")}
+            movement_state = Movement(position)
+            for message_id, message_body in plan.packets:
+                send(connection, service, message_id, message_body)
+            join_world(generation, connection, character)
+            mark_static_sync_pending()
+            return True
+
+        result = dungeon_transition_delivery.deliver_pending_transitions(
+            STORE,
+            account_id,
+            generation,
+            character["id"],
+            worker_generation=generation,
+            current_location=current_location,
+            in_fight=lambda: fight is not None or combat_session is not None,
+            bootstrap=bootstrap_dungeon_event,
+        )
+        report_key = (
+            result["state"],
+            tuple(result["pending_event_ids"]),
+        )
+        if result["state"] != "idle" and report_key != last_dungeon_transition_report:
+            record(
+                event="dungeon_transition_deferred",
+                actor_id=character["id"],
+                state=result["state"],
+                pending_event_ids=list(result["pending_event_ids"]),
+                reason=(
+                    "destination bootstrap did not complete"
+                    if result["state"] == "bootstrap_incomplete"
+                    else None
+                ),
+            )
+        last_dungeon_transition_report = report_key
+        return result
 
     placement_deadline = Deadline()
     position = {"x": -12, "y": -8, "z": -1}
@@ -991,7 +1305,7 @@ def session(raw, peer, service, context):
             WORLD.update(generation, current, *packet)
 
     def checkpoint_fight(status=None):
-        nonlocal checkpoint_revision, checkpoint_id, checkpoint_terminal
+        nonlocal checkpoint_revision, checkpoint_id, checkpoint_terminal, checkpoint_local_shared
         if fight is None:
             return
         if checkpoint_id != fight.id:
@@ -1001,45 +1315,63 @@ def session(raw, peer, service, context):
         if checkpoint_terminal:
             return
         checkpoint_started = time.monotonic()
+        captured_checkpoint_id = fight.id
+
+        def checkpoint_trace(stage, **details):
+            details.setdefault("fight_id", captured_checkpoint_id)
+            record(
+                event="persistence_stage",
+                domain="fight_checkpoint",
+                stage=stage,
+                **details,
+            )
+
         try:
+            if combat_session is not None:
+                shared_checkpoint = COMBAT_SESSIONS.registry.lookup(fight.id)
+            else:
+                from types import SimpleNamespace
+
+                if (
+                    checkpoint_local_shared is None
+                    or checkpoint_local_shared.fight.id != fight.id
+                ):
+                    checkpoint_local_shared = SimpleNamespace(
+                        fight=fight,
+                        runtime=fight_messages,
+                        lock=threading.RLock(),
+                        checkpoint_revision=checkpoint_revision,
+                        checkpoint_terminal=False,
+                    )
+                shared_checkpoint = checkpoint_local_shared
+            if (
+                shared_checkpoint.checkpoint_terminal
+                or CHECKPOINT_WRITER.terminal_pending(fight.id)
+            ):
+                return
+            if combat_session is not None:
+                # Deliver committed owner and spectator batches before copying a checkpoint.
+                # Runtime.pending remains gated by the native turn ACK boundary.
+                drain_shared_combat()
             record(
                 event="persistence_stage",
                 domain="fight_checkpoint",
                 stage="save_started",
                 fight_id=fight.id,
             )
-            if combat_session is not None:
-                shared_checkpoint = COMBAT_SESSIONS.registry.lookup(fight.id)
-                checkpoint_revision, checkpoint_terminal = CHECKPOINTS.save_shared(
-                    shared_checkpoint,
-                    account_id,
-                    generation,
-                    status=status,
-                )
-            else:
-                checkpoint_revision = CHECKPOINTS.save(
-                    account_id,
-                    generation,
-                    fight,
-                    expected_revision=checkpoint_revision,
-                    runtime=fight_messages,
-                )
-            record(
-                event="persistence_stage",
-                domain="fight_checkpoint",
-                stage="save_committed",
-                fight_id=fight.id,
-                revision=checkpoint_revision,
+            queued = CHECKPOINT_WRITER.submit(
+                shared_checkpoint,
+                account_id,
+                generation,
+                status=status,
+                trace=checkpoint_trace,
             )
-            if status is not None and combat_session is None:
-                checkpoint_revision = CHECKPOINTS.end(
-                    account_id,
-                    generation,
-                    fight.id,
-                    expected_revision=checkpoint_revision,
-                    status=status,
-                )
-                checkpoint_terminal = True
+            record(
+                event="combat_checkpoint_queued",
+                fight_id=fight.id,
+                sequence=queued["sequence"],
+                terminal=queued["terminal"],
+            )
             record(
                 event="combat_checkpoint_timing",
                 fight_id=fight.id,
@@ -1069,6 +1401,16 @@ def session(raw, peer, service, context):
             if shared is None:
                 raise ValueError("Shared fight registry entry is unavailable")
             owner_characters, _ = COMBAT_SESSIONS.player_sources(fight)
+            from wakfu_server.combat.combat_terminal_metadata import (
+                owner_characters_for_finish,
+                registered_summon_actor_ids,
+                registered_summon_metadata,
+            )
+
+            owner_characters = owner_characters_for_finish(
+                STORE, shared, fight, owner_characters
+            )
+            summon_actor_ids = registered_summon_actor_ids(fight)
             if getattr(shared, "is_duel", False):
                 from wakfu_server.combat_results import finish_messages
                 from wakfu_server.friendly_duels import settle as settle_duel
@@ -1082,8 +1424,9 @@ def session(raw, peer, service, context):
                         is_male=owner_characters[actor.id]["sex"] == 0,
                     )
                     for actor in fight.actors.values()
-                    if actor.controlled
+                    if actor.controlled and actor.id not in summon_actor_ids
                 }
+                duel_metadata.update(registered_summon_metadata(fight))
 
                 def prepare_duel_packets(current_shared):
                     reason = getattr(current_shared, "duel_finish_reason", "defeat")
@@ -1140,8 +1483,9 @@ def session(raw, peer, service, context):
                     is_male=owner_characters[actor.id]["sex"] == 0,
                 )
                 for actor in fight.actors.values()
-                if actor.controlled
+                if actor.controlled and actor.id not in summon_actor_ids
             }
+            metadata.update(registered_summon_metadata(fight))
             metadata.update(
                 {
                     monster_id: dict(kind="monster", ref=monster["ref"])
@@ -1204,7 +1548,7 @@ def session(raw, peer, service, context):
             def shared_group_settlement(db, owner_account, owner_character, defeated):
                 if group_lease is None:
                     return {"applied": True, "packets": []}
-                return finish_world_group(
+                outcome = finish_world_group(
                     STORE,
                     COMBAT_GROUPS,
                     group_lease,
@@ -1212,6 +1556,23 @@ def session(raw, peer, service, context):
                     defeated=defeated,
                     db=db,
                 )
+                if (
+                    outcome["applied"]
+                    and DUNGEON_ROOM_RUNTIME_AVAILABLE
+                    and group_lease[0][1] > 0
+                ):
+                    from wakfu_server.maps import dungeon_progression, dungeon_runtime
+                    from wakfu_server.combat_terrain import map_geometry
+
+                    room_result = dungeon_progression.settle_encounter(db, fight)
+                    if room_result is not None:
+                        dungeon_runtime.ensure_current_room(
+                            db,
+                            COMBAT_GROUPS,
+                            room_result["instance_id"],
+                            map_geometry(group_lease[0][0]),
+                        )
+                return outcome
 
             def prepare_shared_packets(current_shared):
                 return prepare_finish_shared(
@@ -1226,6 +1587,12 @@ def session(raw, peer, service, context):
                     policy_resolver=shared_policy,
                     loot_resolver=shared_loot,
                     expected_accounts=set(current_shared.participants),
+                    trace=lambda stage, **fields: record(
+                        event="persistence_stage",
+                        domain="fight_settlement",
+                        stage=stage,
+                        **fields,
+                    ),
                     group_settlement=(
                         shared_group_settlement if group_lease is not None else None
                     ),
@@ -1236,7 +1603,23 @@ def session(raw, peer, service, context):
                     combat_session, fight.id, prepare_shared_packets
                 )
             else:
+                settlement_lock_started = time.monotonic()
+                record(
+                    event="persistence_stage",
+                    domain="fight_settlement",
+                    stage="group_lock_wait",
+                    fight_id=fight.id,
+                )
                 with COMBAT_GROUPS.lock:
+                    record(
+                        event="persistence_stage",
+                        domain="fight_settlement",
+                        stage="group_lock_acquired",
+                        fight_id=fight.id,
+                        elapsed_ms=round(
+                            (time.monotonic() - settlement_lock_started) * 1000, 3
+                        ),
+                    )
                     COMBAT_SESSIONS.settle_finished(
                         combat_session, fight.id, prepare_shared_packets
                     )
@@ -1361,6 +1744,7 @@ def session(raw, peer, service, context):
                     "health_dead",
                     "ecology_value",
                     "ecology_revision",
+                    "captured_roster",
                 )
             }
         )
@@ -1409,7 +1793,7 @@ def session(raw, peer, service, context):
             player_characters=characters if combat_session is not None else None,
             deck_blobs=decks if combat_session is not None else None,
             native_events=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
-            area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0") == "1",
+            area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1") == "1",
             **boundary,
         )
 
@@ -1513,7 +1897,7 @@ def session(raw, peer, service, context):
                 POSITIONS.attach(account_id, generation, character)
                 position = {key: character[key] for key in ("x", "y", "z")}
                 movement_state = Movement(position)
-                for message_id, message_body in native_transports.bootstrap(character):
+                for message_id, message_body in owned_native_bootstrap(character):
                     send(connection, service, message_id, message_body)
                 join_world(generation, connection, character)
                 mark_static_sync_pending()
@@ -1568,12 +1952,19 @@ def session(raw, peer, service, context):
             summary["actor_ids"] = [member["id"] for member in result["members"]]
         return summary
 
-    def current_combat_stats(actor):
+    def current_combat_stats(actor, state=None):
         from wakfu_server.combat_actor import (
             actual_actor_stats,
             actual_monster_actor_stats,
         )
 
+        current_fight = fight if state is None else state
+        if actor.id in getattr(current_fight, "native_summon_registrations", {}):
+            from wakfu_server.combat_summon_stats import registered_summon_stats
+
+            return registered_summon_stats(actor, current_fight, character["map_id"])
+        if getattr(actor, "native_summon_source", None) is not None:
+            raise ValueError("Summon stats require current native registration")
         if actor.effect_stats is not None:
             if (
                 actor.effect_maxima is None
@@ -1826,50 +2217,86 @@ def session(raw, peer, service, context):
 
     def resume_settled_shared_combat():
         nonlocal combat_session, fight, fight_messages, group_lease
-        nonlocal TEST_MONSTERS, TEST_MONSTERS_BY_ID
-        nonlocal TEST_GROUP_KEY
+        nonlocal TEST_MONSTERS, TEST_MONSTERS_BY_ID, TEST_GROUP_KEY
         nonlocal checkpoint_id, checkpoint_revision, checkpoint_terminal
-        if not COMBAT_TEST or character is None or combat_session is not None:
+        if (
+            not COMBAT_TEST
+            or character is None
+            or combat_session is not None
+            or fight is not None
+        ):
             return False
         shared = COMBAT_SESSIONS.lookup_character(character["id"])
-        if shared is None or not shared.settlement_ready:
-            return False
-        if account_id in shared.returned:
-            return False
-        fight_id = shared.fight.id
-        session_entry = COMBAT_SESSIONS.session(account_id, generation, character)
-        try:
-            shared = COMBAT_SESSIONS.takeover_settled(session_entry, fight_id)
-        except ValueError as error:
+        if shared is not None and getattr(shared, "is_duel", False):
+            if not shared.settlement_ready or account_id in shared.returned:
+                return False
+            fight_id = shared.fight.id
+            session_entry = COMBAT_SESSIONS.session(account_id, generation, character)
+            try:
+                shared = COMBAT_SESSIONS.takeover_settled(session_entry, fight_id)
+            except ValueError as error:
+                record(
+                    event="combat_settlement_takeover_rejected",
+                    actor_id=character["id"],
+                    fight_id=fight_id,
+                    reason=str(error),
+                )
+                return False
+            combat_session = session_entry
+            fight = shared.fight
+            fight_messages = shared.runtime
+            group_lease = getattr(shared, "group_lease", None)
+            context = shared.join_context or {}
+            TEST_MONSTERS_BY_ID = context.get("monsters", {})
+            TEST_MONSTERS = tuple(TEST_MONSTERS_BY_ID.values())
+            TEST_GROUP_KEY = context.get("group_key")
+            checkpoint = CHECKPOINTS.read(account_id, fight_id)
+            checkpoint_id = fight_id
+            checkpoint_revision = checkpoint["revision"]
+            checkpoint_terminal = True
+            drain_shared_combat()
             record(
-                event="combat_settlement_takeover_rejected",
+                event="combat_settlement_taken_over",
                 actor_id=character["id"],
                 fight_id=fight_id,
+            )
+            return True
+        if shared is not None and (
+            not shared.settlement_ready or account_id in shared.returned
+        ):
+            return False
+        session_entry = COMBAT_SESSIONS.session(account_id, generation, character)
+        try:
+            recovered = COMBAT_SESSIONS.recover_settled_world(
+                session_entry,
+                character,
+                wp=COMBAT_TEST_WP,
+            )
+        except ValueError as error:
+            record(
+                event="combat_settled_world_recovery_rejected",
+                actor_id=character["id"],
+                fight_id=None if shared is None else shared.fight.id,
                 reason=str(error),
             )
             return False
-        combat_session = session_entry
-        fight = shared.fight
-        fight_messages = shared.runtime
-        group_lease = getattr(shared, "group_lease", None)
-        context = shared.join_context or {}
-        TEST_MONSTERS_BY_ID = context.get("monsters", {})
-        TEST_MONSTERS = tuple(TEST_MONSTERS_BY_ID.values())
-        TEST_GROUP_KEY = context.get("group_key")
-        checkpoint = CHECKPOINTS.read(account_id, fight_id)
-        checkpoint_id = fight_id
-        checkpoint_revision = checkpoint["revision"]
-        checkpoint_terminal = True
-        drain_shared_combat()
+        if recovered is None:
+            return False
+        character.update(recovered["character"])
+        for message_id, payload in recovered["packets"]:
+            send(connection, service, message_id, payload)
+        group_lease = None
         record(
-            event="combat_settlement_taken_over",
+            event="combat_settled_world_recovered",
             actor_id=character["id"],
-            fight_id=fight_id,
+            fight_id=recovered["fight_id"],
+            health_applied=recovered["applied"],
+            native_fight_attached=False,
         )
         return True
 
     def adopt_shared_duel():
-        """Attach this loaded socket to an accepted duel's shared FSM/outbox."""
+        """Attach a loaded owner to its existing shared combat FSM/outbox."""
         nonlocal combat_session, fight, fight_messages, group_lease
         nonlocal TEST_MONSTERS, TEST_MONSTERS_BY_ID, TEST_GROUP_KEY
         nonlocal fight_started_at, checkpoint_id, checkpoint_revision
@@ -1883,7 +2310,7 @@ def session(raw, peer, service, context):
         ):
             return False
         shared = COMBAT_SESSIONS.lookup_character(character["id"])
-        if shared is None or not getattr(shared, "is_duel", False):
+        if shared is None:
             return False
         owner = shared.participants.get(account_id)
         if owner is None or owner.character_id != character["id"]:
@@ -1891,7 +2318,7 @@ def session(raw, peer, service, context):
         # A participant who has completed native12925 is back in the world
         # even while the other owner is still viewing the settled result.
         # Never let an idle/reconnect callback reattach that returned socket.
-        if account_id in shared.returned:
+        if account_id in shared.returned or account_id in shared.withdrawals:
             return False
         if owner.generation != generation:
             if shared.settlement_ready:
@@ -1907,14 +2334,25 @@ def session(raw, peer, service, context):
                 shared.instance_id,
             )
 
+            # The worker publishes its revision under shared.lock. Drain before
+            # Registry.takeover acquires that lock, never from its callback.
+            if not CHECKPOINT_WRITER.flush_fight(shared.fight.id, timeout=10):
+                raise ValueError("Checkpoint takeover drain timed out")
+
             def persist_takeover(previous):
-                takeover_participant(
-                    STORE,
+                CHECKPOINT_WRITER.takeover_writer(
+                    shared.fight.id,
                     account_id,
+                    previous.generation,
                     generation,
-                    character["id"],
-                    fight_id=shared.fight.id,
-                    previous_generation=previous.generation,
+                    persist=lambda: takeover_participant(
+                        STORE,
+                        account_id,
+                        generation,
+                        character["id"],
+                        fight_id=shared.fight.id,
+                        previous_generation=previous.generation,
+                    ),
                 )
 
             COMBAT_SESSIONS.registry.takeover(
@@ -1923,11 +2361,12 @@ def session(raw, peer, service, context):
                 lambda current_fight, current_shared, current_session: (
                     ()
                     if current_fight.phase == "finished"
-                    else COMBAT_SESSIONS.placement_bootstrap(
+                    else COMBAT_SESSIONS.owned_reconnect_bootstrap(
                         current_fight, current_shared, current_session
                     )
                 ),
                 persist_takeover=persist_takeover,
+                recover_disconnected=True,
             )
             shared = COMBAT_SESSIONS.registry.lookup(shared.fight.id)
             owner = replacement
@@ -1936,11 +2375,11 @@ def session(raw, peer, service, context):
         combat_session = owner
         fight = shared.fight
         fight_messages = shared.runtime
-        group_lease = None
+        group_lease = shared.group_lease
         context = shared.join_context or {}
-        TEST_MONSTERS_BY_ID = {}
-        TEST_MONSTERS = ()
-        TEST_GROUP_KEY = None
+        TEST_MONSTERS_BY_ID = context.get("monsters", {})
+        TEST_MONSTERS = tuple(TEST_MONSTERS_BY_ID.values())
+        TEST_GROUP_KEY = context.get("group_key")
         fight_started_at = context.get("fight_started_at", time.monotonic())
         placement_deadline.start(
             fight.id,
@@ -1962,7 +2401,7 @@ def session(raw, peer, service, context):
         if checkpoint is None:
             checkpoint_fight()
         record(
-            event="friendly_duel_attached",
+            event="shared_combat_owner_attached",
             actor_id=character["id"],
             fight_id=fight.id,
         )
@@ -1982,6 +2421,7 @@ def session(raw, peer, service, context):
         from wakfu_server.combat_server_spell import (
             prepare_server_initialization,
             prepare_server_turn_end,
+            server_runtime,
         )
         from wakfu_server.spells import default_deck
 
@@ -2001,7 +2441,7 @@ def session(raw, peer, service, context):
                         0 if runtime is None else runtime.native_action_id
                     ),
                     fight_start=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
-                    area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0")
+                    area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1")
                     == "1",
                 )
                 if candidate.phase == "placement" and prepared.fight.phase == "active":
@@ -2046,10 +2486,18 @@ def session(raw, peer, service, context):
                 fight_start=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
             ),
             stats_serializer=current_combat_stats,
+            runtime_stats_serializer=current_combat_stats,
             effects_serializer=actor_effects,
+            expiration_runtime_factory=lambda *, action_id: server_runtime(
+                character,
+                TEST_MONSTERS_BY_ID,
+                deck,
+                action_id=action_id,
+                critical=False,
+            )[0],
             turn_start_provider=area_boundary_provider
             if (
-                os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0") == "1"
+                os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1") == "1"
                 or os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1"
             )
             else None,
@@ -2098,13 +2546,29 @@ def session(raw, peer, service, context):
         if account_id is not None:
             now = time.monotonic()
             renew = now - last_session_renewal >= 10
-            valid = (
-                STORE.heartbeat(account_id, generation)
-                if renew
-                else STORE.current_session(account_id, generation)
-            )
-            if not valid:
+            health_started = time.monotonic()
+            session_health = STORE.session_health(account_id, generation, renew=renew)
+            health_elapsed_ms = (time.monotonic() - health_started) * 1000
+            if not session_health["valid"] or health_elapsed_ms >= 1000:
+                record(
+                    event="session_failure"
+                    if not session_health["valid"]
+                    else "session_renewal_slow",
+                    account_id=account_id,
+                    actor_id=None if character is None else character["id"],
+                    fight_id=None if fight is None else fight.id,
+                    turn_id=None if fight is None else fight.turn_id,
+                    renewal_requested=renew,
+                    health_elapsed_ms=round(health_elapsed_ms, 3),
+                    last_successful_renewal_age_seconds=None
+                    if last_session_renewal == 0
+                    else round(now - last_session_renewal, 3),
+                    **session_health,
+                )
+            if not session_health["valid"]:
                 return False
+            if renew:
+                last_session_renewal = time.monotonic()
             if combat_session is None:
                 try:
                     adopt_shared_duel()
@@ -2132,8 +2596,10 @@ def session(raw, peer, service, context):
                             fight_id=fight.id,
                             reason=str(error),
                         )
+            deliver_dungeon_transitions()
             if not sync_loaded_world_snapshot():
                 sync_static_world()
+            sync_scene_world()
             if spectator_session is not None and spectator_fight_id is not None:
                 try:
                     if character is None or (
@@ -2184,8 +2650,14 @@ def session(raw, peer, service, context):
                         reason=str(error),
                     )
                     return False
-            if renew:
-                last_session_renewal = now
+            if time.monotonic() - now >= 10:
+                record(
+                    event="session_idle_slow",
+                    account_id=account_id,
+                    actor_id=None if character is None else character["id"],
+                    fight_id=None if fight is None else fight.id,
+                    elapsed_ms=round((time.monotonic() - now) * 1000, 3),
+                )
             for map_id, instance_id, packet in HARVESTS.due_availability():
                 WORLD.emit_location(map_id, instance_id, *packet)
             if placement_deadline.take_expired(fight, now):
@@ -2256,6 +2728,8 @@ def session(raw, peer, service, context):
             if (
                 loaded
                 and character is not None
+                and fight is None
+                and combat_session is None
                 and time.monotonic() - last_health_tick >= 1
             ):
                 last_health_tick = time.monotonic()
@@ -2373,6 +2847,8 @@ def session(raw, peer, service, context):
                         )
                 if combat_session is not None and fight is not None:
                     refresh_shared_combat()
+                if loaded:
+                    deliver_dungeon_transitions(before_action=True)
                 # All transactional actions/DB refreshes see the last approved
                 # outside-world position; own-bag moves remain session-only.
                 if character is not None and opcode != 13331:
@@ -2444,6 +2920,7 @@ def session(raw, peer, service, context):
                     and not loaded
                     and opcode
                     in (
+                        14689,
                         13331,
                         12366,
                         13578,
@@ -2487,7 +2964,7 @@ def session(raw, peer, service, context):
                         ):
                             send(connection, service, message_id, message_body)
                     elif character["map_id"] != 1134:
-                        for message_id, message_body in native_transports.bootstrap(
+                        for message_id, message_body in owned_native_bootstrap(
                             character
                         ):
                             send(connection, service, message_id, message_body)
@@ -2502,9 +2979,10 @@ def session(raw, peer, service, context):
                         )
                     join_world(generation, connection, character)
                     resume_settled_shared_combat()
-                    # The first native world request is already a client-side
-                    # load barrier; later map transitions need a post-load replay.
-                    mark_static_sync_pending(world_ready=True)
+                    # Bootstrap can arrive before the client finishes loading its
+                    # scene. Initial login needs the same complete post-load replay
+                    # as map transitions, even when no movement request follows.
+                    mark_static_sync_pending()
                     send(
                         connection,
                         service,
@@ -2521,7 +2999,6 @@ def session(raw, peer, service, context):
                     and world_snapshot_pending
                     and opcode
                     in (
-                        14689,
                         13331,
                         12366,
                         13578,
@@ -2709,6 +3186,9 @@ def session(raw, peer, service, context):
                                     wp=COMBAT_TEST_WP,
                                 )
                             publish_external_marker(shared_selection)
+                            publish_spectator_state(
+                                shared_selection, abandoned_selection["packets"]
+                            )
                             if not COMBAT_SESSIONS.registry.retire_abandoned_single_owner(
                                 fight.id, combat_session
                             ):
@@ -2902,15 +3382,67 @@ def session(raw, peer, service, context):
                     character = STORE.select_character(
                         account_id, generation, request["character_id"]
                     )
+                    if is_dungeon_run(character.get("instance_id", 0)):
+                        from wakfu_server.maps import dungeon_recovery, dungeon_runtime
+                        from wakfu_server.combat_terrain import map_geometry
+
+                        dungeon_recovery.resume_member(
+                            STORE,
+                            account_id,
+                            generation,
+                            character["id"],
+                            character["instance_id"],
+                        )
+                        with STORE.connection() as dungeon_db:
+                            dungeon_runtime.ensure_current_room(
+                                dungeon_db,
+                                COMBAT_GROUPS,
+                                character["instance_id"],
+                                map_geometry(character["map_id"]),
+                            )
                     if request["character_name"] != character["name"]:
                         raise ValueError("Character name mismatch")
+                    reconnect_session = COMBAT_SESSIONS.session(
+                        account_id, generation, character
+                    )
+                    live_reconnect = COMBAT_SESSIONS.live_reconnect_available(
+                        reconnect_session
+                    )
+                    reconciliation = (
+                        None
+                        if live_reconnect
+                        else COMBAT_SESSIONS.reconcile_disconnected_pve(
+                            reconnect_session, groups=COMBAT_GROUPS
+                        )
+                    )
+                    if reconciliation is not None:
+                        orphan = reconciliation["shared"]
+                        # Durable health/abort committed before registry removal.
+                        # Refresh before regeneration, position attachment and
+                        # world bootstrap; never initialize from stale login HP.
+                        character = STORE.character(account_id, character["id"])
+                        with orphan.lock:
+                            orphan.fight.phase = "finished"
+                            orphan.fight.winner = None
+                        publish_external_marker(orphan)
+                        record(
+                            event="shared_pve_reconnect_reconciled",
+                            actor_id=character["id"],
+                            fight_id=orphan.fight.id,
+                            registry_retired=True,
+                            durable_abort=True,
+                        )
                     recovered = COMBAT_SESSIONS.recover_withdrawn_pve(
                         COMBAT_SESSIONS.session(account_id, generation, character)
                     )
                     if recovered is not None:
                         character.update(recovered)
                     character = health_store.initialize(
-                        STORE, account_id, generation, character["id"], coefficient=1
+                        STORE,
+                        account_id,
+                        generation,
+                        character["id"],
+                        coefficient=0 if live_reconnect else 1,
                     )
                     POSITIONS.attach(account_id, generation, character)
                     position = {k: character[k] for k in ("x", "y", "z")}
@@ -3780,11 +4312,9 @@ def session(raw, peer, service, context):
                         if fight is not None or bag_session is not None:
                             raise ValueError("Already in a fight or inventory session")
                         request = decode_join(body)
-                        fight_id = COMBAT_SESSIONS.registry.by_actor.get(
+                        fight_id = COMBAT_SESSIONS.registry.resolve_join_target(
                             request["target_id"]
                         )
-                        if fight_id is None:
-                            raise ValueError("Join target has no active placement")
                         shared = COMBAT_SESSIONS.registry.lookup(fight_id)
                         context = shared.join_context
                         if not isinstance(context, dict):
@@ -3801,7 +4331,10 @@ def session(raw, peer, service, context):
                             combat_session, team=target.team
                         )
                         shared = COMBAT_SESSIONS.join(
-                            combat_session, body, joined_actor
+                            combat_session,
+                            body,
+                            joined_actor,
+                            expected_fight_id=fight_id,
                         )
                         fight = shared.fight
                         fight_messages = shared.runtime
@@ -3982,6 +4515,22 @@ def session(raw, peer, service, context):
                         )
                         continue
                     durable_fight_id = None
+                    entry_stage_started = time.monotonic()
+                    entry_stage_cpu = time.thread_time()
+
+                    def entry_stage(stage):
+                        nonlocal entry_stage_started, entry_stage_cpu
+                        now, cpu = time.monotonic(), time.thread_time()
+                        record(
+                            event="combat_entry_stage",
+                            stage=stage,
+                            fight_id=durable_fight_id,
+                            map_id=character["map_id"],
+                            elapsed_ms=round((now - entry_stage_started) * 1000, 3),
+                            thread_cpu_ms=round((cpu - entry_stage_cpu) * 1000, 3),
+                        )
+                        entry_stage_started, entry_stage_cpu = now, cpu
+
                     try:
                         with COMBAT_GROUPS.lock:
                             selected_group = combat_group_for_target(
@@ -3990,12 +4539,14 @@ def session(raw, peer, service, context):
                         TEST_GROUP_KEY = selected_group["key"]
                         TEST_MONSTERS = tuple(selected_group["members"])
                         TEST_MONSTERS_BY_ID = {m["id"]: m for m in TEST_MONSTERS}
+                        entry_stage("group_selected")
                         arena = local_arena(
                             character["map_id"],
                             character["id"],
                             (character["x"], character["y"], character["z"]),
                             [(m["x"], m["y"], m["z"]) for m in TEST_MONSTERS],
                         )
+                        entry_stage("arena_selected")
                         from wakfu_server import territory_bonuses
 
                         with STORE.connection() as territory_db:
@@ -4005,6 +4556,7 @@ def session(raw, peer, service, context):
                         from wakfu_server.equipment_stats import combat_resources
 
                         resources = combat_resources(character, wp=COMBAT_TEST_WP)
+                        entry_stage("resources_built")
                         from wakfu_server.fight_store import (
                             create as create_fight_identity,
                         )
@@ -4013,8 +4565,28 @@ def session(raw, peer, service, context):
 
                         placement_duration = duration(STORE)
                         terrain_instance_id = secrets.randbelow(2**60) + 1
+                        dungeon_binding = None
+                        if (
+                            DUNGEON_ROOM_RUNTIME_AVAILABLE
+                            and character.get("instance_id", 0) > 0
+                        ):
+                            from wakfu_server.maps.dungeon_fight_binding import (
+                                bind_room_group,
+                            )
+
+                            dungeon_binding = lambda db, fight_id: bind_room_group(
+                                db,
+                                TEST_GROUP_KEY,
+                                character["id"],
+                                fight_id,
+                                player_team=0,
+                            )
                         durable_fight_id = create_fight_identity(
-                            STORE, account_id, generation, character["id"]
+                            STORE,
+                            account_id,
+                            generation,
+                            character["id"],
+                            on_created=dungeon_binding,
                         )
                         from wakfu_server.combat_placement_policy import (
                             freeze as freeze_placement,
@@ -4034,6 +4606,7 @@ def session(raw, peer, service, context):
                                 1: [(m["x"], m["y"], m["z"]) for m in TEST_MONSTERS],
                             },
                         )
+                        entry_stage("durable_placement_frozen")
                         candidate, packets = create_placement(
                             character,
                             TEST_MONSTERS,
@@ -4047,6 +4620,7 @@ def session(raw, peer, service, context):
                             terrain_instance_id=terrain_instance_id,
                             duration_ms=placement_duration,
                         )
+                        entry_stage("placement_created")
                         from wakfu_server.combat_actor_snapshot import (
                             initialize_fight_snapshots,
                         )
@@ -4073,6 +4647,7 @@ def session(raw, peer, service, context):
                             == "1",
                             initialization_warnings=initialization_warnings,
                         )
+                        entry_stage("actor_snapshots_initialized")
                         from wakfu_server.combat_forced_terrain import prewarm_map
 
                         warm_started = time.monotonic()
@@ -4205,8 +4780,21 @@ def session(raw, peer, service, context):
                             group_lease = None
                         if fight is None and durable_fight_id is not None:
                             from wakfu_server.fight_store import abort
+                            from wakfu_server.maps.dungeon_fight_binding import (
+                                abort_room_encounter,
+                            )
 
-                            abort(STORE, account_id, character["id"], durable_fight_id)
+                            abort(
+                                STORE,
+                                account_id,
+                                character["id"],
+                                durable_fight_id,
+                                on_aborted=(
+                                    abort_room_encounter
+                                    if DUNGEON_ROOM_RUNTIME_AVAILABLE
+                                    else None
+                                ),
+                            )
                         record(
                             event="combat_test_attack_rejected",
                             actor_id=character["id"],
@@ -4234,8 +4822,21 @@ def session(raw, peer, service, context):
                             group_lease = None
                         if fight is None and durable_fight_id is not None:
                             from wakfu_server.fight_store import abort
+                            from wakfu_server.maps.dungeon_fight_binding import (
+                                abort_room_encounter,
+                            )
 
-                            abort(STORE, account_id, character["id"], durable_fight_id)
+                            abort(
+                                STORE,
+                                account_id,
+                                character["id"],
+                                durable_fight_id,
+                                on_aborted=(
+                                    abort_room_encounter
+                                    if DUNGEON_ROOM_RUNTIME_AVAILABLE
+                                    else None
+                                ),
+                            )
                         raise
                 elif opcode == 12806 and fight is not None:
                     from wakfu_server.combat_bootstrap import placement_positions
@@ -4346,19 +4947,23 @@ def session(raw, peer, service, context):
                                 characters, decks = COMBAT_SESSIONS.player_sources(
                                     candidate
                                 )
-                                actor_id = cast_request["actor_id"]
-                                source = characters.get(actor_id)
-                                if source is None:
-                                    raise ValueError(
-                                        "Caster has no current owner snapshot"
-                                    )
+                                from wakfu_server.combat_cast_delivery_source import (
+                                    connected_cast_source,
+                                )
+
+                                source, owner_deck = connected_cast_source(
+                                    characters,
+                                    decks,
+                                    character["id"],
+                                    combat_session.account_id,
+                                )
                                 transaction = prepare_server_spell(
                                     body,
                                     source,
                                     TEST_MONSTERS_BY_ID,
                                     candidate,
                                     combat_session.account_id,
-                                    decks[actor_id],
+                                    owner_deck,
                                     action_id=runtime.action_id + 1,
                                     critical=None
                                     if COMBAT_TEST_CRITICAL_BRANCH == "auto"
@@ -4381,7 +4986,7 @@ def session(raw, peer, service, context):
                                     runtime,
                                     transaction,
                                     stats_serializer=lambda actor, state: current_combat_stats(
-                                        actor
+                                        actor, state
                                     ),
                                     diagnostic=lambda **details: record(
                                         event="combat_commit_stage", **details
@@ -4427,6 +5032,18 @@ def session(raw, peer, service, context):
                                 ),
                                 actor_id=transaction.plan["actor_id"],
                                 spell_id=transaction.plan["spell_id"],
+                                cast_diagnostics=transaction.plan.get(
+                                    "cast_diagnostics"
+                                ),
+                                native_casting_selection=transaction.plan.get(
+                                    "native_casting_selection"
+                                ),
+                                native_casting_flags=transaction.plan.get(
+                                    "native_casting_flags"
+                                ),
+                                native_casting_diagnostic=transaction.plan.get(
+                                    "native_casting_diagnostic"
+                                ),
                                 critical_decision=transaction.plan.get(
                                     "critical_decision"
                                 ),
@@ -4441,6 +5058,18 @@ def session(raw, peer, service, context):
                                 actor_id=cast_request.get("actor_id"),
                                 spell_uid=cast_request.get("spell_uid"),
                                 target=cast_request.get("target"),
+                                cast_diagnostics=getattr(
+                                    error, "cast_diagnostics", None
+                                ),
+                                native_casting_result=getattr(
+                                    error, "native_casting_result", None
+                                ),
+                                native_casting_diagnostic=getattr(
+                                    error, "native_casting_diagnostic", None
+                                ),
+                                cast_validation_code=getattr(
+                                    error, "cast_validation_code", None
+                                ),
                                 reason=str(error),
                             )
                             from wakfu_server.combat_initialization_policy import (
@@ -4501,7 +5130,7 @@ def session(raw, peer, service, context):
                             fight_messages,
                             transaction,
                             stats_serializer=lambda actor, state: current_combat_stats(
-                                actor
+                                actor, state
                             ),
                             diagnostic=lambda **details: record(
                                 event="combat_commit_stage", **details
@@ -4528,6 +5157,16 @@ def session(raw, peer, service, context):
                             ),
                             actor_id=character["id"],
                             spell_id=transaction.plan["spell_id"],
+                            cast_diagnostics=transaction.plan.get("cast_diagnostics"),
+                            native_casting_selection=transaction.plan.get(
+                                "native_casting_selection"
+                            ),
+                            native_casting_flags=transaction.plan.get(
+                                "native_casting_flags"
+                            ),
+                            native_casting_diagnostic=transaction.plan.get(
+                                "native_casting_diagnostic"
+                            ),
                             critical_decision=transaction.plan.get("critical_decision"),
                             costs=transaction.plan["costs"],
                             resources_before={
@@ -4568,6 +5207,16 @@ def session(raw, peer, service, context):
                             actor_id=character["id"],
                             spell_uid=cast_request.get("spell_uid"),
                             target=cast_request.get("target"),
+                            cast_diagnostics=getattr(error, "cast_diagnostics", None),
+                            native_casting_result=getattr(
+                                error, "native_casting_result", None
+                            ),
+                            native_casting_diagnostic=getattr(
+                                error, "native_casting_diagnostic", None
+                            ),
+                            cast_validation_code=getattr(
+                                error, "cast_validation_code", None
+                            ),
                             reason=str(error),
                         )
                         from wakfu_server.combat_initialization_policy import (
@@ -4693,7 +5342,7 @@ def session(raw, peer, service, context):
                                     runtime,
                                     transaction,
                                     stats_serializer=lambda actor, state: current_combat_stats(
-                                        actor
+                                        actor, state
                                     ),
                                     diagnostic=lambda **details: record(
                                         event="combat_commit_stage", **details
@@ -4810,7 +5459,7 @@ def session(raw, peer, service, context):
                                 fight_messages,
                                 transaction,
                                 stats_serializer=lambda actor, state: current_combat_stats(
-                                    actor
+                                    actor, state
                                 ),
                                 diagnostic=lambda **details: record(
                                     event="combat_commit_stage", **details
@@ -4887,7 +5536,7 @@ def session(raw, peer, service, context):
                                 fight_messages,
                                 transaction,
                                 stats_serializer=lambda actor, state: current_combat_stats(
-                                    actor
+                                    actor, state
                                 ),
                                 diagnostic=lambda **details: record(
                                     event="combat_commit_stage", **details
@@ -4980,7 +5629,11 @@ def session(raw, peer, service, context):
                             if body != b"":
                                 raise ValueError("Invalid native abandon request")
                             shared = refresh_shared_combat()
-                            if getattr(shared, "is_duel", False):
+                            if shared.fight.phase == "finished":
+                                # Retry the original terminal settlement;
+                                # a finished victory must not become defeat.
+                                complete_test_fight()
+                            elif getattr(shared, "is_duel", False):
                                 if not COMBAT_SESSIONS.registry.forfeit_duel(
                                     combat_session, reason="defeat"
                                 ):
@@ -5048,6 +5701,8 @@ def session(raw, peer, service, context):
                                     abandoned["packets"]
                                 ):
                                     send(connection, service, message_id, payload)
+                                publish_external_marker(shared)
+                                publish_spectator_state(shared, abandoned["packets"])
                                 record(
                                     event="shared_pve_abandoned_waiting_return",
                                     actor_id=character["id"],
@@ -5118,7 +5773,7 @@ def session(raw, peer, service, context):
                         position = {key: character[key] for key in ("x", "y", "z")}
                         movement_state = Movement(position)
                         WORLD.leave(character["id"], generation)
-                        for packet in native_transports.bootstrap(character):
+                        for packet in owned_native_bootstrap(character):
                             send(connection, service, *packet)
                         join_world(generation, connection, character)
                         loaded = True
@@ -5293,9 +5948,7 @@ def session(raw, peer, service, context):
                         position = {key: character[key] for key in ("x", "y", "z")}
                         movement_state = Movement(position)
                         WORLD.leave(character["id"], generation)
-                        for message_id, payload in native_transports.bootstrap(
-                            character
-                        ):
+                        for message_id, payload in owned_native_bootstrap(character):
                             send(connection, service, message_id, payload)
                         from wakfu_server.combat_monster_world import spawn_group
 
@@ -5483,16 +6136,11 @@ def session(raw, peer, service, context):
                                     runtime,
                                     combat_session.account_id,
                                     body,
-                                    lambda actor: actual_actor_stats(
-                                        characters[actor.id],
-                                        actor,
-                                        candidate.id,
-                                        wp_current=live_wp(candidate, actor.id)[0],
-                                        wp_maximum=live_wp(candidate, actor.id)[1],
-                                    ),
+                                    current_combat_stats,
+                                    runtime_stats_serializer=current_combat_stats,
                                     area_provider=area_movement_provider
                                     if os.environ.get(
-                                        "WAKFU_NATIVE_AREA_CALLBACKS", "0"
+                                        "WAKFU_NATIVE_AREA_CALLBACKS", "1"
                                     )
                                     == "1"
                                     else None,
@@ -5528,15 +6176,10 @@ def session(raw, peer, service, context):
                             fight_messages,
                             account_id,
                             body,
-                            lambda actor: actual_actor_stats(
-                                character,
-                                actor,
-                                fight.id,
-                                wp_current=live_wp(fight, character["id"])[0],
-                                wp_maximum=live_wp(fight, character["id"])[1],
-                            ),
+                            current_combat_stats,
+                            runtime_stats_serializer=current_combat_stats,
                             area_provider=area_movement_provider
-                            if os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0") == "1"
+                            if os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1") == "1"
                             else None,
                         )
                         packets = fight_messages.prepare_delivery(packets)
@@ -5704,9 +6347,58 @@ def session(raw, peer, service, context):
                             actor_id=character["id"],
                             reason=str(error),
                         )
+                elif opcode == 13571 and loaded:
+                    from wakfu_server.characters.captured_roster_selection import select
+                    from psycopg import Error as DatabaseError
+                    from psycopg_pool import PoolTimeout
+
+                    try:
+                        selected_record = {}
+                        if combat_session is not None:
+                            from wakfu_server.combat_shared import Transition
+
+                            def shared_select(candidate, runtime):
+                                selected_record.update(
+                                    select(
+                                        STORE,
+                                        account_id,
+                                        character,
+                                        body,
+                                        fight=candidate,
+                                    )
+                                )
+                                return Transition(candidate, runtime, ())
+
+                            COMBAT_SESSIONS.execute(
+                                combat_session,
+                                fight.id,
+                                combat_session.character_id,
+                                shared_select,
+                                require_turn=False,
+                            )
+                            refresh_shared_combat()
+                            checkpoint_fight()
+                        else:
+                            selected_record = select(
+                                STORE, account_id, character, body, fight=fight
+                            )
+                            if fight is not None:
+                                checkpoint_fight()
+                        character["captured_roster"] = selected_record
+                        record(
+                            event="symbiot_selection",
+                            actor_id=character["id"],
+                            slot=selected_record["selected_slot"],
+                        )
+                    except (ValueError, DatabaseError, PoolTimeout) as error:
+                        record(
+                            event="symbiot_selection_rejected",
+                            actor_id=character["id"],
+                            reason=str(error),
+                        )
                 elif opcode == 14689 and loaded:
                     if not sync_loaded_world_snapshot(force=True):
-                        sync_static_world(force=True)
+                        sync_static_world()
                     record(
                         event="transport_objects_initialized",
                         actor_id=character["id"],
@@ -6173,7 +6865,7 @@ def session(raw, peer, service, context):
                         POSITIONS.attach(account_id, generation, character)
                         position = {key: character[key] for key in ("x", "y", "z")}
                         movement_state = Movement(position)
-                        for message_id, message_body in native_transports.bootstrap(
+                        for message_id, message_body in owned_native_bootstrap(
                             character
                         ):
                             send(connection, service, message_id, message_body)
@@ -6192,6 +6884,130 @@ def session(raw, peer, service, context):
 
                     generic_route = False
                     try:
+                        if (
+                            DUNGEON_TRANSITION_OUTBOX_AVAILABLE
+                            and DUNGEON_ROOM_RUNTIME_AVAILABLE
+                        ):
+                            from wakfu_server.maps import (
+                                dungeon_transport,
+                                dungeon_criteria,
+                                dungeon_runtime,
+                            )
+                            from wakfu_server.combat_terrain import map_geometry
+
+                            if is_dungeon_run(character.get("instance_id", 0)):
+                                from wakfu_server.maps import (
+                                    dungeon_doors,
+                                    dungeon_exit,
+                                )
+
+                                with STORE.connection() as dungeon_db:
+                                    (
+                                        _,
+                                        dungeon_config,
+                                    ) = dungeon_runtime.configuration_for_instance(
+                                        dungeon_db, character["instance_id"]
+                                    )
+                                if (
+                                    dungeon_config["topology"].get("policy")
+                                    == "local_accessible_anchor_policy"
+                                ):
+                                    raise ValueError(
+                                        "This dungeon uses automatic party travel"
+                                    )
+                                source_id, destination_id, _, _ = struct.unpack(
+                                    ">qiBi", body
+                                )
+                                source = generic_transports.source(
+                                    character["map_id"], source_id
+                                )
+                                destination = next(
+                                    (
+                                        row
+                                        for row in (source or {}).get(
+                                            "destinations", ()
+                                        )
+                                        if row["destination_id"] == destination_id
+                                    ),
+                                    None,
+                                )
+                                if destination is None:
+                                    raise ValueError(
+                                        "Dungeon teleporter destination is absent"
+                                    )
+                                approach = teleporter_approach.callback(
+                                    movement_state,
+                                    map_id=character["map_id"],
+                                    instance_id=character["instance_id"],
+                                )
+
+                                def dungeon_member_in_fight(actor_id):
+                                    if actor_id == character["id"] and (
+                                        fight is not None or combat_session is not None
+                                    ):
+                                        return True
+                                    return (
+                                        COMBAT_SESSIONS.lookup_character(actor_id)
+                                        is not None
+                                    )
+
+                                if destination["map_id"] != character["map_id"]:
+                                    dungeon_exit.leave(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character["id"],
+                                        body,
+                                        source_allowed=approach,
+                                        in_fight=dungeon_member_in_fight,
+                                    )
+                                else:
+                                    dungeon_doors.advance(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character["id"],
+                                        body,
+                                        source_allowed=approach,
+                                        in_fight=dungeon_member_in_fight,
+                                        room_for_position=lambda map_id, x, y, z: dungeon_runtime.room_for_position(
+                                            dungeon_config, map_id, x, y, z
+                                        ),
+                                    )
+                                deliver_dungeon_transitions(before_action=True)
+                                continue
+                            configured_entry = dungeon_transport.resolve_request(
+                                character["map_id"], body
+                            )
+                            if configured_entry is not None:
+                                geometry = map_geometry(
+                                    configured_entry["route"].start_map_id
+                                )
+                                dungeon_transport.enter(
+                                    STORE,
+                                    account_id,
+                                    generation,
+                                    character["id"],
+                                    character["map_id"],
+                                    body,
+                                    criterion_allowed=lambda actor, criterion: dungeon_criteria.evaluate(
+                                        STORE, criterion, character=actor
+                                    ),
+                                    source_allowed=teleporter_approach.callback(
+                                        movement_state,
+                                        map_id=character["map_id"],
+                                        instance_id=character.get("instance_id", 0),
+                                    ),
+                                    resolve_destination=dungeon_runtime.entry_destination,
+                                    initialize_instance=lambda db, session: dungeon_runtime.initialize_instance(
+                                        db,
+                                        session,
+                                        groups=COMBAT_GROUPS,
+                                        geometry=geometry,
+                                    ),
+                                )
+                                deliver_dungeon_transitions(before_action=True)
+                                continue
                         identity = (
                             struct.unpack_from(">q", body)[0]
                             if len(body) == 17
@@ -6237,7 +7053,19 @@ def session(raw, peer, service, context):
                             connection,
                             service,
                             13974,
-                            wire.adapt(13974, fixture(13974), account_id, character),
+                            (
+                                next(
+                                    payload
+                                    for message_id, payload in owned_native_bootstrap(
+                                        character
+                                    )
+                                    if message_id == 13974
+                                )
+                                if is_dungeon_run(character.get("instance_id", 0))
+                                else wire.adapt(
+                                    13974, fixture(13974), account_id, character
+                                )
+                            ),
                         )
                     else:
                         cancel_crafting()
@@ -6247,7 +7075,7 @@ def session(raw, peer, service, context):
                         position = {key: character[key] for key in ("x", "y", "z")}
                         movement_state = Movement(position)
                         messages = (
-                            native_transports.bootstrap(
+                            owned_native_bootstrap(
                                 character, direction=destination_route["direction"]
                             )
                             if generic_route
@@ -6754,7 +7582,7 @@ def session(raw, peer, service, context):
                     if bag_session is None or not bag_session.owns(character):
                         # A missing cyV13019 notification could leave bag UI
                         # active after the exterior map was already restored.
-                        for message_id, message_body in leave_messages(
+                        for message_id, message_body in owned_haven_leave(
                             fixture(13974), character
                         ):
                             send(connection, service, message_id, message_body)
@@ -6767,7 +7595,7 @@ def session(raw, peer, service, context):
                     bag_session = None
                     position = {key: character[key] for key in ("x", "y", "z")}
                     movement_state = Movement(position)
-                    for message_id, message_body in leave_messages(
+                    for message_id, message_body in owned_haven_leave(
                         fixture(13974), character
                     ):
                         send(connection, service, message_id, message_body)
@@ -6779,10 +7607,22 @@ def session(raw, peer, service, context):
                         position=position,
                     )
                 elif opcode == 13331 and loaded:
+                    movement_started = time.monotonic()
+                    movement_timings = {}
                     PLANTINGS.cancel(character["id"], generation)
                     HARVESTS.cancel(character["id"], generation=generation)
+                    movement_timings["cancel_occupations_ms"] = round(
+                        (time.monotonic() - movement_started) * 1000, 3
+                    )
                     movement = decode_body("out", opcode, body)
                     if not movement["steps"]:
+                        record(
+                            event="movement_zero_step_ignored",
+                            actor_id=character["id"],
+                            mode_id=movement["mode_id"],
+                            start=movement["start_position"],
+                            authoritative_position=position,
+                        )
                         continue
                     start = movement["start_position"]
                     end = movement["end_position"]
@@ -6817,7 +7657,12 @@ def session(raw, peer, service, context):
                             start=start,
                         )
                     if end != position:
+                        crafting_cancel_started = time.monotonic()
                         cancel_crafting()
+                        movement_timings["cancel_crafting_ms"] = round(
+                            (time.monotonic() - crafting_cancel_started) * 1000, 3
+                        )
+                    position_update_started = time.monotonic()
                     if bag_session is not None and bag_session.owns(character):
                         try:
                             character = bag_session.move(character, end)
@@ -6856,9 +7701,28 @@ def session(raw, peer, service, context):
                         )
                     movement_state.commit(approved)
                     position = end
-                    # A valid movement path is not an acknowledgement that
-                    # every current-map interactive has finished loading.
-                    sync_static_world(force=True)
+                    movement_timings["position_update_ms"] = round(
+                        (time.monotonic() - position_update_started) * 1000, 3
+                    )
+                    world_publish_started = time.monotonic()
+                    # The client loads/unloads scene partitions during its local
+                    # walk. Queue their dynamic states after loading, not a full
+                    # map reconstruction before the first walking frame.
+                    scene_path = [dict(start)]
+                    for step in movement["steps"]:
+                        previous = scene_path[-1]
+                        scene_path.append(
+                            {
+                                axis: previous[axis] + step["d" + axis]
+                                for axis in ("x", "y", "z")
+                            }
+                        )
+                    scene_sync.arm(
+                        character["map_id"],
+                        character.get("instance_id", 0),
+                        scene_path,
+                        time.monotonic(),
+                    )
                     # The owner already follows this path locally. Rebuilding
                     # an endpoint path on it interrupts redirects and stairs.
                     # Other clients receive every packed step and its height.
@@ -6866,6 +7730,10 @@ def session(raw, peer, service, context):
                     WORLD.update(
                         generation, character, 13852, response, include_sender=False
                     )
+                    movement_timings["world_publish_ms"] = round(
+                        (time.monotonic() - world_publish_started) * 1000, 3
+                    )
+                    ecology_context_started = time.monotonic()
                     if bag_session is None:
                         send_planting_context(
                             connection,
@@ -6881,6 +7749,18 @@ def session(raw, peer, service, context):
                         start=start,
                         end=end,
                         steps=movement["step_count"],
+                        mode_id=movement["mode_id"],
+                        final_direction=movement["steps"][-1]["direction"],
+                        approved_path_points=len(approved),
+                        animation_owner="local_client",
+                        path_echo_to_owner=False,
+                        elapsed_ms=round(
+                            (time.monotonic() - movement_started) * 1000, 3
+                        ),
+                        ecology_context_ms=round(
+                            (time.monotonic() - ecology_context_started) * 1000, 3
+                        ),
+                        **movement_timings,
                     )
                 elif opcode in (13074, 13224, 13188, 13831) and loaded:
                     from psycopg import Error as DatabaseError
@@ -7015,12 +7895,54 @@ def session(raw, peer, service, context):
                             actor_id=character["id"],
                             opcode=opcode,
                             reason=type(error).__name__,
+                            sqlstate=getattr(error, "sqlstate", None),
+                            constraint=getattr(
+                                getattr(error, "diag", None), "constraint_name", None
+                            ),
                         )
                     else:
                         record(
                             event="party_request",
                             actor_id=character["id"],
                             opcode=opcode,
+                        )
+                elif opcode in (12455, 13765) and loaded:
+                    from wakfu_server.characters.cosmetics import (
+                        OwnedCosmetics,
+                        actor_update,
+                    )
+
+                    try:
+                        if fight is not None:
+                            raise ValueError("Cosmetic selection requires exploration")
+                        character = STORE.equip_owned_finishers(
+                            account_id, character["id"], opcode, body
+                        )
+                        cosmetics = OwnedCosmetics.from_record(
+                            character["owned_cosmetics"], account_id=account_id
+                        )
+                        send(
+                            connection,
+                            service,
+                            13873,
+                            struct.pack(">II", 2, 8)
+                            + cosmetics.inventory_component()
+                            + struct.pack(">I", 9)
+                            + cosmetics.preset_component(),
+                        )
+                        cosmetic_opcode, cosmetic_body = actor_update(character)
+                        send(connection, service, cosmetic_opcode, cosmetic_body)
+                        record(
+                            event="owned_finishers_selected",
+                            actor_id=character["id"],
+                            opcode=opcode,
+                        )
+                    except ValueError as error:
+                        record(
+                            event="owned_finishers_rejected",
+                            actor_id=character["id"],
+                            opcode=opcode,
+                            reason=str(error),
                         )
                 elif opcode == 13917 and loaded:
                     from psycopg import Error as DatabaseError
@@ -7066,6 +7988,53 @@ def session(raw, peer, service, context):
                         )
                 elif opcode == 12366 and loaded:
                     text = decode_body("out", opcode, body)["text"].strip()
+                    if text.lower() in ("!exitdungeon", "!salirmazmorra"):
+                        try:
+                            from wakfu_server.maps import dungeon_exit
+
+                            def exit_member_in_fight(actor_id):
+                                if actor_id == character["id"] and (
+                                    fight is not None or combat_session is not None
+                                ):
+                                    return True
+                                return (
+                                    COMBAT_SESSIONS.lookup_character(actor_id)
+                                    is not None
+                                )
+
+                            record(
+                                event="dungeon_exit_requested",
+                                actor_id=character["id"],
+                                instance_id=character.get("instance_id", 0),
+                            )
+                            dungeon_exit.leave_automatic(
+                                STORE,
+                                account_id,
+                                generation,
+                                character["id"],
+                                in_fight=exit_member_in_fight,
+                            )
+                            deliver_dungeon_transitions(before_action=True)
+                            answer = "Has salido de la mazmorra."
+                        except (
+                            ValueError,
+                            PermissionError,
+                            DatabaseError,
+                            PoolTimeout,
+                        ) as error:
+                            answer = str(error)
+                            record(
+                                event="dungeon_exit_rejected",
+                                actor_id=character["id"],
+                                reason=answer,
+                            )
+                        send(
+                            connection,
+                            service,
+                            674,
+                            wire.chat(dict(character, name="Información"), answer),
+                        )
+                        continue
                     if (
                         text.startswith("!")
                         and os.environ.get("WAKFU_TEST_CONSOLE", "1") == "1"
@@ -7180,16 +8149,47 @@ def session(raw, peer, service, context):
         if service == "world" and flora_ticket is not None:
             logout_barrier("flora_occupation", cancel_flora)
         if service == "world":
-            logout_barrier(
-                "fight_checkpoint",
-                lambda: checkpoint_fight(
-                    None
-                    if combat_session is not None
-                    else (
-                        "ended"
-                        if fight is not None and fight.phase == "finished"
-                        else "aborted"
+            from wakfu_server.combat.checkpoint_worker import checkpoint_cleanup_barrier
+
+            checkpoint_cleanup_barrier(
+                lambda: logout_barrier(
+                    "fight_checkpoint",
+                    lambda: checkpoint_fight(
+                        None
+                        if combat_session is not None
+                        else (
+                            "ended"
+                            if fight is not None and fight.phase == "finished"
+                            else "aborted"
+                        )
+                    ),
+                ),
+                failed=lambda error: record(
+                    event="logout_checkpoint_failed",
+                    stage="save",
+                    actor_id=None if character is None else character["id"],
+                    reason=redact(str(error)),
+                    traceback=exception_frames(error),
+                ),
+            )
+        if service == "world" and fight is not None:
+
+            def flush_logout_checkpoint():
+                if not CHECKPOINT_WRITER.flush_fight(fight.id, timeout=10):
+                    raise ValueError(
+                        "Pending checkpoint exceeded logout flush deadline"
                     )
+
+            checkpoint_cleanup_barrier(
+                lambda: logout_barrier(
+                    "fight_checkpoint_flush", flush_logout_checkpoint
+                ),
+                failed=lambda error: record(
+                    event="logout_checkpoint_failed",
+                    stage="flush",
+                    actor_id=None if character is None else character["id"],
+                    reason=redact(str(error)),
+                    traceback=exception_frames(error),
                 ),
             )
         shared_fight_retained = False
@@ -7198,7 +8198,16 @@ def session(raw, peer, service, context):
             try:
                 disconnected_fights = COMBAT_SESSIONS.disconnect(combat_session)
                 shared_fight_retained = bool(disconnected_fights)
-                if shared_fight_retained:
+                if not disconnected_fights:
+                    current_shared = COMBAT_SESSIONS.lookup_character(
+                        combat_session.character_id
+                    )
+                    shared_fight_retained = (
+                        current_shared is not None
+                        and current_shared.participants.get(combat_session.account_id)
+                        != combat_session
+                    )
+                if disconnected_fights:
                     shared_entry = COMBAT_SESSIONS.registry.lookup(fight.id)
                     if getattr(shared_entry, "is_duel", False):
                         forfeited = COMBAT_SESSIONS.registry.forfeit_duel(
@@ -7218,11 +8227,10 @@ def session(raw, peer, service, context):
                                 fight_id=fight.id,
                             )
                     elif shared_entry.disconnect_abort_pending:
-                        # Last PvE owner: persist this actor's exit and abort
-                        # the durable fight below before unregistering actors
-                        # or releasing the encounter group.
-                        last_owner_pve_abort = (fight.id, combat_session, shared_entry)
-                        shared_fight_retained = False
+                        # Transport loss retains the live native FSM/checkpoint.
+                        # A selected replacement lease can durably take over;
+                        # explicit abandonment still follows its terminal path.
+                        shared_fight_retained = True
                     elif (
                         not shared_entry.connected
                         and len(
@@ -7298,7 +8306,20 @@ def session(raw, peer, service, context):
                     with shared_abort.lock:
                         shared_abort.fight.phase = "finished"
                         shared_abort.fight.winner = None
+                    from wakfu_server.combat_abandon import aborted_terminal_packets
+
+                    losing_team = shared_abort.fight.actors[
+                        exited_session.character_id
+                    ].team
                     publish_external_marker(shared_abort)
+                    publish_spectator_state(
+                        shared_abort,
+                        aborted_terminal_packets(
+                            shared_abort.fight,
+                            shared_abort.runtime,
+                            losing_team=losing_team,
+                        ),
+                    )
                     if shared_abort.group_lease is not None:
                         context = shared_abort.join_context or {}
                         members = context.get("monsters")
@@ -7334,7 +8355,19 @@ def session(raw, peer, service, context):
                         fight_id, exited_session
                     )
                 ):
+                    from wakfu_server.combat_abandon import aborted_terminal_packets
+
                     publish_external_marker(shared_abort)
+                    publish_spectator_state(
+                        shared_abort,
+                        aborted_terminal_packets(
+                            shared_abort.fight,
+                            shared_abort.runtime,
+                            losing_team=shared_abort.fight.actors[
+                                exited_session.character_id
+                            ].team,
+                        ),
+                    )
                     record(
                         event="shared_pve_abandon_disconnected",
                         actor_id=exited_session.character_id,
@@ -7607,6 +8640,22 @@ def main():
         started = time.monotonic()
         module_info = preload_combat_modules()
         static_info = prewarm_runtime_catalogs()
+        import subprocess, sys
+
+        subprocess.run(
+            [
+                sys.executable,
+                os.path.join(
+                    os.environ.get(
+                        "WAKFU_AI_SDK_DIR",
+                        os.path.join(os.path.dirname(__file__), "ai-service"),
+                    ),
+                    "prepare_catalog_cache.py",
+                ),
+                "--seal",
+            ],
+            check=True,
+        )
         record(
             event="combat_catalogs_ready",
             elapsed_ms=round((time.monotonic() - started) * 1000, 3),

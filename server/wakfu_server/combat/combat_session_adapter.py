@@ -189,11 +189,17 @@ class CombatSessionAdapter:
     def player_sources(self, fight):
         """Return fresh owner character/deck snapshots for the entire roster."""
         from wakfu_server.spells import default_deck
+        from .combat_terminal_metadata import registered_summon_actor_ids
 
         characters = {}
         decks = {}
+        summon_ids = registered_summon_actor_ids(fight)
         for actor in fight.actors.values():
-            if not actor.controlled or getattr(actor, "pve_withdrawn", False):
+            if (
+                not actor.controlled
+                or actor.id in summon_ids
+                or getattr(actor, "pve_withdrawn", False)
+            ):
                 continue
             character = self.store.character(actor.owner_id, actor.id)
             if character.get("deleted_at") is not None:
@@ -291,7 +297,12 @@ class CombatSessionAdapter:
                 packets.extend(owned_packets)
             return preview, tuple(packets)
 
-        def stats_serializer(actor):
+        def stats_serializer(actor, state=None):
+            current = fight if state is None else state
+            if actor.id in getattr(current, "native_summon_registrations", {}):
+                from .combat_summon_stats import registered_summon_stats
+
+                return registered_summon_stats(actor, current, current.map_id)
             if actor.controlled:
                 source = characters.get(actor.id)
                 if source is None:
@@ -361,13 +372,28 @@ class CombatSessionAdapter:
                 **boundary,
             )
 
+        def expiration_factory(*, action_id):
+            from .combat_server_spell import server_runtime
+
+            return server_runtime(
+                first_character,
+                monsters,
+                first_deck,
+                action_id=action_id,
+                critical=False,
+                player_characters=characters,
+                deck_blobs=decks,
+            )[0]
+
         candidate, candidate_runtime, packets = prepare_ready(
             fight,
             session.account_id,
             ready,
             initialize=initialize,
             stats_serializer=stats_serializer,
+            runtime_stats_serializer=stats_serializer,
             effects_serializer=actor_effects,
+            expiration_runtime_factory=expiration_factory,
             turn_end_provider=turn_end if fight_start else None,
             turn_start_provider=turn_start if fight_start or area_callbacks else None,
             previous_native_action_id=previous_native_action_id,
@@ -402,7 +428,12 @@ class CombatSessionAdapter:
         )
         from wakfu_server.breed_resources import live_wp
 
-        if actor.controlled:
+        if actor.id in getattr(fight, "native_summon_registrations", {}):
+            from wakfu_server.combat_summon_stats import registered_summon_stats
+
+            shared = self.registry.lookup(fight.id)
+            stats = registered_summon_stats(actor, fight, shared.map_id)
+        elif actor.controlled:
             character = self.store.character(actor.owner_id, actor.id)
             stats = actual_actor_stats(
                 character,
@@ -428,7 +459,13 @@ class CombatSessionAdapter:
                 wp_current=current[0],
                 wp_maximum=current[1],
             )
-        return stats, actor_effects()
+        if fight.phase == "active":
+            from wakfu_server.combat_remote_effects import active_actor_effects
+
+            effects = active_actor_effects(fight, actor.id)
+        else:
+            effects = actor_effects()
+        return stats, effects
 
     @staticmethod
     def placement_bootstrap(fight, shared, session):
@@ -474,6 +511,7 @@ class CombatSessionAdapter:
         *,
         actor_payload=None,
         bootstrap_packets=None,
+        expected_fight_id=None,
     ):
         """Persist a same-team placement member before publishing its outbox.
 
@@ -484,9 +522,9 @@ class CombatSessionAdapter:
         from wakfu_server.combat_multiplayer_wire import decode_join
 
         request = decode_join(body)
-        fight_id = self.registry.by_actor.get(request["target_id"])
-        if fight_id is None:
-            raise ValueError("Target has no registered fight")
+        fight_id = self.registry.resolve_join_target(request["target_id"])
+        if expected_fight_id is not None and fight_id != expected_fight_id:
+            raise ValueError("Join target changed during admission")
         shared = self.registry.lookup(fight_id)
         if request["target_id"] not in shared.fight.actors:
             raise ValueError("Join target disappeared")
@@ -514,6 +552,7 @@ class CombatSessionAdapter:
             actor_payload=actor_payload,
             bootstrap_packets=bootstrap_packets,
             persist_member=persist,
+            expected_fight_id=fight_id,
         )
 
     def ready(self, session, fight_id, ready, packets):
@@ -564,6 +603,23 @@ class CombatSessionAdapter:
             raise ValueError("Invalid native abandon request")
         from .combat_pve_withdraw_store import persist
 
+        from .combat_captured_roster_lifecycle import restore_departing_roster
+
+        teardown = {}
+
+        def owned_teardown(candidate):
+            restore_departing_roster(candidate, character)
+            teardown["fight"] = candidate
+
+        def persist_owned(original):
+            return persist(
+                self.store,
+                session,
+                character,
+                original,
+                captured_departure_fight=teardown["fight"],
+            )
+
         def placement_ready(shared, fight, runtime):
             remaining = next(
                 participant
@@ -588,7 +644,8 @@ class CombatSessionAdapter:
 
         return self.registry.withdraw_pve(
             session,
-            persist=lambda original: persist(self.store, session, character, original),
+            persist=persist_owned,
+            owned_teardown=owned_teardown,
             placement_ready=placement_ready,
         )
 
@@ -657,6 +714,63 @@ class CombatSessionAdapter:
         )
         return saved if saved is not None else recover_pending(self.store, session)
 
+    def live_reconnect_available(self, session):
+        """Distinguish durable live ownership from an aborted stale registry entry."""
+        shared = self.lookup_character(session.character_id)
+        if shared is None:
+            return False
+        with shared.lock:
+            previous = shared.participants.get(session.account_id)
+            if (
+                previous is None
+                or previous.character_id != session.character_id
+                or session.account_id in shared.returned
+                or session.account_id in shared.withdrawals
+                or shared.fight.phase not in ("placement", "active")
+                or shared.settlement_ready
+            ):
+                return False
+            with self.store.connection() as db:
+                row = db.execute(
+                    "SELECT f.status,p.session_generation FROM combat_fights f "
+                    "JOIN combat_fight_participants p ON p.fight_id=f.id "
+                    "WHERE f.id=%s AND p.character_id=%s AND p.account_id=%s",
+                    (shared.fight.id, session.character_id, session.account_id),
+                ).fetchone()
+            if row is None:
+                raise ValueError("Live combat has no durable participant authority")
+            if row["status"] == "aborted":
+                return False
+            if row["status"] != shared.fight.phase:
+                raise ValueError("Live combat phase differs from durable checkpoint")
+            if row["session_generation"] not in (
+                previous.generation,
+                session.generation,
+            ):
+                raise ValueError("Live combat durable lease differs from owner")
+            return True
+
+    def owned_reconnect_bootstrap(self, fight, shared, session):
+        from .combat_reconnect_snapshot import owned_snapshot
+
+        return owned_snapshot(fight, shared, session, actor_payload=self.actor_payload)
+
+    def reconcile_disconnected_pve(self, session, *, groups=None):
+        """Heal an orphaned old lease before initializing a reconnect's world HP."""
+        from .combat_health import persist_aborted_shared_fight
+
+        def persist(previous, shared):
+            if shared.participants.get(session.account_id) != previous:
+                raise ValueError("Disconnected PvE owner changed during recovery")
+            return persist_aborted_shared_fight(
+                self.store,
+                shared,
+                groups=groups,
+                reconnecting_session=session,
+            )
+
+        return self.registry.reconcile_disconnected_pve(session, persist)
+
     def settle_finished(self, session, fight_id, prepare_packets):
         return self.registry.settle_finished(fight_id, session, prepare_packets)
 
@@ -694,4 +808,59 @@ class CombatSessionAdapter:
             session,
             lambda fight, shared, owner: (),
             persist_takeover=persist,
+        )
+
+    def recover_settled_world(self, session, character, *, wp, ap=6, mp=3):
+        """Resolve a terminal PvE reconnect that has already loaded world state."""
+        if (
+            not isinstance(character, dict)
+            or character.get("id") != session.character_id
+            or character.get("account_id") != session.account_id
+        ):
+            raise ValueError("Settled world recovery character does not match lease")
+
+        def persist(previous, shared):
+            from .combat_lifecycle import recover_settled_world
+
+            if shared.participants.get(session.account_id) != previous:
+                raise ValueError("Settled fight changed during world recovery")
+            return recover_settled_world(
+                self.store,
+                session.account_id,
+                session.generation,
+                character,
+                shared.fight,
+                previous_generation=previous.generation,
+                wp=wp,
+                ap=ap,
+                mp=mp,
+            )
+
+        shared = self.registry.lookup_character(session.character_id)
+        if shared is not None:
+            return self.registry.recover_settled_world(session, persist)
+
+        # After process restart the in-memory Registry is empty. A terminal
+        # snapshot committed with settlement is sufficient to restore this
+        # owner directly to the already-loaded world, without fight replay.
+        from .fight_store import recoverable_finished_fight
+
+        candidate = recoverable_finished_fight(
+            self.store, session.account_id, session.character_id
+        )
+        if candidate is None:
+            return None
+        from .combat_lifecycle import recover_settled_world
+
+        return recover_settled_world(
+            self.store,
+            session.account_id,
+            session.generation,
+            character,
+            None,
+            previous_generation=candidate["previous_generation"],
+            fight_id=candidate["fight_id"],
+            wp=wp,
+            ap=ap,
+            mp=mp,
         )

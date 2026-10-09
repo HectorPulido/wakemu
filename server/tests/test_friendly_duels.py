@@ -854,6 +854,15 @@ class FriendlyDuelStoreTests(PostgresCase):
             {actor.team for actor in fight.actors.values() if actor.controlled}, {0, 1}
         )
         self.assertEqual(fight.native_effect_uid_next, 1)
+        from wakfu_server.combat_qi_fight import current_registry
+
+        registry = current_registry(fight)
+        for actor in fight.actors.values():
+            slot = registry.slots[actor.native_obstacle_id]
+            self.assertEqual(slot["identity"], ["actor", actor.id])
+            self.assertEqual(slot["position"], list(actor.position[:2]))
+            self.assertTrue(slot["indexed"])
+        self.assertIsNone(fight.native_qi_fresh_actor_order)
         self.assertTrue(
             all(actor.effect_stats is not None for actor in fight.actors.values())
         )

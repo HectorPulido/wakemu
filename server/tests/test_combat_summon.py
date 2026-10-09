@@ -10,11 +10,15 @@ from wakfu_server.combat_summon import (
 )
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_runtime_adapter import NativeActorAuthority
+from wakfu_server.combat_summon_spellbook import fresh_action_book
 
 
 def metadata(summon=False):
+    targeting = {"bcN": 0}
+    if summon:
+        targeting.update(dpr_id=7, dpu_id=7, buX=False)
     return NativeActorAuthority(
-        {"bcN": 0},
+        targeting,
         False,
         frozenset(),
         frozenset(),
@@ -27,6 +31,8 @@ def metadata(summon=False):
         summon_root_id=7,
         native_instance_id=1134,
         native_real_level=6,
+        is_carrying=False if summon else None,
+        native_controller_id=7 if summon else None,
     )
 
 
@@ -71,6 +77,18 @@ class SummonTests(unittest.TestCase):
             (3251, 6, True, 3, 1, "current", -2),
         )
         self.assertEqual(summon_additional_payload(901).hex(), "6203208507")
+
+    def test_native_none_team_inherits_actual_caster_after_byte_narrowing(self):
+        for actual_team in (0, 1):
+            for descriptor_team in (-1, 255):
+                specification = self.spec(
+                    [1380, -2, 0, -1, descriptor_team], caster_team=actual_team
+                )
+                self.assertEqual(specification.team, actual_team)
+                self.assertEqual(specification.direction, 6)
+                self.assertEqual(specification.level, 12)
+        with self.assertRaisesRegex(ValueError, "direction/team"):
+            self.spec([1380, -2, 0, -1, -2])
 
     def test_complete_descriptor_matches_native_eZm_writer(self):
         from wakfu_server.combat_summon_codec import summon_descriptor_blob
@@ -138,7 +156,8 @@ class SummonTests(unittest.TestCase):
         )  # Native property114, not a missing insertion.
         self.assertEqual(summoned.owner_id, 3)
         self.assertTrue(authority(preview, summoned).is_summon)
-        self.assertEqual(packets[0][0], 13497)
+        self.assertEqual(packets[0][0], 12613)
+        self.assertEqual(packets[0][1][12], 1)
         self.assertNotIn(901, f.actors)
         self.assertFalse(hasattr(f, "native_summon_registrations"))
 
@@ -156,6 +175,53 @@ class SummonTests(unittest.TestCase):
         )
         self.assertIn(47, record.world_properties)
         self.assertEqual(record.controller_id, 7)
+        self.assertEqual(
+            actor.native_fight_property_counts,
+            {property_id: 1 for property_id in record.fight_properties},
+        )
+        self.assertEqual(actor.native_fight_properties, record.fight_properties)
+
+    def test_zero_descriptor_uses_native_resources_and_own_empty_book(self):
+        from wakfu_server.combat_summon_creation import NativeSummonBuilder
+        from wakfu_server.combat_summon_spellbook import actor_spellbook
+
+        fight, _, _ = self.fixture()
+        caster = fight.actors[7]
+        original = (
+            caster.effective_level,
+            caster.owner_id,
+            caster.hp,
+            caster.ap,
+            caster.mp,
+        )
+        specification = self.spec([3791, -1], evaluation_level=0)
+        actor, registration = NativeSummonBuilder(Ordinary())(
+            fight, specification, 7, 901, (1, 0, 0)
+        )
+        self.assertEqual(actor.effective_level, 0)
+        self.assertEqual(
+            (actor.hp, actor.ap, actor.mp, actor.effect_stats[4]), (1, 0, 0, 0)
+        )
+        self.assertEqual(actor.native_summon_action_book["descriptor_level"], 0)
+        self.assertEqual(actor_spellbook(actor).levels, {})
+        self.assertEqual(
+            (actor.owner_id, actor.controlled, registration.controller_id), (3, True, 7)
+        )
+        self.assertEqual(
+            (caster.effective_level, caster.owner_id, caster.hp, caster.ap, caster.mp),
+            original,
+        )
+
+    def test_zero_inherited_level_differs_from_invalid_explicit_zero_mode(self):
+        self.assertEqual(self.spec([3791, -1], evaluation_level=0).level, 0)
+        self.assertEqual(self.spec([3791, -2], caster_level=0).level, 0)
+        self.assertEqual(self.spec([3791, -1], evaluation_level=245).level, 245)
+        with self.assertRaisesRegex(ValueError, "Invalid native summon level mode"):
+            self.spec([3791, 0])
+        with self.assertRaisesRegex(
+            ValueError, "Missing native summon reference/level"
+        ):
+            self.spec([3791, -1], evaluation_level=32768)
 
     def test_level_modes_and_default_direction_anchor(self):
         self.assertEqual(self.spec([3251]).level, 20)
@@ -165,8 +231,8 @@ class SummonTests(unittest.TestCase):
         self.assertEqual(self.spec([3251, 6]).timeline_anchor, "caster")
         with self.assertRaises(ValueError):
             self.spec([3251], container_present=False)
-        with self.assertRaises(ValueError):
-            self.spec([3251, 65536])
+        # Native positive mode is narrowed with i2s before descriptor creation.
+        self.assertEqual(self.spec([3251, 65536]).level, 0)
 
     def fixture(self):
         cells = {(0, 0, 0), (1, 0, 0), (2, 0, 0)}
@@ -183,6 +249,22 @@ class SummonTests(unittest.TestCase):
         c.effect_frozen = frozenset()
         c.physical_radius = 0
         c.spell_ap_cost_modifiers = {}
+        c.spell_range_modifiers = {}
+        c.native_controller_id = 7
+        c.native_master_id = 7
+        c.native_carrier_id = None
+        c.native_carried_actor_id = None
+        c.native_summon_source = dict(
+            ref=3251,
+            level=6,
+            caster_id=7,
+            controller_id=7,
+            native_relation_source="big.new_bje.fdt_initial_registration",
+            native_symbiot_source="eZl.new_eHD.pRO_false",
+        )
+        # This fixture models a fresh native descriptor at ref 3251, level 6;
+        # the exact class profile is required by registered summon authority.
+        c.native_summon_action_book = fresh_action_book(3251, 6)
         c.native_obstacle_id = 2
         summon_metadata = metadata(True)
         summon_metadata.targeting["bcN"] = 2
@@ -202,6 +284,109 @@ class SummonTests(unittest.TestCase):
         f.actors[999] = Actor(999, 0, (3, 0, 0), 60, 6, 3, 0, 6)
         with self.assertRaises(ValueError):
             authority(f, f.actors[7])
+
+    def test_native_registration_accepts_controller_cell_before_carry(self):
+        # Original creation groups may allow distance0 and carry the new QK
+        # afterwards. QI identity ownership, not exclusive cells, is required.
+        fight, actor, registration = self.fixture()
+        actor.position = fight.actors[7].position
+        authority = RegisteredSummonAuthority(Ordinary())
+        authority.register(
+            fight, actor, registration, new_order=[7, 901, -7], new_turn_index=0
+        )
+        self.assertIs(fight.actors[901], actor)
+        self.assertEqual(actor.position, fight.actors[7].position)
+        self.assertEqual(actor.native_controller_id, 7)
+        self.assertEqual(actor.native_obstacle_id, 2)
+        self.assertTrue(authority(fight, actor).is_summon)
+
+    def test_native_creation_criterion_owns_other_occupied_cell_rejection(self):
+        from wakfu_server.combat_conditions import (
+            ConditionCell,
+            ConditionContext,
+            evaluate_condition,
+        )
+
+        criterion = "IsTargetCellFree() or GetDistanceBetweenCasterAndTarget() == 0"
+        occupied = ConditionCell(True, False, (True,))
+        for distance, expected in ((0, True), (1, False)):
+            context = ConditionContext({}, occupied, caster_target_distance=distance)
+            self.assertEqual(evaluate_condition(criterion, context), expected)
+        free = ConditionContext(
+            {}, ConditionCell(True, False), caster_target_distance=1
+        )
+        self.assertTrue(evaluate_condition(criterion, free))
+
+    def test_ordinary_callbacks_keep_actual_reciprocal_carry_population(self):
+        from dataclasses import replace
+        from wakfu_server.combat_carrying import NativeCarryPair, carrying_relations
+
+        class CarryOrdinary(Ordinary):
+            def __call__(self, view, actor):
+                super().__call__(view, actor)
+                carrying_relations(view, actor)
+                return metadata()
+
+            def property_counts(self, view, actor):
+                self(view, actor)
+                return {3: 1}
+
+            world_property_counts = property_counts
+
+            def item_quantity(self, view, actor, references):
+                self(view, actor)
+                if getattr(self, "raise_item", False):
+                    raise RuntimeError("inventory callback failed")
+                return 4
+
+        fight, actor, registration = self.fixture()
+        actor.position = fight.actors[7].position
+        actor.native_summon_source["ref"] = 3794  # Actual class-owned barrel.
+        actor.native_summon_action_book = fresh_action_book(3794, 6)
+        registration = replace(
+            registration, authority=replace(registration.authority, breed_id=3794)
+        )
+        authority = RegisteredSummonAuthority(CarryOrdinary())
+        authority.register(
+            fight, actor, registration, new_order=[7, 901, -7], new_turn_index=0
+        )
+        controller = fight.actors[7]
+        controller.native_carrier_id = None
+        controller.native_carried_actor_id = actor.id
+        actor.native_carrier_id = controller.id
+        fight.native_carry_pairs = {
+            controller.id: NativeCarryPair(
+                controller.id,
+                actor.id,
+                controller.position,
+                actor.direction,
+                controller.direction,
+                1000,
+            )
+        }
+        self.assertEqual(authority.properties(fight, controller), frozenset())
+        self.assertEqual(authority.world_properties(fight, controller), frozenset())
+        self.assertEqual(authority.property_counts(fight, controller), {3: 1})
+        self.assertEqual(authority.world_property_counts(fight, controller), {3: 1})
+        self.assertEqual(authority.item_quantity(fight, controller, (32870,)), 4)
+        # Callback scopes end even though the filtered roster cannot resolve
+        # the carried summon independently.
+        with self.assertRaisesRegex(ValueError, "reciprocal"):
+            carrying_relations(authority._ordinary_view(fight), controller)
+        authority.ordinary.raise_item = True
+        with self.assertRaisesRegex(RuntimeError, "inventory callback failed"):
+            authority.item_quantity(fight, controller, (32870,))
+        with self.assertRaisesRegex(ValueError, "reciprocal"):
+            carrying_relations(authority._ordinary_view(fight), controller)
+        actor.native_carrier_id = None
+        for callback in (
+            authority.properties,
+            authority.world_properties,
+            authority.property_counts,
+            authority.world_property_counts,
+        ):
+            with self.assertRaisesRegex(ValueError, "reciprocal"):
+                callback(fight, controller)
 
     def test_owned_inventory_query_crosses_registered_roster_wrapper(self):
         f, c, r = self.fixture()

@@ -7,10 +7,13 @@ def draft(fight, actor, action, map_id, *, rays=None, legacy=None, footprint=Non
         from wakfu_server.combat_los import _resolve
         from wakfu_server.combat_obstacle_condition import footprint as native_footprint
         from wakfu_server.paths import DATA_ROOT
+        from wakfu_server import native_catalog
 
         rays = (
             cast_rays
-            if (DATA_ROOT / "native-los-topology" / f"{map_id}.json.gz").is_file()
+            if native_catalog.exists(
+                DATA_ROOT / "native-los-topology" / f"{map_id}.json"
+            )
             else None
         )
         legacy = _resolve

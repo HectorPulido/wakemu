@@ -1,5 +1,6 @@
 import struct
 import threading
+from psycopg.types.json import Jsonb
 from unittest.mock import patch
 from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
@@ -599,6 +600,473 @@ class SharedFightStorageTests(PostgresCase):
         self.assertFalse(adapter.mark_returned(replacement, self.fight_id))
         with self.assertRaisesRegex(ValueError, "unavailable"):
             adapter.takeover_settled(replacement, self.fight_id)
+
+    def test_terminal_checkpoint_world_recovery_returns_one_owner_idempotently(self):
+        """A fresh world login returns one settled owner without fight replay.
+
+        The native client has no fight model after its world bootstrap, so
+        cached terminal frames are not replayed into that connection. Rewards
+        remain settled once; HP return and owner-index release are independent
+        of the other participant's pending result ACK.
+        """
+        from wakfu_server.combat_lifecycle import prepare_finish_shared, return_to_world
+        from wakfu_server.combat_rewards import Policy
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+
+        adapter = CombatSessionAdapter(self.store)
+        left_character = self.store.character(self.left_account, self.left_char)
+        left = adapter.session(self.left_account, self.left_gen, left_character)
+        right_character = self.store.character(self.right_account, self.right_char)
+        right_actor = self.fight.actors.pop(self.right_char)
+        shared = adapter.register(left, self.fight, runtime=RuntimeMessages(self.fight))
+        right = adapter.session(self.right_account, self.right_gen, right_character)
+        adapter.join(
+            right,
+            struct.pack(">qB", self.left_char, 0),
+            right_actor,
+            actor_payload=lambda *args: (b"actor", b"effects"),
+            bootstrap_packets=lambda *args: ((12847, b"joined"),),
+        )
+        self.fight = shared.fight
+        # Model the incident: the last checkpoint committed while active, then
+        # the result/rewards committed but the later terminal checkpoint write
+        # failed. World recovery must close this stale active row atomically.
+        self.fight.phase = "active"
+        self.checkpoints.save_shared(shared, self.left_account, self.left_gen)
+        with self.store.connection() as db:
+            legacy_active_snapshot = db.execute(
+                "SELECT snapshot FROM fight_checkpoints WHERE fight_id=%s",
+                (self.fight_id,),
+            ).fetchone()["snapshot"]
+        self._finish()
+        runtime = shared.runtime
+        metadata = {
+            self.left_char: dict(
+                kind="player",
+                account_id=self.left_account,
+                name="Shared Left",
+                breed=2,
+                is_male=True,
+            ),
+            self.right_char: dict(
+                kind="player",
+                account_id=self.right_account,
+                name="Shared Right",
+                breed=2,
+                is_male=False,
+            ),
+            -200: dict(kind="monster", ref=5525),
+        }
+
+        def finish(current):
+            return prepare_finish_shared(
+                self.store,
+                self.left_account,
+                self.left_gen,
+                self.left_char,
+                current.runtime,
+                metadata,
+                duration_ms=74_000,
+                fight_instance_id=self.fight_id,
+                policy_resolver=lambda db, member, character: Policy(xp=101, kamas=7),
+                expected_accounts={self.left_account, self.right_account},
+            )
+
+        adapter.settle_finished(left, self.fight_id, finish)
+        with self.store.connection() as db:
+            durable_terminal = db.execute(
+                "SELECT status,revision,snapshot FROM fight_checkpoints WHERE fight_id=%s",
+                (self.fight_id,),
+            ).fetchone()
+            self.assertEqual(durable_terminal["status"], "ended")
+            self.assertEqual(durable_terminal["snapshot"]["phase"], "finished")
+            # Recreate the historical mixed state from a pre-terminal build:
+            # fight settlement committed, but only an active combat snapshot
+            # survived. The in-memory recovery path repairs this when present.
+            db.execute(
+                "UPDATE fight_checkpoints SET status='active',revision=revision+1,"
+                "snapshot=%s WHERE fight_id=%s",
+                (Jsonb(legacy_active_snapshot), self.fight_id),
+            )
+        with self.store.connection() as db:
+            before = {
+                "reward_count": db.execute(
+                    "SELECT count(*) AS n FROM fight_rewards WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["n"],
+                "fight_status": db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s",
+                    (self.fight_id,),
+                ).fetchone()["status"],
+                "checkpoint_status": db.execute(
+                    "SELECT status,snapshot FROM fight_checkpoints WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone(),
+            }
+        checkpoint_before = before["checkpoint_status"]
+        before["checkpoint_snapshot_phase"] = checkpoint_before["snapshot"]["phase"]
+        before["checkpoint_status"] = checkpoint_before["status"]
+        self.assertEqual(
+            before,
+            {
+                "reward_count": 2,
+                "fight_status": "finished",
+                "checkpoint_status": "active",
+                "checkpoint_snapshot_phase": "active",
+            },
+        )
+        left_xp = self.store.character(self.left_account, self.left_char)["xp"]
+        right_xp = self.store.character(self.right_account, self.right_char)["xp"]
+
+        # The result was committed, but this socket closed before any return
+        # ACK. A new login receives world state, not native fight result frames.
+        adapter.disconnect(right)
+        self.store.end_session(self.right_account, self.right_gen)
+        replacement_generation = self.store.begin_session(self.right_account)
+        self.store.select_character(
+            self.right_account, replacement_generation, self.right_char
+        )
+        replacement_character = self.store.character(
+            self.right_account, self.right_char
+        )
+        replacement = adapter.session(
+            self.right_account, replacement_generation, replacement_character
+        )
+        # A restarted process has no terminal runtime, and the old active
+        # snapshot cannot prove final HP. Startup preserves the finished fight
+        # row but the empty Registry correctly refuses to infer a return.
+        self.checkpoints.recover_interrupted()
+        restarted_adapter = CombatSessionAdapter(self.store)
+        self.assertIsNone(
+            restarted_adapter.recover_settled_world(
+                restarted_adapter.session(
+                    self.right_account, replacement_generation, replacement_character
+                ),
+                replacement_character,
+                wp=6,
+            )
+        )
+        with patch(
+            "wakfu_server.combat_health.persist",
+            side_effect=ValueError("injected return persistence failure"),
+        ):
+            with self.assertRaisesRegex(ValueError, "injected return"):
+                adapter.recover_settled_world(replacement, replacement_character, wp=6)
+        with self.store.connection() as db:
+            row = db.execute(
+                "SELECT p.session_generation,c.status AS checkpoint_status "
+                "FROM combat_fight_participants p JOIN fight_checkpoints c "
+                "ON c.fight_id=p.fight_id WHERE p.fight_id=%s AND p.character_id=%s",
+                (self.fight_id, self.right_char),
+            ).fetchone()
+            self.assertEqual(row["session_generation"], self.right_gen)
+            self.assertEqual(row["checkpoint_status"], "active")
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_health_exits WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["n"],
+                0,
+            )
+        self.assertIs(adapter.registry.lookup_character(self.right_char), shared)
+
+        recovered = adapter.recover_settled_world(
+            replacement, replacement_character, wp=6
+        )
+        self.assertIsNotNone(recovered)
+        self.assertTrue(recovered["applied"])
+        opcodes = [opcode for opcode, _ in recovered["packets"]]
+        self.assertIn(13713, opcodes)
+        self.assertIn(13078, opcodes)
+        self.assertIn(12436, opcodes)
+        self.assertIn(13021, opcodes)
+        self.assertNotIn(12238, opcodes)
+        self.assertNotIn(12755, opcodes)
+        self.assertNotIn(13420, opcodes)
+        self.assertIsNone(adapter.registry.lookup_character(self.right_char))
+        self.assertIs(adapter.registry.lookup_character(self.left_char), shared)
+        self.assertNotEqual(
+            adapter.registry.by_actor.get(self.right_char), self.fight_id
+        )
+        with self.store.connection() as db:
+            checkpoint = db.execute(
+                "SELECT status,revision,snapshot FROM fight_checkpoints WHERE fight_id=%s",
+                (self.fight_id,),
+            ).fetchone()
+            self.assertEqual(checkpoint["status"], "ended")
+            self.assertEqual(checkpoint["revision"], 4)
+            self.assertEqual(checkpoint["snapshot"]["phase"], "finished")
+        self.assertEqual(
+            self.store.character(self.left_account, self.left_char)["xp"], left_xp
+        )
+        self.assertEqual(
+            self.store.character(self.right_account, self.right_char)["xp"], right_xp
+        )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_rewards WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["n"],
+                before["reward_count"],
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_health_exits WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["n"],
+                1,
+            )
+
+        # A subsequent login no longer resolves the returned character to the
+        # old fight, and its world snapshot reads committed inventory/wallet.
+        self.store.end_session(self.right_account, replacement_generation)
+        next_generation = self.store.begin_session(self.right_account)
+        self.store.select_character(
+            self.right_account, next_generation, self.right_char
+        )
+        next_character = self.store.character(self.right_account, self.right_char)
+        next_session = adapter.session(
+            self.right_account, next_generation, next_character
+        )
+        self.assertIsNone(
+            adapter.recover_settled_world(next_session, next_character, wp=6)
+        )
+        self.assertIs(adapter.registry.lookup(self.fight_id), shared)
+
+        with self.store.connection() as db:
+            exit_row = db.execute(
+                "SELECT reason,return_acknowledged_at FROM fight_health_exits "
+                "WHERE fight_id=%s AND character_id=%s",
+                (self.fight_id, self.right_char),
+            ).fetchone()
+            self.assertEqual(exit_row["reason"], "return")
+            self.assertIsNotNone(exit_row["return_acknowledged_at"])
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_health_exits WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["n"],
+                1,
+            )
+
+        # The second owner still has its independent result/return window.
+        left_batch = adapter.drain(left, self.fight_id)
+        self.assertTrue(
+            any(opcode == 12755 for batch in left_batch for opcode, _ in batch.packets)
+        )
+        left_result = return_to_world(
+            self.store,
+            self.left_account,
+            self.left_gen,
+            left_character,
+            runtime,
+            struct.pack(">iB", self.fight_id, 0),
+            wp=6,
+        )
+        self.assertTrue(left_result["applied"])
+        self.assertTrue(adapter.mark_returned(left, self.fight_id))
+        with self.assertRaisesRegex(ValueError, "Unknown shared fight"):
+            adapter.registry.lookup(self.fight_id)
+        self.assertIsNone(adapter.registry.lookup_character(self.left_char))
+        self.assertIsNone(adapter.registry.lookup_character(self.right_char))
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_rewards WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["n"],
+                2,
+            )
+        self.assertEqual(
+            db.execute(
+                "SELECT count(*) AS n FROM fight_health_exits WHERE fight_id=%s",
+                (self.fight_id,),
+            ).fetchone()["n"],
+            2,
+        )
+
+    def test_terminal_snapshot_recovers_after_registry_restart_without_reward(self):
+        """Finished NPC victories survive restart without a player reward row."""
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_lifecycle import prepare_finish_shared
+        from wakfu_server.combat_shared import Session
+        from wakfu_server.fight_store import recoverable_finished_fight
+
+        adapter = CombatSessionAdapter(self.store)
+        left_character = self.store.character(self.left_account, self.left_char)
+        left = adapter.session(self.left_account, self.left_gen, left_character)
+        right_character = self.store.character(self.right_account, self.right_char)
+        right_actor = self.fight.actors.pop(self.right_char)
+        shared = adapter.register(left, self.fight, runtime=RuntimeMessages(self.fight))
+        right = adapter.session(self.right_account, self.right_gen, right_character)
+        adapter.join(
+            right,
+            struct.pack(">qB", self.left_char, 0),
+            right_actor,
+            actor_payload=lambda *args: (b"actor", b"effects"),
+            bootstrap_packets=lambda *args: ((12847, b"joined"),),
+        )
+        self.fight = shared.fight
+        self.fight.phase = "active"
+        self.checkpoints.save_shared(shared, self.left_account, self.left_gen)
+        self._finish()
+        self.fight.winner = 1  # The NPC team won; neither player receives a reward.
+        metadata = {
+            self.left_char: dict(
+                kind="player",
+                account_id=self.left_account,
+                name="Shared Left",
+                breed=2,
+                is_male=True,
+            ),
+            self.right_char: dict(
+                kind="player",
+                account_id=self.right_account,
+                name="Shared Right",
+                breed=2,
+                is_male=False,
+            ),
+            -200: dict(kind="monster", ref=5525),
+        }
+
+        def finish(current):
+            return prepare_finish_shared(
+                self.store,
+                self.left_account,
+                self.left_gen,
+                self.left_char,
+                current.runtime,
+                metadata,
+                duration_ms=10_000,
+                fight_instance_id=self.fight_id,
+                policy_resolver=lambda *args: self.fail(
+                    "NPC victory must not award a player"
+                ),
+                expected_accounts={self.left_account, self.right_account},
+            )
+
+        adapter.settle_finished(left, self.fight_id, finish)
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_rewards WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["n"],
+                0,
+            )
+            checkpoint = db.execute(
+                "SELECT status,snapshot FROM fight_checkpoints WHERE fight_id=%s",
+                (self.fight_id,),
+            ).fetchone()
+            self.assertEqual(checkpoint["status"], "ended")
+            self.assertEqual(checkpoint["snapshot"]["phase"], "finished")
+            # A terminal snapshot with a lagging status is still safe at startup.
+            db.execute(
+                "UPDATE fight_checkpoints SET status='active' WHERE fight_id=%s",
+                (self.fight_id,),
+            )
+
+        self.store.end_session(self.left_account, self.left_gen)
+        self.store.end_session(self.right_account, self.right_gen)
+        self.checkpoints.recover_interrupted()
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (self.fight_id,)
+                ).fetchone()["status"],
+                "finished",
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM fight_checkpoints WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["status"],
+                "active",
+            )
+
+        replacement_generation = self.store.begin_session(self.left_account)
+        self.store.select_character(
+            self.left_account, replacement_generation, self.left_char
+        )
+        replacement_character = self.store.character(self.left_account, self.left_char)
+        replacement_adapter = CombatSessionAdapter(self.store)
+        replacement = replacement_adapter.session(
+            self.left_account, replacement_generation, replacement_character
+        )
+        stale_session = Session(
+            self.left_account,
+            self.left_char,
+            self.left_gen,
+            replacement_character["map_id"],
+            replacement_character.get("instance_id", 0),
+        )
+        with self.assertRaises(ValueError):
+            replacement_adapter.recover_settled_world(
+                stale_session, replacement_character, wp=6
+            )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM fight_checkpoints WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["status"],
+                "active",
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_health_exits WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["n"],
+                0,
+            )
+        recovered = replacement_adapter.recover_settled_world(
+            replacement, replacement_character, wp=6
+        )
+        self.assertIsNotNone(recovered)
+        self.assertEqual(recovered["fight_id"], self.fight_id)
+        self.assertNotIn(12238, [opcode for opcode, _ in recovered["packets"]])
+        self.assertNotIn(12755, [opcode for opcode, _ in recovered["packets"]])
+        self.assertNotIn(
+            -200,
+            [
+                struct.unpack(">q", payload[:8])[0]
+                for opcode, payload in recovered["packets"]
+                if opcode == 13046 and len(payload) >= 8
+            ],
+        )
+        self.assertFalse(recovered["applied"] is False)
+        self.assertIsNone(
+            replacement_adapter.recover_settled_world(
+                replacement,
+                self.store.character(self.left_account, self.left_char),
+                wp=6,
+            )
+        )
+        self.assertIsNone(
+            recoverable_finished_fight(self.store, self.left_account, self.left_char)
+        )
+        self.assertGreater(
+            create(
+                self.store, self.left_account, replacement_generation, self.left_char
+            ),
+            self.fight_id,
+        )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status,snapshot FROM fight_checkpoints WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["status"],
+                "ended",
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_health_exits WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["n"],
+                1,
+            )
 
     def test_unreturned_finished_participant_can_take_over_but_acknowledged_cannot(
         self,

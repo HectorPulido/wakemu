@@ -6,6 +6,7 @@ equipment-family set contains the equipped item's family. This module consumes
 those offline-exported native values; it does not infer installation or charge
 rules.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
 
 from .paths import DATA_ROOT
@@ -14,7 +15,7 @@ from .shard_identification import _catalog as _socket_templates
 from wakfu_server.wire import proto_fields
 
 
-_DOCUMENT = json.loads((DATA_ROOT / "item-shard-effects.json").read_text())
+_DOCUMENT = protocol_catalog.load(DATA_ROOT / "item-shard-effects.json")
 _ROWS = _DOCUMENT.get("items")
 if (
     _DOCUMENT.get("source", {}).get("mechanism")

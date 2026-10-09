@@ -19,6 +19,7 @@ from wakfu_server.combat_actor import (
     actor_effects,
 )
 from wakfu_server.combat_server_spell import (
+    server_runtime,
     prepare_server_initialization,
     prewarm_runtime_catalogs,
     prepare_server_turn_end,
@@ -27,15 +28,30 @@ from wakfu_server.combat_server_spell import (
 from wakfu_server.combat_ready import prepare_ready
 from wakfu_server.combat_diagnostics import combat_diagnostic_scope
 from wakfu_server.fight_checkpoint_store import snapshot
-from wakfu_server.spells import available_spells, encode_deck
+from wakfu_server.spells import available_spells, encode_deck, validate_deck
 from wakfu_server.paths import PROJECT_ROOT
 
 
 def source_hashes():
     paths = list((PROJECT_ROOT / "server/wakfu_server").rglob("*.py"))
     paths += list((PROJECT_ROOT / "server/protocol").glob("*.json")) + list(
-        (PROJECT_ROOT / "server/protocol").glob("*.json.gz")
+        (PROJECT_ROOT / "server/protocol").glob("*.json")
     )
+    paths += [
+        PROJECT_ROOT / "server/protocol/native-qi-surfaces" / name
+        for name in ("publication.json", "manifest.json", "1134.json")
+    ]
+    paths += [
+        PROJECT_ROOT / "server/tools" / name
+        for name in (
+            "audit_class_initialization.py",
+            "audit_active_spells.py",
+            "audit_ready_start.py",
+            "audit_passive_activation.py",
+            "audit_class_spell_grants.py",
+            "class_spell_eligible_targets.py",
+        )
+    ]
     return {
         str(path.relative_to(PROJECT_ROOT)): hashlib.sha256(
             path.read_bytes()
@@ -67,8 +83,22 @@ def run(
     from_report=None,
     reason=None,
     turn_cycle=False,
-    legal_passive_levels=False
+    legal_passive_levels=False,
+    cases_override=None,
+    on_ready=None,
+    on_runtime=None,
+    turn_steps=2,
+    active_deck_provider=None,
+    character_fixture_provider=None,
+    preplacement_character_fixture_provider=None,
+    preplacement_geometry_provider=None,
+    monster_reference=5525,
+    monster_level=1,
 ):
+    if preplacement_character_fixture_provider is not None and not callable(
+        preplacement_character_fixture_provider
+    ):
+        raise ValueError("Offline preplacement character provider must be callable")
     before = source_hashes()
     tool_before = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     warm = time.perf_counter()
@@ -83,6 +113,8 @@ def run(
         basics_only=basics_only,
         legal_passive_levels=legal_passive_levels,
     )
+    if cases_override is not None:
+        cases = list(cases_override)
     if from_report is not None:
         previous = json.loads(Path(from_report).read_text())
         cases = [
@@ -104,7 +136,7 @@ def run(
                 "WAKFU_COMBAT_START_EVENTS", "1"
             )
             == "1",
-            "area_callbacks_enabled": os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0")
+            "area_callbacks_enabled": os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1")
             == "1",
             "expected_cases": len(cases),
             "completed_cases": len(rows),
@@ -118,7 +150,9 @@ def run(
             == hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
             if final
             else None,
-            "deployment_gate_passed": (
+            # Ready coverage does not certify spell gameplay or deployment.
+            "deployment_gate_passed": False,
+            "ready_gate_passed": (
                 final
                 and before == after
                 and len(rows) == len(cases)
@@ -144,16 +178,60 @@ def run(
         output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
         return result
 
+    base_origin, base_target, base_terrain = origin, target, terrain
     for breed, level, passive in cases:
+        origin, target, terrain = base_origin, base_target, base_terrain
+        if preplacement_geometry_provider is not None:
+            if not callable(preplacement_geometry_provider):
+                raise ValueError(
+                    "Offline preplacement geometry provider must be callable"
+                )
+            origin, target, terrain = preplacement_geometry_provider(
+                geometry, origin, target, breed, level, passive
+            )
+            if (
+                origin not in terrain["cells"]
+                or target not in terrain["cells"]
+                or origin == target
+            ):
+                raise ValueError(
+                    "Preplacement geometry requires distinct actual native cells"
+                )
         character, monster, fight = fixture_module.fixture(
-            breed, level, target, terrain, origin, ready=False
+            breed,
+            level,
+            target,
+            terrain,
+            origin,
+            ready=False,
+            monster_reference=monster_reference,
+            monster_level=monster_level,
+            character_fixture=(
+                None
+                if preplacement_character_fixture_provider is None
+                else lambda character: preplacement_character_fixture_provider(
+                    character, breed, level, passive
+                )
+            ),
         )
         active = [
             spell["id"]
             for spell in available_spells(breed, level)
             if spell["kind"] == "active"
         ][:6]
+        if active_deck_provider is not None:
+            if not callable(active_deck_provider):
+                raise ValueError("Offline Ready active deck provider must be callable")
+            active = list(active_deck_provider(breed, level, passive))
+        if character_fixture_provider is not None:
+            if not callable(character_fixture_provider):
+                raise ValueError(
+                    "Offline Ready character fixture provider must be callable"
+                )
+            character_fixture_provider(character, breed, level, passive)
         deck = encode_deck(active, () if passive is None else [passive])
+        if active_deck_provider is not None:
+            validate_deck(deck, breed, level)
         original = snapshot(fight)
         events = []
         rng = random.Random(7)
@@ -167,9 +245,10 @@ def run(
             "hp_policy": "full",
             "gameplay_verified": False,
         }
+        stats_source = {"fight": fight}
 
         def initialize(preview, action_id):
-            return prepare_server_initialization(
+            result = prepare_server_initialization(
                 character,
                 {monster["id"]: monster},
                 preview,
@@ -179,6 +258,8 @@ def run(
                 rng=rng,
                 fight_start=True,
             )
+            stats_source["fight"] = result[0]
+            return result
 
         def end_provider(preview, **boundary):
             return prepare_server_turn_end(
@@ -186,20 +267,24 @@ def run(
             )
 
         def start_provider(preview, **boundary):
-            return prepare_server_turn_start(
+            result = prepare_server_turn_start(
                 character,
                 {monster["id"]: monster},
                 preview,
                 deck,
                 rng=rng,
                 native_events=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
-                area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0")
+                area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1")
                 == "1",
-                **boundary
+                **boundary,
             )
+            # Runtime adopts the returned state into this destination, retaining
+            # existing actor identities. Bind the serializer to that same owner.
+            stats_source["fight"] = preview
+            return result
 
-        def stats(actor):
-            if actor.controlled:
+        def stats(actor, state=None):
+            if actor.id == character["id"]:
                 wp = BREEDS[breed]["resources"]["WP"]
                 return actual_actor_stats(
                     character,
@@ -208,6 +293,13 @@ def run(
                     wp_current=actor.effect_stats[4],
                     wp_maximum=wp,
                 )
+            source = stats_source["fight"] if state is None else state
+            if actor.id in getattr(source, "native_summon_registrations", {}):
+                from wakfu_server.combat_summon_stats import registered_summon_stats
+
+                return registered_summon_stats(actor, source, source.map_id)
+            if actor.id != monster["id"]:
+                raise ValueError("Missing actual audit actor stats source")
             return actual_monster_actor_stats(
                 monster,
                 actor,
@@ -226,14 +318,23 @@ def run(
                     True,
                     initialize=initialize,
                     stats_serializer=stats,
+                    runtime_stats_serializer=stats,
                     effects_serializer=actor_effects,
                     turn_end_provider=end_provider if turn_cycle else None,
                     turn_start_provider=start_provider if turn_cycle else None,
+                    expiration_runtime_factory=lambda *, action_id: server_runtime(
+                        character,
+                        {monster["id"]: monster},
+                        deck,
+                        action_id=action_id,
+                        critical=False,
+                        rng=rng,
+                    )[0],
                 )
             if turn_cycle:
                 stage = "turn_lifecycle"
                 row["turn_stages"] = []
-                for _ in range(2):
+                for _ in range(turn_steps):
                     if runtime.fight.phase != "active":
                         row["turn_stages"].append(
                             {
@@ -246,6 +347,7 @@ def run(
                     turn_before = snapshot(source_turn)
                     rng_before = rng.getstate()
                     candidate = deepcopy(runtime)
+                    stats_source["fight"] = candidate.fight
                     actor = candidate.fight.current
                     try:
                         with combat_diagnostic_scope(
@@ -307,6 +409,19 @@ def run(
                 actor_changed=snapshot(preview)["actors"] != original["actors"],
                 registered_effects=len(preview.native_retained_records),
             )
+            if on_runtime is not None:
+
+                def runtime_stats(actor, state):
+                    stats_source["fight"] = state
+                    return stats(actor)
+
+                row["runtime_access"] = on_runtime(
+                    runtime, character, monster, deck, packets, runtime_stats
+                )
+            if on_ready is not None:
+                row["spell_access"] = on_ready(
+                    preview, character, monster, deck, packets
+                )
         except Exception as error:
             failed = next((e for e in events if e.get("status") == "failed"), {})
             row.update(
@@ -365,6 +480,14 @@ def run(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--basics-only", action="store_true")
+    area_options = parser.add_mutually_exclusive_group()
+    area_options.add_argument(
+        "--area-callbacks", action="store_true", dest="area_callbacks"
+    )
+    area_options.add_argument(
+        "--no-area-callbacks", action="store_false", dest="area_callbacks"
+    )
+    parser.set_defaults(area_callbacks=None)
     parser.add_argument("--turn-cycle", action="store_true")
     parser.add_argument("--legal-passive-levels", action="store_true")
     parser.add_argument("--from-report")
@@ -373,6 +496,8 @@ if __name__ == "__main__":
         "--output", default="docs/reports/combat-inventory/ready-start-audit.json"
     )
     args = parser.parse_args()
+    if args.area_callbacks is not None:
+        os.environ["WAKFU_NATIVE_AREA_CALLBACKS"] = "1" if args.area_callbacks else "0"
     output = PROJECT_ROOT / args.output
     output.parent.mkdir(parents=True, exist_ok=True)
     run(

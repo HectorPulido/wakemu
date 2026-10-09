@@ -7,15 +7,27 @@ from wakfu_ai.native.native_stats import NativeStats
 
 
 class NativeStatsTests(unittest.TestCase):
-    def test_registered_positive_summon_reuses_native_body_and_preserves_identity(self):
-        source = dict(ref=3791, level=20, direction=3, caster_id=7, controller_id=7)
+    def test_registered_positive_summon_preserves_native_flag_on_bulk_refresh(self):
+        source = dict(
+            ref=3791,
+            level=20,
+            direction=3,
+            caster_id=7,
+            controller_id=7,
+            native_relation_source="big.new_bje.fdt_initial_registration",
+        )
         actor = SimpleNamespace(
             id=901,
             controlled=False,
             effective_level=20,
             team=1,
             position=(2, 3, 0),
+            direction=3,
             native_obstacle_id=1,
+            native_controller_id=7,
+            native_controlled_by_ai=False,
+            owner_id=19,
+            turn_count=2,
             native_summon_source=source,
             effect_stats={4: 3},
             effect_maxima={4: 6},
@@ -30,31 +42,37 @@ class NativeStatsTests(unittest.TestCase):
                 breed_id=3791,
                 native_real_level=20,
                 native_instance_id=1134,
+                native_controller_id=7,
             ),
+        )
+        fight = SimpleNamespace(
+            id=41,
+            map_id=1134,
+            actors={901: actor},
+            native_summon_registrations={901: registration},
         )
         serializer = NativeStats(
             characters={}, monsters={}, fight_id=41, registrations={901: registration}
         )
-        from wakfu_server.combat_actor import monster_actor_stats
-
-        descriptor = dict(source, id=-901, team=1, x=2, y=3, z=0, map_id=1134)
-        expected = monster_actor_stats(
-            descriptor,
-            41,
-            direction=3,
-            obstacle_id=1,
-            characteristics_payload=b"\x00\x00",
-        )
         with patch(
-            "wakfu_server.combat_snapshot_wire.snapshot_characteristics",
+            "wakfu_server.combat_summon_stats.snapshot_characteristics",
             return_value=b"\x00\x00",
         ):
-            actual = serializer(actor)
-        self.assertEqual(actual[:-20], expected[:-20])
-        self.assertEqual(actual[-12:], expected[-12:])
+            actual = serializer(actor, fight)
+            repeated = serializer.for_fight(fight)(actor, fight)
+        self.assertEqual(actual, repeated)
+        offset = 1 + struct.calcsize(">iihqBB")
+        self.assertEqual(struct.unpack_from(">iBBBBbB", actual, offset)[3], 1)
         self.assertEqual(struct.unpack_from(">q", actual, len(actual) - 20)[0], 901)
-        self.assertEqual(actor.id, 901)
         self.assertEqual(actor.native_summon_source, source)
+        self.assertEqual(
+            (actor.owner_id, actor.native_controller_id, actor.turn_count), (19, 7, 2)
+        )
+        self.assertTrue(
+            fight.native_summon_registrations[901]["authority"]["is_summon"]
+        )
+        with self.assertRaisesRegex(ValueError, "current fight"):
+            serializer(actor)
 
     def test_summon_registration_mismatch_is_rejected(self):
         actor = SimpleNamespace(
@@ -80,7 +98,7 @@ class NativeStatsTests(unittest.TestCase):
         serializer = NativeStats(
             characters={}, monsters={}, fight_id=41, registrations={901: registration}
         )
-        with self.assertRaisesRegex(ValueError, "registered summon"):
+        with self.assertRaisesRegex(ValueError, "Registered summon"):
             serializer(actor)
 
     def test_multiple_players_use_their_own_complete_authority(self):

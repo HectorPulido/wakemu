@@ -8,7 +8,7 @@ from wakfu_server.combat_state_timing import StateTimer
 
 class SpellCostEffectsTests(unittest.TestCase):
     def setUp(self):
-        self.actor = NS(id=7, spell_ap_cost_modifiers={})
+        self.actor = NS(id=7, spell_ap_cost_modifiers={}, spell_range_modifiers={})
         self.fight = NS(
             id=8, phase="active", actors={7: self.actor}, owned_stat_effects={}
         )
@@ -67,6 +67,33 @@ class SpellCostEffectsTests(unittest.TestCase):
         modify(self.actor, 8, 1)
         self.assertEqual(self.actor.spell_ap_cost_modifiers[8], -2147483648)
 
+    def test_range_modifier_stacks_and_removal_use_separate_snapshot(self):
+        effect = dict(self.effect, effect_class=1066)
+        self.assertTrue(self.handler(effect, [], self.invocation))
+        self.assertTrue(self.handler(effect, [], self.invocation))
+        self.assertEqual(self.actor.spell_range_modifiers, {8: 2})
+        self.assertEqual(self.actor.spell_ap_cost_modifiers, {})
+        self.assertEqual(
+            [row["family"] for row in self.fight.owned_stat_effects.values()],
+            ["eZg", "eZg"],
+        )
+
+        remover = NativeStatHandler(
+            self.fight,
+            self.packets,
+            {"effects": {}},
+            action_id=2,
+            allocate_uid=None,
+            context=None,
+        )
+        remover.remove(101)
+        self.assertEqual(self.actor.spell_range_modifiers, {8: 1})
+        self.assertEqual(self.actor.spell_ap_cost_modifiers, {})
+        remover.remove(102)
+        self.assertEqual(self.actor.spell_range_modifiers, {8: 0})
+        self.assertEqual(self.actor.spell_ap_cost_modifiers, {})
+        self.assertEqual([op for op, _ in self.packets], [13497, 13497, 13560, 13560])
+
     def test_expiration_reverses_modifier_in_atomic_preview(self):
         from wakfu_server.combat_state import Actor, Fight
         from wakfu_server.combat_timed_expiration import prepare_timed_expiration
@@ -112,3 +139,56 @@ class SpellCostEffectsTests(unittest.TestCase):
         self.assertEqual(preview.owned_stat_effects, {})
         self.assertEqual([op for op, _ in packets], [13560])
         self.assertEqual(caster.spell_ap_cost_modifiers, {8: -1})
+
+    def test_range_modifier_expiration_reverses_range_sign_and_preserves_ap(self):
+        from wakfu_server.combat_state import Actor, Fight
+        from wakfu_server.combat_timed_expiration import prepare_timed_expiration
+
+        caster = Actor(7, 0, (0, 0, 0), 60, 6, 3, 10, 1, 3, True)
+        npc = Actor(-7, 1, (1, 0, 0), 20, 6, 3, 5, 1)
+        fight = Fight(
+            8,
+            [caster, npc],
+            {caster.position, npc.position},
+            {0: {caster.position}, 1: {npc.position}},
+        )
+        fight.ready(3)
+        caster.spell_range_modifiers = {}
+        caster.spell_ap_cost_modifiers = {8: -3}
+        range_effect = dict(self.effect, effect_class=1066)
+        handler = NativeSpellCostHandler(
+            fight,
+            [],
+            action_id=1,
+            allocate_uid=lambda: 101,
+            context=self.handler.context,
+        )
+        handler(range_effect, [], self.invocation)
+        self.assertEqual(caster.spell_range_modifiers, {8: 1})
+        self.assertEqual(caster.spell_ap_cost_modifiers, {8: -3})
+
+        early, packets = prepare_timed_expiration(
+            fight,
+            actor_id=7,
+            round_number=1,
+            phase="start",
+            action_id=2,
+            registry={"effects": {}},
+        )
+        self.assertEqual(early.actors[7].spell_range_modifiers, {8: 1})
+        self.assertEqual(early.actors[7].spell_ap_cost_modifiers, {8: -3})
+        self.assertEqual(packets, [])
+
+        preview, packets = prepare_timed_expiration(
+            fight,
+            actor_id=7,
+            round_number=2,
+            phase="start",
+            action_id=2,
+            registry={"effects": {}},
+        )
+        self.assertEqual(preview.actors[7].spell_range_modifiers, {8: 0})
+        self.assertEqual(preview.actors[7].spell_ap_cost_modifiers, {8: -3})
+        self.assertEqual([op for op, _ in packets], [13560])
+        self.assertEqual(caster.spell_range_modifiers, {8: 1})
+        self.assertEqual(caster.spell_ap_cost_modifiers, {8: -3})

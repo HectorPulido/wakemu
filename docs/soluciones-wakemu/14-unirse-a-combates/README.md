@@ -1,5 +1,12 @@
 # 14. No se puede entrar al combate de otra persona
 
+## Corrección de colocación multijugador — 9 de octubre
+
+Corregidos el registro nativo del jugador que se une y la desconexión al
+rendirse durante colocación. Evidencia automática y aceptación manual:
+[informe de registro y rendición](../../reports/combat-inventory/multiplayer-placement-registration-20261009.md).
+La aceptación visual con ambos clientes sigue pendiente.
+
 Unir jugadores durante colocación a un encuentro compartido ya existente.
 
 [Diagnóstico](DIAGNOSTICO.md) · [Cotejo de código](COTEJO.md) · [Solución](SOLUCION.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md)
@@ -23,6 +30,10 @@ Todas las sesiones ven un único encuentro; entrar tarde no altera sus actores n
 **En revisión.** El codec13241 y `combat_shared.Registry.join()` validan colocación, mapa/instancia, equipo, celda libre y ownership. El dispatcher todavía conserva combate por conexión y no conecta esta ruta. La capa PostgreSQL ahora registra miembros con generación, comparte el checkpoint con control CAS, cerca takeover de sesión y liquida recompensas de todos los participantes en una transacción idempotente. El gate aislado pasó 43 pruebas de almacenamiento, recompensas y cierre. Esto no certifica interacción TLS ni integración del dispatcher; el issue sigue abierto hasta probar dos clientes y retorno en juego. No se han modificado el motor ni el mundo activo por este issue.
 
 La aceptación requiere dos clientes en un combate compartido, colocación y turnos coherentes, recompensas individuales idempotentes, desconexión/reconexión y retorno sin bloqueo. Los espectadores se siguen en16.
+
+Recorrido manual conjunto listo para la imagen integrada: [aceptación completa de entrada, observación, rendición y resincronización de mapa](../16-espectadores-y-marcadores/PRUEBA-COMPLETA-14-16-33-MAPA.md).
+
+Para probar tres combatientes en un único PvE, con dos entradas sucesivas durante colocación, retirada del líder y victoria de los compañeros, sigue la [aceptación manual TLS de tres jugadores](PRUEBA-MANUAL-TRES-JUGADORES.md). Es un plan de aceptación; no implica que se haya ejecutado contra la imagen activa.
 
 ## Autoridad compartida probada en fuente
 
@@ -55,3 +66,7 @@ La candidata `4212471c076e24c33fb84de31d41a208dec18cf03c098fe818223b5bca56e0a3` 
 ### Despliegue integrado verificado
 
 Imagen `e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742` desplegada en world; Docker healthy y `/health` PostgreSQL correcto. Migraciones057–059 aplicadas;388 patrones de sublimación en SQL. Gate de la imagen198/198 aprobado y TLS de combate individual/compartido, sublimaciones y clima acreditados. Respaldo previo privado `.runtime/backups/pre-integrated-20261007.dump`, archivo CUSTOM con793 entradas TOC. Aceptación visual pendiente; no implica cierre completo del issue.
+
+## Unión después de retirada del iniciador: en revisión
+
+El cliente conserva los líderes originales del marcador. Tras el ACK de retirada, el índice de actores del servidor deja de resolver ese líder, aunque el equipo siga en colocación. Se implementa un alias limitado al líder original de PvE y al mismo equipo, condicionado a colocación, participante controlado superviviente y capacidad. No se retira/recrea el marcador:12238 limpia el combate externo y13753 rechaza IDs duplicados. Pendientes pruebas de permisos, fase y eliminación del alias al finalizar; todavía no está instalado.

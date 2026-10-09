@@ -3,7 +3,8 @@ from pathlib import Path
 
 spec = importlib.util.spec_from_file_location(
     "gui_verdict",
-    Path(__file__).resolve().parents[2] / "client/tools/gui_combat_verdict.py",
+    Path(__file__).resolve().parents[2]
+    / "client-tools/diagnostics/gui_combat_verdict.py",
 )
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
@@ -66,7 +67,7 @@ class GuiVerdictTests(unittest.TestCase):
 
 class GuiDeliveryTests(unittest.TestCase):
     def module(self, name):
-        path = Path(__file__).resolve().parents[2] / "client/tools" / name
+        path = Path(__file__).resolve().parents[2] / "client-tools/diagnostics" / name
         spec = importlib.util.spec_from_file_location(name, path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -137,7 +138,7 @@ class GuiDeliveryTests(unittest.TestCase):
         import tempfile, json, sys
         from types import SimpleNamespace
 
-        tools = Path(__file__).resolve().parents[2] / "client/tools"
+        tools = Path(__file__).resolve().parents[2] / "client-tools/diagnostics"
         sys.path.insert(0, str(tools))
         runner = self.module("check-combat-gui.py")
         with tempfile.TemporaryDirectory() as directory:

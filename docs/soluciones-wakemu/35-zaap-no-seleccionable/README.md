@@ -8,6 +8,8 @@ El reporte original identificó el Zaap19249 en mapa527, en(-1,32,0), con el per
 
 La sincronización está desplegada y tiene gate de imagen; todavía requiere aceptación manual de la carga visual. El informe anterior de que reiniciar el cliente recuperaba el Zaap sigue siendo evidencia de observación, no validación del cambio.
 
+La comprobación de carga entre dos clientes tras Zaap y merkasaco está incluida en la [prueba manual completa de combate y resincronización](../16-espectadores-y-marcadores/PRUEBA-COMPLETA-14-16-33-MAPA.md); ejecutarla junto con el resto del recorrido solo después de confirmar la imagen integrada.
+
 ## Despliegue de sincronización — 7 de octubre
 
 Imagen activa `63b4642d`, etiqueta `wakfu-local-world:static-sync-verified`; health HTTP200 y Docker healthy. Copia previa PostgreSQL comprobada (754 entradas). La corrección reenvía estados al entrar/cambiar de mapa, con hasta tres intentos separados por750ms, y difiere durante combate. Los208 módulos de combate son idénticos a la imagen anterior.

@@ -4,13 +4,14 @@ Installed region definitions specify families, not captured account data.
 The caller must supply the actual region from map partition state: choosing
 an arbitrary region would enable seeds in the wrong ecosystem.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
 import struct
 from .paths import DATA_ROOT
 
 MAPS = {
     row["map_id"]: row
-    for row in json.loads((DATA_ROOT / "ecology-regions.json").read_text())
+    for row in protocol_catalog.load(DATA_ROOT / "ecology-regions.json")
 }
 
 

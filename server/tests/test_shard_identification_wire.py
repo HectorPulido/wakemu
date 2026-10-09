@@ -7,7 +7,9 @@ from wakfu_server.wire import proto_field
 
 class ShardIdentificationWireTests(unittest.TestCase):
     def test_success_preserves_both_native_blobs(self):
-        shard = proto_field(10, proto_field(80, 0) + proto_field(96, 1))
+        shard = proto_field(
+            10, proto_field(80, 0) + proto_field(96, 1) + proto_field(88, 0)
+        )
         self.assertEqual(
             response(dict(uid=31, status=0, elements=b"\x1a\x00", shard_state=shard)),
             (

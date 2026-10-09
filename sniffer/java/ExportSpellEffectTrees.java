@@ -111,7 +111,7 @@ public class ExportSpellEffectTrees {
         var field=fyF.class.getDeclaredField("twf");field.setAccessible(true);
         for(String idText:Files.readAllLines(Path.of(args[0]))) {
             int id=Integer.parseInt(idText);bPK s=bPS.elL().IP(id);fyP p=(fyP)field.get(s);
-            StringBuilder row=new StringBuilder(idText).append('\t').append(p.cwL()).append('\t').append(p.cwM()).append('\t').append(p.cwN());
+            StringBuilder row=new StringBuilder(idText).append('\t').append(p.cwL()).append('\t').append(p.cwM()).append('\t').append(p.cwU());
             for(short level=1;level<=200;level++) {
                 List<Integer> roots=new ArrayList<>();var iterator=s.fG(level);
                 while(iterator.hasNext()){int ref=iterator.next().aZE();roots.add(ref);effect(ref);}

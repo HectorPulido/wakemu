@@ -38,7 +38,7 @@ class NativeDeadlineTests(unittest.TestCase):
                 now[0] = 12.0
                 return super().read(*args)
 
-        transport = ContextTransport("http://unused", timeout=10)
+        transport = ContextTransport("http://unused", timeout=10, persistent=False)
         with patch(
             "urllib.request.urlopen",
             return_value=Reply(json.dumps({"ok": True}).encode()),

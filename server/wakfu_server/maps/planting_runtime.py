@@ -30,6 +30,9 @@ class Plantings:
         self.pending = {}
         self.cells = {}
         self.lock = threading.RLock()
+        # Growth owns durable resource rows, not socket occupation dictionaries.
+        # Its SQL work must not delay movement cancelling an empty occupation.
+        self.growth_lock = threading.Lock()
         self.publisher_lock = threading.Lock()
         if type(growth_seconds) not in (int, float) or growth_seconds <= 0:
             raise ValueError("Invalid local planting growth delay")
@@ -237,7 +240,7 @@ class Plantings:
                     "Growth transition is absent from native flora definition"
                 )
             candidates.append((resource, definition, transition))
-        with self.lock, self.store.connection() as db:
+        with self.growth_lock, self.store.connection() as db:
             for resource, definition, transition in candidates:
                 current = db.execute(
                     "SELECT * FROM planted_resources WHERE resource_uid=%s FOR UPDATE",
@@ -253,6 +256,9 @@ class Plantings:
                     continue
                 if definition["monster_resource"]:
                     member = monster_growth_member(resource, definition)
+                    from .npc_actor_identity import allocate_block
+
+                    member = dict(member, id=-allocate_block(db, 1))
                     group_id = -member["id"]
                     group = dict(
                         key=[resource["map_id"], resource["instance_id"], group_id],

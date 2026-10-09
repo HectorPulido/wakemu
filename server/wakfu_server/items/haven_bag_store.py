@@ -1,4 +1,5 @@
 """PostgreSQL-owned haven-bag configuration; no captured account state."""
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 from psycopg.types.json import Jsonb
@@ -6,13 +7,13 @@ from pathlib import Path
 
 MODELS = {
     model["id"]
-    for model in json.loads((DATA_ROOT / "haven-bag-models.json").read_text())["models"]
+    for model in protocol_catalog.load(DATA_ROOT / "haven-bag-models.json")["models"]
 }
 FURNITURE_TEMPLATES = {
     item["template_id"]
-    for item in json.loads(
-        (DATA_ROOT / "haven-bag-furniture-templates.json").read_text()
-    )["templates"]
+    for item in protocol_catalog.load(DATA_ROOT / "haven-bag-furniture-templates.json")[
+        "templates"
+    ]
     if item["java_type"].split(":")[0]
     in {"Decoration", "FxDecoration", "BackgroundDisplay", "PortableCraftTable"}
 }

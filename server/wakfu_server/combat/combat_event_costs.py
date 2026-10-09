@@ -4,8 +4,9 @@ Emitter stores the native source container descriptor. Resolution happens only
 in the transaction preview after event rebinding, using the listener's actual
 caster/target and its current eHl snapshot. No payment event is fabricated.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from copy import deepcopy
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 import json
 from functools import lru_cache
 from .combat_conditional_costs import resolve_costs, native_modifiers
@@ -13,7 +14,7 @@ from .combat_conditional_costs import resolve_costs, native_modifiers
 
 @lru_cache(maxsize=1)
 def cost_catalog():
-    return json.loads((DATA_ROOT / "spell-costs.json").read_text())["spells"]
+    return protocol_catalog.load(DATA_ROOT / "spell-costs.json")["spells"]
 
 
 def source_cost_descriptor(retention, invocation):

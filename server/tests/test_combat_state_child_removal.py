@@ -14,6 +14,7 @@ from wakfu_server.combat_effect_dispatch import (
     UnsupportedEffectExecution,
 )
 from wakfu_server.combat_conditions import ConditionContext
+from wakfu_server import native_catalog
 
 
 class StateChildRemovalTests(unittest.TestCase):
@@ -30,7 +31,7 @@ class StateChildRemovalTests(unittest.TestCase):
             parameter_count=1,
         )
         cls.registry = json.loads(
-            (DATA_ROOT / "effect-characteristic-registry.json").read_text()
+            native_catalog.read_text(DATA_ROOT / "effect-characteristic-registry.json")
         )
 
     def setUp(self):
@@ -104,16 +105,35 @@ class StateChildRemovalTests(unittest.TestCase):
             list(zip([opcode for opcode, data in self.packets], classes)),
             [
                 (12613, 310),
-                (13497, 120),
+                (12613, 120),
                 (13560, 120),
                 (13560, 310),
                 (12613, 310),
-                (13497, 120),
+                (12613, 120),
             ],
         )
         self.handler.remove_state_children(new.uid)
         self.assertEqual(self.fight.actors[7].effect_stats[20], 80)
         self.assertEqual(self.fight.owned_stat_effects, {})
+
+    def test_old_carrier_remains_owned_during_child_cleanup(self):
+        self.apply()
+        old = self.fight.actors[7].state_ledger.entries[0]
+        original = self.handler.remove_state_children
+        seen = []
+
+        def remove_children(uid):
+            self.assertEqual(uid, old.uid)
+            self.assertIn(old, self.fight.actors[7].state_ledger.entries)
+            self.assertIn(uid, self.fight.state_wire_payloads)
+            seen.append(uid)
+            original(uid)
+
+        self.handler.remove_state_children = remove_children
+        self.apply()
+        self.assertEqual(seen, [old.uid])
+        self.assertNotIn(old, self.fight.actors[7].state_ledger.entries)
+        self.assertNotIn(old.uid, self.fight.state_wire_payloads)
 
     def test_state_uid_ownership_leaves_unrelated_retained_effect(self):
         self.apply()

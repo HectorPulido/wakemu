@@ -1,0 +1,22 @@
+# Explicit opt-in; requires Compose supporting !override (2.24.4+).
+# No effect unless passed with -f compose.remote.yaml.
+services:
+  world:
+    environment:
+      WAKFU_ADVERTISE_HOST: ${WAKFU_REMOTE_HOST:?Set the numeric IPv4 reachable by clients}
+      WAKFU_ADVERTISE_WORLD_PORT: ${WAKFU_REMOTE_WORLD_PORT:-15556}
+    ports: !override
+      - "${WAKFU_REMOTE_BIND_IP:?Set the host interface IPv4}:${WAKFU_REMOTE_WORLD_PORT:-15556}:15556"
+      - "${WAKFU_REMOTE_BIND_IP}:${WAKFU_REMOTE_DISPATCH_PORT:-15558}:15558"
+      - "127.0.0.1:18081:18081"
+  remote-auth:
+    image: nginx:1.27-alpine
+    profiles: [remote]
+    ports:
+      - "${WAKFU_REMOTE_BIND_IP}:${WAKFU_REMOTE_AUTH_PORT:-18443}:8443"
+    volumes:
+      - ./server/remote-auth/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${WAKFU_REMOTE_TLS_CERT:?Set PEM certificate path}:/etc/nginx/remote.crt:ro
+      - ${WAKFU_REMOTE_TLS_KEY:?Set PEM private key path}:/etc/nginx/remote.key:ro
+    networks: [client-access]
+    depends_on: [world]

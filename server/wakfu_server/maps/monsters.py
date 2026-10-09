@@ -1,11 +1,12 @@
 """Verified client monster references, without implied official spawn locations."""
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 import math
 import struct
 from pathlib import Path
 
-CATALOG = json.loads((DATA_ROOT / "monsters.json").read_text())
+CATALOG = protocol_catalog.load(DATA_ROOT / "monsters.json")
 REFERENCES = {monster["ref"]: monster for monster in CATALOG["monsters"]}
 
 

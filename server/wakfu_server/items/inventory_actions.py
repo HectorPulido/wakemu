@@ -1,4 +1,5 @@
 """Owned native inventory actions. Destruction is supported; use effects are explicit."""
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 import struct
@@ -8,7 +9,7 @@ from .wire import proto_fields
 
 RULES = {
     entry["reference"]: entry
-    for entry in json.loads((DATA_ROOT / "item-action-rules.json").read_text())["items"]
+    for entry in protocol_catalog.load(DATA_ROOT / "item-action-rules.json")["items"]
 }
 
 

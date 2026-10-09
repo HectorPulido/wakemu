@@ -53,7 +53,10 @@ def runtime_group_level(
     if source is None:
         source_present, trigger_value = False, None
     elif isinstance(source, dict) and "value" in source:
-        source_present, trigger_value = True, source["value"]
+        # eYw.d reads synchronous getValue after earlier sibling mutations.
+        from .combat_trigger_value import triggering_value
+
+        source_present, trigger_value = True, triggering_value(invocation)
     else:
         raise ValueError("Missing authoritative triggering eZR.getValue")
     return trigger_group_override(

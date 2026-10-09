@@ -77,18 +77,17 @@ class NativeLevelGroupHandler:
         parameters = values["parameters"]
         mode = decode_group_mode(parameters[:6], raw_target_parameter=raw[4])
         caster, target = invocation.caster_id, invocation.target_id
-        if mode.actor_rebind == 1:
+        if mode.actor_rebind == 1 and target is not None:
             caster = target
-        elif mode.actor_rebind == 2:
+        elif mode.actor_rebind == 2 and target is not None:
             caster, target = target, caster
         actor = caster if parameters[6] == 1 else target
-        if actor is None:
-            raise ValueError("Class999 level source requires native actor")
-        level = level_group_override(effect, invocation.level, self.actor_level(actor))
-        if level < 0:
-            raise ValueError(
-                "Native signed negative child level requires broader dispatcher contract"
-            )
+        # eYm.d returns the already-produced parent context for null/non-eGj.
+        level = (
+            invocation.level
+            if actor is None
+            else level_group_override(effect, invocation.level, self.actor_level(actor))
+        )
         outcomes = []
 
         def execute(child):
@@ -122,7 +121,16 @@ class NativeLevelGroupHandler:
         return any(outcomes)
 
 
-def runtime_group_level(effect, values, invocation, actors, *, active=None):
+def runtime_group_level(
+    effect,
+    values,
+    invocation,
+    actors,
+    *,
+    active=None,
+    non_actor_ids=(),
+    resolve_pv=None
+):
     # Event-level flags use the same audited contract as the parent group.
     # No implicit fight mode is supplied for stand-alone callers.
     if effect["native_effect_flags"]:
@@ -133,16 +141,18 @@ def runtime_group_level(effect, values, invocation, actors, *, active=None):
         parameters[:6], raw_target_parameter=effect["parameters"][4]
     )
     caster, target = invocation.caster_id, invocation.target_id
-    if mode.actor_rebind == 1:
+    if mode.actor_rebind == 1 and target is not None:
         caster = target
-    elif mode.actor_rebind == 2:
+    elif mode.actor_rebind == 2 and target is not None:
         caster, target = target, caster
-    actor = actors.get(caster if parameters[6] == 1 else target)
+    identity = caster if parameters[6] == 1 else target
+    if identity is None or identity in non_actor_ids:
+        # eYm.d offsets29–38: null/Qq is not eGj; no SP override is installed.
+        return invocation.level
+    actor = resolve_pv(identity) if resolve_pv is not None else actors.get(identity)
+    if getattr(actor, "native_is_area", False) is True:
+        return invocation.level  # eYm requires eGj, unlike eYr's generic PV.
     if actor is None:
         raise ValueError("Missing authoritative native group level actor")
     level = level_group_override(effect, invocation.level, actor.effective_level)
-    if level < 0:
-        raise ValueError(
-            "Native negative child level requires broader dispatcher contract"
-        )
     return level

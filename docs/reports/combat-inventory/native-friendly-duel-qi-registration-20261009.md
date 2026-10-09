@@ -1,0 +1,7 @@
+# Friendly duel native geometry registration
+
+Live duel89 accepted the challenge and displayed placement, but Ready rejected with missing complete owned native QI population. The two-player constructor called initialize_fight_snapshots without first copying the serialized arena rectangle. prepare_fresh_actor_slots correctly returned no registry when that authority was absent; later guards correctly rejected the missing population.
+
+friendly_duel_runtime now validates the actual frozen arena x/y/width/height/cell_masks through NativeQISnapshot before ordinary actor snapshots consume the fresh constructor boundary. Both player QK bytes, positions and physical radii then register through the existing common producer, preserving slot/topology checks. The constructor also supplies the actual serialized participant order to the common global PV collections, initializes both fresh player cosmetics and validates optional native map surface provenance, as the ordinary placement constructor does.
+
+The existing real PostgreSQL duel-placement regression now requires actual registry ownership, position and indexed status for both players and confirms consumption of the fresh registration boundary. Syntax compilation passed; delegated runtime validation is pending. No guard was relaxed, no live fight was repaired in place and no service was restarted. Already-created duel89 lacks constructor authority and is not certified by this change; acceptance requires a newly constructed duel after the complete shared build is deployed.

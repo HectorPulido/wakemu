@@ -3,13 +3,14 @@
 Equipment, passives and aptitude HP bonuses are excluded until implemented.
 Store integration must CAS account/generation/actor and expected prior HP.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 import math
 import struct
 from pathlib import Path
 
-BASE_HEALTH = json.loads((DATA_ROOT / "base-health.json").read_text())["breeds"]
+BASE_HEALTH = protocol_catalog.load(DATA_ROOT / "base-health.json")["breeds"]
 REGEN_DENOMINATOR_MS = 4000
 
 

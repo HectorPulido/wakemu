@@ -23,6 +23,31 @@ class NativeEffectGroupTests(unittest.TestCase):
         self.assertEqual([c.child_id for c in calls], [101, 102, 103])
         self.assertTrue(all(c.caster_id == 10 and c.target_id == 20 for c in calls))
 
+    def test_native_null_target_group_returns_without_children(self):
+        for rebind in (0, 1, 2):
+            calls = self.run_group(
+                (0, 0, 1, 0, 1, rebind),
+                lambda call: self.fail("Native null bfs must not execute a child"),
+                target_id=None,
+            )
+            self.assertEqual(calls, ())
+
+    def test_native_null_rebind_preserves_caster_in_cell_branch(self):
+        for rebind in (1, 2):
+            calls = self.run_group(
+                (0, 0, 0, 0, 1, rebind),
+                lambda call: True,
+                target_id=None,
+                cell_targets=((1, 2, 0),),
+            )
+            self.assertEqual([call.caster_id for call in calls], [10, 10, 10])
+            self.assertTrue(all(call.target_id is None for call in calls))
+
+    def test_native_group_accepts_nonordinary_pv_identity(self):
+        # A Qq area is a PV; eYg reads PV position without eGj instanceof.
+        calls = self.run_group((), lambda call: True, target_id=901)
+        self.assertTrue(all(call.target_id == 901 for call in calls))
+
     def test_limit_counts_attempts_or_successes(self):
         calls = self.run_group((1, 0), lambda call: call.child_id == 102)
         self.assertEqual([c.child_id for c in calls], [101])

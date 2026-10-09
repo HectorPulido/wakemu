@@ -3,6 +3,7 @@
 Only world certifies forecasts and commits actions. Service plans are advisory.
 No model/rules from ai-service are imported into the game server.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass
@@ -24,24 +25,24 @@ POLICY_VERSION = "native-npc-v2-1"
 
 @lru_cache(maxsize=1)
 def catalog_version():
-    from .paths import DATA_ROOT
+    from wakfu_server.paths import DATA_ROOT
 
     digest = hashlib.sha256()
     # Hash immutable source assets directly, without re-encoding hundreds of
     # thousands of compiled rank records on the decision path.
     for name in (
         "native-npc-spell-effect-trees.json",
-        "native-spell-casting.json.gz",
+        "native-spell-casting.json",
         "native-spell-limits.json",
         "spell-effect-trees.json",
-        "combat-state-definitions.json.gz",
-        "granted-spell-effect-trees.json.gz",
-        "native-area-effect-trees.json.gz",
+        "combat-state-definitions.json",
+        "granted-spell-effect-trees.json",
+        "native-area-effect-trees.json",
         "effect-characteristic-registry.json",
         "content-manifest.json",
     ):
         digest.update(name.encode())
-        with (DATA_ROOT / name).open("rb") as source:
+        with protocol_catalog.open(DATA_ROOT / name, "rb") as source:
             for block in iter(lambda: source.read(1024 * 1024), b""):
                 digest.update(block)
     for path in sorted(Path(__file__).parent.glob("*.py")):

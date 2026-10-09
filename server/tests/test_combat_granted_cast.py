@@ -33,7 +33,11 @@ class GrantedCastTests(unittest.TestCase):
             EffectInvocation(313107, 1, 7, 7, (0, 0, 0)),
         )
         body = struct.pack(">qqiih", 7, 6266, 1, 0, 0)
-        kwargs = dict(wp=6, line_of_sight=lambda *args: True)
+        kwargs = dict(
+            wp=6,
+            line_of_sight=lambda *args: True,
+            conditional_context=fixture.cast_authority(deck=()),
+        )
         plan = prepare_spell_cast(
             body, fixture.character, fight, 3, encode_deck([], []), **kwargs
         )

@@ -25,6 +25,23 @@ def effect(kind, parameters=(), *, criteria="", children=()):
 
 
 class EffectDispatchTests(unittest.TestCase):
+    def test_native_null_target_group_dispatches_no_children(self):
+        effects = {"90": effect(330, children=(91,)), "91": effect(400)}
+        dispatcher = EffectDispatcher(
+            effects,
+            {400: lambda *args: self.fail("Native null bfs must stop the group")},
+            resolve=lambda definition, invocation: (invocation,),
+            condition_context=lambda invocation: ConditionContext({}),
+            probability_accepts=lambda *args: True,
+            group_cells=lambda *args: self.fail(
+                "Target branch must not become a cell branch"
+            ),
+            actor_position=lambda identity: (identity, 1, 2),
+        )
+        self.assertFalse(
+            dispatcher.execute(EffectInvocation(90, 20, 7, None, (0, 0, 0)))
+        )
+
     def test_native_actor_group_passes_target_coordinates_preserving_selector(self):
         selected = []
         effects = {"90": effect(330, children=(91,)), "91": effect(400)}
@@ -96,6 +113,10 @@ class EffectDispatchTests(unittest.TestCase):
             "91": effect(400),
             "92": effect(400),
         }
+        # eXR.bbA reads raw So(1), i.e. the second signed parameter operand.
+        # This test exercises the actor-target branch and later asserts that
+        # the selected child retains target -7; make that source fact explicit.
+        effects["90"]["parameters"][1] = 1
         rolls, calls = [], []
 
         def bypass(inv):

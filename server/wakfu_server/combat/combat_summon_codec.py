@@ -78,7 +78,8 @@ def summon_payload(
     status=-1,
     container_type=None,
     container_id=None,
-    context_payload=None
+    context_payload=None,
+    running_value=None
 ):
     if base_uid is None:
         base_uid = uid
@@ -94,6 +95,10 @@ def summon_payload(
         or not -128 <= status <= 127
     ):
         raise ValueError("Unknown native summon running effect/timing")
+    if running_value is None:
+        running_value = specification.reference
+    if type(running_value) is not int or not -(1 << 31) <= running_value < (1 << 31):
+        raise ValueError("Native summon runner value requires signed int")
     blob = summon_descriptor_blob(
         specification,
         actor_id=actor_id,
@@ -107,7 +112,7 @@ def summon_payload(
             (1, uid),
             (2, base_uid),
             (3, effect_reference),
-            (4, specification.reference),
+            (4, running_value),
             (6, caster_id),
         )
     )
@@ -134,4 +139,6 @@ def summon_application(fight_id, action_id, **kwargs):
     body = summon_payload(**kwargs)
     if len(body) > 32767:
         raise ValueError("Native summon effect exceeds cvY short size")
-    return 13497, struct.pack(">iiiih", fight_id, action_id, -1, 307, len(body)) + body
+    from .combat_entity_creation_delivery import immediate_entity_creation
+
+    return immediate_entity_creation(fight_id, action_id, 307, body)

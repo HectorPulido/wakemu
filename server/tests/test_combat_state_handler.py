@@ -1,10 +1,13 @@
 import unittest
+import json
+from pathlib import Path
 from itertools import count
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.spell_audit import states_catalog
 from wakfu_server.combat_state_handler import NativeStateHandler, StateCarrierContext
 from wakfu_server.combat_effect_dispatch import EffectInvocation
 from wakfu_server.combat_effect_removal import _identity_fields
+from wakfu_server import native_catalog
 
 
 class NativeStateHandlerTests(unittest.TestCase):
@@ -139,13 +142,233 @@ class NativeStateHandlerTests(unittest.TestCase):
         event = next(e for e in self.fight.events if e["kind"] == "state_applied")
         self.assertEqual((event["state_id"], event["level"]), (3896, 1))
 
-    def test_non_sentinel_chance_never_silently_applies(self):
-        from wakfu_server.combat_effect_dispatch import UnsupportedEffectExecution
+    def test_real_nondefault_class304_chance_uses_mode_stats_and_bounded_draw(self):
+        path = (
+            Path(__file__).resolve().parents[1]
+            / "protocol/native-class-captured-effect-closure.json"
+        )
+        with native_catalog.open(path, "rt") as source:
+            definition = json.load(source)["effects"]["87531"]
+        from wakfu_server.combat_definitions import effect_profile
 
-        for chance in (0, 50, 100, -2):
-            with self.assertRaisesRegex(UnsupportedEffectExecution, "chance"):
-                self.handler(
-                    self.effect, {"parameters": [3442, 20, chance]}, self.invocation
+        values = effect_profile(definition, 1)
+        self.assertEqual(values["parameters"], [1733, 1, 50])
+        caster, target = self.fight.actors[7], self.fight.actors[-7]
+        caster.effect_stats = {77: 40}
+        target.effect_stats = {78: 20}
+        invocation = EffectInvocation(87531, 1, caster.id, target.id, target.position)
+
+        self.handler.state_random = lambda limit: 60
+        parameters = self.handler._parameters(definition, values, invocation)
+        self.assertTrue(
+            self.handler._application_chance(definition, values, invocation, parameters)
+        )  # NEGATIF mode: 50 + (40 - 20)% of 50 = 60.
+        self.handler.state_random = lambda limit: 61
+        self.assertFalse(
+            self.handler._application_chance(definition, values, invocation, parameters)
+        )
+
+        # Native f2i truncates a negative fractional resistance toward zero.
+        caster.effect_stats = {77: 0}
+        target.effect_stats = {78: 5}
+        self.handler.state_random = lambda limit: 48
+        self.assertTrue(
+            self.handler._application_chance(definition, values, invocation, parameters)
+        )  # 50 + trunc(-2.5) = 48, inclusive boundary.
+        self.handler.state_random = lambda limit: 49
+        self.assertFalse(
+            self.handler._application_chance(definition, values, invocation, parameters)
+        )
+
+        from wakfu_server.combat_state_resistance_metadata import (
+            native_state_resistance_mode,
+        )
+
+        self.assertEqual(native_state_resistance_mode(1472)["name"], "POSITIF")
+        no_resistance = dict(parameters, reference=1472, chance_parameter=25)
+        no_resistance_values = dict(values, parameters=[1472, 1, 25])
+        self.handler.state_random = lambda limit: 25
+        self.assertTrue(
+            self.handler._application_chance(
+                definition, no_resistance_values, invocation, no_resistance
+            )
+        )
+        self.handler.state_random = lambda limit: 26
+        self.assertFalse(
+            self.handler._application_chance(
+                definition, no_resistance_values, invocation, no_resistance
+            )
+        )
+
+        unknown = dict(parameters, reference=759, chance_parameter=50)
+        with self.assertRaisesRegex(ValueError, "outside proven"):
+            self.handler._application_chance(definition, values, invocation, unknown)
+
+    def test_all_published_nondefault_chance_nodes_use_their_native_resistance_mode(
+        self,
+    ):
+        from wakfu_server.combat_definitions import effect_profile
+        from wakfu_server.combat_state_resistance_metadata import (
+            native_state_resistance_mode,
+        )
+
+        protocol = Path(__file__).resolve().parents[1] / "protocol"
+        area_path = protocol / "native-area-effect-trees.json"
+        captured_path = protocol / "native-class-captured-effect-closure.json"
+        with native_catalog.open(area_path, "rt") as source:
+            area_effects = json.load(source)["effects"]
+        with native_catalog.open(captured_path, "rt") as source:
+            captured_effects = json.load(source)["effects"]
+
+        # These are the nine non-sentinel eWu nodes in the published class and
+        # area closures. The expected modes are independently sealed in the
+        # native resistance metadata catalog.
+        cases = (
+            (area_effects, 92058, 1863, 25, "NEGATIF", 0, 30),
+            (area_effects, 194076, 4761, 25, "NEGATIF", 0, 30),
+            (area_effects, 194077, 4762, 25, "NEGATIF", 0, 30),
+            (area_effects, 194078, 4764, 25, "NEGATIF", 0, 30),
+            (area_effects, 71640, 1492, 100, "POSITIF", 2, 100),
+            (area_effects, 181598, 4348, 30, "NEGATIF", 0, 36),
+            (area_effects, 182404, 4348, 80, "NEGATIF", 0, 96),
+            (captured_effects, 87531, 1733, 50, "NEGATIF", 0, 60),
+            (captured_effects, 87535, 1733, 75, "NEGATIF", 0, 90),
+        )
+        caster, target = self.fight.actors[7], self.fight.actors[-7]
+        caster.effect_stats = {77: 40}
+        target.effect_stats = {78: 20}
+
+        for (
+            effects,
+            effect_id,
+            state_id,
+            raw_chance,
+            mode_name,
+            ordinal,
+            expected,
+        ) in cases:
+            with self.subTest(effect_id=effect_id, state_id=state_id):
+                definition = effects[str(effect_id)]
+                values = effect_profile(definition, 1)
+                self.assertEqual(definition["effect_class"], 304)
+                self.assertEqual(values["parameters"][0], state_id)
+                self.assertEqual(values["parameters"][2], raw_chance)
+                mode = native_state_resistance_mode(state_id)
+                self.assertEqual(
+                    (mode["enum_class"], mode["name"], mode["ordinal"]),
+                    ("fza", mode_name, ordinal),
                 )
+                invocation = EffectInvocation(
+                    effect_id, 1, caster.id, target.id, target.position
+                )
+                parameters = self.handler._parameters(definition, values, invocation)
+                self.handler.state_random = lambda limit, draw=expected: draw
+                self.assertTrue(
+                    self.handler._application_chance(
+                        definition, values, invocation, parameters
+                    )
+                )
+                if expected < 100:
+                    self.handler.state_random = lambda limit, draw=expected + 1: draw
+                    self.assertFalse(
+                        self.handler._application_chance(
+                            definition, values, invocation, parameters
+                        )
+                    )
+                else:
+                    self.handler.state_random = lambda limit: self.fail(
+                        "100% native chance must not consume a random draw"
+                    )
+                    self.assertTrue(
+                        self.handler._application_chance(
+                            definition, values, invocation, parameters
+                        )
+                    )
+
+    def _kill_native_target(self):
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+        )
+
+        initialize_global_pv_collections(self.fight, tuple(self.fight.actors))
+        target = self.fight.actors[-7]
+        with self.fight.effect_resolution():
+            self.fight.apply_effect_damage(7, -7, target.hp)
+            self.assertEqual(target.hp, 0)
+            self.assertEqual(self.fight.phase, "active")
+        self.assertEqual(self.fight.phase, "finished")
+        return target
+
+    def test_flag15_state_application_can_complete_on_registered_off_play_target(self):
+        from wakfu_server.combat_global_pv_collections import global_fighter_guards
+
+        target = self.fight.actors[-7]
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+        )
+
+        initialize_global_pv_collections(self.fight, tuple(self.fight.actors))
+        effect = {"effect_class": 304, "native_effect_flags": [15]}
+        invocation = EffectInvocation(92, 1, 7, -7, target.position)
+        with self.fight.effect_resolution():
+            self.fight.apply_effect_damage(7, -7, target.hp)
+            self.assertTrue(global_fighter_guards(self.fight, -7)["baG"])
+            self.assertTrue(
+                self.handler(effect, {"parameters": [3442, 20, -1]}, invocation)
+            )
+            self.assertEqual(target.state_ledger.entries[0].reference, 3442)
+        self.assertEqual(self.fight.phase, "finished")
+
+    def test_unflagged_state_rejects_off_play_and_flag15_still_requires_active_phase(
+        self,
+    ):
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+        )
+
+        target = self._kill_native_target()
+        invocation = EffectInvocation(92, 1, 7, -7, target.position)
+        parameters = {"parameters": [3442, 20, -1]}
+        before = target.state_ledger.entries
+        with self.assertRaisesRegex(ValueError, "Dynamic native corpse guard"):
+            self.handler(
+                {"effect_class": 304, "native_effect_flags": []},
+                parameters,
+                invocation,
+            )
+        self.assertEqual(target.state_ledger.entries, before)
+        with self.assertRaisesRegex(
+            ValueError, "Invalid state source, target or fight phase"
+        ):
+            self.handler(
+                {"effect_class": 304, "native_effect_flags": [15]},
+                parameters,
+                invocation,
+            )
+        self.assertEqual(target.state_ledger.entries, before)
+
+    def test_unregistered_off_play_status_is_not_inferred_from_numeric_hp(self):
+        from wakfu_server.combat_global_pv_collections import (
+            global_fighter_guards,
+            initialize_global_pv_collections,
+        )
+
+        initialize_global_pv_collections(self.fight, tuple(self.fight.actors))
+        target = self.fight.actors[-7]
+        target.hp = (
+            0  # The native PV status remains IN_PLAY; this is not a death event.
+        )
+        self.assertFalse(global_fighter_guards(self.fight, -7)["baG"])
+        effect = {"effect_class": 304, "native_effect_flags": []}
+        invocation = EffectInvocation(92, 1, 7, -7, target.position)
+        with self.fight.effect_resolution():
+            self.assertTrue(
+                self.handler(effect, {"parameters": [3442, 20, -1]}, invocation)
+            )
+        self.assertEqual(target.state_ledger.entries[0].reference, 3442)
+
+    def test_non_sentinel_chance_rejects_state_without_resistance_provenance(self):
+        with self.assertRaisesRegex(ValueError, "outside proven"):
+            self.handler(self.effect, {"parameters": [759, 20, 50]}, self.invocation)
         self.assertEqual(self.fight.actors[7].state_ledger.entries, ())
         self.assertEqual(self.packets, [])

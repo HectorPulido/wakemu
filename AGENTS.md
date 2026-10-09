@@ -4,7 +4,7 @@
 
 - `server/local_game_server.py` connects the Wakfu protocol to Python services. Keep domain logic in `server/wakfu_server/`, organized into `combat/`, `items/`, `maps/`, `storage/`, and `characters/`.
 - `server/tests/` contains automated tests; `server/protocol/` contains protocol catalogs. `server/ai-service/` and `server/cron-service/` provide separate services.
-- `client/` contains the game client and assets; `client/tools/` contains launch and inspection scripts.
+- `client/` contains the game client and assets; `client-tools/` contains launch and inspection scripts.
 - `sniffer/` contains capture and decoding tools, with Java sources in `sniffer/java/`.
 - `docs/reports/` holds investigations and evidence. `.runtime/` holds generated and private data.
 
@@ -15,7 +15,7 @@ Run from the repository root in the appropriate authorized environment. These ar
 - `docker compose up -d --build`: build and start the Compose stack; obtain explicit authorization before restarting services.
 - `docker compose ps`: inspect service status.
 - `docker compose logs -f world`: follow game-server logs.
-- `bash client/tools/local-client.sh`: launch the client; `--profile nombre` selects another profile.
+- `bash client-tools/local-client.sh`: launch the client; `--profile nombre` selects another profile.
 - `bash sniffer/build-capture-agent.sh`: build the capture agent using JDK 21 or newer.
 - `PYTHONPATH=server python3 -m unittest discover -s server/tests`: run server tests.
 
@@ -66,6 +66,10 @@ He prefer testing complete systems rather than small tests.
 
 Trabajar sobre un único contenedor `world`: modificarlo y reiniciarlo con la autorización persistente. No crear ni acumular servidores candidatos por versión; conservar copias de seguridad y validación automática. Esta preferencia no exige fusionar servicios distintos como PostgreSQL o IA en un único proceso.
 
+
+### Complete world builds
+
+Before restarting world, build and validate the complete current server checkout. Do not deploy an overlay on an older image that drops concurrent agents' spell or combat changes. Verify that the deployed image contains the current shared implementation and preserve changes owned by other agents.
 
 ### Idioma
 Codigo y comentarios en ingles, Documentacion en ingles, conversacion con Hector en español

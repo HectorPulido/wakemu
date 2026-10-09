@@ -1,13 +1,14 @@
 """fyS cast accounting: reference identity, target footprint, turn and interval."""
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 from .combat_conditions import evaluate_condition, UnknownCondition
 
 
 @lru_cache(maxsize=1)
 def native_limits():
-    return json.loads((DATA_ROOT / "native-spell-limits.json").read_text())["spells"]
+    return protocol_catalog.load(DATA_ROOT / "native-spell-limits.json")["spells"]
 
 
 def limits(reference, level, context=None):
@@ -24,18 +25,26 @@ def limits(reference, level, context=None):
         raise ValueError("Native casting limits must contain narrowed signed bytes")
     matches = set()
     unknown = False
+    unknown_baseline = False
     for alternative in row["conditional"]:
         values = tuple(alternative["limits"])
-        if values == baseline:
-            continue
         try:
+            if context is None:
+                raise UnknownCondition("Missing native conditional casting context")
             selected = evaluate_condition(alternative["criteria"], context)
         except UnknownCondition:
-            unknown = True
+            if values == baseline:
+                unknown_baseline = True
+            else:
+                unknown = True
             continue
         if selected:
             matches.add(values)
-    if unknown or len(matches) > 1:
+    if (
+        unknown
+        or len(matches) > 1
+        or (unknown_baseline and any(values != baseline for values in matches))
+    ):
         raise UnknownCondition("Unresolved native conditional casting limits")
     per_target, base, growth, interval = next(iter(matches), baseline)
     # fyG.b narrows the floor of base + growth * cmZ to signed byte.
@@ -44,7 +53,9 @@ def limits(reference, level, context=None):
 
 
 def validate_usage(fight, caster, reference, level, cell, context=None):
-    rule = limits(reference, level, context)
+    callback = getattr(context, "native_usage_context_query", None)
+    null_context = callback(None, reference, level) if callable(callback) else context
+    rule = limits(reference, level, null_context)
     rows = getattr(fight, "native_spell_usage", {})
     state = rows.get(str(caster.id), {})
     same_turn = state.get("turn") == caster.turn_count
@@ -60,24 +71,37 @@ def validate_usage(fight, caster, reference, level, cell, context=None):
     ):
         raise ValueError("Native spell maximum casts per turn reached")
     targets = []
-    if rule["per_target"] > 0:
-        for actor in fight.actors.values():
-            radius = actor.physical_radius
-            if type(radius) is not int:
-                raise ValueError("Missing native target footprint for casting limits")
+    definition = native_limits()[str(reference)]
+    has_target_limit = rule["per_target"] > 0 or any(
+        alternative["limits"][0] > 0 for alternative in definition["conditional"]
+    )
+    if has_target_limit or definition["conditional"]:
+        from .combat_usage_targets import usage_targets
+
+        for candidate in usage_targets(fight, cell):
+            selected_context = (
+                callback(candidate.identity, reference, level)
+                if callable(callback)
+                else context
+            )
+            selected_rule = limits(reference, level, selected_context)
             if (
-                max(0, abs(actor.position[0] - cell[0]) - radius)
-                + max(0, abs(actor.position[1] - cell[1]) - radius)
-                == 0
+                same_turn
+                and selected_rule["per_turn"] > 0
+                and state.get("casts", {}).get(key, 0) >= selected_rule["per_turn"]
             ):
-                target = str(actor.id)
+                raise ValueError("Native spell maximum casts per turn reached")
+            if selected_rule["per_target"] <= 0:
+                continue
+            target = str(candidate.identity)
+            if (
+                same_turn
+                and state.get("targets", {}).get(key, {}).get(target, 0)
+                >= selected_rule["per_target"]
+            ):
+                raise ValueError("Native spell maximum casts per target reached")
+            if candidate.consume:
                 targets.append(target)
-                if (
-                    same_turn
-                    and state.get("targets", {}).get(key, {}).get(target, 0)
-                    >= rule["per_target"]
-                ):
-                    raise ValueError("Native spell maximum casts per target reached")
     return dict(rule, targets=targets)
 
 

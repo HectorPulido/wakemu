@@ -85,9 +85,32 @@ def plan(session, fight, runtime):
     public = []
     for identity in removed:
         target = candidate.actors[identity]
+        from .combat_pve_departure import retire_pve_actor
+
+        retire_pve_actor(
+            candidate,
+            target,
+            root_actor_id=session.character_id,
+            owner_id=session.account_id,
+        )
         target.pve_withdrawn = True
         if target.hp > 0:
-            target.hp = 0
+            from .combat_hp_raw import hp_raw_present, set_hp_raw_current
+
+            if hp_raw_present(target):
+                set_hp_raw_current(target, 0)
+            else:
+                target.hp = 0
+            if target.effect_stats is not None:
+                if (
+                    not isinstance(target.effect_stats, dict)
+                    or 1 not in target.effect_stats
+                ):
+                    raise ValueError(
+                        "Missing withdrawn actor HP characteristic snapshot"
+                    )
+                if not hp_raw_present(target):
+                    target.effect_stats[1] = 0
             candidate._event(
                 "withdrawn", actor_id=identity, owner_id=session.account_id
             )
@@ -124,9 +147,12 @@ def plan(session, fight, runtime):
     private.turn_deadline = private.deadline_turn = None
     private.abandon_owner = (session.account_id, session.character_id)
     private.abandon_returned = False
+    from .combat_terminal_metadata import registered_summon_actor_ids
+
+    summon_ids = registered_summon_actor_ids(private.fight)
     for member in private.fight.actors.values():
-        if member.id != session.character_id:
-            member.controlled = False
+        if member.id != session.character_id and member.id not in summon_ids:
+            member.pve_withdrawn = True
     # This detached private continuation uses singleton abandon validation;
     # the public encounter retains the durable withdrawal flag.
     private.fight.actors[session.character_id].pve_withdrawn = False

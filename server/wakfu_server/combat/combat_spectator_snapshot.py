@@ -4,6 +4,7 @@ This module does not create an actor, join participant membership, or execute
 an effect. Unsupported retained effect families fail closed rather than
 producing a visibly incomplete active-fight snapshot.
 """
+from .combat_environment_glyphs import environment_sections
 from .combat_spectator_wire import spectator_bootstrap, timeline_snapshot
 from .combat_turns import initial_order
 from .combat_wire import initial_timeline, topology
@@ -214,7 +215,7 @@ def current_snapshot(fight, shared, *, actor_payload, deadline_ms=None):
         myH=[],
         myM=[],
         myN=[],
-        myK=[],
+        myK=environment_sections(fight),
     )
     timeline_state = timeline_snapshot(3)
     bootstrap_packet = spectator_bootstrap(

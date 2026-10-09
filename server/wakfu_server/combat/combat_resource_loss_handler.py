@@ -26,7 +26,8 @@ class NativeResourceLossHandler:
         rng,
         properties,
         secondary_state,
-        event_lifecycle=None
+        event_lifecycle=None,
+        delivery=None,
     ):
         self.fight, self.packets = fight, packets
         self.action_id, self.allocate_uid, self.context = (
@@ -40,8 +41,22 @@ class NativeResourceLossHandler:
             secondary_state,
         )
         self.event_lifecycle = event_lifecycle
+        self.delivery = delivery
         self.prepared = {}
         self.runner_amounts = {}
+
+    def native_eligibility(self, effect, invocation):
+        """Evaluate eZR.bcd before allocating an eVZ runner/UID."""
+        if effect.get("effect_class") not in (48, 55):
+            return True
+        target = self.fight.actors.get(invocation.target_id)
+        if target is None or target.hp > 0:
+            return True
+        from .combat_runner_target_life import runner_target_life_eligible
+
+        return runner_target_life_eligible(
+            self.fight, target, effect, invocation=invocation
+        )
 
     def _calculate(self, effect, invocation):
         stat = {48: 3, 55: 2}.get(effect["effect_class"])
@@ -51,7 +66,24 @@ class NativeResourceLossHandler:
             self.fight.actors.get(i)
             for i in (invocation.caster_id, invocation.target_id)
         )
-        if source is None or target is None or target.hp <= 0:
+        area_source = None
+        if source is None:
+            from .combat_state_managers import registered_area_pv
+
+            area_source = registered_area_pv(self.fight, invocation.caster_id)
+            row = getattr(self.fight, "native_effect_areas", {}).get(
+                invocation.caster_id
+            )
+            if (
+                area_source is None
+                or not isinstance(row, dict)
+                or row.get("native_area_contract") != "faP"
+            ):
+                raise ValueError("Missing native eVZ source PA presence authority")
+            # faP inherits faV.a(PC)=false. eVZ.C queries that presence before
+            # reading shF; the actual area supplies zero, never owner stats.
+            source = area_source
+        if source is None or target is None:
             raise ValueError("Native eVZ requires owned living target")
         context = self.context(effect, invocation)
         if (
@@ -59,22 +91,25 @@ class NativeResourceLossHandler:
             or context.source_guards_verified is not True
         ):
             raise ValueError("Missing native eVZ timing/guard authority")
+        if target.hp <= 0:
+            from .combat_runner_target_life import runner_target_life_eligible
+
+            if not runner_target_life_eligible(
+                self.fight, target, effect, invocation=invocation
+            ):
+                return context, stat, None, False
         flags = set(effect["native_effect_flags"])
-        if flags - {1, 3, 4, 5, 6, 14, 16, 17, 19, 26, 30}:
+        if flags - {1, 3, 4, 5, 6, 14, 15, 16, 17, 19, 26, 30}:
             raise ValueError("Unaudited native eVZ flags")
         if len(effect["parameters"]) < 2 or len(effect["parameters"]) % 2:
             raise ValueError("Missing native eVZ first parameter")
         requested = parameter_value(effect["parameters"], 0, invocation.level)
         if requested == -1:
-            trigger = invocation.native_trigger_context
-            if trigger is None or trigger.get("effect_action_id") is None:
-                raise ValueError("Missing native eVZ trigger category")
-            # eWf exposes per-resource signed bytes, not its generic value.
-            if trigger.get("runner_class") == "eWf":
-                raise ValueError("Missing native eWf triggering resource cost")
-            if type(trigger.get("value")) is not int:
-                raise ValueError("Missing native eVZ triggering value")
-            requested = trigger["value"]
+            from .combat_resource_loss import triggering_resource_loss
+
+            requested = triggering_resource_loss(
+                invocation.native_trigger_context, stat
+            )
         minimum, maximum = _bounds(target, stat)
         props = self.properties(target)
         if not isinstance(props, frozenset):
@@ -82,7 +117,7 @@ class NativeResourceLossHandler:
         executable = context.executable
         if stat == 3 and 4 in props:  # eWR/eVZ.fMy: ffe.sdB IMMOBILIZED.
             executable = False
-        for actor in (source, target):
+        for actor in (target,) if area_source is not None else (source, target):
             # Exact ordinary authority attests the complete installed PA map.
             if not isinstance(self.properties(actor), frozenset) or not isinstance(
                 actor.effect_stats, dict
@@ -94,7 +129,9 @@ class NativeResourceLossHandler:
             current=_current(target, stat),
             minimum=minimum,
             maximum=maximum,
-            caster_willpower=source.effect_stats.get(86, 0),
+            caster_willpower=0
+            if area_source is not None
+            else source.effect_stats.get(86, 0),
             target_willpower=target.effect_stats.get(86, 0),
             same_actor=source.id == target.id,
             ignores_willpower=30 in flags,
@@ -112,6 +149,8 @@ class NativeResourceLossHandler:
         return context, stat, plan, executable
 
     def prepare(self, effect, values, invocation):
+        if not self.native_eligibility(effect, invocation):
+            return invocation
         uid = invocation.native_running_uid or self.allocate_uid()
         invocation = replace(invocation, native_running_uid=uid)
         from .combat_trigger_value_modifier import NativeRunnerAmount
@@ -129,7 +168,12 @@ class NativeResourceLossHandler:
                 runner_modifier=runner,
             )
         self.prepared[uid] = self._calculate(effect, invocation)
-        runner.set_calculated(self.prepared[uid][2].calculated)
+        plan = self.prepared[uid][2]
+        if plan is None:
+            self.prepared.pop(uid, None)
+            self.runner_amounts.pop(uid, None)
+            return invocation
+        runner.set_calculated(plan.calculated)
         # eWR.fNa overrides Qe's PK.eg chance, rather than adding a second roll.
         # Dispatcher values are a fresh execution-local effect_profile dictionary.
         chance = (
@@ -152,6 +196,8 @@ class NativeResourceLossHandler:
         runner = self.runner_amounts.pop(uid, None)
         if not executable:
             return False
+        if self.delivery is not None and context.retained:
+            raise ValueError("Synthetic native eVZ delivery cannot retain a runner")
         uid = uid or self.allocate_uid()
         if runner is None:
             from .combat_trigger_value_modifier import NativeRunnerAmount
@@ -180,6 +226,20 @@ class NativeResourceLossHandler:
             frozen=stat in target.effect_frozen,
             suppresses_loss_state=19 in effect["native_effect_flags"],
         )
+        if getattr(target, "effect_resource_raw_currents", None) is not None:
+            from .combat_resource_pa_notifications import resource_shift_result, int32
+
+            _, after, actual = resource_shift_result(
+                target, stat, runner.value, subtract=True
+            )
+            state = (
+                None
+                if actual <= 0 or 19 in effect["native_effect_flags"]
+                else (5227, 0, int32(actual * 10), 0, 100, 0)
+            )
+            plan = replace(
+                plan, actual=actual, after=after, state_5227_parameters=state
+            )
         secondary = None
         if plan.state_5227_parameters is not None:
             if not callable(self.secondary_state):
@@ -221,7 +281,9 @@ class NativeResourceLossHandler:
             )
             return payload
 
-        payload = make_payload(plan.actual)
+        # Synthetic native definitions have their own signed identity and wire
+        # policy. Do not weaken the positive-reference codec for ordinary PKs.
+        payload = None if self.delivery is not None else make_payload(plan.actual)
         if context.retained:
             self.fight.owned_stat_effects[uid] = dict(
                 uid=uid,
@@ -237,8 +299,12 @@ class NativeResourceLossHandler:
                 timer=None if context.timer is None else dict(vars(context.timer)),
             )
         if not runner.notification_suppressed:
-            self.packets.append(
-                (
+            if self.delivery is not None:
+                self.packets.append(
+                    self.delivery(effect, invocation, uid, plan.actual, context)
+                )
+            else:
+                packet = (
                     13497,
                     owned_effect_application(
                         self.fight.id,
@@ -249,7 +315,15 @@ class NativeResourceLossHandler:
                         running_effect_payload=payload,
                     ),
                 )
-            )
+                if not context.retained:
+                    from .combat_entity_creation_delivery import (
+                        immediate_effect_application,
+                    )
+
+                    packet = immediate_effect_application(
+                        self.fight.id, self.action_id, effect["effect_class"], payload
+                    )
+                self.packets.append(packet)
         if context.retained and self.event_lifecycle is not None:
             register = getattr(self.event_lifecycle, "register_applied", None)
             if callable(register):
@@ -280,6 +354,7 @@ def remove_owned_resource_loss(stat_handler, uid):
     entry = stat_handler.fight.owned_stat_effects[uid]
     actor = stat_handler.fight.actors[entry["target_id"]]
     stat = entry["stat_id"]
+    _current_before_removal = _current(actor, stat)
     minimum, maximum = _bounds(actor, stat)
     after = remove_resource_loss(
         current=_current(actor, stat),
@@ -288,8 +363,18 @@ def remove_owned_resource_loss(stat_handler, uid):
         actual=entry["actual"],
         frozen=stat in actor.effect_frozen,
     )
-    setattr(actor, {2: "ap", 3: "mp"}[stat], after)
-    actor.effect_stats[stat] = after
+    if getattr(actor, "effect_resource_raw_currents", None) is not None:
+        from .combat_resource_pa_notifications import shift_resource_current
+
+        shift_resource_current(stat_handler.fight, actor, stat, entry["actual"])
+    else:
+        setattr(actor, {2: "ap", 3: "mp"}[stat], after)
+        actor.effect_stats[stat] = after
+        from .combat_resource_pa_notifications import notify_resource_pa
+
+        notify_resource_pa(
+            stat_handler.fight, actor, stat, before_current=_current_before_removal
+        )
     stat_handler.packets.append(
         (
             13560,

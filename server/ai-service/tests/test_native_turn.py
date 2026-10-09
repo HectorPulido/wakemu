@@ -10,6 +10,7 @@ if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
 from wakfu_ai.native import native_turn
+from wakfu_ai.native.native_deadline import bounded
 
 
 def runtime_fixture():
@@ -19,13 +20,21 @@ def runtime_fixture():
     fight = SimpleNamespace(
         phase="active", current=npc, turn_id=4, id=77, actors={-9: npc}, sequence=10
     )
-    return SimpleNamespace(
+    runtime = SimpleNamespace(
         fight=fight,
         awaiting_ack=None,
         pending=[],
         action_id=50,
         tactical_encounter_id="encounter-turn-test",
     )
+
+    def end_server_turn(actor_id, turn_id):
+        runtime.fight.phase = "complete"
+        runtime.fight.current = None
+        return [("native-barrier", actor_id, turn_id)]
+
+    runtime.end_server_turn = end_server_turn
+    return runtime
 
 
 class FakeOracle:
@@ -162,18 +171,34 @@ class NativeTurnDriverTests(unittest.TestCase):
         self.assertEqual(FakeSession.certification_modes, [False, False])
 
     def test_deadline_falls_back_to_end_turn_without_query(self):
-        times = iter((10.0, 12.0))
-        generator = self.run_turn(
-            max_actions=3, budget_seconds=1, clock=lambda: next(times)
-        )
+        now = [10.0]
 
-        packets, ending = next(generator)
-        self.assertEqual(packets, [("committed", "end_turn")])
-        self.assertEqual(ending["reason"], "native_turn_deadline_reached")
+        def construct_slow_oracle(*args, **kwargs):
+            now[0] = 12.0
+            return self.oracle
+
+        commit = self.oracle.commit
+
+        def deadline_checked_commit(action, *, stats_serializer):
+            native_turn.check()
+            return commit(action, stats_serializer=stats_serializer)
+
+        clock = lambda: now[0]
+        with bounded(now[0] + 1.0, clock=clock), patch.object(
+            native_turn, "NativeOracle", side_effect=construct_slow_oracle
+        ), patch.object(self.oracle, "commit", deadline_checked_commit):
+            generator = self.run_turn(max_actions=3, budget_seconds=10, clock=clock)
+            diagnostic_packets, ending = next(generator)
+            packets, barrier = next(generator)
+        self.assertEqual(diagnostic_packets, [])
+        self.assertEqual(ending["reason"], "native_ai_query_or_commit_rejected")
+        self.assertEqual(ending["stage"], "oracle_create")
+        self.assertEqual(ending["error"], "TimeoutError")
         self.assertEqual(FakeSession.calls, 0)
-        self.assertEqual(
-            [entry["action"]["type"] for entry in self.oracle.commits], ["end_turn"]
-        )
+        self.assertGreaterEqual(ending["stageElapsedMs"]["oracle_create"], 0)
+        self.assertEqual(packets, [("native-barrier", -9, 4)])
+        self.assertEqual(barrier["action"], {"type": "end_turn"})
+        self.assertEqual(self.oracle.commits, [])
 
     def test_query_failure_does_not_commit_candidate_or_spend_action_resources(self):
         FakeSession.decisions = [ValueError("native query rejected")]
@@ -183,7 +208,7 @@ class NativeTurnDriverTests(unittest.TestCase):
         self.assertEqual(packets, [])
         self.assertEqual(failure["reason"], "native_ai_query_or_commit_rejected")
         self.assertEqual(failure["detail"], "native query rejected")
-        self.assertEqual(failure["stage"], "decision_search")
+        self.assertEqual(failure["stage"], "search")
         self.assertEqual(failure["turnBudgetMs"], 10000)
         self.assertGreaterEqual(failure["elapsedMs"], 0)
         self.assertEqual(self.runtime.fight.current.ap, 6)
@@ -194,6 +219,20 @@ class NativeTurnDriverTests(unittest.TestCase):
         self.assertEqual(
             [entry["action"]["type"] for entry in self.oracle.commits], ["end_turn"]
         )
+
+    def test_oracle_creation_failure_publishes_live_native_turn_barrier(self):
+        with patch.object(
+            native_turn, "NativeOracle", side_effect=ValueError("oracle unavailable")
+        ):
+            deliveries = list(self.run_turn())
+
+        self.assertEqual(FakeSession.calls, 0)
+        self.assertEqual(deliveries[0][0], [])
+        self.assertEqual(deliveries[0][1]["stage"], "oracle_create")
+        self.assertEqual(deliveries[0][1]["detail"], "oracle unavailable")
+        self.assertEqual(deliveries[1][0], [("native-barrier", -9, 4)])
+        self.assertEqual(deliveries[1][1]["action"], {"type": "end_turn"})
+        self.assertEqual(self.runtime.fight.phase, "complete")
 
     def test_immediate_handoff_still_requires_authoritative_commit_acceptance(self):
         FakeSession.decisions = [{"type": "cast", "spellId": 77, "level": 1}]
@@ -226,6 +265,40 @@ class NativeTurnDriverTests(unittest.TestCase):
             [entry["action"]["type"] for entry in self.oracle.commits], ["end_turn"]
         )
 
+    def test_preparation_time_is_part_of_the_owner_turn_allowance(self):
+        now = [10.0]
+        self.runtime.native_ai_preparation_started_at = 9.0
+
+        def late_decision(session, *, certify=True):
+            now[0] = 12.5
+            return dict(action={"type": "cast", "spellId": 77, "level": 1})
+
+        with patch.object(FakeSession, "decide", late_decision):
+            deliveries = list(self.run_turn(budget_seconds=3, clock=lambda: now[0]))
+        self.assertEqual(self.runtime.fight.actors[-9].ap, 6)
+        self.assertEqual(deliveries[0][1]["error"], "TimeoutError")
+        self.assertEqual(deliveries[0][1]["elapsedMs"], 3500)
+
+    def test_expired_original_preparation_start_does_not_initialize_a_session(self):
+        self.runtime.native_ai_preparation_started_at = 5.0
+        deliveries = list(self.run_turn(budget_seconds=3, clock=lambda: 10.0))
+        self.assertEqual(FakeSession.calls, 0)
+        self.assertEqual(deliveries[0][1]["error"], "TimeoutError")
+        self.assertEqual(deliveries[0][1]["elapsedMs"], 5000)
+
+    def test_future_preparation_start_cannot_extend_the_owner_turn(self):
+        now = [10.0]
+        self.runtime.native_ai_preparation_started_at = 99.0
+
+        def late_decision(session, *, certify=True):
+            now[0] = 14.0
+            return dict(action={"type": "cast", "spellId": 77, "level": 1})
+
+        with patch.object(FakeSession, "decide", late_decision):
+            deliveries = list(self.run_turn(budget_seconds=3, clock=lambda: now[0]))
+        self.assertEqual(self.runtime.fight.actors[-9].ap, 6)
+        self.assertEqual(deliveries[0][1]["error"], "TimeoutError")
+
     def test_decision_returning_after_deadline_never_commits_its_action(self):
         now = [10.0]
 
@@ -247,6 +320,21 @@ class NativeTurnDriverTests(unittest.TestCase):
         self.assertEqual(self.runtime.fight.actors[-9].ap, 6)
         self.assertEqual(deliveries[0][1]["error"], "TimeoutError")
         self.assertEqual(len(cancelled), 1)
+
+    def test_success_diagnostics_expose_only_stage_timings(self):
+        FakeSession.decisions = [{"type": "end_turn"}]
+        deliveries = list(self.run_turn())
+
+        decision = deliveries[0][1]
+        self.assertTrue(
+            {"oracle_create", "catalog_session", "search", "source_guard", "commit"}
+            <= set(decision["stageElapsedMs"])
+        )
+        self.assertTrue(
+            all(type(value) is float for value in decision["stageElapsedMs"].values())
+        )
+        self.assertNotIn("runtime", decision)
+        self.assertNotIn("catalog", decision)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 Callers resolve a live registry monster and native reachability before start.
 Yield/cooldown are explicit local policies, not undocumented official rates.
 """
-import gzip
+from wakfu_server import native_catalog as protocol_catalog
 import json
 import struct
 import uuid
@@ -69,10 +69,13 @@ def available(db, store, monster, action_id):
     key = (monster["map_id"], monster["instance_id"], monster["id"], action_id)
     lock_key = "harvest:" + ":".join(map(str, key))
     db.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (lock_key,))
+    from .npc_actor_identity_repair import identity_lineage
+
+    lineage = identity_lineage(db, *key[:2], key[2])
     last = db.execute(
         "SELECT MAX(regenerates_until) AS last FROM monster_harvest_receipts "
-        "WHERE map_id=%s AND instance_id=%s AND monster_id=%s AND action_id=%s",
-        key,
+        "WHERE map_id=%s AND instance_id=%s AND monster_id=ANY(%s) AND action_id=%s",
+        (*key[:2], lineage, key[3]),
     ).fetchone()["last"]
     if last is not None and store.now() < last:
         raise Regenerating(monster["id"], action_id)
@@ -110,8 +113,7 @@ def decode_result(body):
 
 @lru_cache(maxsize=1)
 def _actions():
-    with gzip.open(DATA_ROOT / "monster-encyclopedia.json.gz", "rt") as stream:
-        catalog = json.load(stream)
+    catalog = protocol_catalog.load(DATA_ROOT / "monster-encyclopedia.json")
     return {
         (m["ref"], a["d"]): a for m in catalog["monsters"] for a in m["collect_actions"]
     }
@@ -197,9 +199,12 @@ class Harvests:
         """Restore disabled actions after NPC publication, including reconnect."""
         with self.store.connection() as db:
             rows = db.execute(
-                "SELECT monster_id,action_id,MAX(regenerates_until) AS regenerates_until "
-                "FROM monster_harvest_receipts WHERE map_id=%s AND instance_id=%s "
-                "AND regenerates_until>%s GROUP BY monster_id,action_id",
+                "SELECT COALESCE(a.new_actor_id,r.monster_id) AS monster_id,r.action_id,"
+                "MAX(r.regenerates_until) AS regenerates_until FROM monster_harvest_receipts r "
+                "LEFT JOIN npc_actor_identity_aliases a ON a.map_id=r.map_id "
+                "AND a.instance_id=r.instance_id AND a.old_actor_id=r.monster_id "
+                "WHERE r.map_id=%s AND r.instance_id=%s AND r.regenerates_until>%s "
+                "GROUP BY COALESCE(a.new_actor_id,r.monster_id),r.action_id",
                 (map_id, instance_id, self.store.now()),
             ).fetchall()
         now = self.store.clock()

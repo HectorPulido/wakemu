@@ -1,6 +1,6 @@
 # Cobertura del catálogo de drops instalado
 
-Revisión directa de `server/protocol/monster-encyclopedia.json.gz` y bytecode de `client/lib/wakfu-client.jar` (repetida el 2026-10-07 contra el consumidor de la enciclopedia y todas las clases del JAR que contienen `csE`).
+Revisión directa de `server/protocol/monster-encyclopedia.json` y bytecode de `client/lib/wakfu-client.jar` (repetida el 2026-10-07 contra el consumidor de la enciclopedia y todas las clases del JAR que contienen `csE`).
 
 - 16.138 filas de botín de monstruos; 686 llevan `complex_criteria=true` y el resolver las rechaza conservadoramente.
 - Ninguna de las 16.138 filas tiene `is_loot_table=true`. Existen 2.204 tablas externas exportadas, pero su existencia no acredita una dependencia de estas filas de monstruos.

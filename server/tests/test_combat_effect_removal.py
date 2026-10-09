@@ -40,6 +40,27 @@ class EffectRemovalTests(unittest.TestCase):
         self.assertEqual(body[18:-16], self.payload())
         self.assertEqual(struct.unpack(">qq", body[-16:]), (-33, 1234))
 
+    def test_book_removal_notifies_native_unapplication_without_losing_identity(self):
+        from wakfu_server.combat_effect_removal import _identity_fields
+        from wakfu_server.combat_effects import _integer, _varint
+
+        timing = _integer(2, 0) + _integer(3, 17) + _integer(5, 1)
+        original = self.payload() + b"\x5a" + _varint(len(timing)) + timing
+        for family in (649, 933):
+            removed = self.removal(effect_class=family, running_effect_payload=original)
+            actual = removed[18:-16]
+            self.assertEqual(_identity_fields(actual), _identity_fields(original))
+            # Read the single TimeDatas message while preserving the clocks.
+            self.assertTrue(actual.endswith(b"\x08\x01"))
+            self.assertIn(timing, actual)
+            self.assertEqual(struct.unpack(">qq", removed[-16:]), (-33, 1234))
+            quiet = self.removal(
+                effect_class=family,
+                running_effect_payload=original,
+                notify_unapplication=False,
+            )
+            self.assertEqual(quiet[18:-16], original)
+
     def test_refuses_changed_identity_and_incomplete_proto(self):
         for args in [
             dict(uid=1235),
@@ -117,3 +138,38 @@ class EffectRemovalTests(unittest.TestCase):
         proto = original + b"\x42" + _varint(len(additional)) + additional
         with self.assertRaises(ValueError):
             self.removal(effect_class=310, uid=2345, running_effect_payload=proto)
+
+    def test_configured_area_cell_recipient_preserves_nonzero_reference(self):
+        from wakfu_server.combat_effect_area_codec import area_payload
+        from wakfu_server.combat_effects import _integer
+
+        original = area_payload(
+            uid=1234,
+            base_uid=None,
+            effect_reference=100,
+            area_reference=1035,
+            area_uid=1233,
+            level=1,
+            keep_after=False,
+            direction=None,
+            caster_id=22,
+            cell=(1, 2, 0),
+            timing_payload=b"\x08\x00",
+        )
+        body = self.removal(
+            effect_class=339, target_id=22, running_effect_payload=original
+        )
+        self.assertEqual(body[18:-16], original)
+        self.assertEqual(struct.unpack(">qq", body[-16:]), (22, 1234))
+        # Configured class339 is cell-only. A forged explicit actor recipient
+        # cannot be admitted merely because the protobuf contains field7.
+        with self.assertRaisesRegex(ValueError, "owner flags"):
+            self.removal(
+                effect_class=339,
+                target_id=-33,
+                running_effect_payload=original + _integer(7, -33),
+            )
+        with self.assertRaisesRegex(ValueError, "identity"):
+            self.removal(
+                effect_class=339, target_id=23, running_effect_payload=original
+            )

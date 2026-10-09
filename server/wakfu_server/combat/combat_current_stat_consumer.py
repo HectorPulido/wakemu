@@ -1,4 +1,5 @@
 """Native eWQ/eWR runner lifecycle, independent of null400 and Qq effects."""
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from pathlib import Path
 from dataclasses import replace
@@ -7,30 +8,31 @@ from .combat_stat_effects import (
     current_stat_initial_eligible,
     apply_current_stat,
     owned_effect_payload,
-    owned_effect_delivery,
+    evaluated_effect_delivery,
 )
 from .combat_trigger_value_modifier import NativeRunnerAmount
 from .combat_value_transfer import apply_context_value
+from .combat_summon_initialization import registered_or_detached_actor
 
-_EVENTS = json.loads(
-    (
-        Path(__file__).resolve().parents[2]
-        / "protocol"
-        / "native-current-stat-events.json"
-    ).read_text()
+_EVENTS = protocol_catalog.load(
+    Path(__file__).resolve().parents[2] / "protocol" / "native-current-stat-events.json"
 )["effects"]
 
 
 def _context(handler, effect, invocation):
     from .combat_stat_handler import StatExecutionContext
 
-    target = handler.fight.actors.get(invocation.target_id)
+    target = registered_or_detached_actor(handler.fight, invocation.target_id)
+    source = registered_or_detached_actor(handler.fight, invocation.caster_id)
+    if source is None:
+        from .combat_state_managers import registered_area_pv
+
+        source = registered_area_pv(handler.fight, invocation.caster_id)
     if (
         handler.fight.phase != "active"
         or handler.fight.current is None
         or target is None
-        or target.hp <= 0
-        or invocation.caster_id not in handler.fight.actors
+        or source is None
     ):
         raise ValueError("Invalid current-stat effect actors or fight")
     context = handler.context(effect, invocation)
@@ -41,6 +43,10 @@ def _context(handler, effect, invocation):
         or type(context.retained) is not bool
     ):
         raise ValueError("Unverified native current-stat guards")
+    if context.executable:
+        from .combat_runner_target_life import verify_runner_target_life
+
+        verify_runner_target_life(handler.fight, target, effect, invocation=invocation)
     return target, context
 
 
@@ -142,7 +148,9 @@ def apply_current_stat_runner(handler, effect, values, invocation):
             _event_ids=_events(handler, effect),
             runner_modifier=runner,
         )
-    target = handler.fight.actors[invocation.target_id]
+    target = registered_or_detached_actor(handler.fight, invocation.target_id)
+    if target is None:
+        raise ValueError("Missing current-stat target after native L2 callbacks")
     stat = plan["stat_id"]
     minimum, maximum = _bounds(target, stat)
     result = apply_current_stat(
@@ -159,6 +167,58 @@ def apply_current_stat_runner(handler, effect, values, invocation):
         if row["limit_policy"] == "RESISTANCE_CAP"
         else row["limit_policy"],
     )
+    if getattr(target, "native_copy_pa_source", None) is not None:
+        from .combat_copied_pa import copied_current_stat_result
+
+        result = copied_current_stat_result(
+            target,
+            stat,
+            value if runner is None else runner.value,
+            family=row["runner"],
+            percent=plan["percent"],
+        )
+    elif (
+        stat in (2, 3)
+        and getattr(target, "effect_resource_raw_currents", None) is not None
+    ):
+        from .combat_resource_pa_notifications import resource_shift_result
+        import math
+        from wakfu_server.equipment_damage import _float
+
+        requested = value if runner is None else runner.value
+        amount = (
+            math.trunc(
+                _float(
+                    _float(_float(_current(target, stat)) / _float(100))
+                    * _float(requested)
+                )
+            )
+            if plan["percent"]
+            else requested
+        )
+        raw, current, actual = resource_shift_result(
+            target, stat, amount, subtract=row["runner"] == "eWR"
+        )
+        result.update(raw_current=raw, current=current, actual=actual)
+    elif stat == 1:
+        from .combat_hp_raw import hp_raw_present, hp_shift_result
+
+        if hp_raw_present(target):
+            import math
+            from wakfu_server.equipment_damage import _float
+
+            requested = value if runner is None else runner.value
+            amount = (
+                math.trunc(
+                    _float(_float(_float(target.hp) / _float(100)) * _float(requested))
+                )
+                if plan["percent"]
+                else requested
+            )
+            raw, current, actual = hp_shift_result(
+                target, amount, subtract=row["runner"] == "eWR"
+            )
+            result.update(raw_current=raw, current=current, actual=actual)
     actual = result["actual"]
     if runner is not None:
         runner.set_applied(actual)
@@ -186,7 +246,13 @@ def apply_current_stat_runner(handler, effect, values, invocation):
         )
 
     payload = payload_for(actual)
-    _write(handler.fight, invocation.caster_id, target, stat, result["current"])
+    _write(
+        handler.fight,
+        invocation.caster_id,
+        target,
+        stat,
+        result.get("raw_current", result["current"]),
+    )
     handler.fight._event(
         "characteristic_changed",
         source_id=invocation.caster_id,
@@ -212,9 +278,10 @@ def apply_current_stat_runner(handler, effect, values, invocation):
         )
     if runner is None or not runner.notification_suppressed:
         handler.packets.append(
-            owned_effect_delivery(
+            evaluated_effect_delivery(
                 handler.fight.id,
                 handler.action_id,
+                retained=context.retained,
                 effect_class=effect["effect_class"],
                 target_id=target.id,
                 uid=uid,

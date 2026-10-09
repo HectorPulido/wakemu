@@ -22,6 +22,8 @@ def collision_event_sources(
     """eXD.fPh + lambda a(BitSet,PV): 30caster/3target, repeated for collider.
 
     The second pair uses Qe.bbm().f(collider), hence a NEW running UID.
+    Only caster channel30 uses that clone; collider channel3 receives the
+    original source effect, with original UID and displaced target identity.
     Delivery channels30/3 are roles, not event IDs. No global channel is added:
     fPh calls PV.a directly rather than Qe.L lifecycle routing.
     """
@@ -61,7 +63,10 @@ def collision_event_sources(
             base, uid=collider_uid, target_id=collider_id, manager_actor_id=collider_id
         )
         sources.extend(
-            (replace(other, channel=30, manager_actor_id=invocation.caster_id), other)
+            (
+                replace(other, channel=30, manager_actor_id=invocation.caster_id),
+                replace(base, manager_actor_id=collider_id),
+            )
         )
     return tuple(sources)
 

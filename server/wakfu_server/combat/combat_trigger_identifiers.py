@@ -3,16 +3,16 @@
 eII.aU selects eZR.fSd first, then eVt.fLP. eLI returns fyW.guI or0;
 eLK returns source.baZ.awM (runner action family), not aZE definition ID.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from functools import lru_cache
-import gzip
 import json
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
+from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
 
 
 @lru_cache(maxsize=1)
 def zone_trigger_policies():
-    with gzip.open(DATA_ROOT / "native-zone-trigger-policies.json.gz", "rt") as stream:
-        data = json.load(stream)
+    data = protocol_catalog.load(DATA_ROOT / "native-zone-trigger-policies.json")
     if data.get("schema") != 1 or data.get("source_count") != len(
         data.get("effects", {})
     ):
@@ -20,7 +20,13 @@ def zone_trigger_policies():
     return data["effects"]
 
 
-def source_identifiers(retention, effect, invocation):
+def source_identifiers(retention, effect, invocation, *, synthetic_authority=None):
+    if synthetic_authority is not None:
+        from .combat_collision_source import NativeCollisionSourceAuthority
+
+        if type(synthetic_authority) is not NativeCollisionSourceAuthority:
+            raise ValueError("Unverified native synthetic identifier authority")
+        return synthetic_authority.identifiers(effect, invocation)
     descriptor, identity = retention.container(invocation)
     present = descriptor["container_present"]
     if type(present) is not bool:
@@ -44,7 +50,10 @@ def source_identifiers(retention, effect, invocation):
                 row = getattr(retention.fight, "native_retired_area_managers", {}).get(
                     identity
                 )
-            if row is None or row.get("native_area_contract") not in ("faZ", "faY"):
+            if (
+                row is None
+                or row.get("native_area_contract") not in SUPPORTED_AREA_CONTRACTS
+            ):
                 raise ValueError("Missing actual Qq source container")
             container.update(type=3, native_type=3, is_state=False)
         else:
@@ -67,6 +76,8 @@ def source_identifiers(retention, effect, invocation):
         "native_container": container,
         "effect_action_id": action,
         "effect_flags": None if flags is None else tuple(flags),
+        "native_definition_present": True,
+        "native_definition_variant": effect.get("variant"),
     }
     if invocation is not None:
         row = zone_trigger_policies().get(str(invocation.reference))
@@ -91,6 +102,38 @@ def condition_identifiers(source):
     if not isinstance(source, dict):
         raise ValueError("Native triggering source required")
     result = dict(triggering_effect_present=True)
+    is_state_runner = source.get("native_source_is_eWu")
+    if is_state_runner is not None:
+        if type(is_state_runner) is not bool:
+            raise ValueError("Invalid actual source eWu type")
+        result["triggering_source_is_eWu"] = is_state_runner
+        if is_state_runner:
+            reference = source.get("native_apply_state_reference")
+            if type(reference) is not int or not -32768 <= reference <= 32767:
+                raise ValueError("Missing actual source eWu.ejo reference")
+            result["triggering_apply_state_reference"] = reference
+    definition_present = source.get("native_definition_present")
+    if definition_present is not None:
+        if type(definition_present) is not bool:
+            raise ValueError("Invalid native source definition presence")
+        result["triggering_effect_definition_present"] = definition_present
+    variant = source.get("native_definition_variant")
+    if variant is not None:
+        if type(variant) is not int or not -(1 << 63) <= variant < (1 << 63):
+            raise ValueError("Invalid actual source PK variant")
+        result["triggering_effect_variant"] = variant
+    status = source.get("native_execution_status")
+    if status is not None:
+        if type(status) is not int or not -128 <= status <= 127:
+            raise ValueError("Invalid actual source execution status")
+        result["triggering_effect_execution_status"] = status
+    blocked = source.get("native_execution_blocked")
+    if blocked is not None:
+        if type(blocked) is not bool:
+            raise ValueError("Invalid source blocked predicate")
+        if status is not None and blocked != (status == 7):
+            raise ValueError("Source blocked predicate differs from execution status")
+        result["triggering_effect_blocked"] = blocked
     policy = source.get("zone_trigger_policy")
     if policy is not None:
         if (

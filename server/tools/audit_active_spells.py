@@ -24,6 +24,11 @@ from wakfu_server.combat_ordinary_authority import (
 )
 from wakfu_server.combat_los import authoritative_visible, static_visible
 from wakfu_server.combat_terrain import map_geometry
+from wakfu_server.combat_qi_surface_catalog import (
+    native_qi_surfaces,
+    native_qi_surface_provenance,
+)
+from wakfu_server.combat_qi_surface_selection import native_surface_indices
 from wakfu_server.combat_arena_selection import bounded_arena
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_wire import arena as encode_arena, topology, decode_topology
@@ -31,6 +36,7 @@ from wakfu_server.combat_bootstrap import create_placement
 from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
 from wakfu_server.combat_effect_runtime import NativeEffectRuntimeFactory
 from wakfu_server.combat_server_spell import server_runtime
+from wakfu_server.combat_native_spell_casting import catalog as native_casting_catalog
 from wakfu_server.combat_native_timing_context import NativeEffectTimingProvider
 from wakfu_server.spell_audit import catalog, states_catalog
 from wakfu_server.monsters import owned_instance
@@ -39,8 +45,104 @@ from wakfu_server.fight_checkpoint_store import snapshot
 from wakfu_server.paths import DATA_ROOT, PROJECT_ROOT
 
 
-def target_candidates(definition, level, terrain, origin, *, spell_reference=None):
-    minimum, maximum_range, _ = definition["levels"][level - 1]
+def self_candidate_kind(policy):
+    """Classify a generated self scenario without deciding its live legality."""
+    if not isinstance(policy, dict) or type(policy.get("allowed")) is not bool:
+        raise ValueError("Audit spell lacks native self-cast policy")
+    if policy["allowed"]:
+        return "baseline_self_candidate"
+    conditional = policy.get("conditional")
+    if not isinstance(conditional, list) or any(
+        not isinstance(rule, dict) or type(rule.get("allowed")) is not bool
+        for rule in conditional
+    ):
+        raise ValueError("Audit spell has incomplete conditional self-cast policy")
+    if any(rule["allowed"] for rule in conditional):
+        return "speculative_conditional_self_candidate"
+    return None
+
+
+def expected_speculative_range_rejection(
+    candidate_assessment, reason, distance, minimum, maximum, self_allowed
+):
+    """Prove only that a speculative self scenario is rejected by its live table."""
+    if (
+        candidate_assessment != "speculative_conditional_self_candidate"
+        or reason
+        not in (
+            "Spell target is outside native range",
+            "Native spell casting eligibility rejected: twI",
+        )
+        or type(distance) is not int
+        or distance != 0
+        or type(minimum) is not int
+        or type(maximum) is not int
+        or type(self_allowed) is not bool
+    ):
+        return False
+    if minimum <= distance <= maximum:
+        return False
+    return not (distance == 0 and self_allowed)
+
+
+def casting_diagnostic_json(value):
+    """Serialize consumed native queries without re-evaluating a provider."""
+    if value is None or type(value) in (bool, int, float, str):
+        return value
+    if isinstance(value, dict):
+        return {str(key): casting_diagnostic_json(item) for key, item in value.items()}
+    if isinstance(value, (tuple, list)):
+        return [casting_diagnostic_json(item) for item in value]
+    if isinstance(value, (set, frozenset)):
+        return sorted(
+            (casting_diagnostic_json(item) for item in value),
+            key=lambda item: json.dumps(item, sort_keys=True),
+        )
+    fields = getattr(value, "__dict__", {})
+    return dict(
+        native_type=type(value).__name__,
+        identity={
+            key: casting_diagnostic_json(fields[key])
+            for key in ("id", "uid", "reference", "cell", "position")
+            if key in fields
+        },
+    )
+
+
+def native_casting_baseline(record, level):
+    """Return exact installed baseline targeting fields; never use spell-tree defaults."""
+    if type(level) is not int or level < 1:
+        raise ValueError("Audit candidate requires an installed positive spell level")
+    if not isinstance(record, dict) or level > len(record.get("levels", ())):
+        raise ValueError("Missing installed native casting level")
+    minimum, maximum, _roots = record["levels"][level - 1]
+    fields = (
+        "free_cell",
+        "line_of_sight",
+        "linear",
+        "allow_self",
+        "path_option",
+        "diagonal",
+        "linear_path",
+        "range_modifiable",
+    )
+    if any(type(record.get(name)) is not bool for name in fields):
+        raise ValueError("Incomplete installed native casting baseline flags")
+    if any(type(value) is not int for value in (minimum, maximum)):
+        raise ValueError("Incomplete installed native casting baseline range")
+    return {
+        "minimum": minimum,
+        "maximum": maximum,
+        **{name: record[name] for name in fields},
+    }
+
+
+def target_candidates(
+    definition, level, terrain, origin, *, native=None, spell_reference=None
+):
+    if native is None:
+        raise ValueError("Audit scenarios require an installed native casting baseline")
+    minimum, maximum_range = native["minimum"], native["maximum"]
     cells = []
     for cell in sorted(
         terrain["cells"],
@@ -49,9 +151,9 @@ def target_candidates(definition, level, terrain, origin, *, spell_reference=Non
         dx, dy = cell[0] - origin[0], cell[1] - origin[1]
         if not minimum <= abs(dx) + abs(dy) <= maximum_range:
             continue
-        if definition["linear"] and dx and dy:
+        if native["linear"] and dx and dy:
             continue
-        if definition["line_of_sight"]:
+        if native["line_of_sight"]:
             try:
                 if not static_visible(1134, origin, cell):
                     continue
@@ -59,26 +161,23 @@ def target_candidates(definition, level, terrain, origin, *, spell_reference=Non
                 continue
         cells.append(cell)
     variants = []
-    native_self_candidate = False
+    self_kind = None
     if spell_reference is not None:
         from wakfu_server.combat_self_cast import catalog as self_cast_catalog
 
         policy = self_cast_catalog().get(str(spell_reference))
-        if not isinstance(policy, dict):
-            raise ValueError("Audit spell lacks native self-cast policy")
+        self_kind = self_candidate_kind(policy)
         # Generate candidate scenarios, not an authorization: the common cast
         # entry evaluates the actual conditional table in the initialized fight.
-        native_self_candidate = policy["allowed"] or any(
-            rule["allowed"] for rule in policy["conditional"]
-        )
-    if (minimum <= 0 <= maximum_range or native_self_candidate) and not definition[
+    native_self_candidate = self_kind is not None
+    if (minimum <= 0 <= maximum_range or native_self_candidate) and not native[
         "free_cell"
     ]:
         # Exercise the real common-entry LOS gate; do not silently discard self
         # merely because the exported Sf ray reports false at this endpoint.
         variants.append(("self", origin))
     away = [c for c in cells if c != origin]
-    if away and not definition["free_cell"]:
+    if away and not native["free_cell"]:
         variants.append(("enemy", away[0]))
     if away:
         variants.append(("empty_cell", away[0]))
@@ -95,13 +194,21 @@ def fixture(
     ready=True,
     monster_reference=5525,
     monster_level=1,
+    sex=0,
+    character_fixture=None,
 ):
+    if type(sex) is not int or sex not in (0, 1):
+        raise ValueError("Offline PC fixture requires explicit native sex 0 or 1")
+    from wakfu_server.characters.fresh_appearance import fresh_character_appearance
+
     resource = BREEDS[breed]["resources"]
     hp = maximum(breed, level)
     character = dict(
         id=7,
         account_id=3,
         name="Offline Audit",
+        sex=sex,
+        appearance=fresh_character_appearance(sex),
         breed=breed,
         level=level,
         hp=hp,
@@ -114,6 +221,11 @@ def fixture(
         builds={},
         inventory_items=[],
     )
+    from wakfu_server.characters.captured_roster_fresh import (
+        initialize_fresh_character_roster,
+    )
+
+    initialize_fresh_character_roster(character)
     creature = owned_instance(
         monster_reference,
         monster_level,
@@ -124,7 +236,15 @@ def fixture(
         z=enemy_cell[2],
     )
     placement = {0: {origin}, 1: {enemy_cell}}
-    own_arena = encode_arena(1134, 0, terrain["cells"], placement)
+    own_arena = encode_arena(
+        1134,
+        0,
+        terrain["cells"],
+        placement,
+        surface_indices=native_surface_indices(
+            native_qi_surfaces(1134), terrain["cells"]
+        ),
+    )
     # Use the real own bootstrap policy/table, not a fake empty obstacle set.
     decoded = decode_topology(topology(own_arena))
     if decoded["team_values"] != own_arena["team_values"]:
@@ -133,7 +253,12 @@ def fixture(
         validated_cells=terrain["cells"],
         valid_edges=terrain["edges"],
         placement_cells=placement,
+        native_qi_surface_provenance=native_qi_surface_provenance(1134),
     )
+    if character_fixture is not None:
+        if not callable(character_fixture):
+            raise ValueError("Offline preplacement character fixture must be callable")
+        character_fixture(character)
     fight, _ = create_placement(
         character,
         creature,
@@ -227,6 +352,7 @@ def run(
         raise ValueError("Audit requires an explicit normal or critical branch")
     source_before = init.source_hashes()
     spells, states = catalog(), states_catalog()
+    native_casting = native_casting_catalog()
     registry = json.loads(
         (DATA_ROOT / "effect-characteristic-registry.json").read_text()
     )
@@ -271,11 +397,24 @@ def run(
                 k[:2] == (spell["id"], level) for k in selected
             ):
                 continue
+            native_record = native_casting.get(str(spell["id"]))
+            native_baseline = None
+            if (
+                isinstance(native_record, dict)
+                and type(level) is int
+                and 1 <= level <= len(native_record.get("levels", ()))
+            ):
+                native_baseline = native_casting_baseline(native_record, level)
             variants = (
                 []
-                if definition is None
+                if definition is None or native_baseline is None
                 else target_candidates(
-                    definition, level, terrain, origin, spell_reference=spell["id"]
+                    definition,
+                    level,
+                    terrain,
+                    origin,
+                    native=native_baseline,
+                    spell_reference=spell["id"],
                 )
             )
             if not variants:
@@ -285,8 +424,21 @@ def run(
                         spell_id=spell["id"],
                         level=level,
                         variant="none",
-                        status="no_verified_legal_target",
-                        reason="No requested-range/LOS cell in exported arena",
+                        status=(
+                            "native_casting_metadata_unavailable"
+                            if native_baseline is None
+                            else "no_verified_legal_target"
+                        ),
+                        reason=(
+                            "No installed native casting baseline"
+                            if native_baseline is None
+                            else "No requested-range/LOS cell in exported arena"
+                        ),
+                        candidate_basis=(
+                            None
+                            if native_baseline is None
+                            else "native_casting_baseline"
+                        ),
                         gameplay_verified=False,
                         critical=critical,
                         rollback_preserved=True,
@@ -347,7 +499,22 @@ def run(
                     critical=critical,
                     deck_active=[spell["id"]],
                     deck_passive=[],
+                    candidate_basis="native_casting_baseline",
+                    native_candidate_range=[
+                        native_baseline["minimum"],
+                        native_baseline["maximum"],
+                    ],
                 )
+                if variant == "self":
+                    from wakfu_server.combat_self_cast import (
+                        catalog as self_cast_catalog,
+                    )
+
+                    candidate_kind = self_candidate_kind(
+                        self_cast_catalog().get(str(spell["id"]))
+                    )
+                    if candidate_kind == "speculative_conditional_self_candidate":
+                        row["candidate_assessment"] = candidate_kind
                 records = []
                 before = snapshot(base)
                 stage = "initialization"
@@ -582,6 +749,71 @@ def run(
                         source_trace=traceback.format_exc(),
                         executed_reference_count=len(records),
                     )
+                    for attribute in (
+                        "native_casting_diagnostic",
+                        "native_casting_trace",
+                        "native_casting_context",
+                    ):
+                        if hasattr(error, attribute):
+                            row[attribute] = casting_diagnostic_json(
+                                getattr(error, attribute)
+                            )
+                    if (
+                        stage == "cast"
+                        and row.get("candidate_assessment")
+                        == "speculative_conditional_self_candidate"
+                        and str(error)
+                        in (
+                            "Spell target is outside native range",
+                            "Native spell casting eligibility rejected: twI",
+                        )
+                    ):
+                        try:
+                            from wakfu_server.combat_cast import decode_cast
+                            from wakfu_server.combat_casting_range import resolve_range
+                            from wakfu_server.combat_conditional_costs import (
+                                ConditionalCostContext,
+                            )
+                            from wakfu_server.combat_native_spell_casting import (
+                                definition as native_casting_definition,
+                            )
+                            from wakfu_server.combat_self_cast import allows_self
+
+                            request = decode_cast(body)
+                            condition_context = adapter.cast_condition(source, request)
+                            if isinstance(condition_context, ConditionalCostContext):
+                                modifiers = condition_context.ap_modifiers_by_category
+                                condition_context = condition_context.conditions
+                            else:
+                                modifiers = source.actors[7].spell_ap_cost_modifiers
+                            selected = native_casting_definition(
+                                spell["id"],
+                                source.actors[7].effective_level,
+                                condition_context,
+                                modifiers,
+                            )
+                            selected = resolve_range(
+                                selected, source.actors[7], condition_context
+                            )
+                            distance = sum(
+                                abs(cell[index] - source.actors[7].position[index])
+                                for index in (0, 1)
+                            )
+                            if expected_speculative_range_rejection(
+                                row["candidate_assessment"],
+                                str(error),
+                                distance,
+                                selected["minimum"],
+                                selected["maximum"],
+                                allows_self(spell["id"], condition_context),
+                            ):
+                                row[
+                                    "legality_assessment"
+                                ] = "expected_speculative_candidate_rejection"
+                        except Exception:
+                            # Preserve the original rejection and trace when
+                            # selected-table legality cannot be independently proven.
+                            pass
                     row["rollback_preserved"] = (
                         snapshot(base if stage == "initialization" else source)
                         == before
@@ -663,8 +895,8 @@ def run(
             for name in (
                 "spells.json",
                 "spell-effect-trees.json",
-                "combat-state-definitions.json.gz",
-                "native-actor-characteristics.json.gz",
+                "combat-state-definitions.json",
+                "native-actor-characteristics.json",
                 "native-retained-effect-metadata.json",
                 "breed-innate-definitions.json",
                 "effect-characteristic-registry.json",

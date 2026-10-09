@@ -1,0 +1,9 @@
+# Individual captured-slot retirement component
+
+Original `eGj.ad(owner)` reads `owner.drI()` and calls `eHU.pZ(this.aHm)` when that component exists. Original `bPo.pZ(actorUID)` resolves the descriptor slot through `pY`, then invokes `Z(slot,true)`. The setter changes only that occupied slot's availability flag and notifies `Qp(slot)`. Descriptor content, selected slot and other availability flags remain intact. This differs from owned-player teardown `biB.dnN -> bPo.fxn`, which fills all ten flags with true.
+
+The shared `release_captured_slot_on_retirement(fight,actor,owner_id,slot)` component helper validates the actual retained actor and native registration, source324 Symbiot marker, owner, slot, profile and level, then validates the plain checkpoint roster descriptor. It publishes only the bound availability flag and its plain queued persistence record. Repeated release is idempotent. Two pure tests pass for slot/selection/descriptor preservation and failed preflight without partial publication.
+
+The caller remains responsible for the explicitly authorized Wakemu settled-death retirement policy, QI spatial removal and transaction rollback. This helper does not change HP, KO timers, spatial registration or descriptors and does not invoke persistence. The native caller connecting individual retirement to `eGj.ad` is not certified by this component proof; original `big.dnO` itself has no direct captured-roster setter. Family859 must not directly call the all-slot owner-teardown reset.
+
+Source evidence: `.runtime/combat-review-20261007/death-script/eGj.txt` and `.runtime/combat-review-20261007/captured-roster/captured-roster-lifecycle-native.txt`. Integration of the component into the current settled-death caller belongs to the retirement-policy owner and remains distinct from these pure component tests.

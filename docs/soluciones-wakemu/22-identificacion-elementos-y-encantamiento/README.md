@@ -80,3 +80,7 @@ Candidata aislada `c7eaf390` verificó por TLS sacrificio12365→13703, BAGS1371
 ### Despliegue integrado verificado
 
 Imagen `e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742` desplegada en world; Docker healthy y `/health` PostgreSQL correcto. Migraciones057–059 aplicadas;388 patrones de sublimación en SQL. Gate de la imagen198/198 aprobado y TLS de combate individual/compartido, sublimaciones y clima acreditados. Respaldo previo privado `.runtime/backups/pre-integrated-20261007.dump`, archivo CUSTOM con793 entradas TOC. Aceptación visual pendiente; no implica cierre completo del issue.
+
+## Contexto oficial — 8 de octubre de 2026
+
+El usuario anunció una identificación de objeto en el oficial para aportar referencia. La captura acumulada incluye ese intervalo; hay que localizar solicitud, propiedades por UID y respuesta antes de afirmar que el flujo quedó reproducido. No confundir apertura de interfaz con identificación completada. Referencia privada: `.runtime/official-dungeon-capture/`, con manifiestos y contratos de versión registrados. No se declara aceptación ni cambio desplegado por esta captura.

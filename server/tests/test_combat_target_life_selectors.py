@@ -41,6 +41,97 @@ class TargetLifeSelectorTests(unittest.TestCase):
             _native_target_valid(1 << 40, caster, actor, {7: context, 9: {}})
         )
 
+    def test_fcE16384_requires_target_fighter_with_native_baG(self):
+        caster, target = SimpleNamespace(id=9), SimpleNamespace(id=7)
+        mask = 1 << 14
+        native_selector_policy(
+            {"native_target_selector": {"class": "fcE", "mask": mask}}
+        )
+        base = {"bEe": True, "is_eGj": True, "is_Qq": False, "is_eHH": False}
+        for ba_g, expected in ((True, True), (False, False)):
+            with self.subTest(baG=ba_g):
+                context = {**base, "baG": ba_g, "baF": True, "baK": False}
+                self.assertEqual(
+                    _native_target_valid(mask, caster, target, {9: {}, 7: context}),
+                    expected,
+                )
+        with self.assertRaisesRegex(UnsupportedTargetSelector, "baG"):
+            _native_target_valid(mask, caster, target, {9: {}, 7: base})
+        with self.assertRaisesRegex(UnsupportedTargetSelector, "baG"):
+            _native_target_valid(
+                mask, caster, target, {9: {}, 7: {**base, "baG": None}}
+            )
+        # Without the bit, baG is irrelevant. With it, a non-eGj target is
+        # rejected even if a caller supplies baG=True.
+        self.assertTrue(_native_target_valid(0, caster, target, {9: {}, 7: base}))
+        self.assertFalse(
+            _native_target_valid(
+                mask, caster, target, {9: {}, 7: {**base, "is_eGj": False, "baG": True}}
+            )
+        )
+
+    def test_fcE16384_is_independent_of_baF_and_baK(self):
+        caster, target = SimpleNamespace(id=9), SimpleNamespace(id=7)
+        mask = 1 << 14
+        for ba_f in (False, True):
+            for ba_k in (False, True):
+                with self.subTest(baF=ba_f, baK=ba_k):
+                    context = dict(
+                        bEe=True,
+                        is_eGj=True,
+                        is_Qq=False,
+                        is_eHH=False,
+                        baG=True,
+                        baF=ba_f,
+                        baK=ba_k,
+                    )
+                    self.assertTrue(
+                        _native_target_valid(mask, caster, target, {9: {}, 7: context})
+                    )
+
+    def test_fcE16384_remains_distinct_from_bit4096(self):
+        caster, target = SimpleNamespace(id=9), SimpleNamespace(id=7)
+        bit4096 = 1 << 12
+        bit16384 = 1 << 14
+        base = dict(
+            bEe=True,
+            is_eGj=True,
+            is_Qq=False,
+            is_eHH=False,
+            dTE=True,
+            dpu_id=9,
+            baG=False,
+            baK=False,
+        )
+        native_selector_policy(
+            {"native_target_selector": {"class": "fcE", "mask": bit4096}}
+        )
+        self.assertTrue(
+            _native_target_valid(
+                bit4096, caster, target, {9: {"is_eGj": True}, 7: base}
+            )
+        )
+        # Bit4096 rejects baG=true; bit16384 requires it. The predicates are
+        # independent and their conjunction is therefore unsatisfiable.
+        self.assertFalse(
+            _native_target_valid(
+                bit4096, caster, target, {9: {"is_eGj": True}, 7: {**base, "baG": True}}
+            )
+        )
+        self.assertFalse(
+            _native_target_valid(
+                bit4096 | bit16384, caster, target, {9: {"is_eGj": True}, 7: base}
+            )
+        )
+        self.assertFalse(
+            _native_target_valid(
+                bit4096 | bit16384,
+                caster,
+                target,
+                {9: {"is_eGj": True}, 7: {**base, "baG": True}},
+            )
+        )
+
     def test_controller_flags_use_source_relation_not_target_or_team(self):
         caster = SimpleNamespace(id=9)
         contexts = {9: dict(is_eGj=True, dpu_id=7, dpr_id=8)}

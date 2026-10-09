@@ -3,7 +3,6 @@
 This is an offline conversion/equivalence benchmark; runtime remains unchanged.
 """
 import argparse
-import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -18,9 +17,9 @@ def convert(directory, map_id, output):
     provenance = None
     rows_per_height = {}
     for height in range(1, 26):
-        path = directory / f"{map_id}-h{height}-r0-j4.json.gz"
+        path = directory / f"{map_id}-h{height}-r0-j4.json"
         old_bytes += path.stat().st_size
-        with gzip.open(path, "rt") as source:
+        with open(path, "rt") as source:
             policy = json.load(source)
         if (policy["map_id"], policy["height"], policy["radius"], policy["jump"]) != (
             map_id,
@@ -68,10 +67,10 @@ def convert(directory, map_id, output):
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     raw = json.dumps(data, separators=(",", ":")).encode()
-    output.write_bytes(gzip.compress(raw, compresslevel=9, mtime=0))
+    output.write_bytes(raw)
     conversion_seconds = time.perf_counter() - began
     read_start = time.perf_counter()
-    decoded = json.loads(gzip.decompress(output.read_bytes()))
+    decoded = json.loads(output.read_bytes())
     load_seconds = time.perf_counter() - read_start
     verify_start = time.perf_counter()
     for height in range(1, 26):

@@ -26,6 +26,19 @@ def native_area_shape(effect):
         ):
             raise ValueError("Invalid native ordered point area")
         return tuple(tuple(point) for point in points), False
+    if kind == "anC" and (match := re.fullmatch(r"cone_inv-(-?\d+)", text)):
+        height = int(match.group(1))
+        if not -(1 << 31) <= height < (1 << 31):
+            raise ValueError("Native inverse cone height must be int32")
+        # anC.p reverses the X rows; anc orientation/membership is inherited.
+        return (
+            tuple(
+                (height - 1 - row, y)
+                for row in range(height)
+                for y in range(-row, row + 1)
+            ),
+            False,
+        )
     if kind == "anv" and (match := re.fullmatch(r"cone-(-?\d+)", text)):
         height = int(match.group(1))
         if not -(1 << 31) <= height < (1 << 31):

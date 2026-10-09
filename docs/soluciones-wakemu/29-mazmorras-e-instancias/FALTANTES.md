@@ -4,7 +4,7 @@
 
 | ID | Dato o decisión | Cómo resolverlo | Impacto |
 | --- | --- | --- | --- |
-| 1 | Integrar la sesión durable con el acceso normal candidato de Jalató. Existe `maps/dungeon_instances.py` + migración 065 y `maps/dungeon_transport.py`; migración 068 registra el modo del servidor. Aún no hay caller de transporte ni cambio de mapa. | Cotejar el visitor de `IsNeoServer()` con la clave global `server.group.isneo`, añadir proximidad/celda de origen y ejecutar el ciclo de entrada antes de conectar 12296 | Bloquea el acceso funcional; no se resuelve quitando guards ni pasando plantilla 91 como `instance_id` |
+| 1 | Integrar la sesión durable con el acceso normal candidato de Jalató. Existe `maps/dungeon_instances.py` + migración 065 y `maps/dungeon_transport.py`; migración 068 registra el modo del servidor. Aún no hay caller de transporte ni cambio de mapa. Migración 070 añade política ProtoDungeon SQL versionada pero sin valores sembrados, porque las capturas no acreditan contexto de Jalató ni `allowed_ids`. | Cotejar el visitor de `IsNeoServer()` con la clave global `server.group.isneo`, configurar una política desde evidencia autorizada, añadir proximidad/celda de origen y ejecutar el ciclo de entrada antes de conectar 12296 | Bloquea el acceso funcional; no se resuelve quitando guards, suponiendo que `allowed_ids` es la party ni pasando plantilla 91 como `instance_id` |
 | 2 | Dificultad/XP/loot, rejoin, lockouts y reset de instancia. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
 | 3 | Protocolo de UI mazmorra, stasis y fin, no solo teleport. | Inspección dirigida, fixture o decisión explícita | Impide certificar esa parte del flujo |
 

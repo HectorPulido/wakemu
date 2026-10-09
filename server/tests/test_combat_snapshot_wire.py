@@ -13,6 +13,7 @@ class SnapshotWireTests(unittest.TestCase):
         return SimpleNamespace(
             id=1 if controlled else -1,
             controlled=controlled,
+            native_controlled_by_ai=False,
             team=0 if controlled else 1,
             position=(1, 2, 0),
             hp=80,
@@ -50,6 +51,23 @@ class SnapshotWireTests(unittest.TestCase):
         self.assertEqual(
             (rows[2][0], rows[4][0], rows[92][0], rows[97][0]), (8, 3, 15, 50)
         )
+
+    def test_expandable_raw_current_is_serialized_without_changing_effective_actor(
+        self,
+    ):
+        from wakfu_server.combat_resource_pa_notifications import RAW_SOURCE
+
+        actor = self.actor()
+        actor.effect_base_maxima[1] = 100
+        actor.ap = actor.effect_stats[2] = 9
+        actor.effect_resource_raw_currents = {2: 12, 3: 2}
+        actor.native_resource_raw_current_source = RAW_SOURCE
+        rows = self.decode(snapshot_characteristics(actor))
+        self.assertEqual(rows[2], (12, 0, 9, 0))
+        self.assertEqual(actor.ap, 9)
+        actor.effect_resource_raw_currents[2] = 8
+        with self.assertRaisesRegex(ValueError, "raw/effective current disagreement"):
+            snapshot_characteristics(actor)
 
     def test_both_player_sections_and_npc_section_use_actual_snapshot(self):
         char = dict(

@@ -18,6 +18,7 @@ _FIELDS = frozenset(
         "exception_type",
         "elapsed_ms",
         "criteria",
+        "native_displacement_actor",
     }
 )
 

@@ -13,6 +13,53 @@ from wakfu_server.combat_event_replay import NativeEventSource
 
 
 class TriggerIdentifierTests(unittest.TestCase):
+    def test_applied_state_reference_is_runner_not_container(self):
+        source = dict(
+            native_source_is_eWu=True,
+            native_apply_state_reference=-12,
+            native_container=dict(present=True, type=1, is_state=True, state_id=99),
+        )
+        context = self.context(source)
+        self.assertTrue(
+            evaluate_condition("GetTriggeringApplyStateStateId() == -12", context)
+        )
+        self.assertTrue(
+            evaluate_condition(
+                "GetTriggeringApplyStateStateId('ignored', 42) == -12", context
+            )
+        )
+        self.assertTrue(
+            evaluate_condition(
+                "GetTriggeringApplyStateStateId() == -1", self.context(None)
+            )
+        )
+        self.assertTrue(
+            evaluate_condition(
+                "GetTriggeringApplyStateStateId() == -1",
+                self.context(dict(native_source_is_eWu=False)),
+            )
+        )
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition(
+                "GetTriggeringApplyStateStateId() == -1", self.context({})
+            )
+
+    def test_triggerer_caster_is_first_argument_not_trigger_source(self):
+        from wakfu_server.combat_conditions import ConditionActor
+
+        context = ConditionContext(
+            actors={"caster": ConditionActor(actor_id=7)},
+            triggering_effect_caster_id=99,
+            triggering_effect_present=True,
+        )
+        self.assertTrue(evaluate_condition("GetTriggererEffectCaster() == 7", context))
+        null = ConditionContext(actors={}, null_actor_aliases=frozenset({"caster"}))
+        self.assertTrue(evaluate_condition("GetTriggererEffectCaster() == 0", null))
+        with self.assertRaises(UnknownCondition):
+            evaluate_condition(
+                "GetTriggererEffectCaster() == 0", ConditionContext(actors={})
+            )
+
     def test_container_type_known_null_present_and_unknown(self):
         for source, expected in (
             (None, 0),

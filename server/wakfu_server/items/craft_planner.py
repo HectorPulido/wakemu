@@ -5,6 +5,7 @@ fees, secret-discovery rules, or crafting outcomes. Callers must perform those
 checks before using its plan. It only computes deterministic ingredient
 consumption and default product placement against one owned character's bags.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from collections import defaultdict
 from collections.abc import Mapping
 from copy import deepcopy
@@ -14,7 +15,7 @@ from wakfu_server.paths import DATA_ROOT
 
 STACKS = {
     row["reference"]: row
-    for row in json.loads((DATA_ROOT / "item-stack-rules.json").read_text())["items"]
+    for row in protocol_catalog.load(DATA_ROOT / "item-stack-rules.json")["items"]
 }
 
 

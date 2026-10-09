@@ -54,12 +54,28 @@ def decode_request(body):
     return actor_id, path
 
 
-def apply_client(runtime, owner_id, body, stats_serializer, *, area_provider=None):
+def apply_client(
+    runtime,
+    owner_id,
+    body,
+    stats_serializer,
+    *,
+    area_provider=None,
+    runtime_stats_serializer=None,
+):
+    if runtime_stats_serializer is not None and not callable(runtime_stats_serializer):
+        raise ValueError("Invalid current-fight movement stats serializer")
     if area_provider is not None:
         return _with_areas(
             runtime,
             area_provider,
-            lambda candidate: apply_client(candidate, owner_id, body, stats_serializer),
+            lambda candidate: apply_client(
+                candidate,
+                owner_id,
+                body,
+                stats_serializer,
+                runtime_stats_serializer=runtime_stats_serializer,
+            ),
         )
     if runtime.awaiting_ack is not None:
         raise ValueError("Waiting for previous turn synchronization")
@@ -72,20 +88,23 @@ def apply_client(runtime, owner_id, body, stats_serializer, *, area_provider=Non
     # cannot spend MP or strand the actor. The FSM still validates every edge.
     import copy
 
-    candidate = copy.deepcopy(actor)
-    candidate.position = path[-1]
-    candidate.direction = direction
-    candidate.mp -= len(path)
-    if candidate.mp < 0:
-        raise ValueError("Insufficient MP")
-    fight._sync_resources(candidate)
-    stats = stats_serializer(candidate)
+    from .combat_carrying import set_registered_direction
+
+    candidate_fight = copy.deepcopy(fight)
+    candidate = candidate_fight.actors[actor_id]
+    candidate_fight.move(owner_id, actor_id, path)
+    set_registered_direction(candidate_fight, candidate, direction)
+    stats = (
+        runtime_stats_serializer(candidate, candidate_fight)
+        if runtime_stats_serializer is not None
+        else stats_serializer(candidate)
+    )
     animation = movement(
         fight.id, runtime.action_id + 1, actor_id, [origin, *path], direction
     )
     refresh = (12873, actor_state(12873, fight.id, actor_id, stats))
     event = fight.move(owner_id, actor_id, path)
-    actor.direction = direction
+    set_registered_direction(fight, actor, direction)
     runtime.action_id += 1
     return [animation, runtime._flush(), refresh], event
 
@@ -113,18 +132,19 @@ def apply_ai(runtime, stats_serializer, *, direction, area_provider=None):
     path = result["path"]
     if not path:
         return [], result
-    candidate = copy.deepcopy(actor)
-    candidate.position = path[-1]
-    candidate.direction = direction
-    candidate.mp -= len(path)
-    fight._sync_resources(candidate)
+    from .combat_carrying import set_registered_direction
+
+    candidate_fight = copy.deepcopy(fight)
+    candidate = candidate_fight.actors[actor.id]
+    candidate_fight.server_move(actor.id, path)
+    set_registered_direction(candidate_fight, candidate, direction)
     stats = stats_serializer(candidate)
     animation = movement(
         fight.id, runtime.action_id + 1, actor.id, [actor.position, *path], direction
     )
     refresh = (12873, actor_state(12873, fight.id, actor.id, stats))
     result["event"] = fight.server_move(actor.id, path)
-    actor.direction = direction
+    set_registered_direction(fight, actor, direction)
     runtime.action_id += 1
     return [animation, runtime._flush(), refresh], result
 

@@ -12,12 +12,18 @@ class UsageTests(unittest.TestCase):
         enemy = SimpleNamespace(
             id=-8, physical_radius=0, position=(1, 0, 0), turn_count=0
         )
-        return (
-            SimpleNamespace(
-                actors={7: actor, -8: enemy}, native_spell_usage={}, native_table_turn=1
-            ),
-            actor,
+        fight = SimpleNamespace(
+            actors={7: actor, -8: enemy},
+            native_spell_usage={},
+            native_table_turn=1,
+            native_effect_areas={},
         )
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+        )
+
+        initialize_global_pv_collections(fight, tuple(fight.actors))
+        return fight, actor
 
     def cast(self, fight, caster, reference=4776, cell=(1, 0, 0)):
         rule = validate_usage(fight, caster, reference, 20, cell)
@@ -58,6 +64,44 @@ class UsageTests(unittest.TestCase):
         self.cast(fight, caster, cell=(2, 0, 8))
         with self.assertRaisesRegex(ValueError, "per target"):
             self.cast(fight, caster, cell=(2, 0, -8))
+
+    def test_native_population_keeps_off_play_and_excludes_retired_history(self):
+        from wakfu_server.combat_global_pv_collections import (
+            set_global_fighter_status,
+            unregister_global_fighter,
+        )
+        from wakfu_server.combat_usage_targets import usage_targets
+
+        fight, caster = self.fixture()
+        set_global_fighter_status(fight, -8, "OFF_PLAY")
+        self.assertEqual([t.identity for t in usage_targets(fight, (1, 0, 12))], [-8])
+        unregister_global_fighter(fight, -8)
+        self.assertIn(-8, fight.actors)
+        self.assertEqual(usage_targets(fight, (1, 0, -12)), ())
+
+    def test_area_is_validated_but_bcR_controls_consumption(self):
+        from unittest.mock import patch
+        from wakfu_server.combat_global_pv_collections import register_global_area
+        from wakfu_server.combat_usage_targets import usage_targets
+
+        fight, caster = self.fixture()
+        fight.native_effect_areas[90] = dict(
+            uid=90, reference=1, native_area_contract="faY", cell=(1, 0, 99)
+        )
+        register_global_area(fight, 90)
+        definition = dict(type="GLYPH", raw_bcR=False)
+        with patch(
+            "wakfu_server.combat_effect_area.native_effect_areas",
+            return_value={"1": definition},
+        ):
+            targets = {t.identity: t.consume for t in usage_targets(fight, (1, 0, -99))}
+            self.assertEqual(targets, {-8: True, 90: False})
+            definition["raw_bcR"] = True
+            self.assertTrue(
+                dict((t.identity, t.consume) for t in usage_targets(fight, (1, 0, 0)))[
+                    90
+                ]
+            )
 
     def test_native_interval_survives_turn_reset(self):
         fight, caster = self.fixture()

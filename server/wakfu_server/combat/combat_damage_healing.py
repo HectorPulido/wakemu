@@ -5,7 +5,12 @@ caller. Inputs are authoritative current characteristics and explicit native
 contexts. No spell/breed identity whitelist and no identity mitigation.
 """
 import math
-from .equipment_damage import damage as native_damage, ELEMENT_STATS, _float, _stats
+from wakfu_server.equipment_damage import (
+    damage as native_damage,
+    ELEMENT_STATS,
+    _float,
+    _stats,
+)
 
 DAMAGE_FAMILIES = (1, 2, 3, 4, 5, 917, 1083)
 
@@ -101,6 +106,7 @@ def consume_damage(
     return dict(
         value=value,
         hp_loss=hp_loss,
+        hp_requested=0 if ("target", 1) in frozen_stats else remaining,
         barrier_absorbed=barrier,
         armor_absorbed=armor,
         virtual_hp_absorbed=virtual,
@@ -313,7 +319,10 @@ def healing_resistance_after(
     into enabled. Characteristic existence, mutability and native bounds must
     be supplied explicitly. Uses Java float32 operations and f2i truncation.
     """
-    _amount(actual_heal)
+    # eXs.fOz uses PA.nG's raw delta, which may be negative when HP.on
+    # collapses a copied over-maximum raw current. eGj.PO accepts signed int.
+    if type(actual_heal) is not int or not -(1 << 31) <= actual_heal < (1 << 31):
+        raise ValueError("Invalid native signed actual healing amount")
     _amount(target_max_hp)
     _flags(enabled, frozen)
     if (

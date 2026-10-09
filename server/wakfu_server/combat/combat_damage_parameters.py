@@ -1,7 +1,7 @@
 """Native eXt.fOA parameter contract and fOG/fOI flags, without spell IDs."""
 import math
 from .combat_parameters import parameter_value
-from .equipment_damage import _float
+from wakfu_server.equipment_damage import _float
 
 
 def damage_effect_level(*, context_override, container_level):

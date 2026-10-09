@@ -115,3 +115,9 @@ Gate Docker aislado: **114 pruebas aprobadas**, incluidas `test_world_static` 3/
 Imagen activa `63b4642d`, etiqueta `wakfu-local-world:static-sync-verified`; health HTTP200 y Docker healthy. Copia previa PostgreSQL comprobada (754 entradas). La corrección reenvía estados al entrar/cambiar de mapa, con hasta tres intentos separados por750ms, y difiere durante combate. Los208 módulos de combate son idénticos a la imagen anterior.
 
 Gate fuente114/114; imagen99 pruebas aplicables aprobadas y contexto incluido8/8. El único test incompatible exige `encounter_kind`, una función de drops que aún no se despliega. La comprobación TLS ampliada pasó: mapa inicial359 objetos después de dos fragmentos históricos exactos; transición silenciosa492 objetos, reconexión con tres snapshots y petición14689 respondida en52ms. Smoke de combate y retorno aprobado. La carga visual queda **Cambio hecho no confirmado**, pendiente de la prueba conjunta del usuario; fabricación conserva su aceptación previa.
+
+## Alcance tras la aceptación de Minero — 7 de octubre de 2026
+
+El usuario confirmó la receta2227: lote de100 Bombas y20.000 XP de Minero. No se repite aquí esa prueba ni se interpreta como aprobación de todas las recetas.
+
+La inspección de fuente identifica tres límites generales de crafting: (1) el dispatcher pasa siempre `craft_speed_modifier=0`, aunque la fórmula nativa usa stat2002/tipo8 por oficio; el contexto persistido fuera de combate todavía no aporta ese valor; (2) `_recipe()` rechaza en modo cerrado cualquier criterio/flag no vacío, lo que afecta271 de las5.449 recetas del catálogo; (3) el handler ordinario admite12231/13382, pero no la rama13515 de otro artesano, cuyo i64 adicional y autorización aún no están cerrados. La multiplicación del timer por el tamaño del lote sigue siendo una política local, no una regla nativa demostrada. Ver el detalle y la próxima acción por brecha en [FALTANTES.md](FALTANTES.md).

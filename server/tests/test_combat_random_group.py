@@ -32,6 +32,15 @@ class NativeRandomGroupTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 weighted_children(rows, count, draw_integer=draw)
 
+    def test_empty_criteria_pool_is_not_a_successful_native_no_op(self):
+        draws = []
+        with self.assertRaisesRegex(ValueError, "positive remaining probability total"):
+            weighted_children([], 1, draw_integer=lambda bound: draws.append(bound))
+        self.assertEqual(draws, [])
+        # Native eXR skips its draw loop only when the requested count is <=0.
+        self.check([], 0, [], [], ())
+        self.check([], -1, [], [], ())
+
     def test_separate_native_parameter_positions(self):
         mode = random_group_mode(
             {"effect_class": 341, "parameters": [2, 0, 0, 1, 1, 0]},
@@ -40,6 +49,32 @@ class NativeRandomGroupTests(unittest.TestCase):
         self.assertFalse(mode.on_target)  # So(1) raw zero, not evaluated value1.
         self.assertTrue(mode.transmit_target)
         self.assertEqual(mode.limit, 0)  # Count governs lottery, not PT successes.
+
+    def test_eXR_owner_raw_parameter_is_distinct_from_transmitted_target(self):
+        for raw_owner, expected_target in ((0, False), (1, True), (3, False)):
+            with self.subTest(raw_owner=raw_owner):
+                mode = random_group_mode(
+                    {"effect_class": 341, "parameters": [2, raw_owner, 0]},
+                    {"parameters": [2, 1, 1]},
+                )
+                self.assertEqual(mode.on_target, expected_target)
+                self.assertTrue(mode.transmit_target)
+
+        # With only two defined/evaluated parameters eXR has no rFn target
+        # argument; raw So(1) still controls actor-vs-cell owner routing.
+        mode = random_group_mode(
+            {"effect_class": 341, "parameters": [2, 1]},
+            {"parameters": [2, 1]},
+        )
+        self.assertTrue(mode.on_target)
+        self.assertTrue(mode.transmit_target)
+
+        mode = random_group_mode(
+            {"effect_class": 341, "parameters": [2, 0, 0]},
+            {"parameters": [2, 1, 0]},
+        )
+        self.assertFalse(mode.on_target)
+        self.assertFalse(mode.transmit_target)
 
     def test_probability_context_updates_fields_without_duplicate_identity(self):
         from wakfu_server.combat_random_group import probability_bypass_context

@@ -19,9 +19,10 @@ def trigger_value_context(effect, invocation, context):
         return context
     if not isinstance(source, dict) or type(source.get("value")) is not int:
         raise ValueError("Missing authoritative triggering eZR.getValue")
-    value = source["value"]
-    if not -(1 << 31) <= value < (1 << 31):
-        raise ValueError("Native triggering value must be signed int")
+    # eYB.d offsets21..22 reads the current Qe, after sibling mutations.
+    from .combat_trigger_value import triggering_value
+
+    value = triggering_value(invocation)
     ratio = (
         100.0
         if count <= 6

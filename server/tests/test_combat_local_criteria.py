@@ -15,6 +15,111 @@ from wakfu_server.combat_local_criteria import (
 
 
 class LocalCriteriaTests(unittest.TestCase):
+    def test_native_boolean_literal_tokens_preserve_strings_and_aliases(self):
+        context = ConditionContext({})
+        for source, expected in (
+            ("true", True),
+            ("True", True),
+            ("false", False),
+            ("False", False),
+            ("!false and not False", True),
+            ("x = true; y = false; x and !y", True),
+            ("trueish = false; falseValue = true; !trueish and falseValue", True),
+            ("if (true) then (false) else (True)", False),
+        ):
+            with self.subTest(source=source):
+                self.assertEqual(evaluate_condition(source, context), expected)
+        tree = parse_local_criterion(
+            'Fn("true", "false", "True", "False", true, false)'
+        )
+        self.assertEqual(
+            [argument.value for argument in tree.args],
+            ["true", "false", "True", "False", True, False],
+        )
+        tree = parse_local_criterion("IsOwnArea(true)")
+        self.assertIs(tree.args[0].value, True)
+        for source in ("TRUE", "FALSE", "tRue", "fAlse"):
+            with self.subTest(source=source), self.assertRaises(UnknownCondition):
+                evaluate_condition(source, context)
+        for name in ("true", "false", "True", "False"):
+            with self.subTest(name=name), self.assertRaisesRegex(
+                LocalCriterionSyntax, "cannot be assigned"
+            ):
+                parse_local_criterion(f"{name} = False; {name}")
+
+    def test_native_bang_negation_mixed_operators_and_primary_precedence(self):
+        context = ConditionContext({})
+        for source, expected in (
+            ("!False", True),
+            ("!!False", False),
+            ("!False and True or False", True),
+            ("!False or True and False", True),
+            ("not !False", False),
+            ("!not False", False),
+            ("!(1 != 2)", False),
+            ("!(1 == 2) and not False", True),
+        ):
+            with self.subTest(source=source):
+                self.assertEqual(evaluate_condition(source, context), expected)
+        # Native NOT binds to a primary; it cannot negate a numeric leaf and
+        # silently turn into Python's not-of-comparison.
+        for source in (
+            "!1 == 2",
+            "!False == True",
+            "not 1 == 2",
+            "not False == True",
+            "not GetLevel() == 2",
+            "x = 1; not x == 2",
+            "x = False; not x == True",
+            "!",
+            "True and !",
+            "!if (True) then (False) else (True)",
+        ):
+            with self.subTest(source=source), self.assertRaises(UnknownCondition):
+                evaluate_condition(source, context)
+
+    def test_bang_preserves_string_contents_and_not_equal_tokens(self):
+        source = 'Fn("! not != #", "escaped\\"!", 1 != 2)'
+        tree = parse_local_criterion(source)
+        self.assertEqual(tree.args[0].value, "! not != #")
+        self.assertEqual(tree.args[1].value, 'escaped"!')
+        self.assertIsInstance(tree.args[2].ops[0], ast.NotEq)
+        tree = parse_local_criterion('Fn("!", 1!=2)')
+        self.assertEqual(tree.args[0].value, "!")
+        self.assertIsInstance(tree.args[1].ops[0], ast.NotEq)
+
+    def test_bang_alias_sharp_and_local_conditional(self):
+        context = ConditionContext({})
+        for source in (
+            "x = !False; y = x; x = False; y and !x",
+            "# !False # and !# False #",
+            "!(if (True) then (False) else (True))",
+            "if (!False) then (!True) else (!False)",
+        ):
+            tree = parse_local_criterion(source)
+            self.assertIsNotNone(tree)
+        self.assertTrue(
+            evaluate_condition("x = !False; y = x; x = False; y and !x", context)
+        )
+        self.assertTrue(evaluate_condition("# !False # and !# False #", context))
+        self.assertTrue(
+            evaluate_condition("!(if (True) then (False) else (True))", context)
+        )
+        self.assertFalse(
+            evaluate_condition("if (!False) then (!True) else (!False)", context)
+        )
+        localized = parse_local_criterion("!# False #")
+        self.assertIs(localized.operand.native_localization_enabled, False)
+
+    def test_actual_class_bang_criterion_is_parsed_without_reference_exception(self):
+        tree = parse_local_criterion(
+            'GetEffectCaster() != GetEffectTarget() and not IsCarrying("target") and !IsBreedId("target", 2382)'
+        )
+        calls = {node.func.id for node in ast.walk(tree) if isinstance(node, ast.Call)}
+        self.assertEqual(
+            calls, {"GetEffectCaster", "GetEffectTarget", "IsCarrying", "IsBreedId"}
+        )
+
     def test_final_native_semicolon_preserves_all_aliases_and_rejects_extra_predicate(
         self,
     ):

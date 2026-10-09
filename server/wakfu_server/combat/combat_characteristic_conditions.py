@@ -1,14 +1,15 @@
 """Native eJy.tt aliases shared by current, maximum and percentage predicates."""
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 
 
 @lru_cache(maxsize=1)
 def native_aliases():
-    return json.loads(
-        (DATA_ROOT / "characteristic-condition-aliases.json").read_text()
-    )["aliases"]
+    return protocol_catalog.load(DATA_ROOT / "characteristic-condition-aliases.json")[
+        "aliases"
+    ]
 
 
 def canonical_aliases():

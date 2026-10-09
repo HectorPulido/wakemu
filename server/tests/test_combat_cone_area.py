@@ -8,6 +8,7 @@ from wakfu_server.combat_area_geometry import (
 )
 from wakfu_server.combat_group_cells import group_cells
 from wakfu_server.combat_effect_targets import select_native_effect_targets
+from wakfu_server import native_catalog
 
 
 class NativeConeAreaTests(unittest.TestCase):
@@ -24,9 +25,9 @@ class NativeConeAreaTests(unittest.TestCase):
 
     def test_native_orientations_and_physical_radii(self):
         rows = json.loads(
-            (
+            native_catalog.read_text(
                 Path(__file__).parents[1] / "protocol/native-cone-area-fixture.json"
-            ).read_text()
+            )
         )
         self.assertEqual(len(rows), 108)
         for row in rows:

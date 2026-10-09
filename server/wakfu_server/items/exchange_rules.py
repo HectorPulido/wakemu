@@ -3,11 +3,12 @@
 Template binding is distinct from any persisted per-instance binding override.
 Unknown instances/references/expressions cannot acquire exchange eligibility.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from .paths import DATA_ROOT
 
 
-CATALOG = json.loads((DATA_ROOT / "item-exchange-metadata.json").read_text())
+CATALOG = protocol_catalog.load(DATA_ROOT / "item-exchange-metadata.json")
 if (
     CATALOG.get("errors") != 0
     or CATALOG.get("raw_records") != CATALOG.get("loaded_records")

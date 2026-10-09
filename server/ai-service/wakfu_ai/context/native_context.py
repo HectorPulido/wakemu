@@ -10,10 +10,12 @@ from decimal import Decimal
 from collections import deque
 from collections.abc import Sequence
 import base64
+import gzip
 import json
 import math
 import inspect
 import _thread
+import zlib
 
 from ..native.native_deadline import check
 
@@ -271,6 +273,17 @@ class NativeGraph:
     """Read a validated native data graph, retaining types and every field."""
 
     def __init__(self, encoded, *, _validation_nodes=None):
+        if isinstance(encoded, bytes):
+            try:
+                check()
+                if encoded.startswith(b"\x1f\x8b"):
+                    encoded = gzip.decompress(encoded)
+                check()
+                encoded = json.loads(encoded)
+            except TimeoutError:
+                raise
+            except (OSError, EOFError, ValueError, UnicodeError, zlib.error) as error:
+                raise ValueError("Invalid native graph bytes") from error
         if (
             not isinstance(encoded, dict)
             or set(encoded) != {"encoding", "root", "nodes"}
@@ -304,7 +317,11 @@ class NativeGraph:
         # Internal parts readers supply only dynamic nodes here AFTER every
         # immutable fragment has been validated and its reference map sealed.
         # Ordinary untrusted flat graphs always validate every node.
-        for node in self.nodes if _validation_nodes is None else _validation_nodes:
+        for node_index, node in enumerate(
+            self.nodes if _validation_nodes is None else _validation_nodes
+        ):
+            if node_index % 1024 == 0:
+                check()
             if not isinstance(node, dict):
                 raise ValueError("Invalid native graph node")
             kind = node.get("type")

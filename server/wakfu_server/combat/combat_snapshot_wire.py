@@ -69,5 +69,30 @@ def snapshot_characteristics(actor):
             or (identity != 1 and current > maxima[identity])
         ):
             raise ValueError("Unknown native percentage/bound mutation")
-        out.append(struct.pack(">Biiii", identity, current, minimum, maximum, pct))
+        wire_current = current
+        if getattr(actor, "native_copy_pa_source", None) is not None:
+            from .combat_copied_pa import copied_raw_current
+
+            wire_current = copied_raw_current(actor, identity)
+        elif (
+            identity == 1
+            and getattr(actor, "native_hp_raw_current_source", None) is not None
+        ):
+            from .combat_hp_raw import hp_raw_current
+
+            wire_current = hp_raw_current(actor)
+        elif (
+            identity in (2, 3)
+            and getattr(actor, "effect_resource_raw_currents", None) is not None
+        ):
+            from .combat_resource_pa_notifications import resource_raw_current
+
+            wire_current = resource_raw_current(actor, identity)
+            if max(effective_minimum, min(effective, wire_current)) != current:
+                raise ValueError(
+                    "Native wire raw/effective current disagreement: "
+                    f"actor={actor.id} PC={identity} raw={wire_current} "
+                    f"effective={current} minimum={effective_minimum} maximum={effective}"
+                )
+        out.append(struct.pack(">Biiii", identity, wire_current, minimum, maximum, pct))
     return struct.pack(">H", len(out)) + b"".join(out)

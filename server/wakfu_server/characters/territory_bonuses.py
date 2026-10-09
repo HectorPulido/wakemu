@@ -1,6 +1,7 @@
 """Native protector satisfaction states, derived from regional wishes."""
 
 from __future__ import annotations
+from wakfu_server import native_catalog as protocol_catalog
 
 import json
 from functools import lru_cache
@@ -16,8 +17,7 @@ _CATALOG = (
 
 @lru_cache(maxsize=1)
 def _catalog():
-    with _CATALOG.open(encoding="utf-8") as stream:
-        return json.load(stream)
+    return protocol_catalog.load(_CATALOG)
 
 
 def state_id(satisfied: int, total: int) -> int | None:

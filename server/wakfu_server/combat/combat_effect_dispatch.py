@@ -32,6 +32,9 @@ class EffectInvocation:
     state_uid: int | None = None
     native_context_hex: str | None = None
     native_trigger_context: dict | None = None
+    native_cast_boundary_context: dict | None = (
+        None  # Explicit server cast policy; never a Qe.
+    )
     native_running_uid: int | None = None
     native_value_scope: object | None = (
         None  # Ephemeral identity of the PS/eVt observer.
@@ -40,6 +43,9 @@ class EffectInvocation:
         None  # Explicit PN/PL of synthetic owned applicators.
     )
     native_explicit_target: bool = False  # Native PK.a received a non-null PV argument.
+    native_target_cell_argument: bool = (
+        False  # Criterion received raw aBn, not selected PV.
+    )
 
 
 class EffectDispatcher:
@@ -64,6 +70,7 @@ class EffectDispatcher:
         random_child_level=None,
         multiple_group_candidates=None,
         group_random=None,
+        distance_group_runner=None,
     ):
         self.effects = effects
         self.handlers = handlers
@@ -83,9 +90,11 @@ class EffectDispatcher:
         self.random_child_level = random_child_level
         self.multiple_group_candidates = multiple_group_candidates
         self.group_random = group_random
+        self.distance_group_runner = distance_group_runner
         self._active_pt = None
         self._active_ancestors = ()
         self._active_activation = None
+        self._prepared_scopes = []
 
     def execute_activation(
         self, invocation, *, source, condition_context, executable, allocate_uid
@@ -109,6 +118,8 @@ class EffectDispatcher:
         self._active_pt = _pt_report
         previous = self._active_ancestors
         self._active_ancestors = (*ancestors, invocation.reference)
+        prepared = []
+        self._prepared_scopes.append(prepared)
         tracing = diagnostics_enabled()
         started = perf_counter() if tracing else None
         try:
@@ -127,12 +138,23 @@ class EffectDispatcher:
                     status="failed",
                     reason=str(error),
                     exception_type=type(error).__name__,
+                    native_displacement_actor=getattr(
+                        error, "native_displacement_actor", None
+                    ),
                     elapsed_ms=round((perf_counter() - started) * 1000, 3),
                 )
             raise
         finally:
-            self._active_ancestors = previous
-            self._active_pt = previous_pt
+            try:
+                for effect, selected in reversed(prepared):
+                    handler = self.handlers.get(effect["effect_class"])
+                    cancel = getattr(handler, "cancel_prepared", None)
+                    if callable(cancel):
+                        cancel(selected)
+            finally:
+                self._prepared_scopes.pop()
+                self._active_ancestors = previous
+                self._active_pt = previous_pt
 
     def register_subscription(self, invocation):
         """Register a fresh listener without treating it as recursive execution.
@@ -229,13 +251,26 @@ class EffectDispatcher:
                 self._diagnose(selected, status="subscribed_waiting_event")
                 success = True
                 continue  # Native Qe.d skips n()/criteria/probability until an event.
+            handler = self.handlers.get(effect["effect_class"])
+            native_eligibility = getattr(handler, "native_eligibility", None)
+            if callable(native_eligibility) and not native_eligibility(
+                effect, selected
+            ):
+                self._diagnose(selected, status="skipped_native_eligibility")
+                continue
             if activation is None and self.prepare_effect is not None:
                 selected = self.prepare_effect(effect, values, selected)
+                if self._prepared_scopes:
+                    self._prepared_scopes[-1].append((effect, selected))
             candidate_filter = False
             if effect["effect_class"] == 345:
                 from .combat_multiple_target_group import multiple_target_spec
 
                 candidate_filter = multiple_target_spec(values)[1]
+            elif effect["effect_class"] == 349:
+                from .combat_cell_group import cell_group_mode
+
+                candidate_filter = cell_group_mode(values).filter_cells
             condition = (
                 None
                 if candidate_filter
@@ -268,7 +303,14 @@ class EffectDispatcher:
                 continue
             if activation is not None:
                 clone_uid = activation[3]()  # Qe.k allocates after i(source).
-                if effect["effect_class"] == 400:
+                prepare_activation = getattr(handler, "prepare_activation", None)
+                if callable(prepare_activation):
+                    selected = prepare_activation(
+                        effect, values, selected, clone_uid=clone_uid
+                    )
+                    if self._prepared_scopes:
+                        self._prepared_scopes[-1].append((effect, selected))
+                elif effect["effect_class"] in (400, 933, 1000, 1080):
                     selected = replace(selected, native_running_uid=clone_uid)
             if effect["effect_class"] == 865:
                 from .combat_value_transfer_runtime import execute_runtime_transfer
@@ -288,49 +330,148 @@ class EffectDispatcher:
                 if self.group_retention is not None:
                     self.group_retention.finish_group(pending_group)
                 success = result or success
-            elif effect["effect_class"] == 1076:
-                if self.group_retention is None or not callable(
-                    self.random_child_level
+            elif effect["effect_class"] in (1076, 1080):
+                distance_family = effect["effect_class"] == 1080
+                if (
+                    self.group_retention is None
+                    or (not distance_family and not callable(self.random_child_level))
+                    or (distance_family and self.distance_group_runner is None)
                 ):
                     raise UnsupportedEffectExecution(
-                        "Native1076 requires owned RNG and eVt authority"
+                        "Native eWd requires owned calculation and eVt authority"
                     )
-                override = self.random_child_level(values["parameters"])
+                if distance_family:
+                    selected, override = self.distance_group_runner.start(
+                        effect,
+                        values,
+                        selected,
+                        event_activation=activation is not None,
+                    )
+                else:
+                    override = self.random_child_level(values["parameters"])
+                try:
+                    pending_group = (
+                        None
+                        if activation is not None
+                        else self.group_retention.begin_group(
+                            effect, values, selected, initial_value=override
+                        )
+                    )
+                    (
+                        child_level,
+                        child_context,
+                    ) = self.group_retention.child_level_context(
+                        effect,
+                        values,
+                        selected,
+                        default_level=selected.level,
+                        event_activation=activation is not None,
+                        native_override=override,
+                    )
+                    applied = False
+                    # eWd passes the same actual bfs PV and bft cell to every child;
+                    # it does not expand the parent's area or force an actor target.
+                    for reference in effect["children"]:
+                        result = self.execute(
+                            replace(
+                                selected,
+                                reference=reference,
+                                level=child_level,
+                                native_context_hex=child_context.hex(),
+                                native_value_scope=None,
+                                native_explicit_target=False,
+                                native_running_uid=None
+                                if distance_family
+                                else selected.native_running_uid,
+                                base_uid=None
+                                if activation is not None
+                                else selected.base_uid,
+                            ),
+                            ancestors=(*ancestors, invocation.reference),
+                        )
+                        applied = result or applied
+                    self.group_retention.finish_group(pending_group)
+                    if distance_family:
+                        self.distance_group_runner.finish(effect, selected)
+                    success = applied or success
+                finally:
+                    if distance_family:
+                        self.distance_group_runner.cancel_prepared(selected)
+            elif effect["effect_class"] == 349:
+                from .combat_cell_group import (
+                    select_cell_group,
+                    native_cell_criterion_presence,
+                )
+
+                if self.group_retention is None:
+                    raise UnsupportedEffectExecution(
+                        "Missing native eYk retained context authority"
+                    )
                 pending_group = (
                     None
                     if activation is not None
-                    else self.group_retention.begin_group(
-                        effect, values, selected, initial_value=override
-                    )
+                    else self.group_retention.begin_group(effect, values, selected)
                 )
-                child_level, child_context = self.group_retention.child_level_context(
-                    effect,
+
+                def cell_condition(cell):
+                    candidate = replace(
+                        selected,
+                        target_id=None,
+                        cell=cell,
+                        native_explicit_target=False,
+                        native_target_cell_argument=True,
+                    )
+                    context = (
+                        activation[2](effect, candidate, activation[1])
+                        if activation is not None
+                        else self.condition_context(candidate)
+                    )
+                    return evaluate_condition(effect["criteria"], context)
+
+                selection = select_cell_group(
                     values,
-                    selected,
-                    default_level=selected.level,
-                    event_activation=activation is not None,
-                    native_override=override,
+                    self.group_cells(effect, selected),
+                    caster_position=self.actor_position(selected.caster_id),
+                    condition=cell_condition,
+                    rng=self.group_random,
+                    criterion_present=native_cell_criterion_presence(effect, selected),
                 )
-                applied = False
-                # eWd passes the same actual bfs PV and bft cell to every child;
-                # it does not expand the parent's area or force an actor target.
-                for reference in effect["children"]:
-                    result = self.execute(
-                        replace(
-                            selected,
-                            reference=reference,
-                            level=child_level,
-                            native_context_hex=child_context.hex(),
-                            native_value_scope=None,
-                            native_explicit_target=False,
-                            base_uid=None
-                            if activation is not None
-                            else selected.base_uid,
-                        ),
-                        ancestors=(*ancestors, invocation.reference),
+                if selection.eligible_count:
+                    child_level, context = self.group_retention.child_level_context(
+                        effect,
+                        values,
+                        selected,
+                        default_level=selected.level,
+                        event_activation=activation is not None,
                     )
-                    applied = result or applied
-                self.group_retention.finish_group(pending_group)
+                applied = False
+                # eYk orders cells first, then the native fyD child iterator.
+                # The PK.a call always receives null PV; children select anew.
+                for cell in selection.cells:
+                    for reference in effect["children"]:
+                        result = self.execute(
+                            replace(
+                                selected,
+                                reference=reference,
+                                level=child_level,
+                                target_id=None,
+                                cell=cell,
+                                native_context_hex=context.hex(),
+                                native_value_scope=None,
+                                native_running_uid=None,
+                                native_explicit_target=False,
+                                base_uid=None
+                                if activation is not None
+                                else selected.base_uid,
+                            ),
+                            ancestors=(*ancestors, invocation.reference),
+                        )
+                        applied = result or applied
+                # Empty eligible population invokes fRS: Qf ownership survives
+                # while the runner's own PR notification is suppressed.
+                self.group_retention.finish_group(
+                    pending_group, notify=selection.eligible_count > 0
+                )
                 success = applied or success
             elif effect["effect_class"] == 345:
                 from .combat_multiple_target_group import select_multiple_targets

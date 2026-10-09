@@ -4,6 +4,7 @@ The installed client contains fpK count/color weights, but the original
 server-side 13787 policy was not recovered. This module applies those weights
 as an explicit, configurable local policy; it does not claim upstream parity.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import hashlib
 import json
 import secrets
@@ -23,7 +24,7 @@ _EXPECTED_CATALOG_HASH = (
 def _catalog():
     global _CATALOG
     if _CATALOG is None:
-        raw = CATALOG_PATH.read_bytes()
+        raw = protocol_catalog.read_bytes(CATALOG_PATH)
         if hashlib.sha256(raw).hexdigest() != _EXPECTED_CATALOG_HASH:
             raise ValueError("Native socket eligibility catalog fingerprint mismatch")
         data = json.loads(raw)
@@ -124,7 +125,7 @@ def _shard_state(template, policy, randbelow):
         color = _weighted(policy["color_weights"], randbelow)
         # Native slot fields: position=10, item ref=11 (empty), color=12,
         # attached shard quantity=14 (empty). ProtoShard repeated slots=1.
-        row = proto_field(80, position) + proto_field(96, color)
+        row = proto_field(80, position) + proto_field(88, 0) + proto_field(96, color)
         slots.append(proto_field(10, row))
     return validate(b"".join(slots))
 

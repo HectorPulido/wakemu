@@ -3,6 +3,7 @@
 Plans are explicit region-verified positions, not native spawn-definition IDs
 misinterpreted as coordinates. Defeating/deleting a group preserves its marker.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from psycopg.types.json import Jsonb
 from .paths import DATA_ROOT
@@ -12,7 +13,7 @@ from .ecology_population import snapshot
 
 REGIONS = {
     (world["map_id"], region["region_id"]): region
-    for world in json.loads((DATA_ROOT / "ecology-regions.json").read_text())
+    for world in protocol_catalog.load(DATA_ROOT / "ecology-regions.json")
     for region in world["regions"]
 }
 
@@ -122,10 +123,9 @@ def seed_zone(store, groups, map_id, instance_id, region_id, plan, *, locate=sur
         }
         if positions & vegetation:
             raise ValueError("Initial monster cells contain planted resources")
-        identities = [
-            db.execute("SELECT nextval('monster_entity_uid') AS id").fetchone()["id"]
-            for _ in plan
-        ]
+        from .npc_actor_identity import allocate_block
+
+        identities = [allocate_block(db, 1) for _ in plan]
         members = [
             owned_instance(
                 row["reference"],
@@ -151,9 +151,7 @@ def configured_plans(path=None, *, completed_habitats=()):
     """Load explicit pilot habitats and validate native walking geometry."""
     from .combat_terrain import map_geometry
 
-    data = json.loads(
-        (path or DATA_ROOT / "initial-monster-population.json").read_text()
-    )
+    data = protocol_catalog.load(path or DATA_ROOT / "initial-monster-population.json")
     if (
         type(data) is not dict
         or set(data) != {"version", "scope", "plans"}

@@ -119,7 +119,22 @@ class NativeParameterMaximumHandler:
             uid=uid,
             running_effect_payload=payload,
         )
-        _write(actor, stat, after, updated_raw, updated)
+        from .combat_hp_raw import hp_raw_present, set_hp_raw_maximum
+
+        if stat == 1 and hp_raw_present(actor):
+            set_hp_raw_maximum(actor, updated_raw)
+        elif (
+            stat in (2, 3)
+            and getattr(actor, "effect_resource_raw_currents", None) is not None
+        ):
+            from .combat_resource_pa_notifications import set_resource_maximum
+
+            set_resource_maximum(self.fight, actor, stat, updated_raw)
+        else:
+            _write(actor, stat, after, updated_raw, updated)
+            from .combat_resource_pa_notifications import notify_resource_pa
+
+            notify_resource_pa(self.fight, actor, stat, maximum=True)
         if ctx.retained:
             self.fight.owned_stat_effects[uid] = dict(
                 uid=uid,
@@ -164,6 +179,21 @@ def remove_parameter_maximum(handler, uid):
         uid=uid,
         running_effect_payload=bytes.fromhex(entry["payload"]),
     )
-    _write(actor, stat, after, updated_raw, updated)
+    from .combat_hp_raw import hp_raw_present, set_hp_raw_maximum
+
+    if stat == 1 and hp_raw_present(actor):
+        set_hp_raw_maximum(actor, updated_raw)
+    elif (
+        stat in (2, 3)
+        and getattr(actor, "effect_resource_raw_currents", None) is not None
+    ):
+        from .combat_resource_pa_notifications import set_resource_maximum
+
+        set_resource_maximum(handler.fight, actor, stat, updated_raw)
+    else:
+        _write(actor, stat, after, updated_raw, updated)
+        from .combat_resource_pa_notifications import notify_resource_pa
+
+        notify_resource_pa(handler.fight, actor, stat, maximum=True)
     del handler.fight.owned_stat_effects[uid]
     handler.packets.append((13560, packet))

@@ -140,6 +140,11 @@ def creation_in_play(preview, actor):
     Caller must first attest exact native creation or registered summon identity.
     Revival/zero-HP imported actors without this lifecycle remain unknown.
     """
+    # PvE withdrawal is an explicit roster departure, not lethal damage. Keep
+    # that lifecycle fact separate from ``death`` events: range predicates
+    # must exclude the retired actor without fabricating a death callback.
+    if getattr(actor, "pve_withdrawn", False):
+        return False
     departed = any(
         row.get("kind") == "death" and row.get("actor_id") == actor.id
         for row in preview.events

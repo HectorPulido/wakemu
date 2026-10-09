@@ -1,14 +1,13 @@
 """Native eVE.a PT allocation preflight; exclusion geometry remains explicit."""
-import gzip
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 
 
 @lru_cache(maxsize=1)
 def null_exclusion_references():
-    with gzip.open(DATA_ROOT / "native-pt-preflight.json.gz", "rt") as stream:
-        data = json.load(stream)
+    data = protocol_catalog.load(DATA_ROOT / "native-pt-preflight.json")
     if (
         len(data["null_exclusion_references"]) + len(data["nonnull_exclusions"])
         != data["definitions_checked"]

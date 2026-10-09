@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Structural reachability audit of current area/selector contracts, not gameplay."""
-import gzip
 import hashlib
 import json
 from collections import Counter, defaultdict
@@ -13,7 +12,7 @@ from wakfu_server.paths import DATA_ROOT, PROJECT_ROOT
 def run():
     inputs = (
         DATA_ROOT / "spell-effect-trees.json",
-        DATA_ROOT / "combat-state-definitions.json.gz",
+        DATA_ROOT / "combat-state-definitions.json",
         DATA_ROOT / "native-point-areas.json",
         PROJECT_ROOT / "server/wakfu_server/combat/combat_effect_targets.py",
         PROJECT_ROOT / "server/wakfu_server/combat/combat_ordinary_authority.py",
@@ -25,7 +24,7 @@ def run():
     }
     source_before = hashes()
     spells = json.loads((DATA_ROOT / "spell-effect-trees.json").read_text())
-    with gzip.open(DATA_ROOT / "combat-state-definitions.json.gz", "rt") as stream:
+    with open(DATA_ROOT / "combat-state-definitions.json", "rt") as stream:
         states = json.load(stream)
     effects = dict(spells["effects"])
     conflicts = []
@@ -119,7 +118,7 @@ def run():
                 breeds=sorted({b for b, _ in owned}),
             )
         )
-    with gzip.open(DATA_ROOT / "native-actor-characteristics.json.gz", "rt") as stream:
+    with open(DATA_ROOT / "native-actor-characteristics.json", "rt") as stream:
         actors = json.load(stream)
     radii = Counter(row["physical_radius"] for row in actors["npc_profiles"].values())
     result = dict(

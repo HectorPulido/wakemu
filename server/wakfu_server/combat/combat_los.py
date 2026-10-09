@@ -1,6 +1,6 @@
 """Native Sf ray evidence by map; explicit dynamic actor blockers required."""
-from .paths import DATA_ROOT
-import gzip
+from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 import json
 from functools import lru_cache
 
@@ -8,15 +8,13 @@ from functools import lru_cache
 @lru_cache(maxsize=16)
 def _load(map_id, adjacent):
     path = (
-        DATA_ROOT / "combat-los" / f"{map_id}.json.gz"
+        DATA_ROOT / "combat-los" / f"{map_id}.json"
         if adjacent
         else DATA_ROOT / "amakna-combat-los.json"
     )
-    if not path.exists():
+    if not protocol_catalog.exists(path):
         return None
-    opener = gzip.open if adjacent else open
-    with opener(path, "rt") as stream:
-        value = json.load(stream)
+    value = protocol_catalog.load(path)
     if value["map_id"] != map_id:
         return None
     return dict(
@@ -53,7 +51,7 @@ def _resolve(map_id, source, target):
 
 
 def static_visible(map_id, source, target):
-    if (DATA_ROOT / "native-los-topology" / f"{map_id}.json.gz").is_file():
+    if protocol_catalog.exists(DATA_ROOT / "native-los-topology" / f"{map_id}.json"):
         from .combat_native_los_ray import static_ray
 
         return static_ray(map_id, tuple(source), tuple(target))[0]
@@ -84,7 +82,7 @@ def authoritative_visible(map_id, source, target, fight, *, blocking_footprints)
             if len(cell) != 2 or any(type(n) is not int for n in cell):
                 raise ValueError("Invalid blocking footprint")
             blocked.add(tuple(cell))
-    if (DATA_ROOT / "native-los-topology" / f"{map_id}.json.gz").is_file():
+    if protocol_catalog.exists(DATA_ROOT / "native-los-topology" / f"{map_id}.json"):
         from .combat_native_los_ray import cast_rays
 
         sources = [

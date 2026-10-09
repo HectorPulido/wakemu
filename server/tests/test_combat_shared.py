@@ -1,7 +1,10 @@
 import ast
 import concurrent.futures
 import struct, threading, unittest
+import inspect
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_shared import Registry, Session, Transition
 from wakfu_server.combat_multiplayer_wire import (
@@ -28,7 +31,14 @@ class SharedCombatTests(unittest.TestCase):
             {0: {(0, 0, 0), (1, 0, 0)}, 1: {(3, 0, 0)}},
         )
         self.shared = self.registry.register(
-            self.fight, self.one, runtime={"native": "own"}, group_lease=("own-group",)
+            self.fight,
+            self.one,
+            runtime={"native": "own"},
+            group_lease=("own-group",),
+            join_context={
+                "leaders": {0: 10, 1: -200},
+                "world_marker_cells": ((0, 0),),
+            },
         )
 
     def join(self, session=None):
@@ -62,7 +72,7 @@ class SharedCombatTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "revision"):
             self.shared.seed_checkpoint_revision(0)
 
-    def test_login_bootstrap_invokes_settled_shared_takeover(self):
+    def test_login_bootstrap_returns_settled_shared_owner_without_fight_replay(self):
         source_path = Path(__file__).resolve().parents[1] / "local_game_server.py"
         tree = ast.parse(source_path.read_text(encoding="utf-8"))
         session = next(
@@ -150,15 +160,190 @@ class SharedCombatTests(unittest.TestCase):
             for node in ast.walk(resume)
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
         }
+        self.assertIn("recover_settled_world", resume_calls)
         self.assertIn("takeover_settled", resume_calls)
+        duel_takeover = [
+            node
+            for node in ast.walk(resume)
+            if isinstance(node, ast.If)
+            and any(
+                isinstance(test_node, ast.Constant) and test_node.value == "is_duel"
+                for test_node in ast.walk(node.test)
+            )
+            and any(
+                isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Attribute)
+                and call.func.attr == "takeover_settled"
+                for statement in node.body
+                for call in ast.walk(statement)
+            )
+        ]
+        self.assertEqual(len(duel_takeover), 1)
         self.assertTrue(
             any(
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Name)
-                and node.func.id == "drain_shared_combat"
-                for node in ast.walk(resume)
+                isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Name)
+                and call.func.id == "drain_shared_combat"
+                for statement in duel_takeover[0].body
+                for call in ast.walk(statement)
             )
         )
+
+    def _resume_dispatcher(self, namespace):
+        source_path = Path(__file__).resolve().parents[1] / "local_game_server.py"
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        session = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "session"
+        )
+        resume = next(
+            node
+            for node in ast.walk(session)
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "resume_settled_shared_combat"
+        )
+        names = (
+            "combat_session",
+            "fight",
+            "fight_messages",
+            "group_lease",
+            "TEST_MONSTERS",
+            "TEST_MONSTERS_BY_ID",
+            "TEST_GROUP_KEY",
+            "checkpoint_id",
+            "checkpoint_revision",
+            "checkpoint_terminal",
+        )
+        wrapper = ast.FunctionDef(
+            name="_make_resume_dispatcher",
+            args=ast.arguments(
+                posonlyargs=[],
+                args=[ast.arg(arg=name) for name in names],
+                kwonlyargs=[],
+                kw_defaults=[],
+                defaults=[],
+            ),
+            body=[resume, ast.Return(value=ast.Name(id=resume.name, ctx=ast.Load()))],
+            decorator_list=[],
+        )
+        module = ast.fix_missing_locations(ast.Module(body=[wrapper], type_ignores=[]))
+        exec(compile(module, str(source_path), "exec"), namespace)
+        return namespace["_make_resume_dispatcher"](
+            combat_session=None,
+            fight=None,
+            fight_messages=None,
+            group_lease=None,
+            TEST_MONSTERS=(),
+            TEST_MONSTERS_BY_ID={},
+            TEST_GROUP_KEY=None,
+            checkpoint_id=None,
+            checkpoint_revision=None,
+            checkpoint_terminal=False,
+        )
+
+    def test_resume_settled_pve_returns_world_updates_without_terminal_or_fight_attach(
+        self,
+    ):
+        character = {"id": 10, "account_id": 1, "hp": 20}
+        shared = SimpleNamespace(
+            is_duel=False,
+            settlement_ready=True,
+            returned=set(),
+            fight=SimpleNamespace(id=99),
+        )
+        recovered = {
+            "fight_id": 99,
+            "character": {"id": 10, "account_id": 1, "hp": 18},
+            "packets": [(12436, b"hp"), (13873, b"wallet")],
+            "applied": True,
+        }
+        adapter = Mock()
+        adapter.lookup_character.return_value = shared
+        adapter.session.return_value = "fresh-selected-session"
+        adapter.recover_settled_world.return_value = recovered
+        sent = []
+        namespace = {
+            "COMBAT_TEST": True,
+            "character": character,
+            "COMBAT_SESSIONS": adapter,
+            "account_id": 1,
+            "generation": "fresh-generation",
+            "COMBAT_TEST_WP": 6,
+            "send": lambda _connection, _service, opcode, body: sent.append(
+                (opcode, body)
+            ),
+            "connection": object(),
+            "service": "world",
+            "record": Mock(),
+            "drain_shared_combat": Mock(),
+            "CHECKPOINTS": Mock(),
+        }
+        resume = self._resume_dispatcher(namespace)
+
+        self.assertTrue(resume())
+        adapter.recover_settled_world.assert_called_once_with(
+            "fresh-selected-session", character, wp=6
+        )
+        self.assertEqual(sent, recovered["packets"])
+        self.assertNotIn(12238, [opcode for opcode, _body in sent])
+        adapter.takeover_settled.assert_not_called()
+        namespace["drain_shared_combat"].assert_not_called()
+        namespace["CHECKPOINTS"].read.assert_not_called()
+        state = inspect.getclosurevars(resume).nonlocals
+        self.assertIsNone(state["fight"])
+        self.assertIsNone(state["fight_messages"])
+        self.assertIsNone(state["combat_session"])
+
+    def test_resume_settled_duel_still_takes_over_and_drains_shared_fsm(self):
+        character = {"id": 10, "account_id": 1}
+        fight = SimpleNamespace(id=101, phase="finished")
+        runtime = SimpleNamespace(name="canonical-runtime")
+        shared = SimpleNamespace(
+            is_duel=True,
+            settlement_ready=True,
+            returned=set(),
+            fight=fight,
+            runtime=runtime,
+            group_lease=("duel-lease",),
+            join_context={
+                "monsters": {-201: "owned-monster"},
+                "group_key": "duel-group",
+            },
+        )
+        adapter = Mock()
+        adapter.lookup_character.return_value = shared
+        adapter.session.return_value = "fresh-duel-session"
+        adapter.takeover_settled.return_value = shared
+        checkpoint_store = Mock()
+        checkpoint_store.read.return_value = {"revision": 7}
+        drain = Mock()
+        namespace = {
+            "COMBAT_TEST": True,
+            "character": character,
+            "COMBAT_SESSIONS": adapter,
+            "account_id": 1,
+            "generation": "fresh-generation",
+            "CHECKPOINTS": checkpoint_store,
+            "drain_shared_combat": drain,
+            "record": Mock(),
+        }
+        resume = self._resume_dispatcher(namespace)
+
+        self.assertTrue(resume())
+        adapter.takeover_settled.assert_called_once_with("fresh-duel-session", 101)
+        adapter.recover_settled_world.assert_not_called()
+        checkpoint_store.read.assert_called_once_with(1, 101)
+        drain.assert_called_once_with()
+        state = inspect.getclosurevars(resume).nonlocals
+        self.assertIs(state["combat_session"], "fresh-duel-session")
+        self.assertIs(state["fight"], fight)
+        self.assertIs(state["fight_messages"], runtime)
+        self.assertEqual(state["group_lease"], ("duel-lease",))
+        self.assertEqual(state["TEST_MONSTERS"], ("owned-monster",))
+        self.assertEqual(state["TEST_GROUP_KEY"], "duel-group")
+        self.assertEqual(state["checkpoint_revision"], 7)
+        self.assertTrue(state["checkpoint_terminal"])
 
     def test_duel_socket_adopts_before_first_readiness_dispatch(self):
         source_path = Path(__file__).resolve().parents[1] / "local_game_server.py"
@@ -299,6 +484,239 @@ class SharedCombatTests(unittest.TestCase):
             self.registry.execute(
                 99, self.one, 10, lambda f, r: [], expected_sequence=seq
             )
+
+    def test_returned_withdrawn_marker_leader_remains_join_target_during_placement(
+        self,
+    ):
+        self.join()
+        self.shared.runtime = None
+        self.registry.withdraw_pve(
+            self.one,
+            persist=lambda _fight: {"character": {"id": 10, "hp": 60}},
+        )
+        self.registry.return_withdrawn_pve(
+            99, self.one, persist=lambda: {"world": "restored"}
+        )
+        self.assertEqual(self.shared.fight.phase, "placement")
+        self.assertTrue(self.shared.fight.actors[10].pve_withdrawn)
+        self.assertNotIn(10, self.registry.by_actor)
+        self.assertEqual(self.registry.join_aliases[10], {99})
+        self.assertEqual(self.shared.join_aliases, {10: 0})
+        self.registry.drain(99, self.two)
+
+        third = Session(3, 30, "third", 1134, 0)
+        self.live.add(third)
+        joined = self.registry.join(
+            third,
+            struct.pack(">qB", 10, 0),
+            Actor(30, 0, (0, 0, 0), 60, 6, 3, 90, 1, 3, True),
+            actor_payload=lambda *args: (b"", b""),
+            bootstrap_packets=lambda *_args: [(12847, b"third-bootstrap")],
+        )
+        self.assertIs(joined, self.shared)
+        self.assertEqual(self.shared.fight.actors[30].team, 0)
+        self.assertEqual(self.shared.fight.actors[30].position, (0, 0, 0))
+        self.assertNotIn(10, self.registry.by_actor)
+        notification = self.registry.drain(99, self.two)[0].packets[0]
+        self.assertEqual(notification[0], 13091)
+        self.assertEqual(decode_added(notification[1])["actor_id"], 30)
+
+    def test_withdrawn_marker_alias_requires_live_same_team_survivor(self):
+        self.join()
+        self.shared.runtime = None
+        self.registry.withdraw_pve(
+            self.one,
+            persist=lambda _fight: {"character": {"id": 10, "hp": 60}},
+        )
+        self.registry.return_withdrawn_pve(99, self.one, persist=lambda: {})
+        self.shared.fight.actors[20].hp = 0
+        third = Session(3, 30, "third", 1134, 0)
+        self.live.add(third)
+        with self.assertRaisesRegex(ValueError, "Join target"):
+            self.join(third)
+        self.assertNotIn(30, self.registry.by_character)
+        self.assertNotIn(30, self.shared.fight.actors)
+
+    def test_withdrawn_alias_does_not_reserve_character_for_new_encounter(self):
+        self.join()
+        self.shared.runtime = None
+        self.registry.withdraw_pve(
+            self.one,
+            persist=lambda _fight: {"character": {"id": 10, "hp": 60}},
+        )
+        self.registry.return_withdrawn_pve(99, self.one, persist=lambda: {})
+        self.assertIn(10, self.registry.join_aliases)
+        self.assertNotIn(10, self.registry.by_actor)
+
+        next_fight = Fight(
+            100,
+            [
+                Actor(10, 0, (0, 0, 0), 60, 6, 3, 100, 1, 1, True),
+                Actor(-300, 1, (3, 0, 0), 20, 4, 2, 1, 1),
+            ],
+            {(x, 0, 0) for x in range(4)},
+            {0: {(0, 0, 0), (1, 0, 0)}, 1: {(3, 0, 0)}},
+        )
+        current = self.registry.register(
+            next_fight,
+            self.one,
+            join_context={
+                "leaders": {0: 10, 1: -300},
+                "world_marker_cells": ((4, 5),),
+            },
+        )
+        self.assertEqual(self.registry.by_actor[10], 100)
+        self.assertIs(
+            current, self.registry.lookup(self.registry.resolve_join_target(10))
+        )
+
+        third = Session(3, 30, "third", 1134, 0)
+        self.live.add(third)
+        with self.assertRaisesRegex(ValueError, "changed during admission"):
+            self.registry.join(
+                third,
+                struct.pack(">qB", 10, 0),
+                Actor(30, 0, (0, 0, 0), 60, 6, 3, 90, 1, 3, True),
+                actor_payload=lambda *args: (b"", b""),
+                bootstrap_packets=lambda *_args: [(12847, b"stale-target")],
+                expected_fight_id=99,
+            )
+        joined = self.registry.join(
+            third,
+            struct.pack(">qB", 10, 0),
+            Actor(30, 0, (0, 0, 0), 60, 6, 3, 90, 1, 3, True),
+            actor_payload=lambda *args: (b"", b""),
+            bootstrap_packets=lambda *_args: [(12847, b"new-fight-bootstrap")],
+            expected_fight_id=100,
+        )
+        self.assertIs(joined, current)
+        self.assertIn(30, current.fight.actors)
+        self.assertNotIn(30, self.shared.fight.actors)
+
+    def test_adapter_rejects_preflight_fight_change_before_lookup_or_persistence(self):
+        from wakfu_server.combat_session_adapter import CombatSessionAdapter
+
+        class ChangingRegistry:
+            def __init__(self):
+                self.lookup_calls = 0
+
+            def resolve_join_target(self, _actor_id):
+                return 100
+
+            def lookup(self, _fight_id):
+                self.lookup_calls += 1
+                raise AssertionError("stale preflight must fail before fight lookup")
+
+        adapter = CombatSessionAdapter(object())
+        adapter.registry = ChangingRegistry()
+        with self.assertRaisesRegex(ValueError, "changed during admission"):
+            adapter.join(
+                self.two,
+                struct.pack(">qB", 10, 0),
+                Actor(20, 0, (0, 0, 0), 60, 6, 3, 90, 1, 2, True),
+                expected_fight_id=99,
+                actor_payload=lambda *_args: self.fail("serializer ran too early"),
+                bootstrap_packets=lambda *_args: self.fail("bootstrap ran too early"),
+            )
+        self.assertEqual(adapter.registry.lookup_calls, 0)
+
+    def test_13241_dispatcher_pins_the_preflight_fight_id_in_adapter_call(self):
+        source_path = Path(__file__).resolve().parents[1] / "local_game_server.py"
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        branch = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.If)
+            and any(
+                isinstance(test, ast.Compare)
+                and isinstance(test.left, ast.Name)
+                and test.left.id == "opcode"
+                and any(
+                    isinstance(value, ast.Constant) and value.value == 13241
+                    for value in test.comparators
+                )
+                for test in ast.walk(node.test)
+            )
+        )
+        join_call = next(
+            node
+            for node in ast.walk(branch)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "join"
+            and any(
+                isinstance(arg, ast.Name) and arg.id == "combat_session"
+                for arg in node.args
+            )
+        )
+        expected = next(
+            keyword.value
+            for keyword in join_call.keywords
+            if keyword.arg == "expected_fight_id"
+        )
+        self.assertIsInstance(expected, ast.Name)
+        self.assertEqual(expected.id, "fight_id")
+
+    def test_withdrawn_marker_alias_is_retired_when_placement_closes(self):
+        self.join()
+        self.shared.runtime = None
+        self.registry.withdraw_pve(
+            self.one,
+            persist=lambda _fight: {"character": {"id": 10, "hp": 60}},
+        )
+        self.registry.return_withdrawn_pve(99, self.one, persist=lambda: {})
+        self.registry.execute(
+            99,
+            self.two,
+            20,
+            lambda fight, _runtime: (setattr(fight, "phase", "active"), [])[1],
+            require_turn=False,
+        )
+        self.assertFalse(self.shared.join_aliases)
+        self.assertNotIn(10, self.registry.by_actor)
+        third = Session(3, 30, "third", 1134, 0)
+        self.live.add(third)
+        with self.assertRaisesRegex(ValueError, "Target has no registered fight"):
+            self.join(third)
+
+    def test_marker_alias_is_not_created_without_verified_public_placement_context(
+        self,
+    ):
+        private_starter = Session(5, 50, "private", 1134, 7)
+        self.live.add(private_starter)
+        private_fight = Fight(
+            105,
+            [
+                Actor(50, 0, (0, 0, 0), 60, 6, 3, 100, 1, 5, True),
+                Actor(-205, 1, (3, 0, 0), 20, 4, 2, 1, 1),
+            ],
+            {(x, 0, 0) for x in range(4)},
+            {0: {(0, 0, 0)}, 1: {(3, 0, 0)}},
+        )
+        private = self.registry.register(
+            private_fight,
+            private_starter,
+            join_context={"leaders": {0: 50, 1: -205}, "world_marker_cells": ((0, 0),)},
+        )
+        self.assertFalse(private.join_aliases)
+
+        unmarked_starter = Session(6, 60, "unmarked", 1134, 0)
+        self.live.add(unmarked_starter)
+        unmarked_fight = Fight(
+            106,
+            [
+                Actor(60, 0, (0, 0, 0), 60, 6, 3, 100, 1, 6, True),
+                Actor(-206, 1, (3, 0, 0), 20, 4, 2, 1, 1),
+            ],
+            {(x, 0, 0) for x in range(4)},
+            {0: {(0, 0, 0)}, 1: {(3, 0, 0)}},
+        )
+        unmarked = self.registry.register(
+            unmarked_fight,
+            unmarked_starter,
+            join_context={"leaders": {0: 60, 1: -206}},
+        )
+        self.assertFalse(unmarked.join_aliases)
 
     def test_dispatch_pushes_ordered_batches_to_idle_connected_peer(self):
         self.join()
@@ -514,6 +932,7 @@ class SharedCombatTests(unittest.TestCase):
         self.assertTrue(self.registry.remove_finished(99, settle))
         self.assertFalse(self.registry.remove_finished(99, settle))
         self.assertEqual(seen, [(1, 2)])
+        self.assertNotIn(10, self.registry.join_aliases)
 
     def test_foreign_map_and_native_join_flag_rejected(self):
         outsider = Session(3, 30, "outside", 1134, 5)
@@ -615,6 +1034,116 @@ class SharedCombatTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unknown shared fight"):
             self.registry.lookup(self.fight.id)
 
+    def test_return_releases_all_owned_actor_indexes_without_clobbering_new_fight(self):
+        self.join()
+        hero = Actor(11, 0, (1, 0, 0), 45, 6, 3, 80, 1, 1, True)
+        summon = Actor(-201, 0, (2, 0, 0), 30, 4, 2, 40, 1, 1, True)
+        other_hero = Actor(21, 0, (2, 0, 0), 40, 6, 3, 70, 1, 2, True)
+        self.shared.fight.actors[hero.id] = hero
+        self.shared.fight.actors[summon.id] = summon
+        self.shared.fight.actors[other_hero.id] = other_hero
+        self.registry.by_actor.update(
+            {
+                hero.id: self.fight.id,
+                summon.id: self.fight.id,
+                other_hero.id: self.fight.id,
+            }
+        )
+        self.assertTrue(self.shared.fight.actors[hero.id].controlled)
+        self.assertEqual(self.shared.fight.actors[hero.id].owner_id, 1)
+        self.shared.fight.phase = "finished"
+        self.shared.fight.winner = 0
+        batches = {
+            1: ((12755, b"left"),),
+            2: ((12755, b"right"),),
+        }
+        self.assertTrue(self.registry.settle_finished(99, self.one, lambda _: batches))
+
+        self.assertFalse(self.registry.mark_returned(99, self.one))
+        self.assertNotIn(10, self.registry.by_actor)
+        self.assertNotIn(11, self.registry.by_actor)
+        self.assertNotIn(-201, self.registry.by_actor)
+        self.assertEqual(self.registry.by_actor.get(20), 99)
+        self.assertEqual(self.registry.by_actor.get(21), 99)
+
+        # The same owner may enter a new fight while the other owner's old
+        # result is still open. Final retirement of fight 99 must not erase it.
+        newer = Fight(
+            100,
+            [
+                Actor(10, 0, (0, 0, 0), 60, 6, 3, 100, 1, 1, True),
+                Actor(11, 0, (1, 0, 0), 45, 6, 3, 80, 1, 1, True),
+                Actor(-201, 0, (2, 0, 0), 30, 4, 2, 40, 1, 1, True),
+                Actor(-300, 1, (3, 0, 0), 20, 4, 2, 1, 1),
+            ],
+            {(x, 0, 0) for x in range(4)},
+            {0: {(0, 0, 0), (1, 0, 0), (2, 0, 0)}, 1: {(3, 0, 0)}},
+        )
+        newer_shared = self.registry.register(newer, self.one)
+        self.assertEqual(self.registry.by_actor[10], 100)
+        self.assertEqual(self.registry.by_actor[11], 100)
+
+        self.assertTrue(self.registry.mark_returned(99, self.two))
+        self.assertEqual(self.registry.by_actor[10], 100)
+        self.assertEqual(self.registry.by_actor[11], 100)
+        self.assertEqual(self.registry.by_actor[-201], 100)
+        self.assertNotIn(20, self.registry.by_actor)
+        self.assertNotIn(21, self.registry.by_actor)
+        self.assertIs(self.registry.fights[100], newer_shared)
+
+    def test_recovered_owner_releases_all_owned_actor_indexes(self):
+        self.join()
+        hero = Actor(11, 0, (1, 0, 0), 45, 6, 3, 80, 1, 1, True)
+        summon = Actor(-201, 0, (2, 0, 0), 30, 4, 2, 40, 1, 1, True)
+        other_hero = Actor(21, 0, (2, 0, 0), 40, 6, 3, 70, 1, 2, True)
+        self.shared.fight.actors[hero.id] = hero
+        self.shared.fight.actors[summon.id] = summon
+        self.shared.fight.actors[other_hero.id] = other_hero
+        self.registry.by_actor.update(
+            {
+                hero.id: self.fight.id,
+                summon.id: self.fight.id,
+                other_hero.id: self.fight.id,
+            }
+        )
+        self.shared.fight.phase = "finished"
+        self.shared.settlement_ready = True
+        self.live.remove(self.one)
+        replacement = Session(1, 10, "replacement", 1134, 0)
+        self.live.add(replacement)
+
+        result = self.registry.recover_settled_world(
+            replacement, lambda old, shared: {"old": old, "fight": shared.fight.id}
+        )
+        self.assertEqual(result["fight"], 99)
+        self.assertNotIn(10, self.registry.by_actor)
+        self.assertNotIn(11, self.registry.by_actor)
+        self.assertNotIn(-201, self.registry.by_actor)
+        self.assertEqual(self.registry.by_actor.get(20), 99)
+        self.assertEqual(self.registry.by_actor.get(21), 99)
+        self.assertNotIn(10, self.registry.by_character)
+        self.assertEqual(self.registry.by_character[20], 99)
+
+        # Reusing actor 11 in another fight must survive retirement of the old
+        # shared fight after the remaining owner returns.
+        newer = Fight(
+            100,
+            [
+                Actor(10, 0, (0, 0, 0), 60, 6, 3, 100, 1, 1, True),
+                Actor(11, 0, (1, 0, 0), 45, 6, 3, 80, 1, 1, True),
+                Actor(-201, 0, (2, 0, 0), 30, 4, 2, 40, 1, 1, True),
+                Actor(-300, 1, (3, 0, 0), 20, 4, 2, 1, 1),
+            ],
+            {(x, 0, 0) for x in range(4)},
+            {0: {(0, 0, 0), (1, 0, 0), (2, 0, 0)}, 1: {(3, 0, 0)}},
+        )
+        newer_shared = self.registry.register(newer, replacement)
+        self.assertTrue(self.registry.mark_returned(99, self.two))
+        self.assertEqual(self.registry.by_actor[10], 100)
+        self.assertEqual(self.registry.by_actor[11], 100)
+        self.assertEqual(self.registry.by_actor[-201], 100)
+        self.assertIs(self.registry.fights[100], newer_shared)
+
     def test_settlement_callback_does_not_hold_registry_lock(self):
         self.join()
         self.shared.fight.phase = "finished"
@@ -696,6 +1225,7 @@ class SharedCombatTests(unittest.TestCase):
                 self.two.account_id: ((12755, b"right"),),
             },
         )
+        self.assertTrue(self.shared.checkpoint_terminal)
         self.live.remove(self.two)
         self.registry.disconnect(self.two)
         replacement = Session(2, 20, "second-reconnect", 1134, 0)

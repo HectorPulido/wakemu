@@ -7,6 +7,7 @@ this module never infers completeness from the currently implemented families.
 from .combat_state_managers import state_manager, state_managers
 from dataclasses import dataclass
 from .combat_effect_removal import _identity_fields, running_effect_removal
+from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
 
 
 @dataclass(frozen=True)
@@ -148,14 +149,33 @@ class NativeRetainedEffectView:
         for uid, row in getattr(fight, "native_owned_area_effects", {}).items():
             fields = _identity_fields(bytes.fromhex(row["payload"]))
             entry = self.by_uid.get(uid)
+            manager = row["caster_id"]
+            if row["effect_class"] == 338:
+                if row.get(
+                    "native_manager_source"
+                ) != "eYJ.PK.owner_on_caster" or row.get("native_manager_id") not in (
+                    row["caster_id"],
+                    row["target_id"],
+                ):
+                    raise ValueError("Missing native eYJ Qf manager provenance")
+                manager = row["native_manager_id"]
             if (
                 entry is None
-                or entry.manager_id != row["caster_id"]
+                or entry.manager_id != manager
                 or fields.get(6) != row["caster_id"] & ((1 << 64) - 1)
-                or 7 in fields
+                or (
+                    fields.get(7) != (row["target_id"] & ((1 << 64) - 1))
+                    if row.get("target_id") is not None
+                    else 7 in fields
+                )
             ):
                 raise ValueError("Unverified native area effect manager")
-            known[uid] = (None, 315, fields.get(3), row.get("state_uid"))
+            known[uid] = (
+                row["target_id"],
+                row["effect_class"],
+                fields.get(3),
+                row.get("state_uid"),
+            )
         if set(fight.state_wire_payloads) - set(known) - pending:
             raise ValueError("Orphan native state payload")
         for uid, identity in known.items():
@@ -326,17 +346,24 @@ def register_owned_removals(
         if (
             area is not None
             and area.get("native_hour_contract") is not True
-            and area.get("native_area_contract") != "faY"
+            and area.get("native_area_contract") not in SUPPORTED_AREA_CONTRACTS
         ):
             raise ValueError("Unaudited area removal callbacks")
-        return running_effect_removal(
+        payload = running_effect_removal(
             fight.id,
             action_id,
-            effect_class=315,
-            target_id=row["caster_id"],
+            effect_class=row["effect_class"],
+            target_id=row["target_id"]
+            if row["target_id"] is not None
+            else row["caster_id"],
             uid=entry.uid,
             running_effect_payload=bytes.fromhex(row["payload"]),
         )
+        # Validate the running recipient separately from the owning Qf.
+        # Configured eYQ can retain bfs while still registering on bfr.bax().
+        import struct
+
+        return payload[:-16] + struct.pack(">qq", entry.manager_id, entry.uid)
 
     def area_remove(uid):
         row = fight.native_owned_area_effects[uid]
@@ -352,9 +379,12 @@ def register_owned_removals(
         del fight.native_owned_area_effects[uid]
         packets.append((13560, payload))
 
-    if getattr(fight, "native_owned_area_effects", {}):
+    for family in {
+        row["effect_class"]
+        for row in getattr(fight, "native_owned_area_effects", {}).values()
+    }:
         removal.register(
-            315,
+            family,
             exists=lambda uid: uid in fight.native_owned_area_effects,
             remove=area_remove,
             validate=area_validate,

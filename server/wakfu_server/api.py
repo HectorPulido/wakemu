@@ -37,17 +37,26 @@ def serve_api(
             self.end_headers()
             self.wfile.write(body)
 
+        def token_access(self, token, kind):
+            """Translate only token-shape/lookup failures to authentication errors."""
+            if not isinstance(token, str) or not token:
+                raise AuthenticationError("Acceso inválido o caducado")
+            try:
+                return store.token(token, kind)
+            except ValueError:
+                raise AuthenticationError("Acceso inválido o caducado") from None
+
         def test_access(self):
             header = self.headers.get("Authorization", "")
             if not header.startswith("Bearer ") or not header[7:]:
                 raise AuthenticationError("Acceso inválido o caducado")
             token = header[7:]
             try:
-                access = store.token(token, "api")
-            except ValueError:
+                access = self.token_access(token, "api")
+            except AuthenticationError:
                 try:
-                    access = store.token(token, "scheduler")
-                except ValueError:
+                    access = self.token_access(token, "scheduler")
+                except AuthenticationError:
                     raise AuthenticationError("Acceso inválido o caducado") from None
             if access["kind"] != "scheduler" and not is_admin(
                 store, access["account_id"]
@@ -62,7 +71,7 @@ def serve_api(
                 )
 
             def authorize():
-                current = store.token(token, "api")
+                current = self.token_access(token, "api")
                 if not is_admin(store, current["account_id"]):
                     raise PermissionError("Permiso administrativo revocado")
                 if type(character_id) is not int:
@@ -141,9 +150,17 @@ def serve_api(
                         201, store.register(body["username"], body["password"])
                     )
                 if self.path == "/login":
-                    account = store.authenticate(body["username"], body["password"])
+                    username, password = body["username"], body["password"]
+                    if not isinstance(username, str) or not isinstance(password, str):
+                        raise ValueError("Credenciales inválidas.")
+                    try:
+                        account = store.authenticate(username, password)
+                    except ValueError:
+                        raise AuthenticationError(
+                            "Usuario o contraseña incorrectos."
+                        ) from None
                 elif self.path == "/remember":
-                    previous = store.token(body["remember_token"], "remember")
+                    previous = self.token_access(body["remember_token"], "remember")
                     account = {
                         "id": previous["account_id"],
                         "username": previous["username"],
@@ -152,7 +169,7 @@ def serve_api(
                     token = self.headers.get("Authorization", "").removeprefix(
                         "Bearer "
                     )
-                    access = store.token(token, "api")
+                    access = self.token_access(token, "api")
                     if self.path == "/characters":
                         return self.reply(
                             201, store.create_character(access["account_id"], **body)
@@ -261,13 +278,13 @@ def serve_api(
                     },
                 )
             try:
-                access = store.token(
+                access = self.token_access(
                     self.headers.get("Authorization", "").removeprefix("Bearer "), "api"
                 )
                 if self.path == "/characters":
                     return self.reply(200, store.characters(access["account_id"]))
                 self.reply(404, {"error": "Ruta desconocida."})
-            except ValueError:
+            except AuthenticationError:
                 self.reply(401, {"error": "Acceso inválido o caducado."})
 
     server = ThreadingHTTPServer((host, port), Handler)

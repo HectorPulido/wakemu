@@ -5,15 +5,13 @@ p = Path("server/protocol")
 
 
 def load(name):
-    with (
-        gzip.open(p / name, "rt") if name.endswith(".gz") else (p / name).open()
-    ) as stream:
+    with (p / name).open() as stream:
         return json.load(stream)
 
 
 tree = load("spell-effect-trees.json")
-state = load("combat-state-definitions.json.gz")
-grant = load("granted-spell-effect-trees.json.gz")
+state = load("combat-state-definitions.json")
+grant = load("granted-spell-effect-trees.json")
 areas = load("native-effect-areas.json")["areas"]
 base = load("spells.json")["spells"]
 innates = load("breed-innate-definitions.json")["breeds"]

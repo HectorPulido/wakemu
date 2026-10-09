@@ -34,7 +34,11 @@ class Actor:
     # Native eGj.frM()->eHl.pOJ; None is unknown/restored without snapshot.
     # Initialized only for a verified fresh actor before passive execution.
     spell_ap_cost_modifiers: dict | None = None
+    # Native eHl.pOK category range offsets; absent authority is not zero.
+    spell_range_modifiers: dict | None = None
     physical_radius: int | None = None
+    native_physical_position: tuple | None = None  # Actual eGj.efR/pGF snapshot.
+    native_jump_height: int | None = None  # Actual eGj.bvz; unknown is not zero.
     native_obstacle_id: int | None = None  # QK.bcN byte, distinct from fcb team/bcM.
     native_los_height: int | None = (
         None  # Exact eGH.bcK creation profile; unknown is not zero.
@@ -44,6 +48,15 @@ class Actor:
     # native direction; keeping it in the FSM makes that transmitted state
     # authoritative for orientation-dependent effects and checkpoints.
     direction: int = 0
+    native_controlled_by_ai: bool | None = (
+        None  # eGz.pHH via exact po.SX actor bootstrap.
+    )
+    native_death_script_id: int | None = (
+        None  # eGj.pGU; absent restored authority is unknown.
+    )
+    native_turn_suppression_bits: int | None = (
+        None  # eGj.frN/pGO; fresh snapshot initializes it.
+    )
 
     def __post_init__(self):
         if any(
@@ -84,6 +97,13 @@ class Fight:
         from .combat_obstacle_ids import assign_obstacle_ids
 
         assign_obstacle_ids(actors)
+        # Explicit new-fight boundary, consumed after ordinary creation
+        # snapshots and serialized arena masks have both been installed.
+        self.native_qi_slots = None
+        self.native_qi_movement_override = False  # Fresh QI.biP constructor.
+        self.native_qi_ignored_slots = []  # Fresh QI.biN constructor.
+        self.native_qi_visibility_ignored_slots = []  # Fresh QI.biO constructor.
+        self.native_qi_fresh_actor_order = tuple(a.id for a in actors)
         initial_order(
             fight_id,
             [
@@ -97,6 +117,12 @@ class Fight:
             ],
         )
         self.id = fight_id
+        # Wakemu's fresh ordinary fight policy is native fcz.PVE (eSS = 2).
+        # Placement serialization replaces this with its exact selected model.
+        self.native_fight_model = 2
+        from .combat_system_conditions import fresh_system_configuration
+
+        self.native_system_configuration = fresh_system_configuration()
         self.walkable = set(walkable)
         self.placement = {team: set(cells) for team, cells in placement_cells.items()}
         if set(self.placement) != {0, 1} or any(
@@ -110,6 +136,9 @@ class Fight:
         self.native_turn_event_deliveries = {}
         self.native_table_turn = (
             0  # SU initial timeline before native13477 starts round1.
+        )
+        self.native_timeline_round = (
+            0  # SU.brM; advances on complete cycles, not activations.
         )
         self.winner = None
         self.native_los_ignored_affiliations = frozenset()  # QI.biO freshly empty.
@@ -127,6 +156,10 @@ class Fight:
             None  # Authoritative runtime initializes the owned UID sequence.
         )
         self.native_owned_area_effects = {}
+        self.native_effect_areas = {}  # Fresh native Qs has no registered areas.
+        # Plain, source-tagged records for the Wakemu settled-summon OUT_OF_PLAY
+        # policy. Native actor identity and fdt membership remain intact.
+        self.native_summon_retirements = {}
         self.native_owned_group_effects = {}
         self.native_retained_records = {}
         self.native_owned_state_containers = (
@@ -177,13 +210,20 @@ class Fight:
         self.events.append(event)
         return event
 
+    def _in_play(self, actor):
+        if hasattr(self, "native_global_pv_collections"):
+            from .combat_global_pv_collections import global_fighter_participates
+
+            return global_fighter_participates(self, actor.id)
+        return actor.hp > 0
+
     def _owned(self, owner_id, actor_id):
         actor = self.actors.get(actor_id)
         if (
             actor is None
             or not actor.controlled
             or actor.owner_id != owner_id
-            or actor.hp <= 0
+            or not self._in_play(actor)
         ):
             raise ValueError("Actor is not controlled by this owner")
         return actor
@@ -206,7 +246,9 @@ class Fight:
             for a in self.actors.values()
         ):
             raise ValueError("Placement cell occupied")
-        actor.position = position
+        from .combat_qi_fight import move_registered_actor
+
+        move_registered_actor(self, actor, position)
         return self._event("placement", actor_id=actor_id, position=position)
 
     def ready(self, owner_id, ready=True):
@@ -233,6 +275,9 @@ class Fight:
                     for a in self.actors.values()
                 ],
             )
+            from .combat_timeline_snapshot import initialize
+
+            initialize(self, self.order)
             self.phase = "active"
             self.turn_id = 1
             self._begin_turn()
@@ -247,10 +292,24 @@ class Fight:
 
     def _begin_turn(self):
         actor = self.current
-        actor.ap = actor.max_ap
-        actor.mp = actor.max_mp
+        if getattr(actor, "effect_resource_raw_currents", None) is not None:
+            from .combat_resource_pa_notifications import set_resource_current
+
+            set_resource_current(self, actor, 2, actor.max_ap)
+            set_resource_current(self, actor, 3, actor.max_mp)
+        else:
+            before_ap = actor.ap
+            actor.ap = actor.max_ap
+            if actor.effect_stats is not None and 2 in actor.effect_stats:
+                actor.effect_stats[2] = actor.ap
+            from .combat_resource_pa_notifications import notify_resource_pa
+
+            notify_resource_pa(self, actor, 2, before_current=before_ap)
+            actor.mp = actor.max_mp
         self._sync_resources(actor)
         actor.turn_count += 1
+        if self.native_timeline_round == 0:
+            self.native_timeline_round = 1  # First SU.bhP enters round1.
         self._event(
             "turn_started",
             actor_id=actor.id,
@@ -274,8 +333,20 @@ class Fight:
             or actor.mp < mp
         ):
             raise ValueError("Insufficient or invalid action resources")
-        actor.ap -= ap
-        actor.mp -= mp
+        if getattr(actor, "effect_resource_raw_currents", None) is not None:
+            from .combat_resource_pa_notifications import shift_resource_current
+
+            shift_resource_current(self, actor, 2, ap, subtract=True)
+            shift_resource_current(self, actor, 3, mp, subtract=True)
+        else:
+            before_ap = actor.ap
+            actor.ap -= ap
+            if actor.effect_stats is not None and 2 in actor.effect_stats:
+                actor.effect_stats[2] = actor.ap
+            from .combat_resource_pa_notifications import notify_resource_pa
+
+            notify_resource_pa(self, actor, 2, before_current=before_ap)
+            actor.mp -= mp
         self._sync_resources(actor)
 
     def move(self, owner_id, actor_id, path):
@@ -289,7 +360,12 @@ class Fight:
 
     def server_move(self, actor_id, path):
         actor = self.current
-        if actor is None or actor.id != actor_id or actor.controlled or actor.hp <= 0:
+        if (
+            actor is None
+            or actor.id != actor_id
+            or actor.controlled
+            or not self._in_play(actor)
+        ):
             raise ValueError("Invalid server controlled movement")
         path = [tuple(cell) for cell in path]
         if any(
@@ -320,12 +396,28 @@ class Fight:
                 raise ValueError("Altitude transition requires validated terrain edge")
             cost += step
             origin = target
+        from .combat_rail_movement import movement_cost
+
+        cost, on_rails = movement_cost(self, actor, path)
         if not path or cost > actor.mp:
             raise ValueError("Empty path or insufficient MP")
-        actor.mp -= cost
+        if getattr(actor, "effect_resource_raw_currents", None) is not None:
+            from .combat_resource_pa_notifications import shift_resource_current
+
+            shift_resource_current(self, actor, 3, cost, subtract=True)
+        else:
+            actor.mp -= cost
         self._sync_resources(actor)
-        actor.position = origin
-        return self._event("movement", actor_id=actor_id, path=path, cost=cost)
+        from .combat_qi_fight import move_registered_actor
+
+        move_registered_actor(self, actor, origin)
+        return self._event(
+            "movement",
+            actor_id=actor_id,
+            path=path,
+            cost=cost,
+            **({"on_rails": True} if on_rails else {}),
+        )
 
     def end_turn(self, owner_id, actor_id, turn_id):
         actor = self._current_owned(owner_id, actor_id)
@@ -344,15 +436,22 @@ class Fight:
         self._advance()
 
     def _advance(self):
+        from .combat_timeline_snapshot import end_current
+
+        end_current(self)
         self._event("turn_ended", actor_id=self.current.id, turn_id=self.turn_id)
         next_index = (self.turn_index + 1) % len(self.order)
+        if next_index == 0:
+            self.native_timeline_round += 1  # SU.bhO/bhP, including extra-turn cycles.
         if (
             next_index == 0
             and getattr(self, "native_base_turn_order", None) is not None
         ):
             # Tc.bhP -> SX.bid -> feq.b restores the base list each round.
             self.order = [
-                uid for uid in self.native_base_turn_order if self.actors[uid].hp > 0
+                uid
+                for uid in self.native_base_turn_order
+                if self._in_play(self.actors[uid])
             ]
             self.native_base_turn_order = None
         self.turn_index = next_index
@@ -370,7 +469,15 @@ class Fight:
             raise ValueError("Invalid damage source or amount")
         return self.apply_effect_damage(source_id, target_id, amount)
 
-    def apply_effect_damage(self, source_id, target_id, amount):
+    def apply_effect_damage(
+        self,
+        source_id,
+        target_id,
+        amount,
+        *,
+        native_runner_effect=None,
+        native_death_delivery=None,
+    ):
         """Trusted dispatched effect, including reactions outside source's turn.
 
         The dispatcher validates the trigger, ownership and native eligibility.
@@ -385,10 +492,22 @@ class Fight:
         ):
             raise ValueError("Invalid dispatched damage context")
         target = self.actors.get(target_id)
-        if target is None or target.hp <= 0:
+        if target is None:
             raise ValueError("Target is not alive")
-        dealt = min(target.hp, amount)
-        target.hp -= dealt
+        if target.hp <= 0:
+            if native_runner_effect is None:
+                raise ValueError("Target is not alive")
+            from .combat_runner_target_life import verify_runner_target_life
+
+            verify_runner_target_life(self, target, native_runner_effect)
+        before_hp = target.hp
+        from .combat_hp_raw import hp_raw_present, shift_hp_raw_current
+
+        if hp_raw_present(target):
+            dealt = shift_hp_raw_current(target, amount, subtract=True)
+        else:
+            dealt = min(target.hp, amount)
+            target.hp -= dealt
         self._sync_resources(target)
         self._event(
             "damage",
@@ -397,8 +516,14 @@ class Fight:
             amount=dealt,
             hp=target.hp,
         )
-        if target.hp == 0:
+        if before_hp > 0 and target.hp == 0:
             self._event("death", actor_id=target_id)
+            if hasattr(self, "native_global_pv_collections"):
+                from .combat_global_pv_collections import set_global_fighter_status
+
+                set_global_fighter_status(self, target_id, "OFF_PLAY")
+            if native_death_delivery is not None:
+                native_death_delivery(target_id)
             if not self._resolution_depth:
                 self._settle_deaths()
         return dealt
@@ -424,10 +549,20 @@ class Fight:
                 sync_hud_resources(self)
 
     def _settle_deaths(self):
+        from .combat_summon_retirement import settle_summon_retirements
+
+        from .combat_timeline_snapshot import remove
+
+        for identity in tuple(dict.fromkeys(self.order)):
+            if not self._in_play(self.actors[identity]):
+                remove(self, identity)
+        settle_summon_retirements(self)
         old_order = tuple(self.order)
         current_id = old_order[self.turn_index]
-        self.order = [uid for uid in old_order if self.actors[uid].hp > 0]
-        alive = {a.team for a in self.actors.values() if a.hp > 0}
+        # Validate the entire native population before publishing reconciliation.
+        participating = {a.id for a in self.actors.values() if self._in_play(a)}
+        self.order = [uid for uid in old_order if uid in participating]
+        alive = {a.team for a in self.actors.values() if a.id in participating}
         if len(alive) < 2:
             self.phase = "finished"
             self.winner = next(iter(alive), None)
@@ -458,8 +593,13 @@ class Fight:
         target = self.actors.get(target_id)
         if target is None or target.hp <= 0:
             raise ValueError("Healing target is not alive")
-        restored = min(amount, target.max_hp - target.hp)
-        target.hp += restored
+        from .combat_hp_raw import hp_raw_present, shift_hp_raw_current
+
+        if hp_raw_present(target):
+            restored = shift_hp_raw_current(target, amount)
+        else:
+            restored = min(amount, target.max_hp - target.hp)
+            target.hp += restored
         self._sync_resources(target)
         self._event(
             "healing",
@@ -481,7 +621,9 @@ class Fight:
         catalog,
         applying_effect_has_delay=None,
         timeline=None,
-        protected=None
+        protected=None,
+        native_corpse_target=False,
+        before_replace=None,
     ):
         """Trusted effect dispatcher only; selection/conditions are its job.
 
@@ -496,7 +638,11 @@ class Fight:
             self.phase != "active"
             or source is None
             or target is None
-            or (not getattr(target, "native_is_area", False) and target.hp <= 0)
+            or (
+                not getattr(target, "native_is_area", False)
+                and target.hp <= 0
+                and native_corpse_target is not True
+            )
         ):
             raise ValueError("Invalid state source, target or fight phase")
         change = target.state_ledger.apply(
@@ -508,6 +654,7 @@ class Fight:
             applying_effect_has_delay=applying_effect_has_delay,
             timeline=timeline,
             protected=protected,
+            before_replace=before_replace,
         )
         for entry in change.removed:
             self._event(

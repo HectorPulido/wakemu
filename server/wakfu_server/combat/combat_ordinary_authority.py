@@ -4,6 +4,7 @@ PC eHd kind0; NPC eHj kind1/master -1. eGj.d(eGH) loads fsp
 breed properties. No summon/carrier/Qq relationships exist in these creation
 blobs. This provider deliberately accepts neither summons nor wrapped actors.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
 from wakfu_server.paths import DATA_ROOT
@@ -12,11 +13,38 @@ from .combat_runtime_adapter import NativeActorAuthority
 
 @lru_cache(maxsize=1)
 def native_property_catalog():
-    return json.loads((DATA_ROOT / "native-actor-properties.json").read_text())
+    return protocol_catalog.load(DATA_ROOT / "native-actor-properties.json")
+
+
+def ordinary_native_sex(source, player):
+    """Fresh ordinary eGj.aXz: actual owned PC sex or aWs NPC byte zero."""
+    if type(player) is not bool or not isinstance(source, dict):
+        raise ValueError("Missing native ordinary sex creation source")
+    if not player:
+        return 0
+    value = source.get("sex")
+    # Store.character returns the PostgreSQL boolean column; native aXz is
+    # the corresponding byte. Preserve strict byte validation for fixtures.
+    if type(value) is bool:
+        return int(value)
+    if value is not None and (type(value) is not int or value not in (0, 1)):
+        raise ValueError("Invalid owned player sex byte")
+    # Legacy pure fixtures without this source remain unknown, never male.
+    return value
 
 
 class OrdinaryActorAuthority:
-    def __init__(self, *, characters, monsters, decks, excluded_decks, catalog=None):
+    def __init__(
+        self,
+        *,
+        characters,
+        monsters,
+        decks,
+        excluded_decks,
+        catalog=None,
+        deck_caps=None,
+        deck_blobs=None
+    ):
         if (
             set(characters) & set(monsters)
             or set(decks) != set(characters)
@@ -26,14 +54,39 @@ class OrdinaryActorAuthority:
         self.characters, self.monsters = characters, monsters
         self.decks, self.excluded_decks = decks, excluded_decks
         self.catalog = native_property_catalog() if catalog is None else catalog
+        self.deck_caps = (
+            {identity: None for identity in characters}
+            if deck_caps is None
+            else dict(deck_caps)
+        )
+        if set(self.deck_caps) != set(characters):
+            raise ValueError("Every owned player requires its native deck cap")
+        if deck_blobs is not None and (
+            set(deck_blobs) != set(characters)
+            or any(not isinstance(blob, bytes) for blob in deck_blobs.values())
+        ):
+            raise ValueError("Every owned player requires its exact raw fzf deck bytes")
+        self.deck_blobs = None if deck_blobs is None else dict(deck_blobs)
 
     def __call__(self, preview, actor):
-        if set(preview.actors) != set(self.characters) | set(self.monsters):
+        from .combat_native_actor_lookup import detached_authority
+
+        construction = detached_authority(preview, actor)
+        if construction is not None:
+            return construction
+        withdrawn = {
+            identity
+            for identity, candidate in preview.actors.items()
+            if getattr(candidate, "pve_withdrawn", False)
+        }
+        if set(preview.actors) - withdrawn != set(self.characters) | set(self.monsters):
             raise ValueError(
                 "Ordinary authority roster changed: summons/wrapped actors need native registration"
             )
         if preview.actors.get(actor.id) is not actor:
             raise ValueError("Ordinary actor must belong to current preview")
+        if actor.id in withdrawn:
+            raise ValueError("Withdrawn PvE actor has no active ordinary authority")
         player = actor.id in self.characters
         source = (self.characters if player else self.monsters)[actor.id]
         if source["id"] != actor.id or actor.controlled != player:
@@ -45,19 +98,15 @@ class OrdinaryActorAuthority:
         )
         if profile is None:
             raise ValueError("Missing native breed properties")
-        # Creation has no summon/master/carrier registration. If a future
-        # effect installs relationships it must update authority explicitly.
-        if any(
-            getattr(actor, key, None) is not None
-            for key in (
-                "native_master_id",
-                "native_carrier_id",
-                "native_carried_actor_id",
-            )
-        ):
+        # Carrying has a separate reciprocal/QI producer; master/controller
+        # registrations remain outside this ordinary creation authority.
+        if getattr(actor, "native_master_id", None) is not None:
             raise ValueError(
                 "Ordinary authority cannot attest changed native relationships"
             )
+        from .combat_carrying import carrying_relations
+
+        carrying = carrying_relations(preview, actor)
         properties = frozenset(profile["fight_properties"])
         live = getattr(actor, "native_fight_properties", None)
         if live is not None:
@@ -66,36 +115,85 @@ class OrdinaryActorAuthority:
         # fcb affiliation/eGj.bcM remains actor.team and is separate.
         if type(actor.team) is not int or not 0 <= actor.team < 128:
             raise ValueError("Missing native signed-byte fight affiliation")
-        from .combat_range_conditions import creation_in_play
+        from .combat_ordinary_death import owned_fighter_guards
 
-        in_play = creation_in_play(preview, actor)
+        life = owned_fighter_guards(preview, actor)
+        in_play = life["baF"]
         context = dict(
             bcN=actor.native_obstacle_id,
             is_amO=True,
             is_eGj=True,
             is_Qq=False,
             is_eHH=True,
+            is_eHG=True,
             bEe=42 not in properties,
             UNTARGETTABLE_BY_OTHER=21 in properties,
-            buX=False,
+            buX=carrying["is_carried"],
             dTE=False,
             # big.dnG/dnH -> eGj.b/c fall back to self with no registered
             # master/controller relation. Changed relations are rejected above.
             dpu_id=actor.id,
             dpr_id=actor.id,
-            baG=False,
-            baK=False,
-            baF=in_play,
+            **life,
         )
         from .combat_spell_grant import granted_spells
 
         extra_spells = frozenset(granted_spells(preview, actor.id))
+        spellbook = source.get("native_spellbook")
+        if spellbook is None and player:
+            from wakfu_server.spells import owned_spell_records
+            from .combat_spell_level import NativeSpellBook, decoded_spell_levels
+            from .combat_native_spell_casting import catalog as casting_catalog
+
+            levels = decoded_spell_levels(
+                owned_spell_records(source), casting_catalog()
+            )
+            spellbook = NativeSpellBook(
+                levels, True, dict(levels), self.deck_caps[actor.id]
+            )
+
+        if spellbook is not None:
+            from .combat_morph_spellbook import active_morph_book
+            from .combat_spell_grant_book import merged_grant_book
+
+            spellbook = active_morph_book(preview, actor.id, spellbook)
+            spellbook = merged_grant_book(preview, actor.id, spellbook)
+
+        captured_roster = None
+        if player:
+            from wakfu_server.characters.captured_roster import (
+                OwnedCapturedRoster,
+                roster_from_character,
+            )
+
+            overlay = getattr(preview, "native_captured_rosters", {}).get(str(actor.id))
+            if overlay is not None:
+                captured_roster = OwnedCapturedRoster.from_record(
+                    overlay, expected_owner_id=actor.id
+                )
+            elif source.get("captured_roster") is not None:
+                captured_roster = roster_from_character(source)
+
+        cosmetic_state = getattr(actor, "native_cosmetic_state", None)
+        if cosmetic_state is not None:
+            if (
+                not isinstance(cosmetic_state, dict)
+                or set(cosmetic_state) != {"selected_values", "active_cosmetics"}
+                or not isinstance(cosmetic_state["selected_values"], dict)
+                or not isinstance(cosmetic_state["active_cosmetics"], dict)
+            ):
+                raise ValueError("Malformed native cosmetic constructor snapshot")
+            selected_cosmetics = dict(cosmetic_state["selected_values"])
+            active_cosmetics = dict(cosmetic_state["active_cosmetics"])
+        else:
+            selected_cosmetics = active_cosmetics = None
+
         return NativeActorAuthority(
             context,
             player,
             frozenset(self.decks[actor.id]) | extra_spells if player else frozenset(),
             frozenset(self.excluded_decks[actor.id]) if player else frozenset(),
-            False,
+            carrying["is_carried"],
             source["breed"] if player else source["ref"],
             0,
             {},
@@ -105,18 +203,34 @@ class OrdinaryActorAuthority:
             # changed master/carrier relations are rejected above.
             native_controller_id=actor.id,
             native_in_play=in_play,
+            native_controlled_by_ai=getattr(actor, "native_controlled_by_ai", None),
+            # Actual serialized source classes: biB/bjo.dpR=false, bje.dpR=true.
+            native_ai_control_baseline=False if player else True,
             is_summon=False,
             # Exact source classes: bjo PLAYER_CHARACTER, owned monster NPC;
             # companion/summon routes require their own creation authority.
             is_challenger=player,
             # Fresh ordinary creation has null pGV. Carry registration requires
             # a separate authority; the guard above rejects changed relations.
-            is_carrying=False,
+            is_carrying=carrying["is_carrying"],
             summon_root_id=actor.id,
             # combat_actor POSITION writes this exact signed long into rE.Vp;
             # eGt.zm applies it through eGj.fE, which is read by eKB/arM.
             native_instance_id=source.get("map_id"),
             native_real_level=source.get("level") if player else actor.effective_level,
+            native_spellbook=spellbook,
+            # Ordinary fresh actors have no eHD in their eGZ.pHM; dTC is false.
+            native_summoned_from_symbiot=False,
+            native_summon_counts_complete=True,
+            # Owned client actor is biB, which explicitly implements eHP.
+            # Its optional drI component is hydrated separately by Store.character.
+            native_is_ehp=True if player else None,
+            native_captured_roster=captured_roster,
+            # eGj.aWs assigns dpV to asQ: bjo=0, bje=1.
+            native_actor_type=0 if player else 1,
+            native_sex=ordinary_native_sex(source, player),
+            native_selected_cosmetics=selected_cosmetics,
+            native_active_cosmetics=active_cosmetics,
         )
 
     def item_quantity(self, preview, actor, references):
@@ -250,7 +364,42 @@ class OrdinaryActorAuthority:
         )
         return frozenset(row["fight_properties"])
 
+    def world_property_counts(self, preview, actor):
+        """Complete PB counters from live mutation or original fresh profile list."""
+        from .combat_property_stack import add_property, property_present
+        from .combat_native_actor_lookup import detached_authority
+
+        live = getattr(actor, "native_world_property_counts", None)
+        if live is not None:
+            counts = dict(live)
+            for identity in counts:
+                property_present(counts, identity)  # Validate signed PB domain.
+            return counts
+        if (
+            detached_authority(preview, actor) is not None
+            or getattr(actor, "native_world_properties", None) is not None
+        ):
+            raise ValueError("Missing complete live native world-property counters")
+        self(preview, actor)
+        row = (
+            self.catalog["player"]
+            if actor.id in self.characters
+            else self.catalog["npc"][str(self.monsters[actor.id]["ref"])]
+        )
+        counts = {}
+        # ExportActorProperties stores actual profile.fsq(), not a presence set.
+        for identity in row["world_properties"]:
+            add_property(counts, identity)
+        return counts
+
     def world_properties(self, preview, actor):
+        from .combat_native_actor_lookup import detached_authority
+
+        if detached_authority(preview, actor) is not None:
+            live = getattr(actor, "native_world_properties", None)
+            if live is None:
+                raise ValueError("Missing detached native world-property source")
+            return frozenset(live)
         self(preview, actor)
         live = getattr(actor, "native_world_properties", None)
         if live is not None:
@@ -321,6 +470,11 @@ def native_facing(source, target):
     """
     import math
     from .combat_parameters import _float32 as f
+    from .combat_effect_area_targets import NativeAreaTarget
+
+    if isinstance(target, NativeAreaTarget):
+        # Qq.baB returns null: eXt.fOF has no Sl.o/back event for this PV.
+        return "FRONT"
 
     direction = getattr(target, "direction", None)
     vectors = ((1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1))
@@ -349,6 +503,24 @@ def native_facing_front(source, target):
     return native_facing(source, target) == "FRONT"
 
 
+def native_damage_target(preview, identity):
+    """Resolve eXt's actual registered or currently constructing PV."""
+    from .combat_native_actor_lookup import native_actor
+
+    actor = native_actor(preview, identity)
+    if actor is not None:
+        return actor
+    row = getattr(preview, "native_effect_areas", {}).get(identity)
+    if not isinstance(row, dict):
+        return None
+    from .combat_effect_area_targets import area_targets
+
+    return next(
+        (candidate for candidate in area_targets(preview) if candidate.id == identity),
+        None,
+    )
+
+
 def ordinary_cast_authority(*, actors, timing, rng, critical):
     """Immediate spell-container11 authority for the owned ordinary PVE path.
 
@@ -374,9 +546,16 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
         return rng.randint(1, n)
 
     def damage(p, plan, e, i):
-        target = p.actors[i.target_id]
-        actors(p, target)
-        location = native_facing(p.actors[i.caster_id], target)
+        from .combat_native_actor_lookup import native_actor
+
+        source = native_actor(p, i.caster_id)
+        actors(p, source)
+        target = native_damage_target(p, i.target_id)
+        if target is None:
+            raise ValueError("Native damage requires an actor or typed fbd PV target")
+        if native_actor(p, i.target_id) is target:
+            actors(p, target)
+        location = native_facing(source, target)
         return DamageExecutionContext(
             critical,
             location == "FRONT",
@@ -388,7 +567,9 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
         )
 
     def healing(p, plan, e, i):
-        target = p.actors[i.target_id]
+        from .combat_native_actor_lookup import native_actor
+
+        target = native_actor(p, i.target_id)
         authority = actors(p, target)
         properties = actors.properties(p, target)
         # eGj.PO: actor_kind0/5; NPC1 without eHQ.pUr does not accumulate
@@ -413,7 +594,9 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
         from dataclasses import replace
 
         context = timing.stat(p, plan, e, i)
-        target = p.actors.get(i.target_id)
+        from .combat_native_actor_lookup import native_actor
+
+        target = native_actor(p, i.target_id)
         from .combat_static_catalogs import characteristic_registry
 
         registry = characteristic_registry()["effects"]
@@ -429,14 +612,24 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
         return context
 
     def obstacle(p, plan, e, i):
-        # Walkable terrain does not prove native QI.V obstacle absence.
-        occupied = getattr(p, "native_obstacle_cells", None)
-        if occupied is None:
-            return None  # Unknown cell context only blocks predicates that need it.
-        return i.cell in occupied
+        # eOV queries actual QI.V, including registered dynamic QK objects.
+        # Actor identities retained after OUT_OF_PLAY are not QI occupancy.
+        if i.cell is None:
+            return None
+        from .combat_qi_fight import current_registry
+
+        registry = current_registry(p)
+        order = registry.ordered_U(*i.cell[:2])
+        return bool(order and registry.slots[order[0]] is not None)
 
     def group_cells(p, plan, e, i):
         from .combat_group_cells import group_cells as native_group_cells
+
+        if e["effect_class"] == 349:
+            from .combat_cell_group import native_cell_group_population
+            from .combat_definitions import effect_profile
+
+            return native_cell_group_population(p, e, effect_profile(e, i.level), i)
 
         center = i.cell
         if e["effect_class"] == 352:
@@ -455,24 +648,25 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
         return native_group_cells(p, e, center, caster_id=i.caster_id)
 
     def resolution(p, plan, e, i):
-        from .combat_effect_groups import native_group_route
+        from .combat_delivery_owners import native_owner_flags
 
-        route = native_group_route(e)
-        selection = (
-            "cell"
-            if e["effect_class"] in (302, 305, 307, 315, 402, 949, 1076)
-            or route == "cell"
-            else "actors"
-        )
+        actor_mode, cell_mode = native_owner_flags(e)
+        selection = "cell" if cell_mode and not actor_mode else "actors"
         # A fresh Qe.a performs neither path for bbA=false/bbB=false.
         # Native state children are already bound by eVE/Qe.d, and native
         # subscriptions retain that binding before calculation is deferred.
-        eligible = not (route == "none" and i.state_uid is None)
+        eligible = actor_mode or cell_mode or i.state_uid is not None
         variant_mode = "CRITICALS_ONLY" if critical else "EFFECTS_ONLY"
         if i.state_uid is not None:
             from .combat_state_variants import state_child_variant_mode
+            from .combat_state_critical_source import causing_state_critical
 
-            variant_mode = state_child_variant_mode(p, i.state_uid)
+            variant_mode = state_child_variant_mode(
+                p,
+                i.state_uid,
+                effect_definitions=timing.catalog["effects"],
+                causing_critical=causing_state_critical(i, current_critical=critical),
+            )
         return EffectResolutionContext(
             variant_mode,
             "immediate",
@@ -481,30 +675,38 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
         )
 
     def cell_eligible(p, plan, e, i):
-        from .combat_effect_groups import native_group_cell_mode
+        from .combat_delivery_owners import native_owner_flags
 
-        if e["effect_class"] in (
-            305,
-            307,
-            315,
-            402,
-            949,
-            1076,
-        ) or native_group_cell_mode(e):
-            # Qe bbB && !bbA executes the supplied cell once without actor/area selection.
-            return True
-        if e["effect_class"] != 302:
+        actor_mode, cell_mode = native_owner_flags(e)
+        # Native Qe.a supplies the cell once before any actor target selection.
+        # Runner-specific geometry and effect criteria remain their own guards.
+        return cell_mode and not actor_mode
+
+    def damage_block(p, plan, effect, invocation):
+        from .combat_native_actor_lookup import native_actor
+
+        target = native_damage_target(p, invocation.target_id)
+        if target is None:
+            raise ValueError("Missing native eXt block target")
+        if native_actor(p, invocation.target_id) is target:
+            return native_block(effect, target, draw_integer=draw)
+        from .combat_effect_area import native_effect_areas
+        from .combat_wall_area import wall_damage_snapshot
+
+        row = p.native_effect_areas[invocation.target_id]
+        definition = native_effect_areas().get(str(row.get("reference")))
+        snapshot = wall_damage_snapshot(row, definition)
+        # fbd.rMK has no BLOCK characteristic. PV.b(shG) therefore returns
+        # null and eXt.fOH exits without consuming a random roll.
+        if 87 not in snapshot["stats"]:
             return False
-        selector = e.get("native_target_selector")
-        if (
-            selector is None
-            or selector.get("class") != "fcE"
-            or selector.get("mask") not in (0, 1)
-        ):
-            raise ValueError(
-                "Caster teleport cell routing requires native plain cell selector"
-            )
-        return i.cell in p.walkable
+        from types import SimpleNamespace
+
+        return native_block(
+            effect,
+            SimpleNamespace(effect_stats=snapshot["stats"]),
+            draw_integer=draw,
+        )
 
     return NativeCastAuthority(
         resolution,
@@ -522,9 +724,7 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
         random_number=lambda p, plan, limit, exclusions: native_random_number(
             limit, exclusions, draw_index=lambda size: rng.randint(0, size - 1)
         ),
-        damage_block=lambda p, plan, e, i: native_block(
-            e, p.actors[i.target_id], draw_integer=draw
-        ),
+        damage_block=damage_block,
     )
 
 

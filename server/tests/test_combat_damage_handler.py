@@ -184,7 +184,7 @@ class DamageHandlerTests(unittest.TestCase):
     def test_flag15_does_not_invent_zero_hp_lifecycle_authority(self):
         self.fight.actors[-7].hp = 0
         effect = dict(self.effect, native_effect_flags=[15])
-        with self.assertRaisesRegex(ValueError, "Invalid native damage actors"):
+        with self.assertRaisesRegex(ValueError, "native HP0 runner target status"):
             self.handler(effect, {}, self.invocation)
         self.assertEqual(self.packets, [])
 

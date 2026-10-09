@@ -86,6 +86,12 @@ def state_carrier_payload(
             (7, target_id),
         ]
     )
+    # Qe serializes its actual parent PL before eZk's AdditionalDatas.
+    # Constructor-only carriers have no PL; runtime applications inherit the
+    # exact dispatcher scope also used by their retained ownership record.
+    from .combat_running_container import running_container_payload
+
+    payload += running_container_payload()
     additional = b"".join(
         _integer(k, v)
         for k, v in [

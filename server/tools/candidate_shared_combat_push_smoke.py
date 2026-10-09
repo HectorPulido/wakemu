@@ -12,7 +12,6 @@ import ssl
 import struct
 import threading
 import time
-import gzip
 import json
 from collections import deque
 from functools import lru_cache
@@ -21,7 +20,9 @@ from pathlib import Path
 from psycopg.conninfo import conninfo_to_dict
 from wakfu_server.command_permissions import set_admin
 from wakfu_server.store import Store
-from tls_smoke_io import recv_exact
+from tls_smoke_io import recv_exact, send_all
+from candidate_session_lease import start as start_test_session_heartbeat
+from candidate_session_lease import stop_all as stop_test_session_heartbeats
 
 
 def text(value):
@@ -50,7 +51,10 @@ class Peer:
                 time.sleep(0.25)
         else:
             raise AssertionError(f"TLS listener did not accept a reconnect: {error}")
-        self.socket.settimeout(2)
+        # Frequent reader timeouts let serialized foreground TLS writes get
+        # the socket lock promptly during long native combat actions.
+        self.socket.settimeout(0.1)
+        self.io_lock = threading.Lock()
         self.events = queue.Queue()
         self.pending = []
         self.sent_opcodes = []
@@ -60,10 +64,10 @@ class Peer:
 
     def send(self, opcode, body=b""):
         self.sent_opcodes.append(opcode)
-        self.socket.sendall(frame(opcode, body))
+        send_all(self.socket, frame(opcode, body), io_lock=self.io_lock)
 
     def _exact(self, size):
-        return recv_exact(self.socket, size, closed=self.closed)
+        return recv_exact(self.socket, size, closed=self.closed, io_lock=self.io_lock)
 
     def _read(self):
         try:
@@ -77,7 +81,8 @@ class Peer:
                 except socket.timeout:
                     continue
         except Exception as error:
-            self.events.put((None, error))
+            if not self.closed.is_set():
+                self.events.put((None, error))
 
     def wait(self, opcode, timeout=45):
         deadline = time.monotonic() + timeout
@@ -128,14 +133,25 @@ class Peer:
     def close(self):
         self.closed.set()
         try:
-            self.socket.shutdown(socket.SHUT_RDWR)
+            with self.io_lock:
+                self.socket.shutdown(socket.SHUT_RDWR)
         except OSError:
             pass
-        self.socket.close()
+        try:
+            with self.io_lock:
+                self.socket.close()
+        except OSError:
+            pass
+        self.reader.join(timeout=3)
 
 
 def login(store, peer, account, character, label):
-    generation = store.begin_session(account["id"])
+    # Disposable TLS peers do not run the client's idle-session heartbeat.
+    # Keep their isolated smoke-test leases valid during long synchronous NPC
+    # turns, which can otherwise block both socket handlers past the default
+    # 60-second session lease before the next native 12502 is emitted.
+    generation = store.begin_session(account["id"], ttl=3600)
+    start_test_session_heartbeat(store, account["id"], generation)
     ticket = store.issue_token(
         account["id"], "ticket", generation=generation, realm_id=10
     )
@@ -184,10 +200,10 @@ def placement(body):
 def _walk_edges(map_id):
     graph = {}
     data_root = Path(__file__).resolve().parents[1] / "protocol"
-    path = data_root / "combat-maps" / f"{map_id}.json.gz"
+    path = data_root / "combat-maps" / f"{map_id}.json"
     if not path.is_file():
         raise AssertionError(f"candidate lacks geometry for map {map_id}")
-    with gzip.open(path, "rt", encoding="utf-8") as source:
+    with open(path, "rt", encoding="utf-8") as source:
         geometry = json.load(source)
     if geometry.get("map_id") != map_id:
         raise AssertionError("candidate combat map geometry identity mismatch")
@@ -604,6 +620,7 @@ def main():
     finally:
         for peer in peers:
             peer.close()
+        stop_test_session_heartbeats()
         store.close()
 
 

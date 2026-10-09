@@ -1,0 +1,11 @@
+# Native Boolean system configuration and PvP conditions
+
+The shared condition evaluator now supports `GetBooleanSystemConfiguration` and `IsPvp` in Boolean and numeric expressions. Native Boolean runners return 0 for true and -1 for false. Their runtime callbacks use explicit source-qualified configuration and fight-model snapshots; they do not assume that every missing fact is false.
+
+Original parser classes are `eJs` and `eOL`. `eJs` resolves the literal key with `eEL.tk`; an unknown enum key returns false before any configuration access. A known key reads `eEI.l`: the current override if present, otherwise `eEL.getDefaultValue`, and casts the result to Boolean. A known non-Boolean entry is unsupported as a Boolean query. Fresh `eEI` construction initializes an empty EnumMap. Wakemu's fresh fight explicitly records an empty override snapshot and its default-policy provenance. Existing typed Boolean overrides take precedence; a legacy fight without the snapshot rejects a known-key query. No live configuration or service settings are edited.
+
+`eOL` resolves the native fight and evaluates `fcz.fVU().fcL.fVT()`. This differs from `fcz.fVT()`: **DUEL and ARENA count as PvP**, alongside the PVP categories. An explicitly absent native fight is false; an unknown model remains unknown. The detached summon constructor has an actual null fight context and null `eGj.dpt`, so it does not inherit the enclosing Python preview's model. The original `eOL` constructor ignores parsed arguments, a behavior preserved by the shared evaluator.
+
+`ExportNativeCombatSystemPredicates.java` reads all installed enums and verifies each Boolean default against a fresh actual `eEI`. A bounded 64 MB JVM completed with exit 0: 287 configuration definitions, 120 Boolean defaults and 25 native fight models. Output is `server/protocol/native-combat-system-predicates.json`. No effect catalog, network, database or service was loaded by this exporter.
+
+Eight pure regressions cover the native default table (both true and false), overrides, unknown keys, missing legacy authority, wrong value types, all PvP categories, numeric/Boolean routes and fresh fight provenance. AST validation passes. Full class-event runtime verification remains delegated to the immutable bulk-validation snapshot.

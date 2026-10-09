@@ -7,6 +7,7 @@ from wakfu_server.combat_event_costs import (
 )
 from wakfu_server.combat_cost_level_group import runtime_group_level
 from wakfu_server.combat_effect_dispatch import EffectInvocation
+from wakfu_server import native_catalog
 
 
 class EventCostTests(unittest.TestCase):
@@ -82,9 +83,9 @@ class EventCostTests(unittest.TestCase):
         import json
         from wakfu_server.paths import DATA_ROOT
 
-        effect = json.loads((DATA_ROOT / "spell-effect-trees.json").read_text())[
-            "effects"
-        ]["308144"]
+        effect = json.loads(
+            native_catalog.read_text(DATA_ROOT / "spell-effect-trees.json")
+        )["effects"]["308144"]
         inv = replace(self.inv, native_trigger_context={"cost_source": self.source})
         self.assertEqual(
             runtime_group_level(effect, {}, inv, {}, cost_resolver=self.authority), 5

@@ -31,9 +31,18 @@ def characteristic_group_override(
 
 
 def runtime_group_level(
-    effect, values, invocation, actors, *, return_native_override=False
+    effect,
+    values,
+    invocation,
+    actors,
+    *,
+    return_native_override=False,
+    resolve_pa=None,
+    inherited=False
 ):
-    if effect["effect_class"] != 913:
+    if effect["effect_class"] != 913 and not (
+        inherited and effect["effect_class"] == 1047
+    ):
         raise ValueError("Wrong native characteristic group family")
     native_definition_timing(effect, invocation.level)
     parameters = values["parameters"]
@@ -47,13 +56,23 @@ def runtime_group_level(
         return -1 if return_native_override else invocation.level
     mode = decode_group_mode(parameters[:6], raw_target_parameter=raw[4])
     caster, target = invocation.caster_id, invocation.target_id
-    if mode.actor_rebind == 1:
+    if mode.actor_rebind == 1 and target is not None:
         caster = target
-    elif mode.actor_rebind == 2:
+    elif mode.actor_rebind == 2 and target is not None:
         caster, target = target, caster
     identity = caster if parameters[7] == 1 else target
     if identity is None:
         return -1 if return_native_override else invocation.level
+    if resolve_pa is not None:
+        pa = resolve_pa(identity, stat)
+        return _value_group_override(
+            effect,
+            invocation.level,
+            current=0 if pa is None else pa[0],
+            maximum=0 if pa is None else pa[1],
+            pa_absent=pa is None,
+            return_native_override=return_native_override,
+        )
     actor = actors.get(identity)
     if actor is None:
         raise ValueError("Missing native characteristic-group actor")

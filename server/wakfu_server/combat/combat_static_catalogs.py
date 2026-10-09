@@ -1,8 +1,9 @@
 """Read-only static definition views; never share transaction context or RNG."""
+from wakfu_server import native_catalog as protocol_catalog
 from collections.abc import Mapping
 from functools import lru_cache
 import json
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 
 
 class ImmutableCatalog(dict):
@@ -62,7 +63,7 @@ def _freeze(value):
 @lru_cache(maxsize=1)
 def characteristic_registry():
     return ImmutableCatalog(
-        json.loads((DATA_ROOT / "effect-characteristic-registry.json").read_text())
+        protocol_catalog.load(DATA_ROOT / "effect-characteristic-registry.json")
     )
 
 

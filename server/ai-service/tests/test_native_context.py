@@ -5,6 +5,7 @@ from decimal import Decimal
 from collections import deque
 import base64
 import copy
+import gzip
 import json
 import sys
 import unittest
@@ -45,6 +46,17 @@ def child_ref(graph, container, key):
 
 
 class NativeContextTests(unittest.TestCase):
+    def test_native_graph_accepts_gzip_and_legacy_plain_bytes(self):
+        value = {"future": {"bytes": b"complete", "tuple": (1, 2)}}
+        raw = encode_bytes(value)
+        plain = NativeGraph(raw)
+        zipped = gzip.compress(raw, compresslevel=1, mtime=0)
+        compressed = NativeGraph(zipped)
+        self.assertEqual(compressed.data, plain.data)
+        self.assertEqual(compressed.plain(compressed.data["root"]), value)
+        with self.assertRaisesRegex(ValueError, "Invalid native graph bytes"):
+            NativeGraph(b"\x1f\x8bnot-a-valid-gzip-stream")
+
     def test_exact_integer_tuple_fast_path_is_byte_identical_and_keeps_identity(self):
         left = tuple([11, 12, 13])
         right = tuple([11, 12, 13])
@@ -459,6 +471,19 @@ class NativeContextTests(unittest.TestCase):
             held_root = held.resolve(held.data["root"])
             reference = held_root["entries"][0][1]
             self.assertTrue(held.plain(held.resolve(reference)["fields"]["locked"]))
+
+
+class CompressedContextDeadlineTests(unittest.TestCase):
+    def test_deadline_is_not_reclassified_as_invalid_compressed_bytes(self):
+        from unittest.mock import patch
+
+        encoded = gzip.compress(json.dumps(encode({"complete": True})).encode())
+        with patch(
+            "wakfu_ai.context.native_context.check",
+            side_effect=TimeoutError("owner deadline"),
+        ):
+            with self.assertRaises(TimeoutError):
+                NativeGraph(encoded)
 
 
 if __name__ == "__main__":

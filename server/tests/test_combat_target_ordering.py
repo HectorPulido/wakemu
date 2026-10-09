@@ -8,15 +8,16 @@ from wakfu_server.combat_target_ordering import (
 )
 from wakfu_server.combat_effect_dispatch import EffectInvocation
 from wakfu_server.combat_native_events import validate_group_registration_flags
+from wakfu_server import native_catalog
 
 
 class NativeTargetOrderingTests(unittest.TestCase):
     def test_native_faH_stable_sort_priority_and_signed_cap(self):
         rows = json.loads(
-            (
+            native_catalog.read_text(
                 Path(__file__).parents[1]
                 / "protocol/native-target-ordering-fixture.json"
-            ).read_text()
+            )
         )
         self.assertEqual(len(rows), 12)
         for row in rows:

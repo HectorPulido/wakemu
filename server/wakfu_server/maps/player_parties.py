@@ -45,6 +45,58 @@ def _party(db, character_id):
     ).fetchone()
 
 
+def dissolve(db, party_id):
+    """Remove live membership while retaining referenced dungeon ownership.
+
+    The caller holds the party row lock. Referenced identities remain as
+    leaderless historical parties; unreferenced parties retain normal deletion.
+    """
+    retained = db.execute(
+        "SELECT 1 FROM dungeon_instances WHERE party_id=%s LIMIT 1", (party_id,)
+    ).fetchone()
+    if retained is None:
+        db.execute("DELETE FROM player_parties WHERE id=%s", (party_id,))
+    else:
+        db.execute("DELETE FROM player_party_members WHERE party_id=%s", (party_id,))
+        db.execute(
+            "UPDATE player_parties SET leader_id=NULL,revision=revision+1 WHERE id=%s",
+            (party_id,),
+        )
+
+
+def cleanup_dungeon_solo(db, party_id):
+    """Remove an unchanged internally created singleton after its last return.
+
+    Caller holds the party lock. Social expansion permanently clears the
+    origin flag so shrinking later cannot erase a real group.
+    """
+    party = db.execute(
+        "SELECT leader_id,dungeon_solo FROM player_parties WHERE id=%s", (party_id,)
+    ).fetchone()
+    if party is None or party["dungeon_solo"] is not True:
+        return None
+    members = db.execute(
+        "SELECT character_id FROM player_party_members WHERE party_id=%s", (party_id,)
+    ).fetchall()
+    if len(members) != 1 or members[0]["character_id"] != party["leader_id"]:
+        return None
+    if (
+        db.execute(
+            "SELECT 1 FROM dungeon_instance_members WHERE party_id=%s AND status='active' LIMIT 1",
+            (party_id,),
+        ).fetchone()
+        is not None
+    ):
+        return None
+    identity = members[0]["character_id"]
+    db.execute(
+        "DELETE FROM player_party_invitations WHERE inviter_id=%s OR invitee_id=%s",
+        (identity, identity),
+    )
+    dissolve(db, party_id)
+    return {"party_id": party_id, "removed": [identity], "leader_id": None}
+
+
 def invite(store, account_id, generation, character_id, target_id):
     if target_id == character_id:
         raise ValueError("Cannot invite yourself")
@@ -154,7 +206,8 @@ def answer(store, account_id, generation, character_id, token, accepted):
             (character_id, party["id"]),
         )
         db.execute(
-            "UPDATE player_parties SET revision=revision+1 WHERE id=%s", (party["id"],)
+            "UPDATE player_parties SET revision=revision+1,dungeon_solo=false WHERE id=%s",
+            (party["id"],),
         )
         db.execute(
             "DELETE FROM player_party_invitations WHERE invitee_id=%s", (character_id,)
@@ -216,7 +269,7 @@ def change_member(
                     "DELETE FROM player_party_invitations WHERE inviter_id=%s OR invitee_id=%s",
                     (survivor, survivor),
                 )
-            db.execute("DELETE FROM player_parties WHERE id=%s", (party_id,))
+            dissolve(db, party_id)
             leader = None
         else:
             leader = (

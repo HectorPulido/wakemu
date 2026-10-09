@@ -2,6 +2,8 @@
 import hashlib
 import json
 import os
+import sys
+from types import ModuleType, SimpleNamespace
 from pathlib import Path
 import tempfile
 import unittest
@@ -23,6 +25,48 @@ class CatalogCacheTests(unittest.TestCase):
         result = CompleteContextExporter({"all": self.root}, cache_root=self.cache)
         self.addCleanup(result.close)
         return result
+
+    def test_old_world_without_database_catalog_keeps_complete_file_manifest(self):
+        package = ModuleType("wakfu_server")
+        paths = ModuleType("wakfu_server.paths")
+        paths.DATA_ROOT = self.root
+        exporter = CompleteContextExporter(
+            {"catalog": self.root}, cache_root=self.cache
+        )
+        self.addCleanup(exporter.close)
+        with patch.dict(
+            sys.modules, {"wakfu_server": package, "wakfu_server.paths": paths}
+        ), patch(
+            "wakfu_ai.bridge.world_bridge.importlib.util.find_spec", return_value=None
+        ):
+            manifest, sources = exporter.inventory()
+        self.assertEqual(
+            [row["path"] for row in manifest["entries"]], ["catalog/future.opaque"]
+        )
+        self.assertEqual(len(sources), 1)
+
+    def test_installed_database_catalog_failure_never_falls_back_to_files(self):
+        package = ModuleType("wakfu_server")
+
+        def fail():
+            raise ValueError("Missing active authoritative release")
+
+        package.native_catalog = SimpleNamespace(release=fail)
+        paths = ModuleType("wakfu_server.paths")
+        paths.DATA_ROOT = self.root
+        exporter = CompleteContextExporter(
+            {"catalog": self.root}, cache_root=self.cache
+        )
+        self.addCleanup(exporter.close)
+        with patch.dict(
+            sys.modules, {"wakfu_server": package, "wakfu_server.paths": paths}
+        ), patch(
+            "wakfu_ai.bridge.world_bridge.importlib.util.find_spec",
+            return_value=object(),
+        ), self.assertRaisesRegex(
+            ValueError, "Missing active authoritative release"
+        ):
+            exporter.inventory()
 
     def test_next_process_reuses_verified_bytes_without_reading_source_again(self):
         first = self.exporter()
@@ -46,6 +90,37 @@ class CatalogCacheTests(unittest.TestCase):
         self.assertEqual(
             hashlib.sha256(new_sources[digest].read_bytes()).hexdigest(), digest
         )
+
+    def test_live_exporter_imports_preparation_published_by_another_process(self):
+        live = self.exporter()
+        prepared = self.exporter()
+        expected, _ = prepared.inventory()
+        original = Path.open
+        reads = []
+
+        def opened(path, *args, **kwargs):
+            if path == self.source:
+                reads.append(path)
+            return original(path, *args, **kwargs)
+
+        with patch.object(Path, "open", opened):
+            actual, _ = live.inventory()
+        self.assertEqual(actual, expected)
+        self.assertEqual(reads, [])
+
+        # Importing preparation must not trust an old manifest over a changed
+        # file, even when a writer preserves the old modification timestamp.
+        status = self.source.stat()
+        self.source.write_bytes(b"replacement!!!" * 4096)
+        os.utime(self.source, ns=(status.st_atime_ns, status.st_mtime_ns))
+        future = self.root / "new.opaque"
+        future.write_bytes(b"complete future source")
+        current, _ = live.inventory()
+        self.assertEqual(len(current["entries"]), 2)
+        changed = next(
+            row for row in current["entries"] if row["path"].endswith("future.opaque")
+        )
+        self.assertNotEqual(changed["sha256"], expected["entries"][0]["sha256"])
 
     def test_changed_source_with_preserved_mtime_is_recaptured_and_new_files_enumerated(
         self,

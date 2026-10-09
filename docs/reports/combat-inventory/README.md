@@ -1,5 +1,43 @@
 # Inventario de combate y seguimiento
 
+## Multiple-death timeline delivery
+
+Delivered and healthy: `timeline-death-complete-20261008-r35`. The next turn restores native12053/12514 after roster deaths, preserving normal later turns.14/14 focused tests pass. See [fight80 evidence and manual steps](fight80-multiple-death-timeline-20261008.md). The wrong-actor death-animation report remains separate and unverified.
+
+## Shared summon and finisher delivery — 2026-10-08
+
+The shared recognition correction covers class summon creation307/324/1002, current snapshots, controlled movement, retirement and reconnect. See the [general route inventory](class-summon-recognition-lifecycle-20261009.md). Shared1099 now includes owned account selection, client cosmetic updates, the original4464 tree, immediate/retained reconnection and cleanup after the actual12727 death action. It uses the explicit `wakemu.owned-finisher-boundaries-v1` policy; original external server producers are not claimed.
+
+The final integration regression passed35/35 and the complementary suite passed24/24, including an actual initialized round4 lethal cast reaching native leaf185395 on the defeated enemy. Additional summon and cosmetic checks are recorded in the linked reports. Delivered and healthy: `wakemu-world:shared-finisher-complete-20261008-r34`, migration078 applied, all21 delivery-file hashes verified. Visible finisher acceptance remains pending; [exact whole-system manual steps](shared-finisher-manual-acceptance-20261008.md) include the one-item test command and the native unequip/relogin limitation. These results are not a certification of18 complete classes.
+
+## Foco actual: inventario de código del ocra
+
+Consultar el [inventario exacto del ocra](cra-code-inventory-20261008.md): 21 activos, 19 pasivas, 6 concedidos y 2 innatas, con dependencias y faltantes concretos de implementación. La ausencia de prueba manual no se clasifica como código faltante. Consultar la actualización de entrega siguiente para la versión actual; los porcentajes históricos siguientes no representan clases completas.
+
+## Estado actual: 2026-10-08
+
+Consultar primero el [estado actual consolidado](current-status-20261008.md): contiene el resultado del lote completo de las 18 clases, los huecos por mecanismo y las verificaciones pendientes. El último lote completo prepara y confirma **557/635 pares de hechizo/nivel (87,717%)**. Quedan 43 búsquedas sin contexto elegible, 32 rechazos compartidos y 3 predicados de objetivo sin resolver en esa captura; una repetición dirigida posterior resuelve esos 3 predicados. Este porcentaje corresponde exclusivamente al lote básico, no a hechizos completamente funcionales ni al sistema completo. Estados, pasivas, condiciones, invocaciones y cliente tienen requisitos separados. Las cifras de las secciones siguientes son checkpoints anteriores.
+
+Los **32 rechazos** de aquella captura ya tienen repetición dirigida exitosa: 31/31 en un lote conjunto y el caso de disipación aparte. Falta repetir el lote completo con las correcciones; no se suma esa evidencia parcial para inventar un porcentaje global.
+
+El [siguiente lote semántico](class-semantic-priority-next-20261008.md) enumera los casos ejecutables y sus requisitos. El [plan manual representativo](manual-representative-acceptance-20261008.md) concentra la aceptación del cliente en mecanismos compartidos; sus resultados siguen pendientes.
+
+## Revisión actual: 2026-10-07
+
+Consultar [la auditoría actual de las 18 clases](current-review-20261007.md) antes de usar las cifras y prioridades históricas de este documento. Las matrices generales guardadas no corresponden a las fuentes actuales; tener un manejador, instalar una pasiva o completar un ciclo interno no acredita un hechizo completo. Ninguna clase tiene comprobación completa registrada. Los resultados antiguos se conservan como evidencia, no como certificación del servidor actual.
+
+La revisión inicial incluye los **383 activos** (1.714 escenarios, 161 rechazos) y las **339 pasivas** (319 ciclos observados, 20 bloqueos). La [repetición completa de pasivas](passive-foundations-activation-review-20261007.md) observa ahora **336 ciclos y 3 bloqueos**, con fuentes estables; 28 casos muestran activación, sin acreditar semántica completa. El [registro completo de verificación](verification-ledger-20261007.csv) cubre **722 hechizos de clase y 91 extras**, agrupando bloqueos por mecanismos comunes. La [extracción masiva](bulk-import-review-20261007.md) obtuvo en staging 4.143 hechizos nativos, 6.129 estados, 1.436 zonas y 81.965 efectos.
+
+La [integración del motor de clases](class-engine-integration-20261007.md) registra los cambios locales posteriores: alcance condicional, modificadores, propiedad de efectos, áreas, relaciones de invocaciones y condiciones. La [última auditoría completa](class-engine-general-review-20261007.md) cubre los 383 activos en 1.704 escenarios: 57 rechazos, incluidos 30 candidatos rechazados correctamente por alcance. Entre los casos compartidos, 46 rechazos anteriores avanzan y no aparecen rechazos nuevos. Los 379 archivos de fuentes y datos observados permanecieron estables durante la ejecución; esto no acredita semántica completa ni entrega al cliente. La [clausura de datos de clase](class-only-bulk-closure-20261007.md) no encuentra árboles ni efectos faltantes en las 813 referencias clasificadas. La [prueba completa de inicio y dos turnos](ready-basics-boolean-border-review-20261007.md) pasó 54/54 casos: las 18 clases en niveles 1, 20 y 200, sin pasivas seleccionadas. No se reiniciaron ni desplegaron servicios. El alcance actual excluye hechizos de monstruos; la IA se revisó solo para comprender la integración.
+
+El [mapa de dependencias por hechizo](class-dependency-coverage-20261007.md) separa los 813 hechizos de sus familias, estados, condiciones, zonas, innatas e invocaciones. El [registro de evidencia por mecanismo](class-mechanism-evidence-20261007.md) distingue datos exportados/publicados, implementación, pruebas unitarias, auditoría interna y prueba manual de cliente. La [publicación de dependencias de invocaciones de clase](class-summon-dependency-import-20261007.md) añade 38 árboles y 297 efectos: las 43 habilidades nativas tienen una clausura de 623 efectos. No equivale a 43 nuevos hechizos de clase ni a invocaciones totalmente comprobadas. La tanda dirigida posterior pasa 51 pruebas de invocaciones, compilación restringida y superficies; no acredita todo el mapa de mecánicas.
+
+El [índice completo de mecánicas y huecos](class-mechanic-gap-index-20261007.md) añade el grafo nativo tipado final: **764 estados**, **90 áreas**, **21.207 efectos** y **58.729 aristas**, con matrices para las 18 clases separando innatas comunes de dependencias de sus hechizos. Los estados se clasifican como 79 parciales, 682 pendientes de verificación y 3 ausentes; las 116 funciones condicionales incluyen 89 parciales y 27 sin ruta explícita. Los 130 objetos estructurales del parser incluyen operadores y literales, no 130 predicados. Las rutas de familias sin creación/control de criaturas siguen en **145/177 (81,9%)** con el grafo nuevo: es registro de implementación, nunca porcentaje funcional. Depósitos de Anutrof, WALL y bits de objetivo 44/46 quedan como huecos concretos. La comparación contra datos persistidos y sus uniones de metadatos no encuentra definiciones faltantes ni divergencias en los campos nativos comparados de los 21.207 efectos; eso no acredita su ejecución.
+
+## Inventario generado histórico
+
+Las cifras, estados y notas siguientes proceden del inventario anterior. No describen automáticamente el código actual; en particular, las etiquetas «Sin manejador» de familias como 305, 430 y 345 requieren contraste con los checkpoints posteriores. Usar los informes nuevos para decidir trabajo actual, sin borrar la evidencia histórica.
+
 Hay **722 hechizos de clase**: 383 activos y 339 pasivos. Incluye **6129 estados**, **55480 definiciones de efectos** y **227 familias** contando los estados.
 
 Además se siguen **91 hechizos extra** otorgados por estados, innatas y otras rutas explícitas en [hechizos-extra.csv](hechizos-extra.csv). Sus rutas y revisión individual figuran en inventory.json. Esta lista todavía no acredita cobertura exhaustiva de transformaciones ni referencias dinámicas; no se incluyen en las cifras de ejecución del catálogo normal.
@@ -41,9 +79,9 @@ Para dar un hechizo por comprobado, su evidencia debe indicar fecha, personaje/n
 | [Selotrop](clases/18.md) | 21 | 20 | 0 |
 | [Hipermago](clases/19.md) | 26 | 18 | 0 |
 
-## Prioridades comunes
+## Prioridades comunes históricas
 
-Familias sin ruta de entrada, ordenadas por número de hechizos relacionados. Dependencias conservadoras; el orden no demuestra que implementar una familia baste para completar esos hechizos.
+Fotografía histórica de familias sin ruta de entrada; no es una lista actual de bloqueos. Ordenadas por número de hechizos relacionados. Dependencias conservadoras; el orden no demuestra que implementar una familia baste para completar esos hechizos.
 
 | Familia | Hechizos relacionados | Estado |
 |---|---|---|
@@ -63,7 +101,7 @@ Familias sin ruta de entrada, ordenadas por número de hechizos relacionados. De
 | 1030 | 10 | Sin manejador |
 | 305 | 8 | Sin manejador |
 
-[Lista completa de prioridades](prioridades.csv)
+[Lista histórica completa de prioridades](prioridades.csv)
 
 ## Archivos completos
 
@@ -283,7 +321,7 @@ Siguiente paso: Pendiente
 ### weapon_damage
 
 Estado: Entrada de armas integrada con motor común, costes/alcance/equipo autoritativos y daño de Luz. Auditoría: 463 armas pasan normal y crítico; persisten bloqueos por bonos de equipo, criterios y niveles superiores a 200. Aún pendiente despliegue y prueba gráfica.. 
-Evidencia: ['server/protocol/weapon-combat-rules.json', 'server/protocol/weapon-combat-effects.json.gz', 'docs/reports/combat-inventory/weapon-damage-runtime-audit.md']
+Evidencia: ['server/protocol/weapon-combat-rules.json', 'server/protocol/weapon-combat-effects.json', 'docs/reports/combat-inventory/weapon-damage-runtime-audit.md']
 Siguiente paso: Resolver bonificaciones de equipo que bloquean snapshots y criterios pendientes; desplegar y probar armas en cliente.
 
 ### light_stasis
@@ -379,3 +417,29 @@ Nivel 1 prueba las innatas. Nivel 200 añade las primeras seis pasivas válidas 
 
 [Detalle de casos y errores](class-initialization-audit.csv). La tabla corresponde a la última ejecución guardada; las correcciones posteriores requieren repetir los casos.
 
+
+Casting denominator checkpoint (2026-10-07): [complete casting-table inventory](class-casting-gap-inventory-20261007.md) records851 scoped spells,968 raw expressions,672 conditional rows,62 function names (5 casting-only), and2152 root selector/geometry definitions. Effect-only116 predicate names are a separate denominator. [Current combined gap index](class-mechanic-gap-index-20261007.md) supersedes historical selector44/46 gap rows;108 masks are now recognized. Overall functional/client completion remains unknown.
+
+Current flow evidence: [class access, initial summon states, and reaction checkpoint](class-flow-checkpoint-20261007.md). Ready reaches 34/36 class-level cases; 116 granted UIDs resolve and expire correctly. These are access results, not completed spell gameplay. The latest production-Ready summon probe creates all six initial-state profiles and observes 1,341 native events with nine successful retained activation calls; Cra beacon reactions remain unproved. This probe does not validate normal cast permissions or resource commitment. No deployment or manual acceptance is included.
+
+Current manual plan: [eight representative acceptance cards](manual-representative-acceptance-20261008.md). Start with range, beacons, captured summons and carrying; the implementer prepares exact fixtures and expectations before Hector tests. Exhaustive manual spell/enemy combinations are not required.
+
+## Fight82 shared corrections deployed
+
+See [corpse LOS and summon refresh](fight82-corpse-los-and-summon-refresh-20261008.md). r39 preserves concurrent dungeon breeding changes, retires completed NPC death obstacles, preserves summon recognition on tactical bulk refreshes, and uses Lua-exact NPC identities. Offline repair remapped166 available groups;33 unavailable groups were intentionally preserved. Fresh-fight manual acceptance remains pending.
+
+Latest deployment: r40 corrects the retired NPC snapshot NameError that disconnected Fight83 after a lethal attack. See the Fight82 report above for the actual regression and targeted validation.
+
+Latest r41: native parser-verified inventory shard initialization fix; preserves r40 death snapshot fix. Login/entry acceptance passed41 pure+14 isolated database tests. Initial invisible-player symptom and cold entry delay remain under investigation.
+
+
+## Current Iop source and semantic inventory
+
+The [current Iop/Yopuka inventory](iop-current-code-inventory-20261008.md) covers21 active spells,20 passives, four granted abilities, two innates,59 states and74 effect families. Current published definitions and handler bindings have no missing entries. Separate source review identifies **three incomplete semantic paths and one partial event gap**; these now have shared repairs and actual-route automated validation; client acceptance remains pending. See [exact producer/context evidence](iop-semantic-producer-current-audit-20261008.md) and [machine-readable inventory](iop-current-code-inventory-20261008.json). Whole-system manual acceptance is prepared in the inventory for after repairs and automatic validation; routing coverage is not class completion.
+
+Sacudido8913/event2236 correction: the shared current-stat consumer receives native ARMOR97 reduction notifications2236, including family1011 produced events. Damage2 is also present. An Iop-local publication-mask census cannot exclude incoming general/cross-class events;2236 is **not** classified as an absent producer.
+
+
+## Iop repair delivery update
+
+The shared Iop context, Preparation and voluntary-movement repairs are delivered in the complete r47 image. Current code and catalogs were verified before restart; actual Iop/Cra regressions and summon retirement checks passed. See the [delivery and validation record](iop-shared-repair-delivery-20261009.md). Manual whole-class acceptance remains pending.

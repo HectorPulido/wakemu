@@ -3,13 +3,14 @@
 This mirrors the installed client's calculation; it does not claim the
 official server uses this implementation or invent missing actor/climate data.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import math
 import json
 from .paths import DATA_ROOT
 
 RESOURCE_CLIMATES = {
     row["resource_reference"]: row
-    for row in json.loads((DATA_ROOT / "resource-climates.json").read_text())
+    for row in protocol_catalog.load(DATA_ROOT / "resource-climates.json")
 }
 
 

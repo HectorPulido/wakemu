@@ -6,6 +6,7 @@ from postgres_case import PostgresCase
 from psycopg.errors import CheckViolation
 
 from wakfu_server.reward_policy import kamas_amount, resolve, xp_amount
+from wakfu_server import native_catalog
 
 
 def context(
@@ -673,7 +674,7 @@ class RewardPolicyPostgresTests(PostgresCase):
             / "protocol"
             / "dofus-reward-level-reference.json"
         )
-        raw = path.read_bytes()
+        raw = native_catalog.read_bytes(path)
         digest = hashlib.sha256(raw).hexdigest()
         data = json.loads(raw)
         expected = data["defaults_by_level"]

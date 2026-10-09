@@ -9,4 +9,4 @@ if [[ ! -f .runtime/local/server.key || ! -f .runtime/local/server.crt ]]; then
     -out .runtime/local/server.crt -days 365 -subj '/CN=localhost' 2>.runtime/local/logs/certificate.log
 fi
 openssl pkey -in .runtime/local/server.key -pubout -outform DER -out .runtime/local/public-key.der
-exec /usr/bin/sandbox-exec -f "$experiment_dir/client/tools/local-network.sb" python3 server/local_game_server.py
+exec /usr/bin/sandbox-exec -f "$experiment_dir/client-tools/runtime/local-network.sb" python3 server/local_game_server.py

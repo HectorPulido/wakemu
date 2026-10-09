@@ -1,0 +1,7 @@
+# Cra current closure reconciliation
+
+Independent read-only source inspection finds the four previously reported routes repaired: native1099 script assignment/retention is wired;321 now emits original eZi phases with PK2288; ordinary actor null400 emits1/2/3/4 including2177; owned lethal KO1010 now has an explicit source-preserving6/60/61 policy before1013. No current absent Cra class implementation was proved by this review. Earlier JSON issue entries remain historical, not the current route status.
+
+The1099 parameter is a generic presentation-script integer. Its broad structural fanout never meant hundreds of missing spell dependencies. Null400 remains a source null runner, not damage; nativeFalse beacon display damage definitions remainFalse.1010 is a named Wakemu policy backed by original consumer contracts, not a recovered original server publisher. State321 phase repair does not certify every remainder/reapplication/protected-state interaction.
+
+[Exact source hashes and limits](cra-current-closure-reconciliation-20261008.json) record the inspected modules and current conditional proof union. Positive conditional/native-state/passive interactions beyond these scoped observations and actual client acceptance remain pending; unobserved is not missing code. The historical27 legacy surface archives are a shared data qualification issue, not a Cra-specific missing handler. The current pinned database catalog was not queried under this offline review.

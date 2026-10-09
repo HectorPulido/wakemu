@@ -2,8 +2,9 @@
 
 Ordinary radius0 actors use native faz.B first-surface transitions when their
 map/physical-height policy is exported. Legacy flat fixtures remain explicit.
-Collision AP loss/events, larger footprints and wrapped actors need
-additional native machinery and reject before any preview mutation.
+Collision reactions use the shared synthetic resource/event executor when
+actual QI provenance is complete. Larger footprints, wrapped actors and
+unproved multi-slot collider order remain outside this ordinary contract.
 """
 import math
 import struct
@@ -241,7 +242,12 @@ def displacement_geometry(effect, level, *, source, target, cell):
             else:
                 raise ValueError("Unsupported native pull direction context")
         return dict(
-            actor=actor, distance=distance, vector=vector, stop=stop, loss_ap=loss_ap
+            actor=actor,
+            distance=distance,
+            vector=vector,
+            stop=stop,
+            loss_ap=loss_ap,
+            collision_reactions=kind in ("push", "pull"),
         )
     if kind.startswith("teleport"):
         if count > 4:
@@ -263,10 +269,43 @@ def displacement_geometry(effect, level, *, source, target, cell):
 
 
 class NativeDisplacementHandler:
-    def __init__(self, fight, packets, *, action_id, allocate_uid, authority):
+    def __init__(
+        self,
+        fight,
+        packets,
+        *,
+        action_id,
+        allocate_uid,
+        authority,
+        selected_surface=None,
+    ):
         self.fight, self.packets, self.action_id = fight, packets, action_id
         self.allocate_uid, self.authority = allocate_uid, authority
         self.event_lifecycle = None
+        self.selected_surface = selected_surface
+        self.collision_executor = None
+        self.prepared_teleports = {}
+
+    def _selected_surface(self, cell):
+        """eZB.C requires QI.i even when rIy disables occupancy checks."""
+        if self.selected_surface is not None:
+            return self.selected_surface(self.fight, cell)
+        from .combat_qi_snapshot import NativeQISnapshot
+        from .combat_qi_surface_catalog import (
+            native_qi_surfaces,
+            native_qi_surface_provenance,
+        )
+
+        provenance = getattr(self.fight, "native_qi_surface_provenance", None)
+        if not isinstance(provenance, dict):
+            raise ValueError(
+                "Teleport requires actual native selected-surface provenance"
+            )
+        map_id = provenance.get("map_id")
+        if provenance != native_qi_surface_provenance(map_id):
+            raise ValueError("Teleport native selected-surface provenance mismatch")
+        qi = NativeQISnapshot(getattr(self.fight, "native_qi_snapshot", None))
+        return native_qi_surfaces(map_id).i(qi, *cell)
 
     def prepare(self, effect, values, invocation):
         if self.event_lifecycle is None:
@@ -277,7 +316,25 @@ class NativeDisplacementHandler:
         self.event_lifecycle.phase(
             effect, invocation, uid=invocation.native_running_uid, value=0, channel=1
         )
+        if FAMILIES[effect["effect_class"]].startswith("teleport"):
+            self.prepared_teleports[
+                invocation.native_running_uid
+            ] = self._calculate_teleport(effect, invocation)
         return invocation
+
+    def cancel_prepared(self, invocation):
+        self.prepared_teleports.pop(invocation.native_running_uid, None)
+
+    def _calculate_teleport(self, effect, invocation):
+        source = self.fight.actors[invocation.caster_id]
+        target = self.fight.actors.get(invocation.target_id)
+        geometry = displacement_geometry(
+            effect, invocation.level, source=source, target=target, cell=invocation.cell
+        )
+        accepted = self._teleport_accepted(
+            geometry, source, set(effect["native_effect_flags"])
+        )
+        return geometry, accepted
 
     def _finish_events(self, effect, invocation, uid, value):
         if self.event_lifecycle is not None:
@@ -288,10 +345,44 @@ class NativeDisplacementHandler:
 
     def _ordinary(self, actor):
         authority = self.authority(self.fight, actor)
-        if actor.hp <= 0 or actor.physical_radius != 0 or authority.is_carried:
-            raise ValueError(
-                "Native displacement requires a living ordinary radius0 uncarried actor"
+        unsupported_life = actor.hp <= 0
+        if unsupported_life:
+            from .combat_hp_raw import hp_raw_present, hp_raw_current
+
+            life = authority.targeting
+            if (
+                life.get("baF") is True
+                and life.get("baG") is False
+                and life.get("baK") is False
+                and hp_raw_present(actor)
+            ):
+                # QK/fax participation follows fdy, not the HP scalar. During
+                # an owned effect chain PA can reach0 before death settlement.
+                hp_raw_current(actor)
+                unsupported_life = False
+        if (
+            unsupported_life
+            or actor.physical_radius != 0
+            or authority.is_carried
+            or authority.is_carrying is not False
+        ):
+            error = ValueError(
+                "Native displacement requires a living ordinary radius0 actor with empty carry relations"
             )
+            error.native_displacement_actor = dict(
+                actor_id=actor.id,
+                hp=actor.hp,
+                physical_radius=actor.physical_radius,
+                is_carried=authority.is_carried,
+                is_carrying=authority.is_carrying,
+                baF=authority.targeting.get("baF"),
+                baG=authority.targeting.get("baG"),
+                baK=authority.targeting.get("baK"),
+                native_hp_operand_verified=not unsupported_life
+                if actor.hp <= 0
+                else None,
+            )
+            raise error
         return self.authority.properties(self.fight, actor)
 
     def _free(self, actor, cell, *, ignore=()):
@@ -307,9 +398,126 @@ class NativeDisplacementHandler:
             for other in self.fight.actors.values()
         )
 
+    def _teleport_free(self, actor, cell):
+        """QI.a(amP,aBn) for the verified ordinary radius-zero QK."""
+        from .combat_qi_fight import current_registry
+
+        registry = current_registry(self.fight)
+        qi = registry.snapshot()
+        if not qi.aK(*cell[:2]):
+            return False
+        index = (cell[1] - qi.y) * qi.width + cell[0] - qi.x
+        if qi.masks[index] & 768:
+            return False
+        override = getattr(self.fight, "native_qi_movement_override", None)
+        if type(override) is not bool:
+            raise ValueError("Missing actual QI movement override")
+        if override:
+            return True
+        ignored = getattr(self.fight, "native_qi_ignored_slots", None)
+        if not isinstance(ignored, (list, tuple)) or any(
+            type(slot) is not int or not 0 <= slot <= 126 for slot in ignored
+        ):
+            raise ValueError("Missing actual QI temporarily ignored obstacle IDs")
+        own_slot = actor.native_obstacle_id
+        if (
+            type(own_slot) is not int
+            or not 0 <= own_slot <= 126
+            or registry.slots[own_slot]["identity"] != ["actor", actor.id]
+        ):
+            raise ValueError("Missing actual teleport QK registration")
+        return not any(
+            slot != own_slot
+            and slot not in ignored
+            and registry.slots[slot]["movement_blocking"]
+            for slot in (qi.U(*cell[:2]) or ())
+        )
+
+    def _forced_obstruction(self, actor, cell):
+        """faz's QI.g and QI.V, with actual radius-zero QK population.
+
+        QI.V selects the first QL byte-set iterator element, independently of
+        the QK that made QI.g true. Larger sets consume the persisted native
+        Trove insertion/deletion topology; singleton order is unambiguous.
+        """
+        from .combat_qi_fight import current_registry
+
+        registry = current_registry(self.fight)
+        qi = registry.snapshot()
+        own = registry._owned(actor.native_obstacle_id, ("actor", actor.id))
+        if not own["movement_blocking"]:
+            return False, None
+        x, y = cell[:2]
+        index = qi._int32(
+            qi._int32(qi._int32(y - qi.y) * qi.width) + qi._int32(x - qi.x)
+        )
+        slots = qi.U(x, y) or ()
+        if not 0 <= index < len(qi.masks):
+            obstructed = True
+        elif qi.masks[index] & 768:
+            obstructed = True
+        else:
+            override = getattr(self.fight, "native_qi_movement_override", None)
+            ignored = getattr(self.fight, "native_qi_ignored_slots", None)
+            if type(override) is not bool:
+                raise ValueError("Missing actual QI movement override")
+            if not isinstance(ignored, (list, tuple)) or any(
+                type(slot) is not int or not 0 <= slot <= 126 for slot in ignored
+            ):
+                raise ValueError("Missing actual QI temporarily ignored obstacle IDs")
+            obstructed = not override and any(
+                slot not in ignored and registry.slots[slot]["movement_blocking"]
+                for slot in slots
+            )
+        if not obstructed:
+            return False, None
+        if not slots:
+            return True, None
+        order = registry.ordered_U(x, y) if len(slots) > 1 else tuple(slots)
+        row = registry.slots[order[0]]
+        kind, identity = row["identity"]
+        if kind == "actor":
+            return True, None if identity == actor.id else identity
+        from .combat_state_managers import registered_area_pv
+
+        area = registered_area_pv(self.fight, identity)
+        if area is None:
+            raise ValueError("Missing actual registered collision Qq PV")
+        return True, area.id
+
+    def _teleport_accepted(self, geometry, source, flags):
+        """eZB.C captures acceptance before mutable level-two reactions."""
+        actor = geometry["actor"]
+        if actor is None:
+            raise ValueError("Teleport requires native actor")
+        props = self._ordinary(actor)
+        destination = geometry["destination"]
+        if self._selected_surface(destination) is None:
+            return False
+        if not geometry["force"] and (
+            57 in props
+            or (
+                36 not in flags
+                and (11 in props or 110 in props and source.team != actor.team)
+            )
+        ):
+            return False
+        return not geometry["check_cells"] or self._teleport_free(actor, destination)
+
     def __call__(self, effect, values, invocation):
         if self.fight.phase != "active" or self.fight.current is None:
             raise ValueError("Displacement requires active combat")
+        # eZR.i rejects an actual corpse before invoking eXD.c. A proven
+        # rejection skips this runner; it does not reject its parent spell.
+        if effect["effect_class"] in (300, 301):
+            recipient = self.fight.actors.get(invocation.target_id)
+            if recipient is not None:
+                from .combat_runner_target_life import runner_target_life_eligible
+
+                if not runner_target_life_eligible(
+                    self.fight, recipient, effect, invocation=invocation
+                ):
+                    return False
         flags = set(effect["native_effect_flags"])
         # eVl.rwA(3) suppresses aJs client zone preview only; preserve it
         # in the native definition without changing forced path/codec.
@@ -317,29 +525,72 @@ class NativeDisplacementHandler:
         # applied by the common resolver before each displacement invocation.
         # Flag5 suppresses level-one reactions through the existing event
         # lifecycle (eZR.aZB); it does not prevent native displacement.
-        if flags - {3, 5, 13, 14, 17, 26, 36}:
+        # Flag37 skips eXD.fOQ uncarry. Its only native consumer returns
+        # before the flag check when the ordinary actor's frA() is false.
+        if flags - {3, 5, 13, 14, 17, 26, 36, 37}:
             raise ValueError(
-                f"Unhandled native displacement flags: {sorted(flags-{3,5,13,14,17,26,36})}"
+                f"Unhandled native displacement flags: {sorted(flags-{3,5,13,14,17,26,36,37})}"
             )
         native_definition_timing(effect, invocation.level)
         uid = invocation.native_running_uid
+        kind = FAMILIES[effect["effect_class"]]
         if self.event_lifecycle is not None:
             if uid is None:
                 # Direct/clone execution has no dispatcher prepare hook here.
                 invocation = self.prepare(effect, values, invocation)
                 uid = invocation.native_running_uid
+        # eZB.C performs its surface/property/occupancy acceptance before L2.
+        # eXD.c instead computes the forced path after L2 through fOZ; do not
+        # move that family's calculation across the shared phase boundary.
+        teleport_geometry = None
+        teleport_accepted = None
+        if kind.startswith("teleport"):
+            if self.event_lifecycle is not None:
+                if uid not in self.prepared_teleports:
+                    raise ValueError("Missing prepared native teleport calculation")
+                teleport_geometry, teleport_accepted = self.prepared_teleports.pop(uid)
+            else:
+                teleport_geometry, teleport_accepted = self._calculate_teleport(
+                    effect, invocation
+                )
+        if self.event_lifecycle is not None:
             self.event_lifecycle.phase(effect, invocation, uid=uid, value=0, channel=2)
         source = self.fight.actors[invocation.caster_id]
+        if kind in ("push", "pull"):
+            recipient = self.fight.actors.get(invocation.target_id)
+            if recipient is None:
+                if (
+                    invocation.target_id is not None
+                    and invocation.target_id
+                    not in getattr(self.fight, "native_effect_areas", {})
+                ):
+                    raise ValueError("Unknown native displacement target PV")
+                if invocation.target_id is not None:
+                    from .combat_area_authority import area_guards
+
+                    area_guards(self.fight, invocation.target_id)
+                # eXD.c resolves fOt first; eXJ/eXK return null for null/Qq.
+                # Native cancels this runner before geometry/caster guards.
+                self._finish_events(effect, invocation, uid, 0)
+                return False
+            if self.authority(self.fight, recipient).is_carried:
+                self._finish_events(effect, invocation, uid, 0)
+                return False
+        # eXp.fOr -> eXD.fOS reads caster fax.buX before path calculation.
+        # A carried caster cannot move away from a cell; native execution skips it.
+        if kind == "move_away_cell" and self.authority(self.fight, source).is_carried:
+            self._finish_events(effect, invocation, uid, 0)
+            return False
         source_props = self._ordinary(source)
         target = self.fight.actors.get(invocation.target_id)
-        kind = FAMILIES[effect["effect_class"]]
-        geometry = displacement_geometry(
+        geometry = teleport_geometry or displacement_geometry(
             effect, invocation.level, source=source, target=target, cell=invocation.cell
         )
         changed = []
         path = None
         additional = None
         value = 0
+        collision = None
         if kind == "swap":
             if target is None:
                 raise ValueError("Swap requires native actor target")
@@ -374,24 +625,8 @@ class NativeDisplacementHandler:
             changed = [(source, b), (target, a)]
         elif kind.startswith("teleport"):
             actor = geometry["actor"]
-            if actor is None:
-                raise ValueError("Teleport requires native actor")
-            props = self._ordinary(actor)
-            if not geometry["force"] and (
-                57 in props
-                or (
-                    36 not in flags
-                    and (11 in props or 110 in props and source.team != actor.team)
-                )
-            ):
-                self._finish_events(effect, invocation, uid, 0)
-                return False
             destination = geometry["destination"]
-            if not geometry["check_cells"]:
-                raise ValueError(
-                    "Teleport bypass of blocking cells requires native terrain policy"
-                )
-            if not self._free(actor, destination):
+            if not teleport_accepted:
                 self._finish_events(effect, invocation, uid, 0)
                 return False
             additional = displacement_additional(
@@ -432,9 +667,19 @@ class NativeDisplacementHandler:
                 if vector == (0, 0) or geometry["stop"] == position[:2]:
                     break
                 xy = (position[0] + vector[0], position[1] + vector[1])
+                native_registry = (
+                    getattr(self.fight, "native_qi_slots", None) is not None
+                )
+                terrain_valid = True
+                if native_registry:
+                    from .combat_qi_fight import current_registry
+
+                    terrain_valid = current_registry(self.fight).terrain.R(*xy)
                 metadata = self.authority(self.fight, actor)
                 map_id = metadata.native_instance_id
-                if map_id is not None:
+                if not terrain_valid:
+                    destination = None
+                elif map_id is not None:
                     # eGj.bvz() is 4 for the audited ordinary actor creation
                     # path; faz uses bcK (breed height), not walking Sm(3,0,2).
                     from .combat_forced_terrain import next_surface
@@ -464,22 +709,35 @@ class NativeDisplacementHandler:
                         raise ValueError(
                             "Native forced terrain transition requires verified edge"
                         )
-                if destination is None or not self._free(actor, destination):
-                    if kind == "approach_cell":
-                        break  # faz stops at obstacle; eXq has no collision AP loss.
-                    raise ValueError(
-                        "Native displacement collision requires AP-loss/events executor"
-                    )
+                obstructed, collider = (False, None)
+                if destination is not None:
+                    if native_registry:
+                        obstructed, collider = self._forced_obstruction(
+                            actor, (xy[0], xy[1], position[2])
+                        )
+                    else:
+                        obstructed = not self._free(actor, destination)
+                if destination is None or obstructed:
+                    if not geometry["collision_reactions"]:
+                        # eXp/eXq.fOs=false: truncate without fPa AP/event204.
+                        break
+                    if not native_registry or not callable(self.collision_executor):
+                        raise ValueError(
+                            "Native displacement collision requires AP-loss/events executor"
+                        )
+                    collision = (actor.id, collider, geometry["loss_ap"])
+                    break
                 path.append(destination)
                 position = destination
             value = len(path)
             additional = displacement_additional(effect["effect_class"], path=path)
             changed = [(actor, position)]
             target = actor
+        uid = self.allocate_uid() if uid is None else uid
         packet = displacement_packet(
             self.fight.id,
             self.action_id,
-            uid=self.allocate_uid() if uid is None else uid,
+            uid=uid,
             generic_effect=invocation.reference,
             effect_class=effect["effect_class"],
             caster_id=source.id,
@@ -494,8 +752,21 @@ class NativeDisplacementHandler:
             if actor.position != position
         ]
         for actor, position in changed:
-            actor.position = position
+            from .combat_qi_fight import move_registered_actor
+
+            move_registered_actor(self.fight, actor, position)
         self.packets.append(packet)
+        if collision is not None:
+            displaced, collider, loss_ap = collision
+            self.collision_executor(
+                effect,
+                invocation,
+                uid=uid,
+                value=value,
+                displaced_id=displaced,
+                collider_id=collider,
+                loss_ap=loss_ap,
+            )
         self._finish_events(effect, invocation, uid, value)
         if moved and self.event_lifecycle is not None:
             self.event_lifecycle.displacement_completed(

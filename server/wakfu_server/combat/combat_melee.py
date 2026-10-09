@@ -4,7 +4,8 @@ The empty weapon slot selects item2145. Live snapshots supply equipment bonuses
 and retained effects; the caller supplies the explicit normal cast policy.
 The caller confirms authoritative equipment and serializes access to the fight.
 """
-from .paths import DATA_ROOT
+from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 import json
 import struct
 from pathlib import Path
@@ -13,7 +14,7 @@ from .combat_execute import selected_monster, adjacent_native_los
 from .combat_actor import actual_actor_stats, actual_monster_actor_stats
 from .combat_random_transaction import rollback_external_rng
 
-_RULE = json.loads((DATA_ROOT / "unarmed-combat.json").read_text())
+_RULE = protocol_catalog.load(DATA_ROOT / "unarmed-combat.json")
 
 
 def decode_request(body):
@@ -118,7 +119,7 @@ def execute_unarmed(
     from .combat_server_spell import server_runtime
     from .combat_weapon import weapon_runtime_catalog
     from .combat_effect_dispatch import EffectInvocation
-    from .spells import default_deck
+    from wakfu_server.spells import default_deck
 
     if type(effect_uid) is not int or not 0 < effect_uid < (1 << 63) - 1:
         raise ValueError("Invalid authoritative unarmed running UID")

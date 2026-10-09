@@ -1,13 +1,14 @@
 """eMW world property predicate with original eHQ -> ffe fallback."""
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
 from collections.abc import Mapping
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 
 
 @lru_cache(maxsize=1)
 def registry():
-    return json.loads((DATA_ROOT / "native-world-properties.json").read_text())[
+    return protocol_catalog.load(DATA_ROOT / "native-world-properties.json")[
         "properties"
     ]
 

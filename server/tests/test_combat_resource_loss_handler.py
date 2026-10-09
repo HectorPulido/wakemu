@@ -26,6 +26,23 @@ def actor(uid, ap=6, mp=3):
 
 
 class NativeResourceLossHandlerTests(unittest.TestCase):
+    def test_immediate_loss_executes_evaluated_client_value_without_qf_record(self):
+        self.setup_handler()
+        self.handler.context = lambda *args: StatExecutionContext(
+            True, True, None, False, b"", None
+        )
+        effect = {
+            "effect_class": 48,
+            "parameters": [2.0, 0.0],
+            "native_effect_flags": [],
+        }
+        self.assertTrue(
+            self.handler(effect, {}, EffectInvocation(123, 1, 7, -7, (1, 0, 0)))
+        )
+        self.assertEqual(self.packets[0][0], 12613)
+        self.assertEqual(self.packets[0][1][12], 1)
+        self.assertEqual(self.fight.owned_stat_effects, {})
+
     def setup_handler(self, secondary=True):
         self.fight = SimpleNamespace(
             id=100,
@@ -236,3 +253,76 @@ class NativeResourceLossHandlerTests(unittest.TestCase):
             SimpleNamespace(fight=self.fight, packets=self.packets, action_id=200), 901
         )
         self.assertEqual(self.fight.actors[-7].ap, 3)
+
+    def _off_play_fight_handler(self):
+        import test_combat_damage_handler as damage_fixture
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+        )
+
+        fixture = damage_fixture.DamageHandlerTests()
+        fixture.setUp()
+        fight = fixture.fight
+        initialize_global_pv_collections(fight, tuple(fight.actors))
+        for fighter in fight.actors.values():
+            fighter.effect_stats.update({2: fighter.ap, 3: fighter.mp, 86: 0})
+            fighter.effect_minima = {2: 0, 3: 0}
+            fighter.effect_maxima = {2: fighter.max_ap, 3: fighter.max_mp}
+            fighter.effect_frozen = frozenset()
+        packets, secondary = [], []
+        handler = NativeResourceLossHandler(
+            fight,
+            packets,
+            action_id=200,
+            allocate_uid=lambda: 901,
+            context=lambda *args: StatExecutionContext(
+                True, True, None, True, b"", None
+            ),
+            rng=lambda: 0,
+            properties=lambda fighter: frozenset(),
+            secondary_state=lambda *args: secondary.append(args),
+        )
+        return fight, handler, packets, secondary
+
+    def test_evz_flag15_uses_registered_off_play_target_inside_active_resolution(self):
+        from wakfu_server.combat_global_pv_collections import global_fighter_guards
+
+        fight, handler, packets, secondary = self._off_play_fight_handler()
+        target = fight.actors[-7]
+        effect = {
+            "effect_class": 48,
+            "parameters": [2.0, 0.0],
+            "native_effect_flags": [15],
+        }
+        invocation = EffectInvocation(123, 1, 7, -7, target.position)
+        with fight.effect_resolution():
+            fight.apply_effect_damage(7, -7, target.hp)
+            self.assertTrue(global_fighter_guards(fight, -7)["baG"])
+            self.assertTrue(handler(effect, {}, invocation))
+            self.assertLess(target.mp, 3)
+            self.assertEqual(len(secondary), 1)
+            self.assertEqual(fight.phase, "active")
+        self.assertEqual(fight.phase, "finished")
+        self.assertTrue(any(opcode == 13497 for opcode, _ in packets))
+        remaining = target.mp
+        with self.assertRaisesRegex(ValueError, "Invalid native eVZ action or fight"):
+            handler(effect, {}, invocation)
+        self.assertEqual(target.mp, remaining)
+
+    def test_evz_without_proven_corpse_permission_rejects_atomically(self):
+        fight, handler, packets, secondary = self._off_play_fight_handler()
+        target = fight.actors[-7]
+        effect = {
+            "effect_class": 48,
+            "parameters": [2.0, 0.0],
+            "native_effect_flags": [],
+        }
+        invocation = EffectInvocation(123, 1, 7, -7, target.position)
+        with fight.effect_resolution():
+            fight.apply_effect_damage(7, -7, target.hp)
+            before = target.mp
+            with self.assertRaisesRegex(ValueError, "Dynamic native corpse guard"):
+                handler(effect, {}, invocation)
+            self.assertEqual(target.mp, before)
+            self.assertEqual(packets, [])
+            self.assertEqual(secondary, [])

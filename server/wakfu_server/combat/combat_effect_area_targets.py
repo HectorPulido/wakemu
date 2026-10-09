@@ -11,21 +11,62 @@ class NativeAreaTarget:
     owner_id: int
     physical_radius: int = 0
     direction: int = 7
+    native_obstacle_id: int = -1
+    native_movement_blocking: bool = False
+    native_is_obstacle: bool = False
+    native_los_height: int = 0
 
 
 def area_targets(fight):
     targets = []
     for row in _rows(fight):
+        constructor = (
+            row.get("native_faw_constructor")
+            if row.get("native_area_contract") == "faW"
+            else row.get("native_wall_constructor")
+            if row.get("native_area_contract") == "fbd"
+            else None
+        )
         owner = fight.actors.get(row["owner_id"])
-        if owner is None:
+        border = row.get("native_area_contract") == "faP"
+        environment = row.get("native_environment_source") is not None
+        if environment:
+            from .combat_environment_glyphs import verify_environment_glyph
+
+            verify_environment_glyph(fight, row)
+        if border:
+            from .combat_battleground_border import SOURCE
+
+            if (
+                row.get("owner_id") is not None
+                or row.get("native_border_source") != SOURCE
+            ):
+                raise ValueError("Missing native faP null-owner constructor")
+        elif owner is None and not environment:
             raise ValueError("Missing authoritative Qq owner affiliation")
         targets.append(
             NativeAreaTarget(
                 row["uid"],
                 tuple(row["cell"]),
-                getattr(owner, "native_fight_affiliation", owner.team),
+                -1
+                if border or environment
+                else getattr(owner, "native_fight_affiliation", owner.team),
                 row["owner_id"],
                 direction=row["direction"],
+                native_obstacle_id=row.get("native_obstacle_id", -1),
+                native_movement_blocking=constructor["movement_blocking"]
+                if constructor is not None
+                else False,
+                native_is_obstacle=constructor["obstacle"]
+                if constructor is not None
+                else False,
+                native_los_height=(
+                    constructor["height"]
+                    if row.get("native_area_contract") == "faW"
+                    else constructor["bcK_value"]
+                    if row.get("native_area_contract") == "fbd"
+                    else 0
+                ),
             )
         )
     return tuple(targets)
@@ -34,7 +75,8 @@ def area_targets(fight):
 def area_target_context(target):
     if not isinstance(target, NativeAreaTarget):
         raise ValueError("Unknown native area target")
-    # faV.bEe true, Qq.bcL=0/bcN=-1 and installed faZ/Qq contract.
+    # faW/bcQ inherit faV.bEe=true and Qq.bcL=0. Their registered
+    # obstacle byte and bcO/bcP override remain distinct from Qq defaults.
     return dict(
         is_Qq=True,
         is_eGj=False,
@@ -42,7 +84,9 @@ def area_target_context(target):
         is_amO=True,
         bEe=True,
         bcR=False,
-        bcN=-1,
+        bcN=target.native_obstacle_id,
+        bcO=target.native_is_obstacle,
+        bcP=target.native_movement_blocking,
         q_owner_id=target.owner_id,
     )
 

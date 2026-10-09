@@ -6,6 +6,7 @@ Global recipients require an audited native iterator order when more than one
 manager has a matching global listener. No lifecycle event ID is synthesized.
 """
 from dataclasses import replace
+from .combat_native_actor_lookup import native_actor
 from .combat_event_replay import (
     NativeEventSource,
     NativeCloneAuthority,
@@ -37,51 +38,126 @@ class OrdinaryHealingEvents:
     def register_applied(self, effect, invocation, uid):
         self.retention.register_applied_stat(effect, invocation, uid)
 
+    def death(self, actor_id, *, effect, invocation, uid, value):
+        from .combat_death_events import deliver_owned_death
+
+        definition = self.definition(effect, invocation)
+        flags = effect["native_effect_flags"]
+        parent = (
+            None
+            if invocation.native_trigger_context is None
+            else invocation.native_trigger_context["uid"]
+        )
+        source = NativeEventSource(
+            uid,
+            invocation.reference,
+            value,
+            invocation.caster_id,
+            actor_id,
+            invocation.cell,
+            (1013,),
+            6,
+            actor_id,
+            parent,
+            definition["event_suppresses_level_one"] or 5 in flags,
+            6 in flags,
+            False,
+            True,
+            cost_source=source_cost_descriptor(self.retention, invocation),
+            **self.identifiers(effect, invocation),
+        )
+        return deliver_owned_death(
+            self.preview,
+            actor_id,
+            source=source,
+            replay=self.replay,
+            authority=self.authority,
+            retention=self.retention,
+            finisher_cleanup=self._queue_finisher_cleanup,
+        )
+
+    def _queue_finisher_cleanup(self, source):
+        pending = getattr(self, "_pending_finisher_cleanup", None)
+        if pending is None:
+            pending = {}
+            self._pending_finisher_cleanup = pending
+        pending.setdefault(source.uid, []).append(source)
+
+    def _finish_finisher_cleanup(self, uid):
+        from .combat_finisher_events import finish_owned_finisher
+
+        pending = getattr(self, "_pending_finisher_cleanup", {})
+        for source in pending.pop(uid, ()):
+            packets = self.retention.packets
+            start = len(packets)
+            finish_owned_finisher(source, replay=self.replay, authority=self.authority)
+            cleanup = packets[start:]
+            del packets[start:]
+            # The native death action reads PI after lethal damage. Preserve
+            # the evaluated cleanup bytes until that action has been emitted.
+            queued = getattr(self.preview, "native_finisher_after_death_packets", {})
+            key = str(source.target_id)
+            queued[key] = list(queued.get(key, ())) + [
+                [opcode, payload.hex()] for opcode, payload in cleanup
+            ]
+            self.preview.native_finisher_after_death_packets = queued
+
     def executable(self, effect, invocation, source):
+        from .combat_state_managers import registered_area_pv
+        from .combat_area_authority import area_guards
+
+        def require_area(identity):
+            area = registered_area_pv(self.preview, identity)
+            if area is None:
+                raise ValueError("Native clone PV absent from preview")
+            return area
+
         if effect["effect_class"] == 400:
             # eXE.bcd() is always true: both native corpse gates are bypassed.
-            if any(
-                identity is not None and identity not in self.preview.actors
-                for identity in (invocation.caster_id, invocation.target_id)
-            ):
-                raise ValueError("Native eXE clone actor absent")
+            for identity in (invocation.caster_id, invocation.target_id):
+                if identity is not None and identity not in self.preview.actors:
+                    require_area(identity)
             return True
         from .combat_ordinary_death import (
-            registered_ordinary_death,
             corpse_gate_bypassed,
         )
 
         for identity in (invocation.caster_id, invocation.target_id):
             if identity is None:
                 continue
-            actor = self.preview.actors.get(identity)
+            from .combat_native_actor_lookup import native_actor
+
+            actor = native_actor(self.preview, identity)
             if actor is None:
-                raise ValueError("Native clone actor absent from preview")
+                require_area(identity)
+                continue  # PV exists; fighter HP/death authority does not apply.
             authority = self.adapter.actor_authority(self.preview, actor)
             if (
-                authority.targeting.get("baG") is not False
-                or authority.targeting.get("baK") is not False
+                type(authority.targeting.get("baG")) is not bool
+                or type(authority.targeting.get("baK")) is not bool
             ):
                 raise ValueError("Native clone corpse/wrapped guards are not ordinary")
-            if actor.hp <= 0:
-                # An owned damage→death transition is known, unlike an
-                # arbitrary restored HP0. Native corpse rejection is a false
-                # execution result; it must not undo an earlier lethal hit.
-                registered_ordinary_death(self.preview, actor)
         # eZR.i tests the retained ORIGINAL target's baG before I(source).
         row = self.preview.native_owned_group_effects.get(invocation.base_uid)
         if row is None:
             raise ValueError("Missing original native listener for clone guard")
         original_target = row["invocation"]["target_id"]
         if original_target is not None:
-            actor = self.preview.actors.get(original_target)
+            actor = native_actor(self.preview, original_target)
             if actor is None:
-                raise ValueError("Original listener actor absent")
+                require_area(original_target)
+                if area_guards(self.preview, original_target)["baG"]:
+                    return corpse_gate_bypassed(
+                        effect, fight=self.preview, invocation=invocation
+                    )
+                return True
             authority = self.adapter.actor_authority(self.preview, actor)
-            if authority.targeting.get("baG") is not False:
+            if type(authority.targeting.get("baG")) is not bool:
                 raise ValueError("Unknown original listener native corpse guard")
-            if registered_ordinary_death(self.preview, actor):
-                if not corpse_gate_bypassed(effect):
+            if authority.targeting["baG"]:
+                if not corpse_gate_bypassed(
+                    effect, fight=self.preview, invocation=invocation
+                ):
                     return False
         return True
 
@@ -89,7 +165,10 @@ class OrdinaryHealingEvents:
         # eZR.I rebinds criterion actors but eKc reads this.bbc (the retained
         # listener), not those arguments or its rIV triggering source.
         row = self.preview.native_owned_group_effects.get(invocation.base_uid)
-        if row is None or "target_id" not in row.get("invocation", {}):
+        if (
+            row is None
+            or not {"target_id", "caster_id"} <= row.get("invocation", {}).keys()
+        ):
             raise ValueError("Missing original native listener target for criteria")
         return self.adapter.condition(
             self.preview,
@@ -97,7 +176,16 @@ class OrdinaryHealingEvents:
             effect,
             invocation,
             native_original_target_id=row["invocation"]["target_id"],
+            native_original_caster_id=row["invocation"]["caster_id"],
         )
+
+    def definition(self, effect, invocation):
+        return self.retention.definition(effect, invocation)
+
+    def identifiers(self, effect, invocation):
+        from .combat_trigger_identifiers import source_identifiers
+
+        return source_identifiers(self.retention, effect, invocation)
 
     def phase(
         self,
@@ -110,7 +198,10 @@ class OrdinaryHealingEvents:
         _event_ids=None,
         final_modifier=None,
         runner_modifier=None,
-        _nullable_target=False
+        _nullable_target=False,
+        _execution_blocked=None,
+        _execution_status=None,
+        _cost_source=None,
     ):
         if channel not in (1, 2, 3, 4):
             raise ValueError("Unknown native healing lifecycle phase")
@@ -120,18 +211,31 @@ class OrdinaryHealingEvents:
             and effect["effect_class"] not in HEALING_ELEMENT_EVENT_IDS
         ):
             raise ValueError("Native source is not eXs")
-        for identity in (invocation.caster_id, invocation.target_id):
-            if identity in getattr(self.preview, "native_summon_registrations", {}):
+        from .combat_state_managers import registered_area_pv
+
+        def verify_recipient(identity):
+            actor = native_actor(self.preview, identity)
+            if actor is not None:
+                # eGj forwards local events to its own Qf, including summons.
+                # The registered authority validates current controller, master,
+                # carry relations and snapshots; never redirect to the master.
+                self.adapter.actor_authority(self.preview, actor)
+                return actor
+            # Qe.L delivers through PV.a; faV/Qq forwards to its actual Qf.
+            # Explicit generic state/stat events may address a registered area.
+            # Healing/eXs still requires a fighter and its characteristics.
+            manager = registered_area_pv(self.preview, identity)
+            if manager is None or getattr(manager, "native_is_area", False) is not True:
                 raise ValueError(
-                    "Summoned-actor lifecycle propagation remains unaudited"
+                    f"Ordinary event recipient absent: identity={identity}, phase={channel}, family={effect['effect_class']}"
                 )
+            return manager
+
+        for identity in (invocation.caster_id, invocation.target_id):
             if identity is None and _nullable_target:
                 continue
-            actor = self.preview.actors.get(identity)
-            if actor is None:
-                raise ValueError("Ordinary healing actor absent")
-            self.adapter.actor_authority(self.preview, actor)
-        definition = self.retention.definition(effect, invocation)
+            verify_recipient(identity)
+        definition = self.definition(effect, invocation)
         suppressed = definition.get("event_suppresses_level_one")
         if type(suppressed) is not bool:
             raise ValueError("Native PK.aZB metadata required")
@@ -140,7 +244,8 @@ class OrdinaryHealingEvents:
         flags = effect["native_effect_flags"]
         # eXs.bbw returns shared EMPTY BitSet for sdQ(undead), even flag33.
         undead = (
-            invocation.target_id is not None
+            _event_ids is None
+            and invocation.target_id in self.preview.actors
             and 20
             in self.adapter.actor_authority.properties(
                 self.preview, self.preview.actors[invocation.target_id]
@@ -182,8 +287,6 @@ class OrdinaryHealingEvents:
             if invocation.native_trigger_context is None
             else invocation.native_trigger_context["uid"]
         )
-        from .combat_trigger_identifiers import source_identifiers
-
         base = NativeEventSource(
             uid,
             invocation.reference,
@@ -203,8 +306,14 @@ class OrdinaryHealingEvents:
             True,
             final_modifier=final_modifier,
             runner_modifier=runner_modifier,
-            cost_source=source_cost_descriptor(self.retention, invocation),
-            **source_identifiers(self.retention, effect, invocation),
+            native_execution_blocked=_execution_blocked,
+            native_execution_status=_execution_status,
+            cost_source=(
+                source_cost_descriptor(self.retention, invocation)
+                if _cost_source is None
+                else _cost_source
+            ),
+            **self.identifiers(effect, invocation),
         )
         base.validate()
         # Qe.L routes caster first (reversed), target second; same actor receives both.
@@ -217,10 +326,92 @@ class OrdinaryHealingEvents:
             )
         if invocation.target_id is not None:
             sources.append(base)
-        outcomes = [self.replay(source, authority=self.authority) for source in sources]
+        outcomes = []
+        for source in sources:
+            recipient = verify_recipient(source.manager_actor_id)
+            if getattr(recipient, "native_is_area", False):
+                # Keep the actual Qq object across reactions that unregister it.
+                from .combat_state_managers import retained_area_pv_row
+
+                area_row = retained_area_pv_row(self.preview, source.manager_actor_id)
+                if recipient.native_running_effect_manager:
+                    outcomes.append(self.replay(source, authority=self.authority))
+                if source.channel == 1:
+                    callbacks = getattr(self.retention, "area_events", None)
+                    from .combat_effect_area import native_effect_areas
+
+                    area_definition = native_effect_areas()[str(area_row["reference"])]
+                    masks = (
+                        set(recipient.native_entry_masks)
+                        | set(area_definition.get("exit_masks", ()))
+                        | set(area_row.get("native_removal_masks", ()))
+                    )
+                    if callbacks is None and masks.intersection(event_ids):
+                        raise ValueError(
+                            "Missing native area lifecycle callback authority"
+                        )
+                    if callbacks is not None:
+                        outcomes.extend(
+                            callbacks.running_source(
+                                effect,
+                                invocation,
+                                uid=uid,
+                                value=value,
+                                channel=1,
+                                source=source,
+                                area_row=area_row,
+                                qf_delivered=True,
+                            )
+                        )
+                continue  # Actual null bax skips Qf, never its own Qq callbacks.
+            outcomes.append(self.replay(source, authority=self.authority))
         # eZR.L invokes PN.bab().m(caster) AFTER local deliveries. Determine whether
         # any complete tracked manager can observe it before requiring roster order.
         global_channel = channel * 10 + 1
+        from .combat_summon_initialization import detached_actor
+
+        construction = detached_actor(self.preview, invocation.caster_id)
+        if construction is not None:
+            # Actual fresh eZQ/PO.bab().m: constructor's beg contains SELF.
+            # Do not substitute fcb's battle-wide registered PV iterator.
+            verify_recipient(construction.id)
+            outcomes.append(
+                self.replay(
+                    replace(
+                        base, channel=global_channel, manager_actor_id=construction.id
+                    ),
+                    authority=self.authority,
+                )
+            )
+            if channel == 3:
+                self._finish_finisher_cleanup(uid)
+            return tuple(outcomes)
+        if hasattr(self.preview, "native_global_pv_collections"):
+            from .combat_global_pv_collections import global_pv_iterator
+
+            # Native m(caster) constructs its iterator after local delivery.
+            # Visit every eligible PV, not a cached set of matching listeners:
+            # earlier reactions can register subscriptions on later managers.
+            for identity in global_pv_iterator(
+                self.preview, caster_id=invocation.caster_id
+            ):
+                recipient = verify_recipient(identity)
+                if (
+                    getattr(recipient, "native_is_area", False)
+                    and not recipient.native_running_effect_manager
+                ):
+                    continue  # Qq forwards to its actual nullable Qf.
+                outcomes.append(
+                    self.replay(
+                        replace(
+                            base, channel=global_channel, manager_actor_id=identity
+                        ),
+                        authority=self.authority,
+                    )
+                )
+            if channel == 3:
+                self._finish_finisher_cleanup(uid)
+            return tuple(outcomes)
         relevant = set()
         for entry in self.retention.view().entries:
             row = self.preview.native_owned_group_effects.get(entry.uid)
@@ -245,6 +436,10 @@ class OrdinaryHealingEvents:
             ):
                 relevant.add(entry.manager_id)
         if len(relevant) > 1:
+            if any(identity not in self.preview.actors for identity in relevant):
+                raise ValueError(
+                    "Global native event requires audited fighter/area iterator order"
+                )
             order = getattr(self.preview, "native_event_actor_order", None)
             if (
                 not isinstance(order, tuple)
@@ -256,13 +451,21 @@ class OrdinaryHealingEvents:
                 )
             relevant = [identity for identity in order if identity in relevant]
         for identity in relevant:
-            self.adapter.actor_authority(self.preview, self.preview.actors[identity])
+            recipient = verify_recipient(identity)
+            if (
+                getattr(recipient, "native_is_area", False)
+                and not recipient.native_running_effect_manager
+            ):
+                raise ValueError("Global listener belongs to a native null-Qf area")
             outcomes.append(
                 self.replay(
                     replace(base, channel=global_channel, manager_actor_id=identity),
                     authority=self.authority,
                 )
             )
+        if channel == 3:
+            # All owned writers append their lethal delivery before Qe L3.
+            self._finish_finisher_cleanup(uid)
         return tuple(outcomes)
 
 
@@ -288,15 +491,29 @@ class OrdinaryDamageEvents(OrdinaryHealingEvents):
         blocked,
         localization,
         final_modifier=None,
-        runner_modifier=None
+        runner_modifier=None,
     ):
         from .combat_damage_events import damage_event_ids
-        from .combat_ordinary_authority import ordinary_container_type, native_facing
+        from .combat_ordinary_authority import (
+            ordinary_container_type,
+            native_facing,
+            native_damage_target,
+        )
 
         # fOF uses actual Sl.o even when definition arithmetic localization is disabled.
-        actual_location = native_facing(
-            self.preview.actors[invocation.caster_id],
-            self.preview.actors[invocation.target_id],
+        target = native_damage_target(self.preview, invocation.target_id)
+        if target is None:
+            raise ValueError("Missing native eXt actor or fbd PV event target")
+        from .combat_native_actor_lookup import native_actor, detached_authority
+
+        caster = native_actor(self.preview, invocation.caster_id)
+        if caster is None:
+            raise ValueError("Missing actual native eXt source PV")
+        actual_location = native_facing(caster, target)
+        from .combat_area_damage_guard import area_damage_has_no_resources
+
+        calculation_skipped = area_damage_has_no_resources(
+            self.preview, invocation.target_id
         )
         events = damage_event_ids(
             effect,
@@ -304,7 +521,11 @@ class OrdinaryDamageEvents(OrdinaryHealingEvents):
             phase=channel,
             blocked=blocked,
             localization=actual_location,
-            context_is_native_fight=True,
+            # Detached initial children receive eZQ/PO, not eVw. eXt's
+            # blocked2233 branch tests the real PN type, even with a battle
+            # preview available around that independent constructor context.
+            context_is_native_fight=detached_authority(self.preview, caster) is None,
+            calculation_skipped=calculation_skipped,
         )
         return super().phase(
             effect,
@@ -315,11 +536,33 @@ class OrdinaryDamageEvents(OrdinaryHealingEvents):
             _event_ids=events,
             final_modifier=final_modifier,
             runner_modifier=runner_modifier,
+            _execution_blocked=False if channel == 1 else blocked,
         )
 
 
 class OrdinaryResourceLossEvents(OrdinaryHealingEvents):
     """eWR/eVZ characteristic masks; no elemental healing events."""
+
+    synthetic_authority = None
+
+    def definition(self, effect, invocation):
+        if self.synthetic_authority is None:
+            return self.retention.definition(effect, invocation)
+        from .combat_collision_source import NativeCollisionSourceAuthority
+
+        if type(self.synthetic_authority) is not NativeCollisionSourceAuthority:
+            raise ValueError("Unverified native synthetic lifecycle authority")
+        return self.synthetic_authority.definition(effect, invocation)
+
+    def identifiers(self, effect, invocation):
+        from .combat_trigger_identifiers import source_identifiers
+
+        return source_identifiers(
+            self.retention,
+            effect,
+            invocation,
+            synthetic_authority=self.synthetic_authority,
+        )
 
     @classmethod
     def from_healing(cls, healing):
@@ -331,11 +574,13 @@ class OrdinaryResourceLossEvents(OrdinaryHealingEvents):
             retention=healing.retention,
         )
 
-    def events(self, effect, channel, plan):
+    def events(self, effect, channel, plan, invocation=None):
         from .combat_resource_loss import resource_loss_event_ids
 
         stat = {48: 3, 55: 2}[effect["effect_class"]]
         extra = tuple(effect["target_masks"][6] or ())
+        if self.synthetic_authority is not None:
+            extra += self.synthetic_authority.runtime_events(effect, invocation)
         if plan is None:
             if channel != 1:
                 raise ValueError("Native eVZ calculation required after L1")
@@ -347,7 +592,7 @@ class OrdinaryResourceLossEvents(OrdinaryHealingEvents):
     def source(self, effect, invocation, *, uid, value, channel, plan):
         from .combat_trigger_identifiers import source_identifiers
 
-        definition = self.retention.definition(effect, invocation)
+        definition = self.definition(effect, invocation)
         suppressed = definition.get("event_suppresses_level_one")
         if type(suppressed) is not bool:
             raise ValueError("Native eVZ source suppression metadata required")
@@ -359,7 +604,7 @@ class OrdinaryResourceLossEvents(OrdinaryHealingEvents):
             invocation.caster_id,
             invocation.target_id,
             invocation.cell,
-            self.events(effect, channel, plan),
+            self.events(effect, channel, plan, invocation),
             channel,
             invocation.target_id,
             None
@@ -370,7 +615,7 @@ class OrdinaryResourceLossEvents(OrdinaryHealingEvents):
             False,
             True,
             cost_source=source_cost_descriptor(self.retention, invocation),
-            **source_identifiers(self.retention, effect, invocation),
+            **self.identifiers(effect, invocation),
         )
         source.validate()
         return source
@@ -384,7 +629,7 @@ class OrdinaryResourceLossEvents(OrdinaryHealingEvents):
             uid=uid,
             value=value,
             channel=channel,
-            _event_ids=self.events(effect, channel, plan),
+            _event_ids=self.events(effect, channel, plan, invocation),
             runner_modifier=runner_modifier,
         )
 
@@ -401,7 +646,7 @@ class OrdinaryArmorEvents(OrdinaryDamageEvents):
         value,
         channel,
         final_modifier=None,
-        runner_modifier=None
+        runner_modifier=None,
     ):
         if effect["effect_class"] != 1013:
             raise ValueError("Native armor source requires eWx")

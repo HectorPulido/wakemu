@@ -1,16 +1,16 @@
 import java.nio.file.*;
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.zip.GZIPOutputStream;
+
 import com.google.gson.Gson;
 /** Native fresh ffh and lazy NPC ffx/ffC definitions, without network. */
 public class ExportActorCharacteristics {
     static Map<String,Object> value(fff v)throws Exception{
         Field frozen=fff.class.getDeclaredField("sfT");frozen.setAccessible(true);
-        return Map.of("current",v.aYS(),"minimum",v.aYW(),"maximum",v.aYU(),"frozen",frozen.getBoolean(v));
+        return Map.of("current",v.aYS(),"raw_current",v.aYT(),"minimum",v.aYW(),"maximum",v.aYU(),"frozen",frozen.getBoolean(v));
     }
     public static void main(String[] args)throws Exception{
-        Path output=Path.of(args.length==0?"server/protocol/native-actor-characteristics.json.gz":args[0]);
+        Path output=Path.of(args.length==0?"server/protocol/native-actor-characteristics.json":args[0]);
         Map<String,Object> definitions=new TreeMap<>();ffh fresh=new ffh();
         for(ffw s:ffw.values()){
             Map<String,Object> row=new LinkedHashMap<>(value(fresh.e(s)));
@@ -39,7 +39,7 @@ public class ExportActorCharacteristics {
         Map<String,Object> result=Map.of("source","Native ffh/fff; bbo.b(aMb), ffC and ffx; radius aMb.csa->blj->eGC.bcL",
             "characteristics",definitions,"npc_profiles",monsters,"default_actor_radius",(int)eGE.pIq.bcL(),
             "default_actor_los_height",(int)eGE.pIq.bcK());
-        try(var stream=new GZIPOutputStream(Files.newOutputStream(output))){stream.write(new Gson().toJson(result).getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+        try(var stream=Files.newOutputStream(output)){stream.write(new Gson().toJson(result).getBytes(java.nio.charset.StandardCharsets.UTF_8));}
         System.out.println("Exported "+definitions.size()+" characteristics and "+monsters.size()+" NPC profiles to "+output);
     }
 }

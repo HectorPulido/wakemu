@@ -1,4 +1,5 @@
 """Compact native point areas shared by spell, state, and relative resolvers."""
+from wakfu_server import native_catalog as protocol_catalog
 from functools import lru_cache
 import json
 from wakfu_server.paths import DATA_ROOT
@@ -6,7 +7,7 @@ from wakfu_server.paths import DATA_ROOT
 
 @lru_cache(maxsize=1)
 def native_point_area_metadata():
-    return json.loads((DATA_ROOT / "native-point-areas.json").read_text())
+    return protocol_catalog.load(DATA_ROOT / "native-point-areas.json")
 
 
 def merge_native_point_areas(effects, metadata=None):

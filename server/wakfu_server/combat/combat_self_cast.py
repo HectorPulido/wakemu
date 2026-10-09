@@ -1,15 +1,14 @@
 """Native fyP.cwE exception to minimum range at caster XY (fcj.a)."""
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 from .combat_conditions import UnknownCondition, evaluate_condition
 
 
 @lru_cache(maxsize=1)
 def catalog():
-    return json.loads((DATA_ROOT / "native-self-cast-policies.json").read_text())[
-        "spells"
-    ]
+    return protocol_catalog.load(DATA_ROOT / "native-self-cast-policies.json")["spells"]
 
 
 def allows_self(reference, context, *, policies=None):

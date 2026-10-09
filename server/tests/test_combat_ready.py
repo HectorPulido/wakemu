@@ -57,6 +57,7 @@ class ReadyTests(unittest.TestCase):
         preview, messages, packets = self.run_ready(fight, initialize)
         ops = [op for op, _ in packets]
         self.assertLess(ops.index(13912), ops.index(12514))
+        self.assertLess(ops.index(13912), ops.index(12873))
         self.assertEqual(
             ops[ops.index(12514) + 1 : ops.index(13477)], [12613, 13420, 12873]
         )
@@ -95,3 +96,71 @@ class ReadyTests(unittest.TestCase):
         self.assertEqual((candidate.phase, candidate.ready_owners), ("placement", {1}))
         self.assertIsNone(messages)
         self.assertEqual(packets, ())
+
+    def test_initial_creation_delivery_accounts_for_new_actor_without_empty_snapshot(
+        self,
+    ):
+        fight = self.fight()
+        creation = (
+            12613,
+            struct.pack(">iii", fight.id, 1, -1) + b"actual307-descriptor",
+        )
+
+        def initialize(preview, action):
+            actor = Actor(300, 0, (0, 0, 0), 15, 4, 2, 5, 1)
+            preview.actors[300] = actor
+            preview.native_summon_registrations = {300: {"actor_id": 300}}
+            preview.native_summon_creation_deliveries = {
+                300: {"opcode": creation[0], "payload_hex": creation[1].hex()}
+            }
+            return preview, (creation,)
+
+        preview, _, packets = self.run_ready(fight, initialize)
+        self.assertIn(300, preview.actors)
+        self.assertNotIn(300, fight.actors)
+        from wakfu_server.fight_checkpoint_store import _plain, snapshot
+
+        self.assertEqual(
+            _plain(preview.native_summon_creation_deliveries),
+            {"300": {"opcode": creation[0], "payload_hex": creation[1].hex()}},
+        )
+        self.assertIn("native_summon_creation_deliveries", snapshot(preview))
+        snapshots = [payload for op, payload in packets if op == 13912]
+        self.assertEqual(len(snapshots), 2)
+        self.assertTrue(
+            all(struct.unpack_from(">q", payload, 4)[0] != 300 for payload in snapshots)
+        )
+        self.assertLess(
+            next(index for index, row in enumerate(packets) if row[0] == 13912),
+            packets.index(creation),
+        )
+
+    def test_new_actor_requires_registered_matching_creation_in_initial_outbox(self):
+        for registration, recorded, outgoing in (
+            (False, True, True),
+            (True, False, True),
+            (True, True, False),
+        ):
+            with self.subTest(
+                registration=registration, recorded=recorded, outgoing=outgoing
+            ):
+
+                def initialize(preview, action):
+                    preview.actors[300] = Actor(300, 0, (0, 0, 0), 15, 4, 2, 5, 1)
+                    packet = (
+                        12613,
+                        struct.pack(">iii", preview.id, 1, -1)
+                        + b"actual307-descriptor",
+                    )
+                    preview.native_summon_registrations = (
+                        {300: {"actor_id": 300}} if registration else {}
+                    )
+                    preview.native_summon_creation_deliveries = (
+                        {300: {"opcode": packet[0], "payload_hex": packet[1].hex()}}
+                        if recorded
+                        else {}
+                    )
+                    return preview, (packet,) if outgoing else ()
+
+                with self.assertRaisesRegex(ValueError, "creation delivery"):
+                    self.run_ready(self.fight(), initialize)

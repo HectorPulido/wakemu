@@ -1,9 +1,13 @@
 import struct
 import unittest
+from dataclasses import replace
+from types import SimpleNamespace
+from unittest.mock import patch
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.spells import encode_deck
 from wakfu_server.spell_audit import catalog
-from wakfu_server.combat_conditions import ConditionContext
+from wakfu_server.combat_conditions import ConditionActor, ConditionContext
+from wakfu_server.combat_conditional_costs import ConditionalCostContext
 from wakfu_server.combat_effect_dispatch import (
     EffectDispatcher,
     UnsupportedEffectExecution,
@@ -25,8 +29,10 @@ class SpellTransactionTests(unittest.TestCase):
             {pc.position, npc.position},
             {0: {pc.position}, 1: {npc.position}},
         )
-        self.fight.ready(3)
         for actor in self.fight.actors.values():
+            if getattr(actor, "native_los_height", None) is None:
+                actor.native_los_height = 0
+            actor.native_fight_properties = frozenset()
             actor.spell_ap_cost_modifiers = (
                 {}
             )  # Explicit bare fixture, no native modifiers.
@@ -34,8 +40,107 @@ class SpellTransactionTests(unittest.TestCase):
             actor.effect_maxima = {92: 0}
             actor.effect_frozen = frozenset()
             actor.physical_radius = 0
+        from wakfu_server.combat_qi_fight import (
+            prepare_fresh_actor_slots,
+            install_fresh_actor_slots,
+        )
+
+        self.fight.native_qi_snapshot = dict(
+            x=0, y=0, width=3, height=1, cell_masks=[0, 0, 0]
+        )
+        install_fresh_actor_slots(
+            self.fight,
+            prepare_fresh_actor_slots(
+                self.fight,
+                physical_radii={
+                    identity: actor.physical_radius
+                    for identity, actor in self.fight.actors.items()
+                },
+            ),
+        )
+        self.fight.ready(3)
         self.character = dict(id=7, breed=15, level=1)
         self.body = struct.pack(">qqiih", 7, (7 << 32) | 6266, 1, 0, 0)
+        # This transaction fixture owns a compact native Vz terrain domain;
+        # the shared Sf program, QI population and target selectors still run.
+        from wakfu_server.combat_native_los_ray import static_ray, topology_columns
+
+        static_ray.cache_clear()
+        self.addCleanup(static_ray.cache_clear)
+        terrain = patch(
+            "wakfu_server.combat_native_los_ray.topology_columns",
+            side_effect=lambda map_id: {(x, 0): ((0, 0, False),) for x in range(3)}
+            if map_id == 999999
+            else topology_columns(map_id),
+        )
+        terrain.start()
+        self.addCleanup(terrain.stop)
+
+    def cast_authority(self, deck=(6266,)):
+        # This focused fixture has no range modifiers; install that explicit
+        # empty snapshot only after any fresh actor snapshot has been built.
+        for actor in self.fight.actors.values():
+            if actor.spell_range_modifiers is None:
+                actor.spell_range_modifiers = {}
+        context = ConditionContext(
+            {
+                "caster": ConditionActor(
+                    state_ids=frozenset(),
+                    deck_spell_ids=frozenset(deck),
+                    excluded_deck_spell_ids=frozenset(),
+                    is_player=True,
+                    is_carried=False,
+                    fight_properties=frozenset(),
+                    characteristics={"RANGE": 0},
+                )
+            }
+        )
+
+        def produce(request, preview):
+            from wakfu_server.combat_casting_context import NativeOwnedCastingContext
+
+            def metadata(fight, actor):
+                return SimpleNamespace(
+                    native_instance_id=999999,
+                    targeting=dict(
+                        is_eGj=True,
+                        is_amO=True,
+                        is_Qq=False,
+                        is_eHH=True,
+                        bEe=True,
+                        UNTARGETTABLE_BY_OTHER=False,
+                        buX=False,
+                        dTE=False,
+                        bcN=actor.native_obstacle_id,
+                        baF=True,
+                        dpu_id=actor.id,
+                        dpr_id=actor.id,
+                    ),
+                )
+
+            metadata.properties = lambda f, a: a.native_fight_properties
+            adapter = SimpleNamespace(_actor=metadata, actor_authority=metadata)
+
+            def query(rule, spell_id, level):
+                invocation = SimpleNamespace(
+                    caster_id=request["actor_id"], cell=request["target"]
+                )
+                casting = NativeOwnedCastingContext(
+                    adapter, preview, request, invocation, context, rule
+                )
+                casting.resolve_target_fighter()
+                return dict(
+                    result=casting.eligibility(),
+                    aligned=casting.alignment(),
+                    target_id=None if casting.target is None else casting.target.id,
+                )
+
+            return ConditionalCostContext(
+                replace(context, native_casting_query=query),
+                preview.current.spell_ap_cost_modifiers,
+            )
+
+        return produce
 
     def factory(self, preview, plan):
         packets = []
@@ -75,6 +180,7 @@ class SpellTransactionTests(unittest.TestCase):
             action_id=1,
             line_of_sight=lambda *args: True,
             runtime_factory=factory or self.factory,
+            conditional_context=self.cast_authority(),
         )
 
     def test_real_native_spell_roots_share_cost_and_damage_transaction(self):
@@ -95,6 +201,7 @@ class SpellTransactionTests(unittest.TestCase):
             action_id=1,
             line_of_sight=lambda *args: True,
             runtime_factory=self.factory,
+            conditional_context=self.cast_authority(),
             critical=True,
         )
         self.assertEqual(result.packets[0][1][39], 1)
@@ -254,7 +361,16 @@ class SpellTransactionTests(unittest.TestCase):
             )
         self.assertEqual((runtime.action_id, self.fight.actors[7].ap), (0, 5))
 
-    def native_server_fixture(self, breed, level, *, target_hp=200):
+    def native_server_fixture(
+        self,
+        breed,
+        level,
+        *,
+        target_hp=200,
+        native_qi=False,
+        owned_cosmetics=None,
+        target_distance=2,
+    ):
         from wakfu_server.combat_actor_snapshot import (
             build_player_snapshot,
             build_npc_snapshot,
@@ -265,6 +381,7 @@ class SpellTransactionTests(unittest.TestCase):
         character = effective_character(
             dict(
                 id=7,
+                account_id=3,
                 map_id=1134,  # Explicit native POSITION rE.Vp property.
                 breed=breed,
                 level=level,
@@ -274,16 +391,53 @@ class SpellTransactionTests(unittest.TestCase):
                 inventory_items=[],
             )
         )
+        if owned_cosmetics is not None:
+            character["account_id"] = owned_cosmetics.account_id
+            character["owned_cosmetics"] = owned_cosmetics.to_record()
         caster = Actor(
             7, 0, (0, 0, 0), 60, 6, 3, 10, level, 3, True, max_hp=character["max_hp"]
         )
-        target = Actor(-7, 1, (2, 0, 0), target_hp, 6, 3, 5, 1)
+        target = Actor(-7, 1, (target_distance, 0, 0), target_hp, 6, 3, 5, 1)
+        terrain = None
+        if native_qi:
+            from wakfu_server.combat_terrain import local_arena
+
+            caster.position = (-8, -7, -1)
+            target.position = (-8 + target_distance, -7, -1)
+            terrain = local_arena(1134, 7, caster.position, target.position)
         fight = Fight(
             78,
             [caster, target],
-            {(x, y, 0) for x in range(-5, 12) for y in range(-5, 6)},
+            terrain["validated_cells"]
+            if terrain
+            else {(x, y, 0) for x in range(-5, 12) for y in range(-5, 6)},
             {0: {caster.position}, 1: {target.position}},
+            terrain["valid_edges"] if terrain else None,
         )
+        if native_qi:
+            from wakfu_server.combat_global_pv_collections import (
+                initialize_global_pv_collections,
+            )
+            from wakfu_server.combat_qi_fight import (
+                prepare_fresh_actor_slots,
+                install_fresh_actor_slots,
+            )
+
+            from wakfu_server.combat_geometry_snapshot import freeze_terrain
+
+            # Copy the installed map's actual selected surfaces at creation;
+            # synthetic z=0 cells cannot establish map1134 QI.j authority.
+            fight.native_qi_snapshot = {
+                name: terrain[name]
+                for name in ("x", "y", "width", "height", "cell_masks")
+            }
+            fight.native_qi_surface_provenance = dict(
+                terrain["native_qi_surface_provenance"]
+            )
+            freeze_terrain(fight)
+            initialize_global_pv_collections(fight, (7, -7))
+            registry = prepare_fresh_actor_slots(fight, physical_radii={7: 0, -7: 0})
+            install_fresh_actor_slots(fight, registry)
         fight.ready(3)
         caster.direction = 0
         target.direction = 3
@@ -338,6 +492,89 @@ class SpellTransactionTests(unittest.TestCase):
             (6, 200, (-6, -7, -1)),
         )
         self.assertGreaterEqual(sum(op == 12613 for op, _ in result.packets), 2)
+
+    def test_owned_native_carry_spell_uses_normal_origin_and_keeps_source_atomic(self):
+        import random
+        from wakfu_server.combat_server_spell import (
+            prepare_server_spell,
+            prepare_server_initialization,
+        )
+        from wakfu_server.combat_qi_fight import move_registered_actor, current_registry
+        from wakfu_server.combat_carrying import carrying_relations
+        from wakfu_server.combat_spell_grant_book import grant_record
+
+        # Native class extra6847 reaches family334 through290560/290561/290562.
+        # It is granted by actual class initialization, never inserted in deck.
+        character, monster, fight = self.native_server_fixture(12, 200, native_qi=True)
+        deck = encode_deck([4705])
+        fight, _ = prepare_server_initialization(
+            character,
+            {-7: monster},
+            fight,
+            3,
+            deck,
+            action_id=1,
+            rng=random.Random(1),
+            fight_start=True,
+        )
+        extra = grant_record(fight, 7, 6847)
+        self.assertIsNotNone(extra, "Actual Pandawa initialization must grant Karcham")
+        target = fight.actors[-7]
+        destination = (-7, -7, -1)
+        self.assertIn(destination, fight.walkable)
+        move_registered_actor(fight, target, destination)
+        original_ap = fight.actors[7].ap
+        result = prepare_server_spell(
+            struct.pack(">qqiih", 7, extra["uid"], *destination),
+            character,
+            {-7: monster},
+            fight,
+            3,
+            deck,
+            action_id=2,
+            line_of_sight=lambda *args: True,
+            critical=False,
+            rng=random.Random(1),
+        )
+        carrier, carried = result.fight.actors[7], result.fight.actors[-7]
+        self.assertTrue(carrying_relations(result.fight, carried)["is_carried"])
+        self.assertEqual(carried.position, carrier.position)
+        self.assertFalse(
+            current_registry(result.fight).slots[carried.native_obstacle_id]["indexed"]
+        )
+        self.assertTrue(any(opcode == 12613 for opcode, _ in result.packets))
+        self.assertEqual(
+            (fight.actors[7].ap, target.position), (original_ap, destination)
+        )
+        self.assertFalse(carrying_relations(fight, target)["is_carried"])
+        throw = grant_record(result.fight, 7, 6848)
+        self.assertIsNotNone(
+            throw, "Actual carried-state lifecycle must expose Chamrak"
+        )
+        throw_cell = (-6, -7, -1)
+        self.assertIn(throw_cell, result.fight.walkable)
+        released = prepare_server_spell(
+            struct.pack(">qqiih", 7, throw["uid"], *throw_cell),
+            character,
+            {-7: monster},
+            result.fight,
+            3,
+            deck,
+            action_id=3,
+            line_of_sight=lambda *args: True,
+            critical=False,
+            rng=random.Random(1),
+        )
+        self.assertFalse(
+            carrying_relations(released.fight, released.fight.actors[-7])["is_carried"]
+        )
+        self.assertEqual(released.fight.actors[-7].position, throw_cell)
+        self.assertTrue(
+            current_registry(released.fight).slots[carried.native_obstacle_id][
+                "indexed"
+            ]
+        )
+        self.assertTrue(carrying_relations(result.fight, carried)["is_carried"])
 
     def test_server_entry_native_transposition_swaps_and_keeps_original_until_commit(
         self,

@@ -8,7 +8,7 @@ import random
 
 
 def owned_spells(fight, monsters):
-    from .monsters import native_abilities
+    from wakfu_server.monsters import native_abilities
 
     actor = fight.current
     if actor is None or actor.controlled or actor.hp <= 0 or actor.id not in monsters:
@@ -126,11 +126,22 @@ def prepare_npc_spell(
     preview = deepcopy(fight)
     caster = preview.actors[actor.id]
     start = len(preview.events)
-    caster.ap -= rule["costs"]["ap"]
-    caster.mp -= rule["costs"]["mp"]
+    if getattr(caster, "effect_resource_raw_currents", None) is not None:
+        from .combat_resource_pa_notifications import shift_resource_current
+
+        shift_resource_current(preview, caster, 2, rule["costs"]["ap"], subtract=True)
+        shift_resource_current(preview, caster, 3, rule["costs"]["mp"], subtract=True)
+    else:
+        before_ap = caster.ap
+        caster.ap -= rule["costs"]["ap"]
+        caster.effect_stats[2] = caster.ap
+        from .combat_resource_pa_notifications import notify_resource_pa
+
+        notify_resource_pa(preview, caster, 2, before_current=before_ap)
+        caster.mp -= rule["costs"]["mp"]
     caster.effect_stats[4] -= rule["costs"]["wp"]
     preview._sync_resources(caster)
-    mirror_cast_facing(caster, plan)
+    mirror_cast_facing(caster, plan, fight=preview)
     dispatcher, effect_packets = factory(preview, plan)
     with active_spell_scope(preview, spell), preview.effect_resolution():
         outcomes = tuple(

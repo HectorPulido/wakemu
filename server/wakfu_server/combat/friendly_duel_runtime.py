@@ -64,6 +64,7 @@ def prepare_and_register(
         fight_id,
         (challenger["x"], challenger["y"], challenger["z"]),
         [(target["x"], target["y"], target["z"])],
+        relocate_monsters=False,
     )
     arena = freeze(
         store,
@@ -121,6 +122,37 @@ def prepare_and_register(
         arena["placement_cells"],
         arena.get("valid_edges"),
     )
+    from wakfu_server.combat_qi_snapshot import NativeQISnapshot
+    from wakfu_server.combat_global_pv_collections import (
+        initialize_global_pv_collections,
+    )
+    from wakfu_server.combat_cosmetic_conditions import (
+        initialize_fresh_player_cosmetics,
+    )
+
+    # The duel serializes the same cvb terrain and QK actor bytes as PvE.
+    # Install its actual rectangle before the snapshot producer consumes the
+    # fresh registration boundary; otherwise it cannot populate native QI.
+    qi = NativeQISnapshot(
+        {key: arena[key] for key in ("x", "y", "width", "height", "cell_masks")}
+    )
+    fight.native_qi_snapshot = dict(
+        x=qi.x,
+        y=qi.y,
+        width=qi.width,
+        height=qi.height,
+        cell_masks=list(qi.masks),
+    )
+    initialize_global_pv_collections(fight, tuple(fight.actors))
+    for actor in fight.actors.values():
+        initialize_fresh_player_cosmetics(actor, characters[actor.id])
+    provenance = arena.get("native_qi_surface_provenance")
+    if provenance is not None:
+        from wakfu_server.combat_qi_surface_catalog import native_qi_surface_provenance
+
+        if provenance != native_qi_surface_provenance(map_id):
+            raise ValueError("Arena native QI surface provenance mismatch")
+        fight.native_qi_surface_provenance = dict(provenance)
     freeze_terrain(fight)
     fight.native_obstacle_cells = (
         frozenset() if arena.get("team_values") == [] else None

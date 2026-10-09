@@ -42,7 +42,7 @@ class OrdinaryDamageEventsTests(unittest.TestCase):
         target.hp = target.max_hp = 12000
         target.effect_stats[1] = target.effect_maxima[1] = 12000
         actors = OrdinaryActorAuthority(
-            characters={7: dict(id=7, breed=15)},
+            characters={7: dict(id=7, breed=15, level=1)},
             monsters={-7: dict(id=-7, ref=5525)},
             decks={7: [6266]},
             excluded_decks={7: []},

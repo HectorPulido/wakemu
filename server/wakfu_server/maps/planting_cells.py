@@ -3,7 +3,7 @@
 Open local-test policy relaxes species territory and ground suitability,
 including ground zero. Native height resolution and occupancy still apply.
 """
-import gzip
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
 from .paths import DATA_ROOT
@@ -11,17 +11,16 @@ from .planting_context import region, bootstrap
 
 GROUNDS = {
     r["ground_id"]: r
-    for r in json.loads((DATA_ROOT / "planting-grounds.json").read_text())
+    for r in protocol_catalog.load(DATA_ROOT / "planting-grounds.json")
 }
 
 
 @lru_cache(maxsize=8)
 def cells(map_id):
-    path = DATA_ROOT / "planting-maps" / f"{int(map_id)}.json.gz"
-    if not path.exists():
+    path = DATA_ROOT / "planting-maps" / f"{int(map_id)}.json"
+    if not protocol_catalog.exists(path):
         raise ValueError("Native planting surfaces unavailable")
-    with gzip.open(path, "rt") as stream:
-        rows = json.load(stream)["cells"]
+    rows = protocol_catalog.load(path)["cells"]
     result = {}
     for x, y, z, partition, ground, territory in rows:
         result.setdefault((x, y), []).append(

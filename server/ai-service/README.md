@@ -47,6 +47,13 @@ Configuración: `WAKFU_AI_BIND` (predeterminado `0.0.0.0`), `WAKFU_AI_PORT`
 conserva el presupuesto de 10 s y la fracción de búsqueda 0,25. La preparación
 no recorta datos ni renueva el plazo real del turno.
 
+Concurrencia: `WAKFU_AI_MAX_DECISIONS` permite **16 búsquedas activas** por
+defecto (1–64); `WAKFU_AI_MAX_CONNECTIONS` permite **64 conexiones/hilos HTTP**
+(1–128, al menos tantas como búsquedas). El registro de sesiones usa el mismo
+límite de búsquedas. `/health` publica ambos límites. Aumentarlos permite
+atender más combates simultáneos; no convierte una búsqueda Python en trabajo
+paralelo de CPU ni amplía su presupuesto de 10 s.
+
 Desde la raíz del repositorio, reconstruir la única versión de AI:
 
 ```sh
@@ -96,3 +103,24 @@ módulos de `scripts` o `benchmarks`, con este directorio en `PYTHONPATH`.
 - [Catálogo del contenedor](docs/CATALOGO-CONTENEDOR.md).
 - [Formato fragmentado experimental](docs/FORMATO-GRAFO-FRAGMENTADO.md).
 - [Historia del servicio y contratos detallados](docs/HISTORIAL-SERVICIO.md).
+
+## Walking without executable attacks
+
+The native repertoire includes a state-bound prerequisite certificate for NPC
+abilities blocked by missing positive-level casting tables or required casting
+root metadata. The planner removes only explicitly certified unavailable
+spell keys. Unknown abilities, PC casting sources, level-zero tables and
+stale or unfamiliar certificates retain ordinary native queries. The complete
+repertoire, catalogue and arena are preserved.
+
+When every owned ability is certified unavailable, or the native repertoire
+is empty, `policy.movementOnlySearchMs` caps additional position exploration
+at 100 ms by default (accepted range: 1–10,000). The first action still needs
+native certification, and the absolute turn deadline and commit reserve stay
+in force. This is an exploration allowance, not a total turn latency promise.
+
+Shared turns reuse the fully transferred immutable catalogue manifest across
+fresh action sessions. The scope ends with that turn and is isolated by fight,
+exporter and service URL; every action still captures its complete runtime and
+checks its source. Each certified batch is published before replanning, through
+the shared Registry sequence and the existing real client ACK barrier.

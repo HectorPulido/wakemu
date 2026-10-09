@@ -4,20 +4,19 @@ Initialize once, before combat effects. Handlers subsequently mutate the same
 snapshot; rebuilding would erase active modifiers and is deliberately rejected.
 Absent characteristic values are never filled with invented zeros.
 """
-import gzip
+from wakfu_server import native_catalog as protocol_catalog
 import json
 import math
 from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.equipment_stats import bonuses, effective_character
-from .equipment_damage import _float
+from wakfu_server.equipment_damage import _float
 
 
 @lru_cache(maxsize=1)
 def native_actor_catalog():
-    with gzip.open(DATA_ROOT / "native-actor-characteristics.json.gz", "rt") as source:
-        return json.load(source)
+    return protocol_catalog.load(DATA_ROOT / "native-actor-characteristics.json")
 
 
 def _int32(value):
@@ -42,6 +41,7 @@ def _fresh(actor, running_effects):
             "effect_frozen",
             "physical_radius",
             "spell_ap_cost_modifiers",
+            "spell_range_modifiers",
         )
     ):
         raise ValueError(
@@ -63,6 +63,10 @@ class ActorSnapshot:
     native_los_height: int | None = None
 
     native_hud_breed: int | None = None
+    native_physical_position: tuple | None = None
+    native_jump_height: int | None = None
+    native_cosmetic_state: dict | None = None
+    native_hp_on_operand: dict | None = None
 
     def install(self, actor):
         _fresh(actor, ())
@@ -89,22 +93,63 @@ class ActorSnapshot:
             or actor.native_los_height not in (None, self.native_los_height)
         ):
             raise ValueError("Missing or conflicting native actor LOS height")
+        if (
+            self.native_physical_position != actor.position
+            or self.native_jump_height != 4
+        ):
+            raise ValueError("Missing or changed native fresh actor physics snapshot")
+        existing_cosmetics = getattr(actor, "native_cosmetic_state", None)
+        if (
+            self.native_cosmetic_state is not None
+            and existing_cosmetics is not None
+            and existing_cosmetics != self.native_cosmetic_state
+        ):
+            raise ValueError("Conflicting native fresh cosmetic constructor state")
         actor.native_hud_breed = self.native_hud_breed
+        actor.native_physical_position = self.native_physical_position
+        actor.native_jump_height = self.native_jump_height
         actor.native_los_height = self.native_los_height
+        if self.native_cosmetic_state is not None:
+            actor.native_cosmetic_state = {
+                "selected_values": dict(self.native_cosmetic_state["selected_values"]),
+                "active_cosmetics": dict(
+                    self.native_cosmetic_state["active_cosmetics"]
+                ),
+            }
         actor.effect_stats = dict(self.stats)
         actor.effect_minima = dict(self.minima)
         actor.effect_maxima = dict(self.maxima)
         actor.effect_frozen = self.frozen
+        if all(k in self.stats and k not in self.frozen for k in (2, 3)):
+            from .combat_resource_pa_notifications import RAW_SOURCE
+
+            actor.effect_resource_raw_currents = {k: self.stats[k] for k in (2, 3)}
+            actor.native_resource_raw_current_source = RAW_SOURCE
         actor.physical_radius = self.physical_radius
         actor.effect_percentages = dict(self.percentages)
         actor.effect_base_maxima = dict(self.base_maxima)
         # Resource native PA.bqF is explicitly initialized before live effects.
         actor.effect_base_minima = dict(self.minima)
+        if self.native_hp_on_operand is not None:
+            from .combat_hp_raw import install_fresh_hp_operand
+
+            install_fresh_hp_operand(actor, self.native_hp_on_operand)
         # eGj constructor creates eHl with null pOJ/pOK; a(fyU) returns0.
         # Builders reject running effects and non-flat gear/aptitudes, so no
         # effect capable of writing eHl has run at this fresh boundary.
         # Future passives/active handlers must mutate this same mapping.
         actor.spell_ap_cost_modifiers = {}
+        actor.spell_range_modifiers = {}
+        # All owned fresh actor serializers emit po.SX=0 after characteristics.
+        # eGm.zm copies that byte through eGj.lx into eGz.pHH.
+        actor.native_controlled_by_ai = False
+        from .combat_restore_strategy import initialize_restore_strategy
+
+        initialize_restore_strategy(actor)
+        actor.native_death_script_id = (
+            -1
+        )  # Fresh eGj constructor, before retained effects.
+        actor.native_turn_suppression_bits = 0  # Fresh eGj.pGO = new BitSet().
 
 
 def _rows(catalog):
@@ -150,6 +195,17 @@ def _finish(
         {k: 0 for k in stats},
         dict(maxima),
         los_height,
+        native_physical_position=tuple(actor.position),
+        native_jump_height=4,
+        native_hp_on_operand=(
+            None
+            if 1 in frozen
+            else dict(
+                producer="fresh_initial_tB_HP.on_resource_override",
+                actor_id=actor.id,
+                raw_current=actor.hp,
+            )
+        ),
     )
 
 
@@ -174,7 +230,7 @@ def build_player_snapshot(
     _fresh(actor, running_effects)
     if actor.id != character["id"] or not actor.controlled:
         raise ValueError("Player snapshot belongs to a different actor")
-    from .builds import effective_sheet_level
+    from wakfu_server.builds import effective_sheet_level
 
     selected_index = (
         character.get("active_build_index", 0) if build_index is None else build_index
@@ -245,11 +301,17 @@ def build_player_snapshot(
         initialization_warnings.extend(
             initialization_warning(actor.id, e) for e in skipped
         )
-    return replace(result, native_hud_breed=character["breed"])
+    from .combat_cosmetic_conditions import fresh_player_cosmetic_state
+
+    return replace(
+        result,
+        native_hud_breed=character["breed"],
+        native_cosmetic_state=fresh_player_cosmetic_state(character),
+    )
 
 
 def native_npc_creation_values(reference, level, *, catalog=None):
-    """Native ffx creation at any legal positive short level, also for eHD.
+    """Native ffx creation at any nonnegative signed-short level, also for eHD.
 
     World spawn policy may impose breed min/max separately; eZl creates its
     descriptor at spell/caster level and does not impose that policy.
@@ -257,7 +319,7 @@ def native_npc_creation_values(reference, level, *, catalog=None):
     catalog = native_actor_catalog() if catalog is None else catalog
     rows = _rows(catalog)
     profile = catalog["npc_profiles"].get(str(reference))
-    if profile is None or type(level) is not int or not 0 < level < 32768:
+    if profile is None or type(level) is not int or not 0 <= level < 32768:
         raise ValueError("Missing native NPC profile or level")
     values = {int(k): dict(v) for k, v in profile["at_base_level"].items()}
     if set(values) != set(rows):
@@ -326,6 +388,16 @@ def initialize_fight_snapshots(
         or fight.state_wire_payloads
     ):
         raise ValueError("Fight is not an uninitialized placement")
+    existing_pr_policy = getattr(fight, "native_pr_completion_authority", None)
+    if existing_pr_policy is not None and (
+        not isinstance(existing_pr_policy, dict)
+        or existing_pr_policy.get("source") != "wakemu.fresh.pr_notification_policy"
+        or existing_pr_policy.get("watchers") != []
+        or existing_pr_policy.get("completed") != []
+    ):
+        raise ValueError(
+            "Existing PR notification authority is not a fresh Wakemu policy"
+        )
     if (
         type(initial_effect_uid) is not int
         or not 0 < initial_effect_uid < (1 << 63)
@@ -368,6 +440,14 @@ def initialize_fight_snapshots(
                 running_effects=running_effects[identity],
             )
         prepared[identity] = snapshot
+    from .combat_qi_fight import prepare_fresh_actor_slots, install_fresh_actor_slots
+
+    qi_registry = prepare_fresh_actor_slots(
+        fight,
+        physical_radii={
+            identity: value.physical_radius for identity, value in prepared.items()
+        },
+    )
     # All builders above are read-only. Each installation below performs only
     # dataclass field assignments, after the entire roster has been validated.
     for identity, snapshot in prepared.items():
@@ -376,6 +456,14 @@ def initialize_fight_snapshots(
             # Actual fresh biB WP observers are bkq/biB, UI refresh only.
             # No owned eWr/eXb link has run at this validated fresh boundary.
             fight.actors[identity].native_resource_numeric_observers = {4: ()}
+    install_fresh_actor_slots(fight, qi_registry)
+    from .combat_pr_completion import fresh_pr_completion_authority
+
+    if existing_pr_policy is None:
+        # A successfully initialized fresh fight owns an explicit Wakemu PR
+        # observer policy. Restored fights must restore their own provenance;
+        # they do not inherit this constructor choice implicitly.
+        fight.native_pr_completion_authority = fresh_pr_completion_authority()
     fight.native_effect_uid_next = initial_effect_uid
     if initialization_warnings is not None:
         initialization_warnings.extend(local_warnings)

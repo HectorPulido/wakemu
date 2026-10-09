@@ -8,6 +8,7 @@ import json
 import os
 import secrets
 import struct
+import sys
 import time
 
 from psycopg.conninfo import conninfo_to_dict
@@ -23,6 +24,71 @@ from wakfu_server.combat.combat_multiplayer_wire import decode_external
 from wakfu_server.combat.combat_spectator_wire import decode_spectator_bootstrap
 from wakfu_server.combat.combat_wire import decode_topology
 from wakfu_server.store import Store
+
+
+class DiagnosticPeer:
+    """Opt-in metadata trace; never emit bodies, exception text or credentials."""
+
+    def __init__(self, peer, role, *, enabled=False, emit=None, clock=None):
+        self._peer = peer
+        self._role = role
+        self._enabled = enabled
+        self._emit = emit or (
+            lambda row: print(json.dumps(row), file=sys.stderr, flush=True)
+        )
+        self._clock = clock or time.monotonic
+
+    def __getattr__(self, name):
+        return getattr(self._peer, name)
+
+    def _call(self, operation, opcode, *args, **kwargs):
+        if not self._enabled:
+            return getattr(self._peer, operation)(*args, **kwargs)
+        started = self._clock()
+        metadata = dict(
+            event="tls_gate_io", role=self._role, operation=operation, opcode=opcode
+        )
+        self._emit(dict(metadata, stage="started", monotonic=started))
+        try:
+            result = getattr(self._peer, operation)(*args, **kwargs)
+        except Exception as error:
+            finished = self._clock()
+            # Peer timeout assertions contain opcode lists; their text is not
+            # copied because arbitrary future errors could include payloads.
+            timeout = isinstance(error, TimeoutError) or (
+                isinstance(error, AssertionError)
+                and str(error).startswith("timeout for ")
+            )
+            self._emit(
+                dict(
+                    metadata,
+                    stage="finished",
+                    monotonic=finished,
+                    duration=finished - started,
+                    outcome="timeout" if timeout else "error",
+                )
+            )
+            raise
+        finished = self._clock()
+        self._emit(
+            dict(
+                metadata,
+                stage="finished",
+                monotonic=finished,
+                duration=finished - started,
+                outcome="success",
+            )
+        )
+        return result
+
+    def send(self, opcode, body=b""):
+        return self._call("send", opcode, opcode, body)
+
+    def wait(self, opcode, timeout=45):
+        return self._call("wait", opcode, opcode, timeout=timeout)
+
+    def wait_any(self, opcodes, timeout=45):
+        return self._call("wait_any", sorted(opcodes), opcodes, timeout=timeout)
 
 
 def marker(peer, fight_id, *, timeout=20):
@@ -49,6 +115,30 @@ def assert_topology_carrier(value):
     assert set(value["mys"]) == expected, "13753 partitions do not cover QI"
     assert topology["instance_id"] == 0, "13753 is outside public scene"
     return topology
+
+
+def wait_own_return(peer, fight_id, character_id):
+    # 12608 can be ambient actor traffic queued during the retreat. The own
+    # health continuation is emitted by return_to_world after its durable ACK.
+    peer.discard_buffered()
+    peer.send(12925, struct.pack(">iB", fight_id, 1))
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        body, _ = peer.wait(12436, timeout=max(0.1, deadline - time.monotonic()))
+        if len(body) == 16 and struct.unpack_from(">q", body)[0] == character_id:
+            return
+    raise AssertionError("No own health continuation after return ACK")
+
+
+def wait_sql(store, query, parameters, predicate, description):
+    deadline = time.monotonic() + 5
+    last = None
+    while time.monotonic() < deadline:
+        with store.connection() as db:
+            last = db.execute(query, parameters).fetchone()
+        if predicate(last):
+            return last
+    raise AssertionError(f"{description}: last durable state={last!r}")
 
 
 def main():
@@ -78,7 +168,9 @@ def main():
                 breed=8,
             )
             fixture.append((account, character))
-            peer = Peer()
+            peer = DiagnosticPeer(
+                Peer(), role, enabled=os.environ.get("WAKFU_TLS_GATE_TRACE") == "1"
+            )
             peers.append(peer)
             _login(store, peer, account, character, role)
         owner, joining, observer = peers
@@ -123,8 +215,10 @@ def main():
         joining.send(12523, b"\x01")
         owner.wait(13482)
         joining.wait(13482)
-        active_marker = marker(observer, fight_id)
-        assert_topology_carrier(active_marker)
+        action_phase, _ = observer.wait(12233, timeout=20)
+        assert (
+            struct.unpack_from(">i", action_phase)[0] == fight_id
+        ), "Native phase carrier belongs to another fight"
         observer.send(13413, struct.pack(">i", fight_id))
         body, _ = observer.wait(12044)
         active = decode_spectator_bootstrap(body)
@@ -134,10 +228,17 @@ def main():
             joining_id,
             actor_id,
         }
+        owner.discard_buffered()
         owner.send(13952)
         owner.wait(12238)
-        owner.send(12925, struct.pack(">iB", fight_id, 1))
-        owner.wait_any({12608, 12789, 13948, 13984}, timeout=15)
+        wait_own_return(owner, fight_id, owner_id)
+        wait_sql(
+            store,
+            "SELECT returned_at FROM combat_pve_withdrawals WHERE fight_id=%s AND character_id=%s",
+            (fight_id, owner_id),
+            lambda row: row is not None and row["returned_at"] is not None,
+            "Individual withdrawal ACK was not persisted",
+        )
         with store.connection() as db:
             row = db.execute(
                 "SELECT status FROM combat_fights WHERE id=%s", (fight_id,)
@@ -151,14 +252,22 @@ def main():
                 (fight_id, owner_id),
             ).fetchone()
             assert receipt is not None and receipt["returned_at"] is not None
+        joining.discard_buffered()
         joining.send(13952)
         joining.wait(12238)
-        joining.send(12925, struct.pack(">iB", fight_id, 1))
-        joining.wait_any({12608, 12789, 13948, 13984}, timeout=15)
+        wait_own_return(joining, fight_id, joining_id)
         # Active spectator receives its terminal continuation independently.
         observer.wait(12238)
+        observer.discard_buffered()
         observer.send(12925, struct.pack(">iB", fight_id, 1))
-        observer.wait_any({12608, 12789, 13948, 13984}, timeout=15)
+        observer.wait_any({12789, 13948, 13984}, timeout=15)
+        wait_sql(
+            store,
+            "SELECT status FROM combat_fights WHERE id=%s",
+            (fight_id,),
+            lambda row: row is not None and row["status"] == "aborted",
+            "Last-owner surrender was not durably aborted",
+        )
         with store.connection() as db:
             assert (
                 db.execute(
@@ -180,7 +289,8 @@ def main():
                     "fixture_character_ids": [row[1]["id"] for row in fixture],
                     "fight_id": fight_id,
                     "placement_phase": placement_marker["phase_code"],
-                    "active_phase": active_marker["phase_code"],
+                    "active_phase": active["phase_code"],
+                    "phase_carrier": 12233,
                     "public_origin": [public["x"], public["y"], public["min_z"]],
                     "joined": True,
                     "spectator_placement": True,

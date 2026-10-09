@@ -1,4 +1,5 @@
 """Native aKe resources exported from the installed client; no fallback breed."""
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
 from .paths import DATA_ROOT
@@ -8,9 +9,9 @@ from .paths import DATA_ROOT
 def _catalog():
     return {
         row["breed"]: row["resources"]
-        for row in json.loads(
-            (DATA_ROOT / "breed-innate-definitions.json").read_text()
-        )["breeds"]
+        for row in protocol_catalog.load(DATA_ROOT / "breed-innate-definitions.json")[
+            "breeds"
+        ]
     }
 
 

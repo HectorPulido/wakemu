@@ -37,13 +37,27 @@ CLASS_LABELS = {
 }
 
 
-def create_roster(store, account_id, *, level=200, prefix="Prueba"):
+def create_roster(
+    store,
+    account_id,
+    *,
+    level=200,
+    prefix="Prueba",
+    selected_breeds=None,
+    preferred_active=None,
+):
     level_xp(level)
     breeds = playable_breeds()
     if breeds != frozenset(CLASS_LABELS):
         raise ValueError("Installed class catalog differs from this test roster")
-    requested = [(breed, f"{prefix} {CLASS_LABELS[breed]}") for breed in sorted(breeds)]
-    requested.append((11, f"{prefix} Sacro Control"))
+    selected = breeds if selected_breeds is None else frozenset(selected_breeds)
+    if not selected or not selected <= breeds:
+        raise ValueError("Requested class is outside the installed playable catalog")
+    requested = [
+        (breed, f"{prefix} {CLASS_LABELS[breed]}") for breed in sorted(selected)
+    ]
+    if selected_breeds is None:
+        requested.append((11, f"{prefix} Sacro Control"))
     with store.connection() as db:
         if (
             db.execute("SELECT id FROM accounts WHERE id=%s", (account_id,)).fetchone()
@@ -83,7 +97,15 @@ def create_roster(store, account_id, *, level=200, prefix="Prueba"):
                 level=level, hp=maximum(breed, level), max_hp=maximum(breed, level)
             )
             spells = available_spells(breed, level)
-            active = [s["id"] for s in spells if s["kind"] == "active"][:12]
+            available = [s["id"] for s in spells if s["kind"] == "active"]
+            preferred = list((preferred_active or {}).get(breed, ()))
+            if len(preferred) != len(set(preferred)) or any(
+                ref not in available for ref in preferred
+            ):
+                raise ValueError("Preferred deck action is not owned by this class")
+            active = (preferred + [ref for ref in available if ref not in preferred])[
+                :12
+            ]
             deck = encode_deck(active, (), -1)
             sheet = b"".join(
                 proto_field(tag, value)
@@ -143,8 +165,8 @@ def create_roster(store, account_id, *, level=200, prefix="Prueba"):
         )
     return dict(
         account_id=account_id,
-        requested_count=19,
-        playable_classes=len(breeds),
+        requested_count=len(requested),
+        playable_classes=len(selected),
         characters=result,
     )
 
@@ -156,12 +178,22 @@ if __name__ == "__main__":
     parser.add_argument("--level", type=int, default=200)
     parser.add_argument("--max-characters", type=int, default=24)
     parser.add_argument("--prefix", default="Prueba")
+    parser.add_argument(
+        "--breed",
+        action="append",
+        type=int,
+        help="Create only this playable class; may be repeated",
+    )
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     store = Store(args.db, max_characters=args.max_characters)
     try:
         report = create_roster(
-            store, args.account_id, level=args.level, prefix=args.prefix
+            store,
+            args.account_id,
+            level=args.level,
+            prefix=args.prefix,
+            selected_breeds=args.breed,
         )
     finally:
         store.close()

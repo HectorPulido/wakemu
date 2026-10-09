@@ -3,18 +3,21 @@
 import json
 import base64
 import os
+import socket
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from ..planning.planner import decide
 from ..planning.query_sessions import QuerySessions
 from ..context.context_store import ContextStore
+from .capacity import capacities
 
 
 MAX_BODY = 4 * 1024 * 1024
-DECISIONS = threading.BoundedSemaphore(8)
+MAX_DECISIONS, MAX_CONNECTIONS = capacities()
+DECISIONS = threading.BoundedSemaphore(MAX_DECISIONS)
 _CONTEXT_STORE = None
 _CONTEXT_LOCK = threading.Lock()
-_QUERY_SESSIONS = QuerySessions()
+_QUERY_SESSIONS = QuerySessions(capacity=MAX_DECISIONS)
 
 
 def context_store():
@@ -73,13 +76,18 @@ def context_request(path, payload):
 class BoundedHTTPServer(ThreadingHTTPServer):
     """Bound sockets as well as CPU decisions, including incomplete headers."""
 
-    def __init__(self, address, handler, *, max_connections=16):
+    request_queue_size = MAX_CONNECTIONS
+
+    def __init__(self, address, handler, *, max_connections=MAX_CONNECTIONS):
         if type(max_connections) is not int or not 1 <= max_connections <= 128:
             raise ValueError("Invalid AI connection capacity")
         self.connections = threading.BoundedSemaphore(max_connections)
         super().__init__(address, handler)
 
     def process_request(self, request, client_address):
+        # Headers and small JSON bodies are separate writes. Nagle combined
+        # with delayed ACK otherwise adds ~40 ms to persistent round trips.
+        request.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         request.settimeout(5)
         if not self.connections.acquire(blocking=False):
             try:
@@ -125,7 +133,12 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
-        self.send_header("Connection", "close")
+        keepalive = (
+            getattr(self, "complete_request_body", False)
+            and self.headers.get("X-Wakfu-Keepalive") == "1"
+            and status == 200
+        )
+        self.send_header("Connection", "keep-alive" if keepalive else "close")
         self.end_headers()
         try:
             self.wfile.write(data)
@@ -133,18 +146,25 @@ class Handler(BaseHTTPRequestHandler):
             # An owner can abandon a negotiation at its deadline. The search
             # is cancelled separately; a disconnected HTTP peer is expected.
             pass
-        self.close_connection = True
+        self.close_connection = not keepalive
 
     def do_GET(self):
         if self.path == "/health":
             self._json(
                 200,
-                dict(status="ok", service="wakfu-ai", protocol=1, protocols=[1, 2, 3]),
+                dict(
+                    status="ok",
+                    service="wakfu-ai",
+                    protocol=1,
+                    protocols=[1, 2, 3],
+                    capacity=dict(decisions=MAX_DECISIONS, connections=MAX_CONNECTIONS),
+                ),
             )
         else:
             self._json(404, dict(error="Unknown AI endpoint"))
 
     def do_POST(self):
+        self.complete_request_body = False
         if self.path not in (
             "/v1/decide",
             "/v2/decide",
@@ -175,6 +195,7 @@ class Handler(BaseHTTPRequestHandler):
             body = self.rfile.read(length)
             if len(body) != length:
                 raise ValueError("Incomplete request body")
+            self.complete_request_body = True
             snapshot = json.loads(
                 body, parse_constant=_invalid_constant, object_pairs_hook=_object
             )

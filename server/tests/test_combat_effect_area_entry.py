@@ -13,10 +13,15 @@ from wakfu_server.fight_checkpoint_store import snapshot
 from wakfu_server.combat_state_managers import state_manager, state_managers
 
 
-@patch.dict(
-    os.environ, {"WAKFU_NATIVE_AREA_CALLBACKS": "1", "WAKFU_NATIVE_GRANTED_CAST": "1"}
-)
+@patch.dict(os.environ, {"WAKFU_NATIVE_GRANTED_CAST": "1"})
 class NativeAreaEntryTests(unittest.TestCase):
+    def setUp(self):
+        policy = patch.dict(os.environ)
+        policy.start()
+        self.addCleanup(policy.stop)
+        # Exercise the actual default producer, without an opt-in override.
+        os.environ.pop("WAKFU_NATIVE_AREA_CALLBACKS", None)
+
     def test_real_feca_glyph_creation_and_turn_boundary_with_class_initialization(self):
         for level, damage in ((1, 5), (200, 145)):
             with self.subTest(level=level):
@@ -25,7 +30,7 @@ class NativeAreaEntryTests(unittest.TestCase):
                     monster,
                     fight,
                 ) = fixture_module.SpellTransactionTests().native_server_fixture(
-                    1, level
+                    1, level, native_qi=True
                 )
                 deck = encode_deck([6967], [])
                 fight, _ = prepare_server_initialization(
@@ -40,7 +45,10 @@ class NativeAreaEntryTests(unittest.TestCase):
                 )
                 before = snapshot(fight)
                 tx = prepare_server_spell(
-                    struct.pack(">qqiih", 7, (7 << 32) | 6967, 3, 0, 0),
+                    # Map1134 publishes (-5,-7) as surface(z=-1,index=0).
+                    # Native6967 needs range2..3 and no LOS; its cross at
+                    # distance3 includes the NPC on adjacent(-6,-7,-1).
+                    struct.pack(">qqiih", 7, (7 << 32) | 6967, -5, -7, -1),
                     character,
                     {-7: monster},
                     fight,

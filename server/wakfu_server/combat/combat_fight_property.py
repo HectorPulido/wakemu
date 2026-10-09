@@ -1,11 +1,13 @@
 """eWt447 property counters, native retained ownership and exact resource writes."""
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 from .combat_property_stack import add_property, remove_property
 from .combat_stat_handler import StatExecutionContext
 from .combat_stat_effects import owned_effect_payload
 from .combat_effect_removal import running_effect_removal
+from .combat_observation_delivery import evaluated_application_from_observation
 from .combat_effects import _integer, _varint
 from .combat_displacement import position_payload
 
@@ -14,7 +16,7 @@ from .combat_displacement import position_payload
 def property_registry():
     return {
         r["id"]: r
-        for r in json.loads((DATA_ROOT / "native-fight-properties.json").read_text())[
+        for r in protocol_catalog.load(DATA_ROOT / "native-fight-properties.json")[
             "properties"
         ]
     }
@@ -43,6 +45,14 @@ def _side_effect(fight, actor, property_id, *, applying, authority):
         minimum = actor.effect_minima[stat]
         if type(minimum) is not int:
             raise ValueError("Invalid native PA current minimum")
+        if getattr(actor, "effect_resource_raw_currents", None) is not None:
+            from .combat_resource_pa_notifications import (
+                set_resource_current,
+                resource_raw_current,
+            )
+
+            resource_raw_current(actor, stat)
+            return lambda: set_resource_current(fight, actor, stat, minimum)
         return lambda: (
             actor.effect_stats.__setitem__(stat, minimum),
             setattr(actor, "ap" if stat == 2 else "mp", minimum),
@@ -89,7 +99,9 @@ class NativeFightPropertyHandler:
             raise ValueError("Missing native evaluated property")
         prop = p[0]
         # eWt rejects null/non-eGj targets and enum lookup failures with mu(true).
-        actor = self.fight.actors.get(invocation.target_id)
+        from .combat_summon_initialization import registered_or_detached_actor
+
+        actor = registered_or_detached_actor(self.fight, invocation.target_id)
         if actor is None or prop not in property_registry():
             return False
         native = self.authority(self.fight, actor)
@@ -146,13 +158,24 @@ class NativeFightPropertyHandler:
                 timer=None if ctx.timer is None else dict(vars(ctx.timer)),
                 collision_affiliation=native.targeting.get("bcN"),
             )
-        self.packets.append((13497, packet))
+        self.packets.append(
+            (
+                12613,
+                evaluated_application_from_observation(
+                    packet, execute=not ctx.retained
+                ),
+            )
+        )
         return True
 
 
 def remove_fight_property(handler, uid):
     row = handler.fight.owned_stat_effects[uid]
-    actor = handler.fight.actors[row["target_id"]]
+    from .combat_summon_initialization import registered_or_detached_actor
+
+    actor = registered_or_detached_actor(handler.fight, row["target_id"])
+    if actor is None:
+        raise ValueError("Missing actual native property effect target")
     counts = getattr(actor, "native_fight_property_counts", None)
     if counts is None:
         raise ValueError("Missing native retained property counters")
@@ -172,7 +195,7 @@ def remove_fight_property(handler, uid):
             raise ValueError("Missing native retained QI affiliation ownership")
         # Server fresh eWt has rBj=null. At serialization it writes current
         # position; the client then restores these current authoritative coords.
-        from .wire import proto_fields, proto_field
+        from wakfu_server.wire import proto_fields, proto_field
 
         extra = visibility_additional(actor)
         payload = b"".join(

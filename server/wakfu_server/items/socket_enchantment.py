@@ -4,6 +4,7 @@ The client request shapes are native. Sacrifice, charge costs and random
 outcomes remain explicit experiment policy in ``settings``; this module does
 not describe those choices as upstream server rules.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import hashlib
 import json
 import secrets
@@ -32,7 +33,7 @@ def _bonus_catalog():
     if _BONUS_CATALOG is None:
         from wakfu_server.paths import DATA_ROOT
 
-        document = json.loads((DATA_ROOT / "item-shard-effects.json").read_text())
+        document = protocol_catalog.load(DATA_ROOT / "item-shard-effects.json")
         source = document.get("source", {})
         rows = document.get("items")
         if (

@@ -1,0 +1,8 @@
+(version 1)
+(allow default)
+(deny network*)
+(allow network-inbound (local ip "localhost:*"))
+(allow network-outbound (remote ip "localhost:*"))
+(allow network-bind (local ip "localhost:*"))
+(deny mach-lookup (global-name "com.apple.mDNSResponder"))
+(deny mach-lookup (global-name "com.apple.dnssd.service"))

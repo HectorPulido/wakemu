@@ -28,7 +28,7 @@ def prepare_area_event(
 ):
     from .combat_server_spell import server_runtime
 
-    if os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0") != "1":
+    if os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1") != "1":
         raise ValueError("Owned effect-area callbacks are disabled")
     if event not in ("turn_start", "movement"):
         raise ValueError("Unknown owned effect-area lifecycle boundary")
@@ -91,7 +91,7 @@ def prepare_area_movement(
     """Qs callbacks for each native step, on one unpublished final-move Fight."""
     from .combat_server_spell import server_runtime
 
-    if os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0") != "1":
+    if os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1") != "1":
         raise ValueError("Owned effect-area callbacks are disabled")
     if (
         not path
@@ -119,7 +119,14 @@ def prepare_area_movement(
     previous = tuple(origin)
     with preview.effect_resolution():
         for index, cell in enumerate(path):
-            preview.actors[actor_id].position = tuple(cell)
+            from .combat_qi_fight import move_registered_actor
+
+            move_registered_actor(preview, preview.actors[actor_id], cell)
+            from .combat_voluntary_movement_events import deliver_voluntary_movement
+
+            deliver_voluntary_movement(
+                dispatcher, actor_id=actor_id, from_cell=previous, to_cell=cell
+            )
             dispatcher.native_area_events.movement(
                 actor_id, from_cell=previous, to_cell=cell
             )

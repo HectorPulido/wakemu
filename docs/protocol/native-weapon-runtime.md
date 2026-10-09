@@ -4,7 +4,7 @@
 
 Costes acreditados por `fcH.a(eGj,fnR,aBn,boolean)`: fpC.gjf=PA, gji=PM, gjh=PW. Rango cpF/cpG por distancia Manhattan; gjn exige alineación, gjk solicita LOS, gjj celda vacía. El booleano de bonificación de alcance es false para armas. RANGE_REDUCED_TO_CAC reduce el máximo a1. También se respetan eGj.frA/carry, CANNOT_USE_ITEM_CAST41 y AP_AS_MP50 cuando el coste PA es positivo. El gate gjl/QI.P todavía rechaza expresamente porque no se acredita su semántica de terreno.
 
-El evaluador usa nivel de plantilla fpC.cmZ y contenedor fnR de tipo12, ID de referencia del objeto. `weapon-combat-rules.json` y `weapon-combat-effects.json.gz` proceden de assets instalados, no de capturas. Variant0/1 escoge normal/crítico; execution_mode2 identifica acción activa. Se admite sólo árbol directo de daño (1..5/1083). Criterios USE no vacíos y otros efectos rechazan la transacción completa.
+El evaluador usa nivel de plantilla fpC.cmZ y contenedor fnR de tipo12, ID de referencia del objeto. `weapon-combat-rules.json` y `weapon-combat-effects.json` proceden de assets instalados, no de capturas. Variant0/1 escoge normal/crítico; execution_mode2 identifica acción activa. Se admite sólo árbol directo de daño (1..5/1083). Criterios USE no vacíos y otros efectos rechazan la transacción completa.
 
 La factoría, condiciones, áreas, fórmulas, resistencias, reacciones, RNG y efectos son el motor común de hechizos. Los nuevos efectos de armas se combinan validando identidad con `_merge_effects`, y se precargan antes de abrir listeners. No hay fórmula por nombre de arma. Los costes siguen la misma actualización de recursos del camino de hechizos; no se inventan eventos de gasto no acreditados.
 

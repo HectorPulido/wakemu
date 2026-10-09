@@ -10,11 +10,12 @@ from .combat_stat_effects import (
     apply_current_stat,
     remove_current_stat,
     owned_effect_payload,
-    owned_effect_delivery,
+    evaluated_effect_delivery,
     current_stat_initial_eligible,
     null_execution_status,
 )
 from .combat_effect_removal import running_effect_removal
+from .combat_summon_initialization import registered_or_detached_actor
 
 
 @dataclass(frozen=True)
@@ -57,6 +58,25 @@ def _bounds(actor, stat):
 
 
 def _write(fight, source_id, actor, stat, value):
+    if getattr(actor, "native_copy_pa_source", None) is not None:
+        from .combat_copied_pa import set_copied_current
+
+        set_copied_current(fight, actor, stat, value)
+        return
+    from .combat_hp_raw import hp_raw_present, set_hp_raw_current
+
+    if stat == 1 and hp_raw_present(actor):
+        set_hp_raw_current(actor, value)
+        return
+    if (
+        stat in (2, 3)
+        and getattr(actor, "effect_resource_raw_currents", None) is not None
+    ):
+        from .combat_resource_pa_notifications import set_resource_current
+
+        set_resource_current(fight, actor, stat, value)
+        return
+    before_current = actor.ap if stat == 2 else None
     if stat == 1:
         before = actor.hp
         if value < before:
@@ -69,6 +89,9 @@ def _write(fight, source_id, actor, stat, value):
         actor.mp = value
     if actor.effect_stats is not None:
         actor.effect_stats[stat] = value
+    from .combat_resource_pa_notifications import notify_resource_pa
+
+    notify_resource_pa(fight, actor, stat, before_current=before_current)
 
 
 class NativeStatHandler:
@@ -89,12 +112,25 @@ class NativeStatHandler:
         self.prepared_current_stats = {}
         self.current_runner_amounts = {}
 
+    def native_eligibility(self, effect, invocation):
+        """eZR.i's known corpse rejection skips before PA calculation/UID."""
+        target = registered_or_detached_actor(self.fight, invocation.target_id)
+        if target is None or target.hp > 0:
+            return True  # Null/Qq and actual actor guards remain with executor.
+        from .combat_runner_target_life import runner_target_life_eligible
+
+        return runner_target_life_eligible(
+            self.fight, target, effect, invocation=invocation
+        )
+
     def prepare(self, effect, values, invocation):
         from .combat_current_stat_consumer import prepare_current_stat
 
         return prepare_current_stat(self, effect, values, invocation)
 
     def __call__(self, effect, values, invocation):
+        if not self.native_eligibility(effect, invocation):
+            return False
         row = self.registry.get(str(effect["effect_class"]))
         if row is None:
             raise ValueError("Missing native current-stat registry entry")
@@ -102,8 +138,13 @@ class NativeStatHandler:
             from .combat_current_stat_consumer import apply_current_stat_runner
 
             return apply_current_stat_runner(self, effect, values, invocation)
-        target = self.fight.actors.get(invocation.target_id)
+        target = registered_or_detached_actor(self.fight, invocation.target_id)
         area_target = None
+        source = registered_or_detached_actor(self.fight, invocation.caster_id)
+        if source is None:
+            from .combat_state_managers import registered_area_pv
+
+            source = registered_area_pv(self.fight, invocation.caster_id)
         if target is None and row["runner"] == "eXE":
             from .combat_effect_area_targets import area_targets
 
@@ -120,8 +161,7 @@ class NativeStatHandler:
             self.fight.phase != "active"
             or self.fight.current is None
             or target is None
-            or (row["runner"] != "eXE" and target.hp <= 0)
-            or invocation.caster_id not in self.fight.actors
+            or source is None
         ):
             raise ValueError("Invalid current-stat effect actors or fight")
         context = self.context(effect, invocation)
@@ -144,6 +184,10 @@ class NativeStatHandler:
                 raise ValueError("Native Qq null-effect source provider required")
         if not context.executable:
             return False
+        if area_target is None:
+            from .combat_runner_target_life import verify_runner_target_life
+
+            verify_runner_target_life(self.fight, target, effect, invocation=invocation)
         stat = None
         actual = requested = 0
         after = None
@@ -225,16 +269,28 @@ class NativeStatHandler:
         uid = invocation.native_running_uid if clone else self.allocate_uid()
         if area_target is not None:
             for channel in (1, 2):
-                self.area_events.running_source(
-                    effect, invocation, uid=uid, value=actual, channel=channel
-                )
-        elif clone and self.event_lifecycle is not None:
+                if self.event_lifecycle is not None:
+                    self.event_lifecycle.phase(
+                        effect,
+                        invocation,
+                        uid=uid,
+                        value=actual,
+                        channel=channel,
+                        _event_ids=tuple(
+                            sorted({0, *(effect["target_masks"][6] or ())})
+                        ),
+                    )
+                else:
+                    self.area_events.running_source(
+                        effect, invocation, uid=uid, value=actual, channel=channel
+                    )
+        elif row["runner"] == "eXE" and self.event_lifecycle is not None:
             for channel in (1, 2):
                 self.event_lifecycle.phase(
                     effect,
                     invocation,
                     uid=uid,
-                    value=0,
+                    value=actual,
                     channel=channel,
                     _event_ids=tuple(sorted({0, *(effect["target_masks"][6] or ())})),
                 )
@@ -264,9 +320,10 @@ class NativeStatHandler:
                 caster_id=invocation.caster_id,
                 target_id=target.id,
             )
-        packet = owned_effect_delivery(
+        packet = evaluated_effect_delivery(
             self.fight.id,
             self.action_id,
+            retained=context.retained,
             effect_class=effect["effect_class"],
             target_id=target.id,
             uid=uid,
@@ -298,18 +355,36 @@ class NativeStatHandler:
                 timer=None if context.timer is None else dict(vars(context.timer)),
             )
         self.packets.append(packet)
+        if context.retained and not clone and self.event_lifecycle is not None:
+            # Qf registration precedes post-application callbacks, which may
+            # inspect/remove the complete retained population synchronously.
+            register = getattr(self.event_lifecycle, "register_applied", None)
+            if callable(register):
+                register(effect, invocation, uid)
         if area_target is not None:
             for channel in (3, 4):
-                self.area_events.running_source(
-                    effect, invocation, uid=uid, value=actual, channel=channel
-                )
-        elif clone and self.event_lifecycle is not None:
+                if self.event_lifecycle is not None:
+                    self.event_lifecycle.phase(
+                        effect,
+                        invocation,
+                        uid=uid,
+                        value=actual,
+                        channel=channel,
+                        _event_ids=tuple(
+                            sorted({0, *(effect["target_masks"][6] or ())})
+                        ),
+                    )
+                else:
+                    self.area_events.running_source(
+                        effect, invocation, uid=uid, value=actual, channel=channel
+                    )
+        elif row["runner"] == "eXE" and self.event_lifecycle is not None:
             for channel in (3, 4):
                 self.event_lifecycle.phase(
                     effect,
                     invocation,
                     uid=uid,
-                    value=0,
+                    value=actual,
                     channel=channel,
                     _event_ids=tuple(sorted({0, *(effect["target_masks"][6] or ())})),
                 )
@@ -322,6 +397,76 @@ class NativeStatHandler:
         entry = self.fight.owned_stat_effects.get(uid)
         if entry is None:
             raise ValueError("Missing owned current-stat effect")
+        if entry.get("family") == "eWG":
+            from .combat_morph_handler import remove_morph_effect
+
+            return remove_morph_effect(self, uid)
+        if entry.get("family") == "eWK":
+            from .combat_redirect_runner import remove_redirect_runner
+
+            return remove_redirect_runner(self, uid)
+        if entry.get("family") == "eWs":
+            from .combat_area_property import remove_area_property
+
+            return remove_area_property(self, uid)
+        if entry.get("family") == "eXc":
+            from .combat_kill import remove_kill
+
+            return remove_kill(self, uid)
+        if entry.get("family") == "eXO":
+            from .combat_current_hp_restore import remove_current_hp_restore
+
+            return remove_current_hp_restore(self, uid)
+        if entry.get("family") == "eYV":
+            from .combat_affiliation_effect import remove_affiliation
+
+            return remove_affiliation(self, uid)
+        if entry.get("family") == "eWq":
+            from .combat_ap_as_mp import remove_ap_as_mp
+
+            return remove_ap_as_mp(self, uid)
+        if entry.get("family") == "eZG":
+            from .combat_protected_kill import remove_protected_kill
+
+            return remove_protected_kill(self, uid)
+        if entry.get("family") == "eWX":
+            from .combat_set_current_characteristic import (
+                remove_set_current_characteristic,
+            )
+
+            return remove_set_current_characteristic(self, uid)
+        if entry.get("family") == "eYG":
+            from .combat_capture_handler import remove_capture
+
+            return remove_capture(self, uid)
+        if entry.get("family") == "eZc":
+            from .combat_reflect_runner import remove_reflect_runner
+
+            return remove_reflect_runner(self, uid)
+        if entry.get("family") == "eXZ":
+            from .combat_fight_property_clear import remove_fight_property_clear
+
+            return remove_fight_property_clear(self, uid)
+        if entry.get("family") == "eZb":
+            from .combat_disabled_spell_level import remove_disabled_spell_level
+
+            return remove_disabled_spell_level(self, uid)
+        if entry.get("family") == "eWE":
+            from .combat_death_script import remove_death_script
+
+            return remove_death_script(self, uid)
+        if entry.get("family") == "eYH":
+            from .combat_ai_control import remove_ai_control
+
+            return remove_ai_control(self, uid)
+        if entry.get("family") == "eYZ":
+            from .combat_triggered_spell_handler import remove_triggered_spell
+
+            return remove_triggered_spell(self, uid)
+        if entry.get("family") == "eZF":
+            from .combat_aura_removal import remove_aura_removal_runner
+
+            return remove_aura_removal_runner(self, uid)
         if entry.get("family") == "eVZ":
             from .combat_resource_loss_handler import remove_owned_resource_loss
 
@@ -334,6 +479,18 @@ class NativeStatHandler:
             from .combat_orientation_effect import remove_orientation
 
             return remove_orientation(self, uid)
+        if entry.get("family") == "eXf":
+            from .combat_turn_suppression import remove_turn_suppression
+
+            return remove_turn_suppression(self, uid)
+        if entry.get("family") == "eWl":
+            from .combat_additional_turn import remove_additional_turn
+
+            return remove_additional_turn(self, uid)
+        if entry.get("family") == "eWL":
+            from .combat_turn_duration import remove_turn_duration
+
+            return remove_turn_duration(self, uid)
         if entry.get("family") == "eWZ":
             from .combat_copy_characteristic import remove_copied_characteristic
 
@@ -370,15 +527,19 @@ class NativeStatHandler:
             from .combat_maximum_resource import remove_maximum_reduction
 
             return remove_maximum_reduction(self, uid)
+        if entry.get("family") == "eWh":
+            from .combat_characteristic_link import remove_characteristic_link
+
+            return remove_characteristic_link(self, uid)
         if entry.get("family") == "eWN":
             from .combat_maximum_resource import remove_maximum_resource
 
             return remove_maximum_resource(self, uid)
-        if entry.get("family") == "eZe":
+        if entry.get("family") in ("eZe", "eZg"):
             from .combat_spell_cost_effect import remove_spell_cost
 
             return remove_spell_cost(self, uid)
-        actor = self.fight.actors.get(entry["target_id"])
+        actor = registered_or_detached_actor(self.fight, entry["target_id"])
         if actor is None and entry.get("family") == "eXE":
             from .combat_state_managers import state_manager
 
@@ -429,6 +590,28 @@ class NativeStatHandler:
             running_effect_payload=bytes.fromhex(entry["payload"]),
         )
         if stat is not None:
+            if getattr(actor, "native_copy_pa_source", None) is not None:
+                from .combat_copied_pa import copied_shift_result
+
+                after, _, _ = copied_shift_result(
+                    actor, stat, entry["actual"], subtract=entry["family"] == "eWQ"
+                )
+            elif (
+                stat in (2, 3)
+                and getattr(actor, "effect_resource_raw_currents", None) is not None
+            ):
+                from .combat_resource_pa_notifications import resource_shift_result
+
+                after, _, _ = resource_shift_result(
+                    actor, stat, entry["actual"], subtract=entry["family"] == "eWQ"
+                )
+            elif stat == 1:
+                from .combat_hp_raw import hp_raw_present, hp_shift_result
+
+                if hp_raw_present(actor):
+                    after, _, _ = hp_shift_result(
+                        actor, entry["actual"], subtract=entry["family"] == "eWQ"
+                    )
             _write(self.fight, entry["caster_id"], actor, stat, after)
         for other_uid, new_actual, new_payload in stack_updates:
             owned = self.fight.owned_stat_effects[other_uid]

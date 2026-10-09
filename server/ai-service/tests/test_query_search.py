@@ -14,7 +14,12 @@ if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
 from wakfu_ai.context.native_context import NativeGraph, encode
-from wakfu_ai.planning.query_search import candidates, search
+from wakfu_ai.planning.query_search import (
+    candidates,
+    certified_unavailable_spell_keys,
+    search,
+)
+from wakfu_ai.planning.casting_prerequisites import all_owned_spells_unavailable
 from wakfu_ai.bridge.world_bridge import _json_bytes
 
 
@@ -91,6 +96,7 @@ class FakeNativeSession:
         self.feature_deltas = feature_deltas or {}
         self.omit_features_for_spells = set(omit_features_for_spells or ())
         self.preview_actions = []
+        self.native_casting_prerequisites = None
         self.states = {}
         self.root_actors = [
             actor(ACTOR_ID, 1, (0, 0, 0)),
@@ -134,7 +140,12 @@ class FakeNativeSession:
         if query["operation"] == "repertoire":
             state = self.states[query["state"]]
             spells = [] if state["used"] else self.spells
-            metadata = self.store.put_json(encode({"spells": deepcopy(spells)}))
+            native_metadata = {"spells": deepcopy(spells)}
+            if self.native_casting_prerequisites is not None:
+                native_metadata["nativeCastingPrerequisites"] = deepcopy(
+                    self.native_casting_prerequisites
+                )
+            metadata = self.store.put_json(encode(native_metadata))
             return {
                 "id": response_id,
                 "supported": True,
@@ -280,6 +291,212 @@ class QuerySearchTests(unittest.TestCase):
         )
         self.assertEqual([action["type"] for action in actions[:2]], ["cast", "move"])
         self.assertEqual(actions[0]["target"], [3, 0, 0])
+
+    def test_missing_positive_level_native_casting_table_is_not_repeated_per_target(
+        self,
+    ):
+        session = fixture([dict(spellId=710, level=1, casting=None)])
+        session.root_state["actors"][0]["mp"] = 0
+        session.native_casting_prerequisites = dict(
+            schema="native-casting-root-prerequisites-v1",
+            sourceState=session.root_state["key"],
+            actorId=ACTOR_ID,
+            stateRevision=session.root_state["stateRevision"],
+            complete=True,
+            unavailable=[
+                dict(
+                    spellId=710,
+                    level=1,
+                    reason="missing_casting_table",
+                    missingRootIds=[],
+                )
+            ],
+        )
+        result = run_search(session)
+
+        self.assertEqual(result["action"], {"type": "end_turn"})
+        self.assertEqual(session.preview_actions, [])
+        self.assertIn(
+            "native_casting_table_missing:710:1",
+            result["unknownDependencies"],
+        )
+
+    def test_missing_casting_table_does_not_prune_level_zero_or_unstated_metadata(self):
+        spell_level_zero = dict(spellId=710, level=0, casting=None)
+        unstated = dict(spellId=711, level=1)
+        explicit_null_without_certificate = dict(spellId=712, level=1, casting=None)
+        session = fixture([spell_level_zero, unstated])
+        state = deepcopy(session.root_state)
+        graph = NativeGraph(session.root_graph)
+        actions = list(
+            candidates(
+                graph,
+                state,
+                {
+                    "spells": [
+                        spell_level_zero,
+                        unstated,
+                        explicit_null_without_certificate,
+                    ]
+                },
+                ACTOR_ID,
+            )
+        )
+
+        casts = [action for action in actions if action["type"] == "cast"]
+        self.assertTrue(casts)
+        self.assertEqual({action["spellId"] for action in casts}, {710, 711, 712})
+
+    def test_state_bound_missing_root_certificate_prunes_only_proven_spell(self):
+        session = fixture([])
+        spell = dict(
+            spellId=720,
+            level=1,
+            casting=dict(levels=[[1, 2, [81, 82]]], conditional=[]),
+        )
+        state = deepcopy(session.root_state)
+        certificate = dict(
+            schema="native-casting-root-prerequisites-v1",
+            sourceState=state["key"],
+            actorId=ACTOR_ID,
+            stateRevision=state["stateRevision"],
+            complete=True,
+            unavailable=[
+                dict(
+                    spellId=720,
+                    level=1,
+                    reason="missing_root_metadata",
+                    missingRootIds=[82],
+                )
+            ],
+        )
+        still_unknown = dict(spellId=722, level=1)
+        repertoire = dict(
+            spells=[spell, still_unknown], nativeCastingPrerequisites=certificate
+        )
+
+        self.assertEqual(
+            certified_unavailable_spell_keys(repertoire, state, ACTOR_ID),
+            {(720, 1)},
+        )
+        actions = list(
+            candidates(NativeGraph(session.root_graph), state, repertoire, ACTOR_ID)
+        )
+        casts = [action for action in actions if action["type"] == "cast"]
+        self.assertTrue(casts)
+        self.assertEqual({action["spellId"] for action in casts}, {722})
+        self.assertTrue(any(action["type"] == "move" for action in actions))
+
+    def test_optional_target_envelope_can_skip_only_when_every_spell_is_proven_unavailable(
+        self,
+    ):
+        session = fixture([])
+        state = deepcopy(session.root_state)
+        spell = dict(spellId=723, level=1, casting=dict(levels=[[1, 2, [99]]]))
+        certificate = dict(
+            schema="native-casting-root-prerequisites-v1",
+            sourceState=state["key"],
+            actorId=ACTOR_ID,
+            stateRevision=state["stateRevision"],
+            complete=True,
+            unavailable=[
+                dict(
+                    spellId=723,
+                    level=1,
+                    reason="missing_root_metadata",
+                    missingRootIds=[99],
+                )
+            ],
+        )
+        repertoire = dict(spells=[spell], nativeCastingPrerequisites=certificate)
+
+        self.assertTrue(all_owned_spells_unavailable(repertoire, state, ACTOR_ID))
+        self.assertFalse(
+            all_owned_spells_unavailable(
+                dict(
+                    spells=[spell, dict(spellId=724, level=1)],
+                    nativeCastingPrerequisites=certificate,
+                ),
+                state,
+                ACTOR_ID,
+            )
+        )
+        self.assertTrue(all_owned_spells_unavailable(dict(spells=[]), state, ACTOR_ID))
+
+    def test_stale_future_or_malformed_root_certificate_fails_open(self):
+        session = fixture([])
+        spell = dict(
+            spellId=721,
+            level=1,
+            casting=dict(levels=[[1, 2, [91]]], conditional=[]),
+        )
+        state = deepcopy(session.root_state)
+        valid = dict(
+            schema="native-casting-root-prerequisites-v1",
+            sourceState=state["key"],
+            actorId=ACTOR_ID,
+            stateRevision=state["stateRevision"],
+            complete=True,
+            unavailable=[
+                dict(
+                    spellId=721,
+                    level=1,
+                    reason="missing_root_metadata",
+                    missingRootIds=[91],
+                )
+            ],
+        )
+        corruptions = (
+            {"sourceState": "foreign-state"},
+            {"actorId": ACTOR_ID + 1},
+            {"actorId": True},
+            {"stateRevision": state["stateRevision"] + 1},
+            {"schema": "future-root-prerequisites-v2"},
+            {"complete": False},
+            {"futureField": True},
+            {
+                "unavailable": [
+                    dict(
+                        spellId=721,
+                        level=1,
+                        reason="missing_root_metadata",
+                        missingRootIds=[],
+                    )
+                ]
+            },
+        )
+        for change in corruptions:
+            with self.subTest(change=change):
+                certificate = {**valid, **change}
+                repertoire = dict(
+                    spells=[spell], nativeCastingPrerequisites=certificate
+                )
+                self.assertEqual(
+                    certified_unavailable_spell_keys(repertoire, state, ACTOR_ID),
+                    set(),
+                )
+                actions = list(
+                    candidates(
+                        NativeGraph(session.root_graph),
+                        state,
+                        repertoire,
+                        ACTOR_ID,
+                    )
+                )
+                self.assertTrue(any(action["type"] == "cast" for action in actions))
+
+        malformed_spell = dict(spellId=[721], level=1)
+        self.assertEqual(
+            certified_unavailable_spell_keys(
+                dict(
+                    spells=[malformed_spell],
+                    nativeCastingPrerequisites=valid,
+                ),
+                state,
+                ACTOR_ID,
+            ),
+            set(),
+        )
 
     def test_every_cast_stream_must_be_out_of_range_and_all_casts_remain(self):
         first = self._range_spell(715, (1, 2))
@@ -1075,10 +1292,157 @@ class QuerySearchTests(unittest.TestCase):
         evidence = result["searchBudgetEvidence"]
         self.assertEqual(evidence["decisionWallBudgetMs"], 750)
         self.assertGreater(evidence["contextPreparationMs"], 700)
-        self.assertEqual(result["expanded"], 0)
-        self.assertEqual(result["action"], {"type": "end_turn"})
+        self.assertEqual(result["expanded"], 1)
+        self.assertEqual(result["action"]["type"], "move")
+        self.assertTrue(evidence["rootActionReserveUsed"])
         self.assertIn("decision_wall_budget", evidence["stopReasons"])
         self.assertNotIn("search_work_budget", evidence["stopReasons"])
+
+    def test_slow_first_repertoire_still_certifies_root_move_before_optional_risk(self):
+        session = fixture([])
+        session.envelope["nativeBudgetMs"] = 3575
+        session.envelope["operations"] = ["project_turn"]
+        session.envelope["policy"]["searchTimeFraction"] = 0.25
+        now = [0.0]
+        original = session.request
+        operations = []
+
+        def slow_first_repertoire(query):
+            operations.append(query["operation"])
+            response = original(query)
+            if query["operation"] == "repertoire" and query["state"] == "root-state":
+                # Simulate a mandatory native context/repertoire lookup that
+                # exceeds the small 25% slice while leaving owner time above
+                # the commit reserve.
+                now[0] += 1.8
+            elif query["operation"] == "preview":
+                # The first certified native preview also has real latency.
+                now[0] += 0.8
+            # Later hints must never renew the absolute owner deadline.
+            response["nativeBudgetMs"] = 10000
+            return response
+
+        session.request = slow_first_repertoire
+        result = run_search(session, clock=lambda: now[0])
+
+        self.assertEqual(operations[:2], ["repertoire", "preview"])
+        self.assertEqual(session.preview_actions[0]["type"], "move")
+        self.assertEqual(result["action"]["type"], "move")
+        evidence = result["searchBudgetEvidence"]
+        self.assertTrue(evidence["rootActionCertified"])
+        self.assertTrue(evidence["rootActionReserveUsed"])
+        self.assertTrue(evidence["rivalForecastSkipped"])
+        self.assertEqual(now[0], 2.6)
+        self.assertIn("decision_wall_budget", evidence["stopReasons"])
+        self.assertIn(
+            "rival_forecast_skipped_after_root_action_budget",
+            result["unknownDependencies"],
+        )
+        self.assertNotIn("project_turn", operations)
+        self.assertEqual(operations.count("preview"), 1)
+
+    def test_owner_reserve_exhausted_during_repertoire_does_not_invent_move(self):
+        session = fixture([])
+        session.envelope["nativeBudgetMs"] = 1500
+        session.envelope["operations"] = ["project_turn"]
+        session.envelope["policy"]["searchTimeFraction"] = 0.25
+        now = [0.0]
+        original = session.request
+        operations = []
+
+        def exhausted_during_repertoire(query):
+            operations.append(query["operation"])
+            response = original(query)
+            if query["operation"] == "repertoire" and query["state"] == "root-state":
+                now[0] += 1.8
+            response["nativeBudgetMs"] = 10000
+            return response
+
+        session.request = exhausted_during_repertoire
+        result = run_search(session, clock=lambda: now[0])
+
+        self.assertEqual(operations, ["repertoire"])
+        self.assertEqual(session.preview_actions, [])
+        self.assertEqual(result["action"], {"type": "end_turn"})
+        evidence = result["searchBudgetEvidence"]
+        self.assertFalse(evidence["rootActionCertified"])
+        self.assertFalse(evidence["rootActionReserveUsed"])
+        self.assertIn("native_commit_reserve", evidence["stopReasons"])
+        self.assertNotIn("project_turn", operations)
+
+    def test_rejected_first_root_cast_still_consumes_decision_slice(self):
+        session = fixture([{"spellId": 710, "level": 1}])
+        session.envelope["nativeBudgetMs"] = 4000
+        session.envelope["operations"] = ["project_turn"]
+        session.envelope["policy"]["searchTimeFraction"] = 0.25
+        session.reject_all = True
+        session.root_state["actors"][0]["mp"] = 0
+        now = [0.0]
+        original = session.request
+        operations = []
+
+        def slow_repertoire_then_reject(query):
+            operations.append(query["operation"])
+            response = original(query)
+            if query["operation"] == "repertoire":
+                now[0] += 1.8
+            response["nativeBudgetMs"] = 10000
+            return response
+
+        session.request = slow_repertoire_then_reject
+        result = run_search(session, clock=lambda: now[0])
+
+        self.assertEqual(operations, ["repertoire", "preview"])
+        self.assertEqual(len(session.preview_actions), 1)
+        self.assertEqual(session.preview_actions[0]["type"], "cast")
+        self.assertEqual(result["action"], {"type": "end_turn"})
+        evidence = result["searchBudgetEvidence"]
+        self.assertTrue(evidence["rootActionAttempted"])
+        self.assertFalse(evidence["rootActionCertified"])
+        self.assertIn("decision_wall_budget", evidence["stopReasons"])
+        self.assertTrue(evidence["rivalForecastSkipped"])
+        self.assertIn("candidate_native_rule_unknown", result["unknownDependencies"])
+        self.assertIn(
+            "rival_forecast_skipped_after_root_action_budget",
+            result["unknownDependencies"],
+        )
+
+    def test_rejected_first_root_cast_does_not_starve_available_movement(self):
+        session = fixture([{"spellId": 710, "level": 1}])
+        session.envelope["nativeBudgetMs"] = 4000
+        session.envelope["policy"]["searchTimeFraction"] = 0.25
+        now = [0.0]
+        original = session.request
+        operations = []
+
+        def reject_cast_then_accept_move(query):
+            operations.append(query["operation"])
+            if query["operation"] == "repertoire":
+                response = original(query)
+                now[0] += 1.8
+            elif query["operation"] == "preview" and query["action"]["type"] == "cast":
+                session.preview_actions.append(deepcopy(query["action"]))
+                response = {
+                    "id": query["id"],
+                    "supported": False,
+                    "unknownDependencies": ["native_cast_rejected_for_target"],
+                }
+            else:
+                response = original(query)
+            response["nativeBudgetMs"] = 10000
+            return response
+
+        session.request = reject_cast_then_accept_move
+        result = run_search(session, clock=lambda: now[0])
+
+        self.assertEqual(session.preview_actions[0]["type"], "cast")
+        self.assertEqual(session.preview_actions[1]["type"], "move")
+        self.assertEqual(result["action"]["type"], "move")
+        self.assertTrue(result["searchBudgetEvidence"]["rootActionCertified"])
+        self.assertIn(
+            "decision_wall_budget", result["searchBudgetEvidence"]["stopReasons"]
+        )
+        self.assertIn("native_cast_rejected_for_target", result["unknownDependencies"])
 
     def test_invalid_owner_budget_hints_are_rejected(self):
         for value in (True, -1, float("nan"), float("inf"), "500"):

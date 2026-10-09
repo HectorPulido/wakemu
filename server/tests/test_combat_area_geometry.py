@@ -15,6 +15,7 @@ from wakfu_server.combat.combat_native_area_metadata import (
     merge_native_point_areas,
     native_point_area_metadata,
 )
+from wakfu_server import native_catalog
 
 
 class NativeDirectionalAreaTests(unittest.TestCase):
@@ -58,9 +59,9 @@ class NativeDirectionalAreaTests(unittest.TestCase):
 
     def test_native_108_orientations_match_enumeration_and_actor_membership(self):
         rows = json.loads(
-            (
+            native_catalog.read_text(
                 Path(__file__).parents[1] / "protocol/native-oriented-area-fixture.json"
-            ).read_text()
+            )
         )
         self.assertEqual(len(rows), 234)
         for row in rows:

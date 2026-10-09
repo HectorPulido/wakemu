@@ -1,16 +1,16 @@
 """Native owner routing and eVv.eo arithmetic for evaluated Qe delivery."""
+from wakfu_server import native_catalog as protocol_catalog
 from functools import lru_cache
 import json
 import math
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 from .combat_parameters import _float32, _integer as java_integer
 from .combat_effect_groups import native_group_route
 
 
 @lru_cache(maxsize=1)
 def owner_catalog():
-    with (DATA_ROOT / "native-runner-registration-owners.json").open() as stream:
-        return json.load(stream)
+    return protocol_catalog.load(DATA_ROOT / "native-runner-registration-owners.json")
 
 
 def native_owner_flags(effect):
@@ -18,6 +18,14 @@ def native_owner_flags(effect):
     if route is not None:
         return route == "actors", route == "cell"
     row = owner_catalog()["effects"].get(str(effect["effect_class"]))
+    if (
+        isinstance(row, dict)
+        and row.get("bbA_owner") == "eYZ"
+        and row.get("bbB_owner") == "eYZ"
+    ):
+        from .combat_triggered_spell import triggered_spell_owner_flags
+
+        return triggered_spell_owner_flags(effect["parameters"])
     if (
         not isinstance(row, dict)
         or type(row.get("bbA")) is not bool

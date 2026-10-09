@@ -1,5 +1,6 @@
 from copy import deepcopy
 from dataclasses import replace
+from types import SimpleNamespace
 import json
 import struct
 import unittest
@@ -23,6 +24,7 @@ from wakfu_server.combat_healing_handler import HealingExecutionContext
 from wakfu_server.combat_stat_handler import StatExecutionContext
 from wakfu_server.combat_state_handler import StateCarrierContext
 from wakfu_server.combat_spell_transaction import prepare_spell_transaction
+from wakfu_server import native_catalog
 
 
 def definition(effect_class, parameters, *, selector=1, children=()):
@@ -52,7 +54,7 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
         cls.spells = catalog()
         cls.states = states_catalog()
         cls.registry = json.loads(
-            (DATA_ROOT / "effect-characteristic-registry.json").read_text()
+            native_catalog.read_text(DATA_ROOT / "effect-characteristic-registry.json")
         )
 
     def setUp(self):
@@ -71,6 +73,8 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
         for actor in actors:
             # This fresh fixture has no retained AP-cost modifier effects.
             actor.spell_ap_cost_modifiers = {}
+            # The isolated cast fixture has an explicit fresh eHl snapshot.
+            actor.spell_range_modifiers = {}
             actor.effect_stats = {
                 1: actor.hp,
                 2: 6,
@@ -171,6 +175,9 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
             state_ids=frozenset(
                 entry.reference for entry in source.state_ledger.entries
             ),
+            characteristics={"RANGE": 0},
+            is_carried=False,
+            fight_properties=frozenset(),
         )
         return ConditionContext(
             {"caster": actor, "target": actor}, caster_target_distance=distance
@@ -183,23 +190,89 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
             characteristic_registry=self.registry,
             action_id=1,
             contexts=overrides.get("contexts", self.contexts),
+            displacement_authority=overrides.get("displacement_authority"),
+        )
+
+    def cast_context(self, request, fight):
+        source = fight.actors[request["actor_id"]]
+        return ConditionContext(
+            {
+                "caster": ConditionActor(
+                    actor_id=source.id,
+                    characteristics={"RANGE": 0},
+                    is_carried=False,
+                    fight_properties=frozenset(),
+                )
+            }
         )
 
     def test_real_spell6266_native_resolver_and_damage_share_costs_preview_uid_and_outbox(
         self,
     ):
-        body = struct.pack(">qqiih", 7, (7 << 32) | 6266, 1, 0, 0)
-        transaction = prepare_spell_transaction(
-            body,
-            dict(id=7, breed=15, level=1),
-            self.fight,
-            3,
-            encode_deck([6266]),
-            wp_current=6,
-            action_id=1,
-            line_of_sight=lambda *a: True,
-            runtime_factory=self.factory(),
+        from unittest.mock import patch
+        from contextlib import nullcontext
+        from wakfu_server.combat_native_spell_casting import (
+            definition as casting_definition,
         )
+        from wakfu_server.combat_spell_usage import validate_usage
+
+        body = struct.pack(">qqiih", 7, (7 << 32) | 6266, 1, 0, 0)
+        character = dict(id=7, breed=15, level=1)
+        deck = encode_deck([6266])
+        context = self.cast_context(dict(actor_id=7), self.fight)
+        rule = casting_definition(6266, 1, context, {})
+        self.assertEqual(rule["costs"]["ap"], 4)
+        plan = dict(
+            actor_id=7,
+            spell_uid=(7 << 32) | 6266,
+            target=(1, 0, 0),
+            target_id=-7,
+            spell_id=6266,
+            evaluation_level=1,
+            costs=rule["costs"],
+            effect_ids=tuple(rule["roots"]),
+            native_usage=validate_usage(
+                self.fight, self.fight.actors[7], 6266, 1, (1, 0, 0), context
+            ),
+        )
+        # This unit isolates already-validated casting from transaction/runtime
+        # costs, native effects and private outbox. Real QI/LOS casting has its
+        # own source-backed integration fixtures; no production gate is bypassed.
+        los = lambda *args: True
+        with patch(
+            "wakfu_server.combat_spell_transaction.prepare_spell_cast",
+            return_value=plan,
+        ) as prepare, patch(
+            "wakfu_server.combat_spell_transaction.cast_event_scope",
+            side_effect=lambda dispatcher, selected: nullcontext(),
+        ) as boundary:
+            transaction = prepare_spell_transaction(
+                body,
+                character,
+                self.fight,
+                3,
+                deck,
+                wp_current=6,
+                action_id=1,
+                line_of_sight=los,
+                runtime_factory=self.factory(),
+                conditional_context=self.cast_context,
+            )
+        prepare.assert_called_once()
+        # The focused factory has no owned retained-listener clone authority.
+        # External cast observers are exercised by the real server fixtures.
+        boundary.assert_called_once()
+        self.assertIs(boundary.call_args.args[1], plan)
+        args, kwargs = prepare.call_args
+        self.assertIs(args[0], body)
+        self.assertIs(args[1], character)
+        self.assertIsNot(args[2], self.fight)
+        self.assertIs(args[2], transaction.fight)
+        self.assertEqual(args[3], 3)
+        self.assertIs(args[4], deck)
+        self.assertEqual(kwargs["wp"], 6)
+        self.assertIs(kwargs["line_of_sight"], los)
+        self.assertEqual(kwargs["conditional_context"], self.cast_context)
         self.assertLess(transaction.fight.actors[-7].hp, 20)
         self.assertEqual(transaction.fight.actors[8].hp, 40)
         self.assertEqual(transaction.fight.actors[7].ap, 2)
@@ -225,6 +298,215 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
         self.assertEqual(preview.actors[7].hp, 60)
         self.assertEqual([opcode for opcode, payload in packets], [12613])
 
+    def test_shared_factory_routes_all_native_setters_and_owned_removal(self):
+        from wakfu_server.combat_set_current_characteristic import (
+            FAMILIES,
+            set_current_registry,
+        )
+        from wakfu_server.combat_stat_handler import NativeStatHandler
+
+        preview = deepcopy(self.fight)
+        stat = set_current_registry()["560"]["fixed_stat_id"]
+        target = preview.actors[8]
+        target.effect_stats[stat] = 10
+        target.effect_minima[stat] = -5000
+        target.effect_maxima[stat] = 50000
+        preview.actors[7].effect_stats[stat] = 30
+        effects = dict(self.effects)
+        effects["900001"] = definition(560, [100, 0])
+        dispatcher, packets = self.factory(effects=effects)(preview, {})
+        self.assertTrue(
+            all(
+                dispatcher.handlers[family] is dispatcher.handlers[560]
+                for family in FAMILIES
+            )
+        )
+        dispatcher.execute(EffectInvocation(900001, 1, 7, 8, target.position))
+        self.assertEqual(target.effect_stats[stat], 100)
+        uid = next(iter(preview.owned_stat_effects))
+        target.effect_stats[stat] = 70
+        remover = NativeStatHandler(
+            preview,
+            packets,
+            registry=self.registry,
+            action_id=1,
+            allocate_uid=lambda: 999,
+            context=lambda *args: None,
+        )
+        remover.remove(uid)
+        self.assertEqual(target.effect_stats[stat], -20)
+        self.assertNotIn(uid, preview.owned_stat_effects)
+        self.assertEqual(packets[-1][0], 13560)
+
+    def test_shared_factory_hp_restore_assignment_frozen_and_cannot_raise(self):
+        from wakfu_server.combat_stat_handler import NativeStatHandler
+
+        effects = dict(self.effects)
+        effects["900196"] = definition(196, [])
+        for frozen, properties, forced, expected in (
+            (False, {}, None, 1),
+            (False, {}, "30054801", 5),
+            (True, {}, None, 20),
+            (False, {66: 1}, None, 20),
+        ):
+            with self.subTest(frozen=frozen, properties=properties):
+                preview = deepcopy(self.fight)
+                target = preview.actors[8]
+                target.hp = target.effect_stats[1] = 20
+                target.effect_frozen = frozenset({1}) if frozen else frozenset()
+                authority = SimpleNamespace(property_counts=lambda *args: properties)
+                dispatcher, packets = self.factory(
+                    effects=effects, displacement_authority=authority
+                )(preview, {})
+                dispatcher.execute(
+                    EffectInvocation(
+                        900196, 1, 7, 8, target.position, native_context_hex=forced
+                    )
+                )
+                self.assertEqual(
+                    (target.hp, target.effect_stats[1]), (expected, expected)
+                )
+                if properties:
+                    self.assertEqual(packets, [])
+                else:
+                    uid = next(iter(preview.owned_stat_effects))
+                    remover = NativeStatHandler(
+                        preview,
+                        packets,
+                        registry=self.registry,
+                        action_id=1,
+                        allocate_uid=lambda: 999,
+                        context=lambda *args: None,
+                    )
+                    remover.remove(uid)
+                    self.assertEqual(target.hp, expected)
+                    self.assertEqual(packets[-1][0], 13560)
+
+    def test_shared_factory_affiliation_uses_signed_native_byte_and_restores(self):
+        from wakfu_server.combat_stat_handler import NativeStatHandler
+
+        preview = deepcopy(self.fight)
+        effects = dict(self.effects)
+        effects["9001030"] = definition(1030, [130, 0])
+        target = preview.actors[8]
+        original_team = target.team
+        authority = lambda *args: SimpleNamespace(targeting={"is_amO": True})
+        dispatcher, packets = self.factory(
+            effects=effects, displacement_authority=authority
+        )(preview, {})
+        dispatcher.execute(EffectInvocation(9001030, 1, 7, 8, target.position))
+        self.assertEqual(target.native_fight_affiliation, -126)
+        self.assertEqual(target.team, original_team)
+        uid = next(iter(preview.owned_stat_effects))
+        remover = NativeStatHandler(
+            preview,
+            packets,
+            registry=self.registry,
+            action_id=1,
+            allocate_uid=lambda: 999,
+            context=lambda *args: None,
+        )
+        remover.remove(uid)
+        self.assertEqual(target.native_fight_affiliation, original_team)
+        self.assertEqual(packets[-1][0], 13560)
+
+    def test_shared_factory_kill_removal_preserves_permanent_resource_changes(self):
+        from wakfu_server.combat_stat_handler import NativeStatHandler
+
+        preview = deepcopy(self.fight)
+        target = preview.actors[8]
+        target.effect_stats[14] = 3
+        target.effect_minima[14] = 0
+        target.effect_maxima[14] = 10
+        target.effect_base_minima = dict(target.effect_minima)
+        target.effect_base_maxima = dict(target.effect_maxima)
+        target.effect_percentages = {stat: 0 for stat in target.effect_stats}
+        effects = dict(self.effects)
+        effects["900002"] = definition(28, [0, 0])
+        dispatcher, packets = self.factory(effects=effects)(preview, {})
+        dispatcher.execute(EffectInvocation(900002, 1, 7, 8, target.position))
+        self.assertEqual(
+            (target.hp, target.effect_stats[14], target.effect_maxima[14]), (0, 0, 0)
+        )
+        uid = next(iter(preview.owned_stat_effects))
+        remover = NativeStatHandler(
+            preview,
+            packets,
+            registry=self.registry,
+            action_id=1,
+            allocate_uid=lambda: 999,
+            context=lambda *args: None,
+        )
+        remover.remove(uid)
+        self.assertEqual(
+            (target.hp, target.effect_stats[14], target.effect_maxima[14]), (0, 0, 0)
+        )
+        self.assertNotIn(uid, preview.owned_stat_effects)
+        self.assertEqual(packets[-1][0], 13560)
+
+    def test_factory_protected_kill_keeps_native_in_play_turn_and_qi_after_chain(self):
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+            global_fighter_guards,
+        )
+        from wakfu_server.combat_qi_fight import current_registry
+        from wakfu_server.combat_qi_registry import NativeQIRegistry
+
+        preview = deepcopy(self.fight)
+        # Explicit fresh synthetic QI: registration order is the fixture's
+        # constructor order, not reconstructed final occupancy.
+        terrain = dict(x=0, y=0, width=2, height=2, cell_masks=[0] * 4)
+        registry = NativeQIRegistry(terrain, [None] * 127)
+        registry.capture_fresh_cell_topology([])
+        for actor in preview.actors.values():
+            actor.native_obstacle_id = registry.register(
+                dict(
+                    identity=["actor", actor.id],
+                    position=list(actor.position[:2]),
+                    radius=0,
+                    indexed=False,
+                    movement_blocking=True,
+                )
+            )
+        preview.native_qi_snapshot = terrain
+        preview.native_qi_slots = registry.serialized_slots()
+        preview.native_qi_touched_cells = registry.serialized_cells()
+        preview.native_qi_byte_topology = registry.serialized_byte_topology()
+        initialize_global_pv_collections(preview, tuple(preview.actors))
+        target = preview.actors[-7]  # Sole opposing fighter: HP0 must not end it.
+        target.effect_stats[14] = 3
+        target.effect_minima[14] = 0
+        target.effect_maxima[14] = 10
+        target.effect_base_minima = dict(target.effect_minima)
+        target.effect_base_maxima = dict(target.effect_maxima)
+        target.effect_percentages = {stat: 0 for stat in target.effect_stats}
+        target.native_fight_property_counts = {}
+        before_order = tuple(preview.order)
+        before_slots = deepcopy(preview.native_qi_slots)
+        before_topology = deepcopy(preview.native_qi_byte_topology)
+        effects = dict(self.effects)
+        effects["900003"] = definition(332, [])
+        authority = SimpleNamespace(
+            property_counts=lambda fight, actor: actor.native_fight_property_counts
+        )
+        dispatcher, packets = self.factory(
+            effects=effects, displacement_authority=authority
+        )(preview, {})
+        with preview.effect_resolution():
+            dispatcher.execute(EffectInvocation(900003, 1, 7, -7, target.position))
+        self.assertEqual(target.hp, 0)
+        self.assertEqual(
+            global_fighter_guards(preview, target.id),
+            dict(baF=True, baG=False, baK=False),
+        )
+        self.assertEqual(preview.phase, "active")
+        self.assertEqual(tuple(preview.order), before_order)
+        self.assertEqual(preview.native_qi_slots, before_slots)
+        self.assertEqual(preview.native_qi_byte_topology, before_topology)
+        self.assertEqual(
+            current_registry(preview).ordered_U(1, 0), (target.native_obstacle_id,)
+        )
+
     def test_real_state3442_roots_and_owned_null_child_remove_before_replaced_carrier(
         self,
     ):
@@ -248,11 +530,11 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
             list(zip([opcode for opcode, payload in packets], classes)),
             [
                 (12613, 310),
-                (13497, 400),
+                (12613, 400),
                 (13560, 400),
                 (13560, 310),
                 (12613, 310),
-                (13497, 400),
+                (12613, 400),
             ],
         )
 

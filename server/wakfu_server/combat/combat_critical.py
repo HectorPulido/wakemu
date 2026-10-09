@@ -5,6 +5,7 @@ characteristic bounds -1000..1000. Server percentage roll is an owned policy,
 not a recovered client producer. Selected native effect variants determine
 critical damage/healing; this module never applies a damage multiplier.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from dataclasses import dataclass
 from collections.abc import Mapping
 
@@ -86,12 +87,18 @@ def prepare_with_critical(actor, *, rng, prepare, mode="auto", critical_availabl
 
 
 def spell_critical_available(spell_id, level):
-    if type(spell_id) is not int or type(level) is not int or not 1 <= level <= 200:
+    if type(spell_id) is not int or type(level) is not int or not 0 <= level <= 32767:
         raise ValueError("Missing audited native spell critical level")
     row = _spell_availability().get(str(spell_id))
     if row is None:
         raise ValueError("Missing native spell critical availability")
-    return row.get(level, False)
+    # The original general export sampled 1..200. Scoped native producers can
+    # explicitly attest further levels without inventing absent observations.
+    minimum = row.get("evaluated_minimum_level", 1)
+    maximum = row.get("evaluated_maximum_level", 200)
+    if not minimum <= level <= maximum:
+        raise ValueError("Missing audited native spell critical level")
+    return level in row["critical_levels"]
 
 
 from functools import lru_cache
@@ -99,11 +106,8 @@ from functools import lru_cache
 
 @lru_cache(maxsize=1)
 def _spell_availability():
-    from .paths import DATA_ROOT
+    from wakfu_server.paths import DATA_ROOT
     import json
 
-    data = json.loads((DATA_ROOT / "native-critical-availability.json").read_text())
-    return {
-        key: {level: True for level in row["critical_levels"]}
-        for key, row in data["spells"].items()
-    }
+    data = protocol_catalog.load(DATA_ROOT / "native-critical-availability.json")
+    return data["spells"]

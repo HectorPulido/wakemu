@@ -17,5 +17,9 @@ javac.*.args
 *.pem
 docs/reports/combat-inventory/inventory.json
 
-docs/reports/
-docs/soluciones-wakemu/
+#docs/reports/
+#docs/soluciones-wakemu/
+deleteme_*
+
+# Private client endpoint settings
+/client-tools/.env

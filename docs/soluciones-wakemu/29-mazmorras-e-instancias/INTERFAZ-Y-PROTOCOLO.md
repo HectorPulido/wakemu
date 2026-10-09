@@ -19,6 +19,8 @@ Fixture: `08641003180120002800300038b9604055` devuelve máximo 100, mínimo 85, 
 
 El bootstrap actual de `native_transports` inserta `0800100218002001280030004000` en 13974, bloque de contexto: máximo/mínimo cero, dificultad 2, disponibilidad falsa, aumento verdadero, sin IDs autorizados. Ese contexto no procede de una sesión de mazmorra. Al retornar del combate, el dispatcher vuelve a usarlo. La solución del servidor debe proporcionar el contexto de la instancia tanto al entrar como después del combate; cambiar solo el mapa no lo resuelve.
 
+La migración 070 y `maps/dungeon_context.py` fijan la autoridad futura: `dungeon_context_policy_versions` guarda los campos estáticos explícitos, `dungeon_context_active_policies` selecciona una versión por ruta y `dungeon_instances` conserva la pareja ruta/versión mediante FK. Una versión de política no se actualiza ni se elimina; el operador inserta otra y mueve el puntero activo, mientras los runs existentes siguen leyendo su versión. La API exige `fight_in_progress` por separado porque es estado de runtime. La lista `allowed_ids` se toma únicamente de la fila configurada y nunca se infiere de miembros, personajes conectados o dueño de instancia. La migración no siembra valores Jalató y `create_or_reuse` rechaza una ruta sin política, así que esta pieza no abre el acceso.
+
 ## Progreso personal frente a avance de sala
 
 `ProtoDungeonProgression`/`eUV` mantiene pares enteros. `bpU` consulta el valor por definición de mazmorra y lo usa para coronas de dificultad. **No debe reutilizarse como contador de sala actual.** El avance de una sesión necesita autoridad separada, ligada al encuentro y a la instancia viva.

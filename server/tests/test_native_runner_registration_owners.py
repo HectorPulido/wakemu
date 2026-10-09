@@ -2,16 +2,17 @@
 import json
 from pathlib import Path
 import unittest
+from wakfu_server import native_catalog
 
 
 class NativeRunnerRegistrationOwnersTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.effects = json.loads(
-            (
+            native_catalog.read_text(
                 Path(__file__).parents[1]
                 / "protocol/native-runner-registration-owners.json"
-            ).read_text()
+            )
         )["effects"]
 
     def test_stat_armor_and_maximum_owners_are_target_owned(self):

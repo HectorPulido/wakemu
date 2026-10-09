@@ -84,10 +84,10 @@ class EffectTargetTests(unittest.TestCase):
             [2],
         )
 
-    def test_unknown_and_asymmetric_areas_fail_closed(self):
+    def test_unknown_and_malformed_areas_fail_closed(self):
         for area in [
             effect("anE", "forme à base de points"),
-            effect("anw", "cross-h1b2-g1d1"),
+            effect("anw", "cross-h1b2-g1d"),
         ]:
             with self.assertRaises(UnsupportedEffectArea):
                 area_offsets(area)
@@ -271,3 +271,24 @@ class NativeTargetContextTests(unittest.TestCase):
         self.assertEqual(self.select(4097), ())
         self.context[2].update(dpu_id=1, baG=True)
         self.assertEqual(self.select(4097), ())
+
+
+class NativeAreaOwnerTests(unittest.TestCase):
+    def test_null_owner_is_known_nonmatching_and_unknown_owner_rejects(self):
+        from wakfu_server.combat_effect_targets import (
+            _native_target_valid,
+            UnsupportedTargetSelector,
+        )
+
+        caster, area = SimpleNamespace(id=7), SimpleNamespace(id=-100)
+        target = dict(is_Qq=True, is_eHH=False, bEe=True, bcR=True, q_owner_id=None)
+        contexts = {7: {}, -100: target}
+        self.assertFalse(_native_target_valid(1 << 43, caster, area, contexts))
+        target["q_owner_id"] = 7
+        self.assertTrue(_native_target_valid(1 << 43, caster, area, contexts))
+        del target["q_owner_id"]
+        with self.assertRaises(UnsupportedTargetSelector):
+            _native_target_valid(1 << 43, caster, area, contexts)
+        target["q_owner_id"] = False
+        with self.assertRaises(UnsupportedTargetSelector):
+            _native_target_valid(1 << 43, caster, area, contexts)

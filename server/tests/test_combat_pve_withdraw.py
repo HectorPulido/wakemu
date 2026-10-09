@@ -12,6 +12,54 @@ from postgres_case import PostgresCase
 
 
 class WithdrawalPlanTests(unittest.TestCase):
+    def test_private_return_preserves_registered_summon_controller_authority(self):
+        from dataclasses import asdict
+        from wakfu_server.combat_runtime_adapter import NativeActorAuthority
+        from wakfu_server.combat_abandon import _participant
+
+        beacon = Actor(222, 0, (1, 0, 0), 20, 0, 0, 0, 1, 2, True)
+        beacon.native_controller_id = 20
+        beacon.native_summon_source = dict(
+            # Published native-actor-properties.json NPC profile1422 carries
+            # timeline-exclusion property114 (exact catalog set below).
+            ref=1422,
+            level=1,
+            caster_id=20,
+            controller_id=20,
+            native_relation_source="big.new_bje.fdt_initial_registration",
+        )
+        authority = NativeActorAuthority(
+            targeting={},
+            is_player=False,
+            deck_spell_ids=frozenset(),
+            excluded_deck_spell_ids=frozenset(),
+            is_carried=False,
+            breed_id=1422,
+            summon_count=0,
+            summon_counts_by_breed={},
+            occupant_blocks=False,
+            is_summon=True,
+            native_real_level=1,
+            native_controller_id=20,
+        )
+        self.fight.actors[222] = beacon
+        self.fight.native_summon_registrations = {
+            222: dict(
+                actor_id=222,
+                caster_id=20,
+                controller_id=20,
+                authority=asdict(authority),
+                fight_properties=frozenset((28, 70, 15, 88, 78, 1, 114)),
+            )
+        }
+        result = plan(self.session, self.fight, self.runtime)
+        private = result.private_runtime
+        self.assertTrue(private.fight.actors[20].controlled)
+        self.assertTrue(private.fight.actors[222].controlled)
+        self.assertTrue(private.fight.actors[20].pve_withdrawn)
+        self.assertEqual(_participant(1, {"id": 10}, private).id, 10)
+        self.assertFalse(getattr(self.fight.actors[20], "pve_withdrawn", False))
+
     def setUp(self):
         self.session = Session(1, 10, "owner", 527, 0)
         self.fight = Fight(
@@ -39,6 +87,30 @@ class WithdrawalPlanTests(unittest.TestCase):
         self.assertEqual(result.initial_actor.hp, 45)
         self.assertEqual(self.fight.actors[10].hp, 45)
         self.assertEqual(self.runtime.action_id, 0)
+
+    def test_withdrawn_character_wire_snapshot_tracks_zero_hp(self):
+        from test_combat_actor_snapshot import ActorSnapshotTests
+        from wakfu_server.combat_actor_snapshot import build_player_snapshot
+        from wakfu_server.combat_snapshot_wire import snapshot_characteristics
+
+        character, actor = ActorSnapshotTests().player()
+        character["id"] = actor.id = 10
+        actor.owner_id = self.session.account_id
+        actor.team = 0
+        actor.position = (0, 0, 0)
+        build_player_snapshot(
+            character, actor, wp_current=6, wp_maximum=6, running_effects=()
+        ).install(actor)
+        self.fight.actors[10] = actor
+        self.assertEqual(actor.effect_stats[1], actor.hp)
+
+        result = plan(self.session, self.fight, self.runtime)
+
+        withdrawn = result.fight.actors[10]
+        self.assertTrue(withdrawn.pve_withdrawn)
+        self.assertEqual(withdrawn.hp, 0)
+        self.assertEqual(withdrawn.effect_stats[1], 0)
+        self.assertTrue(snapshot_characteristics(withdrawn))
 
     def test_private_terminal_is_absent_from_public_packets(self):
         result = plan(self.session, self.fight, self.runtime)
@@ -244,7 +316,7 @@ class WithdrawalPlanTests(unittest.TestCase):
 
 
 class WithdrawalPostgresTests(PostgresCase):
-    def state(self):
+    def state(self, *, marker=False):
         import test_combat_abandon as fixture
         from collections import deque
         from wakfu_server import health_store
@@ -284,9 +356,41 @@ class WithdrawalPostgresTests(PostgresCase):
         adapter = CombatSessionAdapter(store)
         owner = adapter.session(account, generation, character)
         teammate = adapter.session(other_account, other_generation, other)
-        shared = adapter.register(owner, fight, runtime=runtime)
+        if marker:
+            fight.phase = "placement"
+            fight.ready_owners.clear()
+            fight.order.clear()
+            runtime = None
+            fight.walkable.add((2, 0, 0))
+            fight.placement[0].add((2, 0, 0))
+        shared = adapter.register(
+            owner,
+            fight,
+            runtime=runtime,
+            join_context=(
+                {
+                    "leaders": {0: character["id"], 1: -200},
+                    "world_marker_cells": ((character["x"], character["y"]),),
+                    "arena": {},
+                    "terrain_effect_id": 46,
+                    "terrain_instance_id": 1,
+                    "duration_ms": 120000,
+                }
+                if marker
+                else None
+            ),
+        )
         fight.actors[other["id"]] = Actor(
-            other["id"], 0, (0, 0, 0), other["hp"], 6, 3, 90, 1, other_account, True
+            other["id"],
+            0,
+            (2, 0, 0) if marker else (0, 0, 0),
+            other["hp"],
+            6,
+            3,
+            90,
+            1,
+            other_account,
+            True,
         )
         shared.participants[other_account] = teammate
         shared.connected.add(other_account)
@@ -294,8 +398,9 @@ class WithdrawalPostgresTests(PostgresCase):
         adapter.registry.by_actor[other["id"]] = adapter.registry.by_character[
             other["id"]
         ] = fight.id
-        fight.ready(account)
-        fight.ready(other_account)
+        if not marker:
+            fight.ready(account)
+            fight.ready(other_account)
         fight.actors[character["id"]].hp -= 5
         return (
             store,
@@ -422,6 +527,119 @@ class WithdrawalPostgresTests(PostgresCase):
         with store.connection() as db:
             rows = list(db.execute("SELECT character_id FROM fight_rewards"))
             self.assertEqual([row["character_id"] for row in rows], [other["id"]])
+
+    def test_withdrawn_marker_leader_ack_then_durable_join_uses_retained_target_row(
+        self,
+    ):
+        (
+            store,
+            account,
+            generation,
+            character,
+            fight,
+            adapter,
+            owner,
+            shared,
+            other_account,
+            other_generation,
+            other,
+        ) = self.state(marker=True)
+
+        receipt = adapter.withdraw_pve(owner, character, b"")
+        self.assertEqual(shared.fight.phase, "placement")
+        returned = adapter.return_withdrawn_pve(
+            owner,
+            fight.id,
+            receipt["character"],
+            struct.pack(">iB", fight.id, 1),
+            wp=6,
+        )
+        self.assertEqual(returned["character"]["id"], character["id"])
+        self.assertNotIn(character["id"], adapter.registry.by_actor)
+        self.assertEqual(adapter.registry.join_aliases[character["id"]], {fight.id})
+
+        third_account = store.register("alias-joiner", "local-password")["id"]
+        third_generation = store.begin_session(third_account)
+        third_character = store.create_character(third_account, "AliasJoiner")
+        third_character = store.select_character(
+            third_account, third_generation, third_character["id"]
+        )
+        third = adapter.session(third_account, third_generation, third_character)
+        stale = Session(
+            third_account,
+            third_character["id"],
+            "stale-generation",
+            third_character["map_id"],
+            third_character.get("instance_id", 0),
+        )
+        with self.assertRaisesRegex(ValueError, "Stale combat session"):
+            adapter.join(
+                stale,
+                struct.pack(">qB", character["id"], 0),
+                Actor(
+                    third_character["id"],
+                    0,
+                    (0, 0, 0),
+                    third_character["hp"],
+                    6,
+                    3,
+                    90,
+                    1,
+                    third_account,
+                    True,
+                ),
+                actor_payload=lambda *_args: (b"", b""),
+                bootstrap_packets=lambda *_args: ((12847, b"bootstrap"),),
+            )
+        with store.connection() as db:
+            self.assertIsNone(
+                db.execute(
+                    "SELECT 1 FROM combat_fight_participants "
+                    "WHERE fight_id=%s AND character_id=%s",
+                    (fight.id, third_character["id"]),
+                ).fetchone()
+            )
+
+        joined = adapter.join(
+            third,
+            struct.pack(">qB", character["id"], 0),
+            Actor(
+                third_character["id"],
+                0,
+                (0, 0, 0),
+                third_character["hp"],
+                6,
+                3,
+                90,
+                1,
+                third_account,
+                True,
+            ),
+            actor_payload=lambda *_args: (b"", b""),
+            bootstrap_packets=lambda *_args: ((12847, b"bootstrap"),),
+        )
+        self.assertIs(joined, shared)
+        with store.connection() as db:
+            target = db.execute(
+                "SELECT p.account_id,p.team,p.session_generation,w.returned_at "
+                "FROM combat_fight_participants p "
+                "JOIN combat_pve_withdrawals w "
+                "ON w.fight_id=p.fight_id AND w.character_id=p.character_id "
+                "WHERE p.fight_id=%s AND p.character_id=%s",
+                (fight.id, character["id"]),
+            ).fetchone()
+            admitted = db.execute(
+                "SELECT account_id,team,session_generation FROM combat_fight_participants "
+                "WHERE fight_id=%s AND character_id=%s",
+                (fight.id, third_character["id"]),
+            ).fetchone()
+        self.assertEqual(target["account_id"], account)
+        self.assertEqual(target["team"], 0)
+        self.assertEqual(target["session_generation"], generation)
+        self.assertIsNotNone(target["returned_at"])
+        self.assertEqual(admitted["account_id"], third_account)
+        self.assertEqual(admitted["team"], 0)
+        self.assertEqual(admitted["session_generation"], third_generation)
 
     def test_replacement_lease_returns_to_world_after_unsent_private_terminal(self):
         (

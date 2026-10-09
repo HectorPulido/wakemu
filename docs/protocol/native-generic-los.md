@@ -2,7 +2,7 @@
 
 El motor ejecuta una traducción acotada del bytecode original `Sf.bfZ` y sus callbacks `m`/`bfX`. Conserva aritmética Java int32/short, orden de columnas, empates de la rasterización tridimensional y dos rayos de altura de `fcr.a`. No sustituye el cálculo por una respuesta positiva ni por un Bresenham aproximado.
 
-`native-los-ray-program.json` se reproduce con `server/tools/export_native_los_program.py`. `ExportNativeLOSTopology.java` extrae las columnas originales `VB.a(..., Vz[], ...)`, incluyendo altura y transparencia, en `native-los-topology/<mapa>.json.gz`. Actualmente sólo **1134** tiene esta topología completa (196.020 columnas). Otros mapas conservan el catálogo previo y rechazan pares sin evidencia; no se declara cobertura completa de todos los mapas.
+`native-los-ray-program.json` se reproduce con `server/tools/export_native_los_program.py`. `ExportNativeLOSTopology.java` extrae las columnas originales `VB.a(..., Vz[], ...)`, incluyendo altura y transparencia, en `native-los-topology/<mapa>.json`. Actualmente sólo **1134** tiene esta topología completa (196.020 columnas). Otros mapas conservan el catálogo previo y rechazan pares sin evidencia; no se declara cobertura completa de todos los mapas.
 
 Las alturas proceden de `eGE.bcK()` para jugadores (6) y de `aMb.css()` estrechado a byte por `bbo`/`blj` para monstruos. Por ejemplo, 5525 usa 4 y 3646 usa 3. Un actor sin altura acreditada se rechaza. Los bloqueadores vivos se evalúan en cada llamada; las columnas y los resultados estáticos se cachean. El arranque precarga programa y topología1134 para evitar una primera carga en el ataque.
 

@@ -4,12 +4,17 @@ The original aEV.xX removes by cbc(), including effects executed by Lua
 executeAllAction. Reusing the animation's ID for its effects can remove the
 animation and execute an effect twice. No running-effect UID is changed here.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
 import struct
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 
-with (DATA_ROOT / "native-combat-action-packets.json").open() as source:
-    NATIVE_ACTION_PACKETS = frozenset(int(k) for k in json.load(source)["packets"])
+NATIVE_ACTION_PACKETS = frozenset(
+    int(k)
+    for k in protocol_catalog.load(DATA_ROOT / "native-combat-action-packets.json")[
+        "packets"
+    ]
+)
 
 MAX_NATIVE_ACTION_ID = (1 << 31) - 1
 

@@ -10,7 +10,7 @@ La prueba actual de [recibos](../09-experiencia-de-combate/probe-recibos-y-gener
 
 ## Datos y transacción que faltan
 
-La fuente existente es `server/protocol/monster-encyclopedia.json.gz`, extraída por `ExportMonsterEncyclopedia.java`: contiene referencias de monstruo e ítem, probabilidad, cantidades, tiradas y condiciones. Se corrigió la omisión de revisar este catálogo y el código Dofus indicado por el usuario. Véanse [FUENTES-Y-CONTRATO-LOOT.md](FUENTES-Y-CONTRATO-LOOT.md) y [FORMULAS-DOFUS.md](../09-experiencia-de-combate/FORMULAS-DOFUS.md). Versionar la política derivada de esas fuentes, sin inventar relaciones desde el catálogo de ítems.
+La fuente existente es `server/protocol/monster-encyclopedia.json`, extraída por `ExportMonsterEncyclopedia.java`: contiene referencias de monstruo e ítem, probabilidad, cantidades, tiradas y condiciones. Se corrigió la omisión de revisar este catálogo y el código Dofus indicado por el usuario. Véanse [FUENTES-Y-CONTRATO-LOOT.md](FUENTES-Y-CONTRATO-LOOT.md) y [FORMULAS-DOFUS.md](../09-experiencia-de-combate/FORMULAS-DOFUS.md). Versionar la política derivada de esas fuentes, sin inventar relaciones desde el catálogo de ítems.
 
 Congelar los enemigos, participantes y modificadores en el resultado del combate. Registrar cada tirada y la lista final una sola vez por `fight_uuid`/participante. El multiplicador de drop debe aplicarse explícitamente a probabilidad, con clamp a10000 en una escala0–10000, sin multiplicar además cantidades por accidente. Esta política es propuesta, todavía no una reproducción acreditada de Dofus. Los multiplicadores de Stasis comprobados en29 se añaden según su contrato, sin sustituir ni duplicar el factor global.
 

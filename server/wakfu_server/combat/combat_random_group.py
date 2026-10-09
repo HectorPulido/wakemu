@@ -21,9 +21,21 @@ def random_group_mode(effect, values):
     parameters = values["parameters"]
     if effect["effect_class"] != 341 or len(parameters) not in (1, 2, 3):
         raise ValueError("Unsupported native eXR parameters")
-    on_target = len(parameters) < 2 or effect["parameters"][2] == 1
+    # eXR.bbA/bbB route from raw eVn.So(1); c() independently evaluates
+    # parameter 2 to decide whether the selected child receives target PV.
+    raw_parameters = effect.get("parameters")
+    if len(parameters) >= 2:
+        if not isinstance(raw_parameters, (tuple, list)) or len(raw_parameters) < 2:
+            raise ValueError("Missing raw native eXR So(1)")
+        raw_target = raw_parameters[1]
+        if type(raw_target) not in (int, float):
+            raise ValueError("Invalid raw native eXR So(1)")
+        on_target = raw_target == 1
+    else:
+        on_target = True
     return EffectGroupMode(
-        on_target=on_target, transmit_target=len(parameters) < 3 or parameters[2] == 1
+        on_target=on_target,
+        transmit_target=len(parameters) < 3 or parameters[2] == 1,
     )
 
 
@@ -105,7 +117,7 @@ class RandomGroupAuthority:
 
 def probability_bypass_context(payload):
     """eVt.a(true,false) updates builder fields, without protobuf duplicates."""
-    from .wire import proto_fields
+    from wakfu_server.wire import proto_fields
     from .combat_effects import _integer, _varint
 
     result = [_integer(1, 1), _integer(2, 0)]

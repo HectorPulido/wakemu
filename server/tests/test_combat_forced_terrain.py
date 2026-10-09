@@ -1,4 +1,3 @@
-import gzip
 import json
 from pathlib import Path
 import tempfile
@@ -40,7 +39,7 @@ class CompactForcedTerrainTests(unittest.TestCase):
             heights=[1, 25],
             rows=[[1, 2, -1, 0, 1, variants or [[1, 4], [full ^ 1, None]]]],
         )
-        (folder / "123.json.gz").write_bytes(gzip.compress(json.dumps(data).encode()))
+        (folder / "123.json").write_bytes(json.dumps(data).encode())
         return root
 
     def tearDown(self):
@@ -80,8 +79,6 @@ class CompactForcedTerrainTests(unittest.TestCase):
                 jump=4,
                 rows=[[[1, 2, -1], [1, 3], [1, 3, 0]]],
             )
-            (folder / "123-h4-r0-j4.json.gz").write_bytes(
-                gzip.compress(json.dumps(data).encode())
-            )
+            (folder / "123-h4-r0-j4.json").write_bytes(json.dumps(data).encode())
             with patch("wakfu_server.combat_forced_terrain.DATA_ROOT", root):
                 self.assertEqual(next_surface(123, 4, (1, 2, -1), (1, 3)), (1, 3, 0))

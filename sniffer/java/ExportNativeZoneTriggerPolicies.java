@@ -1,4 +1,4 @@
-import java.nio.file.*;import java.util.*;import java.util.zip.GZIPOutputStream;
+import java.nio.file.*;import java.util.*;
 import java.io.*;import com.google.gson.Gson;
 /** Complete aNw population: Qe.a aZX and eVE.a cym, never infer false. */
 public class ExportNativeZoneTriggerPolicies {
@@ -10,7 +10,7 @@ public class ExportNativeZoneTriggerPolicies {
    if(!(effect instanceof eVE definition))throw new IllegalStateException("Unknown direct-target definition "+raw.aZE());
    rows.put(""+raw.aZE(),List.of(effect.awM(),effect.a(eVl.rwB),effect.aZP().bEk()==and.cIO));
   }});
-  try(Writer out=new OutputStreamWriter(new GZIPOutputStream(Files.newOutputStream(Path.of(args[0]))),java.nio.charset.StandardCharsets.UTF_8)){
+  try(Writer out=new OutputStreamWriter(Files.newOutputStream(Path.of(args[0])),java.nio.charset.StandardCharsets.UTF_8)){
    new Gson().toJson(Map.of("schema",1,"source_count",rows.size(),"fields",List.of("effect_class","zone_flag","point_area"),"effects",rows),out);
   }
   System.out.println("Exported complete native zone-trigger policies="+rows.size());

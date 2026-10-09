@@ -110,7 +110,7 @@ def persist(
         raise ValueError("Stale fight exit HP")
     if not 0 <= actor.hp <= actor.max_hp:
         raise ValueError("Invalid authoritative fight HP")
-    from .equipment_stats import effective_character
+    from wakfu_server.equipment_stats import effective_character
 
     maximum = effective_character(saved)["max_hp"]
     from wakfu_server.health_policy import visible
@@ -146,6 +146,12 @@ def persist(
             now if reason == "return" else None,
         ),
     )
+    from .combat_captured_roster_checkpoint import persist_departing_captured_roster
+
+    # This is the actual owned return/abort teardown, after all lease, durable
+    # membership and duplicate-receipt guards. Keep capture availability and HP
+    # atomic, and load the returned character after both writes.
+    persist_departing_captured_roster(db, fight, saved)
     return dict(
         character=store.character(account_id, character["id"], db),
         applied=True,
@@ -202,7 +208,9 @@ def persist_aborted_fight(store, account_id, generation, character, fight):
         return None
 
 
-def persist_aborted_shared_fight(store, shared, *, groups=None):
+def persist_aborted_shared_fight(
+    store, shared, *, groups=None, reconnecting_session=None
+):
     """Atomically persist all owners' final HP and abort a disconnected PvE fight.
 
     Entry health comes from the durable participant rows, not a value sampled
@@ -220,10 +228,26 @@ def persist_aborted_shared_fight(store, shared, *, groups=None):
     )
     if not sessions or getattr(shared, "is_duel", False):
         raise ValueError("Shared PvE abort requires a participant roster")
+    if reconnecting_session is not None:
+        previous = shared.participants.get(reconnecting_session.account_id)
+        if (
+            previous is None
+            or previous.character_id != reconnecting_session.character_id
+            or previous.generation == reconnecting_session.generation
+            or not store.current_character_session(
+                reconnecting_session.account_id,
+                reconnecting_session.generation,
+                reconnecting_session.character_id,
+            )
+        ):
+            raise ValueError("Missing current owned reconnect for shared PvE abort")
+    from .combat_terminal_metadata import registered_summon_actor_ids
+
+    summon_ids = registered_summon_actor_ids(fight)
     controlled_roster = {
         (actor.owner_id, actor.id)
         for actor in fight.actors.values()
-        if actor.controlled
+        if actor.controlled and actor.id not in summon_ids
     }
     if controlled_roster != {
         (session.account_id, session.character_id) for session in sessions
@@ -279,8 +303,25 @@ def persist_aborted_shared_fight(store, shared, *, groups=None):
                 "WHERE account_id=%s FOR UPDATE",
                 (session.account_id,),
             ).fetchone()
+            replacement = (
+                reconnecting_session is not None
+                and reconnecting_session.account_id == session.account_id
+                and reconnecting_session.character_id == session.character_id
+            )
             if lease is not None and lease["generation"] != session.generation:
-                raise ValueError("Fight participant session generation was replaced")
+                if not (
+                    replacement
+                    and lease["generation"] == reconnecting_session.generation
+                    and lease["character_id"] == reconnecting_session.character_id
+                    and lease["expires_at"] > store.now()
+                ):
+                    raise ValueError(
+                        "Fight participant session generation was replaced"
+                    )
+            elif replacement:
+                raise ValueError(
+                    "Owned reconnect lease changed during shared PvE abort"
+                )
             if (
                 lease is not None
                 and lease["expires_at"] > store.now()
@@ -312,9 +353,13 @@ def persist_aborted_shared_fight(store, shared, *, groups=None):
                     (fight.id,),
                 )
             }
-            if exits != {(session.character_id, "abort") for session in sessions}:
+            expected_exits = {(session.character_id, "abort") for session in sessions}
+            if exits == expected_exits:
+                return {
+                    session.character_id: dict(applied=False) for session in sessions
+                }
+            if reconnecting_session is None or exits:
                 raise ValueError("Aborted shared fight has incomplete health receipts")
-            return {session.character_id: dict(applied=False) for session in sessions}
 
         for session in sessions:
             row = rows_by_identity[(session.account_id, session.character_id)]
@@ -338,7 +383,10 @@ def persist_aborted_shared_fight(store, shared, *, groups=None):
             results[session.character_id] = persist(
                 store,
                 session.account_id,
-                session.generation,
+                reconnecting_session.generation
+                if reconnecting_session is not None
+                and reconnecting_session.account_id == session.account_id
+                else session.generation,
                 character,
                 fight,
                 reason="abort",
@@ -347,7 +395,7 @@ def persist_aborted_shared_fight(store, shared, *, groups=None):
             )
 
         anchor = sessions[0]
-        if not abort(
+        if fight_row["status"] != "aborted" and not abort(
             store,
             anchor.account_id,
             anchor.character_id,

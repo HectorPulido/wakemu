@@ -11,6 +11,7 @@ class DiagnosticsTests(unittest.TestCase):
         from wakfu_server.combat_effect_dispatch import (
             EffectDispatcher,
             EffectInvocation,
+            UnsupportedEffectExecution,
         )
         from wakfu_server.combat_conditions import ConditionContext
 
@@ -36,7 +37,9 @@ class DiagnosticsTests(unittest.TestCase):
             actor_position=lambda identity: (0, 0, 0),
         )
         with combat_diagnostic_scope(lambda **row: rows.append(row)):
-            with self.assertRaisesRegex(ValueError, "No handler.*949"):
+            with self.assertRaisesRegex(
+                UnsupportedEffectExecution, "Native949 requires eZM context authority"
+            ):
                 dispatcher.execute(
                     EffectInvocation(80, 20, 7, -7, (1, 0, 0)), ancestors=(90,)
                 )

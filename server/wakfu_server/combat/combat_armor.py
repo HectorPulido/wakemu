@@ -36,7 +36,9 @@ def armor_amount(effect, level, source, target, *, capped_player, additional_fin
     ):
         raise ValueError("Unknown native armor coefficient/context")
     flags = set(effect["native_effect_flags"])
-    if flags - {3, 4, 5, 6, 17, 22, 23, 24}:
+    # eVl.rwZ=29 is LIFE_STEAL_HEAL_EFFECT. eWx/eWQ/eWW do not
+    # consume it in armor arithmetic; retain it for the common event lifecycle.
+    if flags - {3, 4, 5, 6, 17, 22, 23, 24, 29}:
         raise ValueError("Unaudited native armor flags")
     source_stats, target_stats = source.effect_stats, target.effect_stats
     if (

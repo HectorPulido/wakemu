@@ -1,0 +1,529 @@
+{
+  "rows": [
+    {
+      "x": -2,
+      "y": -2,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": -2,
+      "y": -1,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": -2,
+      "y": 0,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": -2,
+      "y": 1,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": -2,
+      "y": 2,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": -1,
+      "y": -2,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": -1,
+      "y": -1,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": true
+    },
+    {
+      "x": -1,
+      "y": 0,
+      "VON_NEUMANN": true,
+      "center": 0,
+      "MOORE": true
+    },
+    {
+      "x": -1,
+      "y": 1,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": true
+    },
+    {
+      "x": -1,
+      "y": 2,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": 0,
+      "y": -2,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": 0,
+      "y": -1,
+      "VON_NEUMANN": true,
+      "center": 0,
+      "MOORE": true
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "VON_NEUMANN": true,
+      "center": 0,
+      "MOORE": true
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "VON_NEUMANN": true,
+      "center": 0,
+      "MOORE": true
+    },
+    {
+      "x": 0,
+      "y": 2,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": 1,
+      "y": -2,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": 1,
+      "y": -1,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": true
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "VON_NEUMANN": true,
+      "center": 0,
+      "MOORE": true
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": true
+    },
+    {
+      "x": 1,
+      "y": 2,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": 2,
+      "y": -2,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": 2,
+      "y": -1,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "VON_NEUMANN": false,
+      "center": 0,
+      "MOORE": false
+    },
+    {
+      "x": 2147483646,
+      "y": 2147483646,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": 2147483646,
+      "y": 2147483647,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": 2147483646,
+      "y": -2147483648,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": 2147483646,
+      "y": -2147483647,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": 2147483646,
+      "y": -2147483646,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": 2147483647,
+      "y": 2147483646,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": 2147483647,
+      "y": 2147483647,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": true
+    },
+    {
+      "x": 2147483647,
+      "y": -2147483648,
+      "VON_NEUMANN": true,
+      "center": -2147483648,
+      "MOORE": true
+    },
+    {
+      "x": 2147483647,
+      "y": -2147483647,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": true
+    },
+    {
+      "x": 2147483647,
+      "y": -2147483646,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": -2147483648,
+      "y": 2147483646,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": -2147483648,
+      "y": 2147483647,
+      "VON_NEUMANN": true,
+      "center": -2147483648,
+      "MOORE": true
+    },
+    {
+      "x": -2147483648,
+      "y": -2147483648,
+      "VON_NEUMANN": true,
+      "center": -2147483648,
+      "MOORE": true
+    },
+    {
+      "x": -2147483648,
+      "y": -2147483647,
+      "VON_NEUMANN": true,
+      "center": -2147483648,
+      "MOORE": true
+    },
+    {
+      "x": -2147483648,
+      "y": -2147483646,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": -2147483647,
+      "y": 2147483646,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": -2147483647,
+      "y": 2147483647,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": true
+    },
+    {
+      "x": -2147483647,
+      "y": -2147483648,
+      "VON_NEUMANN": true,
+      "center": -2147483648,
+      "MOORE": true
+    },
+    {
+      "x": -2147483647,
+      "y": -2147483647,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": true
+    },
+    {
+      "x": -2147483647,
+      "y": -2147483646,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": -2147483646,
+      "y": 2147483646,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": -2147483646,
+      "y": 2147483647,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": -2147483646,
+      "y": -2147483648,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": -2147483646,
+      "y": -2147483647,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": -2147483646,
+      "y": -2147483646,
+      "VON_NEUMANN": false,
+      "center": -2147483648,
+      "MOORE": false
+    },
+    {
+      "x": 2147483645,
+      "y": 2147483645,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": 2147483645,
+      "y": 2147483646,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": 2147483645,
+      "y": 2147483647,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": 2147483645,
+      "y": -2147483648,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": 2147483645,
+      "y": -2147483647,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": 2147483646,
+      "y": 2147483645,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": 2147483646,
+      "y": 2147483646,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": true
+    },
+    {
+      "x": 2147483646,
+      "y": 2147483647,
+      "VON_NEUMANN": true,
+      "center": 2147483647,
+      "MOORE": true
+    },
+    {
+      "x": 2147483646,
+      "y": -2147483648,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": true
+    },
+    {
+      "x": 2147483646,
+      "y": -2147483647,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": 2147483647,
+      "y": 2147483645,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": 2147483647,
+      "y": 2147483646,
+      "VON_NEUMANN": true,
+      "center": 2147483647,
+      "MOORE": true
+    },
+    {
+      "x": 2147483647,
+      "y": 2147483647,
+      "VON_NEUMANN": true,
+      "center": 2147483647,
+      "MOORE": true
+    },
+    {
+      "x": 2147483647,
+      "y": -2147483648,
+      "VON_NEUMANN": true,
+      "center": 2147483647,
+      "MOORE": true
+    },
+    {
+      "x": 2147483647,
+      "y": -2147483647,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": -2147483648,
+      "y": 2147483645,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": -2147483648,
+      "y": 2147483646,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": true
+    },
+    {
+      "x": -2147483648,
+      "y": 2147483647,
+      "VON_NEUMANN": true,
+      "center": 2147483647,
+      "MOORE": true
+    },
+    {
+      "x": -2147483648,
+      "y": -2147483648,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": true
+    },
+    {
+      "x": -2147483648,
+      "y": -2147483647,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": -2147483647,
+      "y": 2147483645,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": -2147483647,
+      "y": 2147483646,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": -2147483647,
+      "y": 2147483647,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": -2147483647,
+      "y": -2147483648,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    },
+    {
+      "x": -2147483647,
+      "y": -2147483647,
+      "VON_NEUMANN": false,
+      "center": 2147483647,
+      "MOORE": false
+    }
+  ]
+}

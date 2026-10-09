@@ -1,15 +1,16 @@
-import importlib.util, io, json, os, sys, tempfile, unittest, zipfile
+import importlib.util, io, json, os, shutil, subprocess, sys, tempfile, unittest, zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
-DROPIN = ROOT / "client/tools/dropin"
+DROPIN = ROOT / "client-tools/dropin"
 spec = importlib.util.spec_from_file_location(
     "mini_config", DROPIN / "portable_config.py"
 )
 config = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(config)
 spec = importlib.util.spec_from_file_location(
-    "mini_package", ROOT / "client/tools/package-mini-launcher.py"
+    "mini_package", ROOT / "client-tools/packaging/package-mini-launcher.py"
 )
 package = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(package)
@@ -52,9 +53,8 @@ class MiniLauncherTests(unittest.TestCase):
             config.profile_root("alpha"), self.path.parent / "profiles/instances/alpha"
         )
 
-    def test_hostname_or_mismatched_api_cannot_expand_network_allowlist(self):
+    def test_mismatched_api_cannot_expand_network_allowlist(self):
         for host, api in [
-            ("ankama.com", "http://ankama.com"),
             ("127.0.0.1", "http://ankama.com"),
             ("127.0.0.1", "http://user:password@127.0.0.1"),
         ]:
@@ -85,12 +85,26 @@ class MiniLauncherTests(unittest.TestCase):
             )
 
     def test_distributed_payload_has_no_client_or_runtime_dependencies(self):
-        p = ROOT / ".runtime/distribution/wakfu-mini-launcher.zip"
-        if not p.exists():
-            self.skipTest("run packager first")
+        javac = shutil.which("javac")
+        java_home = os.environ.get("JAVA_HOME")
+        if not java_home and Path("/usr/libexec/java_home").is_file():
+            try:
+                java_home = subprocess.check_output(
+                    ["/usr/libexec/java_home", "-v", "21+"], text=True
+                ).strip()
+            except (OSError, subprocess.CalledProcessError):
+                pass
+        if not java_home and javac and Path(javac).resolve() != Path("/usr/bin/javac"):
+            java_home = str(Path(javac).resolve().parent.parent)
+        if not java_home or not (Path(java_home) / "bin/javac").is_file():
+            self.skipTest("JDK 21+ is required to build launcher agent fixtures")
+        output = self.base / "wakfu-mini-launcher.zip"
+        with patch.dict(os.environ, {"JAVA_HOME": java_home}):
+            package.build(output)
+        p = output
         with zipfile.ZipFile(p) as z:
             names = z.namelist()
-            self.assertEqual(len(names), 16)
+            self.assertEqual(len(names), 17)
             self.assertFalse(
                 any(
                     part in n.lower()

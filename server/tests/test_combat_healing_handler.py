@@ -112,6 +112,17 @@ class HealingHandlerTests(unittest.TestCase):
         self.assertEqual(self.fight.actors[-7].hp, 100)
         self.assertEqual(_identity_fields(self.packets[0][1][19:])[4], 25)
 
+    def test_damage_block_and_absorption_flags_preserve_healing(self):
+        # eVl2 bypasses damage block; eVl28 bypasses HP-loss absorption.
+        # Neither changes eXs/fat HP gain or native heal-resistance growth.
+        self.effect["native_effect_flags"] = [2, 28]
+        self.assertTrue(self.handler(self.effect, {}, self.invocation))
+        target = self.fight.actors[-7]
+        self.assertEqual(
+            (target.hp, target.effect_stats[92], target.effect_stats[32]), (100, 20, 50)
+        )
+        self.assertEqual(_identity_fields(self.packets[0][1][19:])[4], 25)
+
     def test_ko_unknown_and_undead_branch_remain_guarded(self):
         from dataclasses import replace
 

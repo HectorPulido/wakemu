@@ -1,10 +1,11 @@
 """Native unmodified spell costs and current-client cast packet encoders."""
-from .paths import DATA_ROOT
+from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 import json, struct
 from pathlib import Path
 from wakfu_server.spells import available_spells
 
-_COSTS = json.loads((DATA_ROOT / "spell-costs.json").read_text())["spells"]
+_COSTS = protocol_catalog.load(DATA_ROOT / "spell-costs.json")["spells"]
 
 
 def base_costs(character, spell_id):
@@ -29,11 +30,14 @@ def base_costs(character, spell_id):
 def spell_wire(character, spell_id, *, native_uid=None, native_level=None):
     if native_uid is not None:
         if (
-            native_uid != spell_id
+            type(native_uid) is not int
+            or not 0 < native_uid < (1 << 63)
+            or type(spell_id) is not int
+            or not 0 < spell_id < (1 << 31)
             or type(native_level) is not int
-            or not 1 <= native_level <= 32767
+            or not 0 <= native_level <= 32767
         ):
-            raise ValueError("Invalid native temporary spell identity")
+            raise ValueError("Invalid native owned spell identity")
         return struct.pack(">qih", native_uid, spell_id, native_level)
     base_costs(character, spell_id)
     return struct.pack(

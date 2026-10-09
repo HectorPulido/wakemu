@@ -54,6 +54,38 @@ class MinimumTests(unittest.TestCase):
         self.assertEqual(actor.hp, 60)
         self.assertEqual([p[0] for p in packets], [13497, 13560])
 
+    def test_hidden_raw_hp_survives_minimum_application_and_removal(self):
+        from test_combat_copied_pa import CopiedPATests
+        from wakfu_server.combat_hp_raw import hp_raw_current, set_hp_raw_maximum
+
+        fight, actor, _, _ = CopiedPATests().fixture()
+        fight.id = 8
+        fight.phase = "active"
+        fight.owned_stat_effects = {}
+        before = hp_raw_current(actor)
+        set_hp_raw_maximum(actor, 60)
+        self.assertGreater(before, actor.hp)
+        packets = []
+        handler = NativeMinimumResourceHandler(
+            fight,
+            packets,
+            action_id=1,
+            allocate_uid=lambda: 901,
+            context=lambda *args: StatExecutionContext(True, True, None, True, None),
+        )
+        handler(
+            dict(effect_class=877, parameters=[10, 0]),
+            {},
+            EffectInvocation(418264, 20, actor.id, actor.id, (0, 0, 0)),
+        )
+        self.assertEqual(hp_raw_current(actor), before)
+        self.assertEqual(actor.hp, 60)
+        self.assertEqual(actor.effect_minima[1], 10)
+        remove_minimum_resource(handler, 901)
+        self.assertEqual(hp_raw_current(actor), before)
+        self.assertEqual(actor.effect_minima[1], 0)
+        self.assertEqual(actor.hp, 60)
+
     def test_unknown_definition_rejected_without_writes(self):
         handler = NativeMinimumResourceHandler(
             None, [], action_id=1, allocate_uid=lambda: 1, context=None

@@ -1,4 +1,5 @@
 """Native12804 minimal-item transfer; client performs the visual move first."""
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import struct
 import json
@@ -7,7 +8,7 @@ from .inventory_items import _lease
 
 STACKS = {
     entry["reference"]: entry
-    for entry in json.loads((DATA_ROOT / "item-stack-rules.json").read_text())["items"]
+    for entry in protocol_catalog.load(DATA_ROOT / "item-stack-rules.json")["items"]
 }
 
 

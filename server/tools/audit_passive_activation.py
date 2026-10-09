@@ -197,7 +197,7 @@ def run_case(case, terrain, origin, target):
             deck,
             rng=rng,
             native_events=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
-            area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0") == "1",
+            area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1") == "1",
             **boundary,
         )
 
@@ -265,7 +265,7 @@ def run_case(case, terrain, origin, target):
                 turn_start_provider=area_provider
                 if (
                     os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1"
-                    or os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0") == "1"
+                    or os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1") == "1"
                 )
                 else None,
             )
@@ -513,7 +513,7 @@ def run(output, breed=None, *, identities=None, level=None):
             source_before=before,
             source_after=after,
             source_stable=before == after if final else None,
-            area_callbacks_enabled=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0")
+            area_callbacks_enabled=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1")
             == "1",
             native_start_events_enabled=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1")
             == "1",

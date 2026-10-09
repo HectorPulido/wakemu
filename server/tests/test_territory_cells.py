@@ -3,11 +3,14 @@ import unittest
 
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.territory_cells import GRID_SIZE, _cells, region_at
+from wakfu_server import native_catalog
 
 
 class TerritoryCellTests(unittest.TestCase):
     def test_export_covers_every_native_region_and_only_nonoverlapping_cells(self):
-        catalog = json.loads((DATA_ROOT / "ecology-regions.json").read_text())
+        catalog = json.loads(
+            native_catalog.read_text(DATA_ROOT / "ecology-regions.json")
+        )
         mapped = _cells()
         expected = {
             row["map_id"]: {region["region_id"] for region in row["regions"]}

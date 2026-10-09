@@ -1,6 +1,8 @@
 import struct
 import unittest
 from types import SimpleNamespace
+from wakfu_server.combat_conditions import ConditionActor, ConditionContext
+from wakfu_server.combat_conditional_costs import ConditionalCostContext
 from wakfu_server.combat_cast import (
     decode_cast,
     normal_damage_profile,
@@ -8,6 +10,25 @@ from wakfu_server.combat_cast import (
     prepare_spell_cast,
 )
 from wakfu_server.spells import encode_deck
+
+
+def cast_context(*, states=(), deck=(), range_value=0, carried=False, properties=()):
+    """Complete live caster authority for native cast selection and range."""
+    caster = ConditionActor(
+        state_ids=None if states is None else frozenset(states),
+        deck_spell_ids=frozenset(deck),
+        excluded_deck_spell_ids=frozenset(),
+        is_player=True,
+        is_carried=carried,
+        fight_properties=frozenset(properties),
+        characteristics={"RANGE": range_value},
+    )
+    return ConditionContext({"caster": caster})
+
+
+def cast_authority(*, states=(), deck=(), ap_modifiers=None):
+    context = cast_context(states=states, deck=deck)
+    return lambda *args: ConditionalCostContext(context, ap_modifiers)
 
 
 class CastValidationTests(unittest.TestCase):
@@ -26,6 +47,9 @@ class CastValidationTests(unittest.TestCase):
             encode_deck([6260]),
             wp=6,
             line_of_sight=lambda *a: True,
+            conditional_context=cast_authority(
+                ap_modifiers=self.actor.spell_ap_cost_modifiers
+            ),
         )
         self.assertEqual(plan["costs"]["ap"], 1)
         self.assertEqual(self.actor.ap, 1)
@@ -39,6 +63,9 @@ class CastValidationTests(unittest.TestCase):
                 encode_deck([6260]),
                 wp=6,
                 line_of_sight=lambda *a: True,
+                conditional_context=cast_authority(
+                    ap_modifiers=self.actor.spell_ap_cost_modifiers
+                ),
             )
         self.actor.spell_ap_cost_modifiers = None
         with self.assertRaises(UnknownCondition):
@@ -50,31 +77,39 @@ class CastValidationTests(unittest.TestCase):
                 encode_deck([6260]),
                 wp=6,
                 line_of_sight=lambda *a: True,
+                conditional_context=cast_authority(
+                    ap_modifiers=self.actor.spell_ap_cost_modifiers
+                ),
             )
 
     def test_conditional_cost_callback_uses_live_state_and_native_modifier_snapshot(
         self,
     ):
-        from wakfu_server.combat_conditions import ConditionActor, ConditionContext
-        from wakfu_server.combat_conditional_costs import ConditionalCostContext
         from wakfu_server.combat_conditions import UnknownCondition
 
-        self.target.position = (1, 0, 0)
+        self.target.position = (3, 0, 0)
         character = dict(self.character, breed=8, level=200)
         self.actor.effective_level = 200
-        body = struct.pack(">qqiih", 7, (7 << 32) | 4785, 1, 0, 0)
-        context = ConditionContext(
-            {"caster": ConditionActor(state_ids=frozenset([6117]))}
-        )
+        body = struct.pack(">qqiih", 7, (7 << 32) | 4785, 3, 0, 0)
+        context = cast_context(states=[6117])
         args = dict(wp=6, line_of_sight=lambda *a: True)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(UnknownCondition):
             prepare_spell_cast(
-                body, character, self.fight, 3, encode_deck([4785]), **args
+                body,
+                character,
+                self.fight,
+                3,
+                encode_deck([4785]),
+                conditional_context=lambda *unused: ConditionalCostContext(
+                    cast_context(states=None), {}
+                ),
+                **args
             )
         calls = []
 
         def authority(request, fight):
             calls.append((request["spell_uid"], fight.current.ap))
+            # Enrich the tested state authority with complete range inputs.
             return ConditionalCostContext(context, {})
 
         plan = prepare_spell_cast(
@@ -112,13 +147,21 @@ class CastValidationTests(unittest.TestCase):
             team=0,
             effective_level=1,
             position=(0, 0, 0),
+            turn_count=0,
+            physical_radius=0,
+            spell_ap_cost_modifiers={},
+            spell_range_modifiers={},
         )
-        self.target = SimpleNamespace(id=-7, hp=20, team=1, position=(2, 0, 0))
+        self.target = SimpleNamespace(
+            id=-7, hp=20, team=1, position=(2, 0, 0), physical_radius=0
+        )
         self.fight = SimpleNamespace(
+            id=77,
             phase="active",
             current=self.actor,
             actors={7: self.actor, -7: self.target},
-            walkable={(0, 0, 0), (1, 0, 0), (2, 0, 0)},
+            walkable={(0, 0, 0), (1, 0, 0), (2, 0, 0), (3, 0, 0)},
+            native_table_turn=0,
         )
         self.body = struct.pack(">qqiih", 7, (7 << 32) | 6260, 2, 0, 0)
 
@@ -127,6 +170,9 @@ class CastValidationTests(unittest.TestCase):
             complete=False,
             wp=6,
             line_of_sight=lambda *a: True,
+            conditional_context=cast_authority(
+                ap_modifiers=self.actor.spell_ap_cost_modifiers
+            ),
             select_effect=lambda *a: True,
             mitigate=lambda damage, *a: damage,
         )
@@ -154,6 +200,7 @@ class CastValidationTests(unittest.TestCase):
                 encode_deck([spell]),
                 wp=6,
                 line_of_sight=lambda *args: True,
+                conditional_context=cast_authority(ap_modifiers={}),
             )
             self.assertEqual(plan["target_id"], self.actor.id)
             self.assertEqual(plan["spell_id"], spell)
@@ -172,6 +219,7 @@ class CastValidationTests(unittest.TestCase):
             encode_deck([7551]),
             wp=6,
             line_of_sight=lambda *args: True,
+            conditional_context=cast_authority(ap_modifiers={}),
         )
         self.assertIsNone(plan["target_id"])
         self.assertEqual(plan["target"], (1, 0, 0))
@@ -232,6 +280,9 @@ class CastValidationTests(unittest.TestCase):
             encode_deck([6266]),
             wp=6,
             line_of_sight=lambda *a: True,
+            conditional_context=cast_authority(
+                ap_modifiers=self.actor.spell_ap_cost_modifiers
+            ),
             select_effect=selector,
             mitigate=lambda damage, *a: damage,
         )

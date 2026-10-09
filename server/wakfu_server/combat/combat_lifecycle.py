@@ -68,6 +68,11 @@ def prepare_finish(
             from .fight_store import finish
 
             finish(store, db, account_id, generation, character["id"], fight.id)
+            from .combat_captured_roster_checkpoint import (
+                persist_captured_roster_updates,
+            )
+
+            persist_captured_roster_updates(db, fight)
             actor = fight.actors[character["id"]]
             if actor.team == fight.winner:
                 selected_policy = (
@@ -154,6 +159,9 @@ def prepare_finish(
                     packets.insert(0, notice)
             if ecology is not None:
                 packets.extend(ecology["packets"])
+            from .fight_store import _write_terminal_checkpoint
+
+            _write_terminal_checkpoint(db, store, account_id, generation, fight)
             return dict(
                 character=saved,
                 reward=reward,
@@ -180,6 +188,7 @@ def prepare_finish_shared(
     loot_resolver=None,
     group_settlement=None,
     expected_accounts=None,
+    trace=None,
 ):
     """Settle a finished shared roster once and build private owner packets.
 
@@ -207,11 +216,33 @@ def prepare_finish_shared(
     from .combat_rewards import award_shared_member, report_metadata
     from . import combat_results
 
+    from .fight_checkpoint_store import _trace_stage
+    import time
+
+    def observe(stage, callback, *args, **kwargs):
+        started = time.monotonic()
+        _trace_stage(trace, stage + "_started", fight.id, operation="settle")
+        try:
+            return callback(*args, **kwargs)
+        finally:
+            _trace_stage(
+                trace,
+                stage + "_finished",
+                fight.id,
+                operation="settle",
+                elapsed_ms=(time.monotonic() - started) * 1000,
+            )
+
     base_metadata = {identity: dict(record) for identity, record in metadata.items()}
     if set(base_metadata) != set(fight.actors):
         raise ValueError("Shared fight report metadata does not match roster")
 
     def settle(db, members, candidate):
+        from .combat_captured_roster_checkpoint import persist_captured_roster_updates
+
+        # Capture and roster mutations share the reward/terminal transaction;
+        # every character snapshot below observes the actual settled roster.
+        observe("captured_roster", persist_captured_roster_updates, db, candidate)
         participant_rewards = {}
         participant_loot = {}
         shared_report = {
@@ -221,13 +252,15 @@ def prepare_finish_shared(
             owner = member["account_id"]
             actor_id = member["character_id"]
             actor = candidate.actors[actor_id]
-            character = store.character(owner, actor_id, db)
+            character = observe("character", store.character, owner, actor_id, db)
             if member.get("withdrawn", False) or actor.team != candidate.winner:
                 participant_rewards[owner] = None
                 participant_loot[owner] = None
                 continue
-            policy = policy_resolver(db, member, character)
-            reward = award_shared_member(
+            policy = observe("policy", policy_resolver, db, member, character)
+            reward = observe(
+                "reward",
+                award_shared_member,
                 store,
                 db,
                 owner,
@@ -240,7 +273,7 @@ def prepare_finish_shared(
             shared_report = report_metadata(shared_report, actor_id, reward)
             delivery = None
             if loot_resolver is not None:
-                delivery = loot_resolver(db, member, reward)
+                delivery = observe("loot", loot_resolver, db, member, reward)
                 if not isinstance(delivery, dict) or set(delivery) != {
                     "loots",
                     "packets",
@@ -260,7 +293,9 @@ def prepare_finish_shared(
 
         ecology = None
         if group_settlement is not None:
-            ecology = group_settlement(
+            ecology = observe(
+                "group",
+                group_settlement,
                 db,
                 account_id,
                 character_id,
@@ -298,7 +333,9 @@ def prepare_finish_shared(
                         (12753, account_kamas_update(reward["character"]["kamas"]))
                     )
                 packets.extend(
-                    combat_results.finish_messages(
+                    observe(
+                        "result_packets",
+                        combat_results.finish_messages,
                         runtime,
                         report,
                         duration_ms=duration_ms,
@@ -344,6 +381,7 @@ def prepare_finish_shared(
         character_id,
         fight,
         settle,
+        **({"trace": trace} if trace is not None else {}),
     )
 
 
@@ -354,7 +392,7 @@ def outside_progression(character, *, wp=None, ap=None, mp=None):
     identity. Format3 FIGHT starts after byte format+i64XP+20bytePOSITION.
     """
     from .combat_actor import actor_stats
-    from .equipment_stats import effective_character, combat_resources
+    from wakfu_server.equipment_stats import effective_character, combat_resources
 
     owned = effective_character(character)
     resources = combat_resources(owned, wp=wp, base_ap=ap, base_mp=mp)
@@ -410,3 +448,66 @@ def return_to_world(
             ]
         )
         return dict(character=saved, packets=packets, applied=True)
+
+
+def recover_settled_world(
+    store,
+    account_id,
+    generation,
+    character,
+    fight,
+    *,
+    previous_generation,
+    fight_id=None,
+    wp,
+    ap=6,
+    mp=3,
+):
+    """Finish a settled PvE return for a fresh login already in the world.
+
+    This is not a synthetic12925 or a fight bootstrap. The new connection has
+    loaded its world actor, so replaying combat terminal packets would target a
+    client with no native fight model. Rewards are never resolved here; the
+    durable finish and return-health receipt are the idempotency boundary.
+    """
+    fight_id = getattr(fight, "id", None) if fight_id is None else fight_id
+    if type(fight_id) is not int or fight_id <= 0:
+        raise ValueError("Settled world recovery requires a fight identity")
+    if fight is not None and fight.phase != "finished":
+        raise ValueError("Settled world recovery requires a finished fight")
+    from .fight_store import recover_finished_return
+
+    health_exit = recover_finished_return(
+        store,
+        account_id,
+        generation,
+        character["id"],
+        fight,
+        character,
+        previous_generation=previous_generation,
+        fight_id=fight_id,
+    )
+    saved = health_exit["character"]
+    fight = health_exit["fight"]
+    coefficient = health_exit.get("coefficient", 0 if saved["hp"] == 0 else 1)
+    from wakfu_server.inventory_items import equipment_inventory
+    from wakfu_server.inventory_move import synchronization
+
+    packets = [synchronization(saved), equipment_inventory(saved)]
+    if not health_exit["recovered_from_checkpoint"]:
+        packets.extend(combat_results.outside_fight_updates(fight))
+    packets.extend(
+        [
+            outside_progression(saved, wp=wp, ap=ap, mp=mp),
+            (12436, health.packet(saved["id"], saved["hp"], coefficient)),
+            (13021, struct.pack(">q", saved["kamas"])),
+            (13873, wire.account_kamas(saved["kamas"])),
+        ]
+    )
+    return dict(
+        fight_id=fight_id,
+        character=saved,
+        packets=packets,
+        applied=health_exit["applied"],
+        recovered=True,
+    )

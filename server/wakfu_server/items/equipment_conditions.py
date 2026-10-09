@@ -3,6 +3,7 @@
 HasAnotherSameEquipment is eQb204/eLZ: same reference, DIFFERENT UID in
 fpj/fpd or actual equipped fnZ. Inventory-bag duplicates are irrelevant.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import ast
 import json
 from functools import lru_cache
@@ -12,9 +13,7 @@ from .combat_local_criteria import parse_local_criterion
 
 @lru_cache(maxsize=1)
 def catalog():
-    return json.loads((DATA_ROOT / "item-equipment-conditions.json").read_text())[
-        "items"
-    ]
+    return protocol_catalog.load(DATA_ROOT / "item-equipment-conditions.json")["items"]
 
 
 def evaluate(criteria, *, item, selected, owned, current_equipped=()):

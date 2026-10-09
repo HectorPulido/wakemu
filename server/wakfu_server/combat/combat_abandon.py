@@ -13,14 +13,20 @@ from .combat_lifecycle import outside_progression
 
 def _participant(account_id, character, runtime):
     fight = runtime.fight
+    from .combat_terminal_metadata import registered_summon_actor_ids
+
+    summon_ids = registered_summon_actor_ids(fight)
     actor = fight.actors.get(character["id"])
     controlled = [
         a
         for a in fight.actors.values()
-        if a.controlled and not getattr(a, "pve_withdrawn", False)
+        if a.controlled
+        and a.id not in summon_ids
+        and not getattr(a, "pve_withdrawn", False)
     ]
     if (
         actor is None
+        or actor.id in summon_ids
         or not actor.controlled
         or actor.owner_id != account_id
         or len(controlled) != 1
@@ -47,6 +53,48 @@ def placement_runtime(fight, runtime):
     return RuntimeMessages(fight)
 
 
+def _terminal_packets(planned, losing_team):
+    # huN=true removes a participant, then aUH returns early when its removal
+    # leaves fewer than fUM teams. Normal end lists bypass that branch and
+    # restore local input/frames; the authoritative FSM still records abort.
+    winners = [a.id for a in planned.fight.actors.values() if a.team != losing_team]
+    losers = [a.id for a in planned.fight.actors.values() if a.team == losing_team]
+    if not winners or max(len(winners), len(losers)) > 127:
+        raise ValueError("Unsupported abandon team layout")
+    payload = planned._prefix() + b"\x00"
+    # ckc routes eIl (second list) through buH.W into jqB; aUH
+    # derives its loss presentation flag from !jqB.contains(own actor).
+    # The first list is therefore losers, the second winners.
+    for identities in (losers, winners, []):
+        payload += struct.pack(">b", len(identities)) + b"".join(
+            struct.pack(">q", identity) for identity in identities
+        )
+    return [(12238, payload), planned._flush()]
+
+
+def aborted_terminal_packets(fight, runtime=None, *, losing_team):
+    """Normal spectator cleanup for an already committed abort, no winner.
+
+    Reuse the abandonment codec on a detached counter snapshot. This function
+    neither persists health nor changes the authoritative outcome or runtime.
+    """
+    if (
+        fight.phase != "finished"
+        or fight.winner is not None
+        or losing_team not in (0, 1)
+    ):
+        raise ValueError("Spectator abort requires a committed aborted fight")
+    if runtime is None:
+        from .combat_runtime_messages import RuntimeMessages
+
+        runtime = RuntimeMessages(fight)
+    if runtime.fight is not fight:
+        raise ValueError("Aborted spectator runtime is stale")
+    planned = copy.copy(runtime)
+    planned.fight = copy.copy(fight)
+    return _terminal_packets(planned, losing_team)
+
+
 def prepare(store, account_id, generation, character, runtime, body):
     """Persist local abort HP, send cleanup and await native12925 callback."""
     if body != b"":
@@ -63,24 +111,7 @@ def prepare(store, account_id, generation, character, runtime, body):
     # Build without mutating the authoritative FSM before ownership/HP CAS.
     planned = copy.copy(runtime)
     planned.fight = copy.copy(runtime.fight)
-    # huN=true removes a participant, then aUH returns early when its removal
-    # leaves fewer than fUM teams. Normal end lists bypass that branch and
-    # restore local input/frames; the authoritative FSM still records abort.
-    winners = [
-        a.id for a in runtime.fight.actors.values() if a.team != participant.team
-    ]
-    losers = [a.id for a in runtime.fight.actors.values() if a.team == participant.team]
-    if not winners or max(len(winners), len(losers)) > 127:
-        raise ValueError("Unsupported abandon team layout")
-    payload = planned._prefix() + b"\x00"
-    # ckc routes eIl (second list) through buH.W into jqB; aUH
-    # derives its loss presentation flag from !jqB.contains(own actor).
-    # The first list is therefore losers, the second winners.
-    for identities in (losers, winners, []):
-        payload += struct.pack(">b", len(identities)) + b"".join(
-            struct.pack(">q", identity) for identity in identities
-        )
-    packets = [(12238, payload), planned._flush()]
+    packets = _terminal_packets(planned, participant.team)
     # The durable outcome must not depend on the subsequent checkpoint or
     # client callback. Commit the abort and its health receipt together.
     with store.connection() as db:

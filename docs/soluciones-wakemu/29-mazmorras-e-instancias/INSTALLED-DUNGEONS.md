@@ -1,0 +1,95 @@
+# Installed dungeon entry commands
+
+Installed bundle: 87 configurations (76 dungeon guides and 11 ultimate-boss guides), 246 rooms. Unknown rosters and room layout use explicit local policies. Native access requirements remain enforced; unsupported quest authority and item costs reject entry.
+
+Use two accounts, create one party, then run the selected command on both outside combat. The leader interacts with the native entrance; both fight every room. Victory and return trigger automatic whole-party travel.
+
+| Configuration | Rooms | Entry command | Route |
+| --- | --- | --- | --- |
+| [antre-de-la-sorciere](https://methodwakfu.com/pvm/donjons-evenementiels/antre-de-la-sorciere/) | 2 | `!tp 527 57 63 0` | `legacy-map-443-20179-955` |
+| [antre-de-nogord-l-ezarele](https://methodwakfu.com/pvm/boss-ultimes/antre-de-nogord-l-ezarele/) | 1 | `!tp 1093 -21 0 40` | `native_dungeon_117` |
+| [antre-du-corbeau-noir](https://methodwakfu.com/pvm/boss-ultimes/antre-du-corbeau-noir/) | 1 | `!tp 962 -7 -5 0` | `native_dungeon_5` |
+| [antre-oublie](https://methodwakfu.com/pvm/antre-oublie/) | 2 | `!tp 711 44 -126 -80` | `native_dungeon_81` |
+| [autel-de-la-lune](https://methodwakfu.com/pvm/autel-de-la-lune/) | 4 | `!tp 1264 61 -36 0` | `native_dungeon_47` |
+| [blopera](https://methodwakfu.com/pvm/blopera/) | 4 | `!tp 1137 52 -266 0` | `native_dungeon_152` |
+| [boss-ultimes-antre-dexcarnus](https://methodwakfu.com/pvm/boss-ultimes/antre-dexcarnus/) | 1 | `!tp 711 7 -63 -91` | `native_dungeon_4` |
+| [boss-ultimes-antre-du-boufrog](https://methodwakfu.com/pvm/boss-ultimes/antre-du-boufrog/) | 2 | `!tp 1137 -25 -170 67` | `native_dungeon_6` |
+| [boss-ultimes-antre-du-dragon-cochon](https://methodwakfu.com/pvm/boss-ultimes/antre-du-dragon-cochon/) | 1 | `!tp 1222 0 -54 0` | `native_dungeon_57` |
+| [boss-ultimes-antre-du-meulou](https://methodwakfu.com/pvm/boss-ultimes/antre-du-meulou/) | 1 | `!tp 1264 57 -101 40` | `native_dungeon_3` |
+| [boss-ultimes-coeur-de-lhorloge-de-nox](https://methodwakfu.com/pvm/boss-ultimes/coeur-de-lhorloge-de-nox/) | 1 | `!tp 1430 7 -31 0` | `native_dungeon_203` |
+| [boss-ultimes-dimension-objet-dombrage](https://methodwakfu.com/pvm/boss-ultimes/dimension-objet-dombrage/) | 1 | `!tp 1233 -1 0 0` | `native_dungeon_135` |
+| [boss-ultimes-plateau-des-hauts-vents](https://methodwakfu.com/pvm/boss-ultimes/plateau-des-hauts-vents/) | 1 | `!tp 962 -9 3 0` | `native_dungeon_100` |
+| [boss-ultimes-pointe-du-mont-zinit](https://methodwakfu.com/pvm/boss-ultimes/pointe-du-mont-zinit/) | 1 | `!tp 1124 -17 -128 22` | `native_dungeon_131` |
+| [canyon-des-fleopards](https://methodwakfu.com/pvm/canyon-des-fleopards/) | 4 | `!tp 1252 -168 -156 -50` | `native_dungeon_156` |
+| [chateau-wagnar](https://methodwakfu.com/pvm/chateau-wagnar/) | 3 | `!tp 1232 1 -7 0` | `native_dungeon_49` |
+| [chez-la-mere-michou](https://methodwakfu.com/pvm/chez-la-mere-michou/) | 3 | `!tp 527 -29 120 0` | `legacy-map-312-18736-713` |
+| [cite-interdite](https://methodwakfu.com/pvm/cite-interdite/) | 1 | `!tp 1252 -19 -148 -60` | `native_dungeon_155` |
+| [compost-du-grand-potofeu](https://methodwakfu.com/pvm/donjons/compost-du-grand-potofeu/) | 2 | `!tp 1384 -190 -190 24` | `native_dungeon_193` |
+| [donjon-abraknyde](https://methodwakfu.com/pvm/donjon-abraknyde/) | 4 | `!tp 1136 116 56 -80` | `native_dungeon_148` |
+| [donjon-arakne](https://methodwakfu.com/pvm/donjon-arakne/) | 3 | `!tp 1264 -115 -29 60` | `native_dungeon_46` |
+| [donjon-cacterre](https://methodwakfu.com/pvm/donjon-cacterre/) | 2 | `!tp 792 50 -88 -80` | `native_dungeon_83` |
+| [donjon-crustargneux](https://methodwakfu.com/pvm/donjons/donjon-crustargneux/) | 3 | `!tp 1276 -18 -360 1` | `native_dungeon_162` |
+| [donjon-des-abraknes](https://methodwakfu.com/pvm/donjon-des-abraknes/) | 3 | `!tp 527 -172 62 -20` | `native_dungeon_125` |
+| [donjon-des-crocodailles](https://methodwakfu.com/pvm/donjon-des-crocodailles/) | 4 | `!tp 999 -26 3 -80` | `native_dungeon_110` |
+| [donjon-des-kannivores](https://methodwakfu.com/pvm/donjon-des-kannivores/) | 4 | `!tp 1053 108 -18 -20` | `native_dungeon_109` |
+| [donjon-des-tropikes](https://methodwakfu.com/pvm/donjon-des-tropikes/) | 4 | `!tp 999 -70 0 -78` | `native_dungeon_104` |
+| [donjon-e-bou](https://methodwakfu.com/pvm/donjon-e-bou/) | 4 | `!tp 923 98 -33 -64` | `native_dungeon_96` |
+| [donjon-flaqueux](https://methodwakfu.com/pvm/donjon-flaqueux/) | 2 | `!tp 1135 -69 -72 0` | `native_dungeon_142` |
+| [donjon-gerbouille](https://methodwakfu.com/pvm/donjon-gerbouille/) | 4 | `!tp 1264 151 121 -80` | `native_dungeon_158` |
+| [donjon-machines-de-nox](https://methodwakfu.com/pvm/donjons/donjon-machines-de-nox/) | 2 | `!tp 1401 -37 -281 16` | `native_dungeon_201` |
+| [donjon-morts-brules](https://methodwakfu.com/pvm/donjon-morts-brules/) | 3 | `!tp 1359 65 -96 -50` | `native_dungeon_185` |
+| [donjon-phytomorphes](https://methodwakfu.com/pvm/donjons/donjon-phytomorphes/) | 2 | `!tp 1305 0 -128 17` | `native_dungeon_176` |
+| [donjon-plantigardes](https://methodwakfu.com/pvm/donjon-plantigardes/) | 3 | `!tp 1295 -245 0 -80` | `native_dungeon_166` |
+| [donjon-savanastraux](https://methodwakfu.com/pvm/donjons/donjon-savanastraux/) | 2 | `!tp 1401 -2 -1 0` | `native_dungeon_199` |
+| [donjon-videants](https://methodwakfu.com/pvm/donjons/donjon-videants/) | 2 | `!tp 1309 4 -67 21` | `native_dungeon_177` |
+| [donjons-chateau-des-cwabes](https://methodwakfu.com/pvm/donjons/chateau-des-cwabes/) | 3 | `!tp 1135 64 -72 -59` | `native_dungeon_140` |
+| [donjons-donjon-bwork](https://methodwakfu.com/pvm/donjons/donjon-bwork/) | 3 | `!tp 711 -74 -73 -40` | `native_dungeon_80` |
+| [donjons-donjon-clan-de-bworkana](https://methodwakfu.com/pvm/donjons/donjon-clan-de-bworkana/) | 2 | `!tp 1401 115 -124 0` | `native_dungeon_200` |
+| [donjons-donjon-demhorribles](https://methodwakfu.com/pvm/donjons/donjon-demhorribles/) | 2 | `!tp 1326 -169 -133 49` | `native_dungeon_178` |
+| [donjons-donjon-egares](https://methodwakfu.com/pvm/donjons/donjon-egares/) | 2 | `!tp 1333 -9 -246 22` | `native_dungeon_179` |
+| [donjons-donjon-equipage-du-poulpe](https://methodwakfu.com/pvm/donjons/donjon-equipage-du-poulpe/) | 2 | `!tp 1358 -156 32 -47` | `native_dungeon_184` |
+| [donjons-donjon-ferociraptors](https://methodwakfu.com/pvm/donjons/donjon-ferociraptors/) | 2 | `!tp 1401 -72 -206 0` | `native_dungeon_197` |
+| [donjons-donjon-mansots](https://methodwakfu.com/pvm/donjons/donjon-mansots/) | 3 | `!tp 1297 17 -135 27` | `native_dungeon_167` |
+| [donjons-donjon-mollusky](https://methodwakfu.com/pvm/donjons/donjon-mollusky/) | 3 | `!tp 1118 -34 -30 0` | `native_dungeon_34` |
+| [donjons-donjon-poisseux-abyssaux](https://methodwakfu.com/pvm/donjons/donjon-poisseux-abyssaux/) | 3 | `!tp 1368 -62 28 10` | `native_dungeon_187` |
+| [donjons-donjon-primassifs](https://methodwakfu.com/pvm/donjons/donjon-primassifs/) | 2 | `!tp 1401 -102 -161 12` | `native_dungeon_198` |
+| [donjons-donjon-ravageurs](https://methodwakfu.com/pvm/donjons/donjon-ravageurs/) | 2 | `!tp 1338 -177 -147 16` | `native_dungeon_180` |
+| [donjons-donjon-riktus-elite](https://methodwakfu.com/pvm/donjons/donjon-riktus-elite/) | 4 | `!tp 1207 -112 -88 40` | `native_dungeon_139` |
+| [donjons-donjon-steamers](https://methodwakfu.com/pvm/donjons/donjon-steamers/) | 4 | `!tp 1365 -116 -37 -36` | `native_dungeon_188` |
+| [donjons-donjon-vandalienes](https://methodwakfu.com/pvm/donjons/donjon-vandalienes/) | 3 | `!tp 1285 -13 -23 8` | `native_dungeon_160` |
+| [donjons-evenementiels-atelier-du-pere-nowel](https://methodwakfu.com/pvm/donjons-evenementiels/atelier-du-pere-nowel/) | 3 | `!tp 472 6 -90 -80` | `legacy-map-474-27425-977` |
+| [donjons-evenementiels-maison-du-pere-nowel](https://methodwakfu.com/pvm/donjons-evenementiels/maison-du-pere-nowel/) | 1 | `!tp 472 -25 -21 -80` | `legacy-map-476-17452-1004` |
+| [donjons-evenementiels-palais-marin](https://methodwakfu.com/pvm/donjons-evenementiels/palais-marin/) | 5 | `!tp 458 -64 -31 0` | `legacy-map-1075-26727-2482` |
+| [donjons-fabrique-meka](https://methodwakfu.com/pvm/donjons/fabrique-meka/) | 4 | `!tp 922 -9 98 -72` | `native_dungeon_95` |
+| [donjons-kokokolantha](https://methodwakfu.com/pvm/donjons/kokokolantha/) | 5 | `!tp 1135 45 80 -60` | `native_dungeon_141` |
+| [donjons-la-patapoutrerie](https://methodwakfu.com/pvm/donjons/la-patapoutrerie/) | 4 | `!tp 1210 -67 -57 19` | `native_dungeon_153` |
+| [donjons-la-skouale-seche](https://methodwakfu.com/pvm/donjons/la-skouale-seche/) | 3 | `!tp 1118 20 -181 1` | `native_dungeon_41` |
+| [donjons-les-ratacombes](https://methodwakfu.com/pvm/donjons/les-ratacombes/) | 2 | `!tp 323 -56 -64 0` | `native_dungeon_12` |
+| [donjons-paturages-des-bouftous](https://methodwakfu.com/pvm/donjons/paturages-des-bouftous/) | 3 | `!tp 527 -245 -89 0` | `native_dungeon_90` |
+| [donjons-tombeau-de-pandala](https://methodwakfu.com/pvm/donjons/tombeau-de-pandala/) | 4 | `!tp 1252 71 -167 -72` | `native_dungeon_157` |
+| [donjons-tour-des-miss-moches](https://methodwakfu.com/pvm/donjons/tour-des-miss-moches/) | 3 | `!tp 1389 151 9 14` | `native_dungeon_189` |
+| [donjons-tour-minerale-36](https://methodwakfu.com/pvm/donjons/tour-minerale-36/) | 1 | `!tp 1202 -22 -7 0` | `native_dungeon_133` |
+| [fosse-du-tourmenteur](https://methodwakfu.com/pvm/fosse-du-tourmenteur/) | 1 | `!tp 793 30 -104 33` | `native_dungeon_82` |
+| [kannibouls](https://methodwakfu.com/pvm/kannibouls/) | 4 | `!tp 999 19 -145 -80` | `native_dungeon_106` |
+| [la-corbeau-cave](https://methodwakfu.com/pvm/la-corbeau-cave/) | 3 | `!tp 949 -1 -7 0` | `native_dungeon_88` |
+| [la-crete-givree](https://methodwakfu.com/pvm/la-crete-givree/) | 4 | `!tp 1124 -50 -102 60` | `native_dungeon_128` |
+| [la-montagne-adezieu](https://methodwakfu.com/pvm/la-montagne-adezieu/) | 6 | `!tp 1134 -50 -104 50` | `native_dungeon_136` |
+| [la-tour-gelee](https://methodwakfu.com/pvm/donjons/la-tour-gelee/) | 3 | `!tp 508 5 -20 0` | `native_dungeon_10` |
+| [lampionaute](https://methodwakfu.com/pvm/lampionaute/) | 8 | `!tp 235 -303 -567 48` | `native_dungeon_149` |
+| [larventura](https://methodwakfu.com/pvm/larventura/) | 4 | `!tp 546 -49 16 -1` | `native_dungeon_65` |
+| [le-caveau-releve](https://methodwakfu.com/pvm/le-caveau-releve/) | 3 | `!tp 527 75 92 0` | `native_dungeon_89` |
+| [le-papaturage-royal](https://methodwakfu.com/pvm/le-papaturage-royal/) | 3 | `!tp 1134 98 103 0` | `native_dungeon_137` |
+| [le-tofulailler](https://methodwakfu.com/pvm/le-tofulailler/) | 3 | `!tp 527 -128 -33 0` | `native_dungeon_27` |
+| [les-champs-pourchan](https://methodwakfu.com/pvm/les-champs-pourchan/) | 4 | `!tp 1134 183 3 0` | `native_dungeon_25` |
+| [niche-yech-ti-wawa](https://methodwakfu.com/pvm/niche-yech-ti-wawa/) | 2 | `!tp 507 -15 -52 -1` | `native_dungeon_8` |
+| [palais-de-rushu](https://methodwakfu.com/pvm/boss-ultimes/palais-de-rushu/) | 1 | `!tp 1342 -13 30 -12` | `native_dungeon_181` |
+| [piou-lahoupe](https://methodwakfu.com/pvm/piou-lahoupe/) | 3 | `!tp 527 -1 -160 40` | `native_dungeon_26` |
+| [repaire-de-kali](https://methodwakfu.com/pvm/repaire-de-kali/) | 1 | `!tp 1122 0 -71 0` | `native_dungeon_121` |
+| [repaire-des-magik-riktus](https://methodwakfu.com/pvm/repaire-des-magik-riktus/) | 3 | `!tp 1134 2 123 2` | `native_dungeon_138` |
+| [sanctuaire-des-dragoeufs](https://methodwakfu.com/pvm/sanctuaire-des-dragoeufs/) | 4 | `!tp 1124 15 -91 -20` | `native_dungeon_129` |
+| [scarriere-abandonnee](https://methodwakfu.com/pvm/scarriere-abandonnee/) | 3 | `!tp 1137 128 -135 -74` | `native_dungeon_151` |
+| [sliptorium](https://methodwakfu.com/pvm/donjons/sliptorium/) | 2 | `!tp 323 0 -131 0` | `native_dungeon_48` |
+| [source-du-mal](https://methodwakfu.com/pvm/source-du-mal/) | 4 | `!tp 1252 51 -27 -80` | `native_dungeon_154` |
+| [taniere-des-blerox](https://methodwakfu.com/pvm/taniere-des-blerox/) | 4 | `!tp 1122 82 -68 -50` | `native_dungeon_126` |
+| [usine-hibourg](https://methodwakfu.com/pvm/usine-hibourg/) | 4 | `!tp 1264 0 153 0` | `native_dungeon_159` |
+| [volcan-orhodruin](https://methodwakfu.com/pvm/volcan-orhodruin/) | 4 | `!tp 1123 -31 -1 -58` | `native_dungeon_127` |

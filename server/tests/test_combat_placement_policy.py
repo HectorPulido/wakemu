@@ -3,6 +3,8 @@ from wakfu_server.combat_placement_policy import freeze
 from wakfu_server.fight_store import create
 from wakfu_server.combat_wire import arena
 from concurrent.futures import ThreadPoolExecutor
+from unittest.mock import patch
+from wakfu_server.combat_qi_surfaces import NativeQISurfaces
 
 
 class PlacementPolicyTests(PostgresCase):
@@ -19,6 +21,43 @@ class PlacementPolicyTests(PostgresCase):
             for b in self.cells
             if abs(a[0] - b[0]) + abs(a[1] - b[1]) == 1
         }
+        # This database-policy fixture uses synthetic flat terrain; provide an
+        # explicit native-shaped catalog rather than consulting map1134 assets.
+        surfaces = NativeQISurfaces(
+            dict(
+                schema="native-QI-Vy-columns-v1",
+                map_id=1134,
+                source_sha256="a" * 64,
+                chunks=[
+                    dict(
+                        x=0,
+                        y=0,
+                        width=8,
+                        height=4,
+                        columns=[[x, y, [[0, 0]]] for x in range(8) for y in range(4)],
+                    )
+                ],
+            ),
+            map_id=1134,
+            source_sha256="a" * 64,
+        )
+        surface_patch = patch(
+            "wakfu_server.combat_qi_surface_catalog.native_qi_surfaces",
+            return_value=surfaces,
+        )
+        provenance_patch = patch(
+            "wakfu_server.combat_qi_surface_catalog.native_qi_surface_provenance",
+            return_value=dict(
+                map_id=1134,
+                source_sha256="a" * 64,
+                output_sha256="b" * 64,
+                manifest_sha256="c" * 64,
+            ),
+        )
+        surface_patch.start()
+        self.addCleanup(surface_patch.stop)
+        provenance_patch.start()
+        self.addCleanup(provenance_patch.stop)
         self.seeds = {0: {(0, 0, 0)}, 1: {(7, 3, 0)}}
         self.arena = arena(1134, self.character["id"], sorted(self.cells), self.seeds)
         self.arena.update(validated_cells=self.cells, valid_edges=self.edges)

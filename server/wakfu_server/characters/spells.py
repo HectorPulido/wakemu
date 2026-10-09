@@ -1,11 +1,12 @@
 """Spell ownership and deck layouts verified against client sy/yC/yy/fzg."""
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 import struct
 from pathlib import Path
 from protocol_codec import Reader
 
-_DATA = json.loads((DATA_ROOT / "spells.json").read_text())
+_DATA = protocol_catalog.load(DATA_ROOT / "spells.json")
 SPELLS = {r["id"]: r for r in _DATA["spells"]}
 # Client fzc: six initial active slots; remaining slots and passive slots unlock
 # at these exact levels. Spell unlock levels come separately from bdata 66.
@@ -17,24 +18,27 @@ def available_spells(breed, level):
     if type(breed) is not int or type(level) is not int or level < 1:
         raise ValueError("Invalid spell owner breed or level")
     return [
-        r for r in SPELLS.values() if r["breed"] == breed and r["unlock_level"] <= level
+        r
+        for r in SPELLS.values()
+        if (r["breed"] == breed or (r["breed"] == -2 and r["kind"] == "passive"))
+        and r["unlock_level"] <= level
     ]
+
+
+def owned_spell_records(character):
+    """Complete native sy spellbook records shared by encoding and combat."""
+    return tuple(
+        ((character["id"] << 32) | spell["id"], spell["id"], character["level"])
+        for spell in available_spells(character["breed"], character["level"])
+    )
 
 
 def spell_inventory(character):
     """sy section: u16 count; (i64 UID,i32 reference,i16 level); two bools."""
-    records = available_spells(character["breed"], character["level"])
+    records = owned_spell_records(character)
     return (
         struct.pack(">H", len(records))
-        + b"".join(
-            struct.pack(
-                ">qih",
-                (character["id"] << 32) | spell["id"],
-                spell["id"],
-                character["level"],
-            )
-            for spell in records
-        )
+        + b"".join(struct.pack(">qih", *record) for record in records)
         + b"\x00\x00"
     )
 

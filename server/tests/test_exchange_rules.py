@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from wakfu_server import exchange_rules
+from wakfu_server import native_catalog
 
 
 class ExchangeRulesCatalogTests(unittest.TestCase):
@@ -46,8 +47,9 @@ class ExchangeRulesCatalogTests(unittest.TestCase):
         self,
     ):
         mounts = json.loads(
-            (Path(__file__).parents[1] / "protocol" / "mount-models.json").read_text(
-                encoding="utf-8"
+            native_catalog.read_text(
+                Path(__file__).parents[1] / "protocol" / "mount-models.json",
+                encoding="utf-8",
             )
         )["models"]
         self.assertEqual(40, len(mounts))

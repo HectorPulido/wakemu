@@ -1,9 +1,9 @@
-"""Native eYQ315 codec; does not imply effect-area lifecycle support."""
+"""Native configured eYQ codec; does not imply effect-area lifecycle support."""
 import struct
 from .combat_effects import _integer, _varint
 from .combat_displacement import position_payload
 from .combat_running_context import running_context_payload
-from .wire import proto_fields, proto_field
+from wakfu_server.wire import proto_fields, proto_field
 
 
 def area_payload(
@@ -22,7 +22,8 @@ def area_payload(
     status=-1,
     container_type=None,
     container_id=None,
-    context_payload=None
+    context_payload=None,
+    target_id=None
 ):
     if base_uid is None:
         base_uid = uid
@@ -43,6 +44,10 @@ def area_payload(
         )
         or type(caster_id) is not int
         or not -(1 << 63) <= caster_id < 1 << 63
+        or (
+            target_id is not None
+            and (type(target_id) is not int or not -(1 << 63) <= target_id < 1 << 63)
+        )
         or type(status) is not int
         or not -128 <= status <= 127
         or not isinstance(timing_payload, bytes)
@@ -61,6 +66,8 @@ def area_payload(
     body += b"\x2a" + _varint(len(position)) + position
     if caster_id:
         body += _integer(6, caster_id)
+    if target_id is not None:
+        body += _integer(7, target_id)
     # eYQ.b(iP): level14, orientation16 (null=-1), keep17, area UID21.
     additional = b"".join(
         _integer(k, v)
@@ -84,10 +91,32 @@ def area_payload(
     )
 
 
-def area_application(fight_id, action_id, **kwargs):
+def area_application(
+    fight_id, action_id, *, effect_class=315, execute_immediate=False, **kwargs
+):
+    from .combat_delivery_owners import owner_catalog
+
+    row = owner_catalog()["effects"].get(str(effect_class))
+    if (
+        type(effect_class) is not int
+        or not isinstance(row, dict)
+        or row.get("runner") not in ("eYQ", "eYS", "eYU", "eYW")
+    ):
+        raise ValueError("Unknown native eYQ packet family")
+    if kwargs.get("target_id") is not None and row.get("bbA") is not True:
+        raise ValueError("Native eYQ packet recipient violates owner flags")
     if any(type(i) is not int or not 0 < i < 1 << 31 for i in (fight_id, action_id)):
         raise ValueError("Invalid native area fight/action")
+    if type(execute_immediate) is not bool:
+        raise ValueError("Missing native area delivery execution policy")
     body = area_payload(**kwargs)
     if len(body) > 32767:
         raise ValueError("Native area effect exceeds cvY short size")
-    return 13497, struct.pack(">iiiih", fight_id, action_id, -1, 315, len(body)) + body
+    if execute_immediate:
+        from .combat_entity_creation_delivery import immediate_entity_creation
+
+        return immediate_entity_creation(fight_id, action_id, effect_class, body)
+    return (
+        13497,
+        struct.pack(">iiiih", fight_id, action_id, -1, effect_class, len(body)) + body,
+    )

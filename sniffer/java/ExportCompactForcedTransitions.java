@@ -23,9 +23,9 @@ public class ExportCompactForcedTransitions {
     }
    }
   }
-  Files.createDirectories(directory);Path output=directory.resolve(map+".json.gz"),temporary=directory.resolve(map+".json.gz.tmp");
+  Files.createDirectories(directory);Path output=directory.resolve(map+".json"),temporary=directory.resolve(map+".json.tmp");
   int queries=0,variants=0;
-  try(JsonWriter json=new JsonWriter(new OutputStreamWriter(new GZIPOutputStream(Files.newOutputStream(temporary)),java.nio.charset.StandardCharsets.UTF_8))) {
+  try(JsonWriter json=new JsonWriter(new OutputStreamWriter(Files.newOutputStream(temporary),java.nio.charset.StandardCharsets.UTF_8))) {
    json.setSerializeNulls(true);
    json.beginObject().name("schema_version").value(1).name("map_id").value(map).name("radius").value(0).name("jump").value(4)
     .name("heights").beginArray().value(1).value(25).endArray()

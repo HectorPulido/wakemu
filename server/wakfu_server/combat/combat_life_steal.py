@@ -1,7 +1,8 @@
 """Native eXv/24: life-steal healing, not ordinary elemental mastery healing."""
+from wakfu_server import native_catalog as protocol_catalog
 import math
 from .combat_parameters import parameter_value
-from .equipment_damage import _float
+from wakfu_server.equipment_damage import _float
 from .combat_effect_removal import _identity_fields
 
 
@@ -47,8 +48,7 @@ from wakfu_server.paths import DATA_ROOT
 
 @lru_cache(maxsize=1)
 def native_spell_elements():
-    with (DATA_ROOT / "native-spell-elements.json").open() as source:
-        return json.load(source)["spells"]
+    return protocol_catalog.load(DATA_ROOT / "native-spell-elements.json")["spells"]
 
 
 def life_steal_event_ids(retention, invocation):

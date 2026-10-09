@@ -12,7 +12,7 @@ from wakfu_server.combat_retained_effects import (
     register_owned_removals,
     default_dispel_eligible,
 )
-from wakfu_server.combat_dispel import select_dispel, NativeDispelHandler
+from wakfu_server.combat_dispel import select_dispel, NativeDispelHandler, dispel_flags
 from wakfu_server.combat_effect_removal import _identity_fields
 from wakfu_server.combat_definitions import effect_profile
 from wakfu_server.combat_effect_dispatch import (
@@ -21,6 +21,7 @@ from wakfu_server.combat_effect_dispatch import (
     run_effect_transaction,
 )
 from wakfu_server.combat_conditions import ConditionContext
+from wakfu_server import native_catalog
 
 
 class NativeDispelTests(unittest.TestCase):
@@ -96,6 +97,153 @@ class NativeDispelTests(unittest.TestCase):
         self.assertEqual(select_dispel([row], [400, 999]), (row,))
         self.assertEqual(select_dispel([row], [456]), ())
         self.assertEqual(select_dispel([row], [0]), ())
+
+    def test_real145261_display_flag_and_null_pv_leave_qf_unchanged(self):
+        catalog = json.loads(
+            native_catalog.read_text(
+                Path(__file__).parents[1] / "protocol/spell-effect-trees.json"
+            )
+        )["effects"]
+        effect = catalog["145261"]
+        self.assertEqual(effect["native_effect_flags"], [3])
+        before = deepcopy(
+            (
+                self.fight.owned_stat_effects,
+                self.fight.state_wire_payloads,
+                self.fight.actors[7].state_ledger.entries,
+            )
+        )
+
+        def forbidden_view():
+            raise AssertionError("Native null PV return must precede Qf lookup")
+
+        handler = NativeDispelHandler(
+            view_provider=forbidden_view, removal_provider=forbidden_view
+        )
+        self.assertTrue(
+            handler(
+                effect,
+                effect_profile(effect, 200),
+                EffectInvocation(145261, 200, 7, None, (0, 0, 0)),
+            )
+        )
+        self.assertEqual(
+            (
+                self.fight.owned_stat_effects,
+                self.fight.state_wire_payloads,
+                self.fight.actors[7].state_ledger.entries,
+            ),
+            before,
+        )
+
+    def test_unknown_flags_and_trigger_flags_without_lifecycle_reject_before_lookup(
+        self,
+    ):
+        for flags in ([999], [3, 3], [True], [6]):
+            with self.subTest(flags=flags), self.assertRaises(ValueError):
+                dispel_flags({"native_effect_flags": flags}, event_lifecycle=None)
+        self.assertEqual(
+            dispel_flags({"native_effect_flags": [24, 20, 3]}, event_lifecycle=None),
+            (24, 20, 3),
+        )
+
+    def test_generic_trigger_flag_keeps_lifecycle_and_qe_modifier_noop(self):
+        effect = dict(
+            effect_class=421,
+            native_effect_flags=[6],
+            target_masks=[None] * 7,
+            native_execution_mode=0,
+        )
+        phases = []
+
+        class Lifecycle:
+            def phase(self, definition, invocation, **facts):
+                self_flags = definition["native_effect_flags"]
+                phases.append((facts["channel"], facts["value"], tuple(self_flags)))
+                if facts["channel"] == 1 and 6 not in self_flags:
+                    facts["runner_modifier"].mutate(0, 7, True)
+
+        handler = NativeDispelHandler(
+            view_provider=lambda: None,
+            removal_provider=lambda view: None,
+            allocate_uid=lambda: 777,
+            rng=lambda: 0.0,
+            event_lifecycle=Lifecycle(),
+        )
+        invocation = handler.prepare(
+            effect, {}, EffectInvocation(145261, 200, 7, None, (0, 0, 0))
+        )
+        self.assertTrue(handler(effect, {"parameters": [145257]}, invocation))
+        self.assertEqual(
+            phases, [(1, 0, (6,)), (2, 0, (6,)), (3, 0, (6,)), (4, 0, (6,))]
+        )
+        self.assertEqual(handler.prepared, {})
+        phases.clear()
+        effect = dict(effect, native_effect_flags=[])
+        invocation = handler.prepare(
+            effect, {}, EffectInvocation(145261, 200, 7, None, (0, 0, 0))
+        )
+        self.assertTrue(handler(effect, {"parameters": [145257]}, invocation))
+        # eXe inherits both the no-op eZR.C and Qe.a(int,float,boolean).
+        self.assertEqual(phases, [(1, 0, ()), (2, 0, ()), (3, 0, ()), (4, 0, ())])
+        invocation = handler.prepare(
+            effect, {}, EffectInvocation(145261, 200, 7, None, (0, 0, 0))
+        )
+        handler.cancel_prepared(invocation)
+        handler.cancel_prepared(invocation)
+        self.assertEqual(handler.prepared, {})
+
+    def test_activated_clone_preserves_actual_uid_and_removes_retained_target(self):
+        catalog = json.loads(
+            native_catalog.read_text(
+                Path(__file__).parents[1] / "protocol/spell-effect-trees.json"
+            )
+        )["effects"]
+        self.fx.stat(
+            catalog["308267"],
+            effect_profile(catalog["308267"], 1),
+            EffectInvocation(308267, 1, 7, 7, (0, 0, 0)),
+        )
+        packets, phases = [], []
+        provider = lambda: NativeRetainedEffectView(
+            self.fight, self.records(), population_verified_complete=True
+        )
+
+        class Lifecycle:
+            def phase(self, effect, invocation, **facts):
+                phases.append((facts["channel"], facts["uid"], facts["value"]))
+
+        handler = NativeDispelHandler(
+            view_provider=provider,
+            removal_provider=lambda view: self.removal(view, packets),
+            allocate_uid=lambda: self.fail("Activation must use its actual clone UID"),
+            rng=lambda: 0.0,
+            event_lifecycle=Lifecycle(),
+        )
+        dispatcher = EffectDispatcher(
+            catalog,
+            {421: handler},
+            resolve=lambda *args: self.fail("Activated target is already rebound"),
+            condition_context=lambda invocation: ConditionContext({}),
+            probability_accepts=lambda probability, invocation: True,
+            group_cells=lambda *args: (),
+            actor_position=lambda identity: (0, 0, 0),
+        )
+        self.assertTrue(
+            dispatcher.execute_activation(
+                EffectInvocation(308272, 1, 7, 7, (0, 0, 0)),
+                source=None,
+                condition_context=lambda *args: ConditionContext({}),
+                executable=True,
+                allocate_uid=lambda: 777,
+            )
+        )
+        self.assertEqual(phases, [(3, 777, 0), (4, 777, 0)])
+        self.assertNotIn(202, self.fight.owned_stat_effects)
+        self.assertIn(201, self.fight.owned_stat_effects)
+        self.assertEqual([opcode for opcode, _ in packets], [13560])
+        self.assertEqual(handler.prepared, {})
+        self.assertEqual(handler.activated, set())
 
     def test_native_probe_container_matrix_and_unknown_metadata(self):
         row = RetainedEffect(
@@ -188,7 +336,9 @@ class NativeDispelTests(unittest.TestCase):
 
     def test_real_catalog421_removes_owned400_by_generic_id(self):
         catalog = json.loads(
-            (Path(__file__).parents[1] / "protocol/spell-effect-trees.json").read_text()
+            native_catalog.read_text(
+                Path(__file__).parents[1] / "protocol/spell-effect-trees.json"
+            )
         )["effects"]
         invocation = EffectInvocation(308267, 1, 7, 7, (0, 0, 0))
         self.fx.stat(

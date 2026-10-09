@@ -154,6 +154,9 @@ class NativeOrientationHandler:
             raise ValueError("Missing native orientation execution authority")
         if not ctx.executable:
             return False
+        from .combat_carrying import carrying_relations, set_registered_direction
+
+        carrying_relations(self.fight, actor)  # Validate before allocating/observing.
         uid = self.allocate_uid()
         payload = owned_effect_payload(
             uid=uid,
@@ -174,7 +177,7 @@ class NativeOrientationHandler:
             uid=uid,
             running_effect_payload=payload,
         )
-        actor.direction = direction
+        set_registered_direction(self.fight, actor, direction)
         self.fight._event(
             "orientation",
             actor_id=actor.id,

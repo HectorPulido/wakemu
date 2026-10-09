@@ -20,7 +20,7 @@ Seeding una vez por zona/version; estado vacío no se rellena implícitamente al
 
 ## Fuente regional existente
 
-`server/protocol/monster-encyclopedia.json.gz` contiene territorios y `family_entries` nativos, además de referencias/familias de monstruos. No se deben tratar IDs de territorio como IDs de mapa: hay que resolver región geométrica y celdas válidas antes de sembrar. La decisión del usuario ya está tomada: un par de mobs al iniciar, sin política de refresco. El marcador durable debe impedir que reiniciar o entrar rellene una zona exterminada; no volver a solicitar esa decisión.
+`server/protocol/monster-encyclopedia.json` contiene territorios y `family_entries` nativos, además de referencias/familias de monstruos. No se deben tratar IDs de territorio como IDs de mapa: hay que resolver región geométrica y celdas válidas antes de sembrar. La decisión del usuario ya está tomada: un par de mobs al iniciar, sin política de refresco. El marcador durable debe impedir que reiniciar o entrar rellene una zona exterminada; no volver a solicitar esa decisión.
 
 ## Implementación en fuente — 6 de octubre
 

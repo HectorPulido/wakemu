@@ -42,6 +42,11 @@ class ObstacleIdentityTests(unittest.TestCase):
                 terrain_effect_id=46,
                 terrain_instance_id=-300,
             )
+            # The placement wire above emits the fresh ordinary-NPC po.SX
+            # byte as false; carry that same known constructor fact into the
+            # live actor fixture used by the later snapshot serializer.
+            for member in members:
+                fight.actors[member["id"]].native_controlled_by_ai = False
             parsed = decode_bootstrap(next(b for op, b in packets if op == 12847))
             ids = []
             for row in parsed["participants"]:

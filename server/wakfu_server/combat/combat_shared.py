@@ -5,6 +5,7 @@ Every combat command must enter execute/ready/join; connection-local FSMs must
 not remain authoritative. Runtime/codec factories never send or persist inside
 these transactions: they produce owned packet batches before the FSM commits.
 """
+import struct
 from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -65,6 +66,10 @@ class SharedFight:
     auto_locked: bool = False
     ack: AckBarrier = field(default_factory=AckBarrier)
     join_context: object = None
+    # The native external-fight marker keeps its original team leader id for
+    # the lifetime of placement. If that owner withdraws, this narrowly-scoped
+    # alias lets another teammate use the still-visible marker.
+    join_aliases: dict = field(default_factory=dict)
     settlement_ready: bool = False
     settlement_batches: dict = field(default_factory=dict)
     returned: set = field(default_factory=set)
@@ -92,6 +97,9 @@ class Registry:
         self.fights = {}
         self.by_actor = {}
         self.by_character = {}
+        # Historical marker targets are kept separately: a withdrawn actor
+        # must not reserve its character ID against a later encounter.
+        self.join_aliases = {}
 
     def _live(self, session):
         if not isinstance(session, Session) or not self.live_session(session):
@@ -123,10 +131,74 @@ class Registry:
 
     def _broadcast(self, shared, packets, *, exclude=()):
         packets = self._packets(packets)
+        # Preserve only the original turn-end presentation for reconnect ACK;
+        # never replay damage, state application or other gameplay deliveries.
+        turn_end = tuple(packet for packet in packets if packet[0] == 12502)
+        if turn_end:
+            shared.reconnect_turn_end_packets = turn_end + (
+                (13420, struct.pack(">i", shared.fight.id)),
+            )
         shared.sequence += 1
         for account in shared.connected - set(exclude):
             shared.outboxes[account].append(Batch(shared.sequence, packets))
         return shared.sequence
+
+    def _retire_join_aliases_locked(self, shared):
+        """Drop withdrawn-leader aliases once the native marker is no longer joinable."""
+        if shared.fight.phase == "placement" and not shared.auto_locked:
+            return
+        # This helper runs under the fight lock alone on normal FSM paths.
+        # Keep the registry index immutable here; resolution checks this
+        # per-fight set under registry->fight lock order, and terminal removal
+        # prunes the registry index while holding both locks.
+        shared.join_aliases.clear()
+
+    def resolve_join_target(self, actor_id):
+        """Resolve a native13241 target, preferring a currently registered actor.
+
+        Native13241 carries only an actor ID, not a fight ID. A historical
+        placement alias is therefore usable only when no current actor owns
+        that ID and exactly one joinable alias remains.
+        """
+        if type(actor_id) is not int or actor_id == 0:
+            raise ValueError("Invalid shared fight join target")
+        with self.lock:
+            current = self.by_actor.get(actor_id)
+            if current is not None:
+                return current
+            candidates = set()
+            for fight_id in self.join_aliases.get(actor_id, ()):
+                shared = self.fights.get(fight_id)
+                if shared is None:
+                    continue
+                with shared.lock:
+                    if (
+                        actor_id in shared.join_aliases
+                        and shared.fight.phase == "placement"
+                        and not shared.auto_locked
+                    ):
+                        candidates.add(fight_id)
+            if len(candidates) == 1:
+                return next(iter(candidates))
+            if len(candidates) > 1:
+                raise ValueError("Ambiguous historical fight join target")
+            raise ValueError("Target has no registered fight")
+
+    def _has_live_team_member_locked(self, shared, team):
+        for owner in shared.connected:
+            participant = shared.participants.get(owner)
+            if participant is None or not self.live_session(participant):
+                continue
+            if any(
+                actor.controlled
+                and actor.owner_id == owner
+                and actor.team == team
+                and actor.hp > 0
+                and not getattr(actor, "pve_withdrawn", False)
+                for actor in shared.fight.actors.values()
+            ):
+                return True
+        return False
 
     @classmethod
     def _transition(cls, result, fight, runtime):
@@ -157,6 +229,32 @@ class Registry:
             self.fights[fight.id] = shared
             self.by_character[starter.character_id] = fight.id
             self.by_actor.update((actor_id, fight.id) for actor_id in fight.actors)
+            leaders = (
+                join_context.get("leaders") if isinstance(join_context, dict) else None
+            )
+            marker = (
+                join_context.get("world_marker_cells")
+                if isinstance(join_context, dict)
+                else None
+            )
+            leader_id = leaders.get(0) if isinstance(leaders, dict) else None
+            leader = fight.actors.get(leader_id)
+            # Only the originally advertised player leader in an ordinary
+            # world marker can become an alias. Duel markers and arena/private
+            # instances do not participate in this recovery path.
+            if (
+                not getattr(shared, "is_duel", False)
+                and fight.phase == "placement"
+                and starter.instance_id == 0
+                and marker
+                and leader_id == starter.character_id
+                and leader is not None
+                and leader.controlled
+                and leader.owner_id == starter.account_id
+                and leader.team == 0
+            ):
+                shared.join_aliases[leader_id] = leader.team
+                self.join_aliases.setdefault(leader_id, set()).add(fight.id)
             return shared
 
     def register_duel(
@@ -275,6 +373,57 @@ class Registry:
                 return None
             return self.fights.get(fight_id)
 
+    def reconcile_disconnected_pve(self, session, persist):
+        """Retire an orphaned PvE lease after a fenced durable abort on login."""
+        self._live(session)
+        with self.lock:
+            fight_id = self.by_character.get(session.character_id)
+            shared = self.fights.get(fight_id)
+            if shared is None:
+                return None
+            with shared.lock:
+                previous = shared.participants.get(session.account_id)
+                if (
+                    previous is None
+                    or previous.character_id != session.character_id
+                    or previous.generation == session.generation
+                    or getattr(shared, "is_duel", False)
+                    or shared.settlement_ready
+                    or shared.fight.phase not in ("placement", "active")
+                    or any(
+                        self.live_session(owner)
+                        for owner in shared.participants.values()
+                    )
+                ):
+                    return None
+                # A failed finalizer can leave stale connected bits. Actual
+                # lease validity above, rather than those bits, fences recovery.
+                connected = set(shared.connected)
+                abort_pending = shared.disconnect_abort_pending
+                shared.connected.clear()
+                shared.disconnect_abort_pending = True
+                try:
+                    exits = persist(previous, shared)
+                    if (
+                        not isinstance(exits, dict)
+                        or set(exits)
+                        != {
+                            owner.character_id for owner in shared.participants.values()
+                        }
+                        or any(
+                            not isinstance(exit_result, dict)
+                            or type(exit_result.get("applied")) is not bool
+                            for exit_result in exits.values()
+                        )
+                    ):
+                        raise ValueError("Missing complete durable PvE abort receipts")
+                except Exception:
+                    shared.connected.update(connected)
+                    shared.disconnect_abort_pending = abort_pending
+                    raise
+                self._remove_locked(self, shared)
+                return dict(shared=shared, exits=exits)
+
     def join(
         self,
         session,
@@ -284,6 +433,7 @@ class Registry:
         actor_payload,
         bootstrap_packets,
         persist_member=None,
+        expected_fight_id=None,
     ):
         """bootstrap_packets(candidateFSM,shared,session)->own native packets.
 
@@ -293,9 +443,9 @@ class Registry:
         request = decode_join(body)
         self._live(session)
         with self.lock:
-            fight_id = self.by_actor.get(request["target_id"])
-            if fight_id is None:
-                raise ValueError("Target has no registered fight")
+            fight_id = self.resolve_join_target(request["target_id"])
+            if expected_fight_id is not None and fight_id != expected_fight_id:
+                raise ValueError("Join target changed during admission")
             shared = self.fights[fight_id]
             with shared.lock:
                 fight = shared.fight
@@ -311,7 +461,21 @@ class Registry:
                     shared.instance_id,
                 ):
                     raise ValueError("Foreign fight map/instance")
-                if target is None or target.hp <= 0 or not target.controlled:
+                alias_team = shared.join_aliases.get(request["target_id"])
+                alias_target = (
+                    alias_team is not None
+                    and target is not None
+                    and getattr(target, "pve_withdrawn", False)
+                    and target.controlled
+                    and target.team == alias_team
+                    and alias_team == 0
+                    and self._has_live_team_member_locked(shared, alias_team)
+                )
+                if (
+                    target is None
+                    or not target.controlled
+                    or (target.hp <= 0 and not alias_target)
+                ):
                     raise ValueError("Join target is not an allied player")
                 if (
                     session.character_id in self.by_character
@@ -322,7 +486,7 @@ class Registry:
                     actor.id != session.character_id
                     or not actor.controlled
                     or actor.owner_id != session.account_id
-                    or actor.team != target.team
+                    or actor.team != (alias_team if alias_target else target.team)
                     or actor.hp <= 0
                 ):
                     raise ValueError("Joined actor ownership/team invalid")
@@ -332,8 +496,9 @@ class Registry:
                     raise ValueError("Native team placement capacity exhausted")
                 candidate, runtime = deepcopy((fight, shared.runtime))
                 new_actor = deepcopy(actor)
-                new_actor.position = cells[0]
-                candidate.actors[new_actor.id] = new_actor
+                from .combat_join_registration import register_joined_fighter
+
+                register_joined_fighter(candidate, new_actor, cells[0])
                 candidate._check_positions()
                 candidate._event(
                     "joined",
@@ -375,6 +540,7 @@ class Registry:
                 self.by_character[session.character_id] = candidate.id
                 self.by_actor[new_actor.id] = candidate.id
                 shared.auto_locked = request["auto_lock"]
+                self._retire_join_aliases_locked(shared)
                 sequence = self._broadcast(
                     shared,
                     [notification, (13026, placement_positions(candidate))],
@@ -422,6 +588,7 @@ class Registry:
             )
             shared.fight = candidate
             shared.runtime = runtime
+            self._retire_join_aliases_locked(shared)
             return self._broadcast(shared, packets)
 
     def execute_server(self, fight_id, actor_id, operation, *, expected_sequence):
@@ -439,6 +606,7 @@ class Registry:
             )
             shared.fight = candidate
             shared.runtime = runtime
+            self._retire_join_aliases_locked(shared)
             return self._broadcast(shared, packets)
 
     def lease_active(self, group_lease):
@@ -490,6 +658,7 @@ class Registry:
             shared.fight = candidate
             shared.runtime = runtime
             shared.ack.release()
+            self._retire_join_aliases_locked(shared)
             self._broadcast(shared, packets)
             return True
 
@@ -534,6 +703,7 @@ class Registry:
             shared.fight = candidate
             shared.runtime = runtime
             shared.ack = next_ack
+            self._retire_join_aliases_locked(shared)
             self._broadcast(shared, packets)
             return True, error
 
@@ -595,7 +765,15 @@ class Registry:
             self._member(shared, session)
             return self._broadcast(shared, packets)
 
-    def takeover(self, fight_id, session, bootstrap_packets, *, persist_takeover=None):
+    def takeover(
+        self,
+        fight_id,
+        session,
+        bootstrap_packets,
+        *,
+        persist_takeover=None,
+        recover_disconnected=False,
+    ):
         self._live(session)
         shared = self.lookup(fight_id)
         with shared.lock:
@@ -611,7 +789,9 @@ class Registry:
                 raise ValueError("Combat participant already returned")
             if session.account_id in shared.withdrawals:
                 raise ValueError("PvE participant already withdrew")
-            if shared.disconnect_abort_pending:
+            if recover_disconnected and not callable(persist_takeover):
+                raise ValueError("Disconnected takeover requires a durable lease fence")
+            if shared.disconnect_abort_pending and not recover_disconnected:
                 raise ValueError(
                     "Combat is being closed after its last owner disconnected"
                 )
@@ -628,9 +808,23 @@ class Registry:
                 packets = self._packets(
                     bootstrap_packets(shared.fight, shared, session)
                 )
+            if (
+                shared.ack is not None
+                and session.account_id in shared.ack.expected
+                and shared.ack.expected[session.account_id] != previous.generation
+            ):
+                raise ValueError("Combat ACK owner differs from takeover lease")
             if persist_takeover is not None:
                 persist_takeover(previous)
             shared.participants[session.account_id] = session
+            if recover_disconnected:
+                remaining = getattr(shared, "reconnect_remaining_turn_seconds", None)
+                if remaining is not None:
+                    shared.runtime.turn_deadline = shared.runtime.clock() + remaining
+                    shared.reconnect_remaining_turn_seconds = None
+                shared.disconnect_abort_pending = False
+            if shared.ack is not None and session.account_id in shared.ack.expected:
+                shared.ack.expected[session.account_id] = session.generation
             shared.connected.add(session.account_id)
             shared.outboxes[session.account_id] = deque(
                 [Batch(shared.sequence, packets)]
@@ -657,6 +851,15 @@ class Registry:
                         # the socket lease. A racing reconnect must not revive
                         # a fight whose abort transaction is about to commit.
                         shared.disconnect_abort_pending = True
+                        runtime = shared.runtime
+                        if (
+                            runtime is not None
+                            and getattr(runtime, "turn_deadline", None) is not None
+                            and runtime.awaiting_ack is None
+                        ):
+                            shared.reconnect_remaining_turn_seconds = max(
+                                0.0, runtime.turn_deadline - runtime.clock()
+                            )
                     affected.append(shared.fight.id)
         return affected
 
@@ -669,8 +872,17 @@ class Registry:
         for participant in shared.participants.values():
             if registry.by_character.get(participant.character_id) == shared.fight.id:
                 registry.by_character.pop(participant.character_id, None)
+        for actor_id in tuple(shared.join_aliases):
+            fights = registry.join_aliases.get(actor_id)
+            if fights is not None:
+                fights.discard(shared.fight.id)
+                if not fights:
+                    registry.join_aliases.pop(actor_id, None)
+        shared.join_aliases.clear()
 
-    def withdraw_pve(self, session, *, persist, placement_ready=None):
+    def withdraw_pve(
+        self, session, *, persist, placement_ready=None, owned_teardown=None
+    ):
         """Commit one owner's private exit without ending its teammates' fight.
 
         Persistence receives the unchanged authoritative fight for HP. All
@@ -730,6 +942,10 @@ class Registry:
                 public += self._packets(
                     withdrawal.runtime.acknowledge_turn(struct.pack(">i", counter))
                 )
+            if owned_teardown is not None:
+                if not callable(owned_teardown):
+                    raise ValueError("Missing owned teardown callback")
+                owned_teardown(withdrawal.fight)
             saved = persist(shared.fight)
             if not isinstance(saved, dict) or "character" not in saved:
                 raise ValueError("Invalid durable PvE withdrawal result")
@@ -738,6 +954,7 @@ class Registry:
                 withdrawal.runtime,
                 barrier,
             )
+            self._retire_join_aliases_locked(shared)
             shared.withdrawals[session.account_id] = dict(
                 session=session,
                 withdrawal=withdrawal,
@@ -768,6 +985,7 @@ class Registry:
                         self.by_actor.pop(identity)
                 if self.by_character.get(session.character_id) == fight_id:
                     self.by_character.pop(session.character_id)
+                self._retire_join_aliases_locked(shared)
                 if (
                     shared.fight.phase == "finished"
                     and shared.fight.winner is None
@@ -805,6 +1023,7 @@ class Registry:
                         self.by_actor.pop(identity)
                 if self.by_character.get(session.character_id) == fight_id:
                     self.by_character.pop(session.character_id)
+                self._retire_join_aliases_locked(shared)
                 if (
                     shared.fight.phase == "finished"
                     and shared.fight.winner is None
@@ -1033,6 +1252,10 @@ class Registry:
                         Batch(shared.sequence, checked[account])
                     )
                 shared.settlement_ready = True
+                # Settlement commits the terminal checkpoint in the same
+                # durable transaction. Socket callbacks must not save an
+                # active checkpoint against its previous revision afterward.
+                shared.checkpoint_terminal = True
                 return True
         finally:
             shared.lock.release()
@@ -1045,11 +1268,87 @@ class Registry:
             if shared is None:
                 return False
             with shared.lock:
+                if (
+                    shared.participants.get(session.account_id) == session
+                    and session.account_id in shared.returned
+                ):
+                    return False
                 self._member(shared, session)
                 if not shared.settlement_ready:
                     raise ValueError("Fight settlement has not been published")
                 shared.returned.add(session.account_id)
+                shared.connected.discard(session.account_id)
+                shared.outboxes[session.account_id].clear()
+                self._release_owner_actor_indices_locked(shared, session)
                 if shared.returned != set(shared.participants):
                     return False
                 self._remove_locked(self, shared)
-                return True
+        return True
+
+    def _release_owner_actor_indices_locked(self, shared, session):
+        """Release this owner's combat actor IDs without touching newer fights.
+
+        ``register`` indexes every actor, including controlled heroes/summons,
+        while return/recovery used to clear only the primary character. Keep the
+        registry -> shared lock order at call sites and fence every deletion by
+        the old fight ID so an actor re-registered elsewhere is preserved.
+        """
+        fight_id = shared.fight.id
+        if self.by_character.get(session.character_id) == fight_id:
+            self.by_character.pop(session.character_id, None)
+        for actor in shared.fight.actors.values():
+            if not actor.controlled or actor.owner_id != session.account_id:
+                continue
+            if self.by_actor.get(actor.id) == fight_id:
+                self.by_actor.pop(actor.id, None)
+
+    def recover_settled_world(self, session, persist):
+        """Complete one settled PvE owner directly into a freshly loaded world.
+
+        A new world login has no native fight model to consume cached terminal
+        frames. Persist its idempotent health return first, then retire only
+        this owner's Registry indexes while leaving other owners' results and
+        membership intact.
+        """
+        self._live(session)
+        if not callable(persist):
+            raise ValueError("Settled world recovery requires durable persistence")
+        with self.lock:
+            fight_id = self.by_character.get(session.character_id)
+            shared = self.fights.get(fight_id)
+            if shared is None:
+                return None
+            shared.lock.acquire()
+        try:
+            previous = shared.participants.get(session.account_id)
+            if (
+                previous is None
+                or previous.character_id != session.character_id
+                or previous.generation == session.generation
+                or session.account_id in shared.returned
+                or not shared.settlement_ready
+                or shared.fight.phase != "finished"
+                or getattr(shared, "is_duel", False)
+            ):
+                return None
+            if self.live_session(previous):
+                raise ValueError("Previous settled owner lease is still live")
+            result = persist(previous, shared)
+            shared.participants[session.account_id] = session
+            shared.returned.add(session.account_id)
+            shared.connected.discard(session.account_id)
+            shared.outboxes[session.account_id].clear()
+        finally:
+            shared.lock.release()
+
+        # Keep Registry->fight lock order. If the other owner returned during
+        # persistence, it may already have retired the entire terminal fight.
+        with self.lock:
+            current = self.fights.get(fight_id)
+            if current is shared:
+                with shared.lock:
+                    if shared.participants.get(session.account_id) == session:
+                        self._release_owner_actor_indices_locked(shared, session)
+                    if shared.returned == set(shared.participants):
+                        self._remove_locked(self, shared)
+        return result

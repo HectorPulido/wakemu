@@ -1,4 +1,5 @@
 """Explicit fixture adapter. The complete entity serializer is still pending."""
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import struct
 import json
@@ -14,13 +15,11 @@ INITIAL_POSITION = struct.pack(">iih", -12, -8, -1)
 PROTOCOL = DATA_ROOT
 ENTITY_LAYOUTS = {
     record["format"]: record
-    for record in json.loads((PROTOCOL / "entity-layouts.json").read_text())
+    for record in protocol_catalog.load(PROTOCOL / "entity-layouts.json")
 }
 ENTITY_DEFAULTS = {
     name: bytes.fromhex(value)
-    for name, value in json.loads(
-        (PROTOCOL / "entity-defaults.json").read_text()
-    ).items()
+    for name, value in protocol_catalog.load(PROTOCOL / "entity-defaults.json").items()
 }
 EMPTY_SECTIONS = {
     "GUILD_ID",
@@ -72,6 +71,14 @@ def minimal_entity(body, character):
             # rk constructor and clear(): rank/jobs/voteDate (3*i64),
             # governmentOpinion/candidate/pvpRank (3*byte), all zero.
             replacement = bytes(27)
+        elif section["name"] == "COSMETICS":
+            from wakfu_server.characters.cosmetics import actor_component
+
+            replacement = actor_component(character)
+        elif section["name"] == "BREED_SPECIFIC":
+            from wakfu_server.characters.captured_roster import breed_specific_section
+
+            replacement = breed_specific_section(character)
         elif section["name"] == "BREED":
             replacement = struct.pack(">h", character["breed"])
         elif section["name"] == "DIMENSIONAL_BAG_FOR_LOCAL_CLIENT":

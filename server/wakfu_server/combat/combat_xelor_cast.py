@@ -6,7 +6,8 @@ sole normal direct fire damage, native primary geometry 'point'. Caller must
 provide authoritative LOS including dynamic obstacles; static LOS alone is
 insufficient for this ranged attack.
 """
-from .paths import DATA_ROOT
+from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -15,9 +16,9 @@ from .combat_execute import selected_monster
 from .combat_actor import actual_actor_stats, actual_monster_actor_stats
 from .combat_effects import direct_damage
 from .combat_spells import cast_animation, cast_notification
-from .spells import validate_deck
+from wakfu_server.spells import validate_deck
 
-_RULE = json.loads((DATA_ROOT / "xelor754-combat.json").read_text())
+_RULE = protocol_catalog.load(DATA_ROOT / "xelor754-combat.json")
 
 
 def execute_xelor754(

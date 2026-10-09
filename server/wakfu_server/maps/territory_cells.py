@@ -4,20 +4,19 @@ The installed bMh.dV(x,y) delegates to UL.an(Ve.qb(x),Ve.qc(y)); each Ve
 coordinate is floor(coord / 18), including negative coordinates. The compact
 catalog stores those native grid cells, not inferred rectangles or polygons.
 """
-import gzip
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
 
 from .paths import DATA_ROOT
 
 GRID_SIZE = 18
-_SOURCE = DATA_ROOT / "territory-map-cells.json.gz"
+_SOURCE = DATA_ROOT / "territory-map-cells.json"
 
 
 @lru_cache(maxsize=1)
 def _cells():
-    with gzip.open(_SOURCE, "rt", encoding="utf-8") as stream:
-        catalog = json.load(stream)
+    catalog = protocol_catalog.load(_SOURCE)
     if catalog.get("schema_version") != 1 or catalog.get("grid_size") != GRID_SIZE:
         raise ValueError("Unsupported native territory cell catalog")
     maps = {}

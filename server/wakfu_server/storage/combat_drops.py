@@ -6,11 +6,11 @@ identities, the winner's authoritative Wakfu prospection bonus, and the fight
 condition snapshot. `resolve` writes one immutable, idempotent award batch in
 the caller's transaction so it can share the victory reward/lifecycle commit.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 from hashlib import sha256
-import gzip
 import json
 import secrets
 
@@ -86,10 +86,9 @@ def _canonical_json(value):
 
 @lru_cache(maxsize=1)
 def native_drop_catalog():
-    path = DATA_ROOT / "monster-encyclopedia.json.gz"
-    raw = path.read_bytes()
-    with gzip.open(path, "rt", encoding="utf8") as source:
-        catalog = json.load(source)
+    path = DATA_ROOT / "monster-encyclopedia.json"
+    raw = protocol_catalog.read_bytes(path)
+    catalog = protocol_catalog.load(path)
     if not isinstance(catalog, dict) or catalog.get("schema_version") != 1:
         raise ValueError("Unsupported native monster loot catalog")
     monsters = catalog.get("monsters")

@@ -1,0 +1,6017 @@
+{
+  "runner": "eXc",
+  "events": [
+    0,
+    192
+  ],
+  "bbz": false,
+  "bbA": true,
+  "bbB": false,
+  "hp_current_may_exceed_max": true,
+  "ko_current_may_exceed_max": false,
+  "hp_id": 1,
+  "ko_id": 14,
+  "property_id": 65,
+  "rows": [
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 0,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 1,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 20,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 200,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 245,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": -1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 0,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 1,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "property65",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 0,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": false,
+      "hp_after": 0,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 0,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": false,
+      "hp_after": 5,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "hp",
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 0,
+      "ko_frozen": false,
+      "order": [
+        "clock"
+      ]
+    },
+    {
+      "level": 32767,
+      "parameter_count": 1,
+      "parameter": 2,
+      "hp_min": 5,
+      "hp_frozen": true,
+      "hp_after": 80,
+      "ko_raw_max": 0,
+      "ko_current": 0,
+      "ko_raw_current": 3,
+      "ko_frozen": true,
+      "order": [
+        "clock"
+      ]
+    }
+  ]
+}

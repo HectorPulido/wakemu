@@ -5,6 +5,7 @@ handler on a transaction preview; its outbox is emitted only after the whole
 spell succeeds. Unsupported modes/flags fail before changing any resources.
 """
 from dataclasses import dataclass, replace
+from .combat_runner_target import bind_runner_target, runner_target_invocation
 from .combat_damage_parameters import (
     interpret_damage_parameters,
     interpret_damage_flags,
@@ -51,6 +52,54 @@ def _snapshot(actor):
     return actor.effect_stats
 
 
+def _wall_target(fight, identity):
+    """Resolve a registered fbd PV without inserting it into Fight.actors."""
+    row = getattr(fight, "native_effect_areas", {}).get(identity)
+    if not isinstance(row, dict) or row.get("native_area_contract") != "fbd":
+        return None
+    from .combat_area_authority import area_guards
+    from .combat_effect_area import native_effect_areas
+    from .combat_effect_area_targets import area_targets
+    from .combat_wall_area import verified_wall_constructor, wall_damage_snapshot
+
+    definition = native_effect_areas().get(str(row.get("reference")))
+    constructor = verified_wall_constructor(row, definition)
+    guards = area_guards(fight, identity)
+    if guards["baG"] is not False or guards["baK"] is not False:
+        raise ValueError("Native fbd damage target is not an active Qq PV")
+    target = next((item for item in area_targets(fight) if item.id == identity), None)
+    if target is None:
+        raise ValueError("Missing registered native fbd damage target")
+    return dict(
+        row=row,
+        constructor=constructor,
+        definition=definition,
+        target=target,
+        snapshot=wall_damage_snapshot(row, definition),
+    )
+
+
+def _apply_wall_damage(fight, source_id, wall, amount):
+    """Apply eXt's PA HP change while retaining the active Qq/QI identity."""
+    if type(amount) is not int or amount < 0 or source_id not in fight.actors:
+        raise ValueError("Invalid native fbd damage application")
+    row, constructor = wall["row"], wall["constructor"]
+    from .combat_wall_area import update_wall_hp
+
+    current = wall["snapshot"]["current_hp"]
+    dealt = min(current, amount)
+    after = current - dealt
+    if not callable(getattr(fight, "_event", None)):
+        raise ValueError("Missing native fbd damage event ledger")
+    update_wall_hp(row, constructor, after)
+    fight._event(
+        "damage", source_id=source_id, target_id=row["uid"], amount=dealt, hp=after
+    )
+    # fbd.baD reflects PA HP<=0, while Qq.baG/baK and Qs/QI ownership remain
+    # unchanged. The native Qq.b lifecycle callback is the separate remover.
+    return dealt
+
+
 class NativeDamageHandler:
     native_runner_value_verified = True
 
@@ -75,18 +124,56 @@ class NativeDamageHandler:
         self.runner_modifiers = {}
 
     def _calculate(self, effect, invocation, *, additional_final=0, runner=None):
-        source = self.fight.actors.get(invocation.caster_id)
-        target = self.fight.actors.get(invocation.target_id)
+        from .combat_native_actor_lookup import native_actor
+
+        source = native_actor(self.fight, invocation.caster_id)
+        target = native_actor(self.fight, invocation.target_id)
+        if source is not None and target is None:
+            from .combat_area_damage_guard import area_damage_has_no_resources
+
+            if area_damage_has_no_resources(self.fight, invocation.target_id):
+                if (
+                    self.fight.phase != "active"
+                    or self.fight.current is None
+                    or effect["effect_class"] not in DAMAGE_FAMILIES
+                ):
+                    raise ValueError("Invalid native partial PV damage context")
+                # eXt.C returns before arithmetic when both sgC/shQ are absent.
+                return (
+                    None,
+                    {"native_no_resources": True},
+                    0 if runner is None else runner.value,
+                )
+        wall = (
+            None
+            if target is not None
+            else _wall_target(self.fight, invocation.target_id)
+        )
         if (
             source is None
             or target is None
-            or target.hp <= 0
+            and wall is None
             or self.fight.phase != "active"
             or self.fight.current is None
             or effect["effect_class"] not in DAMAGE_FAMILIES
         ):
             raise ValueError("Invalid native damage actors or fight")
-        source_stats, target_stats = _snapshot(source), _snapshot(target)
+        source_stats = _snapshot(source)
+        target_stats = (
+            wall["snapshot"]["stats"] if wall is not None else _snapshot(target)
+        )
+        target_hp = wall["snapshot"]["current_hp"] if wall is not None else target.hp
+        target_max_hp = (
+            wall["snapshot"]["maximum_hp"] if wall is not None else target.max_hp
+        )
+        target_position = (
+            wall["target"].position if wall is not None else target.position
+        )
+        target_radius = (
+            wall["target"].physical_radius
+            if wall is not None
+            else target.physical_radius
+        )
         context = self.context(effect, invocation)
         if not isinstance(context, DamageExecutionContext):
             raise ValueError("Missing native damage execution context")
@@ -125,6 +212,10 @@ class NativeDamageHandler:
             raise ValueError(f"Unsupported native damage flags: {sorted(unknown)}")
         if not context.executable:
             return context, interpreted, None
+        if wall is None:
+            from .combat_runner_target_life import verify_runner_target_life
+
+            verify_runner_target_life(self.fight, target, effect, invocation=invocation)
         if context.blocked and not interpreted["block_enabled"]:
             raise ValueError("Blocked result conflicts with native effect flags")
         parameters = interpret_damage_parameters(
@@ -133,17 +224,17 @@ class NativeDamageHandler:
             hp_context=dict(
                 source_hp=source.hp,
                 source_max_hp=source.max_hp,
-                target_hp=target.hp,
-                target_max_hp=target.max_hp,
+                target_hp=target_hp,
+                target_max_hp=target_max_hp,
             ),
             rng=self.rng,
         )
         mastery = damage_mastery_context(
             flags,
             source_xy=source.position[:2],
-            target_xy=target.position[:2],
+            target_xy=target_position[:2],
             source_radius=source.physical_radius,
-            target_radius=target.physical_radius,
+            target_radius=target_radius,
             source_total_hp=source.hp + source_stats[92],
             source_total_max_hp=source.max_hp + source.effect_maxima[92],
         )
@@ -199,6 +290,17 @@ class NativeDamageHandler:
 
         runner = NativeRunnerAmount(uid, effect["effect_class"], rng=self.rng)
         self.runner_modifiers[uid] = runner
+        bind_runner_target(runner, invocation)
+        from .combat_attack_preparation import deliver_attack_preparation
+
+        deliver_attack_preparation(
+            self.event_lifecycle,
+            effect,
+            invocation,
+            uid=uid,
+            final_modifier=modifier,
+            runner_modifier=runner,
+        )
         self.event_lifecycle.phase(
             effect,
             invocation,
@@ -210,6 +312,7 @@ class NativeDamageHandler:
             blocked=False,
             localization="FRONT",
         )
+        invocation = runner_target_invocation(runner, invocation)
         self.prepared[uid] = self._calculate(
             effect, invocation, additional_final=modifier.value, runner=runner
         )
@@ -234,6 +337,8 @@ class NativeDamageHandler:
 
             runner = NativeRunnerAmount(uid, effect["effect_class"], rng=self.rng)
         runner.set_calculated(amount)
+        bind_runner_target(runner, invocation)
+        invocation = runner_target_invocation(runner, invocation)
         if self.event_lifecycle is not None:
             self.event_lifecycle.phase(
                 effect,
@@ -243,23 +348,69 @@ class NativeDamageHandler:
                 runner_modifier=runner,
                 value=amount,
                 channel=2,
-                blocked=context.blocked,
-                localization=context.localization or "FRONT",
+                blocked=False if context is None else context.blocked,
+                localization="FRONT"
+                if context is None
+                else context.localization or "FRONT",
             )
         amount = runner.value
-        source = self.fight.actors[invocation.caster_id]
-        target = self.fight.actors[invocation.target_id]
-        source_stats, target_stats = _snapshot(source), _snapshot(target)
+        invocation = runner_target_invocation(runner, invocation)
+        if interpreted.get("native_no_resources"):
+            from .combat_area_damage_guard import area_damage_has_no_resources
+
+            if not area_damage_has_no_resources(self.fight, invocation.target_id):
+                raise ValueError("Changed native partial PV damage resource authority")
+            # eXt.c calls mu(true): suppress PR notification, leave aSg/status
+            # unchanged, and preserve the surrounding actual Qe L phases.
+            runner.notification_suppressed = True
+            runner.finish_application()
+            if self.event_lifecycle is not None:
+                for channel in (3, 4):
+                    self.event_lifecycle.phase(
+                        effect,
+                        invocation,
+                        uid=uid,
+                        final_modifier=modifier,
+                        runner_modifier=runner,
+                        value=runner.value,
+                        channel=channel,
+                        blocked=False,
+                        localization="FRONT",
+                    )
+            from .combat_runner_callbacks import notify_runner_value
+
+            notify_runner_value(invocation, runner.value)
+            return True
+        from .combat_native_actor_lookup import native_actor
+
+        source = native_actor(self.fight, invocation.caster_id)
+        target = native_actor(self.fight, invocation.target_id)
+        wall = (
+            None
+            if target is not None
+            else _wall_target(self.fight, invocation.target_id)
+        )
+        if target is None and wall is None:
+            raise ValueError("Missing native damage target PV")
+        source_stats = _snapshot(source)
+        target_stats = (
+            wall["snapshot"]["stats"] if wall is not None else _snapshot(target)
+        )
+        target_hp = wall["snapshot"]["current_hp"] if wall is not None else target.hp
         result = consume_damage(
             amount,
             source_barrier=source_stats[100],
-            target_armor=target_stats[97],
-            target_virtual_hp=target_stats[92],
-            target_hp=target.hp,
+            target_armor=target_stats.get(97, 0),
+            target_virtual_hp=target_stats.get(92, 0),
+            target_hp=target_hp,
             blocked=context.blocked,
             bypass_armor_and_barrier=interpreted["bypass_armor_and_barrier"],
             frozen_stats=tuple(("source", k) for k in source.effect_frozen)
-            + tuple(("target", k) for k in target.effect_frozen),
+            + (
+                ()
+                if wall is not None
+                else tuple(("target", k) for k in target.effect_frozen)
+            ),
         )
         packet = direct_damage(
             self.fight.id,
@@ -268,16 +419,48 @@ class NativeDamageHandler:
             generic_effect=invocation.reference,
             element=effect["effect_class"],
             caster_id=source.id,
-            target_id=target.id,
+            target_id=invocation.target_id,
             damage=result["value"],
             base_uid=invocation.base_uid,
             armor_absorbed=result["armor_absorbed"],
             barrier_absorbed=result["barrier_absorbed"],
         )
-        self.fight.apply_effect_damage(source.id, target.id, result["hp_loss"])
+        if wall is None:
+            from .combat_hp_raw import hp_raw_present
+
+            self.fight.apply_effect_damage(
+                source.id,
+                target.id,
+                result["hp_requested"] if hp_raw_present(target) else result["hp_loss"],
+                native_runner_effect=effect,
+                native_death_delivery=(
+                    None
+                    if self.event_lifecycle is None
+                    or not callable(getattr(self.event_lifecycle, "death", None))
+                    else lambda actor_id: self.event_lifecycle.death(
+                        actor_id,
+                        effect=effect,
+                        invocation=invocation,
+                        uid=uid,
+                        value=result["value"],
+                    )
+                ),
+            )
+        else:
+            _apply_wall_damage(self.fight, source.id, wall, result["hp_loss"])
+        if getattr(source, "native_copy_pa_source", None) is not None:
+            from .combat_copied_pa import set_copied_current
+
+            set_copied_current(self.fight, source, 100, result["source_barrier"])
         source_stats[100] = result["source_barrier"]
-        target_stats[97] = result["target_armor"]
-        target_stats[92] = result["target_virtual_hp"]
+        if wall is None:
+            if getattr(target, "native_copy_pa_source", None) is not None:
+                from .combat_copied_pa import set_copied_current
+
+                set_copied_current(self.fight, target, 97, result["target_armor"])
+                set_copied_current(self.fight, target, 92, result["target_virtual_hp"])
+            target_stats[97] = result["target_armor"]
+            target_stats[92] = result["target_virtual_hp"]
         runner.set_applied(result["value"])
         if not runner.notification_suppressed:
             self.packets.append((12613, packet))

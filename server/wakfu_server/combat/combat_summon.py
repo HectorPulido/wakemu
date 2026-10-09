@@ -12,6 +12,32 @@ from .combat_runtime_adapter import NativeActorAuthority
 from .combat_effects import _integer, _varint
 
 
+def fresh_summon_slot_owned(preview, actor):
+    """QI.f owns slots by registered QK identity, not historical Actor bytes."""
+    slots = getattr(preview, "native_qi_slots", None)
+    if slots is None:
+        # Legacy fixtures have only a complete actor-only registration table.
+        return not any(
+            a.native_obstacle_id == actor.native_obstacle_id
+            for a in preview.actors.values()
+        )
+    from .combat_qi_registry import NativeQIRegistry
+
+    registry = NativeQIRegistry(
+        preview.native_qi_snapshot,
+        slots,
+        touched_cells=getattr(preview, "native_qi_touched_cells", None),
+        byte_topology=getattr(preview, "native_qi_byte_topology", None),
+    )
+    row = registry.slots[actor.native_obstacle_id]
+    return (
+        row is not None
+        and row["identity"] == ["actor", actor.id]
+        and row["position"] == list(actor.position[:2])
+        and row["radius"] == actor.physical_radius
+    )
+
+
 def _short(value):
     return (value + 32768) % 65536 - 32768
 
@@ -62,12 +88,15 @@ def summon_specification(
         level = _short(level_mode)
     else:
         raise ValueError("Invalid native summon level mode")
-    if type(level) is not int or not 0 < level < 32768 or reference <= 0:
+    if type(level) is not int or not 0 <= level < 32768 or reference <= 0:
         raise ValueError("Missing native summon reference/level")
     direction = p[3] if len(p) > 3 else -1
     # aAS.wL searches the eight planar directions; anything else becomes NONE.
     direction = direction if 0 <= direction <= 7 else caster_direction
     team = _byte(p[4]) if len(p) > 4 else caster_team
+    # big creation inherits caster.bcM when eHD.bcM is the native NONE byte.
+    if team == -1:
+        team = caster_team
     if type(direction) is not int or not 0 <= direction < 8 or team not in (0, 1):
         raise ValueError("Unsupported native summon direction/team")
     anchor = (
@@ -155,6 +184,54 @@ class RegisteredSummonAuthority:
     def __init__(self, ordinary):
         self.ordinary = ordinary
 
+    @staticmethod
+    def _fresh_relationships(actor, registration, metadata):
+        """Attest fdy saH/saJ and fresh pGW/pGV independently; no stale defaults."""
+        source = getattr(actor, "native_summon_source", None)
+        if (
+            not isinstance(source, dict)
+            or source.get("native_relation_source")
+            != "big.new_bje.fdt_initial_registration"
+            or source.get("caster_id") != registration["caster_id"]
+            or source.get("controller_id") != registration["controller_id"]
+            or source.get("ref") != metadata.breed_id
+            or source.get("level") != metadata.native_real_level
+            or type(registration["controller_id"]) is not int
+            or type(getattr(actor, "native_controller_id", None)) is not int
+            or actor.native_controller_id != registration["controller_id"]
+            or metadata.native_controller_id != registration["controller_id"]
+            or metadata.targeting.get("dpr_id") != registration["controller_id"]
+        ):
+            raise ValueError("Missing fresh native summon controller provenance")
+        if (
+            type(getattr(actor, "native_master_id", None)) is not int
+            or actor.native_master_id != registration["controller_id"]
+            or metadata.targeting.get("dpu_id") != actor.native_master_id
+        ):
+            raise ValueError(
+                "Changed native summon master requires its registration producer"
+            )
+        if (
+            "native_carrier_id" not in vars(actor)
+            or "native_carried_actor_id" not in vars(actor)
+            or actor.native_carrier_id is not None
+            or actor.native_carried_actor_id is not None
+            or metadata.is_carried is not False
+            or metadata.is_carrying is not False
+            or metadata.targeting.get("buX") is not False
+        ):
+            raise ValueError(
+                "Changed native summon physical carry requires its registration producer"
+            )
+        for snapshot in (actor.spell_ap_cost_modifiers, actor.spell_range_modifiers):
+            if not isinstance(snapshot, dict) or any(
+                type(key) is not int or type(value) is not int
+                for key, value in snapshot.items()
+            ):
+                raise ValueError(
+                    "Missing complete native summon category modifier snapshot"
+                )
+
     def register(self, preview, actor, registration, *, new_order, new_turn_index):
         if (
             preview.phase != "active"
@@ -166,13 +243,14 @@ class RegisteredSummonAuthority:
             or registration.caster_id not in preview.actors
             or registration.controller_id not in (*preview.actors, actor.id)
             or actor.position not in preview.walkable
-            or any(
-                a.hp > 0 and a.position == actor.position
-                for a in preview.actors.values()
-            )
         ):
             raise ValueError("Invalid owned summon registration")
+        # Native big.a/fdt registers QK identities even at a shared cell.
+        # Spell criteria own placement legality; creation can precede a carry
+        # transition in the same ordered group. Validate its exact QI slot
+        # below instead of imposing an additional living-cell restriction.
         metadata = registration.authority
+        self._fresh_relationships(actor, vars(registration), metadata)
         if (
             metadata.is_summon is not True
             or metadata.summon_root_id is None
@@ -181,16 +259,14 @@ class RegisteredSummonAuthority:
             or metadata.targeting.get("bcN") != actor.native_obstacle_id
             or type(actor.native_obstacle_id) is not int
             or not 0 <= actor.native_obstacle_id <= 126
-            or any(
-                a.native_obstacle_id == actor.native_obstacle_id
-                for a in preview.actors.values()
-            )
+            or not fresh_summon_slot_owned(preview, actor)
             or actor.effect_stats is None
             or actor.effect_maxima is None
             or actor.effect_minima is None
             or actor.effect_frozen is None
             or actor.physical_radius is None
             or actor.spell_ap_cost_modifiers is None
+            or actor.spell_range_modifiers is None
         ):
             raise ValueError("Summon requires complete native actor authority/snapshot")
         # fbX.C consults ffe114 NOT_PRESENT_IN_TIMELINE before fem.a.
@@ -238,7 +314,15 @@ class RegisteredSummonAuthority:
         records = getattr(preview, "native_summon_registrations", {})
         if actor.id in records:
             raise ValueError("Duplicate summon registration")
+        if 114 not in registration.fight_properties:
+            from .combat_timeline_snapshot import insert
+
+            insert(preview, actor.id, list(new_order).index(actor.id))
         preview.actors[actor.id] = actor
+        if hasattr(preview, "native_global_pv_collections"):
+            from .combat_global_pv_collections import register_global_fighter
+
+            register_global_fighter(preview, actor.id)
         preview.native_summon_registrations = {**records, actor.id: row}
         preview.order, preview.turn_index = list(new_order), new_turn_index
         if next_base is not None:
@@ -280,40 +364,137 @@ class RegisteredSummonAuthority:
         view.actors = {i: a for i, a in preview.actors.items() if i not in records}
         return view
 
+    def _call_ordinary(self, preview, callback, *args):
+        from .combat_carrying import carry_population_scope
+
+        # Keep the ordinary ownership roster strict, while reciprocal physical
+        # relations still resolve both actors from the real transaction.
+        with carry_population_scope(preview):
+            return callback(self._ordinary_view(preview), *args)
+
     def __call__(self, preview, actor):
+        from .combat_native_actor_lookup import detached_authority
+
+        construction = detached_authority(preview, actor)
+        if construction is not None:
+            return construction
         if preview.actors.get(actor.id) is not actor:
             raise ValueError("Actor does not belong to this preview")
+        if getattr(actor, "pve_withdrawn", False):
+            raise ValueError("Withdrawn PvE actor has no active summon authority")
         records = getattr(preview, "native_summon_registrations", {})
         if actor.id in records:
-            metadata = NativeActorAuthority(**records[actor.id]["authority"])
+            registration = records[actor.id]
+            if registration.get("actor_id") != actor.id:
+                raise ValueError("Stale native summon actor registration")
+            metadata = NativeActorAuthority(**registration["authority"])
+            # Verify original controller/master creation facts independently of
+            # source-proven physical carrying changes installed afterwards.
+            from .combat_carrying import carrying_relations
+
+            carrying = carrying_relations(preview, actor)
+            if any(carrying.values()):
+                original = copy(actor)
+                original.native_carrier_id = None
+                original.native_carried_actor_id = None
+                self._fresh_relationships(original, registration, metadata)
+            else:
+                self._fresh_relationships(actor, registration, metadata)
+            targeting = dict(metadata.targeting)
+            targeting["buX"] = carrying["is_carried"]
+            metadata = replace(
+                metadata,
+                targeting=targeting,
+                is_carried=carrying["is_carried"],
+                is_carrying=carrying["is_carrying"],
+            )
+            from .combat_summon_spellbook import actor_spellbook
+
+            from .combat_spell_grant_book import merged_grant_book
+            from .combat_morph_spellbook import active_morph_book
+
+            ai_control = getattr(actor, "native_controlled_by_ai", None)
+            if ai_control is not None and type(ai_control) is not bool:
+                raise ValueError("Invalid native summon AI control flag")
+            metadata = replace(
+                metadata,
+                native_spellbook=merged_grant_book(
+                    preview,
+                    actor.id,
+                    active_morph_book(preview, actor.id, actor_spellbook(actor)),
+                ),
+                native_controlled_by_ai=ai_control,
+            )
+            if registration["controller_id"] not in preview.actors:
+                raise ValueError("Native summon controller no longer registered")
         else:
-            metadata = self.ordinary(self._ordinary_view(preview), actor)
+            from .combat_carrying import carry_population_scope
+
+            with carry_population_scope(preview):
+                metadata = self.ordinary(self._ordinary_view(preview), actor)
         # dTB/GF eligibility is an explicit native provider, not merely the
         # number of registrations: statuses/properties may exclude summons.
         if records:
-            metadata = replace(metadata, summon_count=None, summon_counts_by_breed=None)
-        from .combat_range_conditions import creation_in_play
+            metadata = replace(
+                metadata,
+                summon_count=None,
+                summon_counts_by_breed=None,
+                native_summon_counts_complete=False,
+            )
+            from .combat_summon_count import registered_summon_counts
 
-        return replace(metadata, native_in_play=creation_in_play(preview, actor))
+            from .combat_carrying import carry_population_scope
+
+            with carry_population_scope(preview):
+                counts = registered_summon_counts(
+                    preview,
+                    actor.id,
+                    records,
+                    self.ordinary,
+                    self._ordinary_view(preview),
+                )
+            if counts is not None:
+                metadata = replace(
+                    metadata,
+                    summon_count=counts[0],
+                    summon_counts_by_breed=counts[1],
+                    native_summon_counts_complete=True,
+                )
+        from .combat_ordinary_death import owned_fighter_guards
+
+        life = owned_fighter_guards(preview, actor)
+        return replace(
+            metadata,
+            targeting={**metadata.targeting, **life},
+            native_in_play=life["baF"],
+        )
 
     def item_quantity(self, preview, actor, references):
         self(preview, actor)
         records = getattr(preview, "native_summon_registrations", {})
         if actor.id in records:
             raise ValueError("Missing native summoned inventory authority")
-        return self.ordinary.item_quantity(
-            self._ordinary_view(preview), actor, references
+        return self._call_ordinary(
+            preview, self.ordinary.item_quantity, actor, references
         )
 
     def property_counts(self, preview, actor):
         self(preview, actor)
+        from .combat_native_actor_lookup import detached_authority
+
+        if detached_authority(preview, actor) is not None:
+            from .combat_property_stack import property_present
+
+            counts = getattr(actor, "native_fight_property_counts", None)
+            property_present(counts, 0)
+            return counts
         records = getattr(preview, "native_summon_registrations", {})
         if actor.id in records:
             counts = getattr(actor, "native_fight_property_counts", None)
             if counts is None:
                 raise ValueError("Missing native summoned property counter snapshot")
             return counts
-        return self.ordinary.property_counts(self._ordinary_view(preview), actor)
+        return self._call_ordinary(preview, self.ordinary.property_counts, actor)
 
     def property_side_effect(self, preview, actor, identity, *, applying):
         records = getattr(preview, "native_summon_registrations", {})
@@ -327,22 +508,49 @@ class RegisteredSummonAuthority:
             preview, actor, identity, applying=applying
         )
 
+    def world_property_counts(self, preview, actor):
+        from .combat_native_actor_lookup import detached_authority
+        from .combat_property_stack import property_present
+
+        if detached_authority(preview, actor) is not None or actor.id in getattr(
+            preview, "native_summon_registrations", {}
+        ):
+            counts = getattr(actor, "native_world_property_counts", None)
+            property_present(counts, 0)
+            return counts
+        self(preview, actor)
+        return self._call_ordinary(preview, self.ordinary.world_property_counts, actor)
+
     def properties(self, preview, actor):
+        from .combat_native_actor_lookup import detached_authority
+
+        if detached_authority(preview, actor) is not None:
+            live = getattr(actor, "native_fight_properties", None)
+            if live is None:
+                raise ValueError("Missing detached native fight-property source")
+            return frozenset(live)
         self(preview, actor)
         records = getattr(preview, "native_summon_registrations", {})
         return (
             records[actor.id]["fight_properties"]
             if actor.id in records
-            else self.ordinary.properties(self._ordinary_view(preview), actor)
+            else self._call_ordinary(preview, self.ordinary.properties, actor)
         )
 
     def world_properties(self, preview, actor):
+        from .combat_native_actor_lookup import detached_authority
+
+        if detached_authority(preview, actor) is not None:
+            live = getattr(actor, "native_world_properties", None)
+            if live is None:
+                raise ValueError("Missing detached native world-property source")
+            return frozenset(live)
         self(preview, actor)
         records = getattr(preview, "native_summon_registrations", {})
         return (
             records[actor.id]["world_properties"]
             if actor.id in records
-            else self.ordinary.world_properties(self._ordinary_view(preview), actor)
+            else self._call_ordinary(preview, self.ordinary.world_properties, actor)
         )
 
 

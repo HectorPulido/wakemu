@@ -103,6 +103,11 @@ class ConditionActor:
     )
     is_character: bool | None = None  # eHg.a(eHh.CHARACTER), includes NPCs.
     is_off_play: bool | None = None  # eHg.baG; distinct from KO/dead/inPlay roster.
+    is_native_ehg: bool | None = None  # Registered faV is eHg, plain Qq need not be.
+    is_in_play: bool | None = None  # Actual eHg.baF, not positive HP.
+    is_dead: bool | None = None  # Actual eGj.dsA, not baG or HP0.
+    is_summoned_from_symbiot: bool | None = None  # Actual eHg.dTC creation source.
+    native_sex: int | None = None  # Actual eGj.aXz signed byte, independent of breed.
     is_summon: bool | None = None  # eGj.dTE(), not merely an NPC kind.
     summon_root_id: int | None = None  # Identity of eGj.fqK ownership-chain root.
     retained_action_ids: frozenset[
@@ -118,8 +123,10 @@ class ConditionActor:
     # not excluded by offplay/properties), not simply len(actor.summons).
     summon_count: int | None = None
     summon_counts_by_breed: Mapping[int, int] | None = None
+    summon_counts_complete: bool = False
     characteristics: Mapping[str, int | None] | None = None
     characteristic_maxima: Mapping[str, int] | None = None
+    direction: int | None = None  # Native eGj.bcy().dyI; None means unknown.
 
 
 @dataclass(frozen=True)
@@ -140,8 +147,13 @@ class ConditionContext:
         "actor"  # actor/null/cell; unknown cell affiliations reject.
     )
     enemy_cell_affiliations: tuple[int, ...] | None = None
+    enemy_cell_affiliations_query: object = None  # eNM fbX.fk footprints + first QI.V.
     effect_target_absent: bool | None = (
         None  # Proven eII.b result null; missing context remains unknown.
+    )
+    target_cell_is_explicit: bool | None = None  # aBn target may fall back through QI.
+    native_cell_target_fighter_resolved: bool | None = (
+        None  # Actual QI.ay lookup completed.
     )
     triggering_effect_target_id: int | None = (
         None  # eLN source eGj.Sn, -1 for proven null.
@@ -163,20 +175,49 @@ class ConditionContext:
     )
     triggering_effect_value: int | None = None  # Source eZR.getValue signed int.
     triggering_effect_action_id: int | None = None  # Source eVn.awM, NOT aZE.
+    triggering_effect_variant: int | None = None  # Actual source PK.dd(1).
+    triggering_effect_definition_present: bool | None = None
+    triggering_effect_execution_status: int | None = None  # Source eZR.cYh byte.
+    triggering_effect_blocked: bool | None = None  # Proven source cYh()==7.
+    activation_query: object = None  # Actual fbX.bah current PZ, not Qe source.
     fight_current_table_turn: int | None = (
         None  # Native SU.bhN signed short, not personal turn.
     )
     triggering_container_is_state: bool | None = None
+    triggering_source_is_eWu: bool | None = None
+    triggering_apply_state_reference: int | None = None
     triggering_container_state_id: int | None = None  # Source fyW.guI signed short.
     triggering_container_type: int | None = None  # Source eVo.aZY, zero for known null.
     world_property_now_ms: int | None = None
     areas_base_id_query: object = None  # ePj/ePi exact Qs prototype count.
     actor_specific_area_query: object = None  # eOv selected eHg/Qq geometry.
     own_summon_actor_query: object = None  # eOG/eII arbitrary native selector.
+    surrounding_own_summon_query: object = None  # eMP complete direct-owner fUQ roster.
+    controlled_by_ai_query: object = None  # eNH actual eGj.fqL state.
+    free_cell_query: object = None  # eNR rotated point and actual QI/Qs.
+    gate_count_query: object = None  # ePn actual Qs type19 population.
     own_specific_area_query: object = None  # eOF Qz/owner criterion.
+    area_identity_query: object = None  # eNm/eOQ/eOC actual Qz/aBn/null target.
+    valid_gate_for_tp_query: object = None  # eMT complete Qs/captured bcM/QI.U.
+    use_gate_effect_query: object = (
+        None  # ePI actual runner/fyG -> fcj and static path.
+    )
+    use_gate_triggering_effect_query: object = (
+        None  # ePJ original trigger cell/container.
+    )
+    original_controller_predicate_query: object = None  # eIC/eOx actual eHg dTD/Sn.
+    selected_creature_available_query: object = None  # eON actual eHP.drI status.
+    breed_in_symbiot_query: object = None  # eMd evaluated profile + eII.a selector.
+    space_in_symbiot_query: object = None  # eLm/eHR.fxp actual ten-slot component.
+    closest_specific_area_query: object = None  # eJT/eIw positive distance minimum.
     specific_area_range_query: object = None  # eLn/eJW complete Qs authority.
     coordinate_query: object = None  # eLT/eLU/eLW eHg or explicit aBn target.
+    border_cell_query: object = None  # eOr eII actor/cell -> validated QI.P.
     backstabbed_query: object = None  # eNn/eIG current selected eGj Sl and opposite PV.
+    facestabbed_query: object = None  # eNP/eIG same selection, native FRONT result.
+    sidestabbed_query: object = None  # eOP/eIG accepts both native lateral results.
+    effect_caster_original_controller_query: object = None  # eKa current Qe.bbb.dTD.
+    spell_level_query: object = None  # eLo complete native owned spellbook lookup.
     active_spell_id_query: object = None  # eJn current fight PZ, not trigger.
     effect_target_original_controller_query: object = (
         None  # eKc current Qe.bbc/eHg.dTD.
@@ -184,6 +225,7 @@ class ConditionContext:
     current_container_level_query: object = None  # eJE current eZR, not trigger.
     area_type_range_query: object = None
     state_actor_query: object = None  # eII selector -> known actor or proven null.
+    life_actor_query: object = None  # Actual eII eGj/eHg life selection.
     actor_obstacle_query: object = None
     viewer_id: int | None = None
     actor_area_type_query: object = None
@@ -193,6 +235,12 @@ class ConditionContext:
     line_of_sight_query: object = None  # eMr/eII.aR/fcr exact runtime authority.
     random_number_query: object = None  # eLb transaction-owned uniform index.
     fighters_breed_range_query: object = None  # eKt/eKn complete fUQ breed roster.
+    human_allies_range_query: object = None  # eKz exact aGJ 0/5 filter.
+    allies_count_query: object = None  # eJo actual IN_PLAY same-affiliation roster.
+    monsters_count_query: object = None  # eKK/fbX.e exact IN_PLAY aGJ1/2 roster.
+    native_usage_context_query: object = (
+        None  # fyS null/PV-specific fyP criteria context.
+    )
     has_summon_breed_query: object = None  # eMI exact breed/direct dpu over fUQ.
     enemy_range_query: object = None  # Complete live eKf/eKn roster authority.
     allies_range_query: object = None  # eJp affiliation/inPlay/114 filters.
@@ -200,8 +248,22 @@ class ConditionContext:
     own_team_state_range_query: object = None  # eKS filters state caster affiliation.
     state_range_query: object = None  # eLr complete actor + Qq carrier population.
     item_quantity_query: object = None  # eKE current source actor inventory.
+    null_actor_aliases: frozenset[str] = frozenset()  # Proven selected eHg null.
+    state_null_fallback_absent: bool | None = None  # Qe context is not ePy.
     current_fighter_id: int | None = (
         None  # eJJ current SU identity; zero if no active turn.
+    )
+    fight_model_query: object = None  # eKj resolves the active fbX from native context.
+    pvp_query: object = None  # eOL fcz.fVU().fcL.fVT, including DUEL.
+    boolean_system_configuration_query: object = (
+        None  # eJs eEL/eEI actual defaults/overrides.
+    )
+    active_cosmetic_id_query: object = None  # eJi eSU/eSP selected cosmetic id.
+    has_active_cosmetic_query: object = None  # eLX eSP list membership.
+
+    is_in_diagonal: bool | None = None  # eNY resolved fight/coordinate snapshot.
+    native_casting_query: object = (
+        None  # Owned fcj request/table producer, not effect execution.
     )
 
 
@@ -249,6 +311,20 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             and node.value.lower() in ("caster", "target")
         )
 
+    def is_state_actor_selector(node):
+        return (
+            isinstance(node, ast.Constant)
+            and type(node.value) is str
+            and node.value.lower()
+            in (
+                "caster",
+                "target",
+                "castercontroller",
+                "triggeringcaster",
+                "triggeringtarget",
+            )
+        )
+
     def check_number(node):
         if isinstance(node, ast.IfExp):
             check(node.test)
@@ -275,6 +351,56 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         ):
             raise UnknownCondition("Unsupported native numeric expression")
         name, args = node.func.id, node.args
+        if name == "IsPvp":
+            return  # Original eOL constructor ignores parsed arguments.
+        if name == "GetBooleanSystemConfiguration":
+            if (
+                len(args) != 1
+                or not isinstance(args[0], ast.Constant)
+                or type(args[0].value) is not str
+            ):
+                raise UnknownCondition(
+                    "Native Boolean configuration requires one literal string"
+                )
+            return
+        if name == "GetFightModel":
+            if args:
+                raise UnknownCondition("Native GetFightModel takes no arguments")
+            return
+        if name == "GetActiveCosmeticId":
+            if len(args) != 1:
+                raise UnknownCondition(
+                    "Native GetActiveCosmeticId requires one category"
+                )
+            check_number(args[0])
+            return
+        if name == "GetSpaceInSymbiot":
+            # eLm does not call alS.s(parameters): parsed arguments are ignored.
+            return
+        if name == "NbGates":
+            if len(args) != 2 or any(
+                not isinstance(arg, ast.Constant) or type(arg.value) is not str
+                for arg in args
+            ):
+                raise UnknownCondition("Native NbGates requires two literal strings")
+            return
+        if name == "GetDistanceToClosestSpecificArea":
+            if (
+                len(args) not in (3, 4)
+                or not isinstance(args[0], ast.Constant)
+                or type(args[0].value) is not str
+                or (
+                    len(args) == 4
+                    and (
+                        not isinstance(args[3], ast.Constant)
+                        or type(args[3].value) is not str
+                    )
+                )
+            ):
+                raise UnknownCondition("Unsupported native closest-area signature")
+            check_number(args[1])
+            check(args[2])
+            return
         if name == "GetDate":
             if len(args) not in (0, 6):
                 raise UnknownCondition("Unsupported native GetDate signature")
@@ -368,7 +494,31 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             check_number(args[0])
             check_number(args[2])
             return
-        if name in ("GetEnnemyCountInRange", "GetAlliesCountInRange"):
+        if name == "GetAlliesCount":
+            if len(args) > 1 or (
+                args
+                and (
+                    not isinstance(args[0], ast.Constant)
+                    or type(args[0].value) is not str
+                )
+            ):
+                raise UnknownCondition(
+                    "Native allies count requires optional string selector"
+                )
+            return
+        if name == "GetMonstersInFight":
+            if len(args) > 2:
+                raise UnknownCondition(
+                    "Native monster count takes at most two numeric arguments"
+                )
+            for argument in args:
+                check_number(argument)
+            return
+        if name in (
+            "GetEnnemyCountInRange",
+            "GetAlliesCountInRange",
+            "GetHumanAlliesCountInRange",
+        ):
             if not 1 <= len(args) <= (6 if name == "GetAlliesCountInRange" else 5):
                 raise UnknownCondition("Unsupported native enemy range signature")
             numeric = 1 if len(args) <= 2 else 2
@@ -427,6 +577,10 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if args:
                 raise UnknownCondition("Native zone trigger takes no arguments")
             return
+        if name == "GetTriggeringApplyStateStateId":
+            # Original eLF constructor never invokes signature validation or
+            # stores its supplied argument list; evaluation ignores it.
+            return
         if name in (
             "GetTriggeringContainerStateId",
             "GetTriggeringEffectValue",
@@ -449,13 +603,16 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             in (
                 "GetDistanceBetweenCasterAndTarget",
                 "GetEffectCaster",
+                "GetTriggererEffectCaster",
                 "GetTriggeringEffectCaster",
                 "GetTriggeringEffectTarget",
                 "GetEffectTarget",
                 "GetEffectTargetOriginalController",
+                "GetEffectCasterOriginalController",
                 "GetInstanceId",
                 "GetFightCurrentTableTurn",
                 "GetCurrentFighterId",
+                "GetCharacterDirection",
             )
             and not args
         ):
@@ -464,6 +621,19 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if len(args) != 1 or not is_selector(args[0]):
                 raise UnknownCondition(
                     "Native GetPhysicalRadius requires an actor selector"
+                )
+            return
+        if name == "GetCharacterDirection":
+            if (
+                len(args) > 1
+                or args
+                and (
+                    not isinstance(args[0], ast.Constant)
+                    or type(args[0].value) is not str
+                )
+            ):
+                raise UnknownCondition(
+                    "GetCharacterDirection takes zero or one native string selector"
                 )
             return
         if name in ("GetX", "GetY", "GetZ"):
@@ -475,6 +645,19 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 )
             ):
                 raise UnknownCondition(f"Native {name} takes zero or one string")
+            return
+        if name == "GetSpellLevel":
+            if len(args) not in (1, 2) or (
+                len(args) == 2
+                and (
+                    not isinstance(args[1], ast.Constant)
+                    or type(args[1].value) is not str
+                )
+            ):
+                raise UnknownCondition(
+                    "Native GetSpellLevel requires reference and optional selector"
+                )
+            check_number(args[0])
             return
         if name == "GetActiveSpellId":
             if args:
@@ -518,18 +701,10 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 raise UnknownCondition("Unsupported GetStateLevel arguments")
             return
         if name == "NbSummons":
-            if (
-                len(args) > 2
-                or (args and not is_selector(args[0]))
-                or (
-                    len(args) == 2
-                    and (
-                        not isinstance(args[1], ast.Constant)
-                        or type(args[1].value) is not int
-                    )
-                )
-            ):
+            if len(args) > 2 or (args and not is_selector(args[0])):
                 raise UnknownCondition("Unsupported NbSummons arguments")
+            if len(args) == 2:
+                literal_long(args[1])
             return
         if name in (
             "GetCharac",
@@ -610,10 +785,91 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 else result
             )
         name, args = node.func.id, node.args
+        if name in ("IsPvp", "GetBooleanSystemConfiguration"):
+            from .combat_system_conditions import evaluate_system_predicate
+
+            try:
+                value = evaluate_system_predicate(
+                    context,
+                    name,
+                    args[0].value if name == "GetBooleanSystemConfiguration" else None,
+                )
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            return 0 if value else -1  # eIX native Boolean numeric result.
+        if name == "GetFightModel":
+            if not callable(context.fight_model_query):
+                raise UnknownCondition("Missing authoritative native fight model")
+            try:
+                value = context.fight_model_query()
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(value) is not int or not -128 <= value <= 127:
+                raise UnknownCondition("Invalid native fcz.eSS signed-byte model")
+            return value
+        if name == "GetActiveCosmeticId":
+            if not callable(context.active_cosmetic_id_query):
+                raise UnknownCondition("Missing native cosmetic component authority")
+            category = number(args[0])
+            try:
+                value = context.active_cosmetic_id_query(category)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(value) is not int or not -(1 << 31) <= value < (1 << 31):
+                raise UnknownCondition("Invalid native active cosmetic id")
+            return value
+        if name == "GetSpaceInSymbiot":
+            if not callable(context.space_in_symbiot_query):
+                raise UnknownCondition("Missing native symbiot space authority")
+            try:
+                result = context.space_in_symbiot_query()
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(result) is not int or not -1 <= result <= 10:
+                raise UnknownCondition("Invalid native symbiot space count")
+            return result
+        if name == "NbGates":
+            if not callable(context.gate_count_query):
+                raise UnknownCondition("Missing native gate-count authority")
+            try:
+                result = context.gate_count_query(args[0].value, args[1].value)
+                if type(result) is not int:
+                    raise ValueError("Missing native gate-count integer")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
         if name == "GetCurrentFighterId":
             value = context.current_fighter_id
             if type(value) is not int or not -(1 << 63) <= value < (1 << 63):
                 raise UnknownCondition("Missing authoritative current fighter identity")
+            return value
+        if name == "GetCharacterDirection":
+            selector = (
+                "target" if args and args[0].value.lower() == "target" else "caster"
+            )
+            if (
+                selector == "target"
+                and context.target_cell_is_explicit is True
+                and context.native_cell_target_fighter_resolved is not True
+            ):
+                raise UnknownCondition(
+                    "Missing native QI fighter lookup for explicit target cell"
+                )
+            actor = context.actors.get(selector)
+            if actor is None:
+                if selector == "target" and (
+                    context.effect_target_absent is True
+                    or selector in context.null_actor_aliases
+                ):
+                    return -1  # eII.a is null or receives a non-eGj cell target.
+                raise UnknownCondition(
+                    f"Missing native GetCharacterDirection actor: {selector}"
+                )
+            if actor.is_native_fighter is False:
+                return -1  # eII.a only returns eGj, not other eHg/PV objects.
+            value = actor.direction
+            if type(value) is not int or not -1 <= value <= 9:
+                raise UnknownCondition(f"Missing native eGj.bcy direction: {selector}")
             return value
         if name == "GetDate":
             if not args:
@@ -645,6 +901,23 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             )
             try:
                 return context.random_number_query(limit, exclusions)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "GetDistanceToClosestSpecificArea":
+            if not callable(context.closest_specific_area_query):
+                raise UnknownCondition("Missing native closest-area authority")
+            reference = number(args[1])
+            if type(reference) is not int or not -(1 << 63) <= reference < (1 << 63):
+                raise UnknownCondition(
+                    "Native closest-area reference requires signed long"
+                )
+            try:
+                return context.closest_specific_area_query(
+                    args[0].value,
+                    reference,
+                    run(args[2]),
+                    args[3].value if len(args) == 4 else None,
+                )
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
         if name == "NbAreasWithBaseId":
@@ -710,11 +983,40 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 return context.fighters_breed_range_query(maximum, args[1].value, breed)
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
-        if name in ("GetEnnemyCountInRange", "GetAlliesCountInRange"):
+        if name == "GetAlliesCount":
+            if not callable(context.allies_count_query):
+                raise UnknownCondition("Missing complete native allies-count authority")
+            try:
+                return context.allies_count_query(args[0].value if args else "caster")
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "GetMonstersInFight":
+            if not callable(context.monsters_count_query):
+                raise UnknownCondition(
+                    "Missing complete native monster-count authority"
+                )
+            values = [number(argument) for argument in args]
+            if any(type(value) is not int for value in values):
+                raise UnknownCondition(
+                    "Native monster count requires evaluated long arguments"
+                )
+            try:
+                return context.monsters_count_query(*values)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name in (
+            "GetEnnemyCountInRange",
+            "GetAlliesCountInRange",
+            "GetHumanAlliesCountInRange",
+        ):
             query = (
                 context.enemy_range_query
                 if name == "GetEnnemyCountInRange"
-                else context.allies_range_query
+                else (
+                    context.human_allies_range_query
+                    if name == "GetHumanAlliesCountInRange"
+                    else context.allies_range_query
+                )
             )
             if not callable(query):
                 raise UnknownCondition("Missing complete native enemy range authority")
@@ -862,13 +1164,39 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if type(context.triggering_container_state_id) is not int:
                 raise UnknownCondition("Missing native source fyW state reference")
             return context.triggering_container_state_id
-        if name == "GetEffectTargetOriginalController":
-            if not callable(context.effect_target_original_controller_query):
+        if name == "GetTriggeringApplyStateStateId":
+            if context.triggering_effect_present is False:
+                return -1
+            if context.triggering_effect_present is not True:
+                raise UnknownCondition("Missing actual eII.aU source presence")
+            if context.triggering_source_is_eWu is False:
+                return -1
+            if context.triggering_source_is_eWu is not True:
+                raise UnknownCondition("Missing actual triggering eWu type")
+            value = context.triggering_apply_state_reference
+            if type(value) is not int or not -32768 <= value <= 32767:
+                raise UnknownCondition("Missing actual eWu.ejo signed-short reference")
+            return value
+        if (
+            name == "GetTriggererEffectCaster"
+            and "caster" in context.null_actor_aliases
+        ):
+            return 0
+        if name in (
+            "GetEffectTargetOriginalController",
+            "GetEffectCasterOriginalController",
+        ):
+            query = (
+                context.effect_target_original_controller_query
+                if name == "GetEffectTargetOriginalController"
+                else context.effect_caster_original_controller_query
+            )
+            if not callable(query):
                 raise UnknownCondition(
                     "Missing native original target controller authority"
                 )
             try:
-                value = context.effect_target_original_controller_query()
+                value = query()
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
             if type(value) is not int or not -(1 << 63) <= value < (1 << 63):
@@ -932,6 +1260,24 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 raise UnknownCondition(str(error)) from error
             if type(value) is not int or not -(1 << 63) <= value < (1 << 63):
                 raise UnknownCondition("Invalid native coordinate result")
+            return value
+        if name == "GetSpellLevel":
+            if not callable(context.spell_level_query):
+                raise UnknownCondition(
+                    "Missing native complete owned spellbook authority"
+                )
+            reference = number(args[0])
+            if type(reference) is not int:
+                raise UnknownCondition("Native spell reference requires an integer")
+            reference = ((reference + (1 << 31)) % (1 << 32)) - (1 << 31)
+            try:
+                value = context.spell_level_query(
+                    reference, args[1].value if len(args) == 2 else "caster"
+                )
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(value) is not int or not -(1 << 31) <= value < (1 << 31):
+                raise UnknownCondition("Invalid native spell level result")
             return value
         if name == "GetActiveSpellId":
             if not callable(context.active_spell_id_query):
@@ -1000,8 +1346,14 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         )
         actor = context.actors.get(selector)
         if actor is None:
+            if (
+                name in ("GetCharacInPct", "GetCharacPct", "GetCharacteristicPct")
+                and selector == "target"
+                and context.effect_target_absent is True
+            ):
+                return -1.0  # Native eJz: an authoritatively absent eHg.
             raise UnknownCondition(f"Missing native actor: {selector}")
-        if name == "GetEffectCaster":
+        if name in ("GetEffectCaster", "GetTriggererEffectCaster"):
             value = actor.actor_id
             if type(value) is not int or not -(1 << 63) <= value < (1 << 63):
                 raise UnknownCondition("Missing native effect caster identity")
@@ -1033,12 +1385,18 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             )
         if name == "NbSummons":
             if len(args) == 2:
-                if (
-                    actor.summon_counts_by_breed is None
-                    or args[1].value not in actor.summon_counts_by_breed
+                # ePs evaluates alP as long, then l2i before eHg.GF(int).
+                breed = ((literal_long(args[1]) + (1 << 31)) % (1 << 32)) - (1 << 31)
+                if breed == -1:  # eGE.pIq.aXA(): native NONE wildcard.
+                    if actor.summon_count is None:
+                        raise UnknownCondition("Missing native summon count")
+                    return actor.summon_count
+                if actor.summon_counts_by_breed is None or (
+                    breed not in actor.summon_counts_by_breed
+                    and actor.summon_counts_complete is not True
                 ):
                     raise UnknownCondition("Missing native filtered summon count")
-                return actor.summon_counts_by_breed[args[1].value]
+                return actor.summon_counts_by_breed.get(breed, 0)
             if actor.summon_count is None:
                 raise UnknownCondition("Missing native summon count")
             return actor.summon_count
@@ -1063,12 +1421,12 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         ):
             raise UnknownCondition("Missing native characteristic maximum")
         maximum = actor.characteristic_maxima[characteristic]
-        if maximum <= 0:
-            raise UnknownCondition(
-                "Nonpositive native maximum requires nonfinite percentage semantics"
-            )
-        f32 = lambda value: struct.unpack("f", struct.pack("f", value))[0]
-        return float(math.floor(f32(f32(f32(value) / f32(maximum)) * 100.0)))
+        from .combat_characteristic_percentage import characteristic_percentage
+
+        try:
+            return characteristic_percentage(value, maximum)
+        except ValueError as error:
+            raise UnknownCondition(str(error)) from error
 
     def check(node):
         if isinstance(node, ast.IfExp):
@@ -1096,6 +1454,53 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
             name = node.func.id
             args = node.args
+            if name in ("IsPvp", "GetBooleanSystemConfiguration"):
+                check_number(node)
+                return
+            if name in ("IsActivatedByElement", "IsActivatedBySpell"):
+                if (name == "IsActivatedByElement" and len(args) != 1) or len(args) > 1:
+                    raise UnknownCondition("Unsupported native activation signature")
+                if args:
+                    literal_long(args[0])
+                return
+            if name in ("IsTriggeringEffectCritical", "IsTriggeringEffectBlocked"):
+                if args:
+                    raise UnknownCondition("Native source predicate takes no arguments")
+                return
+            if name == "HasBreedInSymbiot":
+                if len(args) != 2:
+                    raise UnknownCondition(
+                        "Native HasBreedInSymbiot requires profile and selector"
+                    )
+                check_number(args[0])
+                if (
+                    not isinstance(args[1], ast.Constant)
+                    or type(args[1].value) is not str
+                ):
+                    raise UnknownCondition(
+                        "Native symbiot selector requires literal string"
+                    )
+                return
+            if name in (
+                "UseGateEffect",
+                "UseGateTriggeringEffect",
+                "IsOriginalController",
+                "CasterAndTargetHaveSameOriginalController",
+                "IsSelectedCreatureAvailable",
+            ):
+                if args:
+                    raise UnknownCondition("Native " + name + " takes no arguments")
+                return
+            if name == "HasValidGateForTp":
+                if (
+                    len(args) != 3
+                    or not isinstance(args[0], ast.Constant)
+                    or type(args[0].value) is not str
+                ):
+                    raise UnknownCondition("Unsupported native valid-gate signature")
+                check_number(args[1])
+                check_number(args[2])
+                return
             if (
                 name
                 not in (
@@ -1106,18 +1511,26 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "IsCarried",
                     "IsCarrying",
                     "IsBackstabbed",
+                    "IsFacestabbed",
+                    "IsSidestabbed",
+                    "IsSex",
                     "IsTargetCellFree",
                     "IsBreedId",
                     "IsBreed",
                     "IsInAlignment",
+                    "IsInDiagonal",
+                    "IsOnBorderCell",
                     "HasLineOfSight",
                     "IsOffPlay",
+                    "IsDead",
+                    "IsInPlay",
                     "IsEnemy",
                     "IsEnnemy",
                     "HasFightProperty",
                     "HasWorldProperty",
                     "IsOwnSummon",
                     "IsSummon",
+                    "IsSummonedFromSymbiot",
                     "HasSummonWithBreed",
                     "HasEffectWithSpecificId",
                     "HasEffectWithActionId",
@@ -1130,22 +1543,101 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "CellContainsEffectAreaType",
                     "CellContainsSpecificEffectArea",
                     "IsOwnSpecificArea",
+                    "IsAreaType",
+                    "IsSpecificArea",
+                    "IsOwnDeposit",
+                    "IsOwnArea",
+                    "IsFreeCell",
+                    "IsControlledByAI",
+                    "HasSurroundingCellWithOwnSummon",
                     "IsOnSpecificEffectArea",
                     "IsTriggeredByMeleeEffect",
                     "IsTriggeredByZoneEffect",
                     "IsTriggeredByIndirectEffect",
                     "IsTriggeredByEffectWithREP",
                     "GetTriggeringEffectCasterIsSameAsCaster",
+                    "HasActiveCosmeticId",
                 )
                 or node.keywords
             ):
                 raise UnknownCondition(f"Unsupported native predicate: {name}")
+            if name == "HasSurroundingCellWithOwnSummon":
+                if (
+                    len(args) not in (2, 3)
+                    or not isinstance(args[0], ast.Constant)
+                    or type(args[0].value) is not str
+                ):
+                    raise UnknownCondition(
+                        "Unsupported native surrounding-summon signature"
+                    )
+                if isinstance(args[1], ast.Constant) and type(args[1].value) is str:
+                    if len(args) != 2:
+                        raise UnknownCondition(
+                            "Unsupported native neighborhood mode signature"
+                        )
+                else:
+                    literal_long(args[1])
+                    if len(args) == 3 and not (
+                        isinstance(args[2], ast.Constant) and type(args[2].value) is str
+                    ):
+                        raise UnknownCondition(
+                            "Native neighborhood mode requires literal string"
+                        )
+                return
+            if name == "HasActiveCosmeticId":
+                if len(args) != 2:
+                    raise UnknownCondition(
+                        "Native HasActiveCosmeticId requires category and id"
+                    )
+                check_number(args[0])
+                check_number(args[1])
+                return
+            if name == "IsControlledByAI":
+                if (
+                    len(args) != 1
+                    or not isinstance(args[0], ast.Constant)
+                    or type(args[0].value) is not str
+                ):
+                    raise UnknownCondition(
+                        "Native IsControlledByAI requires one literal string"
+                    )
+                return
+            if name == "IsFreeCell":
+                if (
+                    len(args) != 3
+                    or not isinstance(args[0], ast.Constant)
+                    or type(args[0].value) is not str
+                ):
+                    raise UnknownCondition(
+                        "Native IsFreeCell requires string and two constructor constants"
+                    )
+                literal_long(args[1])
+                literal_long(args[2])
+                return
             if name == "HasSummonWithBreed":
                 if len(args) != 1:
                     raise UnknownCondition(
                         "Native HasSummonWithBreed requires one long"
                     )
                 check_number(args[0])
+                return
+            if name in ("IsAreaType", "IsSpecificArea"):
+                if len(args) != 1:
+                    raise UnknownCondition("Native area identity requires one long")
+                check_number(args[0])
+                return
+            if name in ("IsOwnDeposit", "IsOwnArea"):
+                if (
+                    len(args) > 1
+                    or args
+                    and not (
+                        isinstance(args[0], ast.Constant)
+                        and type(args[0].value) is bool
+                    )
+                ):
+                    raise UnknownCondition(
+                        "Native own-deposit requires optional literal boolean"
+                    )
                 return
             if name == "IsTriggeredByEffectWithREP":
                 if len(args) != 1:
@@ -1207,14 +1699,14 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 ):
                     literal_long(args[1])
                 return
-            if name == "IsSummon":
+            if name in ("IsSummon", "IsSummonedFromSymbiot"):
                 if (
                     len(args) != 1
                     or not isinstance(args[0], ast.Constant)
                     or type(args[0].value) is not str
                 ):
                     raise UnknownCondition(
-                        "IsSummon requires one native string selector"
+                        name + " requires one native string selector"
                     )
                 return
             if name == "IsOwnSummon":
@@ -1254,7 +1746,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 if args:
                     raise UnknownCondition("Native IsEnemy takes no arguments")
                 return
-            if name == "IsOffPlay":
+            if name in ("IsOffPlay", "IsDead", "IsInPlay"):
                 if len(args) > 1 or (
                     args
                     and (
@@ -1262,15 +1754,25 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                         or type(args[0].value) is not str
                     )
                 ):
-                    raise UnknownCondition("Unsupported native IsOffPlay signature")
+                    raise UnknownCondition(f"Unsupported native {name} signature")
                 return
             if name == "HasLineOfSight":
                 if args:
                     raise UnknownCondition("Native HasLineOfSight takes no arguments")
                 return
-            if name == "IsInAlignment":
+            if name in ("IsInAlignment", "IsInDiagonal"):
                 if args:
-                    raise UnknownCondition("Unsupported IsInAlignment arguments")
+                    raise UnknownCondition(f"Unsupported {name} arguments")
+                return
+            if name == "IsOnBorderCell":
+                if (
+                    len(args) != 1
+                    or not isinstance(args[0], ast.Constant)
+                    or type(args[0].value) is not str
+                ):
+                    raise UnknownCondition(
+                        "Native IsOnBorderCell requires exactly one string selector"
+                    )
                 return
             if name == "IsOwnSpecificArea":
                 if len(args) not in (1, 2):
@@ -1367,7 +1869,19 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 ):
                     raise UnknownCondition("Unsupported IsTargetCellFree arguments")
                 return
-            if name in ("IsCarrying", "IsBackstabbed"):
+            if name == "IsSex":
+                if len(args) not in (1, 2) or any(
+                    not isinstance(arg, ast.Constant) or type(arg.value) is not str
+                    for arg in args
+                ):
+                    raise UnknownCondition("Unsupported IsSex arguments")
+                return
+            if name in (
+                "IsCarrying",
+                "IsBackstabbed",
+                "IsFacestabbed",
+                "IsSidestabbed",
+            ):
                 if len(args) > 1 or (
                     args
                     and (
@@ -1399,7 +1913,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     or type(args[0].value) is not int
                 ):
                     raise UnknownCondition("Unsupported HasState identity")
-                if len(args) == 3 and not is_selector(args[2]):
+                if len(args) == 3 and not is_state_actor_selector(args[2]):
                     raise UnknownCondition("Unsupported HasState actor selector")
                 return
             if (
@@ -1423,7 +1937,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                             "triggeringtarget",
                             "castercontroller",
                         )
-                        if name == "HasStateFromUser"
+                        if name in ("HasState", "HasStateFromLevel", "HasStateFromUser")
                         else ("caster", "target")
                     )
                 )
@@ -1433,6 +1947,12 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         raise UnknownCondition(f"Unsupported native expression: {ast.dump(node)}")
 
     def run(node):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in ("IsPvp", "GetBooleanSystemConfiguration")
+        ):
+            return number(node) == 0
         if isinstance(node, ast.IfExp):
             return run(node.body if run(node.test) else node.orelse)
         if isinstance(node, ast.Compare):
@@ -1460,8 +1980,114 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 else any(run(v) for v in node.values)
             )
         name = node.func.id
-        if name == "IsBackstabbed":
-            if not callable(context.backstabbed_query):
+        if name == "HasActiveCosmeticId":
+            if not callable(context.has_active_cosmetic_query):
+                raise UnknownCondition(
+                    "Missing native active cosmetic membership authority"
+                )
+            category, cosmetic_id = (number(argument) for argument in node.args)
+            try:
+                result = context.has_active_cosmetic_query(category, cosmetic_id)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(result) is not bool:
+                raise UnknownCondition("Invalid native active cosmetic membership")
+            return result
+        if name in ("IsActivatedByElement", "IsActivatedBySpell"):
+            if not callable(context.activation_query):
+                raise UnknownCondition(
+                    "Missing actual native current activation authority"
+                )
+            argument = -1 if not node.args else literal_long(node.args[0])
+            argument = (argument + (1 << 31)) % (1 << 32) - (1 << 31)
+            try:
+                result = context.activation_query(name, argument)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(result) is not bool:
+                raise UnknownCondition("Invalid native activation result")
+            return result
+        if name in ("IsTriggeringEffectCritical", "IsTriggeringEffectBlocked"):
+            from .combat_activation_conditions import evaluate_source_predicate
+
+            try:
+                return evaluate_source_predicate(name, context)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "HasBreedInSymbiot":
+            if not callable(context.breed_in_symbiot_query):
+                raise UnknownCondition("Missing native eMd owned roster authority")
+            try:
+                result = context.breed_in_symbiot_query(
+                    number(node.args[0]), run(node.args[1]).strip()
+                )
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(result) is not bool:
+                raise UnknownCondition("Invalid native eMd profile presence result")
+            return result
+        if name == "IsSelectedCreatureAvailable":
+            if not callable(context.selected_creature_available_query):
+                raise UnknownCondition("Missing native eHP captured roster authority")
+            try:
+                result = context.selected_creature_available_query()
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(result) is not int or result not in (-2, -1, 0):
+                raise UnknownCondition("Invalid native eON availability status")
+            return result == 0
+        if name in (
+            "UseGateEffect",
+            "UseGateTriggeringEffect",
+            "IsOriginalController",
+            "CasterAndTargetHaveSameOriginalController",
+        ):
+            query = (
+                context.use_gate_effect_query
+                if name == "UseGateEffect"
+                else context.use_gate_triggering_effect_query
+                if name == "UseGateTriggeringEffect"
+                else context.original_controller_predicate_query
+            )
+            if not callable(query):
+                raise UnknownCondition("Missing native " + name + " authority")
+            try:
+                result = query() if name.startswith("UseGate") else query(name)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(result) is not bool:
+                raise UnknownCondition("Invalid native " + name + " result")
+            return result
+        if name == "IsSex":
+            selector = (
+                "target"
+                if len(node.args) == 2 and node.args[1].value.lower() == "target"
+                else "caster"
+            )
+            actor = context.actors.get(selector)
+            if actor is None:
+                if selector in context.null_actor_aliases or (
+                    selector == "target" and context.effect_target_absent is True
+                ):
+                    return False
+                raise UnknownCondition("Missing native eOO selected eGj authority")
+            if actor.is_native_fighter is False:
+                return False
+            if actor.is_native_fighter is not True:
+                raise UnknownCondition("Missing native eII.a eGj type")
+            if type(actor.native_sex) is not int or not -128 <= actor.native_sex <= 127:
+                raise UnknownCondition("Missing native eGj.aXz sex byte")
+            expected = 0 if node.args[0].value.lower() == "male" else 1
+            return actor.native_sex == expected
+        if name in ("IsBackstabbed", "IsFacestabbed", "IsSidestabbed"):
+            query = (
+                context.backstabbed_query
+                if name == "IsBackstabbed"
+                else context.facestabbed_query
+                if name == "IsFacestabbed"
+                else context.sidestabbed_query
+            )
+            if not callable(query):
                 raise UnknownCondition("Missing native facing authority")
             selector = (
                 "target"
@@ -1469,12 +2095,27 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 else "caster"
             )
             try:
-                value = context.backstabbed_query(selector)
+                value = query(selector)
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
             if type(value) is not bool:
                 raise UnknownCondition("Invalid native facing result")
             return value
+        if name == "HasValidGateForTp":
+            if not callable(context.valid_gate_for_tp_query):
+                raise UnknownCondition("Missing native valid-gate predicate authority")
+            bounds = [number(arg) for arg in node.args[1:]]
+            if any(
+                type(v) is not int or not -(1 << 63) <= v < (1 << 63) for v in bounds
+            ):
+                raise UnknownCondition("Native gate bounds require signed long")
+            try:
+                result = context.valid_gate_for_tp_query(node.args[0].value, *bounds)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(result) is not bool:
+                raise UnknownCondition("Invalid native valid-gate result")
+            return result
         if name == "HasSummonWithBreed":
             if not callable(context.has_summon_breed_query):
                 raise UnknownCondition("Missing complete native summon breed authority")
@@ -1522,6 +2163,18 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             ):
                 raise UnknownCondition("Missing native source zone definition")
             return context.triggering_zone_effect
+        if name == "IsSummonedFromSymbiot":
+            selector = "target" if node.args[0].value.lower() == "target" else "caster"
+            actor = context.actors.get(selector)
+            if actor is None:
+                if selector == "target" and context.effect_target_absent is True:
+                    return False
+                raise UnknownCondition("Missing native eOU selected eHg authority")
+            if actor.is_native_ehg is not True:
+                raise UnknownCondition("Missing native eII.b fallback eHg authority")
+            if type(actor.is_summoned_from_symbiot) is not bool:
+                raise UnknownCondition("Missing native eHg.dTC symbiot status")
+            return actor.is_summoned_from_symbiot
         if name == "IsSummon":
             selector = node.args[0].value.lower()
             # eII.a unrecognised string -> null -> eOT.a=-1 (false).
@@ -1582,9 +2235,10 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 raise UnknownCondition("Missing native PLAYER_CHARACTER/COMPANION kind")
             return actor.is_challenger
         if name == "IsCharacter":
-            actor = context.actors.get(
-                node.args[0].value.lower() if node.args else "caster"
-            )
+            selector = node.args[0].value.lower() if node.args else "caster"
+            actor = context.actors.get(selector)
+            if actor is None and selector in context.null_actor_aliases:
+                return False  # eND selected eHg null -> -1.
             if actor is None or type(actor.is_character) is not bool:
                 raise UnknownCondition("Missing native CHARACTER kind")
             return actor.is_character
@@ -1659,6 +2313,54 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if source.summon_root_id is None or target.summon_root_id is None:
                 raise UnknownCondition("Missing native fqK root identity")
             return source.summon_root_id == target.summon_root_id
+        if name == "HasSurroundingCellWithOwnSummon":
+            if not callable(context.surrounding_own_summon_query):
+                raise UnknownCondition("Missing native surrounding-summon authority")
+            mode_only = (
+                isinstance(node.args[1], ast.Constant)
+                and type(node.args[1].value) is str
+            )
+            breed = -1 if mode_only else literal_long(node.args[1])
+            mode = (
+                node.args[1].value
+                if mode_only
+                else node.args[2].value
+                if len(node.args) == 3
+                else "VON_NEUMANN"
+            )
+            try:
+                result = context.surrounding_own_summon_query(
+                    node.args[0].value, breed, mode
+                )
+                if type(result) is not bool:
+                    raise ValueError("Missing native neighborhood boolean")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "IsControlledByAI":
+            if not callable(context.controlled_by_ai_query):
+                raise UnknownCondition("Missing native AI-control authority")
+            try:
+                result = context.controlled_by_ai_query(node.args[0].value)
+                if type(result) is not bool:
+                    raise ValueError("Missing native AI-control boolean")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "IsFreeCell":
+            if not callable(context.free_cell_query):
+                raise UnknownCondition("Missing native rotated free-cell authority")
+            try:
+                result = context.free_cell_query(
+                    node.args[0].value,
+                    literal_long(node.args[1]),
+                    literal_long(node.args[2]),
+                )
+                if type(result) is not bool:
+                    raise ValueError("Missing native free-cell boolean")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
         if name == "IsOnSpecificEffectArea":
             if not callable(context.actor_specific_area_query):
                 raise UnknownCondition("Missing native specific actor-area authority")
@@ -1668,6 +2370,21 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     number(node.args[1]),
                     node.args[2].value if len(node.args) == 3 else False,
                 )
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name in ("IsAreaType", "IsSpecificArea", "IsOwnDeposit", "IsOwnArea"):
+            if not callable(context.area_identity_query):
+                raise UnknownCondition("Missing native area identity target authority")
+            value = (
+                (node.args[0].value if node.args else False)
+                if name in ("IsOwnDeposit", "IsOwnArea")
+                else number(node.args[0])
+            )
+            try:
+                result = context.area_identity_query(name, value)
+                if type(result) is not bool:
+                    raise ValueError("Missing native area identity boolean result")
+                return result
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
         if name == "IsOwnSpecificArea":
@@ -1759,6 +2476,8 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if identity not in set(range(123)) - {13, 53, 89}:
                 return False
             actor = context.actors.get(selector)
+            if actor is None and selector in context.null_actor_aliases:
+                return False  # eMo receives the proven null eII.b result.
             if actor is None or actor.fight_properties is None:
                 raise UnknownCondition("Missing native PV fight properties")
             return identity in actor.fight_properties
@@ -1771,17 +2490,40 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 raise UnknownCondition("Missing native caster bcM affiliation")
             if context.enemy_target_kind == "cell":
                 affiliations = context.enemy_cell_affiliations
+                if affiliations is None and callable(
+                    context.enemy_cell_affiliations_query
+                ):
+                    try:
+                        affiliations = context.enemy_cell_affiliations_query()
+                    except ValueError as error:
+                        raise UnknownCondition(str(error)) from error
                 if affiliations is None:
                     raise UnknownCondition(
                         "Missing native cell occupant/obstacle affiliations"
                     )
+                if not isinstance(affiliations, tuple) or any(
+                    type(team) is not int or not -128 <= team <= 127
+                    for team in affiliations
+                ):
+                    raise UnknownCondition("Invalid native enemy cell affiliations")
                 return any(team != source.fight_affiliation for team in affiliations)
+            if context.enemy_target_kind == "other":
+                return False  # eNM's proven non-eHg/non-aBn target returns -2.
             if context.enemy_target_kind != "actor":
                 raise UnknownCondition("Unknown native enemy target kind")
             target = context.actors.get("target")
             if target is None or type(target.fight_affiliation) is not int:
                 raise UnknownCondition("Missing native target bcM affiliation")
             return source.fight_affiliation != target.fight_affiliation
+        if name in ("IsDead", "IsInPlay"):
+            from .combat_condition_life import life_predicate
+
+            selector = (
+                "target"
+                if node.args and node.args[0].value.lower() == "target"
+                else "caster"
+            )
+            return life_predicate(context, name, selector)
         if name == "IsOffPlay":
             selector = (
                 "target"
@@ -1802,6 +2544,21 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if type(value) is not bool:
                 raise UnknownCondition("Invalid native condition LOS result")
             return value
+        if name == "IsInDiagonal":
+            if type(context.is_in_diagonal) is not bool:
+                raise UnknownCondition("Missing native caster/target diagonal")
+            return context.is_in_diagonal
+        if name == "IsOnBorderCell":
+            if not callable(context.border_cell_query):
+                raise UnknownCondition("Missing native QI border-cell authority")
+            selector = "target" if node.args[0].value.lower() == "target" else "caster"
+            try:
+                value = context.border_cell_query(selector)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(value) is not int or value not in (-1, 0):
+                raise UnknownCondition("Invalid native eOr border-cell result")
+            return value == 0
         if name == "IsInAlignment":
             if context.is_in_alignment is None:
                 raise UnknownCondition("Missing native caster/target alignment")
@@ -1818,13 +2575,33 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     if native is not None:
                         breeds.add(native)
             actor = context.actors.get(selector)
-            if actor is None or actor.breed_id is None:
+            if actor is None:
+                # eNs.a uses eII.a (eGj), then returns -1 for a null selection.
+                if selector in context.null_actor_aliases or (
+                    selector == "target" and context.effect_target_absent is True
+                ):
+                    return False
+                raise UnknownCondition(f"Missing native breed: {selector}")
+            if actor.is_native_fighter is False:
+                return False
+            if actor.breed_id is None:
                 raise UnknownCondition(f"Missing native breed: {selector}")
             return actor.breed_id in breeds
         if name == "IsBreedId":
             selector = node.args[0].value.lower()
             actor = context.actors.get(selector)
-            if actor is None or actor.breed_id is None:
+            if actor is None:
+                # eNu.a returns -1 when eII.a resolves an actual null eHg.
+                if selector in context.null_actor_aliases or (
+                    selector == "target" and context.effect_target_absent is True
+                ):
+                    return False
+                raise UnknownCondition(f"Missing native breed: {selector}")
+            # Registered Qq/faV has no eGH breed descriptor. Native eNu's
+            # dsG()==null branch returns -1; no breed0 is synthesized.
+            if actor.is_native_fighter is False:
+                return False
+            if actor.breed_id is None:
                 raise UnknownCondition(f"Missing native breed: {selector}")
             return actor.breed_id in {
                 ((arg.value + 32768) % 65536) - 32768 for arg in node.args[1:]
@@ -1848,6 +2625,10 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 else "caster"
             )
             actor = context.actors.get(selector)
+            if actor is None and selector in context.null_actor_aliases:
+                return False  # eNw typed eGj null -> -1.
+            if actor is not None and actor.is_native_fighter is False:
+                return False  # eII.a rejects faV eHg as non-eGj.
             if actor is None or type(actor.is_carrying) is not bool:
                 raise UnknownCondition(
                     f"Missing authoritative carrying status: {selector}"
@@ -1856,7 +2637,9 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         if name == "IsCarried":
             selector = node.args[0].value.lower() if node.args else "caster"
             actor = context.actors.get(selector)
-            if actor is None or actor.is_carried is None:
+            if actor is None and selector in context.null_actor_aliases:
+                return False  # eNv null is not eHH.
+            if actor is None or type(actor.is_carried) is not bool:
                 raise UnknownCondition(
                     f"Missing authoritative carry status: {selector}"
                 )
@@ -1874,10 +2657,25 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         else:
             selector = node.args[1].value.lower() if len(node.args) == 2 else "caster"
         actor = context.actors.get(selector)
-        if name == "HasStateFromUser" and callable(context.state_actor_query):
-            actor = context.state_actor_query(selector)
+        if callable(context.state_actor_query) and selector in (
+            "caster",
+            "target",
+            "castercontroller",
+            "triggeringcaster",
+            "triggeringtarget",
+        ):
+            try:
+                actor = context.state_actor_query(selector)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
             if actor is None:
-                return False  # eMG: proven null selected eHg produces -1.
+                return False  # eII resolved null/non-eHg PV; eME/eMF/eMG return false.
+        if actor is None and selector in context.null_actor_aliases:
+            if context.state_null_fallback_absent is not True:
+                raise UnknownCondition(
+                    "Missing native ePy state-null fallback authority"
+                )
+            return False  # eME/eMF/eMG no selected eHg and no ePy fallback.
         if actor is None:
             raise UnknownCondition(f"Missing authoritative actor: {selector}")
         if name in ("HasState", "HasStateFromLevel"):

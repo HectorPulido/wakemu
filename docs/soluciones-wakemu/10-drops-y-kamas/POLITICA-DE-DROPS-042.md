@@ -2,7 +2,7 @@
 
 ## Fuentes y alcance
 
-Los objetos, probabilidades, cantidades, filas, valores `roll_count` y condiciones salen de `server/protocol/monster-encyclopedia.json.gz`, exportado de las tablas nativas instaladas. El planificador no consulta drops Dofus ni convierte referencias entre juegos. Para `Sombrero de jalató`, el catálogo Wakfu mantiene cinco filas independientes: referencias de monstruo1,2,3,39,41; probabilidad base exacta `0.008` (0.8%); `roll_count=-1`; cantidad1; sin condición; `native_csE=-1`; `native_csF=0`.
+Los objetos, probabilidades, cantidades, filas, valores `roll_count` y condiciones salen de `server/protocol/monster-encyclopedia.json`, exportado de las tablas nativas instaladas. El planificador no consulta drops Dofus ni convierte referencias entre juegos. Para `Sombrero de jalató`, el catálogo Wakfu mantiene cinco filas independientes: referencias de monstruo1,2,3,39,41; probabilidad base exacta `0.008` (0.8%); `roll_count=-1`; cantidad1; sin condición; `native_csE=-1`; `native_csF=0`.
 
 La mecánica numérica toma como referencia de implementación el código local de Starloco leído en modo solo lectura: `Fight.java` prepara filas por enemigo no invocado, calcula el multiplicador por jugador y compara el azar con `drop.getLocalPercent() * max(1, getPros()/100) * conquista * desafío * estrellas * rateDrop * bonusBrecha`. `Fight.java` deja la probabilidad sin limitar antes de compararla con `Math.random()*100`, por lo que un umbral mayor de100% garantiza el éxito. La comparación usa `<`, no `<=`. No se importan objetos ni tasas de la tabla Dofus.
 

@@ -1,4 +1,5 @@
 """Persisted central fresh-cast retention registry, including native groups."""
+from wakfu_server import native_catalog as protocol_catalog
 from .combat_state_managers import state_manager, state_managers
 from dataclasses import asdict
 from contextlib import contextmanager
@@ -11,7 +12,7 @@ from .combat_native_container import (
 from functools import lru_cache
 import json
 import struct
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 from .combat_parameters import _float32
 from .combat_running_context import running_context_payload
 from .combat_effects import _integer, _varint
@@ -33,9 +34,15 @@ from .combat_subscription_runners import (
 )
 
 
+def _set_current_families():
+    from .combat_set_current_characteristic import FAMILIES
+
+    return FAMILIES
+
+
 @lru_cache(maxsize=1)
 def native_retained_metadata():
-    return json.loads((DATA_ROOT / "native-retained-effect-metadata.json").read_text())
+    return protocol_catalog.load(DATA_ROOT / "native-retained-effect-metadata.json")
 
 
 def _blob(field, data):
@@ -394,6 +401,43 @@ class NativeRetainedRuntime:
             raise ValueError("Applied native stat effect already registered")
         self._record_stat(uid, effect, invocation)
 
+    def register_applied_target_aura(self, effect, invocation, uid):
+        """Register the actual eYJ Qf owner before Qs creation callbacks."""
+        row = getattr(self.fight, "native_owned_area_effects", {}).get(uid)
+        definition = self.definition(effect, invocation)
+        if (
+            effect.get("effect_class") != 338
+            or row is None
+            or row.get("uid") != uid
+            or row.get("effect_class") != 338
+            or row.get("target_id") != invocation.target_id
+            or type(definition.get("owner_on_caster")) is not bool
+            or invocation.target_id is None
+        ):
+            raise ValueError("Missing exact owned native eYJ application")
+        if uid in self.fight.native_retained_records:
+            raise ValueError("Applied native target aura already registered")
+        container, _ = self.container(invocation)
+        row["native_manager_id"] = (
+            invocation.caster_id
+            if definition["owner_on_caster"]
+            else invocation.target_id
+        )
+        row["native_manager_source"] = "eYJ.PK.owner_on_caster"
+        self.record(
+            RetainedEffect(
+                uid,
+                row["target_id"],
+                338,
+                invocation.reference,
+                owner_uid=row.get("state_uid"),
+                manager_id=row["native_manager_id"],
+                definition_type=definition["definition_type"],
+                definition_dispellable=definition["definition_dispellable"],
+                **container
+            )
+        )
+
     def _record_carrier(self, uid, invocation):
         state = next(
             e
@@ -483,31 +527,59 @@ class NativeRetainedRuntime:
                     effect["effect_class"]
                     in (
                         20,
+                        28,
                         31,
                         41,
+                        47,
                         48,
                         55,
                         56,
                         57,
                         191,
                         192,
+                        196,
+                        808,
                         303,
+                        308,
                         321,
+                        325,
+                        332,
+                        314,
                         315,
+                        316,
+                        338,
+                        339,
                         402,
                         421,
+                        426,
                         430,
+                        446,
+                        320,
+                        309,
                         447,
+                        451,
                         649,
+                        667,
+                        666,
+                        668,
                         802,
                         877,
+                        923,  # eXm always cancels itself; synthetic eWf30 is non-retained.
                         986,
                         1001,
+                        1000,
+                        933,
+                        1008,
                         1013,
+                        1038,
+                        1030,
                         1065,
+                        1066,
+                        1099,
                         1201,
                         1202,
                     )
+                    or effect["effect_class"] in _set_current_families()
                     or str(effect["effect_class"]) in self.stat_handler.registry
                 ):
                     raise ValueError(
@@ -547,8 +619,8 @@ class NativeRetainedRuntime:
                     self.record(
                         RetainedEffect(
                             uid,
-                            None,
-                            315,
+                            row["target_id"],
+                            row["effect_class"],
                             invocation.reference,
                             owner_uid=row.get("state_uid"),
                             manager_id=row["caster_id"],
@@ -567,6 +639,22 @@ class NativeRetainedRuntime:
         execute.native_runner_value_verified = getattr(
             handler, "native_runner_value_verified", False
         )
+        eligibility = getattr(handler, "native_eligibility", None)
+        if callable(eligibility):
+            execute.native_eligibility = eligibility
+        prepare = getattr(handler, "prepare", None)
+        if callable(prepare):
+            # Runtime preparation can address the registered wrapper after
+            # handler installation. Preserve the original runner owner.
+            execute.prepare = prepare
+        prepare_activation = getattr(handler, "prepare_activation", None)
+        if callable(prepare_activation):
+            execute.prepare_activation = prepare_activation
+        cancel = getattr(handler, "cancel_prepared", None)
+        if callable(cancel):
+            # Dispatcher rejection happens before execute() is called. Keep
+            # cleanup attached to the registered wrapper, not only its owner.
+            execute.cancel_prepared = cancel
         return execute
 
     def is_subscription(self, effect, invocation):
@@ -709,7 +797,7 @@ class NativeRetainedRuntime:
         owner = self.fight.actors.get(invocation.caster_id)
         if owner is None or owner.effective_level < level:
             return None
-        from .spell_audit import catalog as spell_catalog
+        from wakfu_server.spell_audit import catalog as spell_catalog
         from .combat_native_spell_casting import catalog as casting_catalog
 
         tree = spell_catalog()
@@ -826,58 +914,69 @@ class NativeRetainedRuntime:
         event_activation=False,
         native_override=None
     ):
-        from .combat_state_level_group import child_level
+        from .combat_state_level_group import runtime_child_level
         from .combat_level_group import level_group_override
 
         override = -1
-        if effect["effect_class"] == 1076:
+        if effect["effect_class"] in (1076, 1080):
             if type(native_override) is not int:
                 raise ValueError("Native eYx child context requires calculated value")
             override = native_override
         elif effect["effect_class"] == 844:
-            override = child_level(
+            override = runtime_child_level(
                 effect,
                 values,
                 invocation,
-                self.fight.actors,
+                self.fight,
                 return_native_override=True,
             )
         elif effect["effect_class"] == 999:
             parameters = values["parameters"]
             caster, target = invocation.caster_id, invocation.target_id
             rebind = ((parameters[5] + 128) % 256) - 128
-            if rebind == 1:
+            if rebind == 1 and target is not None:
                 caster = target
-            elif rebind == 2:
+            elif rebind == 2 and target is not None:
                 caster, target = target, caster
-            actor = self.fight.actors.get(caster if parameters[6] == 1 else target)
-            if actor is None:
-                raise ValueError("Native eYm requires authoritative level actor")
-            override = level_group_override(
-                effect,
-                invocation.level,
-                actor.effective_level,
-                return_native_override=True,
-            )
+            identity = caster if parameters[6] == 1 else target
+            from .combat_group_pv import resolve_group_level_pv
+
+            actor = resolve_group_level_pv(self.fight, identity)
+            if actor is not None and not getattr(actor, "native_is_area", False):
+                override = level_group_override(
+                    effect,
+                    invocation.level,
+                    actor.effective_level,
+                    return_native_override=True,
+                )
+            # eYm.d returns the parent-produced context unchanged for null
+            # or non-eGj PV. Preserve SP=-1 and the common flag16 transmission.
+
         elif effect["effect_class"] == 1047:
             from .combat_hp_level_group import runtime_group_level
+
+            from .combat_group_pv import scoped_group_actors, group_pa
 
             override = runtime_group_level(
                 effect,
                 values,
                 invocation,
-                self.fight.actors,
+                scoped_group_actors(self.fight),
                 return_native_override=True,
+                resolve_pa=lambda identity, stat: group_pa(self.fight, identity, stat),
             )
         elif effect["effect_class"] == 913:
             from .combat_characteristic_level_group import runtime_group_level
 
+            from .combat_group_pv import scoped_group_actors, group_pa
+
             override = runtime_group_level(
                 effect,
                 values,
                 invocation,
-                self.fight.actors,
+                scoped_group_actors(self.fight),
                 return_native_override=True,
+                resolve_pa=lambda identity, stat: group_pa(self.fight, identity, stat),
             )
         elif effect["effect_class"] in (910, 912):
             from .combat_cost_level_group import runtime_group_level
@@ -900,7 +999,7 @@ class NativeRetainedRuntime:
                 self.fight.actors,
                 return_native_override=True,
             )
-        if effect["effect_class"] != 1076:
+        if effect["effect_class"] not in (1076, 1080):
             override = self.transmit_child_override(effect, invocation, override)
         # eYg.d(nonrelative) native eVt: flags false, SP default-1,
         # mb(false), count0, origin kindiu0. fLP is not serialized here.
@@ -909,11 +1008,14 @@ class NativeRetainedRuntime:
             for k, v in (
                 (
                     1,
-                    int(event_activation and effect["effect_class"] not in (345, 1076)),
+                    int(
+                        event_activation
+                        and effect["effect_class"] not in (345, 349, 1076, 1080)
+                    ),
                 ),
                 (2, 0),
                 (4, override),
-                (5, int(effect["effect_class"] == 1076)),
+                (5, int(effect["effect_class"] in (1076, 1080))),
                 (6, 0),
                 (7, 0),
                 (8, 0),
@@ -986,7 +1088,12 @@ class NativeRetainedRuntime:
             else:
                 replay_container = {"present": False}
         context = self.timing.stat(self.fight, self.plan, effect, invocation)
-        uid = self.fight.allocate_effect_uid()
+        uid = (
+            invocation.native_running_uid
+            if effect["effect_class"] == 1080
+            and invocation.native_running_uid is not None
+            else self.fight.allocate_effect_uid()
+        )
         payload = group_payload(
             uid=uid,
             base_uid=invocation.base_uid,
@@ -1042,7 +1149,11 @@ class NativeRetainedRuntime:
             native_retained_container=replay_container,
             payload=payload.hex(),
             timer=None if context.timer is None else dict(vars(context.timer)),
-            invocation=dict(vars(invocation), native_value_scope=None),
+            invocation=dict(
+                vars(invocation),
+                native_value_scope=None,
+                native_cast_boundary_context=None,
+            ),
             native_subscription_masks=effect["target_masks"],
             native_selector=effect["native_target_selector"],
             native_effect_flags=list(effect["native_effect_flags"]),

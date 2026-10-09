@@ -203,7 +203,8 @@ class ContextStore:
                 checksum, total = hashlib.sha256(), 0
                 with tempfile.NamedTemporaryFile(dir=self.root, delete=False) as target:
                     temporary = Path(target.name)
-                    with Path(source).open("rb") as stream:
+                    opener = source if hasattr(source, "open") else Path(source)
+                    with opener.open("rb") as stream:
                         for block in iter(lambda: stream.read(1024 * 1024), b""):
                             checksum.update(block)
                             total += len(block)
@@ -255,13 +256,18 @@ class ContextStore:
         if identity != ref["identity"]:
             raise ValueError("Sealed catalogue snapshot changed")
 
+    @staticmethod
+    def _snapshot_archive_index(refs):
+        # Capture every distinct archive identity once before publication.
+        # The immutable index is derived metadata, never a replacement for the
+        # complete catalogue or its per-blob references.
+        return tuple(
+            dict.fromkeys((ref["path"], ref["identity"]) for ref in refs.values())
+        )
+
     def _check_snapshot_archives(self, snapshot):
-        checked = set()
-        for ref in snapshot["blobs"].values():
-            key = ref["path"], ref["identity"]
-            if key not in checked:
-                self._check_frozen_ref(ref)
-                checked.add(key)
+        for path, identity in snapshot["archives"]:
+            self._check_frozen_ref(dict(path=path, identity=identity))
 
     def _capture_manifest(self, manifest_digest):
         manifest_raw = self.read(manifest_digest)
@@ -396,7 +402,11 @@ class ContextStore:
             else:
                 pending_refs = {}
             result = dict(complete=True, missing=[], entries=len(manifest["entries"]))
-            snapshot = dict(blobs=refs, manifest=manifest)
+            snapshot = dict(
+                blobs=refs,
+                manifest=manifest,
+                archives=self._snapshot_archive_index(refs),
+            )
             # Recheck every reused/new archive just before publishing the
             # manifest, once per archive even when many blobs share its delta.
             self._check_snapshot_archives(snapshot)

@@ -4,12 +4,13 @@ This resolves data, not an execution transaction. The caller validates proximity
 against its authoritative interaction/path state and commits the destination.
 Unsupported criteria, item/kama costs and special instances remain explicit.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 import struct
 from pathlib import Path
 
-_CATALOG = json.loads((DATA_ROOT / "native-generic-teleporters.json").read_text())
+_CATALOG = protocol_catalog.load(DATA_ROOT / "native-generic-teleporters.json")
 _SOURCES = {(row["map_id"], row["id"]): row for row in _CATALOG}
 
 

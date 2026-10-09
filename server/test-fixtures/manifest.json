@@ -1,0 +1,34 @@
+{
+  "fixtures": [
+    {
+      "source": ".runtime/combat-review-20261007/kill28/probe.json",
+      "path": "combat/kill-oracle.json",
+      "sha256": "68755bc690bbb639a38aa1572aa009f883f5737bfb85c755e0212e0f7b4a6fee"
+    },
+    {
+      "source": ".runtime/combat-review-20261007/ai-control/neighborhood.json",
+      "path": "combat/ai-control-neighborhood.json",
+      "sha256": "3b31446edb5e8e2928a88df6a7a73ba4d97a6a926d98c89a3c61c89c9fa824d4"
+    },
+    {
+      "source": ".runtime/combat-review-20261007/casting-predicates/probe.json",
+      "path": "combat/casting-predicates.json",
+      "sha256": "a4b4fa999448068d9ab2d51f81d11eb3c5f6a1b4d0e040b36ff600d2d15ce541"
+    },
+    {
+      "source": ".runtime/local/native-trigger-value1103-context.bin",
+      "path": "combat/trigger-value1103-context.bin",
+      "sha256": "b230800a1843aae512072434036f545701d990880776e68b4413bc0d41f95695"
+    },
+    {
+      "source": ".runtime/local/methodwakfu-dungeons/jalato-runtime-config-v1.json",
+      "path": "dungeons/jalato-runtime-config-v1.json",
+      "sha256": "da238adfce5242466482c3cb1f29c7f259768bff76f2bffa89967004ccdd797c"
+    },
+    {
+      "source": ".runtime/local/methodwakfu-dungeons/jalato-native-sections.json",
+      "path": "dungeons/jalato-native-sections.json",
+      "sha256": "a4da0831a0abf6c9a93cb41137c8d6f0dc65c17d183e5220b41b15dc4e554e85"
+    }
+  ]
+}

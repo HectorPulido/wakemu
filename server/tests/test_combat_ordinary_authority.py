@@ -20,7 +20,7 @@ class OrdinaryAuthorityTests(unittest.TestCase):
         self.f = f
         self.preview = deepcopy(f.fight)
         self.authority = OrdinaryActorAuthority(
-            characters={7: dict(id=7, breed=15)},
+            characters={7: dict(id=7, breed=15, level=1)},
             monsters={8: dict(id=8, ref=5525), -7: dict(id=-7, ref=5525)},
             decks={7: [6266]},
             excluded_decks={7: []},
@@ -44,11 +44,39 @@ class OrdinaryAuthorityTests(unittest.TestCase):
         self.assertEqual(npc.targeting["dpu_id"], -7)
         self.assertEqual(npc.targeting["dpr_id"], -7)
 
+    def test_cosmetic_state_requires_fresh_fight_constructor_attestation(self):
+        actor = self.preview.actors[7]
+        self.assertIsNone(self.authority(self.preview, actor).native_selected_cosmetics)
+        actor.native_cosmetic_state = {
+            "selected_values": {3: 0, 4: 0, 5: (), 6: 0, 7: 31},
+            "active_cosmetics": {},
+        }
+        metadata = self.authority(self.preview, actor)
+        self.assertEqual(metadata.native_selected_cosmetics[7], 31)
+        self.assertEqual(metadata.native_active_cosmetics, {})
+        actor.native_cosmetic_state["active_cosmetics"] = None
+        with self.assertRaisesRegex(ValueError, "constructor snapshot"):
+            self.authority(self.preview, actor)
+
     def test_selector_life_uses_owned_creation_and_departure_registration(self):
+        from wakfu_server.combat_native_death_status import (
+            initialize_fresh_bje_death_status,
+            apply_native_fighter_state_transition,
+        )
+
         actor = self.preview.actors[-7]
+        actor.native_world_properties = frozenset()
+        if getattr(actor, "native_death_status", None) is None:
+            initialize_fresh_bje_death_status(actor)
         actor.hp = 0
         self.assertIsNone(self.authority(self.preview, actor).targeting["baF"])
-        self.preview.events.append(dict(kind="death", actor_id=actor.id))
+        self.preview.events.extend(
+            [
+                dict(kind="damage", source_id=7, target_id=actor.id, hp=0, sequence=1),
+                dict(kind="death", actor_id=actor.id, sequence=2),
+            ]
+        )
+        apply_native_fighter_state_transition(actor, 2)
         self.assertFalse(self.authority(self.preview, actor).targeting["baF"])
 
     def test_active_fight_target_mask_uses_native_obstacle_id_not_affiliation(self):

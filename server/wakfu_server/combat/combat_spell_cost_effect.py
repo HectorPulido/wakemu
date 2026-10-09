@@ -1,4 +1,4 @@
-"""Native1065/eZe/eZf AP category modifiers (not effect41, which boosts MP).
+"""Native1065/eZe AP and1066/eZg range category modifiers through eZf.
 
 eZf.C reads amount/category parameters; eZe.c adds -amount to eHl.pOJ,
 eZe.d adds amount back. eHl uses Java int adjustOrPutValue, retaining zero.
@@ -15,8 +15,10 @@ def _int32(value):
     return (value + (1 << 31)) % (1 << 32) - (1 << 31)
 
 
-def modify(actor, category, delta):
-    snapshot = actor.spell_ap_cost_modifiers
+def modify(actor, category, delta, *, range_modifier=False):
+    snapshot = (
+        actor.spell_range_modifiers if range_modifier else actor.spell_ap_cost_modifiers
+    )
     if not isinstance(snapshot, dict) or any(
         type(k) is not int or type(v) is not int for k, v in snapshot.items()
     ):
@@ -36,7 +38,7 @@ class NativeSpellCostHandler:
         )
 
     def __call__(self, effect, values, invocation):
-        if effect["effect_class"] != 1065 or len(effect["parameters"]) != 4:
+        if effect["effect_class"] not in (1065, 1066) or len(effect["parameters"]) != 4:
             raise ValueError("Unsupported native eZe definition")
         actor = self.fight.actors.get(invocation.target_id)
         if (
@@ -59,10 +61,15 @@ class NativeSpellCostHandler:
         category = parameter_value(effect["parameters"], 1, invocation.level)
         if category not in range(1, 19):
             return False  # eZf.fRS: invalid category cancels.
+        range_modifier = effect["effect_class"] == 1066
+        snapshot = (
+            actor.spell_range_modifiers
+            if range_modifier
+            else actor.spell_ap_cost_modifiers
+        )
         # Validate before UID allocation or mutation.
-        if not isinstance(actor.spell_ap_cost_modifiers, dict) or any(
-            type(k) is not int or type(v) is not int
-            for k, v in actor.spell_ap_cost_modifiers.items()
+        if not isinstance(snapshot, dict) or any(
+            type(k) is not int or type(v) is not int for k, v in snapshot.items()
         ):
             raise ValueError("Missing native eHl AP modifier snapshot")
         uid = self.allocate_uid()
@@ -80,19 +87,24 @@ class NativeSpellCostHandler:
         packet = owned_effect_application(
             self.fight.id,
             self.action_id,
-            effect_class=1065,
+            effect_class=effect["effect_class"],
             target_id=actor.id,
             uid=uid,
             running_effect_payload=payload,
         )
-        modify(actor, category, _int32(-amount))
+        modify(
+            actor,
+            category,
+            amount if range_modifier else _int32(-amount),
+            range_modifier=range_modifier,
+        )
         if context.retained:
             self.fight.owned_stat_effects[uid] = dict(
                 uid=uid,
                 target_id=actor.id,
                 caster_id=invocation.caster_id,
-                effect_class=1065,
-                family="eZe",
+                effect_class=effect["effect_class"],
+                family="eZg" if range_modifier else "eZe",
                 stat_id=None,
                 actual=amount,
                 category=category,
@@ -106,17 +118,22 @@ class NativeSpellCostHandler:
 
 def remove_spell_cost(handler, uid):
     entry = handler.fight.owned_stat_effects[uid]
-    if entry["family"] != "eZe":
+    if entry["family"] not in ("eZe", "eZg"):
         raise ValueError("Not an owned native AP modifier")
     actor = handler.fight.actors[entry["target_id"]]
     packet = running_effect_removal(
         handler.fight.id,
         handler.action_id,
-        effect_class=1065,
+        effect_class=entry["effect_class"],
         target_id=actor.id,
         uid=uid,
         running_effect_payload=bytes.fromhex(entry["payload"]),
     )
-    modify(actor, entry["category"], entry["actual"])
+    modify(
+        actor,
+        entry["category"],
+        _int32(-entry["actual"]) if entry["family"] == "eZg" else entry["actual"],
+        range_modifier=entry["family"] == "eZg",
+    )
     del handler.fight.owned_stat_effects[uid]
     handler.packets.append((13560, packet))

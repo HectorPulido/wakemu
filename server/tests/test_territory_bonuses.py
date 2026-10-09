@@ -1,10 +1,10 @@
-import gzip
 import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from wakfu_server import territory_bonuses, territory_cells
+from wakfu_server import native_catalog
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -24,27 +24,27 @@ class TerritoryBonusesTests(unittest.TestCase):
                 territory_bonuses.state_id(*args)
 
     def test_effect_rows_match_native_state_catalog(self):
-        source_path = ROOT / "server/protocol/combat-state-definitions.json.gz"
-        protector_path = ROOT / "server/protocol/monster-encyclopedia.json.gz"
+        source_path = ROOT / "server/protocol/combat-state-definitions.json"
+        protector_path = ROOT / "server/protocol/monster-encyclopedia.json"
         regions_path = ROOT / "server/protocol/ecology-regions.json"
         target_path = ROOT / "server/protocol/territory-protector-bonuses.json"
-        with gzip.open(source_path, "rt", encoding="utf-8") as stream:
+        with native_catalog.open(source_path, "rt", encoding="utf-8") as stream:
             native = json.load(stream)
-        exported = json.loads(target_path.read_text(encoding="utf-8"))
+        exported = json.loads(native_catalog.read_text(target_path, encoding="utf-8"))
 
         import hashlib
 
         self.assertEqual(
             exported["source_sha256"]["combat_state_definitions"],
-            hashlib.sha256(source_path.read_bytes()).hexdigest(),
+            hashlib.sha256(native_catalog.read_bytes(source_path)).hexdigest(),
         )
         self.assertEqual(
             exported["source_sha256"]["protector_catalog"],
-            hashlib.sha256(protector_path.read_bytes()).hexdigest(),
+            hashlib.sha256(native_catalog.read_bytes(protector_path)).hexdigest(),
         )
         self.assertEqual(
             exported["source_sha256"]["map_regions"],
-            hashlib.sha256(regions_path.read_bytes()).hexdigest(),
+            hashlib.sha256(native_catalog.read_bytes(regions_path)).hexdigest(),
         )
         for state_id in (1915, 1916, 1917):
             expected_state = native["states"][str(state_id)]
@@ -65,7 +65,7 @@ class TerritoryBonusesTests(unittest.TestCase):
                 )
             self.assertEqual(actual_state["effects"], expected)
 
-        with gzip.open(protector_path, "rt", encoding="utf-8") as stream:
+        with native_catalog.open(protector_path, "rt", encoding="utf-8") as stream:
             protector_catalog = json.load(stream)
         native_territory = next(
             row

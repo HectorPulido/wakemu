@@ -1,4 +1,5 @@
 """Verified local zaap routes; no guessed cross-map destinations."""
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 import struct
@@ -7,7 +8,7 @@ from protocol_codec import decode_body
 from wakfu_server import wire
 from wakfu_server.haven_bag import map_transition
 
-CATALOG = json.loads((DATA_ROOT / "world-maps.json").read_text())
+CATALOG = protocol_catalog.load(DATA_ROOT / "world-maps.json")
 
 
 def resolve(character, body):

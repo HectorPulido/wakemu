@@ -1,4 +1,5 @@
 import unittest
+from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_state_runner import NativeRunnerStateLevel
 from wakfu_server.combat_state_handler import NativeStateHandler
 from wakfu_server.combat_effect_dispatch import EffectInvocation
@@ -58,8 +59,16 @@ class NativeStateRunnerTests(unittest.TestCase):
                 if kwargs["channel"] == 2:
                     runner.mutate(4, 2, False)
 
+        caster = Actor(7, 0, (0, 0, 0), 20, 6, 3, 10, 10)
+        target = Actor(8, 1, (1, 0, 0), 20, 6, 3, 1, 10)
+        fight = Fight(
+            1,
+            [caster, target],
+            {caster.position, target.position},
+            {0: {caster.position}, 1: {target.position}},
+        )
         handler = Handler(
-            None,
+            fight,
             [],
             {},
             action_id=1,

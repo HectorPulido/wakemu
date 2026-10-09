@@ -35,6 +35,20 @@ class CommandPermissionTests(PostgresCase):
             [],
         )
 
+    def test_english_aliases_preserve_the_existing_authorization(self):
+        authorize_command(self.store, self.account, "!help")
+        authorize_command(self.store, self.account, "!position")
+        for text in ("!level 50", "!teleport 527 -245 -89 0", "!monster 1 1 1"):
+            with self.assertRaises(PermissionError):
+                authorize_command(self.store, self.account, text)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name=%s",
+                (json.dumps(["!level"]), PUBLIC_COMMANDS_SETTING),
+            )
+        authorize_command(self.store, self.account, "!level 50")
+        authorize_command(self.store, self.account, "!nivel 50")
+
     def test_admin_revocation_is_immediate_and_audited(self):
         set_admin(self.store, self.account, True, operator="test", reason="grant")
         authorize_command(self.store, self.account, "!item 2021 1")

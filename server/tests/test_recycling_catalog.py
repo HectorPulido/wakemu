@@ -2,6 +2,7 @@ import json
 import math
 import unittest
 from pathlib import Path
+from wakfu_server import native_catalog
 
 
 CATALOG = (
@@ -12,7 +13,7 @@ CATALOG = (
 class RecyclingCatalogTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.document = json.loads(CATALOG.read_text())
+        cls.document = json.loads(native_catalog.read_text(CATALOG))
         cls.items = cls.document["items"]
 
     def test_full_native_catalog_and_product_references(self):

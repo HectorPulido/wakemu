@@ -55,8 +55,10 @@ def apply(runtime, owner_id, body):
     next_action = runtime.action_id + 1
     packet = response(fight.id, next_action, identity, direction)
     # Everything validates before changing actor facing or action counters.
+    from .combat_carrying import set_registered_direction
+
+    set_registered_direction(fight, actor, direction)
     runtime.action_id = next_action
-    actor.direction = direction
     event = fight._event(
         "orientation", actor_id=identity, direction=direction, cost_ap=0, cost_mp=0
     )

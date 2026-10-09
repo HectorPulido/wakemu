@@ -6,6 +6,7 @@ GROUP_SUBSCRIPTION_FAMILIES = (
     330,
     341,
     345,
+    349,
     352,
     844,
     865,
@@ -17,6 +18,7 @@ GROUP_SUBSCRIPTION_FAMILIES = (
     1020,
     1047,
     1076,
+    1080,
     1103,
 )
 DEFERRED_RUNNERS = {400: "eXE", 421: "eXe", 1001: "eWZ", 1093: "eZJ"}

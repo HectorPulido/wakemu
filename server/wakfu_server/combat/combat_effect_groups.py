@@ -77,11 +77,12 @@ def execute_ordered_group(
         raise UnsupportedEffectGroup(
             "Relative class330 probability requires native candidate targeting and RNG"
         )
-    if mode.actor_rebind and target_id is None:
-        raise UnsupportedEffectGroup("Actor rebinding requires an authoritative target")
-    if mode.actor_rebind == 1:
+    # eYg.fPP logs a null bfs and keeps the original actors. Its target
+    # iterator subsequently returns without executing children; a cell branch
+    # still uses the original caster and selected cells.
+    if mode.actor_rebind == 1 and target_id is not None:
         caster_id = target_id
-    elif mode.actor_rebind == 2:
+    elif mode.actor_rebind == 2 and target_id is not None:
         if mode.on_target and caster_cell is None:
             raise UnsupportedEffectGroup(
                 "Actor swapping requires native caster position"
@@ -90,7 +91,7 @@ def execute_ordered_group(
         if mode.on_target:
             target_cell = caster_cell
     if mode.on_target and target_id is None:
-        raise UnsupportedEffectGroup("Target class330 requires a target actor")
+        return ()
     if not mode.on_target and cell_targets is None:
         raise UnsupportedEffectGroup("Cell class330 requires the native parent area")
     calls = []
@@ -128,6 +129,34 @@ def native_group_route(effect):
     Qe.a fresh targeting does not execute when both flags are false. A bound
     carrier uses Qe.d separately; this helper does not invent its actor scope.
     """
+    if effect.get("effect_class") == 1080:
+        return "cell"  # eYi inherits literal eWd.bbA=false, bbB=true.
+    if effect.get("effect_class") == 341:
+        # eXR inherits eYg's owner predicates with So(1): bbA is true for 1,
+        # bbB for 0, and both flags are true when the parameter is absent.
+        count = effect.get("parameter_count")
+        if type(count) is not int or count < 0:
+            raise UnsupportedEffectGroup("Missing native eXR parameter count")
+        if count < 2:
+            return "actors"
+        parameters = effect.get("parameters")
+        if not isinstance(parameters, (tuple, list)) or len(parameters) < 2:
+            raise UnsupportedEffectGroup("Missing raw native eXR So(1)")
+        raw = parameters[1]
+        if type(raw) not in (int, float):
+            raise UnsupportedEffectGroup("Invalid raw native eXR So(1)")
+        return "actors" if raw == 1 else "cell" if raw == 0 else "none"
+    if effect.get("effect_class") == 349:
+        count = effect.get("parameter_count")
+        if type(count) is not int or count < 0:
+            raise UnsupportedEffectGroup("Missing native eXR parameter count")
+        if count < 2:
+            return "actors"
+        parameters = effect.get("parameters")
+        if not isinstance(parameters, (tuple, list)) or len(parameters) < 3:
+            raise UnsupportedEffectGroup("Missing raw native eXR So(1)")
+        raw = parameters[2]
+        return "cell" if raw == 0 else "actors" if raw == 1 else "none"
     if effect.get("effect_class") in (345, 352):
         return "cell"  # eYA.bbA=false / bbB=true, independent of So(2).
     if effect.get("effect_class") not in NATIVE_CELL_GROUP_FAMILIES:

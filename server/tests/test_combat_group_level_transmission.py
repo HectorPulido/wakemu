@@ -58,6 +58,40 @@ class GroupLevelTransmissionTests(unittest.TestCase):
         )
         self.assertEqual(level, 0)
 
+    def test_retained_999_null_level_source_preserves_container_not_fake_actor_level(
+        self,
+    ):
+        from types import SimpleNamespace
+
+        runtime = object.__new__(NativeRetainedRuntime)
+        runtime.plan = {
+            "native_retained_container": {"present": True, "type": 11, "level": 23}
+        }
+        runtime.fight = SimpleNamespace(
+            actors={7: SimpleNamespace(effective_level=200)}
+        )
+        invocation = EffectInvocation(371570, 1, 7, None, (0, 0, 0))
+        effect = {
+            "effect_class": 999,
+            "native_effect_flags": [],
+            "parameters": [0, 0] * 8,
+        }
+        values = {"parameters": [0, 0, 0, 0, 0, 0, 0, 100]}
+        level, context = runtime.child_level_context(
+            effect, values, invocation, default_level=1
+        )
+        self.assertEqual(level, 23)
+        self.assertEqual(
+            _identity_fields(context, integer_fields=(4,))[4] & 0xFFFFFFFF, 0xFFFFFFFF
+        )
+        # eYg.fPP's null-target swap keeps the actual caster when requested.
+        effect["parameters"][14] = 100
+        values["parameters"][5:7] = [2, 1]
+        self.assertEqual(
+            runtime.child_level_context(effect, values, invocation, default_level=1)[0],
+            200,
+        )
+
     def test_runtime_does_not_guess_direct_spell_level_from_invocation(self):
         runtime = object.__new__(NativeRetainedRuntime)
         runtime.plan = {"native_retained_container": {"present": True, "type": 11}}

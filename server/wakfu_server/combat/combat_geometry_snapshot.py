@@ -39,7 +39,7 @@ def source_snapshot(fight):
             else _plain(value)
         )
         for key, value in fight.__dict__.items()
-        if key != "actors"
+        if key not in ("actors", "native_rail_movement_authority")
     }
     state["actors"] = {
         str(identity): _plain(actor.__dict__)

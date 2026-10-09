@@ -14,6 +14,7 @@ from wakfu_server.planting_runtime import Plantings, state_packet
 from wakfu_server.profession_store import ensure_learned
 from wakfu_server.resource_collect import complete, prepare, reserve
 from wakfu_server.wire import proto_field
+from wakfu_server import native_catalog
 
 
 def harvest_request(action_id, x, y):
@@ -92,7 +93,7 @@ class PlantGrowthGraphTests(PostgresCase):
             path = Path("/app/protocol/flora-variant-classification.json")
         return {
             row["resource_reference"]
-            for row in json.loads(path.read_text())["resources"]
+            for row in json.loads(native_catalog.read_text(path))["resources"]
             if row["optional_variant_policy"]
         }
 

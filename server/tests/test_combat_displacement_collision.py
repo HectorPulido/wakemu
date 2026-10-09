@@ -25,11 +25,11 @@ class CollisionEventTests(unittest.TestCase):
         sources = collision_event_sources(**self.args, collider_uid=21)
         self.assertEqual(
             [(s.channel, s.manager_actor_id, s.target_id) for s in sources],
-            [(30, 7, 8), (3, 8, 8), (30, 7, 9), (3, 9, 9)],
+            [(30, 7, 8), (3, 8, 8), (30, 7, 9), (3, 9, 8)],
         )
         self.assertTrue(
             all(s.event_ids == (204,) for s in sources)
-            and [s.uid for s in sources] == [20, 20, 21, 21]
+            and [s.uid for s in sources] == [20, 20, 21, 20]
         )
 
     def test_full_loss_precedes_replay_and_callbacks_are_required(self):
@@ -41,7 +41,7 @@ class CollisionEventTests(unittest.TestCase):
             ap_loss_executor=lambda a, b: events.append(("ap", b)),
             replay=lambda s, **kw: events.append(("event", s.manager_actor_id)),
             clone_authority=authority,
-            allocate_clone_uid=lambda: 21
+            allocate_clone_uid=lambda: 21,
         )
         self.assertEqual(
             events,
@@ -62,9 +62,25 @@ class CollisionEventTests(unittest.TestCase):
                 ap_loss_executor=None,
                 replay=lambda *a, **k: events.append(1),
                 clone_authority=authority,
-                allocate_clone_uid=lambda: 21
+                allocate_clone_uid=lambda: 21,
             )
         self.assertEqual(events, [])
+
+    def test_clone_is_created_after_original_pair_reactions(self):
+        trace = []
+        apply_collision(
+            **self.args,
+            loss_ap=False,
+            ap_loss_executor=None,
+            replay=lambda source, **kw: trace.append(
+                (source.uid, source.manager_actor_id, source.target_id)
+            ),
+            clone_authority=NativeCloneAuthority(lambda *a: True, lambda *a: None),
+            allocate_clone_uid=lambda: trace.append("clone") or 21,
+        )
+        self.assertEqual(
+            trace, [(20, 7, 8), (20, 8, 8), "clone", (21, 7, 9), (20, 9, 8)]
+        )
 
     def test_wall_collision_without_ap_still_replays(self):
         self.args["collider_id"] = None
@@ -74,7 +90,7 @@ class CollisionEventTests(unittest.TestCase):
             loss_ap=False,
             ap_loss_executor=None,
             replay=lambda s, **kw: sources.append(s),
-            clone_authority=NativeCloneAuthority(lambda *a: True, lambda *a: None)
+            clone_authority=NativeCloneAuthority(lambda *a: True, lambda *a: None),
         )
         self.assertEqual(len(sources), 2)
         self.assertEqual([s.channel for s in sources], [30, 3])

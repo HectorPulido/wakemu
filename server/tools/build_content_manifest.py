@@ -4,14 +4,13 @@ Run from any directory. Source declarations are copied verbatim from each
 catalog, not inferred from a filename or treated as independent verification.
 """
 import hashlib
-import gzip
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CATALOGS = {
     "monsters.json": "monsters",
-    "monster-encyclopedia.json.gz": "monsters",
+    "monster-encyclopedia.json": "monsters",
     "spells.json": "spells",
     "native-transports.json": None,
     "native-transport-objects.json": None,
@@ -45,7 +44,7 @@ def manifest():
     entries = []
     for filename, collection in sorted(CATALOGS.items()):
         raw = (ROOT / "protocol" / filename).read_bytes()
-        data = json.loads(gzip.decompress(raw) if filename.endswith(".gz") else raw)
+        data = json.loads(raw)
         entry = dict(
             path="protocol/" + filename,
             sha256=hashlib.sha256(raw).hexdigest(),

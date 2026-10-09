@@ -10,6 +10,7 @@ from wakfu_server.combat_resource_loss import (
     remove_resource_loss,
     resource_loss_event_ids,
 )
+from wakfu_server import native_catalog
 
 
 class ResourceLossTests(unittest.TestCase):
@@ -114,7 +115,7 @@ class ResourceLossTests(unittest.TestCase):
         )
 
     def test_callbacks_required_before_preview_mutation(self):
-        actor = SimpleNamespace(ap=6, effect_stats={2: 6})
+        actor = SimpleNamespace(id=2, ap=6, effect_stats={2: 6})
         fight = SimpleNamespace(actors={2: actor})
         plan = self.plan(random_fraction=lambda: 0)
         with self.assertRaisesRegex(ValueError, "5227"):
@@ -172,7 +173,7 @@ class ResourceLossTests(unittest.TestCase):
         path = (
             Path(__file__).resolve().parents[1] / "protocol" / "collision-effect.json"
         )
-        definition = json.loads(path.read_text())
+        definition = json.loads(native_catalog.read_text(path))
         self.assertEqual(
             (definition["reference"], definition["effect_class"]), (-13, 55)
         )

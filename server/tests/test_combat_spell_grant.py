@@ -52,9 +52,11 @@ class SpellGrantTests(unittest.TestCase):
         self.assertIn(
             bytes.fromhex("50e12970ffffffffffffffffff01980102a00100"), payload
         )
+        self.assertEqual(self.packets[0][1][12], 0)
+        self.assertEqual(self.packets[0][1][19:], payload)
         remove_spell_grant(self.handler, 101)
         self.assertFalse(granted_spells(self.fight, 7))
-        self.assertEqual([op for op, _ in self.packets], [13497, 13560])
+        self.assertEqual([op for op, _ in self.packets], [12613, 13560])
 
     def test_no_reference_counter_invented_for_native_registry(self):
         self.apply()

@@ -125,6 +125,73 @@ class NativeConditionsTests(unittest.TestCase):
                 criterion, ConditionContext({"caster": ConditionActor(actor_id=10)})
             )
 
+    def test_has_state_selectors_resolve_native_trigger_aliases(self):
+        resolved = []
+
+        def state_actor(selector):
+            resolved.append(selector)
+            if selector == "triggeringtarget":
+                return ConditionActor(
+                    is_native_fighter=True,
+                    state_ids=frozenset({8200}),
+                    state_levels=((8200, 2),),
+                )
+            return None
+
+        context = ConditionContext(
+            {"caster": ConditionActor(is_native_fighter=True)},
+            state_actor_query=state_actor,
+        )
+        self.assertTrue(
+            evaluate_condition('HasState(8200, "triggeringTarget")', context)
+        )
+        self.assertTrue(
+            evaluate_condition('HasState(8200, 2, "TRIGGERINGTARGET")', context)
+        )
+        self.assertTrue(
+            evaluate_condition(
+                'HasStateFromLevel(8200, 2, "triggeringTarget")', context
+            )
+        )
+        self.assertFalse(
+            evaluate_condition(
+                'HasStateFromLevel(8200, 3, "triggeringTarget")', context
+            )
+        )
+        self.assertEqual(
+            resolved,
+            ["triggeringtarget"] * 4,
+        )
+
+    def test_has_state_alias_null_is_false_but_missing_relation_stays_unknown(self):
+        criterion = 'not HasState(8200, "triggeringTarget")'
+        context = ConditionContext(
+            {"caster": ConditionActor(is_native_fighter=True)},
+            state_actor_query=lambda selector: None,
+        )
+        self.assertTrue(evaluate_condition(criterion, context))
+        with self.assertRaisesRegex(
+            UnknownCondition, "Missing native state relationship"
+        ):
+            evaluate_condition(
+                criterion,
+                ConditionContext(
+                    {"caster": ConditionActor(is_native_fighter=True)},
+                    state_actor_query=lambda selector: (_ for _ in ()).throw(
+                        ValueError("Missing native state relationship")
+                    ),
+                ),
+            )
+
+    def test_has_state_rejects_unproduced_native_event_target_alias(self):
+        with self.assertRaisesRegex(
+            UnknownCondition, "Unsupported HasState actor selector"
+        ):
+            evaluate_condition(
+                'HasState(8200, "eventTarget")',
+                ConditionContext({"caster": ConditionActor(state_ids=frozenset())}),
+            )
+
     def test_state_source_uses_first_matching_effect_not_any_source(self):
         def context(sources):
             return ConditionContext(
@@ -221,6 +288,30 @@ class NativeConditionsTests(unittest.TestCase):
         self.assertFalse(evaluate_condition('IsBreedId("target", 3795)', context))
         with self.assertRaises(UnknownCondition):
             evaluate_condition('IsBreedId(4559, "target")', context)
+
+    def test_breed_id_null_and_registered_area_are_known_false_not_missing_fighter(
+        self,
+    ):
+        for context in (
+            ConditionContext({}, null_actor_aliases=frozenset({"target"})),
+            ConditionContext({}, effect_target_absent=True),
+            ConditionContext(
+                {"target": ConditionActor(actor_id=999, is_native_fighter=False)}
+            ),
+        ):
+            with self.subTest(context=context):
+                self.assertFalse(
+                    evaluate_condition('IsBreedId("target", 7, 14)', context)
+                )
+                self.assertTrue(
+                    evaluate_condition('not IsBreedId("target", 7, 14)', context)
+                )
+        for context in (
+            ConditionContext({}),
+            ConditionContext({"target": ConditionActor(is_native_fighter=True)}),
+        ):
+            with self.assertRaises(UnknownCondition):
+                evaluate_condition('IsBreedId("target", 7, 14)', context)
 
     def test_alignment_requires_verified_native_positions_result(self):
         self.assertTrue(

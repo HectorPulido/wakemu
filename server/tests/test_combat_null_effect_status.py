@@ -43,7 +43,7 @@ class NullExecutionStatusTests(unittest.TestCase):
         payload = bytes.fromhex(entry["payload"])
         self.assertIn(self.timing + _integer(2, 7) + _integer(5, 1), payload)
         self.handler.remove(100)
-        self.assertEqual([op for op, _ in self.packets], [13497, 13560])
+        self.assertEqual([op for op, _ in self.packets], [12613, 13560])
         self.assertIn(payload, self.packets[1][1])
         self.assertEqual(self.actor.hp, 20)
 

@@ -4,12 +4,13 @@ Ownership comes from aMb.csd[aMk] -> bbo -> blj.du -> bPD.a. Native
 bPD uses reference7962 as the spell UID, and tL=-1 selects actor level.
 One attack per actor turn is this local AI's policy, not an official AI port.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import struct
 from copy import deepcopy
 from .combat_effects import direct_damage
 from .combat_actor import actual_actor_stats, actual_monster_actor_stats
 from .combat_los import static_visible
-from .monsters import native_abilities
+from wakfu_server.monsters import native_abilities
 
 
 def ability(monster):
@@ -136,7 +137,7 @@ def execute(
     # casts. The old direct-HP primitive skipped armor and lifecycle events.
     from .combat_server_spell import server_runtime
     from .combat_effect_dispatch import EffectInvocation
-    from .spells import default_deck
+    from wakfu_server.spells import default_deck
 
     preview = deepcopy(fight)
     npc, pc = preview.actors[actor.id], preview.actors[target.id]
@@ -237,9 +238,9 @@ from functools import lru_cache
 @lru_cache(maxsize=1)
 def npc_spell_catalog():
     import json
-    from .paths import DATA_ROOT
+    from wakfu_server.paths import DATA_ROOT
 
-    return json.loads((DATA_ROOT / "native-npc-spell-effect-trees.json").read_text())
+    return protocol_catalog.load(DATA_ROOT / "native-npc-spell-effect-trees.json")
 
 
 @lru_cache(maxsize=1)

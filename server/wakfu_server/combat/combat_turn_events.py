@@ -8,7 +8,7 @@ its native priority, masks and criteria. Each owned boundary is delivered once.
 from .combat_event_replay import NativeExternalEvent
 
 
-def _deliver(dispatcher, *, actor_id, phase, event_id):
+def _deliver(dispatcher, *, actor_id, phase, event_id, suppression_phase=None):
     fight = dispatcher.native_retention.fight
     actor = fight.current
     if fight.phase != "active" or actor is None or actor.id != actor_id:
@@ -21,10 +21,15 @@ def _deliver(dispatcher, *, actor_id, phase, event_id):
         raise ValueError("Owned turn boundary already delivered")
     authority = dispatcher.native_clone_authority
     outcomes = []
+    from .combat_turn_suppression import turn_phase_suppressed
+
+    suppressed = turn_phase_suppressed(actor, suppression_phase or phase)
     # Local/reversed subscribers belong to the actor at this boundary. Global
     # subscribers receive the same boundary in each participant's manager.
     recipients = [(actor_id, 6), (actor_id, 60)]
     recipients += [(identity, 61) for identity in tuple(fight.actors)]
+    if suppressed:
+        recipients = []  # fbX.A/z returns before native QP/QO phase delivery.
     for identity, channel in recipients:
         outcomes.extend(
             dispatcher.replay_event(
@@ -38,6 +43,7 @@ def _deliver(dispatcher, *, actor_id, phase, event_id):
         "turn_id": fight.turn_id,
         "event_id": event_id,
         "phase": phase,
+        "suppressed": suppressed,
     }
     fight.native_turn_event_deliveries = deliveries
     return tuple(outcomes)
@@ -49,3 +55,20 @@ def deliver_turn_start(dispatcher, *, actor_id):
 
 def deliver_turn_end(dispatcher, *, actor_id):
     return _deliver(dispatcher, actor_id=actor_id, phase="end", event_id=1002)
+
+
+def deliver_turn_regeneration(dispatcher, *, actor_id):
+    """Replay native1037 regeneration at the owned end boundary.
+
+    Installed343565 and6935 descriptions place natural regeneration at end
+    of turn;343570 subscribes1037 and its child343571 gains current WP.
+    Delivery after1002 and before expiry is explicit server ordering policy;
+    no original client producer or direct resource refill is asserted.
+    """
+    return _deliver(
+        dispatcher,
+        actor_id=actor_id,
+        phase="regeneration",
+        event_id=1037,
+        suppression_phase="end",
+    )

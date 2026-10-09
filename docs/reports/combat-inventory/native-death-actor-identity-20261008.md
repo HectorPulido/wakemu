@@ -1,0 +1,11 @@
+# Wrong actor death presentation: exact identity loss
+
+The death packet12727 carries an exact signed64 actor identity. The precision loss occurs later in the native Lua presentation bridge: `aTS.w(big)` obtains `big.Sn()`, boxes it as `java.lang.Long`, calls `LuaState.pushObjectValue`, and sets the global `killedId`. The actual bundled luajava0.1 implementation handles `Number` by calling `Number.doubleValue()` and `pushNumber(double)`.
+
+Consequently adjacent NPC IDs around2^58 collapse to the same Lua number. The dungeon sequence introduced in migration073 begins at288230376151711744; the previous actor formula `-(group_id + index)` therefore produces distinct server/wire actors with aliased Lua death identities. This matches one actor disappearing while a neighboring actor receives the death presentation. Private bytecode evidence: `/tmp/wakemu-native-aTS-death-source.txt` and `/tmp/cast-delivery-LuaState.txt`.
+
+Migration079 creates a separate durable NPC actor allocator in the exact range2^50 through2^51−1. Each sequence entry reserves128 identities, with a global collision check against existing claims. Dungeon encounter group and receipt keys remain unchanged; actor IDs are independently allocated. New reproduction, initial population, console spawning and planted monster growth share this allocator. Positive player and summon identities are unaffected.
+
+An available dungeon room can repair unsafe persisted actor IDs before its next reentry publication. The run lock, population advisory lock and group row lock protect the change; member claims are updated in place together with the roster JSON. Existing ecosystem timers cause explicit rejection rather than cascading deletion. Fighting and defeated groups retain their identities. Legacy world actors and timer/receipt references require the separate FK-preserving migration/repair tool; safe new allocation alone does not repair them.
+
+Acceptance requires a newly published repaired encounter: kill one of several adjacent NPCs and verify only that actor plays its death animation, then move another NPC and verify no appearance restoration occurs. Existing live fights must finish or be explicitly recovered through the coordinated operator workflow before rekeying; this implementation does not mutate active fight IDs.

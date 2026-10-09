@@ -30,6 +30,32 @@ class StateLedgerTests(unittest.TestCase):
         self.assertIsNone(saturated.applied)
         self.assertEqual(ledger.entries[0].uid, 102)
 
+    def test_replacement_callback_sees_old_carrier_and_preserves_nested_entries(self):
+        ledger = StateLedger(7)
+        old = ledger.apply(self.catalog, 3442, 20, caster_id=7, uid=101).applied
+        calls = []
+
+        def before_replace(entry):
+            self.assertIs(entry, old)
+            self.assertEqual(ledger.entries, (old,))
+            calls.append(entry.uid)
+            ledger.apply(
+                self.catalog,
+                3425,
+                20,
+                caster_id=7,
+                uid=103,
+                applying_effect_has_delay=True,
+            )
+            ledger.remove(entry.uid)
+
+        change = ledger.apply(
+            self.catalog, 3442, 20, caster_id=8, uid=102, before_replace=before_replace
+        )
+        self.assertEqual(calls, [101])
+        self.assertEqual([entry.uid for entry in ledger.entries], [103, 102])
+        self.assertEqual(change.removed, (old,))
+
     def test_instant_state_is_returned_for_execution_but_not_retained(self):
         ledger = StateLedger(7)
         change = ledger.apply(

@@ -3,6 +3,7 @@
 Equipment/passive healing modifiers and conditional effects are not evaluated.
 The caller must reject use during combat; the transaction checks current HP.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 import struct
@@ -12,7 +13,7 @@ from . import health, health_store, health_policy
 
 CATALOG = {
     item["reference"]: item
-    for item in json.loads((DATA_ROOT / "item-healing-rules.json").read_text())["items"]
+    for item in protocol_catalog.load(DATA_ROOT / "item-healing-rules.json")["items"]
 }
 
 

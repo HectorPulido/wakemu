@@ -76,7 +76,7 @@ No debe haber respawn automatico excepto por mecanicas de reproduccion y siembra
 
 ### 4. El porcentaje de plantación mostrado no es real
 
-**Confirmado:** `client/tools/java/OpenPlantingAgent.java` reemplaza `dev.am` por un retorno constante `1` y `ffY.C` por `100`. El lanzador activa la política abierta por defecto. En el servidor, completar una plantación válida usa resultado exitoso sin una tirada probabilística. El retorno `1` por sí solo no acredita la unidad del texto mostrado, pero sí que el cliente dejó de calcular su valor original.
+**Confirmado:** `client-tools/java/OpenPlantingAgent.java` reemplaza `dev.am` por un retorno constante `1` y `ffY.C` por `100`. El lanzador activa la política abierta por defecto. En el servidor, completar una plantación válida usa resultado exitoso sin una tirada probabilística. El retorno `1` por sí solo no acredita la unidad del texto mostrado, pero sí que el cliente dejó de calcular su valor original.
 
 **Posible solución:** distinguir modo de pruebas y modo normal; mostrar una probabilidad coherente con la decisión autoritativa del servidor. Suelo, clima y reglas territoriales deben alimentar el mismo cálculo. **Validación:** probabilidades 0%, 1% y 100% con RNG controlado y resultados estadísticos suficientes.
 

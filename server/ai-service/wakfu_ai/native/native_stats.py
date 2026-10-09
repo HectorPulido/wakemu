@@ -1,8 +1,5 @@
 """Native roster statistics using each actor's complete owned authority."""
 from copy import deepcopy
-import struct
-
-from .native_actor_source import registered_source
 
 
 class NativeStats:
@@ -44,7 +41,7 @@ class NativeStats:
             else getattr(fight, "native_summon_registrations", {})
         )
         if actor.id in registrations:
-            return self.summon_stats(actor, registrations[actor.id])
+            return self.summon_stats(actor, registrations[actor.id], fight)
         source = (
             self.characters.get(actor.id)
             if actor.controlled
@@ -57,25 +54,17 @@ class NativeStats:
             source, actor, self.fight_id, wp_current=stats[4], wp_maximum=maxima[4]
         )
 
-    def summon_stats(self, actor, registration):
-        from wakfu_server.combat_actor import monster_actor_stats
-        from wakfu_server.combat_snapshot_wire import snapshot_characteristics
+    def summon_stats(self, actor, registration, fight=None):
+        from wakfu_server.combat_summon_stats import registered_summon_stats
 
-        descriptor = registered_source(actor, registration)
-        source = actor.native_summon_source
-        descriptor["id"] = -actor.id
-        body = monster_actor_stats(
-            descriptor,
-            self.fight_id,
-            direction=getattr(actor, "direction", source["direction"]),
-            obstacle_id=actor.native_obstacle_id,
-            characteristics_payload=snapshot_characteristics(actor),
-        )
-        # eHj's final identity is signed and cjU's UID lookup accepts summons.
-        # Reuse the native body encoder, replacing only this known identity
-        # field to bypass its ordinary-NPC negative-ID input guard. No actor
-        # identity or combat state is modified.
-        tail = struct.calcsize(">qBqBh")
-        if struct.unpack_from(">q", body, len(body) - tail)[0] != -actor.id:
-            raise ValueError("Native statistics identity layout changed")
-        return body[:-tail] + struct.pack(">q", actor.id) + body[-tail + 8 :]
+        # Tactical movement refreshes every fighter. Use the same live QI
+        # registration serializer as normal casts, turns and reconnects;
+        # ordinary NPC encoding clears pW.Uh even when its UID is replaced.
+        if fight is None:
+            raise ValueError("Registered summon stats require current fight")
+        if (
+            getattr(fight, "native_summon_registrations", {}).get(actor.id)
+            != registration
+        ):
+            raise ValueError("Missing current registered summon authority")
+        return registered_summon_stats(actor, fight, fight.map_id)

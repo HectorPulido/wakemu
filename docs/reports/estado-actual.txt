@@ -50,7 +50,7 @@ Retiré los tres contenedores sueltos de pruebas y cerré los procesos anteriore
 Comandos: docker compose up -d --build; docker compose ps; docker compose logs -f world; docker compose restart world.
 Los eventos detallados siguen en .runtime/local/logs/game-server.jsonl.
 
-Actualización de organización: el arranque oficial ahora es docker compose up -d --build desde la raíz. Código dentro de server/, cliente en client/tools/, captura en sniffer/, documentación en docs/. Redis está activo. El cliente ya reconectó y se movió contra Compose; el combate después del cambio aún requiere comprobación gráfica.
+Actualización de organización: el arranque oficial ahora es docker compose up -d --build desde la raíz. Código dentro de server/, cliente en client-tools/, captura en sniffer/, documentación en docs/. Redis está activo. El cliente ya reconectó y se movió contra Compose; el combate después del cambio aún requiere comprobación gráfica.
 
 2026-10-03 — Equipo y características de combate
 El reporte del amuleto2021 destapó PA/PM/iniciativa fijos en el inicio del combate y un máximo de vida que ignoraba equipo al salir. Ahora el servidor calcula los bonos desde el equipo propio guardado. Exportamos efectos nativos de 12.254 objetos; solo se aplican operaciones verificadas y los casos no soportados quedan señalados.

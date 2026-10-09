@@ -48,8 +48,14 @@ class StaticMapSyncDispatchTests(unittest.TestCase):
         self.store = SimpleNamespace(current_session=lambda account, generation: True)
         self.namespace = {
             "time": self.clock,
+            "SimpleNamespace": SimpleNamespace,
             "STORE": self.store,
             "world_static": self.world_static,
+            "is_dungeon_run": lambda instance_id: instance_id == 3,
+            "owned_native_bootstrap": lambda character: (
+                (13974, b"context"),
+                (12344, b"owned-door-disabled"),
+            ),
             "send": lambda connection, service, opcode, body: self.sent.append(
                 (connection, service, opcode, body)
             ),
@@ -158,7 +164,7 @@ class StaticMapSyncDispatchTests(unittest.TestCase):
             and node.func.id == "sync_static_world"
         )
         keywords = {keyword.arg: keyword.value for keyword in sync_call.keywords}
-        self.assertIsInstance(keywords.get("force"), ast.Constant)
+        self.assertIsNone(keywords.get("force"))
         self.assertIsNone(keywords.get("validated"))
 
     def _make_sync(self):
@@ -173,6 +179,7 @@ def build_sync():
     combat_session = None
     connection = object()
     service = "world"
+    scene_sync = SimpleNamespace(arm=lambda *args: None)
     static_sync_pending = False
     static_sync_attempts = 0
     static_sync_due = 0.0
@@ -203,6 +210,7 @@ def build_world_sync():
     loaded = True
     fight = None
     combat_session = None
+    scene_sync = SimpleNamespace(arm=lambda *args: None)
     static_sync_pending = False
     static_sync_attempts = 0
     static_sync_due = 0.0
@@ -224,8 +232,45 @@ def build_world_sync():
         body.body[-1:-1] = nested
         return _run_factory(
             body,
-            {"time": self.clock, "record": lambda **row: self.records.append(row)},
+            {
+                "time": self.clock,
+                "SimpleNamespace": SimpleNamespace,
+                "record": lambda **row: self.records.append(row),
+            },
         )
+
+    def test_initial_login_arms_complete_snapshot_and_accepts_ready_without_movement(
+        self,
+    ):
+        session = next(
+            node
+            for node in ast.parse(SERVER_SOURCE.read_text()).body
+            if isinstance(node, ast.FunctionDef) and node.name == "session"
+        )
+        initial = next(
+            node
+            for node in ast.walk(session)
+            if isinstance(node, ast.If)
+            and "selected and (not loaded)" in ast.unparse(node.test)
+        )
+        requests = next(
+            value for value in ast.walk(initial.test) if isinstance(value, ast.Tuple)
+        )
+        self.assertIn(14689, [value.value for value in requests.elts])
+        mark_call = next(
+            node
+            for node in ast.walk(ast.Module(body=initial.body, type_ignores=[]))
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "mark_static_sync_pending"
+        )
+        self.assertEqual(mark_call.keywords, [])
+        mark, sync, character, state, sent = self._make_world_sync()
+        mark()
+        self.assertTrue(state()[0])
+        self.assertTrue(sync(force=True))
+        self.assertEqual(sent, [(7, 1134, 0)])
+        self.assertFalse(sync(force=True))
 
     def test_player_world_snapshot_waits_for_ready_or_one_bounded_fallback(self):
         mark, sync, character, state, sent = self._make_world_sync()
@@ -372,7 +417,11 @@ def build_world_sync():
                 self.assertTrue(
                     any(
                         isinstance(parent, ast.FunctionDef)
-                        and parent.name == "refresh_owned_world_after_spectating"
+                        and parent.name
+                        in (
+                            "refresh_owned_world_after_spectating",
+                            "send_loaded_world_snapshot",
+                        )
                         for parent in ast.walk(session)
                         if call in ast.walk(parent)
                     )
@@ -389,8 +438,8 @@ def build_world_sync():
                 for keyword in call.keywords
             )
         ]
-        self.assertEqual(len(validated_calls), 2)
-        self.assertEqual(len(sync_calls), 5)
+        self.assertEqual(len(validated_calls), 1)
+        self.assertEqual(len(sync_calls), 4)
 
     def test_post_load_replay_is_directed_and_contains_complete_map_domains(self):
         session = next(
@@ -411,18 +460,25 @@ def build_world_sync():
         self.assertIn("COMBAT_GROUPS.available", source)
         self.assertIn("HARVESTS.availability_snapshot", source)
         self.assertIn("EXTERNAL_FIGHT_MARKERS.world_snapshots", source)
-        self.assertIn('character.get("map_id") == 9', source)
+        self.assertIn("character.get('map_id') == 9", source)
 
         ready = next(
             node
             for node in ast.walk(session)
             if isinstance(node, ast.If)
-            and isinstance(node.test, ast.Compare)
-            and isinstance(node.test.left, ast.Name)
-            and node.test.left.id == "opcode"
             and any(
-                isinstance(item, ast.Constant) and item.value == 14689
-                for item in node.test.comparators
+                isinstance(test, ast.Compare)
+                and isinstance(test.left, ast.Name)
+                and test.left.id == "opcode"
+                and any(
+                    isinstance(item, ast.Constant) and item.value == 14689
+                    for item in test.comparators
+                )
+                for test in (
+                    node.test.values
+                    if isinstance(node.test, ast.BoolOp)
+                    else (node.test,)
+                )
             )
         )
         replay_calls = [
@@ -433,6 +489,31 @@ def build_world_sync():
             and call.func.id == "sync_loaded_world_snapshot"
         ]
         self.assertEqual(len(replay_calls), 1)
+
+        generic_ready = next(
+            node
+            for node in ast.walk(session)
+            if isinstance(node, ast.If)
+            and isinstance(node.test, ast.BoolOp)
+            and any(
+                isinstance(test, ast.Name) and test.id == "world_snapshot_pending"
+                for test in node.test.values
+            )
+            and any(
+                isinstance(test, ast.Compare)
+                and isinstance(test.left, ast.Name)
+                and test.left.id == "opcode"
+                for test in node.test.values
+            )
+        )
+        self.assertFalse(
+            any(
+                isinstance(item, ast.Constant) and item.value == 14689
+                for value in ast.walk(generic_ready.test)
+                if isinstance(value, (ast.Tuple, ast.List))
+                for item in ast.walk(value)
+            )
+        )
 
     def test_early_movement_and_partial_interaction_keep_map_retries(self):
         session = next(
@@ -475,7 +556,36 @@ def build_world_sync():
             and isinstance(call.func, ast.Name)
             and call.func.id == "sync_static_world"
         }
-        self.assertEqual(len(movement_calls), 2)
+        self.assertEqual(len(movement_calls), 1)
+        movement = next(
+            node
+            for node in branches
+            if tests_opcode(node.test, 13331)
+            and any(
+                isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Attribute)
+                and call.func.attr == "arm"
+                for call in ast.walk(node)
+            )
+        )
+        self.assertFalse(
+            any(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "sync_static_world"
+                for node in ast.walk(movement)
+            )
+        )
+        self.assertTrue(
+            any(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "scene_sync"
+                and node.func.attr == "arm"
+                for node in ast.walk(movement)
+            )
+        )
         for call in movement_calls.values():
             self.assertIn(
                 "force",
@@ -486,13 +596,16 @@ def build_world_sync():
                 {keyword.arg for keyword in call.keywords},
             )
 
-    def test_instance_maps_do_not_receive_static_baseline(self):
+    def test_private_dungeon_baseline_precedes_owned_door_override(self):
         self.character["instance_id"] = 3
         self.mark_pending()
         for tick in (0.75, 1.5, 2.25):
             self.clock.now = tick
             self.sync()
-        self.assertEqual(self.sent, [])
+        self.assertEqual(
+            [(opcode, body) for _, _, opcode, body in self.sent],
+            [(13984, b"map:1134"), (12344, b"owned-door-disabled")] * 3,
+        )
         self.assertEqual(self.state()[:2], (False, 3))
 
     def test_replaced_generation_cannot_send_static_state(self):
@@ -523,6 +636,8 @@ def build_idle():
     last_health_tick = 0
     last_session_renewal = time.monotonic()
     console_session = None
+    character = None
+    fight = None
     spectator_session = None
     spectator_fight_id = None
     spectator_terminal_pending = None
@@ -533,8 +648,12 @@ def build_idle():
         calls = []
         namespace = {
             "time": self.clock,
+            "SimpleNamespace": SimpleNamespace,
             "STOPPING": SimpleNamespace(is_set=lambda: False),
-            "STORE": SimpleNamespace(current_session=lambda account, generation: False),
+            "STORE": SimpleNamespace(
+                session_health=lambda account, generation, renew=False: {"valid": False}
+            ),
+            "record": lambda **row: None,
             "sync_static_world": lambda: calls.append("sent"),
         }
         idle_call = _run_factory(factory, namespace)

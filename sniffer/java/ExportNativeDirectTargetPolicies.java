@@ -1,4 +1,4 @@
-import java.nio.file.*;import java.util.*;import java.util.zip.GZIPOutputStream;
+import java.nio.file.*;import java.util.*;
 import java.io.*;import com.google.gson.Gson;
 /** Complete aNw population: Qe.a aZX and eVE.a cym, never infer false. */
 public class ExportNativeDirectTargetPolicies {
@@ -10,7 +10,7 @@ public class ExportNativeDirectTargetPolicies {
    if(!(effect instanceof eVE definition))throw new IllegalStateException("Unknown direct-target definition "+raw.aZE());
    rows.put(""+raw.aZE(),List.of(effect.awM(),definition.aZX(),definition.cym()));
   }});
-  try(Writer out=new OutputStreamWriter(new GZIPOutputStream(Files.newOutputStream(Path.of(args[0]))),java.nio.charset.StandardCharsets.UTF_8)){
+  try(Writer out=new OutputStreamWriter(Files.newOutputStream(Path.of(args[0])),java.nio.charset.StandardCharsets.UTF_8)){
    new Gson().toJson(Map.of("schema",1,"source_count",rows.size(),"fields",List.of("effect_class","recalculate_targets","caster_is_target"),"effects",rows),out);
   }
   System.out.println("Exported complete native direct-target policies="+rows.size());

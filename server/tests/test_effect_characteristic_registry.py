@@ -2,6 +2,7 @@ import hashlib
 import json
 from pathlib import Path
 import unittest
+from wakfu_server import native_catalog
 
 ROOT = Path(__file__).resolve().parents[2]
 CATALOG = ROOT / "server/protocol/effect-characteristic-registry.json"
@@ -10,14 +11,14 @@ CATALOG = ROOT / "server/protocol/effect-characteristic-registry.json"
 class NativeCharacteristicRegistryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.catalog = json.loads(CATALOG.read_text())
+        cls.catalog = json.loads(native_catalog.read_text(CATALOG))
         cls.effects = cls.catalog["effects"]
 
     def test_registry_matches_installed_client_and_owned_wire_opcodes(self):
         self.assertEqual(
             self.catalog["client_jar_sha256"],
             hashlib.sha256(
-                (ROOT / "client/lib/wakfu-client.jar").read_bytes()
+                native_catalog.read_bytes(ROOT / "client/lib/wakfu-client.jar")
             ).hexdigest(),
         )
         self.assertEqual(

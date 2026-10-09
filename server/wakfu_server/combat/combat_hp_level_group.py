@@ -54,14 +54,16 @@ def hp_group_override(
 
 
 def _value_group_override(
-    effect, level, *, current, maximum, return_native_override=False
+    effect, level, *, current, maximum, return_native_override=False, pa_absent=False
 ):
     raw = effect["parameters"]
     count = len(raw) // 2
     if count not in (9, 10, 11, 12):
         raise ValueError("Unknown native characteristic-group parameter variant")
     mode = parameter_value(raw, 10, level) if count >= 11 else 0
-    if mode == 1:
+    if pa_absent:
+        value = 0  # eYn.d skips the mode switch when PV.b(PC) returns null.
+    elif mode == 1:
         value = maximum
     elif mode == 2:
         value = _idiv(_i32(current * 100), maximum)
@@ -100,22 +102,51 @@ def _value_group_override(
 
 
 def runtime_group_level(
-    effect, values, invocation, actors, *, return_native_override=False
+    effect, values, invocation, actors, *, return_native_override=False, resolve_pa=None
 ):
     native_definition_timing(effect, invocation.level)
     mode = decode_group_mode(
         values["parameters"][:6], raw_target_parameter=effect["parameters"][4]
     )
     caster, target = invocation.caster_id, invocation.target_id
-    if mode.actor_rebind == 1:
+    if mode.actor_rebind == 1 and target is not None:
         caster = target
-    elif mode.actor_rebind == 2:
+    elif mode.actor_rebind == 2 and target is not None:
         caster, target = target, caster
     identity = caster if values["parameters"][7] == 1 else target
     if identity is None:
         return (
             -1 if return_native_override else invocation.level
         )  # Native eYs.d null actor preserves override sentinel.
+    if resolve_pa is not None:
+        hp, virtual = resolve_pa(identity, 1), resolve_pa(identity, 92)
+        if hp is None and virtual is None:
+            # eYs.d invokes eYn.d first, then preserves that context if both
+            # HP PA references are null. A non-null PV is not a null target.
+            from .combat_characteristic_level_group import (
+                runtime_group_level as inherited,
+            )
+
+            return inherited(
+                effect,
+                values,
+                invocation,
+                actors,
+                return_native_override=return_native_override,
+                resolve_pa=resolve_pa,
+                inherited=True,
+            )
+        hp = (0, 0) if hp is None else hp
+        virtual = (0, 0) if virtual is None else virtual
+        return hp_group_override(
+            effect,
+            invocation.level,
+            current_hp=hp[0],
+            maximum_hp=hp[1],
+            current_virtual_hp=virtual[0],
+            maximum_virtual_hp=virtual[1],
+            return_native_override=return_native_override,
+        )
     actor = actors.get(identity)
     if actor is None:
         raise ValueError("Missing native HP group actor")

@@ -37,6 +37,11 @@ class PersistentGroups:
         """
         if db.info.transaction_status != TransactionStatus.INTRANS:
             raise ValueError("Group registration requires an active transaction")
+        from .npc_actor_identity_repair import actor_aliases, aliased_members
+
+        members = aliased_members(
+            members, actor_aliases(db, (map_id, instance_id, group_id))
+        )
         validator = Groups()
         key = validator.register(map_id, instance_id, group_id, members)
         canonical = validator.groups[key]["members"]
@@ -85,7 +90,7 @@ class PersistentGroups:
             return {k: v for k, v in member.items() if k not in ("x", "y", "z")}
 
         if [identity(m) for m in row["members"]] != [identity(m) for m in members]:
-            from .monster_maturation import reconcile_seed
+            from wakfu_server.monster_maturation import reconcile_seed
 
             return reconcile_seed(self.store, key, members, row["members"])
         return key
@@ -120,7 +125,7 @@ class PersistentGroups:
     def snapshot(self, map_id=None, instance_id=None):
         if (map_id is None) != (instance_id is None):
             raise ValueError("Group snapshot requires map and instance together")
-        with self.lock, self.store.connection() as db:
+        with self.store.connection() as db:
             return [
                 dict(
                     key=(row["map_id"], row["instance_id"], row["group_id"]),
@@ -136,14 +141,22 @@ class PersistentGroups:
             ]
 
     def available(self, map_id, instance_id):
-        with self.lock, self.store.connection() as db:
+        with self.store.connection() as db:
             return [
                 dict(
                     key=(r["map_id"], r["instance_id"], r["group_id"]),
-                    members=self._members(r),
+                    members=deepcopy(self._members(r)),
                 )
                 for r in db.execute(
-                    "SELECT * FROM combat_groups WHERE map_id=%s AND instance_id=%s AND status='available' ORDER BY group_id",
+                    "SELECT g.* FROM combat_groups g WHERE g.map_id=%s "
+                    "AND g.instance_id=%s AND g.status='available' AND ("
+                    "NOT EXISTS (SELECT 1 FROM dungeon_room_runs r "
+                    "WHERE r.instance_id=g.instance_id) OR EXISTS ("
+                    "SELECT 1 FROM dungeon_room_runs r "
+                    "JOIN dungeon_room_spawn_receipts s ON s.instance_id=r.instance_id "
+                    "AND s.room_order=r.current_room WHERE r.instance_id=g.instance_id "
+                    "AND r.status='active' AND s.asset_map_id=g.map_id "
+                    "AND s.group_id=g.group_id)) ORDER BY g.group_id",
                     (map_id, instance_id),
                 )
             ]

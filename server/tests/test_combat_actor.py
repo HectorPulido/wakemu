@@ -48,6 +48,7 @@ class CombatActorTests(unittest.TestCase):
         actor = SimpleNamespace(
             id=7,
             controlled=True,
+            native_controlled_by_ai=False,
             hp=29,
             max_hp=60,
             ap=3,
@@ -61,6 +62,10 @@ class CombatActorTests(unittest.TestCase):
             direction=7,
         )
         b = actual_actor_stats(self.character(), actor, 123, wp_current=4, wp_maximum=6)
+        # The actual ordinary PC serializer must keep all pW fighter flags
+        # clear; summon serialization uses a separate registered source.
+        self.assertEqual(b[0], 3)
+        self.assertEqual(b[33:37], b"\x00\x00\x00\x00")
         # format3, XP8, position20, fight10, then characteristic count2.
         stats = [struct.unpack_from(">Biiii", b, 41 + i * 17) for i in range(4)]
         self.assertEqual(
@@ -69,6 +74,13 @@ class CombatActorTests(unittest.TestCase):
         )
         self.assertEqual(struct.unpack_from(">iih", b, 9), (-11, -8, -1))
         self.assertEqual(b[27], actor.direction)
+        control_offset = 39 + 2 + 17 * struct.unpack_from(">H", b, 39)[0]
+        self.assertEqual(b[control_offset], 0)
+        actor.native_controlled_by_ai = True
+        changed = actual_actor_stats(
+            self.character(), actor, 123, wp_current=4, wp_maximum=6
+        )
+        self.assertEqual(changed[control_offset], 1)
         with self.assertRaises(ValueError):
             actual_actor_stats(self.character(), actor, 123, wp_current=7, wp_maximum=6)
 
@@ -80,6 +92,7 @@ class CombatActorTests(unittest.TestCase):
         actor = SimpleNamespace(
             id=-7,
             controlled=False,
+            native_controlled_by_ai=True,
             hp=8,
             max_hp=20,
             ap=1,
@@ -92,6 +105,11 @@ class CombatActorTests(unittest.TestCase):
             position=(2, 0, 0),
         )
         b = actual_monster_actor_stats(monster, actor, 123, wp_current=0, wp_maximum=6)
+        # Ordinary NPCs also retain the eHj format without summon authority.
+        self.assertEqual(b[0], 2)
+        self.assertEqual(b[25:29], b"\x00\x00\x00\x00")
+        control_offset = 31 + 2 + 17 * struct.unpack_from(">H", b, 31)[0]
+        self.assertEqual(b[control_offset], 1)
         stats = [struct.unpack_from(">Biiii", b, 33 + i * 17) for i in range(4)]
         self.assertEqual(
             stats, [(1, 8, 0, 20, 0), (2, 1, 0, 3, 0), (3, 0, 0, 3, 0), (4, 0, 0, 6, 0)]

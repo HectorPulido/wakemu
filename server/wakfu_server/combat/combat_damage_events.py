@@ -8,7 +8,14 @@ FLAG_EVENT_IDS = {4: 2215, 22: 2216, 23: 2218, 24: 2217}
 
 
 def damage_event_ids(
-    effect, *, container_type, phase, blocked, localization, context_is_native_fight
+    effect,
+    *,
+    container_type,
+    phase,
+    blocked,
+    localization,
+    context_is_native_fight,
+    calculation_skipped=False,
 ):
     """Return exact events for an eXt source with an unchanged native element.
 
@@ -24,7 +31,11 @@ def damage_event_ids(
         raise ValueError("Audited native damage phase required")
     if container_type is not None and type(container_type) is not int:
         raise ValueError("Explicit native container type required")
-    if type(blocked) is not bool or type(context_is_native_fight) is not bool:
+    if (
+        type(blocked) is not bool
+        or type(context_is_native_fight) is not bool
+        or type(calculation_skipped) is not bool
+    ):
         raise ValueError("Native block and fight context required")
     if localization not in ("FRONT", "SIDE", "BACK"):
         raise ValueError("Actual native Sl.o localization required")
@@ -38,7 +49,7 @@ def damage_event_ids(
         events.add(element)
     events.update(event for flag, event in FLAG_EVENT_IDS.items() if flag in flags)
     # eXt.fOG: flag34 overrides; absent container or any kind except11/12 is indirect.
-    if 34 not in flags and container_type not in (11, 12):
+    if not calculation_skipped and 34 not in flags and container_type not in (11, 12):
         events.add(2268)
     if phase in (3, 4):
         if blocked and context_is_native_fight:

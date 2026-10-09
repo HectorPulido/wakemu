@@ -6,6 +6,7 @@ This module owns session creation and party authorization, not room composition,
 map movement, combat, or reward policy.
 """
 from __future__ import annotations
+from wakfu_server import native_catalog as protocol_catalog
 
 from dataclasses import dataclass
 import json
@@ -24,23 +25,22 @@ class EntryRoute:
     destination_id: int
     start_map_id: int
     criterion: str
+    native_template_id: int | None = None
 
 
 # These are catalog identities, not permission to enter. The native
 # `not IsNeoServer()` criterion and approach check still need a caller-owned,
 # source-verified callback before this API can be wired to the dispatcher.
-def _load_routes():
+def _load_routes(rows=None):
     """Load server-owned mappings; native criteria are never evaluated here."""
-    rows = json.loads(
-        (DATA_ROOT / "dungeon-entry-routes.json").read_text(encoding="utf8")
-    )
-    native_rows = json.loads(
-        (DATA_ROOT / "native-generic-teleporters.json").read_text(encoding="utf8")
-    )
+    if rows is None:
+        rows = protocol_catalog.load(DATA_ROOT / "dungeon-entry-routes.json")
+    native_rows = protocol_catalog.load(DATA_ROOT / "native-generic-teleporters.json")
     native_sources = {(row["map_id"], row["id"]): row for row in native_rows}
     if not isinstance(rows, list) or not rows:
         raise RuntimeError("Dungeon entry route configuration is empty")
     result = {}
+    entrances = set()
     required = {
         "key",
         "template_id",
@@ -51,8 +51,20 @@ def _load_routes():
         "start_map_id",
         "criterion",
     }
+    legacy_fields = {
+        "registration_policy",
+        "native_definition_id",
+        "native_template_id",
+        "native_localization_key",
+    }
     for raw in rows:
-        if not isinstance(raw, dict) or set(raw) != required:
+        legacy = (
+            isinstance(raw, dict)
+            and raw.get("registration_policy") == "local_legacy_map_registry"
+        )
+        if not isinstance(raw, dict) or set(raw) != (
+            required | legacy_fields if legacy else required
+        ):
             raise RuntimeError("Invalid dungeon entry route configuration")
         if (
             not isinstance(raw["key"], str)
@@ -65,6 +77,10 @@ def _load_routes():
                 raise RuntimeError("Invalid dungeon route numeric field")
         if raw["key"] in result:
             raise RuntimeError("Duplicate dungeon entry route key")
+        entrance = (raw["entry_map_id"], raw["entry_object_id"], raw["destination_id"])
+        if entrance in entrances:
+            raise RuntimeError("Duplicate dungeon native entrance")
+        entrances.add(entrance)
         source = native_sources.get((raw["entry_map_id"], raw["entry_object_id"]))
         destination = (
             None
@@ -81,17 +97,53 @@ def _load_routes():
         if (
             destination is None
             or destination["map_id"] != raw["start_map_id"]
-            or destination["cyZ"] != raw["template_id"]
+            or (not legacy and destination["cyZ"] != raw["template_id"])
             or destination["criterion"] != raw["criterion"]
         ):
             raise RuntimeError(
                 "Dungeon route no longer matches the native teleporter catalog"
             )
-        result[raw["key"]] = EntryRoute(**raw)
+        if legacy:
+            from .dungeon_legacy_catalog import validate_legacy_route
+
+            validate_legacy_route(raw, native_sources)
+        result[raw["key"]] = EntryRoute(
+            **{field: raw[field] for field in required},
+            native_template_id=raw["native_template_id"] if legacy else None,
+        )
     return result
 
 
 _ROUTES = _load_routes()
+
+
+def load_runtime_routes(store):
+    """Install one fully validated startup registry from the committed bundle.
+
+    An absent setting keeps catalog defaults. A present malformed registry never
+    falls back to defaults; startup must fail and expose the configuration error.
+    No registry is partially published while native validation runs.
+    """
+    global _ROUTES
+    with store.connection() as db:
+        row = db.execute(
+            "SELECT value FROM settings WHERE name='dungeon_runtime_routes'"
+        ).fetchone()
+    if row is None:
+        prepared = _load_routes()
+    else:
+        registry = row["value"]
+        if (
+            not isinstance(registry, dict)
+            or set(registry) != {"schema_version", "routes"}
+            or type(registry["schema_version"]) is not int
+            or registry["schema_version"] != 1
+            or not isinstance(registry["routes"], list)
+        ):
+            raise RuntimeError("Invalid installed dungeon route registry")
+        prepared = _load_routes(registry["routes"])
+    _ROUTES = prepared
+    return tuple(prepared.values())
 
 
 def _positive_int(value, field):
@@ -100,9 +152,10 @@ def _positive_int(value, field):
 
 
 def route(key):
-    if not isinstance(key, str) or key not in _ROUTES:
+    configured = _ROUTES
+    if not isinstance(key, str) or key not in configured:
         raise ValueError("Unknown configured dungeon route")
-    return _ROUTES[key]
+    return configured[key]
 
 
 def route_for_entry(entry_map_id, entry_object_id, destination_id):
@@ -117,6 +170,14 @@ def route_for_entry(entry_map_id, entry_object_id, destination_id):
     return None
 
 
+def entry_object_ids(map_id):
+    """Snapshot the installed registry's exterior entrance identities."""
+    configured = _ROUTES
+    return frozenset(
+        row.entry_object_id for row in configured.values() if row.entry_map_id == map_id
+    )
+
+
 def create_or_reuse(
     store,
     account_id,
@@ -126,6 +187,8 @@ def create_or_reuse(
     *,
     authorize_entry,
     transition_destination=None,
+    initialize_instance=None,
+    resolve_destination=None,
 ):
     """Create/reuse the party's durable run after a server-owned entry check.
 
@@ -144,6 +207,10 @@ def create_or_reuse(
     selected_route = route(route_key)
     if not callable(authorize_entry):
         raise ValueError("Authoritative dungeon entry check required")
+    if initialize_instance is not None and not callable(initialize_instance):
+        raise ValueError("Dungeon initializer must be a trusted callback")
+    if resolve_destination is not None and not callable(resolve_destination):
+        raise ValueError("Dungeon destination resolver must be a trusted callback")
 
     with store.connection() as db:
         initial = db.execute(
@@ -153,7 +220,37 @@ def create_or_reuse(
             (character_id,),
         ).fetchone()
         if initial is None:
-            raise ValueError("Character is not in a player party")
+            # Serialize the ungrouped-to-singleton transition with invitations
+            # and other entry attempts. Do not acquire another party's member
+            # locks after holding this individual lock: reject a raced join so
+            # the next request can follow the ordinary ascending lock order.
+            player_parties._lock_members(db, [character_id])
+            raced_party = db.execute(
+                "SELECT p.id,p.leader_id,p.revision FROM player_parties p "
+                "JOIN player_party_members m ON m.party_id=p.id WHERE m.character_id=%s",
+                (character_id,),
+            ).fetchone()
+            if raced_party is not None:
+                raced_members = db.execute(
+                    "SELECT character_id FROM player_party_members WHERE party_id=%s",
+                    (raced_party["id"],),
+                ).fetchall()
+                if raced_party["leader_id"] != character_id or raced_members != [
+                    {"character_id": character_id}
+                ]:
+                    raise ValueError("Party changed during dungeon entry")
+                initial = raced_party
+            else:
+                store.lock_character(db, account_id, generation, character_id)
+                initial = db.execute(
+                    "INSERT INTO player_parties(leader_id,dungeon_solo) VALUES(%s,true) "
+                    "RETURNING id,leader_id,revision",
+                    (character_id,),
+                ).fetchone()
+                db.execute(
+                    "INSERT INTO player_party_members(character_id,party_id) VALUES(%s,%s)",
+                    (character_id, initial["id"]),
+                )
         initial_members = db.execute(
             "SELECT character_id FROM player_party_members WHERE party_id=%s "
             "ORDER BY character_id",
@@ -231,6 +328,21 @@ def create_or_reuse(
                 raise ValueError(
                     "Party already owns a different active dungeon session"
                 )
+            if existing["context_route_key"] != selected_route.key:
+                raise ValueError(
+                    "Active dungeon session has no matching pinned context policy"
+                )
+            from wakfu_server.dungeon_context import policy_version
+
+            pinned_policy = policy_version(
+                db, selected_route, existing["context_policy_version"]
+            )
+            if transition_destination is not None and resolve_destination is not None:
+                transition_destination = resolve_destination(
+                    db,
+                    _session_result(existing, member_ids, reused=True),
+                    dict(transition_destination),
+                )
             if transition_destination is not None and _party_is_at_destination(
                 live_rows, existing, transition_destination
             ):
@@ -242,20 +354,53 @@ def create_or_reuse(
                     raise ValueError(
                         "Every party member must have a current selected session"
                     )
-                if any(
-                    prior["session_generation"] != live["generation"]
-                    for prior, live in zip(stored_members, live_rows)
-                ):
-                    raise ValueError(
-                        "Dungeon entry retry has a stale member generation"
+                generation_changed = False
+                for prior, live in zip(stored_members, live_rows):
+                    if prior["session_generation"] == live["generation"]:
+                        continue
+                    db.execute(
+                        "UPDATE dungeon_instance_members SET session_generation=%s "
+                        "WHERE instance_id=%s AND character_id=%s AND status='active'",
+                        (
+                            live["generation"],
+                            existing["instance_id"],
+                            live["id"],
+                        ),
                     )
+                    db.execute(
+                        "UPDATE dungeon_transition_outbox SET status='superseded',"
+                        "superseded_at=%s WHERE instance_id=%s AND character_id=%s "
+                        "AND status='pending' AND session_generation<>%s",
+                        (
+                            store.now(),
+                            existing["instance_id"],
+                            live["id"],
+                            live["generation"],
+                        ),
+                    )
+                    generation_changed = True
+                if generation_changed:
+                    existing = db.execute(
+                        "UPDATE dungeon_instances SET revision=revision+1 "
+                        "WHERE instance_id=%s RETURNING *",
+                        (existing["instance_id"],),
+                    ).fetchone()
                 result = _session_result(existing, member_ids, reused=True)
+                result["context_policy_version"] = pinned_policy.policy_version
                 result["transition"] = _destination_result(
                     existing, transition_destination, moved=(), already_entered=True
                 )
+                if initialize_instance is not None:
+                    initialize_instance(db, result)
                 return result
             _validate_entry_members(live_rows, selected_route, store.now())
-            if authorize_entry(dict(leader), selected_route) is not True:
+            if (
+                authorize_entry(
+                    store.character(leader["account_id"], leader["id"], db),
+                    selected_route,
+                )
+                is not True
+            ):
                 raise ValueError("Native dungeon entry is not authorized")
             prior_generations = {
                 row["character_id"]: row["session_generation"] for row in stored_members
@@ -269,6 +414,17 @@ def create_or_reuse(
                     "WHERE instance_id=%s AND character_id=%s AND status='active'",
                     (member["generation"], existing["instance_id"], member["id"]),
                 )
+                db.execute(
+                    "UPDATE dungeon_transition_outbox SET status='superseded',"
+                    "superseded_at=%s WHERE instance_id=%s AND character_id=%s "
+                    "AND status='pending' AND session_generation<>%s",
+                    (
+                        store.now(),
+                        existing["instance_id"],
+                        member["id"],
+                        member["generation"],
+                    ),
+                )
                 generation_changed = True
             if generation_changed:
                 existing = db.execute(
@@ -276,12 +432,42 @@ def create_or_reuse(
                     "WHERE instance_id=%s RETURNING *",
                     (existing["instance_id"],),
                 ).fetchone()
+            if transition_destination is not None:
+                existing = db.execute(
+                    "UPDATE dungeon_instances SET revision=revision+1 "
+                    "WHERE instance_id=%s RETURNING *",
+                    (existing["instance_id"],),
+                ).fetchone()
             result = _session_result(existing, member_ids, reused=True)
+            result["context_policy_version"] = pinned_policy.policy_version
             if transition_destination is not None:
                 result["transition"] = _move_party_members(
                     db, live_rows, existing, transition_destination
                 )
+            if initialize_instance is not None:
+                initialize_instance(db, result)
             return result
+
+        # An outside character can retain membership after leaving an old
+        # party. Reconcile only foreign rosters whose authoritative location
+        # is outside all instances; never release a member still inside a run.
+        stale_members = db.execute(
+            "UPDATE dungeon_instance_members m SET status='returned',ended_at=%s "
+            "FROM characters c WHERE c.id=m.character_id AND m.status='active' "
+            "AND m.character_id=ANY(%s) AND m.party_id<>%s AND c.instance_id=0 "
+            "RETURNING m.instance_id,m.character_id",
+            (store.now(), member_ids, party["id"]),
+        ).fetchall()
+        for stale_member in stale_members:
+            db.execute(
+                "UPDATE dungeon_transition_outbox SET status='superseded',superseded_at=%s "
+                "WHERE instance_id=%s AND character_id=%s AND status='pending'",
+                (
+                    store.now(),
+                    stale_member["instance_id"],
+                    stale_member["character_id"],
+                ),
+            )
 
         occupied = db.execute(
             "SELECT character_id FROM dungeon_instance_members WHERE status='active' "
@@ -294,13 +480,23 @@ def create_or_reuse(
             )
 
         _validate_entry_members(live_rows, selected_route, store.now())
-        if authorize_entry(dict(leader), selected_route) is not True:
+        if (
+            authorize_entry(
+                store.character(leader["account_id"], leader["id"], db), selected_route
+            )
+            is not True
+        ):
             raise ValueError("Native dungeon entry is not authorized")
+
+        from wakfu_server.dungeon_context import active_policy
+
+        context_policy = active_policy(db, selected_route)
 
         instance = db.execute(
             "INSERT INTO dungeon_instances(party_id,party_revision,created_by_character_id,"
             "template_id,definition_id,entry_map_id,entry_object_id,entry_destination_id,"
-            "start_map_id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *",
+            "start_map_id,context_route_key,context_policy_version) "
+            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *",
             (
                 party["id"],
                 party["revision"],
@@ -311,6 +507,8 @@ def create_or_reuse(
                 selected_route.entry_object_id,
                 selected_route.destination_id,
                 selected_route.start_map_id,
+                context_policy.route_key,
+                context_policy.policy_version,
             ),
         ).fetchone()
         for member in live_rows:
@@ -327,10 +525,17 @@ def create_or_reuse(
                 ),
             )
         result = _session_result(instance, member_ids, reused=False)
+        result["context_policy_version"] = context_policy.policy_version
+        if transition_destination is not None and resolve_destination is not None:
+            transition_destination = resolve_destination(
+                db, result, dict(transition_destination)
+            )
         if transition_destination is not None:
             result["transition"] = _move_party_members(
                 db, live_rows, instance, transition_destination
             )
+        if initialize_instance is not None:
+            initialize_instance(db, result)
         return result
 
 
@@ -378,7 +583,181 @@ def _move_party_members(db, live_rows, session, destination):
         if updated.rowcount != 1:
             raise ValueError("Party member location changed during dungeon entry")
         moved.append(member["id"])
+    for member in live_rows:
+        db.execute(
+            "INSERT INTO dungeon_transition_outbox(instance_id,party_id,"
+            "transition_revision,character_id,session_generation,source_map_id,"
+            "source_instance_id,source_x,source_y,source_z,destination_map_id,"
+            "destination_instance_id,destination_x,destination_y,destination_z) "
+            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (
+                session["instance_id"],
+                session["party_id"],
+                session["revision"],
+                member["id"],
+                member["generation"],
+                member["map_id"],
+                member["instance_id"],
+                member["x"],
+                member["y"],
+                member["z"],
+                destination["map_id"],
+                session["instance_id"],
+                destination["x"],
+                destination["y"],
+                destination["z"],
+            ),
+        )
     return _destination_result(session, destination, moved=moved)
+
+
+def pending_transitions(store, account_id, generation, character_id):
+    """Return durable map changes for the exact currently selected lease.
+
+    A new session may supersede its old generation's unacknowledged packet
+    intent. Reconnection already bootstraps from the authoritative character
+    location, so this never moves the replacement session.
+    """
+    for value, field in ((account_id, "account"), (character_id, "character")):
+        _positive_int(value, field)
+    if not isinstance(generation, str) or not generation:
+        raise ValueError("Invalid dungeon session generation")
+    with store.connection() as db:
+        store.lock_character(db, account_id, generation, character_id)
+        db.execute(
+            "UPDATE dungeon_transition_outbox SET status='superseded',"
+            "superseded_at=%s WHERE character_id=%s AND status='pending' "
+            "AND session_generation<>%s",
+            (store.now(), character_id, generation),
+        )
+        character = db.execute(
+            "SELECT map_id,instance_id,x,y,z FROM characters WHERE id=%s "
+            "AND account_id=%s AND deleted_at IS NULL",
+            (character_id, account_id),
+        ).fetchone()
+        rows = db.execute(
+            "SELECT o.* FROM dungeon_transition_outbox o "
+            "JOIN dungeon_instance_members m "
+            "ON m.instance_id=o.instance_id AND m.character_id=o.character_id "
+            "JOIN dungeon_instances i "
+            "ON i.instance_id=o.instance_id AND i.party_id=o.party_id "
+            "WHERE o.character_id=%s AND o.session_generation=%s "
+            "AND o.status='pending' "
+            "AND ((o.transition_kind='exit' AND m.status='returned' "
+            "AND i.status IN ('active','completed','closed')) "
+            "OR (o.transition_kind<>'exit' AND m.status='active' AND i.status='active')) "
+            "AND m.session_generation=%s "
+            "ORDER BY o.transition_revision,o.event_id FOR UPDATE OF o",
+            (character_id, generation, generation),
+        ).fetchall()
+        pending = []
+        for row in rows:
+            if any(
+                row[f"destination_{field}"] != character[field]
+                for field in ("map_id", "instance_id", "x", "y", "z")
+            ):
+                db.execute(
+                    "UPDATE dungeon_transition_outbox SET status='superseded',"
+                    "superseded_at=%s WHERE event_id=%s AND status='pending'",
+                    (store.now(), row["event_id"]),
+                )
+                continue
+            pending.append(dict(row))
+        return tuple(pending)
+
+
+def acknowledge_transition(store, account_id, generation, character_id, event_id):
+    """Acknowledge one fully sent transition, not visual client consumption.
+
+    The caller must send its complete map bootstrap before calling this API.
+    The lease, membership generation, active run, and persisted destination are
+    rechecked under row locks. Repeating an ACK by the same live lease is safe.
+    """
+    for value, field in (
+        (account_id, "account"),
+        (character_id, "character"),
+        (event_id, "transition event"),
+    ):
+        _positive_int(value, field)
+    if not isinstance(generation, str) or not generation:
+        raise ValueError("Invalid dungeon session generation")
+    with store.connection() as db:
+        # Match create_or_reuse's row-lock order: session/character, party,
+        # run, membership, then outbox. The initial character lock serializes
+        # this ACK against party transitions before either takes party/run
+        # locks.
+        store.lock_character(db, account_id, generation, character_id)
+        identity = db.execute(
+            "SELECT instance_id,party_id FROM dungeon_transition_outbox "
+            "WHERE event_id=%s AND character_id=%s",
+            (event_id, character_id),
+        ).fetchone()
+        if identity is None:
+            raise ValueError("Dungeon transition does not belong to this character")
+        party = db.execute(
+            "SELECT id FROM player_parties WHERE id=%s FOR UPDATE",
+            (identity["party_id"],),
+        ).fetchone()
+        instance = db.execute(
+            "SELECT status FROM dungeon_instances WHERE instance_id=%s AND party_id=%s "
+            "FOR UPDATE",
+            (identity["instance_id"], identity["party_id"]),
+        ).fetchone()
+        member = db.execute(
+            "SELECT status,session_generation FROM dungeon_instance_members "
+            "WHERE instance_id=%s AND character_id=%s FOR UPDATE",
+            (identity["instance_id"], character_id),
+        ).fetchone()
+        row = db.execute(
+            "SELECT status,transition_kind,session_generation,destination_map_id,destination_instance_id,"
+            "destination_x,destination_y,destination_z FROM dungeon_transition_outbox "
+            "WHERE event_id=%s AND character_id=%s FOR UPDATE",
+            (event_id, character_id),
+        ).fetchone()
+        character = db.execute(
+            "SELECT map_id,instance_id,x,y,z FROM characters WHERE id=%s",
+            (character_id,),
+        ).fetchone()
+        if (
+            party is None
+            or instance is None
+            or member is None
+            or row is None
+            or character is None
+        ):
+            raise ValueError("Dungeon transition membership no longer exists")
+        if (
+            row["session_generation"] != generation
+            or member["session_generation"] != generation
+            or (
+                row["transition_kind"] == "exit"
+                and (
+                    member["status"] != "returned"
+                    or instance["status"] not in ("active", "completed", "closed")
+                )
+            )
+            or (
+                row["transition_kind"] != "exit"
+                and (member["status"] != "active" or instance["status"] != "active")
+            )
+        ):
+            raise ValueError("Dungeon transition membership or session was replaced")
+        if row["status"] == "acknowledged":
+            return False
+        if row["status"] != "pending":
+            raise ValueError("Dungeon transition is no longer pending")
+        if any(
+            row[f"destination_{field}"] != character[field]
+            for field in ("map_id", "instance_id", "x", "y", "z")
+        ):
+            raise ValueError("Dungeon transition destination is no longer current")
+        updated = db.execute(
+            "UPDATE dungeon_transition_outbox SET status='acknowledged',"
+            "acknowledged_at=%s,acknowledged_generation=%s "
+            "WHERE event_id=%s AND status='pending' RETURNING event_id",
+            (store.now(), generation, event_id),
+        ).fetchone()
+        return updated is not None
 
 
 def _destination_result(session, destination, *, moved, already_entered=False):

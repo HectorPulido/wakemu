@@ -90,6 +90,39 @@ class SpectatorSnapshotTests(unittest.TestCase):
         self.assertEqual(decoded["myG"][:15], timeline(fight, deadline_ms=123456)[:15])
         self.assertEqual(decoded["myG"][7:15], (123456).to_bytes(8, "big"))
 
+    def test_active_snapshot_accepts_withdrawal_without_fake_death_history(self):
+        from wakfu_server.combat_pve_withdraw import plan
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_shared import Session
+
+        fight, shared = shared_fixture()
+        second = Actor(6, 0, (0, -1, 0), 60, 6, 3, 90, 1, 2, True)
+        fight.actors[6] = second
+        fight.walkable.add(second.position)
+        fight.placement[0].add(second.position)
+        fight.ready(1)
+        fight.ready(2)
+        runtime = RuntimeMessages(fight)
+
+        transition = plan(Session(1, 5, "owner", 527, 0), fight, runtime)
+        shared.fight = transition.fight
+        shared.runtime = transition.runtime
+        packets = current_snapshot(
+            transition.fight,
+            shared,
+            actor_payload=actor_payload,
+            deadline_ms=123456,
+        )
+
+        self.assertEqual([opcode for opcode, _ in packets], [12044])
+        decoded = decode_spectator_bootstrap(packets[0][1])
+        self.assertEqual(decoded["phase_code"], 2)
+        self.assertEqual(
+            {row["actor_id"] for row in decoded["participants"]},
+            {5, 6, -200},
+        )
+        self.assertNotIn({"kind": "death", "actor_id": 5}, transition.fight.events)
+
     def test_active_native_state_and_group_area_carriers_reinstall_without_mutation(
         self,
     ):

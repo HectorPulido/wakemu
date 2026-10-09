@@ -16,11 +16,11 @@ Registros detallados
 .runtime/local/logs/game-server.jsonl
 
 Cliente local
-  bash client/tools/local-client.sh
+  bash client-tools/local-client.sh
 Otra instancia:
-  bash client/tools/local-client.sh --profile nombre
+  bash client-tools/local-client.sh --profile nombre
 Comprobar bloqueo de red sin abrir cliente:
-  bash client/tools/local-client.sh --profile nombre --check
+  bash client-tools/local-client.sh --profile nombre --check
 
 Red
 IA y Redis permanecen en la red interna isolated. world también usa client-access para publicar los puertos 15556, 15558 y 18081 exclusivamente en 127.0.0.1. Esta segunda red tiene el masquerade deshabilitado. El cliente mantiene su sandbox y bloqueo Java de conexiones externas.

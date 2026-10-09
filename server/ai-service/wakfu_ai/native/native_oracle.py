@@ -315,6 +315,200 @@ class NativeOracle:
         result.update({spell: grant["level"] for spell, grant in grants.items()})
         return result
 
+    def native_target_envelope(self, fight, actor_id, *, action_id=None):
+        """Return a current-state, fail-open range envelope for the repertoire."""
+        check()
+        actor = fight.actors.get(actor_id)
+        if (
+            actor is None
+            or actor.hp <= 0
+            or fight.current is None
+            or fight.current.id != actor_id
+        ):
+            return None
+        try:
+            from wakfu_server.combat_native_spell_casting import (
+                catalog as native_casting_catalog,
+                definition as native_casting_definition,
+            )
+            from wakfu_server.combat_casting_context import casting_root_catalog
+            from wakfu_server.combat_casting_range import resolve_range
+            from .native_target_mask import derive_native_target_envelope
+
+            roots = casting_root_catalog()
+            overrides = roots.get("normal_casting_overrides")
+            area_types = (
+                overrides.get("area_types") if isinstance(overrides, dict) else None
+            )
+            if (
+                not isinstance(overrides, dict)
+                or set(overrides) != {"categories", "area_types"}
+                or not isinstance(overrides.get("categories"), dict)
+                or set(overrides["categories"]) != {"txX", "txZ", "tya", "tyb"}
+                or any(
+                    type(value) is not int for value in overrides["categories"].values()
+                )
+                or len(set(overrides["categories"].values())) != 4
+                or not isinstance(area_types, dict)
+                or set(area_types) != {"rNX", "rNI"}
+                or any(type(value) is not int for value in area_types.values())
+                or len(set(area_types.values())) != 2
+            ):
+                return None
+            override_categories = {
+                overrides["categories"][key] for key in ("txX", "txZ", "tyb")
+            }
+            owned = self.owned_spells(fight, actor_id)
+            # One complete authority/adapter per actor state; only the native
+            # condition context and exact table selection vary per ability.
+            check()
+            factory, adapter = self.factory(
+                fight,
+                (
+                    getattr(self.runtime, "action_id", 0)
+                    if action_id is None
+                    else action_id
+                )
+                + 1,
+                random.Random(0),
+            )
+            del factory
+            check()
+
+            def select(spell, level):
+                request = dict(
+                    actor_id=actor_id,
+                    spell_uid=spell,
+                    target=tuple(actor.position),
+                )
+                context = adapter.cast_condition(fight, request)
+                selected = native_casting_definition(
+                    spell,
+                    level,
+                    context,
+                    actor.spell_ap_cost_modifiers,
+                    calculate_costs=False,
+                )
+                return selected, context
+
+            def range_for(spell, level, rule, context):
+                # `resolve_range` reads the actual caster RANGE, carried state,
+                # fight property 2 and category modifiers from this live state.
+                return resolve_range(rule, actor, context)
+
+            position = tuple(actor.position)
+            return derive_native_target_envelope(
+                actor_id=actor_id,
+                origin=position,
+                owned_spells=owned,
+                casting_catalog=native_casting_catalog(),
+                override_categories=override_categories,
+                resolve_current=select,
+                resolve_range=range_for,
+            )
+        except TimeoutError:
+            raise
+        except Exception:
+            # The repertoire itself remains available. Any missing or newer
+            # native authority simply disables this optional advisory mask.
+            return None
+
+    def native_casting_root_prerequisites(
+        self, fight, actor_id, source_state, *, owned_spells=None
+    ):
+        """Certify NPC spells blocked by absent authoritative casting roots.
+
+        The NPC cast path selects roots from the positive-level baseline row,
+        independent of target cell and conditional range selection. A missing
+        root record therefore rejects every target for that spell. Unknown
+        schemas and level-zero records are omitted so the planner fails open.
+        """
+        check()
+        actor = fight.actors.get(actor_id)
+        registrations = getattr(fight, "native_summon_registrations", {})
+        if (
+            actor is None
+            or actor.hp <= 0
+            or actor_id in self.characters
+            or (actor_id not in self.monsters and actor_id not in registrations)
+            or type(source_state) is not str
+            or type(fight.sequence) is not int
+        ):
+            return None
+        try:
+            from wakfu_server.combat_native_spell_casting import catalog
+            from wakfu_server.combat_casting_context import casting_root_catalog
+
+            owned = (
+                self.owned_spells(fight, actor_id)
+                if owned_spells is None
+                else owned_spells
+            )
+            if not isinstance(owned, dict):
+                return None
+            casting = catalog()
+            root_catalog = casting_root_catalog()
+            root_records = root_catalog.get("roots")
+            if not isinstance(casting, dict) or not isinstance(root_records, dict):
+                return None
+            unavailable = []
+            for spell_id, level in sorted(owned.items()):
+                check()
+                if type(spell_id) is not int or type(level) is not int or level <= 0:
+                    continue
+                record = casting.get(str(spell_id))
+                if record is None:
+                    unavailable.append(
+                        dict(
+                            spellId=spell_id,
+                            level=level,
+                            reason="missing_casting_table",
+                            missingRootIds=[],
+                        )
+                    )
+                    continue
+                levels = record.get("levels") if isinstance(record, dict) else None
+                index = level - 1
+                if not isinstance(levels, list) or index < 0 or index >= len(levels):
+                    continue
+                baseline = levels[index]
+                if (
+                    not isinstance(baseline, list)
+                    or len(baseline) != 3
+                    or not isinstance(baseline[2], list)
+                    or any(type(root) is not int for root in baseline[2])
+                ):
+                    continue
+                missing = [
+                    root
+                    for root in baseline[2]
+                    if not isinstance(root_records.get(str(root)), dict)
+                    or "native_casting_collision_area" not in root_records[str(root)]
+                ]
+                if missing:
+                    unavailable.append(
+                        dict(
+                            spellId=spell_id,
+                            level=level,
+                            reason="missing_root_metadata",
+                            missingRootIds=sorted(set(missing)),
+                        )
+                    )
+            check()
+            return dict(
+                schema="native-casting-root-prerequisites-v1",
+                sourceState=source_state,
+                actorId=actor_id,
+                stateRevision=fight.sequence,
+                complete=True,
+                unavailable=unavailable,
+            )
+        except TimeoutError:
+            raise
+        except Exception:
+            # A newer/unknown catalog shape is not evidence of unavailability.
+            return None
+
     def descriptor(self, fight, actor):
         registrations = getattr(fight, "native_summon_registrations", {})
         if actor.id in registrations:

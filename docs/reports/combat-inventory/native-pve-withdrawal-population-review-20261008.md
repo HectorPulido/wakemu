@@ -1,0 +1,13 @@
+# PvE withdrawal and native population retirement
+
+Actual casting requires a complete native QI population. The previous withdrawal policy retained the historical actor at HP 0 with `pve_withdrawn=True`, but left its QK slot and fdt participation registered. Subsequent casts either rejected that uncertified HP-0 occupant or tried to resolve the withdrawn historical actor as a target. Adding QI to the old test fixture exposed this production boundary.
+
+Wakemu now explicitly retires the withdrawing owner's actor population on the detached withdrawal candidate. The original native primitives are **fcb.aQ → QI.g(QK)**, which removes the QL footprint, clears its QI slot and calls **QK.M(-1)**; and **fcb.bk → fdt.bx**, which removes the fighter from both native maps. This is Wakemu's withdrawal policy using proved native removal operations. An original unavailable server-side surrender caller is not claimed as evidence.
+
+`combat_pve_departure.retire_pve_actor` applies identity-checked QI removal and the existing exact fdt/Trove removal producer. It records the actor, previous slot, withdrawing owner, root actor and policy source in `native_pve_departures`. HP and wire snapshot changes remain owned by the withdrawal planner. Historical `fight.actors` entries remain available to checkpoints, and withdrawal does not create a corpse or a `death` event.
+
+`current_registry` excludes only actors carrying this typed departure evidence. A raw withdrawal flag or HP 0 is insufficient. Stale retired slots still reject. Registered populations remain complete for the surviving owners and NPCs, so target resolution on a withdrawn actor's old cell returns the real known-empty result; other registered cells still resolve normally. Existing OFF_PLAY corpses retain their separate slot and death lifecycle.
+
+Legacy fights with neither native population producer remain uncertified; no topology is reconstructed from a final actor roster. The change mutates only the existing detached withdrawal candidate, preserving the original fight if preparation or persistence fails.
+
+Validation: departure/QI registry/global collection tests **24 passed**, departure plus owned death lifecycle **11 passed**, existing active-owner withdrawal regression **1 passed**. The production spell regression fixture now uses actual map 1134, three fresh ordinary actors registered before Ready, the exact selected terrain surfaces, and the real withdrawal planner before casting. Its compiled runtime check and the repaired life-authority fixture are delegated to Luna. No services, databases, or live combat sessions were used.

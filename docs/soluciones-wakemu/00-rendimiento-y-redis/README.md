@@ -48,3 +48,8 @@ Imagen9af0658c (wakfu-local-world:merged-verified) desplegada healthy, PostgreSQ
 ## Precarga de combate medida en release de fabricación
 
 Candidata3523:117731ms para combat_catalogs_ready (208módulos/59104efectos). Live3523:147311ms (208módulos/61227efectos), antes de listeners y seed_configured. El live reconoció los93hábitats existentes (duplicate=true); la demora ocurre antes de sembrar. La candidata fue detenida por root después del smoke, exit137 con OOMKilled=false. Se perfila por loader en instancia aislada; aún no se cambia el orden de precarga.
+
+
+## Native catalog PostgreSQL and Redis migration — 2026-10-08
+
+The native protocol catalog readers now share a versioned PostgreSQL authority and bounded Redis cache, retaining their existing in-memory entity and coordinate indexes. Plain JSON files are import artifacts; compressed JSON files were converted and removed after byte verification. See [architecture, indexed drop queries and complete manual acceptance](../../reports/native-catalog-postgres-redis.md), and [DBeaver access](../../reports/dbeaver-postgresql-access.md). Import and deployment are verified in complete build r46. World and AI are healthy, with AI preloading and a complete context seal before game listeners open. The full database dump is verified. This change does not claim all historical latency issues are resolved.

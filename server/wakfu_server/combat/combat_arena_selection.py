@@ -100,3 +100,140 @@ def bounded_arena(data, player, members, radius=12):
         bounds=(xmin, ymin, xmax, ymax),
         blocked_ambiguous=ambiguous,
     )
+
+
+MAX_CELL_BUDGET = 2500
+
+
+def compact_encounter(data, player, members, cell_budget=None):
+    """Local encounter formation on one mutually reachable native component.
+
+    Monster world coordinates are preferences, not mandatory combat positions.
+    The player remains anchored. The requested4900-cell budget is independent
+    of aspect ratio. Native directed edges and selected heights are preserved,
+    including after ambiguous-column removal and budget truncation.
+    """
+    if cell_budget is None:
+        cell_budget = MAX_CELL_BUDGET
+
+    origin = _cell(player)
+    originals = [_cell(member) for member in members]
+    if not originals or len(originals) > 126:
+        raise ValueError("Invalid encounter monster count")
+    if type(cell_budget) is not int or not 2 <= cell_budget <= MAX_CELL_BUDGET:
+        raise ValueError(
+            "Encounter cell budget must be between2 and " + str(MAX_CELL_BUDGET)
+        )
+    cells = {_cell(cell) for cell in data["cells"]}
+    edges = {tuple(map(_cell, edge)) for edge in data["edges"]}
+    # Reuse strict topology validation before selecting/repositioning anybody.
+    if any(
+        a not in cells or b not in cells or abs(a[0] - b[0]) + abs(a[1] - b[1]) != 1
+        for a, b in edges
+    ):
+        raise ValueError("Invalid native encounter topology edge")
+    cropped = cells
+    if origin not in cropped:
+        raise ValueError("Player is outside native encounter terrain")
+    reverse = {(b, a) for a, b in edges}
+    selected = _reachable(origin, cropped, edges) & _reachable(origin, cropped, reverse)
+    columns = defaultdict(list)
+    for cell in selected:
+        columns[cell[:2]].append(cell)
+    ambiguous = {xy for xy, values in columns.items() if len(values) > 1}
+    if origin[:2] in ambiguous:
+        raise ValueError("Player occupies ambiguous native encounter surface")
+    selected = {c for c in selected if c[:2] not in ambiguous}
+    selected = _reachable(origin, selected, edges) & _reachable(
+        origin, selected, reverse
+    )
+    # The requested map budget includes blocked rectangle holes, not only
+    # playable cells. Native dimensions are int32 and mask count allows32767,
+    # but the encounter policy caps both selected cells and the rectangle4900.
+    # Flexible shapes such as10x490 remain valid.
+    outgoing_full = defaultdict(set)
+    for a, b in edges:
+        if a in selected and b in selected:
+            outgoing_full[a].add(b)
+    bounded = {origin}
+    queue = deque([origin])
+    xmin = xmax = origin[0]
+    ymin = ymax = origin[1]
+    while queue and len(bounded) < cell_budget:
+        current = queue.popleft()
+        for target in sorted(outgoing_full[current]):
+            if target in bounded:
+                continue
+            lo_x, hi_x = min(xmin, target[0]), max(xmax, target[0])
+            lo_y, hi_y = min(ymin, target[1]), max(ymax, target[1])
+            if (hi_x - lo_x + 1) * (hi_y - lo_y + 1) > cell_budget:
+                continue
+            bounded.add(target)
+            queue.append(target)
+            xmin, xmax, ymin, ymax = lo_x, hi_x, lo_y, hi_y
+            if len(bounded) == cell_budget:
+                break
+    selected = _reachable(origin, bounded, edges) & _reachable(origin, bounded, reverse)
+    if len(selected) <= len(originals):
+        raise ValueError(
+            "Native reachable encounter component lacks participant capacity"
+        )
+    outgoing = defaultdict(set)
+    for a, b in edges:
+        if a in selected and b in selected:
+            outgoing[a].add(b)
+    distances = {origin: 0}
+    pending = deque([origin])
+    while pending:
+        current = pending.popleft()
+        for target in sorted(outgoing[current]):
+            if target not in distances:
+                distances[target] = distances[current] + 1
+                pending.append(target)
+    free = selected - {origin}
+    relocated = []
+    for original in originals:
+        if original in free:
+            chosen = original
+        else:
+            # Compact opposing formation around six native path steps; source
+            # position breaks ties without expanding the fight to world groups.
+            chosen = min(
+                free,
+                key=lambda c: (
+                    abs(distances[c] - 6),
+                    abs(c[0] - original[0]) + abs(c[1] - original[1]),
+                    c,
+                ),
+            )
+        relocated.append(chosen)
+        free.remove(chosen)
+    chosen_edges = {(a, b) for a, b in edges if a in selected and b in selected}
+    return dict(
+        map_id=data["map_id"],
+        cells=selected,
+        edges=chosen_edges,
+        placement={0: [origin], 1: relocated},
+        participant_positions=list(zip(originals, relocated)),
+        blocked_ambiguous=ambiguous,
+        bounds=(
+            min(c[0] for c in selected),
+            min(c[1] for c in selected),
+            max(c[0] for c in selected),
+            max(c[1] for c in selected),
+        ),
+    )
+
+
+def cardinal_border_cells(cells):
+    """Explicit local perimeter: selected XYZ with a missing cardinal XY."""
+    cells = {_cell(cell) for cell in cells}
+    xy = {cell[:2] for cell in cells}
+    return frozenset(
+        cell
+        for cell in cells
+        if any(
+            (cell[0] + dx, cell[1] + dy) not in xy
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+        )
+    )

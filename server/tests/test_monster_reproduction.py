@@ -5,7 +5,7 @@ import unittest
 from psycopg.types.json import Jsonb
 
 from postgres_case import PostgresCase
-from wakfu_server import monster_reproduction
+from wakfu_server import monster_reproduction, npc_actor_identity
 from wakfu_server.combat_group_store import PersistentGroups
 from wakfu_server.monsters import REFERENCES, owned_instance
 
@@ -192,13 +192,20 @@ class MonsterReproductionTests(PostgresCase):
             0.0, monster_reproduction.birth_probability(999999, configuration)
         )
 
-    def test_identity_sequence_is_disjoint_from_legacy_random_62_bit_ids(self):
+    def test_identity_sequence_is_lua_exact_and_skips_claimed_legacy_ids(self):
+        # Legacy random IDs overlap this range; the allocator skips occupied
+        # actor blocks instead of assuming the namespaces are disjoint.
+        legacy_id = -npc_actor_identity.MINIMUM
+        self._register_monster(monster_id=legacy_id)
         with self.store.connection() as db:
             magnitude, actor_id = monster_reproduction.allocate_identity(db)
-        self.assertGreater(magnitude, 1 << 62)
-        self.assertLess(magnitude, 1 << 63)
+        self.assertGreaterEqual(
+            magnitude, npc_actor_identity.MINIMUM + npc_actor_identity.BLOCK_SIZE
+        )
+        self.assertLessEqual(magnitude, npc_actor_identity.MAXIMUM)
         self.assertEqual(-magnitude, actor_id)
-        self.assertGreater(actor_id, -(1 << 63))
+        self.assertNotEqual(legacy_id, actor_id)
+        self.assertTrue(npc_actor_identity.lua_exact_identity(actor_id))
 
     def test_sequence_allocation_is_not_reused_after_transaction_rollback(self):
         allocated = None
@@ -227,8 +234,18 @@ class MonsterReproductionTests(PostgresCase):
         self.assertTrue(all(group_id > 0 for group_id in magnitudes))
         self.assertTrue(all(actor_id < 0 for actor_id in actor_ids))
         self.assertEqual({-group_id for group_id in magnitudes}, set(actor_ids))
-        self.assertTrue(all(group_id > 1 << 62 for group_id in magnitudes))
-        self.assertTrue(all(group_id < 1 << 63 for group_id in magnitudes))
+        self.assertTrue(
+            all(
+                npc_actor_identity.MINIMUM <= group_id <= npc_actor_identity.MAXIMUM
+                for group_id in magnitudes
+            )
+        )
+        self.assertTrue(
+            all(
+                npc_actor_identity.lua_exact_identity(actor_id)
+                for actor_id in actor_ids
+            )
+        )
         self.assertTrue(all(math.isfinite(float(group_id)) for group_id in magnitudes))
 
     def test_timer_cascades_with_member_but_historical_receipt_is_retained(self):

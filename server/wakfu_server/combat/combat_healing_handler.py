@@ -5,6 +5,7 @@ native context. No breed or spell whitelist; wire value is actual HP+virtual
 HP healed, not the requested amount or discarded overflow.
 """
 from dataclasses import dataclass, replace
+from .combat_runner_target import bind_runner_target, runner_target_invocation
 from .combat_damage_handler import _snapshot
 from .combat_healing_parameters import (
     interpret_healing_parameters,
@@ -52,12 +53,25 @@ class NativeHealingHandler:
         self.runner_modifiers = {}
 
     def _calculate(self, effect, invocation, *, additional_final=0):
+        from .combat_area_damage_guard import area_damage_has_no_resources
+
+        if area_damage_has_no_resources(self.fight, invocation.target_id):
+            # Verified partial area contracts have neither HP nor armor.
+            # eXs.C returns before arithmetic when PV.a(ffw.sgC) is false.
+            from .combat_value_transfer import apply_context_value
+
+            amount = apply_context_value(
+                0,
+                None
+                if invocation.native_context_hex is None
+                else bytes.fromhex(invocation.native_context_hex),
+            )
+            return None, amount
         source = self.fight.actors.get(invocation.caster_id)
         target = self.fight.actors.get(invocation.target_id)
         if (
             source is None
             or target is None
-            or target.hp <= 0
             or self.fight.phase != "active"
             or self.fight.current is None
             or effect["effect_class"] not in HEAL_ELEMENTS
@@ -83,6 +97,9 @@ class NativeHealingHandler:
             raise ValueError("Unknown native healing flags")
         if not context.executable:
             return (context, None)
+        from .combat_runner_target_life import verify_runner_target_life
+
+        verify_runner_target_life(self.fight, target, effect, invocation=invocation)
         if type(target_stats.get(32)) is not int:
             raise ValueError("Missing authoritative healing resistance")
         flags = effect.get("native_effect_flags")
@@ -90,6 +107,7 @@ class NativeHealingHandler:
             raise ValueError("Missing native healing effect flags")
         flags = frozenset(flags)
         allowed_flags = {
+            2,  # DONT_USE_BLOCK: eXt HP loss, not eXs/fat HP gain.
             4,
             5,
             6,
@@ -98,6 +116,7 @@ class NativeHealingHandler:
             22,
             23,
             24,
+            28,  # BYPASS_ARMOR_AND_BARRIER: eXt HP loss, not eXs HP gain.
             33,
             34,
         }
@@ -195,6 +214,7 @@ class NativeHealingHandler:
 
         runner = NativeRunnerAmount(uid, effect["effect_class"], rng=self.rng)
         self.runner_modifiers[uid] = runner
+        bind_runner_target(runner, invocation)
         self.event_lifecycle.phase(
             effect,
             invocation,
@@ -204,6 +224,7 @@ class NativeHealingHandler:
             final_modifier=modifier,
             runner_modifier=runner,
         )
+        invocation = runner_target_invocation(runner, invocation)
         self.prepared[uid] = self._calculate(
             effect, invocation, additional_final=modifier.value
         )
@@ -228,6 +249,8 @@ class NativeHealingHandler:
 
             runner = NativeRunnerAmount(uid, effect["effect_class"], rng=self.rng)
         runner.set_calculated(amount)
+        bind_runner_target(runner, invocation)
+        invocation = runner_target_invocation(runner, invocation)
         if self.event_lifecycle is not None:
             # bbJ:L2 follows accepted criteria/probability, precedes consumption.
             self.event_lifecycle.phase(
@@ -240,6 +263,30 @@ class NativeHealingHandler:
                 runner_modifier=runner,
             )
         amount = runner.value
+        invocation = runner_target_invocation(runner, invocation)
+        if context is None:
+            from .combat_area_damage_guard import area_damage_has_no_resources
+
+            if not area_damage_has_no_resources(self.fight, invocation.target_id):
+                raise ValueError("Changed native partial PV healing HP authority")
+            # eXs.c mu(true): retain amount/status and lifecycle, suppress PR.
+            runner.notification_suppressed = True
+            runner.finish_application()
+            if self.event_lifecycle is not None:
+                for channel in (3, 4):
+                    self.event_lifecycle.phase(
+                        effect,
+                        invocation,
+                        uid=uid,
+                        value=runner.value,
+                        channel=channel,
+                        final_modifier=modifier,
+                        runner_modifier=runner,
+                    )
+            from .combat_runner_callbacks import notify_runner_value
+
+            notify_runner_value(invocation, runner.value)
+            return True
         source = self.fight.actors[invocation.caster_id]
         target = self.fight.actors[invocation.target_id]
         source_stats, target_stats = _snapshot(source), _snapshot(target)
@@ -256,6 +303,39 @@ class NativeHealingHandler:
             bypass_undead=context.bypass_undead,
             frozen_stats=tuple(("target", k) for k in target.effect_frozen),
         )
+        from .combat_hp_raw import hp_raw_present, hp_shift_result
+
+        if hp_raw_present(target):
+            from .combat_casting_range import int32
+
+            _, hp_after, hp_actual = hp_shift_result(target, amount)
+            remainder = int32(amount - hp_actual)
+            virtual_requested = None
+            if target.effect_maxima[92] <= 0:
+                virtual_after, virtual_actual = target_stats[92], 0
+            elif getattr(target, "native_copy_pa_source", None) is not None:
+                from .combat_copied_pa import copied_shift_result
+
+                _, virtual_after, virtual_actual = copied_shift_result(
+                    target, 92, remainder
+                )
+                virtual_requested = remainder
+            else:
+                virtual_actual = (
+                    0
+                    if 92 in target.effect_frozen
+                    else min(remainder, target.effect_maxima[92] - target_stats[92])
+                )
+                virtual_after = target_stats[92] + virtual_actual
+            result.update(
+                value=int32(hp_actual + virtual_actual),
+                hp_gain=hp_actual,
+                hp_requested=amount,
+                virtual_hp_gain=virtual_actual,
+                virtual_hp_requested=virtual_requested,
+                target_hp=hp_after,
+                target_virtual_hp=virtual_after,
+            )
         result["target_heal_resistance"] = healing_resistance_after(
             result["value"],
             target_max_hp=target.max_hp,
@@ -276,7 +356,17 @@ class NativeHealingHandler:
             restored=result["value"],
             base_uid=invocation.base_uid,
         )
-        self.fight.apply_effect_healing(source.id, target.id, result["hp_gain"])
+        self.fight.apply_effect_healing(
+            source.id, target.id, result.get("hp_requested", result["hp_gain"])
+        )
+        if getattr(target, "native_copy_pa_source", None) is not None:
+            from .combat_copied_pa import shift_copied_current, set_copied_current
+
+            if result["virtual_hp_requested"] is not None:
+                shift_copied_current(
+                    self.fight, target, 92, result["virtual_hp_requested"]
+                )
+            set_copied_current(self.fight, target, 32, result["target_heal_resistance"])
         target_stats[92] = result["target_virtual_hp"]
         target_stats[32] = result["target_heal_resistance"]
         runner.set_applied(result["value"])

@@ -77,7 +77,7 @@ class MaximumResourceTests(unittest.TestCase):
 
         remove_maximum_resource(self.handler, 101)
         self.assertEqual((actor.hp, actor.max_hp), (60, 60))
-        self.assertEqual([p[0] for p in self.packets], [13497, 13560])
+        self.assertEqual([p[0] for p in self.packets], [12613, 13560])
 
     def test_mp_boost_and_expiration(self):
         self.assertTrue(self.apply())
@@ -93,6 +93,42 @@ class MaximumResourceTests(unittest.TestCase):
         self.assertEqual((preview.actors[7].mp, preview.actors[7].max_mp), (3, 3))
         self.assertEqual(self.actor.mp, 4)
         self.assertEqual([op for op, _ in packets], [13560])
+
+    def test_hp_maximum_removal_preserves_one_hp_when_delta_exceeds_current(self):
+        actor = self.actor
+        for name, value in (
+            ("effect_stats", 60),
+            ("effect_maxima", 60),
+            ("effect_base_maxima", 60),
+            ("effect_minima", 0),
+            ("effect_base_minima", 0),
+            ("effect_percentages", 0),
+        ):
+            getattr(actor, name)[1] = value
+        self.apply(kind=20, amount=25)
+        actor.hp = actor.effect_stats[1] = 10
+        from wakfu_server.combat_maximum_resource import remove_maximum_resource
+
+        remove_maximum_resource(self.handler, 101)
+        self.assertEqual((actor.hp, actor.effect_stats[1], actor.max_hp), (1, 1, 60))
+
+    def test_hp_removal_equal_delta_uses_native_strict_greater_comparison(self):
+        actor = self.actor
+        for name, value in (
+            ("effect_stats", 60),
+            ("effect_maxima", 60),
+            ("effect_base_maxima", 60),
+            ("effect_minima", 0),
+            ("effect_base_minima", 0),
+            ("effect_percentages", 0),
+        ):
+            getattr(actor, name)[1] = value
+        self.apply(kind=20, amount=25)
+        actor.hp = actor.effect_stats[1] = 25
+        from wakfu_server.combat_maximum_resource import remove_maximum_resource
+
+        remove_maximum_resource(self.handler, 101)
+        self.assertEqual((actor.hp, actor.max_hp), (0, 60))
 
     def test_native_cap_and_flag17(self):
         self.apply(amount=20)
@@ -151,7 +187,7 @@ class MaximumResourceTests(unittest.TestCase):
         remover.remove(101)
         self.assertEqual(
             (self.actor.mp, self.actor.max_mp, self.actor.effect_base_maxima[3]),
-            (5, 6, 4),
+            (6, 6, 4),
         )
         remover.remove(102)
         self.assertEqual(

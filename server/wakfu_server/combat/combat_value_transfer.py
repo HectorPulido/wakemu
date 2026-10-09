@@ -114,7 +114,7 @@ def execute_value_transfer(
 
 def transfer_value_context(payload, value):
     """Actual eVt.mb(false)+SQ(value): fields5/6/9, preserve SP field4."""
-    from .wire import proto_fields
+    from wakfu_server.wire import proto_fields
     from .combat_effects import _integer, _varint
 
     if (
@@ -145,7 +145,7 @@ def transfer_value_context(payload, value):
 
 def apply_context_value(calculated, payload):
     """eZR.n -> a(eVt), AFTER C; a missing context leaves value unchanged."""
-    from .wire import proto_fields
+    from wakfu_server.wire import proto_fields
 
     if type(calculated) is not int or not -(1 << 31) <= calculated < (1 << 31):
         raise ValueError("Actual signed native calculated runner value required")

@@ -12,11 +12,11 @@ from wakfu_server.paths import DATA_ROOT
 
 def references(extra=None):
     tables = [json.loads((DATA_ROOT / "spell-effect-trees.json").read_text())]
-    with gzip.open(DATA_ROOT / "combat-state-definitions.json.gz", "rt") as stream:
+    with open(DATA_ROOT / "combat-state-definitions.json", "rt") as stream:
         tables.append(json.load(stream))
     if extra:
         tables.append(json.loads(Path(extra).read_text()))
-    with gzip.open(DATA_ROOT / "native-spell-casting.json.gz", "rt") as stream:
+    with open(DATA_ROOT / "native-spell-casting.json", "rt") as stream:
         installed = set(json.load(stream)["spells"])
     result = set()
     for table in tables:

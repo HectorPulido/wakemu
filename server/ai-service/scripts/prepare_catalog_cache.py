@@ -1,11 +1,40 @@
 """SDK-only catalogue preparation; no encounter or world service mutation."""
+import argparse
 import json
+import os
+import time
 
 from wakfu_ai.bridge.world_entry import native_exporter
+from wakfu_ai.bridge.world_bridge import ContextTransport
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--seal",
+        action="store_true",
+        help="Publish and seal the complete catalogue before combat.",
+    )
+    args = parser.parse_args()
+    started = time.monotonic()
     exporter = native_exporter()
+    if args.seal:
+        transport = ContextTransport(os.environ.get("WAKFU_AI_URL", "http://ai:8090"))
+        try:
+            digest = transport.catalog(exporter)
+            print(
+                json.dumps(
+                    dict(
+                        sha256=digest,
+                        complete=True,
+                        elapsedMs=(time.monotonic() - started) * 1000,
+                        transportMetrics=transport.metrics,
+                    )
+                )
+            )
+        finally:
+            transport.close()
+        return
     manifest, sources = exporter.inventory()
     print(
         json.dumps(

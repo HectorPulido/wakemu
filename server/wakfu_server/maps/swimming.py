@@ -1,4 +1,5 @@
 """Native swimming surfaces, kept separate from world mount permissions."""
+from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
 from .paths import DATA_ROOT
@@ -9,9 +10,9 @@ def cells(map_id):
     if type(map_id) is not int or map_id < 0:
         raise ValueError("Invalid swimming map identity")
     path = DATA_ROOT / "swimming-maps" / f"{map_id}.json"
-    if not path.exists():
+    if not protocol_catalog.exists(path):
         raise ValueError("Native swimming topology is unavailable")
-    data = json.loads(path.read_text())
+    data = protocol_catalog.load(path)
     validation = data.get("native_vf_validation", {})
     verified_empty = (
         validation.get("verified_empty") is True

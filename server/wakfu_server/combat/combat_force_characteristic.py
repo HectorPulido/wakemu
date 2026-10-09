@@ -5,7 +5,7 @@ from .combat_parameter_maximum import _write
 from .combat_stat_handler import StatExecutionContext
 from .combat_stat_effects import owned_effect_payload, owned_effect_application
 from .combat_resource_loss import stochastic_native_round
-from .equipment_damage import _float
+from wakfu_server.equipment_damage import _float
 from .combat_effects import _integer, _varint
 from .combat_effect_removal import running_effect_removal
 
@@ -36,13 +36,13 @@ def forced_transition(
     percent,
     low,
     high,
-    expandable
+    over_max_current
 ):
     if set_maximum:
         raw = max(raw_min, value)
         maximum = effective_maximum(raw, percent, low, high)
-    # fff.on uses PC.fZB: expandable characteristics clamp at the hard cap.
-    current = max(minimum, min(high if expandable else maximum, value))
+    # fff.on tests PC.fZB, independently of isExpandable.
+    current = max(minimum, min(high if over_max_current else maximum, value))
     return current, raw, maximum
 
 
@@ -79,9 +79,8 @@ class NativeForcedCharacteristicHandler:
         if not ctx.executable:
             return False
         stat = row["fixed_stat_id"]
-        from .combat_actor_snapshot import native_actor_catalog
+        from .combat_character_copy_metadata import native_copy_characteristics
 
-        characteristic = native_actor_catalog()["characteristics"][str(stat)]
         current, raw, maximum, minimum, raw_min, percent, low, high = _snapshot(
             actor, stat
         )
@@ -112,7 +111,9 @@ class NativeForcedCharacteristicHandler:
             percent=percent,
             low=low,
             high=high,
-            expandable=characteristic["expandable"],
+            over_max_current=native_copy_characteristics()["fresh_characteristics"][
+                str(stat)
+            ]["over_max_current"],
         )
         uid = self.allocate_uid()
         payload = owned_effect_payload(
@@ -134,7 +135,42 @@ class NativeForcedCharacteristicHandler:
             uid=uid,
             running_effect_payload=payload,
         )
-        _write(actor, stat, after, updated_raw, updated)
+        from .combat_hp_raw import (
+            hp_raw_present,
+            set_hp_raw_maximum,
+            set_hp_raw_current,
+        )
+        from .combat_copied_pa import (
+            copied_pa_present,
+            set_copied_current,
+            set_copied_maximum,
+        )
+
+        if copied_pa_present(actor):
+            if set_maximum:
+                set_copied_maximum(self.fight, actor, stat, value)
+            set_copied_current(self.fight, actor, stat, value)
+            after = actor.effect_stats[stat]
+        elif stat == 1 and hp_raw_present(actor):
+            if set_maximum:
+                set_hp_raw_maximum(actor, value)
+            set_hp_raw_current(actor, value)
+            after = actor.hp
+        elif (
+            stat in (2, 3)
+            and getattr(actor, "effect_resource_raw_currents", None) is not None
+        ):
+            from .combat_resource_pa_notifications import (
+                set_resource_maximum,
+                set_resource_current,
+            )
+
+            if set_maximum:
+                set_resource_maximum(self.fight, actor, stat, value)
+            set_resource_current(self.fight, actor, stat, value)
+            after = actor.effect_stats[stat]
+        else:
+            _write(actor, stat, after, updated_raw, updated)
         self.fight._event(
             "characteristic_changed",
             source_id=caster.id,

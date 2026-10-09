@@ -4,7 +4,8 @@ Only state3442 (native additive marker, NullEffect400) may already exist.
 State3444's combo/MP changes, target3467 and cost state6117 are unsupported.
 Adjacency makes passive8420's distance3 branch false. Crit remains explicit0.
 """
-from .paths import DATA_ROOT
+from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
 import json
 from pathlib import Path
 from copy import deepcopy
@@ -14,13 +15,12 @@ from .combat_actor import actual_actor_stats, actual_monster_actor_stats
 from .combat_effects import direct_damage
 from .combat_spells import cast_animation, cast_notification
 from .combat_states import state_packet, plan_3425, plan_8913
-from .spells import validate_deck
-from .spell_audit import catalog as effect_catalog
+from wakfu_server.spells import validate_deck
+from wakfu_server.spell_audit import catalog as effect_catalog
 from .combat_parameters import parameter_value
 
 _RULES = {
-    id: json.loads((DATA_ROOT / f"iop{id}-combat.json").read_text())
-    for id in (4785, 4780)
+    id: protocol_catalog.load(DATA_ROOT / f"iop{id}-combat.json") for id in (4785, 4780)
 }
 
 

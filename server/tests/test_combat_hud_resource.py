@@ -160,24 +160,6 @@ class NativeHudThresholdTests(unittest.TestCase):
         ]
         self.assertEqual(preview.actors[7].effect_stats[67], levels[0] if levels else 0)
         self.assertEqual(preview.actors[7].effect_stats[67], concentration)
-        import json
-        from pathlib import Path
-
-        Path(".runtime/local/hud-threshold-runtime.json").write_text(
-            json.dumps(
-                dict(
-                    wp_before=wp,
-                    wp_after=preview.actors[7].effect_stats[4],
-                    maxima=preview.actors[7].effect_maxima[4],
-                    concentration_before=concentration,
-                    concentration_after=preview.actors[7].effect_stats[67],
-                    owned=list(preview.owned_stat_effects.values()),
-                    events=preview.events,
-                    packets=[(op, body.hex()) for op, body in packets],
-                ),
-                default=str,
-            )
-        )
         self.assertEqual(preview.actors[7].effect_stats[4], wp + 1)
         self.assertFalse(
             any(

@@ -2,21 +2,26 @@ name: wakfu-local
 services:
   postgres:
     image: postgres:17-alpine
+    ports:
+      - '127.0.0.1:15432:5432'
     environment:
-      POSTGRES_DB: wakemu
+      POSTGRES_DB: wakemu_runtime
       POSTGRES_USER: wakemu
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      # Official PostgreSQL entrypoint restores only when the volume is empty.
+      - ./database/docker/20-restore-runtime.sh:/docker-entrypoint-initdb.d/20-restore-runtime.sh:ro
+      - ./database/backups/wakemu-runtime-20261008-native-catalogs.dump:/bootstrap/wakemu-runtime.dump:ro
       - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
-    networks: [isolated]
+    networks: [isolated, client-access]
     healthcheck:
-      test: [CMD-SHELL, 'pg_isready -U wakemu -d wakemu']
+      test: [CMD-SHELL, 'pg_isready -U wakemu -d wakemu_runtime']
       interval: 5s
       timeout: 3s
       retries: 10
   world:
-    image: wakemu-world:markers-20261007-r14
+    image: ${WAKFU_WORLD_IMAGE:-wakemu-world:multiplayer-complete-20261009-r48}
     build: ./server
     init: true
     depends_on:
@@ -93,14 +98,30 @@ services:
       - ./server/cron-service/config.json:/app/config.json:ro
     networks: [isolated]
   ai:
-    build: ./server/ai-service
+    build:
+      context: ./server/ai-service
+      args:
+        WORLD_IMAGE: ${WAKFU_WORLD_IMAGE:-wakemu-world:local}
     init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
+      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
+      WAKFU_REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ai-context-data:/var/lib/wakfu-ai-context
     networks: [isolated]
     healthcheck:
       test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health',timeout=2)"]
       interval: 5s
       timeout: 3s
       retries: 5
+      start_period: 180s
   redis:
     image: redis:7-alpine@sha256:bb186d083732f669da90be8b0f975a37812b15e913465bb14d845db72a4e3e08
     command: [redis-server, --appendonly, 'yes', --appendfsync, always, --save, '']
@@ -115,6 +136,7 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  ai-context-data:
 networks:
   client-access:
     driver: bridge

@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 import test_combat_maximum_resource as fixture
 from wakfu_server.combat_maximum_resource import NativePercentageHPHandler
 from wakfu_server.combat_stat_handler import NativeStatHandler
@@ -67,6 +68,64 @@ class PercentageHPTests(unittest.TestCase):
             self.apply()
         self.assertEqual(a.hp, 0)
         self.assertTrue(any(e["kind"] == "death" for e in self.f.fight.events))
+
+    def test_registered_percentage_death_delivers_original_runner_before_settlement(
+        self,
+    ):
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+            global_fighter_guards,
+        )
+        from wakfu_server.combat_ordinary_death import registered_ordinary_death
+
+        actor = self.f.actor
+        actor.hp = actor.effect_stats[1] = 30
+        initialize_global_pv_collections(self.f.fight, tuple(self.f.fight.actors))
+        observed = []
+
+        def death(identity, **source):
+            self.assertEqual(identity, actor.id)
+            self.assertTrue(registered_ordinary_death(self.f.fight, actor))
+            self.assertEqual(
+                global_fighter_guards(self.f.fight, identity),
+                dict(baF=False, baG=True, baK=False),
+            )
+            self.assertEqual(self.f.fight.phase, "active")
+            self.assertIs(source["invocation"], self.f.invocation)
+            self.assertEqual(
+                (source["effect"]["effect_class"], source["uid"], source["value"]),
+                (986, 101, -30),
+            )
+            observed.append(identity)
+
+        self.handler.event_lifecycle = SimpleNamespace(death=death)
+        self.apply()
+        self.assertEqual(observed, [actor.id])
+
+    def test_equal_loss_registers_owned_off_play_and_distinct_corpse_source(self):
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+            global_fighter_guards,
+        )
+        from wakfu_server.combat_ordinary_death import registered_ordinary_death
+
+        fight = self.f.fight
+        initialize_global_pv_collections(fight, tuple(fight.actors))
+        actor = self.f.actor
+        actor.hp = actor.effect_stats[1] = 30
+        with fight.effect_resolution():
+            self.apply()
+        self.assertEqual(
+            global_fighter_guards(fight, actor.id), dict(baF=False, baG=True, baK=False)
+        )
+        self.assertTrue(registered_ordinary_death(fight, actor))
+        death = next(
+            i
+            for i, event in enumerate(fight.events)
+            if event["kind"] == "death" and event["actor_id"] == actor.id
+        )
+        self.assertEqual(fight.events[death - 1]["kind"], "percentage_hp_update")
+        self.assertEqual(fight.events[death - 1]["effect_class"], 986)
 
     def test_current_flags_and_native_removal_uses_new_maximum_delta(self):
         a = self.f.actor

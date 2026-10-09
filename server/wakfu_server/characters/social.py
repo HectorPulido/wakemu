@@ -27,7 +27,7 @@ def company(account_id, character):
     )
 
 
-def adapt(opcode, body, account_id, character=None, owned=None):
+def adapt(opcode, body, account_id, character=None, owned=None, cosmetic_record=None):
     if opcode == 22731:
         # cEs/aZq -> eSH.dS: constructor sentinel -1 disables the weekly
         # free companion, independently of the account-owned collection.
@@ -83,6 +83,22 @@ def adapt(opcode, body, account_id, character=None, owned=None):
         return struct.pack(">II", 1, 1) + company(account_id, character)
     if opcode == 13873 and len(body) >= 8:
         count, kind = struct.unpack(">II", body[:8])
+        cosmetic_components = {}
+        cosmetic_record = (
+            cosmetic_record
+            if cosmetic_record is not None
+            else (None if character is None else character.get("owned_cosmetics"))
+        )
+        if cosmetic_record is not None:
+            from .cosmetics import OwnedCosmetics
+
+            cosmetics = OwnedCosmetics.from_record(
+                cosmetic_record, account_id=account_id
+            )
+            cosmetic_components = {
+                8: cosmetics.inventory_component(),
+                9: cosmetics.preset_component(),
+            }
         if count == 1 and kind in ACCOUNT_DEFAULTS:
             r = Reader(body)
             r.take(8)
@@ -96,7 +112,9 @@ def adapt(opcode, body, account_id, character=None, owned=None):
             else:
                 r.take(r.number("I"))
             r.finish()
-            return struct.pack(">II", 1, kind) + ACCOUNT_DEFAULTS[kind]
+            return struct.pack(">II", 1, kind) + cosmetic_components.get(
+                kind, ACCOUNT_DEFAULTS[kind]
+            )
         if (count, kind) == (2, 8):
             # The login also combines cosmetics and presets in one packet.
             r = Reader(body)
@@ -108,9 +126,9 @@ def adapt(opcode, body, account_id, character=None, owned=None):
             r.finish()
             return (
                 struct.pack(">II", 2, 8)
-                + ACCOUNT_DEFAULTS[8]
+                + cosmetic_components.get(8, ACCOUNT_DEFAULTS[8])
                 + struct.pack(">I", 9)
-                + ACCOUNT_DEFAULTS[9]
+                + cosmetic_components.get(9, ACCOUNT_DEFAULTS[9])
             )
         if (count, kind) == (2, 0):
             # Account roster followed by COMPANY; replacing only the first

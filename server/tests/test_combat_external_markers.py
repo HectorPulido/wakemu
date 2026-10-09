@@ -42,7 +42,7 @@ def sample_shared(*, instance_id=0, duel=False):
         instance_id=instance_id,
         is_duel=duel,
         participants=participants,
-        group_lease=((1134, 0, 77), "g1", 53, 1),
+        group_lease=((1134, instance_id, 77), "g1", 53, 1),
         join_context={
             "arena": arena,
             # Native combat bootstrap uses this terrain/effect-area template
@@ -51,7 +51,7 @@ def sample_shared(*, instance_id=0, duel=False):
             "leaders": {0: 17, 1: -201},
             "monsters": {
                 -201: monsters.owned_instance(
-                    5525, 1, -201, map_id=1134, x=14, y=9, z=2
+                    5525, 1, -201, map_id=1134, instance_id=instance_id, x=14, y=9, z=2
                 )
             },
             "world_marker_cells": ((14, 9),),
@@ -178,8 +178,56 @@ class ExternalFightMarkerTests(unittest.TestCase):
         self.assertIsNone(markers.update(shared, now_ms=102_000, now_monotonic=102.0))
         self.assertNotIn(53, markers.started_at_ms)
 
+    def test_owned_instance_markers_publish_and_replay_only_to_same_instance(self):
+        from wakfu_server.combat.combat_wire import decode_topology
+
+        instance_id = 144115188075855873
+        shared = sample_shared(instance_id=instance_id)
+        markers = ExternalFightMarkers()
+        packet = markers.update(shared, now_ms=100_000, now_monotonic=100.0)
+        self.assertEqual(packet[0], 13753)
+        self.assertEqual(markers.location(shared.fight.id), (1134, instance_id))
+        self.assertEqual(
+            decode_topology(decode_external(packet[1])["topology"])["instance_id"], 0
+        )
+        self.assertEqual(markers.snapshots(1134, instance_id), (packet,))
+        self.assertEqual(
+            [p[0] for p in markers.world_snapshots(1134, instance_id)], [12608, 13753]
+        )
+        for other in (0, instance_id + 1):
+            self.assertEqual(markers.snapshots(1134, other), ())
+            self.assertEqual(markers.world_snapshots(1134, other), ())
+        self.assertEqual(
+            markers.world_snapshots(1134, instance_id, exclude_character_id=17), ()
+        )
+        self.assertEqual(markers.world_snapshots(1135, instance_id), ())
+        shared.fight.phase = "active"
+        self.assertEqual(
+            markers.update(shared, now_ms=101_000, now_monotonic=101.0)[0], 12233
+        )
+        self.assertEqual(
+            decode_external(markers.snapshots(1134, instance_id)[0][1])["phase_code"], 2
+        )
+        self.assertEqual(markers.remove(shared.fight.id)[0], 12238)
+        self.assertEqual(markers.world_snapshots(1134, instance_id), ())
+
+    def test_owned_instance_rejects_foreign_npc_or_lease(self):
+        for dependency in ("npc", "lease"):
+            shared = sample_shared(instance_id=144115188075855873)
+            if dependency == "npc":
+                shared.join_context["monsters"][-201]["instance_id"] += 1
+            else:
+                shared.group_lease = ((1134, 0, 77), "g1", 53, 1)
+            markers = ExternalFightMarkers()
+            self.assertIsNone(
+                markers.update(shared, now_ms=100_000, now_monotonic=100.0)
+            )
+            self.assertEqual(markers.world_snapshots(1134, shared.instance_id), ())
+
     def test_ineligible_instance_duel_and_bad_world_cells_fail_closed(self):
-        for shared in (sample_shared(instance_id=8), sample_shared(duel=True)):
+        invalid_instance = sample_shared()
+        invalid_instance.instance_id = -1
+        for shared in (invalid_instance, sample_shared(duel=True)):
             markers = ExternalFightMarkers()
             self.assertIsNone(
                 markers.update(shared, now_ms=100_000, now_monotonic=100.0)

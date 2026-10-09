@@ -20,6 +20,7 @@ from wakfu_server.resource_collect import (
 )
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.wire import proto_field
+from wakfu_server import native_catalog
 
 
 SEED_COVERAGE = (
@@ -346,14 +347,16 @@ class ProfessionActionXpCoverageTests(PostgresCase):
         self,
     ):
         native_professions = set(
-            json.loads((DATA_ROOT / "profession-actions.json").read_text())[
+            json.loads(native_catalog.read_text(DATA_ROOT / "profession-actions.json"))[
                 "profession_ids"
             ]
         )
         self.assertNotIn(62, native_professions)
         rule = next(
             action
-            for resource in json.loads((DATA_ROOT / "plant-resources.json").read_text())
+            for resource in json.loads(
+                native_catalog.read_text(DATA_ROOT / "plant-resources.json")
+            )
             if resource["resource_reference"] == 368
             for step in resource["stage_definitions"]
             if step["stage_id"] == 1
@@ -392,7 +395,7 @@ class ProfessionActionXpCoverageTests(PostgresCase):
         self,
     ):
         native_professions = set(
-            json.loads((DATA_ROOT / "profession-actions.json").read_text())[
+            json.loads(native_catalog.read_text(DATA_ROOT / "profession-actions.json"))[
                 "profession_ids"
             ]
         )

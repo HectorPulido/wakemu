@@ -45,6 +45,31 @@ class NativeArmorTests(unittest.TestCase):
             120,
         )
 
+    def test_life_steal_marker_preserves_armor_coefficients_and_final_modifier(self):
+        # Original class-owned 353422: eWx1013, [0,.25,0,0], flag29.
+        effect = dict(self.effect, parameters=[0, 0.25, 0, 0], native_effect_flags=[29])
+        for level in (1, 20, 200):
+            for modifier in (0, 37, 111):
+                with self.subTest(level=level, modifier=modifier):
+                    self.assertEqual(
+                        armor_amount(
+                            effect,
+                            level,
+                            self.source,
+                            self.target,
+                            capped_player=False,
+                            additional_final=modifier,
+                        ),
+                        armor_amount(
+                            dict(effect, native_effect_flags=[]),
+                            level,
+                            self.source,
+                            self.target,
+                            capped_player=False,
+                            additional_final=modifier,
+                        ),
+                    )
+
     def test_player_cap_and_explicit_bypass(self):
         self.target.effect_stats[88] = 50
         self.assertEqual(

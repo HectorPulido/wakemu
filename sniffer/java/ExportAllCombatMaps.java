@@ -60,8 +60,8 @@ public class ExportAllCombatMaps {
             }
         }
         List<Edge> ordered=new ArrayList<>(edges);ordered.sort(Comparator.comparing(Edge::from).thenComparing(Edge::to));
-        Path output=destination.resolve(map+".json.gz"),temporary=destination.resolve(map+".json.gz.tmp");
-        try(JsonWriter json=new JsonWriter(new OutputStreamWriter(new GZIPOutputStream(Files.newOutputStream(temporary)), java.nio.charset.StandardCharsets.UTF_8))) {
+        Path output=destination.resolve(map+".json"),temporary=destination.resolve(map+".json.tmp");
+        try(JsonWriter json=new JsonWriter(new OutputStreamWriter(Files.newOutputStream(temporary), java.nio.charset.StandardCharsets.UTF_8))) {
             json.beginObject().name("map_id").value(map).name("source").value("Installed VB/Vy walkable surfaces and Sm(3,0,2,true) cardinal transitions; all native 18x18 chunks")
                 .name("limits").value("Static movement geometry only; dynamic actors, criteria, LOS and fight placement policies are not inferred")
                 .name("cells").beginArray();for(Point p:cells)point(json,p);json.endArray().name("edges").beginArray();

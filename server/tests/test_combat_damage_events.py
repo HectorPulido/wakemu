@@ -3,6 +3,22 @@ from wakfu_server.combat_damage_events import damage_event_ids
 
 
 class NativeDamageEventsTests(unittest.TestCase):
+    def test_partial_pv_C_return_does_not_execute_fOG_indirect_branch(self):
+        effect = dict(effect_class=3, native_effect_flags=[], target_masks=[None] * 7)
+        for phase in (1, 2, 3, 4):
+            self.assertEqual(
+                damage_event_ids(
+                    effect,
+                    container_type=3,
+                    phase=phase,
+                    blocked=False,
+                    localization="FRONT",
+                    context_is_native_fight=True,
+                    calculation_skipped=True,
+                ),
+                (0, 2, 8),
+            )
+
     def events(
         self,
         kind=1,

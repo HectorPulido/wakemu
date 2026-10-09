@@ -6,9 +6,32 @@ from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_effect_dispatch import EffectInvocation
 from wakfu_server.combat_stat_handler import NativeStatHandler, StatExecutionContext
 from wakfu_server.combat_effect_removal import _identity_fields
+from wakfu_server import native_catalog
 
 
 class StatHandlerTests(unittest.TestCase):
+    def test_resource_loss_uses_native_raw_oo_overflow_and_removes_owned_delta(self):
+        from wakfu_server.combat_resource_pa_notifications import RAW_SOURCE
+
+        actor = self.fight.actors[7]
+        actor.effect_stats[2] = actor.ap
+        actor.effect_base_maxima = {2: actor.max_ap, 3: actor.max_mp}
+        actor.effect_base_minima = {2: 0, 3: 0}
+        actor.effect_percentages = {2: 0, 3: 0}
+        actor.effect_resource_raw_currents = {2: actor.ap, 3: actor.mp}
+        actor.native_resource_raw_current_source = RAW_SOURCE
+        # PA.oo uses int32 raw subtraction, unlike an effective-only clamp.
+        self.assertTrue(
+            self.handler(
+                dict(effect_class=37, parameters=[-2147483647, 0]), {}, self.invocation
+            )
+        )
+        self.assertEqual(actor.ap, 0)
+        self.assertEqual(actor.effect_resource_raw_currents[2], 0)
+        self.assertEqual(self.fight.owned_stat_effects[100]["actual"], 6)
+        self.handler.remove(100)
+        self.assertEqual((actor.ap, actor.effect_resource_raw_currents[2]), (6, 6))
+
     def test_runner_callback_reports_clamped_delta_after_application(self):
         from dataclasses import replace
         from wakfu_server.combat_runner_callbacks import runner_value_scope
@@ -77,7 +100,7 @@ class StatHandlerTests(unittest.TestCase):
             a.effect_minima = {20: 0, 4: 0, 2: 0, 3: 0}
             a.effect_frozen = frozenset()
         self.registry = json.loads(
-            (DATA_ROOT / "effect-characteristic-registry.json").read_text()
+            native_catalog.read_text(DATA_ROOT / "effect-characteristic-registry.json")
         )
         self.packets = []
         uids = count(100)
@@ -96,7 +119,7 @@ class StatHandlerTests(unittest.TestCase):
     def test_live_runner_l2_percent_and_l3_retirement_preserve_original_request(self):
         from types import SimpleNamespace
         from unittest.mock import patch
-        from wakfu_server.combat_stat_effects import owned_effect_delivery
+        from wakfu_server.combat_stat_effects import evaluated_effect_delivery
 
         for channel_to_change in (2, 3):
             with self.subTest(channel=channel_to_change):
@@ -119,10 +142,10 @@ class StatHandlerTests(unittest.TestCase):
 
                 def capture(*args, **kwargs):
                     sent.append(_identity_fields(kwargs["running_effect_payload"])[4])
-                    return owned_effect_delivery(*args, **kwargs)
+                    return evaluated_effect_delivery(*args, **kwargs)
 
                 with patch(
-                    "wakfu_server.combat_current_stat_consumer.owned_effect_delivery",
+                    "wakfu_server.combat_current_stat_consumer.evaluated_effect_delivery",
                     side_effect=capture,
                 ):
                     self.assertTrue(self.handler(effect, {}, inv))
@@ -171,6 +194,62 @@ class StatHandlerTests(unittest.TestCase):
             self.assertEqual(len(self.packets), 1 if family == 120 else 0)
             self.assertEqual(self.fight.actors[7].effect_stats[20], 80)
 
+    def test_direct_and_clone_null_emit_native_masks_once_with_actual_uid(self):
+        from dataclasses import replace
+        from types import SimpleNamespace
+        from wakfu_server.combat_stat_effects import owned_effect_payload
+        from wakfu_server.combat_value_transfer import transfer_value_context
+
+        for clone_uid in (None, 777):
+            with self.subTest(clone_uid=clone_uid):
+                self.setUp()
+                if clone_uid is not None:
+                    # A cloned eXE listener copies its retained base payload;
+                    # make that native source explicit instead of relying on
+                    # the test's otherwise empty group-retention registry.
+                    payload = owned_effect_payload(
+                        uid=90,
+                        base_uid=90,
+                        generic_effect=self.invocation.reference,
+                        caster_id=self.invocation.caster_id,
+                        target_id=self.invocation.target_id,
+                        value=0,
+                        timing_payload=self.handler.context(
+                            None, self.invocation
+                        ).timing_payload,
+                        execution_status=-1,
+                        executed=False,
+                    )
+                    self.fight.native_owned_group_effects[90] = dict(
+                        uid=90,
+                        base_uid=90,
+                        effect_class=400,
+                        payload=payload.hex(),
+                    )
+                seen = []
+                self.handler.event_lifecycle = SimpleNamespace(
+                    phase=lambda effect, invocation, **kwargs: seen.append(kwargs)
+                )
+                invocation = replace(
+                    self.invocation,
+                    native_running_uid=clone_uid,
+                    native_context_hex=transfer_value_context(b"", 17).hex(),
+                )
+                effect = dict(
+                    effect_class=400,
+                    parameters=[],
+                    target_masks=[None] * 6 + [[2177, 2276]],
+                )
+                self.assertTrue(self.handler(effect, {}, invocation))
+                self.assertEqual([x["channel"] for x in seen], [1, 2, 3, 4])
+                self.assertEqual(
+                    [x["uid"] for x in seen],
+                    [100 if clone_uid is None else clone_uid] * 4,
+                )
+                self.assertEqual([x["value"] for x in seen], [17] * 4)
+                self.assertEqual([x["_event_ids"] for x in seen], [(0, 2177, 2276)] * 4)
+                self.assertEqual(self.fight.actors[7].effect_stats[20], 80)
+
     def test_current_stat_events_are_exact_native_prototype_plus_pk_extras(self):
         from types import SimpleNamespace
 
@@ -201,7 +280,7 @@ class StatHandlerTests(unittest.TestCase):
         self.handler.remove(100)
         self.assertEqual(self.fight.actors[7].effect_stats[20], 80)
         self.assertEqual(self.fight.owned_stat_effects, {})
-        self.assertEqual([p[0] for p in self.packets], [13497, 13560])
+        self.assertEqual([p[0] for p in self.packets], [12613, 13560])
 
     def test_wp_and_ap_modify_authoritative_resources(self):
         self.handler(dict(effect_class=193, parameters=[3, 0]), {}, self.invocation)
@@ -240,7 +319,7 @@ class StatHandlerTests(unittest.TestCase):
         self.handler.remove(101)
         self.assertEqual(actor.effect_stats[27], 0)
         self.assertEqual(self.fight.owned_stat_effects, {})
-        self.assertEqual([op for op, _ in self.packets], [13497, 13497, 13560, 13560])
+        self.assertEqual([op for op, _ in self.packets], [12613, 12613, 13560, 13560])
 
     def test_cap_policy_covers_all_native_registered_resistance_actions(self):
         actor = self.fight.actors[7]
@@ -324,6 +403,6 @@ class StatHandlerTests(unittest.TestCase):
             )
         )
         self.assertEqual(self.fight.owned_stat_effects[100]["actual"], 0)
-        self.assertEqual([packet[0] for packet in self.packets], [13497])
+        self.assertEqual([packet[0] for packet in self.packets], [12613])
         self.handler.remove(100)
         self.assertEqual(self.fight.actors[7].effect_stats[20], 100)

@@ -1,0 +1,12 @@
+{
+  "server_host": "192.168.1.50",
+  "api_url": "https://192.168.1.50:18443",
+  "dispatch_port": 15558,
+  "game_ports": [15556],
+  "chat_port": 16337,
+  "http_port": 18080,
+  "runtime_root": "profiles-remote",
+  "install_root": "..",
+  "runner": "run-client.sh",
+  "open_planting": true
+}

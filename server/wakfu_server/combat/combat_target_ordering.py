@@ -4,14 +4,15 @@ Coordinates are the supplied effect target cell, rather than caster position.
 Only definitions exported from the installed native registry are accepted.
 Health-percent priority flags8/25 and implicit area sort remain separate audits.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from functools import lru_cache
 import json
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 
 
 @lru_cache(maxsize=1)
 def native_target_ordering():
-    return json.loads((DATA_ROOT / "native-target-ordering.json").read_text())
+    return protocol_catalog.load(DATA_ROOT / "native-target-ordering.json")
 
 
 def _int32(value):

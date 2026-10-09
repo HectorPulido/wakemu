@@ -1,13 +1,12 @@
 """Installed bag templates; specialized item-type filters await native evaluation."""
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 from pathlib import Path
 
 RULES = {
     entry["reference"]: entry
-    for entry in json.loads((DATA_ROOT / "inventory-bag-rules.json").read_text())[
-        "bags"
-    ]
+    for entry in protocol_catalog.load(DATA_ROOT / "inventory-bag-rules.json")["bags"]
 }
 
 

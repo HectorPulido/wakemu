@@ -130,7 +130,7 @@ class Store:
         with self.connection() as db:
             db.execute("DELETE FROM tokens WHERE digest=%s", (self.digest(token),))
 
-    def begin_session(self, account_id, ttl=60):
+    def begin_session(self, account_id, ttl=300):
         generation = secrets.token_hex(16)
         with self.connection() as db:
             if (
@@ -173,7 +173,51 @@ class Store:
                 is not None
             )
 
-    def heartbeat(self, account_id, generation, ttl=60):
+    def session_health(self, account_id, generation, *, renew=False, ttl=300):
+        """Observe lease ownership and conditional renewal in one SQL statement."""
+        with self.connection() as db:
+            row = db.execute(
+                "WITH observed AS MATERIALIZED (SELECT generation,expires_at,clock_timestamp() AS checked_at "
+                "FROM sessions WHERE account_id=%s FOR UPDATE), renewed AS ("
+                "UPDATE sessions s SET expires_at=%s FROM observed o WHERE s.account_id=%s "
+                "AND s.generation=%s AND o.generation=%s AND o.expires_at>o.checked_at AND %s "
+                "RETURNING s.expires_at) SELECT clock_timestamp() AS db_now,o.generation,o.expires_at,"
+                "o.checked_at,(SELECT expires_at FROM renewed) AS renewed_until "
+                "FROM (SELECT 1) singleton LEFT JOIN observed o ON TRUE",
+                (account_id, self.now(ttl), account_id, generation, generation, renew),
+            ).fetchone()
+        current = row["generation"]
+        reason = (
+            "missing"
+            if current is None
+            else "replaced"
+            if current != generation
+            else "expired"
+            if row["expires_at"] <= row["checked_at"]
+            else "renewal_failed"
+            if renew and row["renewed_until"] is None
+            else "valid"
+        )
+        fingerprint = (
+            lambda value: None
+            if value is None
+            else hashlib.sha256(value.encode()).hexdigest()[:12]
+        )
+        return dict(
+            valid=reason == "valid",
+            reason=reason,
+            expected_generation_id=fingerprint(generation),
+            observed_generation_id=fingerprint(current),
+            expires_at=None
+            if row["expires_at"] is None
+            else row["expires_at"].isoformat(),
+            db_now=row["db_now"].isoformat(),
+            renewed_until=None
+            if row["renewed_until"] is None
+            else row["renewed_until"].isoformat(),
+        )
+
+    def heartbeat(self, account_id, generation, ttl=300):
         with self.connection() as db:
             return (
                 db.execute(
@@ -305,6 +349,30 @@ class Store:
         except (UniqueViolation, ForeignKeyViolation):
             raise ValueError("Ese nombre ya existe o la cuenta es inválida.") from None
 
+    def cosmetic_record(self, account_id):
+        from wakfu_server.characters.cosmetic_store import load
+
+        with self.connection() as db:
+            cosmetics = load(db, account_id)
+            return None if cosmetics is None else cosmetics.to_record()
+
+    def equip_owned_finishers(self, account_id, character_id, opcode, body):
+        from wakfu_server.characters.cosmetic_store import load, equip_finishers
+        from wakfu_server.characters.cosmetics import finisher_request
+
+        with self.connection() as db:
+            db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
+            character = self.character(account_id, character_id, db)
+            record = load(db, account_id)
+            updated = finisher_request(record, character, opcode, body)
+            equip_finishers(
+                db,
+                character,
+                updated.selected_finishers(character_id),
+                updated_record=updated,
+            )
+            return self.character(account_id, character_id, db)
+
     def character(self, account_id, character_id, db=None):
         if db is None:
             with self.connection() as connection:
@@ -316,6 +384,15 @@ class Store:
         if row is None:
             raise ValueError("Personaje no encontrado.")
         result = dict(row)
+        from wakfu_server.characters.captured_roster_store import (
+            load as load_captured_roster,
+        )
+
+        result["captured_roster"] = load_captured_roster(db, result)
+        from wakfu_server.characters.cosmetic_store import load as load_cosmetics
+
+        cosmetics = load_cosmetics(db, account_id)
+        result["owned_cosmetics"] = None if cosmetics is None else cosmetics.to_record()
         capacity = db.execute(
             "SELECT value FROM settings WHERE name='non_permanent_build_limit'"
         ).fetchone()
@@ -491,7 +568,9 @@ class Store:
                             "DELETE FROM player_party_invitations WHERE inviter_id=%s OR invitee_id=%s",
                             (survivor, survivor),
                         )
-                    db.execute("DELETE FROM player_parties WHERE id=%s", (party["id"],))
+                    from wakfu_server.player_parties import dissolve
+
+                    dissolve(db, party["id"])
                     remaining_ids = []
                 else:
                     leader = (

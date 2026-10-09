@@ -34,9 +34,52 @@ class ObservationDeliveryTests(unittest.TestCase):
         self.assertEqual(converted[12], 0)
         self.assertEqual(converted[13:], body[12:])
         self.assertEqual(converted[19:], proto)
+        executed = evaluated_application_from_observation(body, execute=True)
+        self.assertEqual(executed[12], 1)
+        self.assertEqual(executed[:12] + executed[13:], body)
+        with self.assertRaises(ValueError):
+            evaluated_application_from_observation(body, execute=1)
         for invalid in (body[:-1], body + b"\x00", b"", bytearray(body)):
             with self.assertRaises(ValueError):
                 evaluated_application_from_observation(invalid)
+
+    def test_evaluated_mutation_selects_execution_from_actual_retention(self):
+        from wakfu_server.combat_stat_effects import (
+            owned_effect_payload,
+            evaluated_effect_delivery,
+        )
+
+        proto = owned_effect_payload(
+            uid=81,
+            base_uid=None,
+            generic_effect=150327,
+            caster_id=7,
+            target_id=7,
+            value=-3,
+        )
+        for retained in (False, True):
+            opcode, body = evaluated_effect_delivery(
+                3,
+                9,
+                retained=retained,
+                effect_class=193,
+                target_id=7,
+                uid=81,
+                running_effect_payload=proto,
+            )
+            self.assertEqual(opcode, 12613)
+            self.assertEqual(body[12], int(not retained))
+            self.assertEqual(body[19:], proto)
+        with self.assertRaises(ValueError):
+            evaluated_effect_delivery(
+                3,
+                9,
+                retained=None,
+                effect_class=193,
+                target_id=7,
+                uid=81,
+                running_effect_payload=proto,
+            )
 
     def test_delivery_checks_actual_manager_for_each_action(self):
         args = dict(

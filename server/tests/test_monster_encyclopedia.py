@@ -1,5 +1,6 @@
-import gzip, json, unittest
+import json, unittest
 from pathlib import Path
+from wakfu_server import native_catalog
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -8,13 +9,15 @@ class EncyclopediaTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.data = json.loads(
-            gzip.decompress(
-                (ROOT / "server/protocol/monster-encyclopedia.json.gz").read_bytes()
+            native_catalog.read_bytes(
+                ROOT / "server/protocol/monster-encyclopedia.json"
             )
         )
 
     def test_every_existing_monster_reference_is_exported(self):
-        original = json.loads((ROOT / "server/protocol/monsters.json").read_text())
+        original = json.loads(
+            native_catalog.read_text(ROOT / "server/protocol/monsters.json")
+        )
         self.assertEqual(
             {m["ref"] for m in original["monsters"]},
             {m["ref"] for m in self.data["monsters"]},

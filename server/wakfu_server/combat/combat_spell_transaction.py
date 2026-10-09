@@ -12,6 +12,8 @@ from .combat_spells import cast_animation, cast_notification
 from .combat_geometry_snapshot import source_snapshot
 from .combat_active_spell import active_spell_scope
 from .combat_cast_facing import mirror_cast_facing
+from .combat_transaction_rng import transactional_spell_rng
+from .combat_cast_events import cast_event_scope
 
 
 @dataclass(frozen=True)
@@ -26,6 +28,7 @@ class SpellTransaction:
     action_id: int
 
 
+@transactional_spell_rng
 def prepare_spell_transaction(
     body,
     character,
@@ -66,18 +69,33 @@ def prepare_spell_transaction(
     )
     event_start = len(preview.events)
     caster = preview.actors[plan["actor_id"]]
+    from .combat_normal_execution_origin import (
+        normal_execution_origin,
+        normal_root_context,
+    )
+
     wp_remaining = wp_current - plan["costs"]["wp"]
     if caster.effect_stats is not None and 4 in caster.effect_stats:
         if caster.effect_stats[4] != wp_current:
             raise ValueError("WP snapshot disagrees with authoritative resource")
         caster.effect_stats[4] = wp_remaining
-    caster.ap -= plan["costs"]["ap"]
-    caster.mp -= plan["costs"]["mp"]
-    if caster.effect_stats is not None:
-        for stat, value in ((2, caster.ap), (3, caster.mp)):
-            if stat in caster.effect_stats:
-                caster.effect_stats[stat] = value
-    mirror_cast_facing(caster, plan)
+    from .combat_resource_pa_notifications import notify_resource_pa
+
+    if getattr(caster, "effect_resource_raw_currents", None) is not None:
+        from .combat_resource_pa_notifications import shift_resource_current
+
+        shift_resource_current(preview, caster, 2, plan["costs"]["ap"], subtract=True)
+        shift_resource_current(preview, caster, 3, plan["costs"]["mp"], subtract=True)
+    else:
+        before_ap = caster.ap
+        caster.ap -= plan["costs"]["ap"]
+        if caster.effect_stats is not None and 2 in caster.effect_stats:
+            caster.effect_stats[2] = caster.ap
+        notify_resource_pa(preview, caster, 2, before_current=before_ap)
+        caster.mp -= plan["costs"]["mp"]
+        if caster.effect_stats is not None and 3 in caster.effect_stats:
+            caster.effect_stats[3] = caster.mp
+    mirror_cast_facing(caster, plan, fight=preview)
     dispatcher, effect_packets = runtime_factory(preview, plan)
     if not isinstance(dispatcher, EffectDispatcher) or not isinstance(
         effect_packets, list
@@ -85,7 +103,10 @@ def prepare_spell_transaction(
         raise ValueError(
             "Runtime factory must return dispatcher and private packet list"
         )
-    with active_spell_scope(preview, plan["spell_id"]), preview.effect_resolution():
+    execution_origin = normal_execution_origin(plan)
+    with active_spell_scope(
+        preview, plan["spell_id"], level=plan["evaluation_level"]
+    ), preview.effect_resolution(), cast_event_scope(dispatcher, plan):
         outcomes = tuple(
             dispatcher.execute(
                 EffectInvocation(
@@ -94,6 +115,12 @@ def prepare_spell_transaction(
                     caster.id,
                     plan["target_id"],
                     plan["target"],
+                    native_context_hex=normal_root_context(
+                        execution_origin,
+                        caster_id=caster.id,
+                        spell_id=plan["spell_id"],
+                        level=plan["evaluation_level"],
+                    ).hex(),
                 )
             )
             for reference in plan["effect_ids"]
@@ -105,19 +132,20 @@ def prepare_spell_transaction(
             or not isinstance(payload, bytes)
         ):
             raise ValueError("Invalid effect packet in transaction")
+    # Packet source is the actual cast actor, while the connected player's
+    # snapshot remains the owner/deck authority for the ordinary player route.
+    cast_source = dict(character, id=caster.id)
     packets = (
         (
             12588,
             cast_animation(
                 fight.id,
                 action_id,
-                character,
+                cast_source,
                 plan["spell_id"],
                 plan["target"],
                 critical=critical,
-                native_uid=plan["spell_uid"]
-                if plan["spell_uid"] == plan["spell_id"]
-                else None,
+                native_uid=plan["spell_uid"],
                 native_level=plan["evaluation_level"],
             ),
         ),
@@ -126,13 +154,11 @@ def prepare_spell_transaction(
             cast_notification(
                 fight.id,
                 action_id,
-                character,
+                cast_source,
                 plan["spell_id"],
                 plan["target"],
                 critical=critical,
-                native_uid=plan["spell_uid"]
-                if plan["spell_uid"] == plan["spell_id"]
-                else None,
+                native_uid=plan["spell_uid"],
                 native_level=plan["evaluation_level"],
             ),
         ),

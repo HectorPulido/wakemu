@@ -3,6 +3,25 @@ import math
 import secrets
 
 
+def dungeon_population(store, instance_id):
+    """Dungeon rosters are authored encounters, never breeding ecosystems.
+
+    Match the durable run regardless of room map or active/completed status.
+    Public instance zero needs no database lookup; other private populations
+    retain their existing policy unless they actually belong to a dungeon run.
+    """
+    if instance_id == 0:
+        return False
+    with store.connection() as db:
+        return (
+            db.execute(
+                "SELECT 1 FROM dungeon_instances WHERE instance_id=%s",
+                (instance_id,),
+            ).fetchone()
+            is not None
+        )
+
+
 def policy(store):
     with store.connection() as db:
         row = db.execute(
@@ -61,11 +80,9 @@ def birth_probability(reference, configuration):
 
 def allocate_identity(db):
     """Use the caller's transaction; rollback may leave harmless sequence gaps."""
-    magnitude = db.execute("SELECT nextval('monster_entity_uid') AS uid").fetchone()[
-        "uid"
-    ]
-    if not (1 << 62) < magnitude < (1 << 63):
-        raise ValueError("Invalid monster identity sequence")
+    from .npc_actor_identity import allocate_block
+
+    magnitude = allocate_block(db, 1)
     return magnitude, -magnitude
 
 
@@ -86,15 +103,15 @@ def attempt(
     `indexed` is the server's native directed walk-edge index. Birth requires
     a free adjacent surface; no invented height, respawn or skipped maturity.
     """
+    if type(present) is not bool:
+        raise ValueError("Invalid reproduction presence")
+    if not present or dungeon_population(store, ticket["instance_id"]):
+        return None
     from psycopg.types.json import Jsonb
     from .monster_maturation import STAGES
     from .monsters import owned_instance
     from .combat_monster_world import spawn_group
 
-    if type(present) is not bool:
-        raise ValueError("Invalid reproduction presence")
-    if not present:
-        return None
     configuration = policy(store)
     key = (
         ticket["map_id"],
@@ -288,6 +305,8 @@ def observe(
     from .monster_active_clocks import observe as observe_clocks
     from .monster_maturation import STAGES
 
+    if dungeon_population(store, instance_id):
+        return []
     adults = {reference for reference, (_, rank) in STAGES.items() if rank > 0}
     return observe_clocks(
         store,
@@ -304,6 +323,8 @@ def observe(
 
 
 def pending(store, map_id, instance_id):
+    if dungeon_population(store, instance_id):
+        return []
     with store.connection() as db:
         return [
             dict(row)
@@ -318,6 +339,8 @@ def pending(store, map_id, instance_id):
 
 
 def unpublished(store, map_id, instance_id):
+    if dungeon_population(store, instance_id):
+        return []
     with store.connection() as db:
         return [
             dict(row)
@@ -369,8 +392,15 @@ def tick(
     """One non-catch-up birth cycle in active zones, under group/harvest locks."""
     from .combat_monster_world import remove_message, spawn_group
 
-    locations = set(locations)
-    for map_id, instance_id in set(previous_locations) - locations:
+    locations = {
+        location for location in locations if not dungeon_population(store, location[1])
+    }
+    previous_locations = {
+        location
+        for location in previous_locations
+        if not dungeon_population(store, location[1])
+    }
+    for map_id, instance_id in previous_locations - locations:
         observe(
             store,
             map_id,
@@ -425,6 +455,11 @@ def expanded_seeds(store, key, seeds, persisted):
     """Authorize appended seed-group members only by durable birth snapshots."""
     from .monster_maturation import STAGES
     from .monsters import owned_instance
+    from .npc_actor_identity_repair import actor_aliases, aliased_members
+
+    with store.connection() as db:
+        aliases = actor_aliases(db, key)
+    seeds = aliased_members(seeds, aliases)
 
     if [m["id"] for m in persisted[: len(seeds)]] != [m["id"] for m in seeds]:
         raise ValueError("Conflicting existing group seed roster")
@@ -432,13 +467,23 @@ def expanded_seeds(store, key, seeds, persisted):
     if not extras:
         return list(seeds)
     with store.connection() as db:
+        historical_ids = {
+            old
+            for old, new in aliases.items()
+            if new in {member["id"] for member in extras}
+        }
         births = {
-            row["child_id"]: row
+            aliases.get(row["child_id"], row["child_id"]): dict(
+                row,
+                child=None
+                if row["child"] is None
+                else aliased_members([row["child"]], aliases)[0],
+            )
             for row in db.execute(
                 "SELECT child_id,child,parent_reference FROM monster_reproduction_receipts "
                 "WHERE map_id=%s AND instance_id=%s AND child_group_id=%s "
                 "AND child_id=ANY(%s)",
-                (*key, [m["id"] for m in extras]),
+                (*key, [m["id"] for m in extras] + sorted(historical_ids)),
             )
         }
     expanded = list(seeds)

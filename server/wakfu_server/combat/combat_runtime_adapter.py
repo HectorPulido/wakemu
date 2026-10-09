@@ -11,7 +11,9 @@ from .combat_effect_runtime import NativeRuntimeContexts
 import time
 from .combat_conditions import ConditionContext, ConditionCell
 from .combat_damage_handler import _snapshot
+from .combat_native_actor_lookup import native_actor, native_actor_population
 from .combat_original_controller import CURRENT_TARGET, original_target_controller
+from .combat_native_death_status import native_is_dead as current_native_is_dead
 
 
 @dataclass(frozen=True)
@@ -38,8 +40,31 @@ class NativeActorAuthority:
     native_controller_id: int | None = (
         None  # Authoritative eHg.dTD lookup in current fbX.
     )
+    native_spellbook: object = None  # Explicit eGj.dok/dsx/fzf authority.
     native_in_play: bool | None = (
         None  # fdy sax membership, attested by creation/death lifecycle.
+    )
+    native_ai_control_baseline: bool | None = (
+        None  # Actual eGj.dpR source implementation.
+    )
+    native_controlled_by_ai: bool | None = (
+        None  # eGj.fqL/eGz.pHH, never player inference.
+    )
+    native_summoned_from_symbiot: bool | None = None  # Exact eHg.dTC producer.
+    native_summon_counts_complete: bool = False  # Complete GF breed histogram.
+    native_is_ehp: bool | None = None  # Actual biB/eHP source type.
+    native_captured_roster: object = (
+        None  # Owned eHP.drI component, not a profile catalog.
+    )
+    native_actor_type: int | None = (
+        None  # Actual eGj.asQ/aGJ byte, not breed or control.
+    )
+    native_sex: int | None = None  # Actual eGj.aXz, never inferred from actor type.
+    native_selected_cosmetics: dict | None = (
+        None  # eSU selected values, explicit component snapshot.
+    )
+    native_active_cosmetics: dict | None = (
+        None  # eSP lists; {} is known empty, None is unknown.
     )
 
 
@@ -89,6 +114,66 @@ class NativeServerRuntimeAdapter:
         self.viewer_id = viewer_id
         self.actor_authority, self.cast = actor_authority, cast
 
+    def _area_identity_query(self, preview, invocation, name, value):
+        from .combat_area_predicates import (
+            is_area_type,
+            is_specific_area,
+            is_own_deposit,
+            is_own_area,
+        )
+
+        areas = getattr(preview, "native_effect_areas", {})
+        identity = invocation.target_id
+        if getattr(invocation, "native_target_cell_argument", False):
+            identity = None
+            kind = "null" if invocation.cell is None else "cell"
+        elif identity is None:
+            kind = "null" if invocation.cell is None else "cell"
+        elif identity in preview.actors:
+            kind = "actor"
+        elif isinstance(areas, dict) and identity in areas:
+            kind = "area"
+        else:
+            raise ValueError("Unknown native area criterion target identity")
+        args = dict(target_kind=kind, target_id=identity, cell=invocation.cell)
+        if name == "IsAreaType":
+            return is_area_type(preview, area_type=value, **args)
+        if name == "IsSpecificArea":
+            return is_specific_area(preview, reference=value, **args)
+        if name not in ("IsOwnDeposit", "IsOwnArea"):
+            raise ValueError("Unknown native area identity predicate")
+
+        def pv_owner(identity, seen=frozenset()):
+            if identity is None:
+                return None
+            if type(identity) is not int or identity in seen:
+                raise ValueError("Missing native canonical PV owner identity")
+            actor = native_actor(preview, identity)
+            if actor is not None:
+                metadata = self.actor_authority(preview, actor)
+                targeting = metadata.targeting
+                if targeting.get("is_eGj") is not True or "dpu_id" not in targeting:
+                    raise ValueError("Missing native eGj.dpu PV authority")
+                owner = targeting["dpu_id"]
+                if owner is None:
+                    return None
+                if type(owner) is not int or owner not in preview.actors:
+                    raise ValueError("Missing registered native dpu PV owner")
+                return owner  # eII.aT returns eGj.dpu directly, not recursively.
+            row = areas.get(identity) if isinstance(areas, dict) else None
+            if not isinstance(row, dict) or "owner_id" not in row:
+                raise ValueError("Missing native Qp.bch PV authority")
+            return pv_owner(row["owner_id"], seen | {identity})
+
+        predicate = is_own_area if name == "IsOwnArea" else is_own_deposit
+        return predicate(
+            preview,
+            source_id=invocation.caster_id,
+            pv_owner_query=pv_owner,
+            exclude_center=value,
+            **args,
+        )
+
     def _actor(self, preview, actor):
         _snapshot(actor)
         if not isinstance(actor.effect_minima, dict):
@@ -118,28 +203,71 @@ class NativeServerRuntimeAdapter:
         invocation,
         *,
         native_original_target_id=CURRENT_TARGET,
+        native_original_caster_id=CURRENT_TARGET,
     ):
         aliases = {}
-        caster_actor = preview.actors.get(invocation.caster_id)
+        null_aliases = set()
+        native_cell_argument = getattr(invocation, "native_target_cell_argument", False)
+        if native_cell_argument:
+            from dataclasses import is_dataclass
+
+            if is_dataclass(invocation):
+                from .combat_casting_context import resolve_criterion_cell_invocation
+
+                invocation = resolve_criterion_cell_invocation(
+                    self, preview, invocation
+                )
+        caster_actor = native_actor(preview, invocation.caster_id)
         controller_id = (
             self._actor(preview, caster_actor).native_controller_id
             if caster_actor is not None
             else None
         )
-        for name, identity in (
+        selected_identities = [
             ("caster", invocation.caster_id),
             ("target", invocation.target_id),
             ("castercontroller", controller_id),
-        ):
-            actor = preview.actors.get(identity)
+        ]
+        selected_trigger = getattr(invocation, "native_trigger_context", None)
+        for role in ("caster", "target"):
+            if selected_trigger is None:
+                selected_identities.append(("triggering" + role, None))
+            elif role + "_id" in selected_trigger:
+                selected_identities.append(
+                    (
+                        "triggering" + role,
+                        selected_trigger[role + "_id"],
+                    )
+                )
+        for name, identity in selected_identities:
+            if identity is None:
+                if name != "castercontroller":
+                    null_aliases.add(name)
+                continue
+            actor = native_actor(preview, identity)
             if actor is None:
-                from .combat_state_managers import state_manager
+                from .combat_state_managers import registered_area_pv
+                from .combat_conditions import ConditionActor
 
-                manager = state_manager(preview, identity)
-                if manager is not None:
-                    # Actual faV eHg/Qf, without fictitious fighter resources.
-                    aliases[name] = manager.state_ledger.condition_actor(
-                        is_native_fighter=False,
+                area = registered_area_pv(preview, identity)
+                if area is None:
+                    raise ValueError("Unregistered non-null native criterion recipient")
+                typed = dict(
+                    is_native_fighter=False,
+                    is_character=False,
+                    is_carried=False,
+                    is_carrying=False,
+                )
+                if area.state_ledger is not None:
+                    aliases[name] = area.state_ledger.condition_actor(**typed)
+                else:
+                    # faV.rb returns null when bax is null; no ledger is invented.
+                    aliases[name] = ConditionActor(
+                        actor_id=identity,
+                        state_ids=frozenset(),
+                        state_levels=(),
+                        state_sources=(),
+                        **typed,
                     )
                 continue
             authority = self._actor(preview, actor)
@@ -178,6 +306,15 @@ class NativeServerRuntimeAdapter:
                 if authority.targeting.get("is_eGj") is True
                 else None,
                 is_off_play=authority.targeting.get("baG"),
+                is_native_ehg=authority.targeting.get("is_eGj"),
+                is_in_play=authority.targeting.get("baF"),
+                is_dead=(
+                    getattr(actor, "native_is_dead", None)
+                    if getattr(actor, "native_is_dead", None) is not None
+                    else current_native_is_dead(actor)
+                ),
+                is_summoned_from_symbiot=authority.native_summoned_from_symbiot,
+                native_sex=authority.native_sex,
                 is_summon=authority.is_summon,
                 summon_root_id=authority.summon_root_id,
                 retained_effect_ids=retained_ids,
@@ -186,6 +323,7 @@ class NativeServerRuntimeAdapter:
                 # active Fight. Other lifecycle contexts need their own proof.
                 in_fight=True if preview.phase == "active" else None,
                 physical_radius=actor.physical_radius,
+                direction=actor.direction,
                 native_instance_id=authority.native_instance_id,
                 world_properties=(
                     frozenset(self.actor_authority.world_properties(preview, actor))
@@ -202,6 +340,7 @@ class NativeServerRuntimeAdapter:
                 ),
                 summon_count=authority.summon_count,
                 summon_counts_by_breed=authority.summon_counts_by_breed,
+                summon_counts_complete=authority.native_summon_counts_complete,
                 characteristics={
                     key: actor.effect_stats[identity]
                     for key, identity in ids.items()
@@ -213,8 +352,21 @@ class NativeServerRuntimeAdapter:
                     if identity in actor.effect_maxima
                 },
             )
-        source = preview.actors[invocation.caster_id]
-        target = preview.actors.get(invocation.target_id)
+        source = native_actor(preview, invocation.caster_id)
+        target = native_actor(preview, invocation.target_id)
+        if source is None:
+            from .combat_effect_area_targets import area_targets
+
+            source = next(
+                (
+                    area
+                    for area in area_targets(preview)
+                    if area.id == invocation.caster_id
+                ),
+                None,
+            )
+            if source is None:
+                raise ValueError("Missing actual criterion source PV")
         from .combat_condition_distance import (
             DistanceActor,
             native_caster_target_distance,
@@ -223,38 +375,58 @@ class NativeServerRuntimeAdapter:
         distance = native_caster_target_distance(
             DistanceActor(*source.position[:2], source.physical_radius),
             DistanceActor(*target.position[:2], target.physical_radius)
-            if target is not None
+            if target is not None and not native_cell_argument
             else invocation.cell,
         )
-        alignment = (
-            None
-            if target is None
-            else (
-                source.position[0] == target.position[0]
-                or source.position[1] == target.position[1]
-            )
-        )
+        from .combat_condition_diagonal import native_diagonal
+        from .combat_condition_alignment import native_alignment
+
+        if invocation.target_id is None or native_cell_argument:
+            diagonal_target = invocation.cell  # Actual eZR.I target aBn or null.
+        elif target is not None:
+            diagonal_target = target.position
+        else:
+            from .combat_state_managers import registered_area_pv
+
+            diagonal_area = registered_area_pv(preview, invocation.target_id)
+            if diagonal_area is None:
+                raise ValueError("Unknown non-null native diagonal target PV")
+            # eII.d returns positions only for aBn/eHg targets. A registered
+            # Qq/faV PV has a cell but is not an eHg and resolves to native null.
+            diagonal_target = None
+        diagonal = native_diagonal(source.position, diagonal_target)
+        alignment = native_alignment(source.position, diagonal_target)
         obstacle = self.cast.cell_obstacle(preview, plan, effect, invocation)
         if obstacle is not None and type(obstacle) is not bool:
             raise ValueError("Invalid native cell obstacle")
+        # eOV's cell branch reads Qs.bdm Qq occupants, then QI.V.
+        # Retired actors retain identity/state ledgers but are not Qs occupants.
+        from .combat_effect_area_targets import area_targets
+
         occupants = tuple(
-            self._actor(preview, a).occupant_blocks
-            for a in preview.actors.values()
-            if a.position == invocation.cell
+            area.native_movement_blocking
+            for area in area_targets(preview)
+            if area.position == invocation.cell
         )
         cell = (
             None
-            if obstacle is None
+            if obstacle is None or invocation.cell is None
             else ConditionCell(invocation.cell in preview.walkable, obstacle, occupants)
         )
         # Actor branches use native eHg.bcM. A cell criterion needs fbX.fk
         # footprint + QI.V affiliations; missing cell metadata stays unknown.
         from .combat_trigger_identifiers import condition_identifiers
+        from .combat_activation_conditions import current_activation
 
         triggering = condition_identifiers(
             getattr(invocation, "native_trigger_context", None)
         )
         trigger_source = getattr(invocation, "native_trigger_context", None)
+        for role in ("caster", "target"):
+            if trigger_source is None or (
+                role + "_id" in trigger_source and trigger_source[role + "_id"] is None
+            ):
+                null_aliases.add("triggering" + role)
         # eLL compares Qe.bbb and eII.aW by PV object identity. Registered
         # actors resolve to their sole owned object; absent source is native null.
         if trigger_source is None:
@@ -268,8 +440,8 @@ class NativeServerRuntimeAdapter:
                     preview.actors[identity] is source
                 )
         if trigger_source is not None:
-            trigger_caster = preview.actors.get(trigger_source.get("caster_id"))
-            trigger_target = preview.actors.get(trigger_source.get("target_id"))
+            trigger_caster = native_actor(preview, trigger_source.get("caster_id"))
+            trigger_target = native_actor(preview, trigger_source.get("target_id"))
             if trigger_caster is not None and trigger_target is not None:
                 triggering["triggering_melee_distance"] = native_caster_target_distance(
                     DistanceActor(
@@ -289,6 +461,24 @@ class NativeServerRuntimeAdapter:
                     triggering["triggering_effect_" + role + "_id"] = identity
                 # Unresolved PV is not automatically eHg/eGj: retain unknown.
 
+        boundary = getattr(invocation, "native_cast_boundary_context", None)
+        if boundary is not None and trigger_source is None:
+            from .combat_cast_events import validate_cast_boundary_context
+            from .combat_active_spell import active_spell_id
+
+            validate_cast_boundary_context(boundary)
+            if (
+                boundary["spell_id"] != active_spell_id(preview)
+                or boundary["caster_id"] not in preview.actors
+            ):
+                raise ValueError("Cast boundary facts differ from actual active spell")
+            # Explicit Wakemu policy supplies validated pre-cast distance and
+            # casting identity without inventing a native triggering runner.
+            same_caster = boundary["caster_id"] == invocation.caster_id
+            if same_caster:
+                distance = boundary["distance"]
+            triggering["triggering_caster_is_same"] = same_caster
+
         def native_range_query(
             minimum,
             maximum,
@@ -303,6 +493,7 @@ class NativeServerRuntimeAdapter:
             owner="",
             breed_reference=None,
             own_team_states=False,
+            human_only=False,
         ):
             from .combat_range_conditions import (
                 RangeFighter,
@@ -356,6 +547,7 @@ class NativeServerRuntimeAdapter:
                         candidate, "native_fight_affiliation", candidate.team
                     )
                     for candidate in preview.actors.values()
+                    if not getattr(candidate, "pve_withdrawn", False)
                 }
                 affiliation = getattr(source, "native_fight_affiliation", source.team)
                 area_state_rows = tuple(
@@ -369,7 +561,20 @@ class NativeServerRuntimeAdapter:
                 )
             rows = []
             for candidate in preview.actors.values():
+                if getattr(candidate, "pve_withdrawn", False):
+                    continue
                 metadata = self._actor(preview, candidate)
+                if human_only:
+                    from .combat_team_count_conditions import human_actor_type
+
+                    if type(metadata.native_in_play) is not bool:
+                        raise ValueError("Missing native human-range membership")
+                    if not metadata.native_in_play or getattr(
+                        candidate, "native_fight_affiliation", candidate.team
+                    ) != getattr(source, "native_fight_affiliation", source.team):
+                        continue
+                    if not human_actor_type(metadata.native_actor_type):
+                        continue
                 properties = self.actor_authority.properties(preview, candidate)
                 states = (
                     registered_state_carriers(preview, candidate)
@@ -452,13 +657,17 @@ class NativeServerRuntimeAdapter:
                 invocation.caster_id,
                 invocation.target_id,
                 invocation.cell,
+                actor_property_authority=self.actor_authority,
+                target_is_cell=native_cell_argument,
             )
 
-        def has_summon_breed_query(reference):
-            from .combat_summon_conditions import SummonBreedRow, has_summon_with_breed
+        def owned_summon_breed_rows():
+            from .combat_summon_conditions import SummonBreedRow
 
             rows = []
-            for actor in preview.actors.values():
+            for actor in native_actor_population(preview):
+                if getattr(actor, "pve_withdrawn", False):
+                    continue
                 metadata = self._actor(preview, actor)
                 if (
                     metadata.targeting.get("is_eGj") is not True
@@ -468,11 +677,35 @@ class NativeServerRuntimeAdapter:
                 # eGj.b(fcb,actor): absent relation -> the actor itself.
                 owner = metadata.targeting["dpu_id"]
                 owner = actor.id if owner is None else owner
-                if type(owner) is not int or owner not in preview.actors:
+                if type(owner) is not int or native_actor(preview, owner) is None:
                     raise ValueError("Missing registered native dpu owner")
-                rows.append(SummonBreedRow(actor.id, metadata.breed_id, owner))
+                rows.append(
+                    SummonBreedRow(actor.id, metadata.breed_id, owner, actor.position)
+                )
+            return rows
+
+        def has_summon_breed_query(reference):
+            from .combat_summon_conditions import has_summon_with_breed
+
             return has_summon_with_breed(
-                rows, caller_id=invocation.caster_id, breed=reference
+                owned_summon_breed_rows(),
+                caller_id=invocation.caster_id,
+                breed=reference,
+            )
+
+        def surrounding_own_summon_query(selector, breed, mode):
+            from .combat_summon_conditions import surrounding_own_summon
+
+            center_role = "target" if selector.lower() == "target" else "caster"
+            center = tuple(coordinate_query(axis, center_role) for axis in "xyz")
+            if -(1 << 63) in center:
+                return False
+            return surrounding_own_summon(
+                owned_summon_breed_rows(),
+                caller_id=invocation.caster_id,
+                center=center,
+                breed=breed,
+                mode=mode,
             )
 
         def fighters_breed_range_query(maximum, selector, reference):
@@ -489,6 +722,59 @@ class NativeServerRuntimeAdapter:
 
         def enemy_range_query(minimum, maximum, selector, aligned, los):
             return native_range_query(minimum, maximum, selector, aligned, los)
+
+        def human_allies_range_query(minimum, maximum, selector, aligned, los):
+            return native_range_query(
+                minimum,
+                maximum,
+                selector,
+                aligned,
+                los,
+                relation="ally",
+                in_play=True,
+                human_only=True,
+            )
+
+        def allies_count_query(selector):
+            from .combat_team_count_conditions import allies_membership
+
+            selected = target if selector.lower() == "target" else source
+            if selected is None:
+                raise ValueError("Missing native allies-count reference actor")
+            affiliation = getattr(selected, "native_fight_affiliation", selected.team)
+            count = 0
+            for candidate in native_actor_population(preview):
+                metadata = self._actor(preview, candidate)
+                properties = self.actor_authority.properties(preview, candidate)
+                if allies_membership(
+                    metadata.native_in_play,
+                    getattr(candidate, "native_fight_affiliation", candidate.team),
+                    affiliation,
+                    properties,
+                ):
+                    count += 1
+            return count
+
+        def monsters_count_query(team=-1, breed=-1):
+            from .combat_team_count_conditions import monsters_count
+            from .combat_summon_initialization import detached_actor
+
+            if source is not None and detached_actor(preview, source.id) is not None:
+                raise ValueError("Native monster count requires actual fight context")
+            rows = []
+            for candidate in native_actor_population(preview):
+                if getattr(candidate, "pve_withdrawn", False):
+                    continue
+                metadata = self._actor(preview, candidate)
+                rows.append(
+                    (
+                        metadata.native_actor_type,
+                        metadata.native_in_play,
+                        getattr(candidate, "native_fight_affiliation", candidate.team),
+                        metadata.breed_id,
+                    )
+                )
+            return monsters_count(rows, team, breed)
 
         def allies_range_query(minimum, maximum, selector, aligned, los, in_play=True):
             return native_range_query(
@@ -549,10 +835,132 @@ class NativeServerRuntimeAdapter:
                 owned=owned,
             )
 
+        def valid_gate_for_tp_query(selector, minimum, maximum):
+            from .combat_gate_conditions import has_valid_gate_for_tp
+            from .combat_effect_area_queries import _rows
+
+            caster = aliases.get("caster")
+            if caster is None:
+                if "caster" in null_aliases:
+                    return True  # eMT actual absent caster returns native0.
+                raise ValueError("Missing native valid-gate caster PV")
+            if type(caster.fight_affiliation) is not int:
+                raise ValueError("Missing native valid-gate caster bcM")
+            if selector.lower() == "target":
+                if invocation.target_id is None:
+                    center = invocation.cell  # eZR.I passes bft as actual aBn.
+                elif invocation.target_id in preview.actors:
+                    center = native_actor(preview, invocation.target_id).position
+                else:
+                    from .combat_state_managers import registered_area_pv
+
+                    area = registered_area_pv(preview, invocation.target_id)
+                    if area is None:
+                        raise ValueError("Missing native valid-gate target PV")
+                    center = area.position
+            else:
+                center = source.position
+            occupancy = getattr(self.cast, "gate_cell_affiliations", None)
+            return has_valid_gate_for_tp(
+                _rows(preview),
+                caster_id=invocation.caster_id,
+                caster_affiliation=caster.fight_affiliation,
+                center=center,
+                minimum=minimum,
+                maximum=maximum,
+                cell_affiliations=(
+                    None
+                    if not callable(occupancy)
+                    else lambda x, y: occupancy(preview, plan, x, y)
+                ),
+            )
+
+        def closest_specific_area_query(selector, reference, use_path, owner_selector):
+            from .combat_effect_area_queries import closest_specific_area_distance
+
+            # ePF.tw is case sensitive. Other selector/fallback contexts need
+            # their actual native event payload, not a lowercased actor guess.
+            if selector not in ("caster", "target"):
+                raise ValueError("Missing native closest-area ePF selector authority")
+            identity = selected_relationship_id(selector)
+            selected = aliases.get(selector)
+            if selected is None:
+                if selector not in null_aliases:
+                    raise ValueError("Missing native closest-area selected PV")
+                return -1  # eIw returns before resolving owner/fight for null eHg.
+            elif selected.is_native_fighter is not True:
+                if selected.is_native_fighter is False:
+                    return -1
+                raise ValueError("Missing native closest-area eGj type authority")
+            owner_id = None
+            if owner_selector is not None:
+                key = owner_selector.lower()
+                if key in aliases:
+                    owner_id = selected_relationship_id(key)
+                elif key not in null_aliases:
+                    raise ValueError(
+                        "Missing native closest-area owner selector authority"
+                    )
+            return closest_specific_area_distance(
+                preview,
+                selected_id=identity,
+                reference=reference,
+                use_path=use_path,
+                owner_id=owner_id,
+            )
+
         def active_spell_id_query():
             from .combat_active_spell import active_spell_id
 
             return active_spell_id(preview)
+
+        def fight_model_query():
+            from .combat_summon_initialization import detached_actor
+
+            # Actual eZQ construction context and fresh eGj.dpt are null;
+            # eKj returns 0 after its context/container/caster fallbacks.
+            if source is not None and detached_actor(preview, source.id) is not None:
+                return 0
+            model = getattr(preview, "native_fight_model", None)
+            if type(model) is not int or not -128 <= model <= 127:
+                raise ValueError("Missing native serialized combat kind")
+            return model
+
+        def cosmetic_state():
+            from .combat_cosmetic_conditions import NativeCosmeticState
+
+            actor = native_actor(preview, invocation.caster_id)
+            if actor is None:
+                raise ValueError("Missing native cosmetic caster")
+            metadata = self._actor(preview, actor)
+            return NativeCosmeticState(
+                metadata.targeting.get("is_eGj"),
+                metadata.native_selected_cosmetics,
+                metadata.native_active_cosmetics,
+            )
+
+        def active_cosmetic_id_query(category):
+            from .combat_cosmetic_conditions import active_cosmetic_id
+
+            return active_cosmetic_id(cosmetic_state(), category)
+
+        def has_active_cosmetic_query(category, cosmetic_id):
+            from .combat_cosmetic_conditions import has_active_cosmetic
+
+            return has_active_cosmetic(cosmetic_state(), category, cosmetic_id)
+
+        def pvp_query():
+            from .combat_system_conditions import fight_is_pvp
+            from .combat_summon_initialization import detached_actor
+
+            if source is not None and detached_actor(preview, source.id) is not None:
+                return False  # eOL: fresh eZQ/PO context and eGj.dpt are null-fight.
+            return fight_is_pvp(fight_model_query())
+
+        def boolean_system_configuration_query(key):
+            from .combat_system_conditions import boolean_system_configuration
+
+            return boolean_system_configuration(preview, key)
 
         def current_container_level_query():
             from .combat_container_level import running_container_level
@@ -666,29 +1074,109 @@ class NativeServerRuntimeAdapter:
             identity = (
                 invocation.target_id if selector == "target" else invocation.caster_id
             )
-            actor = preview.actors.get(identity)
+            actor = native_actor(preview, identity)
             area = getattr(preview, "native_effect_areas", {}).get(identity)
             position = (
                 actor.position
                 if actor is not None
                 else (area["cell"] if area is not None else None)
             )
+            if native_cell_argument and selector == "target":
+                position = invocation.cell
             # faV is eHg even when its Qf is null; coordinates need no state manager.
             if actor is None and area is None and selector == "target":
                 position = invocation.cell
             return native_coordinate(axis, position)
 
-        def backstabbed_query(selector):
-            from .combat_condition_facing import native_backstabbed
+        def life_actor_query(name, selector):
+            from .combat_condition_life import registered_life_predicate
 
+            identity = (
+                invocation.target_id if selector == "target" else invocation.caster_id
+            )
+            if selector == "target" and (native_cell_argument or identity is None):
+                if invocation.cell is None:
+                    return False
+                # Actual eII.a/b resolve aBn through QI.U/O's first eGj.
+                from .combat_qi_fight import current_registry
+
+                registry = current_registry(preview)
+                identity = None
+                for slot in registry.ordered_U(*invocation.cell[:2]):
+                    row = registry.slots[slot]
+                    if row is not None and row["identity"][0] == "actor":
+                        identity = row["identity"][1]
+                        actor = native_actor(preview, identity)
+                        if (
+                            actor is None
+                            or self._actor(preview, actor).targeting.get("is_eGj")
+                            is not True
+                        ):
+                            raise ValueError("Missing native QI life fighter type")
+                        break
+            return registered_life_predicate(preview, self._actor, name, identity)
+
+        def border_cell_query(selector):
+            from .combat_condition_border import border_cell_result
+            from .combat_state_managers import registered_area_pv
+
+            identity = (
+                invocation.target_id if selector == "target" else invocation.caster_id
+            )
+            actor = native_actor(preview, identity)
+            if actor is not None:
+                metadata = self._actor(preview, actor)
+                if metadata.targeting.get("is_eGj") is not True:
+                    raise ValueError(
+                        "Missing native eHg actor type for border-cell coordinate"
+                    )
+                qi = getattr(preview, "native_qi_snapshot", None)
+                if qi is None:
+                    raise ValueError("Missing serialized native QI border snapshot")
+                return border_cell_result(qi, *actor.position[:2])
+
+            if identity is not None:
+                area = registered_area_pv(preview, identity)
+                if area is None:
+                    raise ValueError(
+                        "Unregistered non-null native border-cell recipient"
+                    )
+                if area.state_ledger is not None:
+                    raise ValueError("Missing native ePy border-cell target authority")
+                return -1  # A null-Qf Qq/faV PV is not eHg/ePy.
+
+            if selector == "target" and invocation.cell is None:
+                return -1  # eII.b resolves a proven null target.
+            if invocation.target_id is None and invocation.cell is not None:
+                if native_cell_argument:
+                    return -1  # Completed QI lookup proved no eHg target.
+                raise ValueError(
+                    "Missing native QI.U first fighter for explicit target cell"
+                )
+            raise ValueError("Missing native border-cell actor identity")
+
+        def facing_query(selector, query):
             selected_id, opposite_id = (
                 (invocation.target_id, invocation.caster_id)
                 if selector == "target"
                 else (invocation.caster_id, invocation.target_id)
             )
-            return native_backstabbed(
-                preview, selected_id, opposite_id, aliases.get(selector)
-            )
+            return query(preview, selected_id, opposite_id, aliases.get(selector))
+
+        def backstabbed_query(selector):
+            from .combat_condition_facing import native_backstabbed
+
+            return facing_query(selector, native_backstabbed)
+
+        def facestabbed_query(selector):
+            from .combat_condition_facing import native_facestabbed
+
+            return facing_query(selector, native_facestabbed)
+
+        def sidestabbed_query(selector):
+            from .combat_condition_facing import native_sidestabbed
+
+            return facing_query(selector, native_sidestabbed)
 
         def selected_relationship_id(selector):
             key = selector.lower()
@@ -747,7 +1235,7 @@ class NativeServerRuntimeAdapter:
             identity = selected_relationship_id(selector)
             if identity is None:
                 return None
-            selected = preview.actors.get(identity)
+            selected = native_actor(preview, identity)
             if selected is None:
                 raise ValueError("Unregistered native own-summon selected actor")
             metadata = self._actor(preview, selected)
@@ -758,10 +1246,33 @@ class NativeServerRuntimeAdapter:
                 summon_root_id=metadata.summon_root_id,
             )
 
+        def spell_level_query(reference, selector):
+            identity = selected_relationship_id(selector)
+            actor = native_actor(preview, identity)
+            if actor is None:
+                raise ValueError(
+                    "Native GetSpellLevel selected user is not a character"
+                )
+            authority = self._actor(preview, actor)
+            from .combat_spell_level import NativeSpellBook
+
+            if not isinstance(authority.native_spellbook, NativeSpellBook):
+                raise ValueError("Missing native complete owned spellbook authority")
+            return authority.native_spellbook.level(reference)
+
         def state_actor_query(selector):
             key = selector.lower()
             if key in ("caster", "target", "castercontroller"):
-                return aliases.get(key)
+                selected = aliases.get(key)
+                if selected is None:
+                    if key in null_aliases:
+                        return None
+                    raise ValueError(f"Missing native eHg state-query actor: {key}")
+                if selected.is_native_fighter is False:
+                    return None  # eII casts non-eHg PVs to null before eME/eMF.
+                if selected.is_native_fighter is not True:
+                    raise ValueError(f"Missing native eHg state-query type: {key}")
+                return selected
             if key in ("triggeringcaster", "triggeringtarget"):
                 if trigger_source is None:
                     return None  # Ready/turn external boundary has no source Qe.
@@ -771,12 +1282,23 @@ class NativeServerRuntimeAdapter:
                 identity = trigger_source[role]
                 if identity is None:
                     return None
-                from .combat_state_managers import state_manager
+                selected = native_actor(preview, identity)
+                if selected is not None:
+                    authority = self._actor(preview, selected)
+                    if authority.targeting.get("is_eGj") is not True:
+                        raise ValueError(
+                            "Missing native eHg triggering state-query type"
+                        )
+                    return selected.state_ledger.condition_actor(is_native_fighter=True)
+                from .combat_state_managers import registered_area_pv
 
-                selected = state_manager(preview, identity)
-                if selected is None:
-                    raise ValueError("Unregistered native triggering state-query actor")
-                return selected.state_ledger.condition_actor()
+                if identity in getattr(
+                    preview, "native_effect_areas", {}
+                ) or identity in getattr(preview, "native_retired_area_managers", {}):
+                    area = registered_area_pv(preview, identity)
+                    if area is not None:
+                        return None  # faV/Qq is not eHg, even with a Qf ledger.
+                raise ValueError("Unregistered native triggering state-query actor")
             raise ValueError("Unsupported native state-query relationship")
 
         def team_id_query(selector):
@@ -797,7 +1319,7 @@ class NativeServerRuntimeAdapter:
                 identity = trigger_source[role]
                 if identity is None:
                     return -1
-                actor = preview.actors.get(identity)
+                actor = native_actor(preview, identity)
                 if actor is None:
                     raise ValueError(
                         f"Unregistered native triggering team actor: {identity}"
@@ -809,6 +1331,168 @@ class NativeServerRuntimeAdapter:
             if key == "eventtarget":
                 raise ValueError("Missing native ePH event target authority")
             return -1  # Unrecognized eII.a selector is native null.
+
+        def free_cell_query(selector, forward, sideways):
+            from .combat_free_cell_condition import native_free_cell
+            from .combat_qi_fight import current_registry
+            from .combat_effect_area_targets import area_targets
+
+            target_selected = selector.lower() == "target"
+            selected = "target" if target_selected else "caster"
+            opposite = "caster" if target_selected else "target"
+            origin = tuple(coordinate_query(axis, selected) for axis in "xyz")
+            other = tuple(coordinate_query(axis, opposite) for axis in "xyz")
+            if -(1 << 63) in origin or -(1 << 63) in other:
+                return False
+            registry = current_registry(preview)
+
+            def first_obstacle(x, y):
+                order = registry.ordered_U(x, y)
+                return bool(order and registry.slots[order[0]] is not None)
+
+            return native_free_cell(
+                origin,
+                other,
+                forward,
+                sideways,
+                terrain_free=registry.snapshot().R,
+                area_blockers=tuple(
+                    (area.position, area.native_movement_blocking)
+                    for area in area_targets(preview)
+                ),
+                first_obstacle=first_obstacle,
+            )
+
+        def controlled_by_ai_query(selector):
+            # eNH's one string selects target only for case-insensitive target.
+            target_selected = selector.lower() == "target"
+            identity = invocation.target_id if target_selected else invocation.caster_id
+            if target_selected and (native_cell_argument or identity is None):
+                if invocation.cell is None:
+                    return False
+                raise ValueError(
+                    "Missing native IsControlledByAI cell-to-eGj resolution"
+                )
+            actor = native_actor(preview, identity)
+            if actor is None:
+                if identity is None or identity in getattr(
+                    preview, "native_effect_areas", {}
+                ):
+                    return False
+                raise ValueError("Unregistered native AI-control recipient")
+            value = self._actor(preview, actor).native_controlled_by_ai
+            if type(value) is not bool:
+                raise ValueError("Missing native eGj.fqL authority")
+            return value
+
+        def gate_count_query(selector, mode):
+            from .combat_effect_area_queries import _rows
+            from .combat_gate_conditions import native_gate_count
+
+            if selector.lower() == "target" and native_cell_argument:
+                raise ValueError("Missing native NbGates cell-to-eGj resolution")
+            selected = aliases.get(selector.lower())
+            if selected is None or selected.is_native_fighter is False:
+                return 0
+            if (
+                selected.is_native_fighter is not True
+                or type(selected.actor_id) is not int
+            ):
+                raise ValueError("Missing native NbGates eGj identity")
+            return native_gate_count(
+                _rows(preview),
+                actor_id=selected.actor_id,
+                affiliation=selected.fight_affiliation,
+                mode=mode,
+            )
+
+        def use_gate_effect_query():
+            from .combat_casting_context import use_gate_effect
+
+            return use_gate_effect(self, preview, plan, effect, invocation)
+
+        def use_gate_triggering_effect_query():
+            from .combat_casting_context import use_gate_triggering_effect
+
+            return use_gate_triggering_effect(self, preview, plan, effect, invocation)
+
+        def original_controller_predicate_query(name):
+            from .combat_original_controller import controller_predicate
+
+            return controller_predicate(
+                preview,
+                self.actor_authority,
+                invocation.caster_id,
+                invocation.target_id,
+                invocation.cell,
+                target_is_cell=native_cell_argument,
+                name=name,
+            )
+
+        def breed_in_symbiot_query(reference, selector):
+            from .combat_captured_roster_condition import breed_in_symbiot
+
+            key = selector.lower()
+            if key == "caster":
+                identity = invocation.caster_id
+            elif key == "target":
+                identity = invocation.target_id
+                if native_cell_argument or identity is None:
+                    from .combat_qi_fight import current_registry
+
+                    identity = None
+                    if invocation.cell is not None:
+                        registry = current_registry(preview)
+                        for slot in registry.ordered_U(*invocation.cell[:2]):
+                            row = registry.slots[slot]
+                            if row is not None and row["identity"][0] == "actor":
+                                identity = row["identity"][1]
+                                break
+            elif key in (
+                "triggeringcaster",
+                "triggeringtarget",
+                "castercontroller",
+                "eventtarget",
+            ):
+                raise ValueError(
+                    "Missing native symbiot selector relationship authority"
+                )
+            else:
+                return False  # Actual eII.a unrecognized selector returns null.
+            actor = native_actor(preview, identity)
+            if actor is None:
+                if identity is not None and identity not in getattr(
+                    preview, "native_effect_areas", {}
+                ):
+                    raise ValueError("Unregistered native symbiot selector identity")
+                return False  # Null/faV is not the actual eHP required by eMd.
+            return breed_in_symbiot(self._actor(preview, actor), reference)
+
+        def selected_creature_available_query():
+            from .combat_captured_roster_condition import selected_creature_status
+
+            source_actor = native_actor(preview, invocation.caster_id)
+            if source_actor is None:
+                raise ValueError("Native eON requires a non-null actual caster")
+            return selected_creature_status(self._actor(preview, source_actor))
+
+        def space_in_symbiot_query():
+            from .combat_captured_roster_condition import space_in_symbiot
+
+            source_actor = native_actor(preview, invocation.caster_id)
+            if source_actor is None:
+                raise ValueError("Missing actual eLm caster resolution authority")
+            metadata = self._actor(preview, source_actor)
+            if metadata.targeting.get("is_eGj") is not True:
+                raise ValueError("Missing actual eLm caster eGj type")
+            return space_in_symbiot(metadata)
+
+        def enemy_cell_affiliations_query():
+            from .combat_casting_context import enemy_cell_affiliations
+
+            return enemy_cell_affiliations(
+                self, preview, invocation.caster_id, invocation.cell
+            )
 
         return ConditionContext(
             aliases,
@@ -833,15 +1517,37 @@ class NativeServerRuntimeAdapter:
                 if callable(getattr(self.actor_authority, "item_quantity", None))
                 else None
             ),
+            is_in_diagonal=diagonal,
             line_of_sight_query=line_of_sight_query,
             fighters_breed_range_query=fighters_breed_range_query,
+            human_allies_range_query=human_allies_range_query,
+            allies_count_query=allies_count_query,
+            monsters_count_query=monsters_count_query,
             has_summon_breed_query=has_summon_breed_query,
             enemy_range_query=enemy_range_query,
             allies_range_query=allies_range_query,
             state_range_query=state_range_query,
             own_team_state_range_query=own_team_state_range_query,
             specific_area_range_query=specific_area_range_query,
+            closest_specific_area_query=closest_specific_area_query,
+            valid_gate_for_tp_query=valid_gate_for_tp_query,
+            use_gate_effect_query=use_gate_effect_query,
+            use_gate_triggering_effect_query=use_gate_triggering_effect_query,
+            activation_query=lambda name, argument: current_activation(
+                preview, name, argument
+            ),
+            original_controller_predicate_query=original_controller_predicate_query,
+            selected_creature_available_query=selected_creature_available_query,
+            breed_in_symbiot_query=breed_in_symbiot_query,
+            space_in_symbiot_query=space_in_symbiot_query,
+            surrounding_own_summon_query=surrounding_own_summon_query,
+            controlled_by_ai_query=controlled_by_ai_query,
+            free_cell_query=free_cell_query,
+            gate_count_query=gate_count_query,
             own_specific_area_query=own_specific_area_query,
+            area_identity_query=lambda name, value: self._area_identity_query(
+                preview, invocation, name, value
+            ),
             cell_area_type_query=cell_area_type_query,
             cell_specific_area_query=cell_specific_area_query,
             team_area_range_query=team_area_range_query,
@@ -854,10 +1560,26 @@ class NativeServerRuntimeAdapter:
             own_summon_actor_query=own_summon_actor_query,
             viewer_id=self.viewer_id,
             coordinate_query=coordinate_query,
+            border_cell_query=border_cell_query,
             team_id_query=team_id_query,
             backstabbed_query=backstabbed_query,
+            facestabbed_query=facestabbed_query,
+            sidestabbed_query=sidestabbed_query,
             active_spell_id_query=active_spell_id_query,
+            fight_model_query=fight_model_query,
+            pvp_query=pvp_query,
+            boolean_system_configuration_query=boolean_system_configuration_query,
+            active_cosmetic_id_query=active_cosmetic_id_query,
+            has_active_cosmetic_query=has_active_cosmetic_query,
+            spell_level_query=spell_level_query,
             current_container_level_query=current_container_level_query,
+            effect_caster_original_controller_query=lambda: original_target_controller(
+                preview,
+                self.actor_authority,
+                invocation.caster_id
+                if native_original_caster_id is CURRENT_TARGET
+                else native_original_caster_id,
+            ),
             effect_target_original_controller_query=lambda: original_target_controller(
                 preview,
                 self.actor_authority,
@@ -866,8 +1588,28 @@ class NativeServerRuntimeAdapter:
                 else native_original_target_id,
             ),
             fight_current_table_turn=getattr(preview, "native_table_turn", None),
-            enemy_target_kind="actor" if target is not None else "cell",
+            enemy_target_kind=(
+                ("null" if invocation.cell is None else "cell")
+                if native_cell_argument
+                else "actor"
+                if target is not None
+                else "other"
+                if invocation.target_id is not None
+                else "null"
+                if invocation.cell is None
+                else "cell"
+            ),
+            enemy_cell_affiliations_query=enemy_cell_affiliations_query,
             effect_target_absent=invocation.target_id is None,
+            target_cell_is_explicit=(
+                native_cell_argument
+                or invocation.target_id is None
+                and invocation.cell is not None
+            ),
+            native_cell_target_fighter_resolved=True if native_cell_argument else None,
+            null_actor_aliases=frozenset(null_aliases),
+            state_null_fallback_absent=True,  # Actual effect context Qe is not ePy.
+            life_actor_query=life_actor_query,
             **triggering,
         )
 
@@ -879,28 +1621,94 @@ class NativeServerRuntimeAdapter:
         """
         from types import SimpleNamespace
 
-        caster = preview.actors.get(request["actor_id"])
+        caster = native_actor(preview, request["actor_id"])
         if caster is None:
             raise ValueError("Missing conditional-cost caster")
-        target = next(
-            (
-                actor
-                for actor in preview.actors.values()
-                if actor.hp > 0 and actor.position == request["target"]
-            ),
-            None,
+        from dataclasses import replace
+        from .combat_casting_context import (
+            NativeOwnedCastingContext,
+            cast_cell_condition,
         )
-        context = SimpleNamespace(
-            caster_id=caster.id,
-            target_id=None if target is None else target.id,
-            cell=request["target"],
+
+        conditions, context = cast_cell_condition(
+            self, preview, request, caster.id, request["target"], return_invocation=True
         )
-        return self.condition(preview, request, None, context)
+
+        def native_usage_context_query(target_id, spell_id, level):
+            from copy import copy
+
+            selected = copy(context)
+            selected.target_id = target_id
+            selected.native_target_cell_argument = False
+            selected.native_explicit_target = target_id is not None
+            plan = dict(request, spell_id=spell_id, evaluation_level=level)
+            return self.condition(preview, plan, None, selected)
+
+        def native_casting_query(rule, spell_id, level):
+            plan = dict(request, spell_id=spell_id, evaluation_level=level)
+            casting = NativeOwnedCastingContext(
+                self, preview, plan, context, conditions, rule
+            )
+            casting.normal_mode = True
+            casting.resolve_target_fighter()
+            aligned = casting.normal_alignment()
+            trace = [dict(stage="normal_alignment", value=aligned)]
+            try:
+                result = casting.eligibility(trace=trace) if aligned else "twU"
+            except ValueError as error:
+                error.native_casting_context = dict(
+                    criterion=rule.get("cast_criterion_raw"),
+                    caster_id=caster.id,
+                    target_cell=list(context.cell),
+                    target_id=context.target_id,
+                    spell_id=spell_id,
+                    evaluation_level=level,
+                )
+                error.native_casting_trace = trace
+                raise
+            diagnostic = dict(
+                selected_casting_flags={
+                    key: rule.get(key)
+                    for key in (
+                        "line_of_sight",
+                        "linear",
+                        "diagonal",
+                        "linear_path",
+                        "path_option",
+                        "free_cell",
+                        "range_modifiable",
+                        "allow_self",
+                        "forbid_QI_P",
+                        "minimum",
+                        "maximum",
+                    )
+                },
+                criterion=rule.get("cast_criterion_raw"),
+                caster_id=caster.id,
+                target_cell=list(context.cell),
+                target_id=context.target_id,
+                spell_id=spell_id,
+                evaluation_level=level,
+                trace=trace,
+            )
+            return dict(
+                result=result,
+                aligned=aligned,
+                diagnostic=diagnostic,
+                target_id=None if casting.target is None else casting.target.id,
+            )
+
+        return replace(
+            conditions,
+            native_casting_query=native_casting_query,
+            native_usage_context_query=native_usage_context_query,
+        )
 
     def targets(self, preview, plan, effect, invocation):
         return {
             actor.id: dict(self._actor(preview, actor).targeting)
-            for actor in preview.actors.values()
+            for actor in native_actor_population(preview)
+            if not getattr(actor, "pve_withdrawn", False)
         }
 
     def random(self, preview, plan):
@@ -930,9 +1738,66 @@ class NativeServerRuntimeAdapter:
             adapter=self, preview=preview, plan=plan, replay=replay, retention=retention
         )
 
+    def area_affiliation(self, preview, source_identity):
+        """Capture faV.j(PV): only an actual eGj owner copies current bcM."""
+        source = native_actor(preview, source_identity)
+        if source is None:
+            from .combat_state_managers import registered_area_pv
+
+            if registered_area_pv(preview, source_identity) is None:
+                raise ValueError("Unregistered non-null area affiliation source")
+            # faV constructors initialize ebh=-1; Qq bav is not eGj kind20.
+            return -1
+        authority = self._actor(preview, source)
+        native_fighter = authority.targeting.get("is_eGj")
+        if type(native_fighter) is not bool:
+            raise ValueError("Missing native area owner eGj type authority")
+        if not native_fighter:
+            return -1
+        if hasattr(source, "native_fight_affiliation"):
+            affiliation = source.native_fight_affiliation
+        else:
+            from .combat_summon import ordinary_roster_authority
+
+            if not ordinary_roster_authority(self.actor_authority):
+                raise ValueError("Missing actual native area owner bcM affiliation")
+            # Ordinary fcb/eGj.bcM uses team, independently of obstacle bcN.
+            affiliation = source.team
+        if type(affiliation) is not int or not -128 <= affiliation < 128:
+            raise ValueError("Invalid native signed-byte area owner bcM")
+        return affiliation
+
     def contexts(self):
+        from .combat_qi_fight import register_effect_area_obstacle
+
+        def state_spell_level(preview, plan, effect, invocation, spell_reference):
+            caster = native_actor(preview, invocation.caster_id)
+            if caster is None:
+                raise ValueError("Missing native eWu caster character")
+            authority = self._actor(preview, caster)
+            native_fighter = authority.targeting.get("is_eGj")
+            if native_fighter is False:
+                return None  # eWu.eq leaves its initial level for non-eGj casters.
+            if native_fighter is not True:
+                raise ValueError("Unknown native eWu caster type")
+            from .combat_spell_level import NativeSpellBook
+
+            book = authority.native_spellbook
+            if not isinstance(book, NativeSpellBook):
+                raise ValueError("Missing native complete owned spellbook authority")
+            if book.levels is None:
+                return None  # Native dok()==null: eq logs and keeps the initial level.
+            if type(spell_reference) is not int:
+                raise ValueError("Invalid native eWu owned spell reference")
+            level = book.levels.get(spell_reference)
+            if level is None:
+                return None  # fyR.pb miss also preserves the initial level.
+            if type(level) is not int or not -32768 <= level <= 32767:
+                raise ValueError("Invalid native owned spell level")
+            return level
+
         return NativeRuntimeContexts(
-            actor_candidates=lambda p, plan, e, i: tuple(p.actors.values()),
+            actor_candidates=lambda p, plan, e, i: native_actor_population(p),
             resolution=self.cast.resolution,
             native_targets=self.targets,
             cell_eligible=self.cast.cell_eligible,
@@ -947,4 +1812,14 @@ class NativeServerRuntimeAdapter:
             uid_start=self.uid,
             healing_events=self.healing_events,
             damage_block=self.cast.damage_block,
+            area_affiliation=self.area_affiliation,
+            area_obstacle_register=register_effect_area_obstacle,
+            state_spell_level=state_spell_level,
+            state_random=(
+                None
+                if not callable(self.cast.random_number)
+                else lambda preview, plan, limit: self.cast.random_number(
+                    preview, plan, limit, ()
+                )
+            ),
         )

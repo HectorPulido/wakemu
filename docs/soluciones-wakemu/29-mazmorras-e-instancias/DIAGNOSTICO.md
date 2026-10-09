@@ -24,7 +24,7 @@ La configuración nativa exportada de eEL identifica el campo global IS_NEO_SERV
 
 Para configurar el modo local, el operador cambia `settings.name='dungeon_server_mode'` y conserva `version=1` junto con un booleano `is_neo_server`; el helper valida el valor cada vez que evalúa el criterio. La migración no resuelve ni perdona requisitos adicionales de acceso.
 
-El catálogo aKU conserva cno() como referencias de monstruos de una definición de mazmorra y el consumidor las usa para búsqueda por nombre. Ese camino no expone índice de sala, conteo, nivel ni coordenadas de aparición. `combat-maps/1086.json.gz` declara que contiene superficies estáticas y excluye actores dinámicos; `native-generic-teleporters.json` sí da los sectores y enlaces 26845/26850/26849/26853, pero no su población. Por tanto, la composición exacta de encuentros del mapa 1086 sigue sin fuente acreditada en el conjunto exportado; las salas y reglas de derrota/reintento siguen bloqueando un ciclo jugable.
+El catálogo aKU conserva cno() como referencias de monstruos de una definición de mazmorra y el consumidor las usa para búsqueda por nombre. Ese camino no expone índice de sala, conteo, nivel ni coordenadas de aparición. `combat-maps/1086.json` declara que contiene superficies estáticas y excluye actores dinámicos; `native-generic-teleporters.json` sí da los sectores y enlaces 26845/26850/26849/26853, pero no su población. Por tanto, la composición exacta de encuentros del mapa 1086 sigue sin fuente acreditada en el conjunto exportado; las salas y reglas de derrota/reintento siguen bloqueando un ciclo jugable.
 
 ## Qué falta para confirmar el recorrido
 

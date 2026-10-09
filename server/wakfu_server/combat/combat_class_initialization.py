@@ -4,15 +4,17 @@ big.doS/big.a(eGH) directly applies innate triples; no guessed init event is
 fired. Passive roots are given to an explicit native subscription installer,
 not immediately executed while their triggers are ignored.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
+from functools import lru_cache
 from dataclasses import dataclass
-from .paths import DATA_ROOT
-from .spells import SPELLS, validate_deck
+from wakfu_server.paths import DATA_ROOT
+from wakfu_server.spells import SPELLS, validate_deck
 from .combat_effect_dispatch import EffectInvocation, UnsupportedEffectExecution
 
 BREEDS = {
     r["breed"]: r
-    for r in json.loads((DATA_ROOT / "breed-innate-definitions.json").read_text())[
+    for r in protocol_catalog.load(DATA_ROOT / "breed-innate-definitions.json")[
         "breeds"
     ]
 }
@@ -34,7 +36,49 @@ class ClassInitialization:
     passive_sources: tuple
 
 
-def plan(character, deck_blob, spell_catalog, state_catalog):
+@lru_cache(maxsize=1)
+def level_zero_catalog():
+    """Installed fG(short0) roots; level1 and the last level are not substitutes."""
+    from .combat_captured_dependencies import (
+        captured_zero_catalog,
+        merge_zero_component,
+    )
+
+    existing = protocol_catalog.load(DATA_ROOT / "native-class-spell-level-zero.json")
+    captured = captured_zero_catalog()
+    merged = {
+        **existing,
+        **{
+            component: merge_zero_component(
+                existing.get(component, {}), captured[component]
+            )
+            for component in ("spells", "casting", "effects")
+        },
+    }
+    from .combat_triggered_dependencies import zero_catalog as triggered_zero_catalog
+
+    triggered = triggered_zero_catalog()
+    if triggered is not None:
+        merged.update(
+            {
+                component: merge_zero_component(merged[component], triggered[component])
+                for component in ("spells", "casting", "effects")
+            }
+        )
+    from .combat_morph_dependencies import zero_catalog as morph_zero_catalog
+
+    morph = morph_zero_catalog()
+    if morph is not None:
+        merged.update(
+            {
+                component: merge_zero_component(merged[component], morph[component])
+                for component in ("spells", "casting", "effects")
+            }
+        )
+    return merged
+
+
+def plan(character, deck_blob, spell_catalog, state_catalog, *, zero_catalog=None):
     breed, level = character["breed"], character["level"]
     definition = BREEDS.get(breed)
     if definition is None:
@@ -56,12 +100,33 @@ def plan(character, deck_blob, spell_catalog, state_catalog):
         if reference == 0:
             continue
         owned = SPELLS.get(reference)
-        if owned is None or owned["breed"] != breed or owned["kind"] != "passive":
+        if (
+            owned is None
+            or owned["breed"] not in (breed, -2)
+            or owned["kind"] != "passive"
+        ):
             raise ValueError("Foreign or nonpassive deck spell")
         spell = spell_catalog["spells"].get(str(reference))
         if spell is None:
             raise UnsupportedEffectExecution("Missing native passive spell tree")
-        minimum, maximum, roots = spell["levels"][effective - 1]
+        if effective == 0:
+            zero = level_zero_catalog() if zero_catalog is None else zero_catalog
+            record = zero.get("spells", {}).get(str(reference))
+            if not isinstance(record, list) or len(record) != 3:
+                raise UnsupportedEffectExecution(
+                    "Missing native passive level-zero roots"
+                )
+            minimum, maximum, roots = record
+            if not isinstance(roots, list) or any(
+                type(root) is not int
+                or str(root) not in spell_catalog.get("effects", {})
+                for root in roots
+            ):
+                raise UnsupportedEffectExecution(
+                    "Missing native passive level-zero effect closure"
+                )
+        else:
+            minimum, maximum, roots = spell["levels"][effective - 1]
         if minimum > maximum:
             raise UnsupportedEffectExecution("Invalid native passive level bounds")
         for effect in roots:

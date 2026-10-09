@@ -1,4 +1,5 @@
 """Account-owned craft progress; leased characters provide action context."""
+from wakfu_server import native_catalog as protocol_catalog
 import json
 import struct
 
@@ -56,9 +57,7 @@ def account_packet(db, account_id):
 
 def ensure_learned(store, account_id, generation, character_id, profession_ids):
     known = set(
-        json.loads((DATA_ROOT / "profession-actions.json").read_text())[
-            "profession_ids"
-        ]
+        protocol_catalog.load(DATA_ROOT / "profession-actions.json")["profession_ids"]
     )
     ids = list(profession_ids)
     if any(type(i) is not int or i not in known for i in ids) or len(set(ids)) != len(

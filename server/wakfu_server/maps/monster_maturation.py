@@ -3,12 +3,13 @@
 A restart, absent player, combat or harvest never charges offline time.
 Spell definitions and combat execution are outside this module's scope.
 """
+from wakfu_server import native_catalog as protocol_catalog
 import json
 import math
 import secrets
 from .paths import DATA_ROOT
 
-CATALOG = json.loads((DATA_ROOT / "monster-growth-catalog.json").read_text())
+CATALOG = protocol_catalog.load(DATA_ROOT / "monster-growth-catalog.json")
 GROWABLE = {
     candidate["reference"]
     for family in CATALOG["families"]
@@ -303,6 +304,11 @@ def reconcile_seed(store, key, seeds, persisted):
     every other field must match the exact native member reached by receipts.
     """
     from .monsters import owned_instance
+    from .npc_actor_identity_repair import actor_aliases, aliased_members
+
+    with store.connection() as db:
+        aliases = actor_aliases(db, key)
+    seeds = aliased_members(seeds, aliases)
 
     if len(seeds) != len(persisted):
         from .monster_reproduction import expanded_seeds
@@ -318,7 +324,8 @@ def reconcile_seed(store, key, seeds, persisted):
         ).fetchall()
     by_id = {}
     for receipt in receipts:
-        by_id.setdefault(receipt["monster_id"], []).append(receipt)
+        identity = aliases.get(receipt["monster_id"], receipt["monster_id"])
+        by_id.setdefault(identity, []).append(receipt)
     for seed, current in zip(seeds, persisted):
         if seed["id"] != current["id"]:
             raise ValueError("Conflicting existing group seed identity")

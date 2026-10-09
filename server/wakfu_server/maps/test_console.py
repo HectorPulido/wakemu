@@ -11,19 +11,19 @@ from .inventory_move import STACKS
 from .monsters import owned_instance, statistics, reference as monster_reference
 from .combat_monster_world import spawn_group
 
-HELP = "!ayuda | !pos | !nivel nivel | !tp mapa x y z | !item referencia cantidad | !mob referencia nivel cantidad | !equip uid slot | !unequip slot"
+HELP = "!help | !position | !level level | !teleport map x y z | !item reference quantity | !monster reference level quantity | !equip uid slot | !unequip slot | !exitdungeon"
 
 
 def execute(store, groups, account, generation, character, text):
     if not isinstance(text, str) or not text.startswith("!"):
         return None
-    from .command_permissions import authorize_command
+    from .command_permissions import authorize_command, canonical_command
 
     authorize_command(store, account, text)
     fields = text.split()
     if not fields:
         raise ValueError("Comando vacío")
-    command, args = fields[0].lower(), fields[1:]
+    command, args = canonical_command(fields[0]), fields[1:]
     expected = {
         "!ayuda": 0,
         "!pos": 0,
@@ -43,6 +43,16 @@ def execute(store, groups, account, generation, character, text):
     with store.connection() as db:
         _lease(store, db, account, generation, character["id"])
         current = store.character(account, character["id"], db)
+        if command == "!mob" and current["instance_id"] != 0:
+            run = db.execute(
+                "SELECT 1 FROM dungeon_room_runs WHERE instance_id=%s AND status='active'",
+                (current["instance_id"],),
+            ).fetchone()
+            if run is not None:
+                raise ValueError(
+                    "La mazmorra solo permite el grupo de su sala actual. "
+                    "Usa !exitdungeon antes de crear monstruos de prueba."
+                )
     result = dict(character=current, packets=[], action=command[1:])
     if command == "!ayuda":
         result["message"] = HELP
@@ -235,11 +245,15 @@ def execute(store, groups, account, generation, character, text):
         if len(cells) < quantity:
             raise ValueError("No hay suficientes casillas alcanzables libres")
         group_id = secrets.randbits(62) + 1
+        from .npc_actor_identity import allocate_block
+
+        with store.connection() as identity_db:
+            actor_id_base = allocate_block(identity_db, quantity)
         members = [
             owned_instance(
                 reference,
                 level,
-                -(group_id + index),
+                -(actor_id_base + index),
                 map_id=current["map_id"],
                 x=cell[0],
                 y=cell[1],

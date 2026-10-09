@@ -13,10 +13,14 @@ from wakfu_server.combat_cast_facing import (
 
 class CastFacingTest(unittest.TestCase):
     def test_original_desplume_script_turns_caster_before_mode6(self):
-        source = SimpleNamespace(position=(0, 0, 0), direction=0)
+        source = SimpleNamespace(id=7, position=(0, 0, 0), direction=0)
         preview = deepcopy(source)
         self.assertTrue(
-            mirror_cast_facing(preview, {"spell_id": 7318, "target": (-1, 0, 0)})
+            mirror_cast_facing(
+                preview,
+                {"spell_id": 7318, "target": (-1, 0, 0)},
+                fight=SimpleNamespace(actors={7: preview}),
+            )
         )
         self.assertEqual(preview.direction, 5)
         self.assertEqual(source.direction, 0)
@@ -58,7 +62,7 @@ class CastFacingTest(unittest.TestCase):
                 self.assertEqual(cast_direction(dx, dy, diagonals=enabled), expected)
 
     def test_signed_int_delta_overflow_before_float_conversion(self):
-        actor = SimpleNamespace(position=(-2147483648, 0, 0), direction=7)
+        actor = SimpleNamespace(id=7, position=(-2147483648, 0, 0), direction=7)
         records = {
             "1": {
                 "status": "verified",
@@ -67,7 +71,10 @@ class CastFacingTest(unittest.TestCase):
             }
         }
         mirror_cast_facing(
-            actor, {"spell_id": 1, "target": (2147483647, 1, 0)}, contracts=records
+            actor,
+            {"spell_id": 1, "target": (2147483647, 1, 0)},
+            contracts=records,
+            fight=SimpleNamespace(actors={7: actor}),
         )
         self.assertEqual(actor.direction, 4)  # int delta(-1,+1), not (+4294967295,+1).
 

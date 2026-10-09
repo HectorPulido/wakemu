@@ -1,7 +1,7 @@
 Distribución mínima del launcher · macOS
 
 Artefacto: .runtime/distribution/wakfu-mini-launcher.zip.
-Recrear: python3 client/tools/package-mini-launcher.py.
+Recrear: python3 client-tools/packaging/package-mini-launcher.py.
 La carpeta mini-launcher se coloca dentro de Wakfu, junto a lib/, contents/,
 jre/, classpath y config.properties. Launch.command abre la UI del launcher
 existente con config.json. El cliente original no se modifica.

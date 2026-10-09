@@ -54,6 +54,52 @@ class NativeWorldEntryTests(unittest.TestCase):
             )
         self.assertEqual(turn.call_args.kwargs["budget_seconds"], 10)
 
+    def test_preparation_timeout_closes_native_turn_without_http_or_planning(self):
+        import time
+        from unittest.mock import Mock
+        from wakfu_ai.native.native_deadline import bounded, remaining
+
+        runtime = SimpleNamespace(
+            awaiting_ack=None,
+            pending=[],
+            fight=SimpleNamespace(
+                id=41,
+                phase="active",
+                turn_id=3,
+                current=SimpleNamespace(id=-7, controlled=False),
+            ),
+            end_server_turn=Mock(return_value=["native-barrier"]),
+        )
+        authorities = dict(
+            characters={}, monsters={}, decks={}, excluded_decks={}, registrations={}
+        )
+
+        def slow_authorities(*args, **kwargs):
+            time.sleep(0.015)
+            return authorities
+
+        with patch.object(
+            world_entry, "load_authorities", side_effect=slow_authorities
+        ), patch.object(world_entry, "ContextTransport") as transport, patch.object(
+            world_entry, "run_turn"
+        ) as turn:
+            with bounded(time.monotonic() + 0.005):
+                deliveries = list(
+                    world_entry.run_npc_turn(
+                        runtime,
+                        store=None,
+                        viewer_character={"id": 1},
+                        monsters={},
+                        stats_serializer=None,
+                    )
+                )
+        self.assertIsNone(remaining())
+        self.assertEqual(deliveries[0][1]["error"], "TimeoutError")
+        self.assertEqual(deliveries[-1][0], ["native-barrier"])
+        runtime.end_server_turn.assert_called_once_with(-7, 3)
+        transport.assert_not_called()
+        turn.assert_not_called()
+
     def setUp(self):
         world_entry._EXPORTERS.clear()
 

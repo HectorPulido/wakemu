@@ -23,15 +23,16 @@ from wakfu_server.combat_event_replay import (
 from wakfu_server.combat_conditions import ConditionActor, ConditionContext
 from wakfu_server.combat_healing_effect import direct_healing
 from wakfu_server.combat_effect_removal import _identity_fields
+from wakfu_server import native_catalog
 
 
 class NativeEventReplayTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.fixture = json.loads(
-            (
+            native_catalog.read_text(
                 Path(__file__).parents[1] / "protocol/native-event-replay-fixture.json"
-            ).read_text()
+            )
         )
 
     def setUp(self):
@@ -41,6 +42,26 @@ class NativeEventReplayTests(unittest.TestCase):
         ]
         self.fight = Fight(
             77, actors, {a.position for a in actors}, {0: {(0, 0, 0)}, 1: {(1, 0, 0)}}
+        )
+        # Retained-event callbacks now resolve the real QI population. Build
+        # it at the same fresh placement boundary as production, from the
+        # fixture's serialized two-cell arena and constructor-assigned slots.
+        for actor in actors:
+            actor.physical_radius = 0
+        self.fight.native_qi_snapshot = dict(
+            x=0, y=0, width=2, height=1, cell_masks=[0, 0]
+        )
+        from wakfu_server.combat_qi_fight import (
+            install_fresh_actor_slots,
+            prepare_fresh_actor_slots,
+        )
+
+        install_fresh_actor_slots(
+            self.fight,
+            prepare_fresh_actor_slots(
+                self.fight,
+                physical_radii={actor.id: actor.physical_radius for actor in actors},
+            ),
         )
         self.fight.ready(3)
         self.fight.native_effect_uid_next = 900
@@ -177,7 +198,7 @@ class NativeEventReplayTests(unittest.TestCase):
         )
         return ConditionContext({"caster": actor, "target": actor})
 
-    def test_real_feline_impact_400_listener_clone_uses_one_uid_and_is_not_retained(
+    def test_real_feline_impact_400_clone_uses_one_uid_without_server_duplication(
         self,
     ):
         reference = 359836  # Native Impacto Felino 5249 subscription.
@@ -197,11 +218,14 @@ class NativeEventReplayTests(unittest.TestCase):
         self.assertIn(listener_uid, self.fight.native_owned_group_effects)
         self.assertEqual(set(self.fight.owned_stat_effects), set())
         packet = self.packets[packets_before][1]
-        # cvY envelope: running-effect protobuf follows the 18-byte identity header.
+        # The clone inherits the source runner's retained timing, so the
+        # evaluated cvX12613 retains it (eIK=false) without rerunning gameplay.
         import struct
 
-        payload_length = struct.unpack_from(">h", packet, 16)[0]
-        cloned = _identity_fields(packet[18 : 18 + payload_length])
+        self.assertEqual(self.packets[packets_before][0], 12613)
+        self.assertEqual(packet[12], 0)
+        payload_length = struct.unpack_from(">h", packet, 17)[0]
+        cloned = _identity_fields(packet[19 : 19 + payload_length])
         self.assertEqual((cloned[1], cloned[2], cloned[3]), (902, 901, reference))
 
     def test_400_removal_routes_both_retained_listener_and_executed_marker(self):

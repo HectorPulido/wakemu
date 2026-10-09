@@ -9,7 +9,7 @@ public class ExportNativePtPreflight {
    anc exclusion=e.fKX();if(exclusion==null)clear.add(raw.aZE());else areas.put(raw.aZE(),exclusion.getClass().getName());
   }});Collections.sort(clear);
   Map<String,Object>out=Map.of("source","Installed aNw -> bcA.AH -> eVn.fKX; eVE.a preflight. Nonnull exclusion areas require additional geometry audit.","definitions_checked",count[0],"null_exclusion_references",clear,"nonnull_exclusions",areas);
-  try(Writer writer=new OutputStreamWriter(new GZIPOutputStream(Files.newOutputStream(Path.of(args[0]))))){new Gson().toJson(out,writer);}
+  try(Writer writer=new OutputStreamWriter(Files.newOutputStream(Path.of(args[0])))){new Gson().toJson(out,writer);}
   System.out.println("preflight checked="+count[0]+" null="+clear.size()+" nonnull="+areas.size());
  }
 }

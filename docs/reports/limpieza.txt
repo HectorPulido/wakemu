@@ -3,7 +3,7 @@ Limpieza de carpetas — 3 de octubre de 2026
 La raíz ahora contiene README.md, compose.yaml y cuatro áreas: client, sniffer, docs y server.
 
 Movido
-Herramientas de login, arranque e inspección: client/tools.
+Herramientas de login, arranque e inspección: client-tools.
 Agentes de captura, decodificadores, exportadores y comparación con WakBox: sniffer.
 Informes y notas del protocolo: docs.
 Servidor Python, pruebas, catálogos y servicio de IA: server.

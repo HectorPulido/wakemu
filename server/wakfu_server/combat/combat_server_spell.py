@@ -9,8 +9,8 @@ import random
 from functools import lru_cache
 from .combat_static_catalogs import CompiledEffects, characteristic_registry
 from wakfu_server.paths import DATA_ROOT
-from .spells import validate_deck
-from .spell_audit import catalog, states_catalog, costs_catalog
+from wakfu_server.spells import validate_deck
+from wakfu_server.spell_audit import catalog, states_catalog, costs_catalog
 from .combat_ordinary_authority import OrdinaryActorAuthority, ordinary_cast_authority
 from .combat_runtime_adapter import NativeServerRuntimeAdapter
 from .combat_effect_runtime import NativeEffectRuntimeFactory
@@ -26,8 +26,14 @@ def compiled_runtime_catalog():
     from .combat_effect_runtime import _merge_effects
     from .combat_effect_area_catalog import area_effect_catalog
 
+    from .combat_aptitude_initialization import effect_catalog
+
     return CompiledEffects(
-        _merge_effects(merged_spell_effects(), area_effect_catalog()), states_catalog()
+        _merge_effects(
+            _merge_effects(merged_spell_effects(), area_effect_catalog()),
+            effect_catalog(),
+        ),
+        states_catalog(),
     )
 
 
@@ -112,15 +118,19 @@ def server_runtime(
     if set(deck_blobs) != set(player_characters):
         raise ValueError("Every controlled player requires its own deck snapshot")
     decks = {}
+    deck_caps = {}
     for actor_id, source in player_characters.items():
         if type(actor_id) is not int or source.get("id") != actor_id:
             raise ValueError("Invalid controlled player snapshot identity")
         parsed = validate_deck(deck_blobs[actor_id], source["breed"], source["level"])
         decks[actor_id] = frozenset(parsed["active"] + parsed["passive"])
+        deck_caps[actor_id] = parsed["level_cap"] if parsed["level_cap"] >= 0 else None
     actors = OrdinaryActorAuthority(
         characters=player_characters,
         monsters=monsters,
         decks=decks,
+        deck_caps=deck_caps,
+        deck_blobs=deck_blobs,
         excluded_decks={actor_id: frozenset() for actor_id in player_characters},
     )
     from .combat_summon import RegisteredSummonAuthority
@@ -146,7 +156,11 @@ def server_runtime(
         contexts=adapter.contexts(),
         displacement_authority=actors,
         summon_authority=actors,
+        transaction_rng=transaction_rng,
     )
+    # The actual factory installs this live provider on every transaction
+    # preview; subsequent owned movement reads current PB and carry facts.
+    factory.native_rail_movement_authority = actors
     from .combat_relative_probability import RelativeGroupAuthority
 
     factory.relative_group_children = RelativeGroupAuthority(
@@ -183,20 +197,14 @@ def prepare_server_spell(
     deck_blobs=None,
 ):
     from .combat_critical import choose_critical, spell_critical_available
-    from .combat_cast import decode_cast
-    from .combat_spell_grant import granted_spells
+    from .combat_cast import decode_cast, resolve_owned_spell_action
 
-    actor = fight.actors[character["id"]]
+    request = decode_cast(body)
+    actor, spell_id, level = resolve_owned_spell_action(
+        request, character, fight, owner_id, deck_blob
+    )
     transaction_rng = random.Random() if rng is None else rng
     if critical is None:
-        request = decode_cast(body)
-        spell_id = request["spell_uid"] & 0xFFFFFFFF
-        grant = granted_spells(fight, actor.id).get(spell_id)
-        level = (
-            grant["level"]
-            if grant is not None and request["spell_uid"] == spell_id
-            else actor.effective_level
-        )
         decision = choose_critical(
             actor,
             rng=transaction_rng,
@@ -288,6 +296,14 @@ def prepare_server_initialization(
     preview, packets = initialize_transaction(
         fight, initial, factory, states, owner_id=owner_id
     )
+    from .combat_aptitude_initialization import (
+        initialize_transaction as initialize_aptitudes,
+    )
+
+    preview, aptitude_packets = initialize_aptitudes(
+        preview, owned, factory, owner_id=owner_id
+    )
+    packets += aptitude_packets
     if fight_start:
         from .combat_start_events import deliver_fight_start
 
@@ -314,9 +330,9 @@ def prepare_server_turn_end(
     player_characters=None,
     deck_blobs=None,
 ):
-    """Atomic owned1002 end boundary; execution precedes timer expiration."""
+    """Atomic owned1002/1037 end boundaries before timer expiration."""
     from copy import deepcopy
-    from .combat_turn_events import deliver_turn_end
+    from .combat_turn_events import deliver_turn_end, deliver_turn_regeneration
 
     preview = deepcopy(fight)
     factory, _ = server_runtime(
@@ -334,6 +350,8 @@ def prepare_server_turn_end(
     )
     with preview.effect_resolution():
         deliver_turn_end(dispatcher, actor_id=actor_id)
+        if preview.phase == "active" and preview.current is not None:
+            deliver_turn_regeneration(dispatcher, actor_id=actor_id)
     return preview, tuple(packets)
 
 

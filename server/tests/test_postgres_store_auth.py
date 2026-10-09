@@ -5,6 +5,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 
 from postgres_case import PostgresCase
+from wakfu_server import native_catalog
 
 
 class StoreAuthTests(PostgresCase):
@@ -663,9 +664,9 @@ class StoreAuthTests(PostgresCase):
         self.assertTrue(discoveries.discover(self.account, generation, 1, 1))
         self.assertFalse(discoveries.discover(self.account, generation, 1, 1))
         self.assertIn(1, discoveries.known(self.account)[1])
-        profession = json.loads((DATA_ROOT / "profession-actions.json").read_text())[
-            "profession_ids"
-        ][0]
+        profession = json.loads(
+            native_catalog.read_text(DATA_ROOT / "profession-actions.json")
+        )["profession_ids"][0]
         ensure_learned(
             self.store, self.account, generation, character["id"], [profession]
         )
@@ -728,7 +729,11 @@ class StoreAuthTests(PostgresCase):
             id=fight_id,
             actors={
                 character["id"]: SimpleNamespace(
-                    controlled=True, owner_id=self.account, hp=character["hp"]
+                    id=character["id"],
+                    team=0,
+                    controlled=True,
+                    owner_id=self.account,
+                    hp=character["hp"],
                 )
             },
         )

@@ -3,6 +3,7 @@
 No generic item effects are applied here. Native additional occupations reserve slots; each item is serialized once.
 Unsupported EQUIP predicates are rejected before saving a build.
 """
+from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 from pathlib import Path
@@ -10,9 +11,7 @@ from wakfu_server.wire import proto_fields
 
 RULES = {
     entry["reference"]: entry
-    for entry in json.loads((DATA_ROOT / "item-equipment-rules.json").read_text())[
-        "items"
-    ]
+    for entry in protocol_catalog.load(DATA_ROOT / "item-equipment-rules.json")["items"]
 }
 
 

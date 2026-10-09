@@ -15,7 +15,11 @@ public class ExportNativeEffectAreas {
    r.put("raw_bcR",a.bcR());r.put("raw_bdi",a.bdi());r.put("raw_ckz",a.ckz());r.put("raw_bcS",a.bcS());
    r.put("visual",List.of(a.ckF()==null?"":a.ckF(),a.ckG()==null?"":a.ckG(),a.ckH()==null?"":a.ckH(),a.ckI()==null?"":a.ckI()));
    faV area=bcN.hFx.a(a);r.put("native_class",area==null?null:area.getClass().getSimpleName());
-   if(area!=null){r.put("native_shape_class",area.bcD().getClass().getSimpleName());r.put("native_shape_description",area.bcD().bEm());r.put("native_type_id",area.aeV());r.put("native_hour_contract",area instanceof faZ);r.put("native_container_type",area.aZY());}
+   if(area!=null){r.put("native_shape_class",area.bcD().getClass().getSimpleName());r.put("native_shape_description",area.bcD().bEm());r.put("native_type_id",area.aeV());r.put("native_hour_contract",area instanceof faZ);r.put("native_container_type",area.aZY());
+    if(area.bcD() instanceof anE || area.bcD() instanceof anJ){
+     List<List<Integer>> points=new ArrayList<>();for(int[] point:area.bcD().bEl())points.add(List.of(point[0],point[1]));r.put("native_area_points",points);
+    }
+   }
    rows.put(""+a.d(),r);
   }});
   Path output=Path.of(args[0]),temporary=output.resolveSibling(output.getFileName()+".tmp");

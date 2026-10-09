@@ -1,16 +1,18 @@
 """Check completeness of native state data, independently of runtime support."""
-import gzip
 import json
 import unittest
 
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.combat_definitions import state_profile
+from wakfu_server import native_catalog
 
 
 class CombatStateDefinitionsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with gzip.open(DATA_ROOT / "combat-state-definitions.json.gz", "rt") as stream:
+        with native_catalog.open(
+            DATA_ROOT / "combat-state-definitions.json", "rt"
+        ) as stream:
             cls.catalog = json.load(stream)
 
     def test_all_state_roots_and_level_selections_resolve(self):

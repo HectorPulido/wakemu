@@ -59,7 +59,11 @@ def owned_container_users(fight, uid):
     """Live child Qe objects keep their actual PL even without a Qf carrier."""
     return tuple(
         child_uid
-        for collection in (fight.owned_stat_effects, fight.native_owned_group_effects)
+        for collection in (
+            fight.owned_stat_effects,
+            fight.native_owned_group_effects,
+            getattr(fight, "native_owned_area_effects", {}),
+        )
         for child_uid, row in collection.items()
         if row.get("state_uid") == uid
     )

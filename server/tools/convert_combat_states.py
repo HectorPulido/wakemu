@@ -1,5 +1,4 @@
 """Convert offline native state definitions; does not claim runtime support."""
-import gzip
 import base64
 import json
 import sys
@@ -48,7 +47,7 @@ def convert(prefix, output):
         name_locale="es",
     )
     encoded = json.dumps(result, separators=(",", ":")).encode()
-    Path(output).write_bytes(gzip.compress(encoded, mtime=0))
+    Path(output).write_bytes(encoded)
     return result
 
 

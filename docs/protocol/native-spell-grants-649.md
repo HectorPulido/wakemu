@@ -11,7 +11,7 @@ cliente mediante `eWn.bbR`.
 nivel -1, barra 2 y casilla 0 producen AdditionalDatas
 `50e12970ffffffffffffffffff01980102a00100`.
 
-El catálogo separado `native-spell-casting.json.gz` contiene 4.143 referencias
+El catálogo separado `native-spell-casting.json` contiene 4.143 referencias
 instaladas aNr/bPS/fyF/fyP, con máximos nativos, raíces por nivel, costes,
 categorías y tablas condicionales completas de alcance/LOS/celda libre.
 `ExportNativeSpellCasting.java` es reproducible offline. No sustituye el
