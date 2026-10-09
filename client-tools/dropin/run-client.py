@@ -108,9 +108,7 @@ def main():
     if not java.is_file():
         raise ValueError("Installed Wakfu Java runtime not found")
     agents = Path(os.environ.get("WAKFU_AGENT_ROOT", package_root() / "agents"))
-    required_agents = ["network-guard.jar", "open-planting.jar"]
-    if macos:
-        required_agents.append("desktop-fix.jar")
+    required_agents = ["network-guard.jar", "open-planting.jar", "desktop-fix.jar"]
     for name in required_agents:
         if not (agents / name).is_file():
             raise ValueError("Missing packaged agent " + name)
@@ -183,7 +181,7 @@ def main():
         "-Djava.security.manager=allow",
         guard,
         "--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED",
-        *([f'-javaagent:{agents/"desktop-fix.jar"}'] if macos else []),
+        f'-javaagent:{agents/"desktop-fix.jar"}',
         "-Dwakfu.local.openPlanting=" + str(settings()["open_planting"]).lower(),
         f'-javaagent:{agents/"open-planting.jar"}',
         "-Xms512m",

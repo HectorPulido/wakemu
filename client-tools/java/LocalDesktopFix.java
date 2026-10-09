@@ -15,6 +15,8 @@ public final class LocalDesktopFix {
         instrumentation.addTransformer(new ClassFileTransformer() {
             @Override public byte[] transform(ClassLoader loader, String name, Class<?> type,
                     ProtectionDomain domain, byte[] bytes) {
+                if (name.equals("com/ankamagames/baseImpl/graphics/opengl/FullscreenUtils")
+                        && !System.getProperty("os.name", "").startsWith("Mac")) return null;
                 boolean telemetry = name.equals("cbW");
                 boolean questCategory = name.equals("beq");
                 boolean questHud = name.equals("bdR");

@@ -56,11 +56,12 @@ class LinuxClientTests(unittest.TestCase):
         self.assertTrue(any("network-guard.jar=" in arg for arg in command))
         self.assertIn("no OS network sandbox", warning)
 
-    def test_linux_launch_preserves_capture_and_planting_without_mac_agent(self):
+    def test_linux_launch_preserves_capture_planting_and_telemetry_guard(self):
         _, command, _ = self.run_client("linux", ["--use-local-auth"])
         self.assertTrue(any("capture-agent.jar=" in arg for arg in command))
         self.assertTrue(any("open-planting.jar" in arg for arg in command))
-        self.assertFalse(any("desktop-fix" in arg or "com.apple" in arg for arg in command))
+        self.assertTrue(any("desktop-fix.jar" in arg for arg in command))
+        self.assertFalse(any("com.apple" in arg for arg in command))
 
     def test_linux_launch_requires_desktop(self):
         with self.assertRaisesRegex(ValueError, "requires DISPLAY"):
