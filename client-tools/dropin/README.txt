@@ -1,4 +1,4 @@
-Mini launcher para el servidor privado Wakfu · macOS
+Mini launcher para el servidor privado Wakfu · macOS y Linux
 
 Descomprime mini-launcher dentro de la instalación existente de Wakfu, al lado
  de lib/, contents/, jre/, config.properties y classpath. Abre Launch.command.
@@ -7,7 +7,12 @@ Usa cuentas del servidor privado; este launcher no usa el Ankama Launcher.
 Requisitos: cliente instalado compatible con Java 21, macOS con sandbox-exec,
 Python 3 con Tkinter. El ZIP incluye exclusivamente código y agentes propios.
 No contiene el cliente, su Java, librerías, mapas, contraseñas, tokens ni capturas.
-No necesita un JDK para ejecutarse. Windows y Linux aún no están implementados.
+No necesita un JDK para ejecutarse. Windows aún no está implementado.
+Linux usa jre/bin/java y requiere DISPLAY (X11/XWayland) y permisos de la
+sesión gráfica; ejecuta bash run-client.sh desde una terminal de escritorio.
+En Linux el aislamiento usa el guard Java obligatorio, sin sandbox del sistema
+operativo: el bridge Python y las bibliotecas nativas quedan fuera del guard.
+El launcher muestra esta diferencia al validar y al abrir el juego.
 
 Configura config.json antes de abrir: api_url, server_host (IPv4 numérica),
 dispatch_port, game_ports, chat_port y http_port. El valor inicial es localhost.

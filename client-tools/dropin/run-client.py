@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start an installed macOS Wakfu client with isolated private-server settings."""
+"""Start an installed macOS or Linux Wakfu client with isolated private-server settings."""
 import argparse, json, os, re, subprocess, sys
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -90,20 +90,28 @@ def main():
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--use-local-auth", action="store_true")
     args = parser.parse_args()
-    if sys.platform != "darwin":
-        raise ValueError("This package currently supports macOS only")
-    if not Path("/usr/bin/sandbox-exec").is_file():
+    if sys.platform not in ("darwin", "linux"):
+        raise ValueError("This package supports macOS and Linux")
+    macos = sys.platform == "darwin"
+    if macos and not Path("/usr/bin/sandbox-exec").is_file():
         raise ValueError("macOS sandbox-exec is required")
     cfg = settings()
     os.environ["WAKFU_SERVER_NAME"] = cfg["server_name"]
     os.environ["WAKFU_SERVER_IPV4"] = cfg["server_host"]
     pin_dns(cfg)
     source, runtime, ports = prepare(args.profile)
-    java = source / "jre/Contents/Home/bin/java"
+    sandbox = ["/usr/bin/sandbox-exec", "-f", str(runtime / "network.sb")] if macos else []
+    if not macos:
+        print("Linux isolation: Java network guard active; no OS network sandbox. "
+              "The Python launcher bridge and native libraries are not sandboxed.", file=sys.stderr)
+    java = source / ("jre/Contents/Home/bin/java" if macos else "jre/bin/java")
     if not java.is_file():
-        raise ValueError("Installed Wakfu macOS Java runtime not found")
+        raise ValueError("Installed Wakfu Java runtime not found")
     agents = Path(os.environ.get("WAKFU_AGENT_ROOT", package_root() / "agents"))
-    for name in ("network-guard.jar", "desktop-fix.jar", "open-planting.jar"):
+    required_agents = ["network-guard.jar", "open-planting.jar"]
+    if macos:
+        required_agents.append("desktop-fix.jar")
+    for name in required_agents:
         if not (agents / name).is_file():
             raise ValueError("Missing packaged agent " + name)
     env = dict(os.environ)
@@ -129,9 +137,7 @@ def main():
     if args.check:
         result = subprocess.run(
             [
-                "/usr/bin/sandbox-exec",
-                "-f",
-                str(runtime / "network.sb"),
+                *sandbox,
                 str(java),
                 "-Djava.security.manager=allow",
                 guard,
@@ -153,9 +159,7 @@ def main():
         env["WAKFU_GAME_LOGIN_FILE"] = str(args.token_file.resolve())
         return subprocess.call(
             [
-                "/usr/bin/sandbox-exec",
-                "-f",
-                str(runtime / "network.sb"),
+                *sandbox,
                 sys.executable,
                 os.environ.get(
                     "WAKFU_REPOSITORY_BRIDGE",
@@ -164,6 +168,8 @@ def main():
             ],
             env=env,
         )
+    if not macos and not env.get("DISPLAY"):
+        raise ValueError("Linux GUI launch requires DISPLAY from the desktop session")
     if not env.get("ZAAP_PORT") or not env.get("ZAAP_HASH"):
         raise ValueError("Missing private launcher bridge")
     env.update(
@@ -172,14 +178,12 @@ def main():
         WAKFU_CACHE_FILE_DIRECTORY=str(runtime / "cache"),
     )
     command = [
-        "/usr/bin/sandbox-exec",
-        "-f",
-        str(runtime / "network.sb"),
+        *sandbox,
         str(java),
         "-Djava.security.manager=allow",
         guard,
         "--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED",
-        f'-javaagent:{agents/"desktop-fix.jar"}',
+        *([f'-javaagent:{agents/"desktop-fix.jar"}'] if macos else []),
         "-Dwakfu.local.openPlanting=" + str(settings()["open_planting"]).lower(),
         f'-javaagent:{agents/"open-planting.jar"}',
         "-Xms512m",
@@ -191,7 +195,7 @@ def main():
         "-Dsun.java2d.metal=false",
         "-Dsun.java2d.opengl=true",
         "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
-        "--add-opens=java.desktop/com.apple.eawt=ALL-UNNAMED",
+        *(["--add-opens=java.desktop/com.apple.eawt=ALL-UNNAMED"] if macos else []),
         "-Dsun.java2d.uiScale.enabled=true",
         "-Djava.library.path=natives/",
         "@classpath",

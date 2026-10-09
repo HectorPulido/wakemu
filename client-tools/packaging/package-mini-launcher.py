@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Build a deterministic drop-in ZIP: only explicitly selected own files."""
-import argparse, hashlib, io, json, os, subprocess, tempfile, zipfile
+import argparse, hashlib, io, json, os, shutil, subprocess, sys, tempfile, zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,6 +35,11 @@ def zip_bytes(entries):
 
 def build(output):
     jdk = os.environ.get("JAVA_HOME")
+    if not jdk and sys.platform == "linux":
+        javac = shutil.which("javac")
+        if not javac:
+            raise ValueError("Install a JDK 21 or newer, or set JAVA_HOME")
+        jdk = str(Path(javac).resolve().parent.parent)
     if not jdk:
         jdk = subprocess.check_output(
             ["/usr/libexec/java_home", "-v", "21+"], text=True

@@ -13,6 +13,10 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
+if [[ "$(uname -s)" == "Linux" && -z "${WAKFU_LAUNCHER_CONFIG:-}" ]]; then
+  WAKFU_LAUNCHER_CONFIG="$(python3 client-tools/runtime/configure-server.py --server 127.0.0.1)"
+  export WAKFU_LAUNCHER_CONFIG
+fi
 if [[ -n "${WAKFU_LAUNCHER_CONFIG:-}" ]] && python3 -c 'import json,os,sys; sys.exit("server_host" not in json.load(open(os.environ["WAKFU_LAUNCHER_CONFIG"])))'; then
   args=()
   if [[ "$check_only" == "1" ]]; then args+=(--check); fi

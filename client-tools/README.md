@@ -4,7 +4,7 @@ Project-owned launchers, diagnostics, Java agents and patches. The official game
 
 ## Setup
 
-Supply Wakfu **1.93.1+79** in the sibling `../client/` directory. Its `config.properties`, `classpath`, `contents/`, `lib/` and `jre/` must be directly inside that directory. The local tools require macOS (`sandbox-exec`), Python 3 with Tk support for account dialogs, a JDK 21 or newer, and the local server services.
+Supply Wakfu **1.93.1+79** in the sibling `../client/` directory. Its `config.properties`, `classpath`, `contents/`, `lib/` and `jre/` must be directly inside that directory. The local tools support macOS (`sandbox-exec`) and Linux (X11/XWayland `DISPLAY`), Python 3 with Tk support for account dialogs, a JDK 21 or newer, and the local server services. Linux uses the extracted `client/jre/bin/java` runtime.
 
 From the repository root:
 
@@ -86,3 +86,30 @@ connections do not use SSH. The server must expose its configured ports and adve
 a world address reachable from your machine. The native client uses IPv4.
 For custom ports, `--config PATH` accepts `server_host`, `api_url`,
 `dispatch_port`, `game_ports`, `chat_port`, and `http_port` in JSON.
+
+### Linux client launch
+
+Run `bash client-tools/local-client.sh --check` to build and verify the Java
+network guard without opening the game. Set `JAVA_HOME` to a JDK 21+ if `javac`
+is not on PATH. The default Linux launch creates a localhost server configuration
+through `runtime/configure-server.py` and shares the configured drop-in runner.
+To use another endpoint, run:
+
+```sh
+export WAKFU_LAUNCHER_CONFIG="$(python3 client-tools/runtime/configure-server.py --server 192.168.0.7)"
+bash client-tools/local-client.sh --check
+bash client-tools/local-client.sh
+```
+
+Launch from the Linux desktop terminal, with its `DISPLAY` and `XAUTHORITY`
+environment. Over SSH, preserve the existing desktop session credentials;
+setting DISPLAY alone does not grant access to its X server. Logs appear below
+the configured runtime root in `logs/client-console.log`. Linux omits the
+macOS desktop agent. Capture-agent combat and spell patches remain enabled.
+
+Linux isolation currently uses the mandatory Java network guard: it rejects
+external Java DNS/socket destinations and limits connections to the configured
+server ports and loopback. There is no OS network sandbox on Linux in this
+launcher. The Python launcher bridge and native libraries are therefore outside
+the Java guard. Both launch and check print this difference explicitly. macOS
+continues using its OS sandbox in addition to the Java guard.
