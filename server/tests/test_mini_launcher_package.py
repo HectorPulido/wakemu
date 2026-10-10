@@ -26,6 +26,23 @@ class MiniLauncherTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             config.settings()
 
+    def test_open_dungeon_missions_defaults_local_only_and_requires_boolean_opt_in(
+        self,
+    ):
+        self.assertIs(config.settings()["open_dungeon_missions"], True)
+        self.cfg.update(server_host="192.0.2.20", api_url="https://192.0.2.20")
+        self.path.write_text(json.dumps(self.cfg))
+        self.assertIs(config.settings()["open_dungeon_missions"], False)
+        self.cfg["open_dungeon_missions"] = True
+        self.path.write_text(json.dumps(self.cfg))
+        self.assertIs(config.settings()["open_dungeon_missions"], True)
+        self.cfg["open_dungeon_missions"] = "true"
+        self.path.write_text(json.dumps(self.cfg))
+        with self.assertRaisesRegex(
+            ValueError, "open_dungeon_missions must be boolean"
+        ):
+            config.settings()
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -127,9 +144,14 @@ class MiniLauncherTests(unittest.TestCase):
                 "mini-launcher/agents/open-planting.jar",
             ):
                 with zipfile.ZipFile(io.BytesIO(z.read(n))) as agent:
+                    allowed_policy = n == "mini-launcher/agents/open-planting.jar"
                     self.assertTrue(
                         all(
                             f == "META-INF/MANIFEST.MF"
+                            or (
+                                allowed_policy
+                                and f == "dungeon-entry-overrides.properties"
+                            )
                             or f.startswith(
                                 (
                                     "DropinNetworkGuard",
@@ -140,3 +162,10 @@ class MiniLauncherTests(unittest.TestCase):
                             for f in agent.namelist()
                         )
                     )
+                    if allowed_policy:
+                        policy = agent.read(
+                            "dungeon-entry-overrides.properties"
+                        ).decode()
+                        self.assertRegex(policy, r"(?m)^native_sha256=[0-9a-f]{64}$")
+                        for destination in (720, 4578, 4689, 4714, 4751):
+                            self.assertRegex(policy, rf"(?m)^{destination}=.+$")

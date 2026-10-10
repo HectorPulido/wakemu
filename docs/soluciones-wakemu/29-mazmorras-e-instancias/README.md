@@ -4,6 +4,14 @@ Entrar, compartir salas, progresar y salir de mazmorras con encuentros/recompens
 
 [Diagnóstico](DIAGNOSTICO.md) · [Cotejo de código](COTEJO.md) · [Solución](SOLUCION.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md)
 
+## Reconstrucción automática del recorrido natural
+
+[Investigación y método general](../../reports/dungeons/AUTOMATIC-FLOW-REVIEW.md): extracción de geometría nativa, puertas, teletransportes y referencias Lua. Los 211 separadores candidatos **no acreditan** el orden oficial ni las condiciones de apertura. En Tofullero la conexión de entrada se resuelve usando el perfil nativo de movimiento de exploración, sin cambiar combate; los parámetros de sus puertas no contienen dependencias de combate. Ver [controlador y propuesta general](../../reports/dungeons/TOFULLERO-CONTROLLER-REVIEW.md). No se desplegó ni reinició el servidor.
+
+## Inventario de evidencia (2026-10-09)
+
+Inventario completo de la unión disponible: [matriz por mazmorra](../../reports/dungeons/INVENTORY.md), [datos por sala, monstruo, objeto y requisito](../../reports/dungeons/inventory.json) y [auditoría de jefes supremos](../../reports/dungeons/ULTIMATE-BOSS-AUDIT-20261009.md). Incluye **151 definiciones nativas y 5 guías legacy sin definición**, no solamente las 87 configuraciones generadas. Las 69 definiciones nativas sin guía y los campos desconocidos quedan explícitos. Los objetos y destinos de teletransporte se contrastaron con el catálogo PostgreSQL activo, en transacción de solo lectura. La presencia de configuración no acredita una mazmorra correcta: 10 de 11 jefes supremos configurados tienen composiciones duplicadas incorrectas.
+
 ## Estado y alcance
 
 Auditoría e implementación parcial del **servidor**. La base durable de sesiones/miembros en migración 065, el resolvedor limitado a rutas verificadas y la transición atómica de roster en `maps/dungeon_transport.py`/`maps/dungeon_instances.py` están probados con PostgreSQL aislado. La entrada sigue desconectada del dispatcher: no hay caller para el evaluador de criterio/proximidad, no se emitió bootstrap de mapa y no se ha habilitado el acceso. Las pruebas no certifican el recorrido jugable.
@@ -126,3 +134,29 @@ Internally created solo parties now carry explicit origin metadata (migration 08
 Dungeon populations are excluded from reproduction observation, birth attempts, timers and pending birth publication regardless of room or run status. Outdoor populations retain their existing policy. All 34 isolated PostgreSQL reproduction tests passed. Previously stored offspring are not deleted by this change.
 
 Complete image `wakemu-world:dungeon-party-breeding-complete-20261008-r36` matched 8,121 current source/catalog files without mismatches and replaced the single world container. Manual acceptance: enter alone, finish or leave, confirm the party portrait disappears; repeat with two players and confirm their group remains. Wait in a new dungeon room beyond the reproduction interval and confirm its authored monster roster does not grow.
+# Latest manual acceptance — 2026-10-09
+
+Hector confirms that the Jalató dungeon now works correctly. This acceptance
+does not extend to the installed 87-configuration bundle. Tofulailler has
+monsters but its door cannot be traversed; Casa de Miabuelita
+(`chez-la-mere-michou`) does not allow entry. The user reports Jalató as the
+only working dungeon so far. Treat access and complete progression in other
+dungeons as unaccepted, regardless of configuration population or unit gates.
+
+Investigate entry interaction, native access criteria, interior door topology,
+and victory-authorized automatic progression separately, then validate the
+general solution across the installed catalog. Do not infer the cause from
+the user report alone or request repeated Jalató acceptance.
+
+### General achievement entry authority — 2026-10-09
+
+Migration 086 and the dungeon-entry callback now use a durable, strictly
+validated achievement snapshot initialized explicitly for this server's local
+characters. Miabuelita's native temporary quest exclusion can therefore be
+evaluated without a map-specific bypass; missing authority still fails closed.
+No quest or objective is automatically completed. Two routes requiring
+persistent `HasState` remain unsupported. Luna verified 47 isolated migration,
+authority, native-criterion and automatic party-transition tests with zero
+skips. This source change requires deployment and manual acceptance.
+
+See [implementation limits and complete dungeon acceptance steps](ACHIEVEMENT-AUTHORITY-20261009.md).

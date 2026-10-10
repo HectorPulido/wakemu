@@ -81,3 +81,123 @@ class CastEventRuntimeTests(unittest.TestCase):
         self.assertGreater(len(transaction.packets), 2)
         self.assertIsNone(initialized.native_active_spell_id)
         self.assertIsNone(transaction.fight.native_active_spell_id)
+
+    def test_sacro_one_cast_helpers_expire_and_interrupted_cast_rolls_back(self):
+        from unittest.mock import patch
+        from tests.test_combat_lethal_reactions import (
+            initialized_cinetosis_fixture,
+            cinetosis_turn_runtime,
+            native,
+        )
+        from combat_audit_turns import advance_actual_turn
+        from wakfu_server.combat_server_spell import prepare_server_spell
+        from wakfu_server.combat_effect_dispatch import EffectDispatcher
+        from wakfu_server.fight_checkpoint_store import snapshot
+
+        (
+            character,
+            creature,
+            initialized,
+            deck,
+            rng,
+            los,
+            terrain,
+        ) = initialized_cinetosis_fixture(
+            [5028, 5041],
+            monster_reference=3646,
+            monster_level=12,
+        )
+        setup = prepare_server_spell(
+            struct.pack(
+                ">qqiih", 7, (7 << 32) | 5041, *initialized.actors[-7].position
+            ),
+            character,
+            {-7: creature},
+            initialized,
+            3,
+            deck,
+            action_id=2,
+            line_of_sight=los,
+            critical=False,
+            rng=rng,
+        )
+        initialized = setup.fight
+        before = snapshot(initialized)
+        execute = EffectDispatcher.execute
+        created = []
+        # Original Blood for Blood accepts a legal empty cell. Keep the NPC
+        # alive while testing helper expiry, without fabricated target HP.
+        empty_terrain = dict(
+            terrain,
+            cells={
+                c
+                for c in terrain["cells"]
+                if c not in {a.position for a in initialized.actors.values()}
+            },
+        )
+        empty = dict(
+            native.target_candidates(
+                native.catalog()["spells"]["5028"],
+                200,
+                empty_terrain,
+                initialized.actors[7].position,
+                native=native.native_casting_baseline(
+                    native.native_casting_catalog()["5028"], 200
+                ),
+                spell_reference=5028,
+            )
+        )["empty_cell"]
+
+        def observe(dispatcher, invocation, **kwargs):
+            if invocation.reference == 416001:
+                created.append(invocation)
+            return execute(dispatcher, invocation, **kwargs)
+
+        def cast(source, action_id):
+            return prepare_server_spell(
+                struct.pack(">qqiih", 7, (7 << 32) | 5028, *empty),
+                character,
+                {-7: creature},
+                source,
+                3,
+                deck,
+                action_id=action_id,
+                line_of_sight=los,
+                critical=False,
+                rng=rng,
+            )
+
+        def helpers(source):
+            return [
+                row
+                for row in source.native_owned_group_effects.values()
+                if row.get("generic_effect") == 416001
+            ]
+
+        with patch.object(EffectDispatcher, "execute", observe):
+            first = cast(initialized, 3)
+            self.assertEqual(helpers(first.fight), [])
+            # Two actual4AP casts require a native next turn. Preserve the
+            # end/ACK/start resource producers instead of topping up AP.
+            turns = cinetosis_turn_runtime(character, creature, first.fight, deck, rng)
+            advance_actual_turn(turns)
+            while turns.fight.current.id != 7:
+                advance_actual_turn(turns)
+            second = cast(turns.fight, 4)
+        self.assertEqual(len(created), 2)
+        self.assertEqual(helpers(first.fight), [])
+        self.assertEqual(helpers(second.fight), [])
+        self.assertEqual(snapshot(initialized), before)
+
+        rng_before = rng.getstate()
+
+        def interrupted(dispatcher, invocation, **kwargs):
+            if invocation.reference == 255621:
+                raise ValueError("interrupted ordinary root")
+            return execute(dispatcher, invocation, **kwargs)
+
+        with patch.object(EffectDispatcher, "execute", interrupted):
+            with self.assertRaisesRegex(ValueError, "interrupted ordinary root"):
+                cast(initialized, 3)
+        self.assertEqual(snapshot(initialized), before)
+        self.assertEqual(rng.getstate(), rng_before)

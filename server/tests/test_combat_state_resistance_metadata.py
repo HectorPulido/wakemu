@@ -45,6 +45,9 @@ class StateResistanceMetadataTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "outside proven"):
                 metadata.native_state_resistance_mode(759)
+            self.assertTrue(metadata.native_state_absence_proven(759))
+            self.assertFalse(metadata.native_state_absence_proven(9323))
+            self.assertFalse(metadata.native_state_absence_proven(999999))
 
         self.query(self.document(), check)
 

@@ -29,7 +29,15 @@ def _distances(seeds, cells, outgoing, blocked):
     return distances
 
 
-def generate(cells, edges, seeds, *, slots_per_team=6, variation_seed=None):
+def generate(
+    cells,
+    edges,
+    seeds,
+    *,
+    slots_per_team=6,
+    variation_seed=None,
+    avoid_cells=(),
+):
     """Return disjoint team0/1 placement sets containing every current actor.
 
     Native outgoing paths choose nearby candidates; enemy seed cells are blocked
@@ -43,6 +51,9 @@ def generate(cells, edges, seeds, *, slots_per_team=6, variation_seed=None):
     ):
         raise ValueError("Invalid placement variation seed")
     cells = {_cell(cell) for cell in cells}
+    avoided = {_cell(cell) for cell in avoid_cells}
+    if not avoided <= cells:
+        raise ValueError("Avoided placement cells are outside selected terrain")
     if not cells or len({cell[:2] for cell in cells}) != len(cells):
         raise ValueError("Placement needs selected unique-height terrain")
     if not isinstance(seeds, dict) or set(seeds) != {0, 1}:
@@ -73,13 +84,13 @@ def generate(cells, edges, seeds, *, slots_per_team=6, variation_seed=None):
 
     def candidate_order(team, cell):
         if variation_seed is None:
-            return (distances[team][cell], cell)
+            return (cell in avoided, distances[team][cell], cell)
         # Keep native distance priority; vary only equally reachable cells.
         # A durable encounter seed makes retries independent of input order.
         tie = hashlib.sha256(
             repr((variation_seed, team, cell)).encode("ascii")
         ).digest()
-        return (distances[team][cell], tie, cell)
+        return (cell in avoided, distances[team][cell], tie, cell)
 
     candidates = {
         team: deque(sorted(distances[team], key=lambda c: candidate_order(team, c)))

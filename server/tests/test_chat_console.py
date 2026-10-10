@@ -2,7 +2,35 @@ import unittest
 from unittest.mock import patch
 from postgres_case import PostgresCase
 from wakfu_server.combat_groups import Groups
-from wakfu_server.test_console import execute
+from wakfu_server.test_console import execute, parse_target
+
+
+class TargetParserTests(unittest.TestCase):
+    def test_supported_commands_accept_quoted_or_prefixed_final_target(self):
+        for command in (
+            "!level 50",
+            "!item 2021 1",
+            "!monster 5525 1 2",
+            "!teleport 527 1 2 3",
+            "!kamas 100",
+        ):
+            base, target = parse_target(command)
+            self.assertIsNone(target)
+            self.assertEqual(
+                parse_target(command + ' "Prueba Oficios"'), (base, "Prueba Oficios")
+            )
+            self.assertEqual(parse_target(command + " @Npers"), (base, "Npers"))
+
+    def test_invalid_argument_counts_and_empty_targets_are_rejected(self):
+        for command in (
+            "!item 1",
+            "!kamas 2 @",
+            '!level 5 ""',
+            "!tp 527 1 2 3 A B",
+            "!level fish @Npers",
+        ):
+            with self.subTest(command=command), self.assertRaises(ValueError):
+                parse_target(command)
 
 
 class ConsoleTests(PostgresCase):
@@ -21,6 +49,49 @@ class ConsoleTests(PostgresCase):
         return execute(
             self.store, self.groups, self.account, self.generation, self.char, text
         )
+
+    def test_kamas_absolute_wallet_packet_and_durable_addition(self):
+        import struct
+
+        before = self.store.character(self.account, self.char["id"])["kamas"]
+        result = self.run_command("!kamas 1234")
+        self.assertEqual(result["packets"], [(12753, struct.pack(">q", before + 1234))])
+        self.assertEqual(
+            self.reopen().character(self.account, self.char["id"])["kamas"],
+            before + 1234,
+        )
+        for invalid in (0, -1, 1 << 63, (1 << 63) - 1):
+            with self.assertRaises(ValueError):
+                self.run_command(f"!kamas {invalid}")
+        self.assertEqual(
+            self.store.character(self.account, self.char["id"])["kamas"], before + 1234
+        )
+
+    def test_administrator_can_credit_target_but_nonadmin_issuer_cannot(self):
+        other = self.store.register("console-target", "password")["id"]
+        target = self.store.create_character(other, "Target Player")
+        generation = self.store.begin_session(other)
+        self.store.select_character(other, generation, target["id"])
+        result = execute(
+            self.store,
+            self.groups,
+            other,
+            generation,
+            target,
+            "!kamas 100",
+            authorized_by=self.account,
+        )
+        self.assertEqual(result["character"]["kamas"], 100)
+        with self.assertRaises(PermissionError):
+            execute(
+                self.store,
+                self.groups,
+                self.account,
+                self.generation,
+                self.char,
+                "!kamas 100",
+                authorized_by=other,
+            )
 
     def test_item_native_delta_persistence_and_invalid_stack_no_change(self):
         result = self.run_command("!item 2021 1")

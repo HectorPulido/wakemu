@@ -15,6 +15,7 @@ import audit_active_spells as audit
 from wakfu_server.paths import DATA_ROOT, PROJECT_ROOT
 from wakfu_server.spells import available_spells, encode_deck
 from wakfu_server.spell_audit import catalog
+from wakfu_server import native_catalog as protocol_catalog
 from wakfu_server.combat_server_spell import (
     prewarm_runtime_catalogs,
     prepare_server_initialization,
@@ -43,9 +44,9 @@ from wakfu_server.fight_checkpoint_store import snapshot
 def passive_cases(breed=None, *, identities=None, level=None):
     names = {
         r["id"]: r["name"]
-        for r in json.loads((DATA_ROOT / "spell-names.json").read_text())["spells"]
+        for r in protocol_catalog.load(DATA_ROOT / "spell-names.json")["spells"]
     }
-    rows = json.loads((DATA_ROOT / "spells.json").read_text())["spells"]
+    rows = protocol_catalog.load(DATA_ROOT / "spells.json")["spells"]
     selected = [
         r
         for r in rows

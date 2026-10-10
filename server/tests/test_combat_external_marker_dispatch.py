@@ -92,6 +92,7 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
                 1: SimpleNamespace(character_id=17, generation="owner-generation")
             },
             group_lease=((1134, 0, 77), "owner-generation", 53, 1),
+            settlement_ready=True,
             join_context={
                 "arena": {
                     "map_id": 1134,
@@ -114,18 +115,33 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
             },
         )
         batches = []
+        import threading
+        from contextlib import nullcontext
+        from wakfu_server.performance_profiler import PROFILER
 
         class WorldCapture:
+            lock = threading.RLock()
+            players = {}
+
             @staticmethod
             def emit_location_batch(map_id, instance_id, packets, *, exclude_sessions):
                 batches.append((map_id, instance_id, tuple(packets), exclude_sessions))
 
         observer = SimpleNamespace(character_id=88, generation="observer-generation")
+
         namespace = {
             "COMBAT_TEST": True,
             "EXTERNAL_FIGHT_MARKERS": marker,
+            "monster_corpse_snapshot": lambda *_args, **_kwargs: (),
             "SPECTATORS": SimpleNamespace(sessions=lambda _fight_id: (observer,)),
             "WORLD": WorldCapture(),
+            "COMBAT_GROUPS": SimpleNamespace(lock=threading.RLock()),
+            "PROFILER": PROFILER,
+            "STORE": SimpleNamespace(
+                connection=lambda: nullcontext(
+                    SimpleNamespace(execute=lambda *_args, **_kwargs: ())
+                )
+            ),
             "record": lambda **event: None,
         }
         exec(
@@ -159,10 +175,38 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         self.assertEqual(batches[-1][3], excluded)
 
         shared.fight.phase = "finished"
+        shared.settlement_ready = False
+        # An uncommitted lethal preview must retain its public swords.
+        namespace["publish_external_marker"](shared)
+        self.assertEqual(len(batches), 2)
+        self.assertTrue(marker.snapshots(1134, 0))
+        shared.settlement_ready = True
         namespace["publish_external_marker"](shared)
         self.assertEqual(len(batches), 3)
         self.assertEqual([opcode for opcode, _body in batches[-1][2]], [12238])
         self.assertEqual(marker.snapshots(1134, 0), ())
+
+        # A committed surrender has no reward settlement. It still removes
+        # the public marker immediately and must not publish a corpse.
+        shared.fight.phase = "active"
+        shared.fight.winner = None
+        shared.settlement_ready = False
+        shared.runtime = SimpleNamespace(abandon_owner=None)
+        namespace["publish_external_marker"](shared)
+        before_abort = len(batches)
+        shared.withdrawals = {2: object()}
+        namespace["publish_external_marker"](shared)
+        self.assertEqual(len(batches), before_abort)
+        self.assertTrue(marker.snapshots(1134, 0))
+        shared.fight.phase = "finished"
+        shared.runtime.abandon_owner = (1, 17)
+        namespace["publish_external_marker"](shared)
+        self.assertEqual(len(batches), before_abort + 1)
+        self.assertEqual([opcode for opcode, _body in batches[-1][2]], [12238])
+        self.assertEqual(batches[-1][3], excluded)
+        self.assertEqual(marker.world_snapshots(1134, 0), ())
+        namespace["publish_external_marker"](shared)
+        self.assertEqual(len(batches), before_abort + 1)
 
     def test_initial_placement_captures_starter_world_cell_for_marker(self):
         marker_contexts = [
@@ -303,16 +347,21 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
             events.append((peer, opcode, body))
 
         join = _function(self.tree, "join_world")
+        from wakfu_server.performance_profiler import PROFILER
+
         namespace = {
             "STORE": object(),
             "COMBAT_TEST": True,
             "send": send,
             "send_planting_context": lambda *_args, **_kwargs: None,
             "PLANTINGS": EmptySnapshots(),
+            "HAVEN_BAG_EXTERIORS": EmptySnapshots(),
             "WORLD": world,
             "COMBAT_GROUPS": ClaimedGroups(),
+            "PROFILER": PROFILER,
             "HARVESTS": EmptySnapshots(),
             "EXTERNAL_FIGHT_MARKERS": markers,
+            "monster_corpse_snapshot": lambda *_args, **_kwargs: (),
             "refresh_party": lambda *_args, **_kwargs: None,
         }
         exec(

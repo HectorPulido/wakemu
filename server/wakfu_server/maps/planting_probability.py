@@ -26,6 +26,35 @@ def resolver(store, *, profession_bonus, open_test_policy=False):
         raise ValueError("Invalid open planting probability policy")
 
     def resolve(prepared):
+        if prepared["character"]["map_id"] == 9:
+            from .haven_bag_garden import room_at
+
+            room_at(
+                prepared["character"],
+                prepared["request"]["x"],
+                prepared["request"]["y"],
+            )
+            if prepared["definition"]["monster_resource"]:
+                raise ValueError(
+                    "Monster reproduction is unavailable inside Haven Bags"
+                )
+            from .planting_cells import GROUNDS
+
+            ground = GROUNDS.get(28)
+            if ground is None:
+                raise ValueError("Native Haven Bag garden ground is unavailable")
+            resource = prepared["definition"]
+            threshold = ground["resources"].get(str(resource["resource_reference"]))
+            if threshold is None:
+                threshold = ground["families"].get(str(resource["family_id"]), 0)
+            chance = calculate(
+                ground_percent=threshold,
+                climate_compatible=True,
+                profession_bonus_percent=profession_bonus(prepared),
+            )["probability"]
+            if chance <= 0:
+                raise ValueError("This resource cannot grow on native garden ground")
+            return chance
         if open_test_policy:
             # The open profile intentionally bypasses native ground/territory
             # restrictions. Its visible1% must not secretly succeed100%.

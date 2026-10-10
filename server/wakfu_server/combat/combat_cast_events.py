@@ -57,12 +57,18 @@ def cast_boundary_context(fight, plan):
     )
 
 
-def _deliver(dispatcher, plan, event_id, context=None):
+def _deliver(dispatcher, plan, event_id, context=None, *, removal=False):
     fight = dispatcher.native_retention.fight
     authority = dispatcher.native_clone_authority
     caster_id = plan["actor_id"]
     outcomes = []
-    for channel in (6, 60):
+    # Native Qf mask2 is removal, selected only by4/40/41. External cast
+    # activation6/60/61 cannot expire a one-cast listener. Deliver removal
+    # after successful1025 reactions as an explicit Wakemu server policy.
+    if removal and event_id != 1025:
+        raise ValueError("Cast removal boundary requires successful1025")
+    global_channel = 41 if removal else 61
+    for channel in (4, 40) if removal else (6, 60):
         outcomes.extend(
             dispatcher.replay_event(
                 NativeExternalEvent(
@@ -85,7 +91,10 @@ def _deliver(dispatcher, plan, event_id, context=None):
             outcomes.extend(
                 dispatcher.replay_event(
                     NativeExternalEvent(
-                        identity, (event_id,), 61, cast_boundary_context=context
+                        identity,
+                        (event_id,),
+                        global_channel,
+                        cast_boundary_context=context,
                     ),
                     authority=authority,
                 )
@@ -105,13 +114,13 @@ def _deliver(dispatcher, plan, event_id, context=None):
                 subscription_selection(
                     masks=row["native_subscription_masks"],
                     event_ids=(event_id,),
-                    channel=61,
+                    channel=global_channel,
                     global_subscription=definition["event_global_subscription"],
                     reversed_subscription=definition["event_reverse_subscription"],
                     flags=row["native_effect_flags"],
                     source_present=False,
                 )
-                == "activate"
+                is not None
             ):
                 raise ValueError(
                     "Global cast observer requires native PV collection producer"
@@ -151,10 +160,15 @@ def cast_event_scope(dispatcher, plan, *, origin="normal"):
     ):
         raise ValueError("Cast boundary requires owned active spell and runtime")
     context = cast_boundary_context(fight, plan)
-    from .combat_attack_preparation import attack_preparation_scope
+    from .combat_attack_preparation import (
+        attack_preparation_scope,
+        settle_attack_preparation,
+    )
 
     with attack_preparation_scope(fight, caster_id):
         _deliver(dispatcher, plan, 1024, context)
         yield
         # An exception in any root exits before the successful-after boundary.
+        settle_attack_preparation(dispatcher)
         _deliver(dispatcher, plan, 1025, context)
+        _deliver(dispatcher, plan, 1025, context, removal=True)

@@ -88,6 +88,32 @@ def run(
                     c for c in sorted(terrain["cells"]) if c not in (origin, cell)
                 )
             )
+            extra_monsters = ()
+            if scenario == "push_zone":
+                # Keep the original second NPC beside the casting ray, not
+                # between caster and recipient: that genuine QK blocks Sf
+                # and correctly rejects the cast with twG.
+                choices = [
+                    (enemy[0] + dx, enemy[1] + dy, enemy[2])
+                    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+                    if (enemy[0] - origin[0]) * dy - (enemy[1] - origin[1]) * dx != 0
+                    and (enemy[0] + dx, enemy[1] + dy, enemy[2]) in terrain["cells"]
+                    and (enemy[0] + 2 * dx, enemy[1] + 2 * dy, enemy[2])
+                    in terrain["cells"]
+                    and (enemy[0] + dx, enemy[1] + dy, enemy[2]) != origin
+                ]
+                adjacent = choices[0]
+                extra_monsters = (
+                    native.owned_instance(
+                        3646,
+                        12,
+                        -8,
+                        map_id=1134,
+                        x=adjacent[0],
+                        y=adjacent[1],
+                        z=adjacent[2],
+                    ),
+                )
             character, monster, base = native.fixture(
                 11,
                 level,
@@ -97,32 +123,9 @@ def run(
                 monster_reference=3646,
                 monster_level=12,
                 ready=False,
+                extra_monsters=extra_monsters,
             )
-            monsters = {monster["id"]: monster}
-            if scenario == "push_zone":
-                from wakfu_server.combat_state_ledger import StateLedger
-
-                choices = [
-                    (enemy[0] + dx, enemy[1] + dy, enemy[2])
-                    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
-                    if (enemy[0] + dx, enemy[1] + dy, enemy[2]) in terrain["cells"]
-                    and (enemy[0] + 2 * dx, enemy[1] + 2 * dy, enemy[2])
-                    in terrain["cells"]
-                    and (enemy[0] + dx, enemy[1] + dy, enemy[2]) != origin
-                ]
-                adjacent = choices[0]
-                actor = copy.deepcopy(base.actors[-7])
-                actor.id, actor.position, actor.state_ledger = (
-                    -8,
-                    adjacent,
-                    StateLedger(-8),
-                )
-                actor.turn_count = 0
-                base.actors[-8] = actor
-                base.placement[1].add(adjacent)
-                monsters[-8] = dict(
-                    monster, id=-8, x=adjacent[0], y=adjacent[1], z=adjacent[2]
-                )
+            monsters = {row["id"]: row for row in (monster, *extra_monsters)}
             base.ready(3)
             deck = encode_deck(
                 list(
@@ -297,6 +300,20 @@ def run(
                 if spell == 5041:
                     current = result.fight
                     current_before = snapshot(current)
+                    row["reaction_listeners_before_pull"] = [
+                        dict(
+                            uid=uid,
+                            invocation=copy.deepcopy(owned["invocation"]),
+                            children=list(owned["children"]),
+                        )
+                        for uid, owned in current.native_owned_group_effects.items()
+                        if owned["invocation"].get("state_uid")
+                        in {
+                            state.uid
+                            for state in current.actors[-7].state_ledger.entries
+                            if state.reference == 4801
+                        }
+                    ]
                     target = current.actors[-7].position
                     damage_calculations = []
                     damage_module = import_module(
@@ -306,6 +323,38 @@ def run(
                     calculate_damage = damage_module.damage_amount
                     consume_damage = damage_module.consume_damage
                     damage_consumptions = []
+                    damage_sources = []
+                    damage_handler = damage_module.NativeDamageHandler
+                    original_calculate = damage_handler._calculate
+                    original_call = damage_handler.__call__
+
+                    def damage_identity(invocation):
+                        return dict(
+                            reference=invocation.reference,
+                            running_uid=invocation.native_running_uid,
+                            caster_id=invocation.caster_id,
+                            target_id=invocation.target_id,
+                            state_uid=invocation.state_uid,
+                            triggering_source=copy.deepcopy(
+                                invocation.native_trigger_context
+                            ),
+                        )
+
+                    def observe_calculate(handler, effect, invocation, **kwargs):
+                        damage_sources.append(damage_identity(invocation))
+                        try:
+                            return original_calculate(
+                                handler, effect, invocation, **kwargs
+                            )
+                        finally:
+                            damage_sources.pop()
+
+                    def observe_call(handler, effect, values, invocation):
+                        damage_sources.append(damage_identity(invocation))
+                        try:
+                            return original_call(handler, effect, values, invocation)
+                        finally:
+                            damage_sources.pop()
 
                     def observe_damage(
                         base, element, source_stats, target_stats, **context
@@ -315,6 +364,9 @@ def run(
                         )
                         damage_calculations.append(
                             dict(
+                                source=dict(damage_sources[-1])
+                                if damage_sources
+                                else None,
                                 base=base,
                                 element=element,
                                 source_stats=dict(source_stats),
@@ -330,6 +382,9 @@ def run(
                         consumed = consume_damage(value, **context)
                         damage_consumptions.append(
                             dict(
+                                source=dict(damage_sources[-1])
+                                if damage_sources
+                                else None,
                                 value=value,
                                 context=dict(context),
                                 result=dict(consumed),
@@ -338,6 +393,10 @@ def run(
                         return consumed
 
                     with patch.object(
+                        damage_handler, "_calculate", observe_calculate
+                    ), patch.object(
+                        damage_handler, "__call__", observe_call
+                    ), patch.object(
                         damage_module, "damage_amount", side_effect=observe_damage
                     ), patch.object(
                         damage_module, "consume_damage", side_effect=observe_consumption

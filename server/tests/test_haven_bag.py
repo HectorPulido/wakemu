@@ -10,6 +10,60 @@ from wakfu_server.haven_bag import (
 
 
 class HavenBagTests(unittest.TestCase):
+    def test_occupied_optional_rooms_do_not_acquire_native_fixed_primary_flag(self):
+        from wakfu_server.haven_bag_store import initial_layout
+
+        rooms = initial_layout(3)
+        for index in range(1, 9):
+            rooms[index].update(enabled=True, primary_ref=4263, primary_uid=800 + index)
+        r = Reader(
+            own_bag(
+                dict(
+                    id=3,
+                    account_id=2,
+                    name="Owner",
+                    haven_bag=dict(
+                        rooms=rooms,
+                        furniture=[],
+                        appearance_id=408,
+                        locked=False,
+                        access={
+                            "groups": [{"group": 0, "rights": 1}],
+                            "characters": [],
+                        },
+                    ),
+                )
+            )
+        )
+        r.number("q")
+        r.number("q")
+        r.text("H")
+        r.number("q")
+        r.number("h")
+        r.number("q")
+        self.assertEqual(r.number("B"), 9)
+        for index in range(9):
+            self.assertEqual(
+                (r.number("B"), r.number("H"), r.number("B")), (index, 0, 0)
+            )
+            self.assertEqual(r.number("B"), int(index == 0))
+            self.assertEqual(r.number("i"), 4262 if index == 0 else 4263)
+            r.number("q")
+            self.assertEqual((r.number("i"), r.number("q")), (-1, -1))
+
+    def test_occupied_optional_primary_can_move_and_fixed_entrance_cannot_swap(self):
+        from wakfu_server.haven_bag_store import initial_layout, rearrange_rooms
+
+        rooms = initial_layout(3)
+        rooms[8].update(enabled=True, primary_ref=4266, primary_uid=900)
+        config = dict(rooms=rooms, furniture=[])
+        result = rearrange_rooms(config, bytes((1, 1, 8, 1)))
+        self.assertEqual((result[8]["enabled"], result[8]["primary_uid"]), (False, 0))
+        self.assertEqual((result[1]["enabled"], result[1]["primary_uid"]), (True, 900))
+        for body in (bytes((1, 1, 0, 8)), bytes((1, 1, 8, 0))):
+            with self.assertRaises(ValueError):
+                rearrange_rooms(config, body)
+
     def test_local_ownership_empty_commerce_room_and_no_inherited_items(self):
         r = Reader(own_bag({"id": 3, "account_id": 2, "name": "Prueba local"}))
         self.assertEqual(
@@ -141,8 +195,10 @@ class HavenBagSessionTests(unittest.TestCase):
         )
         session = HavenBagSession(outside)
         enter = entry_messages(template, session.inside)
-        self.assertEqual([opcode for opcode, _ in enter], [13307, 13974])
-        self.assertEqual(enter[0][1], bytes.fromhex("0101000000000001"))
+        self.assertEqual([opcode for opcode, _ in enter], [13256, 13307, 13974, 12318])
+        self.assertEqual(enter[0][1], b"")
+        self.assertEqual(enter[1][1], bytes.fromhex("0101000000000001"))
+        self.assertEqual(enter[-1][1], struct.pack(">ii", 3, 3))
         at_door = session.move(session.inside, dict(x=-4, y=2, z=0))
         restored = session.leave(at_door)
         leave = leave_messages(template, restored)
@@ -151,12 +207,16 @@ class HavenBagSessionTests(unittest.TestCase):
             [(opcode, body) for opcode, body in leave[:2]],
             [(13959, b"\x00"), (13019, b"")],
         )
-        self.assertEqual(leave[-1][0], 13974)
-        r = Reader(leave[-1][1])
+        self.assertEqual(
+            [opcode for opcode, _ in leave], [13959, 13019, 13256, 13974, 12318]
+        )
+        self.assertEqual(leave[2][1], b"")
+        self.assertEqual(leave[-1][1], struct.pack(">ii", 7, 14))
+        r = Reader(leave[-2][1])
         entity = r.take(r.number("H"))
         self.assertEqual(struct.unpack(">iihq", entity[18:36]), (7, 14, -1, 1134))
         reenter = HavenBagSession(restored)
-        self.assertEqual(entry_messages(template, reenter.inside)[0][0], 13307)
+        self.assertEqual(entry_messages(template, reenter.inside)[1][0], 13307)
         self.assertEqual(reenter.inside["haven_bag"], config)
         self.assertEqual(len(reenter.inside["haven_bag"]["rooms"]), 9)
         with self.assertRaises(ValueError):

@@ -218,21 +218,25 @@ class Harvests:
                 packets.append(availability_packet(key[2], key[3], False))
         return packets
 
-    @_serialized
-    def due_availability(self):
-        """One global drain; packet traffic only checks the earliest deadline."""
-        now = self.store.clock()
-        if now < self.next_regeneration:
+    def due_availability(self, *, blocking=True):
+        """Drain once; socket maintenance may retry rather than wait for ecology."""
+        if not self.lock.acquire(blocking=blocking):
             return []
-        ready = []
-        for key, due in list(self.regenerating.items()):
-            if due <= now:
-                del self.regenerating[key]
-                ready.append(
-                    (key[0], key[1], availability_packet(key[2], key[3], True))
-                )
-        self.next_regeneration = min(self.regenerating.values(), default=math.inf)
-        return ready
+        try:
+            now = self.store.clock()
+            if now < self.next_regeneration:
+                return []
+            ready = []
+            for key, due in list(self.regenerating.items()):
+                if due <= now:
+                    del self.regenerating[key]
+                    ready.append(
+                        (key[0], key[1], availability_packet(key[2], key[3], True))
+                    )
+            self.next_regeneration = min(self.regenerating.values(), default=math.inf)
+            return ready
+        finally:
+            self.lock.release()
 
     @_serialized
     def availability_for(self, map_id, instance_id, monster_ids):
@@ -262,7 +266,12 @@ class Harvests:
             _lease(self.store, db, account_id, generation, character_id)
             character = self.store.character(account_id, character_id, db)
             configuration = policy(db)
-            available(db, self.store, monster, request["action_id"])
+            if monster.get("corpse"):
+                from .monster_corpses import resolve_target as resolve_corpse
+
+                monster = resolve_corpse(db, character, request["monster_id"])
+            else:
+                available(db, self.store, monster, request["action_id"])
         quantity = configuration["quantity"]
         cooldown_seconds = configuration["cooldown_seconds"]
         previous = self.pending.get(character_id)
@@ -287,6 +296,8 @@ class Harvests:
         ):
             raise ValueError("Invalid local harvest policy")
         rule = action(monster["ref"], request["action_id"])
+        if monster.get("corpse") and rule["condition"].strip() != 'IsDead("target")':
+            raise ValueError("Action does not belong to a native corpse harvest")
         from .inventory_move import STACKS
 
         stack = STACKS.get(rule["item_ref"])
@@ -303,6 +314,7 @@ class Harvests:
             quantity=quantity,
             started=self.store.clock(),
             cooldown_seconds=cooldown_seconds,
+            corpse=bool(monster.get("corpse")),
             position=tuple(
                 character[k] for k in ("map_id", "instance_id", "x", "y", "z")
             ),
@@ -363,7 +375,20 @@ class Harvests:
             ).fetchone():
                 self.cancel(character_id)
                 return dict(applied=False, packets=[])
-            available(db, self.store, monster, ticket["rule"]["action_id"])
+            corpse_removal = None
+            if ticket.get("corpse"):
+                from .monster_corpses import consume
+
+                if (
+                    not monster.get("corpse")
+                    or ticket["rule"]["condition"].strip() != 'IsDead("target")'
+                ):
+                    raise ValueError("Corpse harvest target changed")
+                corpse_removal = consume(
+                    db, monster, character_id=character_id, token=ticket["token"]
+                )
+            else:
+                available(db, self.store, monster, ticket["rule"]["action_id"])
             # Base pocket accepts ordinary materials; no bag specialty assumptions.
             base = character["inventory_containers"][0]
             from wakfu_server.inventory_move import STACKS
@@ -463,13 +488,28 @@ class Harvests:
             )
             from .monster_harvest_ecology import change as ecological_harvest
 
-            feedback = ecological_harvest(
-                db,
-                character_id,
-                monster,
-                operation="monster-harvest:" + ticket["token"],
+            feedback = (
+                []
+                if ticket.get("corpse")
+                else ecological_harvest(
+                    db,
+                    character_id,
+                    monster,
+                    operation="monster-harvest:" + ticket["token"],
+                )
             )
         self.cancel(character_id)
+        if ticket.get("corpse"):
+            return dict(
+                applied=True,
+                item=item,
+                packets=[packet, *progress["packets"]],
+                availability=(
+                    monster["map_id"],
+                    monster["instance_id"],
+                    corpse_removal,
+                ),
+            )
         key = (
             monster["map_id"],
             monster["instance_id"],

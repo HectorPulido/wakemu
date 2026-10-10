@@ -685,33 +685,11 @@ class OrdinaryDisplacementEvents(OrdinaryDamageEvents):
         )
 
     def displacement_completed(self, effect, invocation, *, uid, value, moved):
-        """Emulated server event2128, inferred from movement-reaction definitions.
+        """Do not invent events in addition to native displacement reactions.
 
-        This producer is absent from the distributed client bytecode. Original
-        state4801 subscriptions and tooltip attest damage after displacement by
-        its caster. Deliver once per changed actor, preserving original caster,
-        source definition, UID and all native subscription/criterion guards.
-        It is not emitted for attempted or zero-distance movement.
+        Original caster listener 416001 observes eVi phase3 and executes
+        null runner416114, whose published emission mask contains2128.
+        Shared cast boundaries now install that listener before the roots.
+        The former synthetic2128 fallback duplicated its actual delivery.
         """
-        from dataclasses import replace
-
-        if len({identity for identity, _, _ in moved}) != len(moved):
-            raise ValueError("Duplicate displaced actor in movement completion")
-        outcomes = []
-        for identity, before, after in moved:
-            if before == after:
-                continue
-            selected = replace(invocation, target_id=identity)
-            outcomes.extend(
-                OrdinaryHealingEvents.phase(
-                    self,
-                    effect,
-                    selected,
-                    uid=uid,
-                    value=value,
-                    channel=3,
-                    _event_ids=(2128,),
-                    _nullable_target=True,
-                )
-            )
-        return tuple(outcomes)
+        return ()

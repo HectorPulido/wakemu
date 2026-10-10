@@ -48,6 +48,59 @@ class EquipmentStatsTests(unittest.TestCase):
         self.assertEqual(effective_character(effective)["max_hp"], effective["max_hp"])
         self.assertEqual(char, before)
 
+    def test_equipped_dragopavo_effect_scales_by_pet_level_only(self):
+        pet_uid = 18682
+        equipment = proto_field(10, proto_field(8, pet_uid) + proto_field(16, 24)).hex()
+        pet = dict(
+            uid=pet_uid,
+            character_id=1,
+            reference=18682,
+            quantity=1,
+            mount={"model_id": 76, "definition_id": 76, "xp": 0},
+        )
+        char = dict(self.character(), level=50, inventory_items=[pet])
+        char["builds"] = {
+            0: dict(
+                equipment=equipment,
+                sheet=proto_field(24, (1 << 64) - 1).hex(),
+            )
+        }
+
+        for level, expected_damage in ((0, 0), (1, 0), (2, 1), (35, 28), (50, 40)):
+            with self.subTest(level=level):
+                pet["mount"]["xp"] = level * 50
+                result = bonuses(char)
+                self.assertEqual(result["stats"], {20: expected_damage})
+                self.assertEqual(result["unsupported"], [])
+
+        # An owned but unequipped Dragopavo must not change the passive values
+        # supplied by unrelated ordinary equipment as its XP changes.
+        ordinary = self.character()
+        ordinary["inventory_items"].append(pet)
+        baseline = bonuses(ordinary)["stats"]
+        for xp in (0, 2500):
+            pet["mount"]["xp"] = xp
+            self.assertEqual(bonuses(ordinary)["stats"], baseline)
+
+    def test_null_equipment_marker_does_not_hide_conditional_or_unknown_variants(self):
+        from wakfu_server.equipment_stats import passive_null_marker
+
+        marker = next(
+            effect for effect in CATALOG[18682]["effects"] if effect["id"] == 119215
+        )
+        self.assertTrue(passive_null_marker(marker))
+        for altered in (
+            dict(marker, has_triggers=True),
+            dict(marker, effect_criteria=True),
+            dict(marker, target_mask=1),
+            dict(marker, runner="unknown"),
+            dict(marker, parameter_count=1, params=[1.0, 0.0], values=[1]),
+        ):
+            self.assertFalse(passive_null_marker(altered))
+            char = self.character()
+            with patch.dict(CATALOG, {2021: dict(CATALOG[2021], effects=[altered])}):
+                self.assertEqual(bonuses(char)["unsupported"][0]["effect_id"], 119215)
+
     def test_unequipping_removes_bonus_and_caps_current_hp_to_base(self):
         char = effective_character(self.character())
         char["hp"] = char["max_hp"]

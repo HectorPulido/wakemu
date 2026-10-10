@@ -35,7 +35,21 @@ def initialize(db, uid, character_id, now):
     state = db.execute("SELECT * FROM inventory_mounts WHERE uid=%s", (uid,)).fetchone()
     if state["model_id"] != model["model_id"]:
         raise ValueError("Mount definition differs from the owned item")
-    return dict(state, definition_id=state["model_id"])
+    return dict(
+        state,
+        definition_id=state["model_id"],
+        daily_limit_enabled=daily_limit_enabled(db),
+    )
+
+
+def daily_limit_enabled(db):
+    row = db.execute(
+        "SELECT value FROM settings WHERE name='pet_feeding_daily_limit_enabled'"
+    ).fetchone()
+    value = True if row is None else row["value"]
+    if type(value) is not bool:
+        raise ValueError("Invalid pet feeding daily-limit policy")
+    return value
 
 
 def hydrate(db, items):
@@ -45,10 +59,14 @@ def hydrate(db, items):
     states = {
         row["uid"]: dict(row, definition_id=row["model_id"])
         for row in db.execute(
-            "SELECT * FROM inventory_mounts WHERE uid=ANY(%s)",
+            "SELECT *,COALESCE((SELECT value FROM settings "
+            "WHERE name='pet_feeding_daily_limit_enabled'),'true'::jsonb) "
+            "AS daily_limit_enabled FROM inventory_mounts WHERE uid=ANY(%s)",
             ([item["uid"] for item in items],),
         )
     }
+    if any(type(state["daily_limit_enabled"]) is not bool for state in states.values()):
+        raise ValueError("Invalid pet feeding daily-limit policy")
     return [
         dict(item, mount=states[item["uid"]]) if item["uid"] in states else item
         for item in items
@@ -83,4 +101,24 @@ def actor_pet(character):
     from .mount_codec import pet_section
 
     unit = equipped(character)
-    return b"\x00\x00" if unit is None else pet_section(unit["mount"])
+    if unit is None:
+        return b"\x00\x00"
+    state = unit["mount"]
+    record = character.get("owned_cosmetics")
+    if record is not None:
+        from wakfu_server.characters.cosmetics import OwnedCosmetics
+
+        owned = OwnedCosmetics.from_record(
+            record, account_id=character.get("account_id")
+        )
+        reference = owned.selected_single(character["id"], 1)
+        if reference:
+            _, _, color, accessory = next(
+                row for row in owned.items if row[:2] == (1, reference)
+            )
+            # Native eSP.a/b project appearance operands, not the mount definition.
+            # Zero accessory is encoded absent in fC and falls back to its item ref.
+            state = dict(
+                state, color_item_ref=color, equipped_item_ref=accessory or reference
+            )
+    return pet_section(state)

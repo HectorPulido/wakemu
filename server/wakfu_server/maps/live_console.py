@@ -57,7 +57,15 @@ class LiveConsole:
                 key: value
                 for key, value in receipt.items()
                 if key
-                not in ("event", "generation", "command", "request_id", "authorize")
+                not in (
+                    "event",
+                    "generation",
+                    "command",
+                    "request_id",
+                    "authorize",
+                    "executor",
+                    "delegated_by",
+                )
             }
 
     def submit(
@@ -67,7 +75,10 @@ class LiveConsole:
         *,
         request_id=None,
         requester_account_id=None,
-        authorize=None
+        authorize=None,
+        executor=None,
+        delegated_by=None,
+        expected_generation=None,
     ):
         if (
             type(character_id) is not int
@@ -84,6 +95,11 @@ class LiveConsole:
             session = self.sessions.get(character_id)
             if session is None:
                 raise ValueError("El personaje no tiene una sesión conectada")
+            if (
+                expected_generation is not None
+                and session["generation"] != expected_generation
+            ):
+                raise ValueError("La sesión de destino cambió; repite el comando")
             key = (
                 (requester_account_id, character_id, session["generation"], request_id)
                 if request_id
@@ -112,6 +128,8 @@ class LiveConsole:
                     character_id=character_id,
                     requester_account_id=requester_account_id,
                     authorize=authorize,
+                    executor=executor,
+                    delegated_by=delegated_by,
                     status="pending",
                     command=command,
                     generation=session["generation"],
@@ -144,7 +162,13 @@ class LiveConsole:
             try:
                 if receipt.get("authorize") is not None:
                     receipt["authorize"]()
-                result = execute(receipt["command"])
+                executor = receipt.get("executor") or execute
+                if receipt.get("delegated_by") is None:
+                    result = executor(receipt["command"])
+                else:
+                    result = executor(
+                        receipt["command"], authorized_by=receipt["delegated_by"]
+                    )
                 update = dict(status="completed", result=result)
             except Exception as error:
                 update = dict(status="failed", error=str(error))

@@ -126,7 +126,10 @@ class NativeFinalModifierHandler:
         # eZJ.c changes only its source faq.SX accumulator. A real area PV
         # is a valid selected target and does not need actor characteristics.
         value = parameter_value(effect["parameters"], 0, invocation.level)
-        update_triggering_final(invocation, value)
+        if update_triggering_final(invocation, value):
+            from .combat_attack_preparation import note_preparation_modifier
+
+            note_preparation_modifier(self.fight, invocation)
         uid = invocation.native_running_uid or self.allocate_uid()
         payload = owned_effect_payload(
             uid=uid,

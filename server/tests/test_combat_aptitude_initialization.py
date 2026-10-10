@@ -125,17 +125,35 @@ class AptitudeInitializationTests(unittest.TestCase):
             0: {"aptitudes": aptitude_sheet([(17, 2), (36, 2)]).hex()}
         }
         activated = []
+        executed = []
         original = EffectDispatcher.execute_activation
+        original_execute = EffectDispatcher.execute
 
         def capture(dispatcher, invocation, **kwargs):
-            if invocation.reference in (165201, 303745):
+            if invocation.reference in (165201, 303745, 164894):
                 activated.append(
                     (invocation.reference, invocation.native_retained_container)
                 )
             return original(dispatcher, invocation, **kwargs)
 
+        def capture_execute(dispatcher, invocation, **kwargs):
+            result = original_execute(dispatcher, invocation, **kwargs)
+            if invocation.reference == 164894:
+                executed.append(
+                    (
+                        invocation.reference,
+                        invocation.caster_id,
+                        invocation.target_id,
+                        result,
+                    )
+                )
+            return result
+
         before = snapshot(self.fight)
-        with patch.object(EffectDispatcher, "execute_activation", capture):
+        with (
+            patch.object(EffectDispatcher, "execute_activation", capture),
+            patch.object(EffectDispatcher, "execute", capture_execute),
+        ):
             preview, packets = prepare_server_initialization(
                 character,
                 {self.monster["id"]: self.monster},
@@ -147,11 +165,25 @@ class AptitudeInitializationTests(unittest.TestCase):
             )
         self.assertTrue(preview.native_start_event_delivered)
         self.assertTrue(packets)
-        self.assertEqual({reference for reference, _ in activated}, {165201, 303745})
+        self.assertEqual(
+            {reference for reference, _ in activated},
+            {165201, 303745},
+        )
+        self.assertTrue(executed, msg={"executed": executed})
         for reference, container in activated:
+            if reference == 164894:
+                continue
             bonus = 17 if reference == 165201 else 36
             self.assertEqual(container["type"], 36)
             self.assertEqual(container["id"], (bonus << 16) + 2)
             self.assertEqual(container["level"], 2)
             self.assertFalse(container["is_spell"])
+        # Native aptitude 36's actual 164894 branch applies 4% of the
+        # initialized max-HP value per allocated point as armor at fight start.
+        armor_before = self.fight.actors[7].effect_stats[97]
+        armor_after = preview.actors[7].effect_stats[97]
+        self.assertEqual(
+            armor_after - armor_before,
+            int(preview.actors[7].max_hp * 0.04 * 2),
+        )
         self.assertEqual(snapshot(self.fight), before)

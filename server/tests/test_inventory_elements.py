@@ -1,7 +1,6 @@
 import struct
 import unittest
 from datetime import timedelta
-from random import Random
 from unittest.mock import patch
 from wakfu_server.inventory_elements import create, masks, bonuses as selected_bonuses
 from wakfu_server.inventory_items import grant, item_proto, item_form
@@ -16,6 +15,75 @@ from wakfu_server.element_selection import (
 
 
 class InventoryElementsTests(PostgresCase):
+    def test_low_level_element_identification_leaves_choice_sockets_and_wallet_unchanged(
+        self,
+    ):
+        store = self.store
+        account = store.register("low-element", "local-test-password")["id"]
+        char = store.create_character(account, "Low Element")
+        generation = store.begin_session(account)
+        store.select_character(account, generation, char["id"])
+        item = grant(
+            store,
+            account,
+            generation,
+            char["id"],
+            reference=2869,
+            quantity=1,
+            container=char["inventory_containers"][0]["uid"],
+            slot=0,
+            allowed_references={2869},
+        )
+        result = select_elements(
+            store,
+            account,
+            generation,
+            char["id"],
+            struct.pack(">qBB", item["uid"], 26, 0),
+        )
+        self.assertEqual((result["status"], result["applied"]), (2, False))
+        self.assertEqual(struct.unpack_from(">i", result["packet"][1])[0], 2)
+        with store.connection() as db:
+            db.execute("UPDATE characters SET level=100 WHERE id=%s", (char["id"],))
+            db.execute(
+                "UPDATE settings SET value=jsonb_set(value,'{cost_kamas}','7') WHERE name='socket_identification_policy'"
+            )
+        with self.assertRaisesRegex(ValueError, "Insufficient local-policy kamas"):
+            select_elements(
+                store,
+                account,
+                generation,
+                char["id"],
+                struct.pack(">qBB", item["uid"], 26, 0),
+            )
+        reopened = self.reopen().character(account, char["id"])["inventory_items"][0]
+        self.assertEqual(masks(reopened), (0, 0))
+        with store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM inventory_item_shards"
+                ).fetchone()["n"],
+                0,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM inventory_element_selection_receipts"
+                ).fetchone()["n"],
+                0,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM inventory_socket_identification_receipts"
+                ).fetchone()["n"],
+                0,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT kamas FROM account_wallets WHERE account_id=%s", (account,)
+                ).fetchone()["kamas"],
+                0,
+            )
+
     def test_native_element_selection_codec_is_uid_scoped_and_strict(self):
         body = struct.pack(">qBB", 12345, 22, 8)
         self.assertEqual(
@@ -44,24 +112,29 @@ class InventoryElementsTests(PostgresCase):
         store = self.store
         account = store.register("element-choice", "local-test-password")["id"]
         char = store.create_character(account, "Element Choice")
+        with store.connection() as db:
+            db.execute("UPDATE characters SET level=100 WHERE id=%s", (char["id"],))
         generation = store.begin_session(account)
         store.select_character(account, generation, char["id"])
-        with patch(
-            "wakfu_server.inventory_elements.SystemRandom", return_value=Random(0)
-        ):
-            item = grant(
-                store,
-                account,
-                generation,
-                char["id"],
-                reference=2869,
-                quantity=1,
-                container=char["inventory_containers"][0]["uid"],
-                slot=0,
-                allowed_references={2869},
+        item = grant(
+            store,
+            account,
+            generation,
+            char["id"],
+            reference=2869,
+            quantity=1,
+            container=char["inventory_containers"][0]["uid"],
+            slot=0,
+            allowed_references={2869},
+        )
+        # New items remain pending until an explicit native choice.
+        with store.connection() as db:
+            db.execute(
+                "UPDATE account_wallets SET kamas=20 WHERE account_id=%s", (account,)
             )
-        # The server's grant has a generated selection; the manual native
-        # request is allowed to set a different template-valid choice.
+            db.execute(
+                "UPDATE settings SET value=jsonb_set(value,'{cost_kamas}','7') WHERE name='socket_identification_policy'"
+            )
         body = struct.pack(">qBB", item["uid"], 26, 0)
         applied = select_elements(store, account, generation, char["id"], body)
         self.assertTrue(applied["applied"])
@@ -69,6 +142,9 @@ class InventoryElementsTests(PostgresCase):
             (applied["damage_elements"], applied["resistance_elements"]), (26, 0)
         )
         self.assertEqual(applied["packet"][0], 13766)
+        self.assertIsNotNone(applied["shard_state"])
+        self.assertGreater(len(applied["packet"][1]), 23)
+        self.assertEqual((applied["cost_kamas"], applied["wallet_kamas"]), (7, 13))
         reopened = self.reopen().character(account, char["id"])["inventory_items"][0]
         self.assertEqual(
             (reopened["damage_elements"], reopened["resistance_elements"]), (26, 0)
@@ -76,6 +152,8 @@ class InventoryElementsTests(PostgresCase):
         retry = select_elements(store, account, generation, char["id"], body)
         self.assertFalse(retry["applied"])
         self.assertEqual(retry["packet"], applied["packet"])
+        self.assertEqual(retry["shard_state"], applied["shard_state"])
+        self.assertEqual((retry["cost_kamas"], retry["wallet_kamas"]), (0, 13))
         changed = select_elements(
             store,
             account,
@@ -85,6 +163,8 @@ class InventoryElementsTests(PostgresCase):
         )
         self.assertTrue(changed["applied"])
         self.assertEqual(changed["damage_elements"], 22)
+        self.assertEqual(changed["shard_state"], applied["shard_state"])
+        self.assertEqual((changed["cost_kamas"], changed["wallet_kamas"]), (0, 13))
         self.assertFalse(
             select_elements(
                 store,
@@ -180,9 +260,8 @@ class InventoryElementsTests(PostgresCase):
             )
 
     def test_native_creation_selection_and_legacy_absence_are_distinct(self):
-        selected = create(2869, rng=Random(0))
-        self.assertEqual(selected["damage_elements"].bit_count(), 3)
-        self.assertNotEqual(selected["damage_elements"], (1 << 1) | (1 << 2) | (1 << 3))
+        selected = create(2869)
+        self.assertEqual(selected, dict(damage_elements=0, resistance_elements=0))
         effect = next(x for x in CATALOG[2869]["effects"] if x["generic"] == 1068)
         self.assertEqual(selected_bonuses({}, effect), {})
         actual = selected_bonuses(selected, effect)
@@ -213,20 +292,17 @@ class InventoryElementsTests(PostgresCase):
         char = store.create_character(account, "Element Unit")
         generation = store.begin_session(account)
         store.select_character(account, generation, char["id"])
-        with patch(
-            "wakfu_server.inventory_elements.SystemRandom", return_value=Random(0)
-        ):
-            item = grant(
-                store,
-                account,
-                generation,
-                char["id"],
-                reference=2869,
-                quantity=1,
-                container=char["inventory_containers"][0]["uid"],
-                slot=0,
-                allowed_references={2869},
-            )
+        item = grant(
+            store,
+            account,
+            generation,
+            char["id"],
+            reference=2869,
+            quantity=1,
+            container=char["inventory_containers"][0]["uid"],
+            slot=0,
+            allowed_references={2869},
+        )
         selected = masks(item)
         reopened = self.reopen().character(account, char["id"])["inventory_items"][0]
         self.assertEqual(masks(reopened), selected)

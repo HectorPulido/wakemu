@@ -1,0 +1,129 @@
+"""Garden planting, growth, harvesting and reconnect use the durable flora engine."""
+import struct
+from unittest.mock import patch
+
+from postgres_case import PostgresCase
+
+
+class HavenBagGardenRuntimeTests(PostgresCase):
+    def setUp(self):
+        super().setUp()
+        from wakfu_server.haven_bag_garden import active_character, authorize, reachable
+        from wakfu_server.haven_bag_store import save
+        from wakfu_server.inventory_items import grant
+        from wakfu_server.planting import SEEDS
+        from wakfu_server.planting_runtime import Plantings
+        from wakfu_server.planting_probability import resolver
+        from wakfu_server.profession_store import ensure_learned
+        from wakfu_server.combat_groups import Groups
+        from wakfu_server import resource_collect
+        from wakfu_server.wire import proto_field
+
+        self.active_character = active_character
+        self.authorize = authorize
+        self.reachable = reachable
+        self.save_haven_bag = save
+        self.grant_item = grant
+        self.seeds = SEEDS
+        self.Plantings = Plantings
+        self.planting_resolver = resolver
+        self.ensure_learned = ensure_learned
+        self.Groups = Groups
+        self.resource_collect = resource_collect
+        self.proto_field = proto_field
+
+    def test_plant_grow_harvest_reentry_without_moving_exterior_or_other_instance(self):
+        now = [1000.0]
+        self.store.clock = lambda: now[0]
+        account = self.store.register("garden-runtime", "local-password")["id"]
+        character = self.store.create_character(account, "Garden Runtime")
+        generation = self.store.begin_session(account)
+        self.store.select_character(account, generation, character["id"])
+        exterior = {
+            key: character[key] for key in ("map_id", "instance_id", "x", "y", "z")
+        }
+        rooms = character["haven_bag"]["rooms"]
+        rooms[3].update(enabled=True, primary_ref=4266, primary_uid=900001)
+        character = self.save_haven_bag(
+            self.store, account, generation, character["id"], rooms=rooms
+        )
+        self.ensure_learned(self.store, account, generation, character["id"], [72])
+        seed = self.grant_item(
+            self.store,
+            account,
+            generation,
+            character["id"],
+            reference=4275,
+            quantity=2,
+            container=character["inventory_containers"][0]["uid"],
+            slot=0,
+            allowed_references=self.seeds,
+        )
+        live = [dict(character, map_id=9, instance_id=character["id"], x=7, y=2, z=0)]
+        context = lambda stored: self.active_character(stored, live)
+        runtime = self.Plantings(
+            self.store,
+            location_context=context,
+            probability_context=self.planting_resolver(
+                self.store, profession_bonus=lambda prepared: 0
+            ),
+        )
+        body = struct.pack(">iqii", self.seeds[4275]["action_id"], seed["uid"], 7, 3)
+        runtime.begin(
+            account,
+            generation,
+            live[0],
+            body,
+            lambda *args: self.authorize(self.store, *args),
+        )
+        now[0] += 3
+        with patch("wakfu_server.planting.secrets.randbelow", return_value=0):
+            result = runtime.complete(account, generation, live[0], b"\x02\x00\x02")
+        self.assertTrue(result["applied"])
+        self.assertEqual(result["character"]["map_id"], 9)
+        self.assertEqual(result["ecology"]["reason"], "private_haven_bag_garden")
+        self.assertEqual(len(runtime.snapshots(9, character["id"])), 1)
+        self.assertEqual(runtime.snapshots(9, character["id"] + 1), [])
+        stored = self.store.character(account, character["id"])
+        self.assertEqual({key: stored[key] for key in exterior}, exterior)
+        self.assertEqual(stored["inventory_items"][0]["quantity"], 1)
+        now[0] += 30
+        runtime.mature(self.Groups(), publish=lambda event: None)
+        self.assertEqual(
+            len(self.Plantings(self.reopen()).snapshots(9, character["id"])), 1
+        )
+        harvest = b"".join(
+            (self.proto_field(8, 201), self.proto_field(16, 7), self.proto_field(24, 3))
+        )
+        prepared = self.resource_collect.prepare(
+            self.store,
+            account,
+            generation,
+            character["id"],
+            harvest,
+            reachable=self.reachable,
+            location_context=context,
+        )
+        ticket = self.resource_collect.reserve(
+            self.store, account, generation, prepared, location_context=context
+        )
+        now[0] += prepared["rule"]["duration_ms"] / 1000
+        result = self.resource_collect.complete(
+            self.store, ticket, b"\x02\x00\x03", location_context=context
+        )
+        self.assertTrue(result["applied"])
+        self.assertEqual(result["map_id"], 9)
+        self.assertEqual(result["instance_id"], character["id"])
+        self.assertTrue(
+            any(
+                i["reference"] == 2504
+                for i in self.store.character(account, character["id"])[
+                    "inventory_items"
+                ]
+            )
+        )
+        self.assertFalse(
+            self.resource_collect.complete(
+                self.store, ticket, b"\x02\x00\x03", location_context=context
+            )["applied"]
+        )

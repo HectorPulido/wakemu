@@ -84,9 +84,90 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
             {**self.definition, "type": "ULTIMATE_BOSS"},
             self.native,
             room_count=1,
+            boss_references=(1,),
         )
         self.assertEqual(result["room_count_source"], "explicit_local_room_count")
         self.assertFalse(result["official"])
+
+    def test_ultimate_single_species_is_one_boss_without_padding(self):
+        result = draft(
+            self.plan,
+            {**self.definition, "type": "ULTIMATE_BOSS", "raw_cno": [2]},
+            self.native,
+            room_count=1,
+        )
+        self.assertEqual(
+            [
+                (m["ref_id"], m["count"], m["role"])
+                for m in result["rooms"][0]["monsters"]
+            ],
+            [(2, 1, "boss")],
+        )
+
+    def test_explicit_final_boss_never_pads_early_rooms(self):
+        result = draft(self.plan, self.definition, self.native, boss_references=(3,))
+        for room in result["rooms"][:-1]:
+            self.assertNotIn(3, [m["ref_id"] for m in room["monsters"]])
+        self.assertEqual(
+            sum(
+                m["count"] for m in result["rooms"][-1]["monsters"] if m["ref_id"] == 3
+            ),
+            1,
+        )
+
+    def test_unresolved_ultimate_preboss_is_not_replaced_with_final_boss(self):
+        rooms = [
+            {
+                "order": 1,
+                "monsters": [
+                    {"name": "Boufrog", "ref_id": None, "count": 1, "role": "unknown"}
+                ],
+                "diagnostics": ["unresolved_ref"],
+            },
+            {
+                "order": 2,
+                "monsters": [
+                    {"name": "Magmog", "ref_id": 2, "count": 1, "role": "boss"}
+                ],
+                "diagnostics": ["partial"],
+            },
+        ]
+        with self.assertRaisesRegex(ValueError, "intermediate encounter"):
+            draft(
+                {**self.plan, "rooms": rooms},
+                {**self.definition, "type": "ULTIMATE_BOSS", "raw_cno": [2]},
+                self.native,
+            )
+
+    def test_known_ultimate_quantity_is_preserved_without_synthetic_padding(self):
+        room = {
+            "order": 1,
+            "monsters": [{"ref_id": 2, "count": 1, "role": "boss"}],
+            "diagnostics": ["partial"],
+        }
+        result = draft(
+            {**self.plan, "rooms": [room]},
+            {**self.definition, "type": "ULTIMATE_BOSS", "raw_cno": [2]},
+            self.native,
+        )
+        self.assertEqual(len(result["rooms"][0]["monsters"]), 1)
+        self.assertEqual(result["rooms"][0]["monsters"][0]["count"], 1)
+
+    def test_known_regular_counts_do_not_crowd_out_missing_final_boss(self):
+        room = {
+            "order": 1,
+            "monsters": [{"ref_id": 1, "count": 8, "role": "monster"}],
+            "diagnostics": ["partial"],
+        }
+        result = draft(
+            {**self.plan, "rooms": [room]},
+            self.definition,
+            self.native,
+            boss_references=(3,),
+        )
+        rows = result["rooms"][0]["monsters"]
+        self.assertEqual(rows[0]["count"], 8)
+        self.assertEqual([(m["ref_id"], m["count"]) for m in rows[1:]], [(3, 1)])
 
     def test_conflicts_malformed_counts_and_unavailable_pool_fail_closed(self):
         for capacity in (True, 0, 122):

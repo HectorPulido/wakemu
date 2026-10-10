@@ -127,7 +127,7 @@ class PositionBufferTests(PostgresCase):
         self.live.remove((a, g, c["id"]))
         self.buffer.release(a, g, c["id"], discard_stale=True)
 
-    def test_batch_conflict_rolls_back_other_character_and_keeps_pending(self):
+    def test_account_conflict_keeps_pending_without_rolling_back_healthy_account(self):
         a, g, c = self.attach("One")
         b, h, d = self.attach("Two")
         for account, gen, char in ((a, g, c), (b, h, d)):
@@ -143,9 +143,10 @@ class PositionBufferTests(PostgresCase):
         )
         with self.assertRaisesRegex(ValueError, "CAS conflict"):
             self.buffer.flush()
-        self.assertEqual(self.store.character(a, c["id"])["x"], c["x"])
-        self.assertTrue(all(e["dirty"] for e in self.buffer.entries.values()))
-        self.assertEqual(self.buffer.flush(account_id=a, generation=g), 1)
+        self.assertEqual(self.store.character(a, c["id"])["x"], c["x"] + 1)
+        self.assertFalse(self.buffer.entries[(a, g, c["id"])]["dirty"])
+        self.assertTrue(self.buffer.entries[(b, h, d["id"])]["dirty"])
+        self.assertEqual(self.buffer.flush(account_id=a, generation=g), 0)
 
     def test_transition_barrier_and_health_merge_preserve_authoritative_position(self):
         a, g, c = self.attach("One")

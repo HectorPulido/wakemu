@@ -9,6 +9,7 @@ import sys, json, hashlib, random, traceback, datetime, csv, copy
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from wakfu_server.paths import DATA_ROOT, PROJECT_ROOT
+from wakfu_server import native_catalog as protocol_catalog
 from wakfu_server.combat_class_initialization import (
     BREEDS,
     plan,
@@ -49,23 +50,17 @@ def source_hashes():
     # protocol catalogs. Runtime-only hashes cannot attest those data changes.
     for p in sorted(root.parent.joinpath("characters").glob("*.py")):
         result["characters/" + p.name] = hashlib.sha256(p.read_bytes()).hexdigest()
-    for p in sorted(DATA_ROOT.glob("*.json*")):
-        result["protocol/" + p.name] = hashlib.sha256(p.read_bytes()).hexdigest()
-    for directory in (
-        "combat-maps",
-        "forced-transitions",
-        "native-los-topology",
-        "combat-los",
-    ):
-        for p in sorted(DATA_ROOT.joinpath(directory).glob("1134.json*")):
-            result["protocol/" + directory + "/" + p.name] = hashlib.sha256(
-                p.read_bytes()
-            ).hexdigest()
-    for name in ("publication.json", "manifest.json", "1134.json"):
-        p = DATA_ROOT / "native-qi-surfaces" / name
-        result["protocol/native-qi-surfaces/" + name] = hashlib.sha256(
-            p.read_bytes()
-        ).hexdigest()
+    # Runtime protocol inputs come from the active published DB release;
+    # filesystem JSON files are import artifacts and may not be installed.
+    result.update(
+        {
+            "protocol/" + name: digest
+            for name, digest in protocol_catalog.document_hashes().items()
+        }
+    )
+    result["protocol/@release"] = hashlib.sha256(
+        protocol_catalog.release().encode()
+    ).hexdigest()
     for name in ("audit_class_initialization.py", "audit_active_spells.py"):
         p = Path(__file__).resolve().parent / name
         result["tools/" + name] = hashlib.sha256(p.read_bytes()).hexdigest()

@@ -144,8 +144,15 @@ class HavenBagTransferTests(PostgresCase):
             location=location,
         )
         self.assertEqual(removed["uid"], item["uid"])
+        self.assertEqual([op for op, _ in removed["packets"]], [12451, 12471])
         self.assertEqual(
-            removed["packets"], [(12451, struct.pack(">qBBB", self.container, 1, 1, 1))]
+            removed["packets"][0],
+            (12451, struct.pack(">qBBB", self.container, 1, 1, 1)),
+        )
+        from wakfu_server.inventory_items import insertion
+
+        self.assertEqual(
+            removed["packets"][1], insertion(removed["character"]["inventory_items"][0])
         )
         reopened = self.reopen().character(self.account, self.character["id"])
         self.assertEqual(
@@ -175,7 +182,7 @@ class HavenBagTransferTests(PostgresCase):
             slot=0,
             allowed_references={4262},
         )
-        shard_state = b"\x0a\x00"
+        shard_state = b"\x0a\x02\x50\x00"
         validate(shard_state)
         with self.store.connection() as db:
             db.execute(
@@ -213,6 +220,18 @@ class HavenBagTransferTests(PostgresCase):
             location=location,
         )
         self.assertEqual(removed["uid"], item["uid"])
+        self.assertEqual([op for op, _ in removed["packets"]], [12451, 12471])
+        from wakfu_server.inventory_items import insertion
+
+        restored_item = next(
+            row
+            for row in removed["character"]["inventory_items"]
+            if row["uid"] == item["uid"]
+        )
+        self.assertEqual(restored_item["damage_elements"], 10)
+        self.assertEqual(restored_item["resistance_elements"], 20)
+        self.assertEqual(bytes(restored_item["shard_state"]), shard_state)
+        self.assertEqual(removed["packets"][1], insertion(restored_item))
         with self.store.connection() as db:
             restored = db.execute(
                 "SELECT damage_elements,resistance_elements FROM inventory_item_elements WHERE uid=%s",
@@ -334,6 +353,65 @@ class HavenBagTransferTests(PostgresCase):
                 r["index"] == 0 and r["secondary_ref"] == 4263
                 for r in persisted["haven_bag"]["rooms"]
             )
+        )
+
+    def test_moving_secondary_gem_updates_relational_owner_record(self):
+        from wakfu_server.haven_bag_store import rearrange_rooms, save
+        from wakfu_server.inventory_items import grant
+
+        item = grant(
+            self.store,
+            self.account,
+            self.generation,
+            self.character["id"],
+            reference=4262,
+            quantity=1,
+            container=self.container,
+            slot=0,
+            allowed_references={4262},
+        )
+        location = {"map_id": 9, "instance_id": self.character["id"]}
+        insert(
+            self.store,
+            self.account,
+            self.generation,
+            self.character["id"],
+            self._insert_body(item["uid"], room=0),
+            location=location,
+        )
+
+        current = self.store.character(self.account, self.character["id"])
+        moved_rooms = rearrange_rooms(current["haven_bag"], bytes((0, 1, 0, 1)))
+        save(
+            self.store,
+            self.account,
+            self.generation,
+            self.character["id"],
+            rooms=moved_rooms,
+        )
+
+        reopened = self.reopen()
+        reopened_character = reopened.character(self.account, self.character["id"])
+        room = next(
+            row for row in reopened_character["haven_bag"]["rooms"] if row["index"] == 1
+        )
+        self.assertEqual(
+            (room["primary_ref"], room["primary_uid"]), (4262, item["uid"])
+        )
+        removed = remove(
+            reopened,
+            self.account,
+            self.generation,
+            self.character["id"],
+            struct.pack(">qBBB", self.container, 0, 1, 1),
+            location=location,
+        )
+        self.assertEqual(removed["uid"], item["uid"])
+        self.assertEqual(
+            reopened.character(self.account, self.character["id"])["inventory_items"][
+                0
+            ]["uid"],
+            item["uid"],
         )
 
     def test_last_room_gem_cannot_be_removed_while_visitors_or_furniture_remain(self):

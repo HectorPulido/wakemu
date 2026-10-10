@@ -181,12 +181,15 @@ class CompleteContextExporter:
         if self._cache_index is None:
             return
         records = []
+        verified_snapshots = set()
         for key, (signature, digest, snapshot) in self.cache.items():
             check()
             if isinstance(key, tuple):
                 expected = self._snapshot_identities[digest]
-                if self._file_identity(snapshot.stat()) != expected:
-                    raise ValueError("Native catalogue snapshot changed")
+                if digest not in verified_snapshots:
+                    if self._file_identity(snapshot.stat()) != expected:
+                        raise ValueError("Native catalogue snapshot changed")
+                    verified_snapshots.add(digest)
                 records.append(
                     dict(
                         key=list(key),
@@ -347,8 +350,14 @@ class CompleteContextExporter:
                 self._restore_cache_index()
         check()
         entries, sources, names = [], {}, set()
+        # This cache lasts for one fresh scan only. Source changes and newly
+        # created files remain visible on the next inventory call.
+        verified_sources = {}
+        enumerated_roots = {}
 
         def files(root):
+            if root in enumerated_roots:
+                return enumerated_roots[root]
             # DirEntry classifies ordinary files from directory metadata;
             # avoid repeated Path.is_file/stat calls while still enumerating
             # every entry. register performs the full source identity checks.
@@ -368,17 +377,18 @@ class CompleteContextExporter:
                                 )
                             pending.append((Path(entry.path), relative))
                         elif entry.is_file():
-                            result.append((relative, Path(entry.path)))
+                            result.append((relative, Path(entry.path), entry.stat()))
             # Preserve the previous Path ordering while retaining the exact
             # relative name from enumeration, without rebuilding ancestors.
-            return sorted(result, key=lambda pair: pair[1])
+            enumerated_roots[root] = sorted(result, key=lambda pair: pair[1])
+            return enumerated_roots[root]
 
-        def register(name, path):
+        def register(name, path, status=None):
             check()
             if name in names:
                 raise ValueError("Duplicate complete context asset path")
             names.add(name)
-            stat = path.stat()
+            stat = path.stat() if status is None else status
 
             def file_identity(status):
                 return (
@@ -400,6 +410,15 @@ class CompleteContextExporter:
             cache_key = (
                 (stat.st_dev, stat.st_ino) if stat.st_ino else str(path.resolve())
             )
+            # Aliases keep their logical manifest entries, but the same
+            # physical source signature needs one snapshot validation per scan.
+            scan_key = cache_key, signature
+            verified = verified_sources.get(scan_key)
+            if verified is not None:
+                digest, snapshot = verified
+                entries.append(dict(path=name, sha256=digest, size=stat.st_size))
+                sources[digest] = snapshot
+                return
             cached = self.cache.get(cache_key)
             if cached is not None and self._cache_index is not None:
                 try:
@@ -446,6 +465,7 @@ class CompleteContextExporter:
                 os.replace(temporary, snapshot)
                 self.cache[cache_key] = (signature, digest, snapshot)
                 self._snapshot_identities[digest] = self._file_identity(snapshot.stat())
+            verified_sources[scan_key] = (digest, snapshot)
             entries.append(dict(path=name, sha256=digest, size=stat.st_size))
             sources[digest] = snapshot
 
@@ -494,14 +514,14 @@ class CompleteContextExporter:
                 continue
             if not root.is_dir():
                 raise ValueError("Missing complete context source root: " + name)
-            for relative, path in files(root):
+            for relative, path, status in files(root):
                 if (
                     protocol_root is not None
                     and path.suffix == ".json"
                     and path.resolve().is_relative_to(protocol_root)
                 ):
                     continue
-                register(name + "/" + relative, path)
+                register(name + "/" + relative, path, status)
             if database_catalog is not None and protocol_root.is_relative_to(
                 root.resolve()
             ):

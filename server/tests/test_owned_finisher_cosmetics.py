@@ -149,7 +149,7 @@ class OwnedFinisherCosmeticTests(unittest.TestCase):
                 selected,
                 self.character,
                 13765,
-                struct.pack(">iiBB", 1, 4, 1, 1) + proto_field(8, 20753),
+                struct.pack(">iiBB", 1, 16, 1, 1) + proto_field(8, 20753),
             )
 
 

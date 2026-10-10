@@ -189,6 +189,9 @@ class NativeProtectedKillHandler(NativeKillHandler):
         from .combat_runner_callbacks import notify_runner_value
 
         notify_runner_value(invocation, 0 if runner is None else runner.value)
+        from .combat_summon_retirement import retire_protected_summon
+
+        retire_protected_summon(self.fight, actor)
         return True
 
 

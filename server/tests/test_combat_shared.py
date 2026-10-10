@@ -16,6 +16,71 @@ from wakfu_server.combat_multiplayer_wire import (
 
 
 class SharedCombatTests(unittest.TestCase):
+    def test_failed_unpublished_rift_setup_removes_all_reserved_aliases(self):
+        self.fight.rift_wave_state = dict(instance_id=1, wave=1, turn_budget=40)
+        self.shared.runtime = None
+        self.join()
+        self.assertTrue(self.registry.retire_unpublished_rift(99))
+        self.assertNotIn(99, self.registry.fights)
+        self.assertNotIn(10, self.registry.by_character)
+        self.assertNotIn(20, self.registry.by_character)
+        self.assertNotIn(-200, self.registry.by_actor)
+        self.assertFalse(self.registry.retire_unpublished_rift(99))
+
+    def test_active_rift_cannot_use_unpublished_setup_cleanup(self):
+        self.fight.rift_wave_state = dict(instance_id=1, wave=1, turn_budget=40)
+        self.fight.ready(1)
+        with self.assertRaises(ValueError):
+            self.registry.retire_unpublished_rift(99)
+        self.assertIn(99, self.registry.fights)
+
+    def test_rift_provider_commits_before_memory_adoption_and_publication(self):
+        self.fight.rift_wave_state = dict(instance_id=1, wave=1, turn_budget=40)
+        self.fight.ready(1)
+        observations = []
+
+        def provider(shared, candidate, runtime, packets):
+            observations.append(
+                (
+                    shared.fight.actors[10].hp,
+                    candidate.actors[10].hp,
+                    bool(shared.outboxes[1]),
+                )
+            )
+            return Transition(candidate, runtime, tuple(packets) + ((13091, b"wave"),))
+
+        self.shared.join_context["rift_accepted_action"] = provider
+
+        def operation(candidate, runtime):
+            candidate.actors[10].hp = 51
+            return [(12873, b"accepted")]
+
+        self.registry.execute(99, self.one, 10, operation)
+        self.assertEqual(observations, [(60, 51, False)])
+        self.assertEqual(self.shared.fight.actors[10].hp, 51)
+        self.assertEqual(
+            self.registry.drain(99, self.one)[0].packets,
+            ((12873, b"accepted"), (13091, b"wave")),
+        )
+
+    def test_failed_rift_provider_does_not_adopt_or_publish_preview(self):
+        self.fight.rift_wave_state = dict(instance_id=1, wave=1, turn_budget=40)
+        self.fight.ready(1)
+
+        def provider(*args):
+            raise ValueError("checkpoint rejected")
+
+        self.shared.join_context["rift_accepted_action"] = provider
+
+        def operation(candidate, runtime):
+            candidate.actors[10].hp = 51
+            return [(12873, b"accepted")]
+
+        with self.assertRaisesRegex(ValueError, "checkpoint rejected"):
+            self.registry.execute(99, self.one, 10, operation)
+        self.assertEqual(self.shared.fight.actors[10].hp, 60)
+        self.assertFalse(self.shared.outboxes[1])
+
     def setUp(self):
         self.one = Session(1, 10, "first", 1134, 0)
         self.two = Session(2, 20, "second", 1134, 0)

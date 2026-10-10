@@ -59,7 +59,12 @@ class CastEventsTests(unittest.TestCase):
             seen,
             [(1024, channel, identity, 4820) for channel, identity in expected]
             + [("roots", 4820)]
-            + [(1025, channel, identity, 4820) for channel, identity in expected],
+            + [(1025, channel, identity, 4820) for channel, identity in expected]
+            + [(1025, 4, 7, 4820), (1025, 40, 7, 4820)]
+            + [
+                (1025, 41, identity, 4820)
+                for identity in global_pv_iterator(fight, caster_id=7)
+            ],
         )
         self.assertEqual(active_spell_id(fight), -1)
 

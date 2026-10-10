@@ -22,7 +22,7 @@ services:
       retries: 30
       start_period: 180s
   world:
-    image: ${WAKFU_WORLD_IMAGE:-wakemu-world:retained-area-release-20261009-r52}
+    image: ${WAKFU_WORLD_IMAGE:-wakemu-world:performance-20261009-r64}
     build: ./server
     init: true
     depends_on:
@@ -102,7 +102,8 @@ services:
     build:
       context: ./server/ai-service
       args:
-        WORLD_IMAGE: ${WAKFU_WORLD_IMAGE:-wakemu-world:local}
+        WORLD_IMAGE: ${WAKFU_WORLD_IMAGE:-wakemu-world:shared-aptitude-recovery-20261009-r54}
+        CATALOG_REVISION: b0ed79766ae57e6ef26aa9321d05642522cf4c3d9baf7a22a4ea9d3cefc6f219
     init: true
     depends_on:
       postgres:

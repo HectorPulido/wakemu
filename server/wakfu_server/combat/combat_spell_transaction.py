@@ -107,6 +107,9 @@ def prepare_spell_transaction(
     with active_spell_scope(
         preview, plan["spell_id"], level=plan["evaluation_level"]
     ), preview.effect_resolution(), cast_event_scope(dispatcher, plan):
+        from .combat_cost_payment_events import replay_paid_spell_costs
+
+        replay_paid_spell_costs(dispatcher, plan)
         outcomes = tuple(
             dispatcher.execute(
                 EffectInvocation(

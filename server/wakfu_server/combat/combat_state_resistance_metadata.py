@@ -1,4 +1,4 @@
-"""Original class-scoped fyW.elk resistance mode; absence stays unknown."""
+"""Original class-scoped fyW.elk modes and explicitly attested null lookups."""
 from wakfu_server import native_catalog as protocol_catalog
 from functools import lru_cache
 import json
@@ -25,6 +25,8 @@ def native_state_resistance_catalog():
         or any(type(value) is not int or value <= 0 for value in seeds)
         or not isinstance(states, dict)
         or not isinstance(missing, list)
+        or any(type(value) is not int or value <= 0 for value in missing)
+        or len(missing) != len(set(missing))
         or not isinstance(enums, dict)
         or set(enums) != {"NEGATIF", "NEUTRAL", "POSITIF"}
         or any(type(value) is not int for value in enums.values())
@@ -45,6 +47,13 @@ def native_state_resistance_catalog():
         ):
             raise ValueError("Invalid native state resistance mode")
     return data
+
+
+def native_state_absence_proven(reference):
+    """Distinguish an original null fyZ lookup from an unexported definition."""
+    if type(reference) is not int or reference <= 0:
+        raise ValueError("Explicit native state reference required")
+    return reference in native_state_resistance_catalog()["missing_state_ids"]
 
 
 def native_state_resistance_mode(reference):

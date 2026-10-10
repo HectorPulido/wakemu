@@ -1,5 +1,10 @@
 # 24. Pasaporte de Amakna por defecto
 
+## Latest manual feedback — failed acceptance
+
+Hector still sees an Amaknian passport. Neutral source serialization does not
+establish correct live UI behavior; the passport defect remains open.
+
 Eliminar nación heredada en personaje y lugares mientras la mecánica nacional no esté implementada.
 
 [Diagnóstico](DIAGNOSTICO.md) · [Cotejo de código](COTEJO.md) · [Solución](SOLUCION.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md)

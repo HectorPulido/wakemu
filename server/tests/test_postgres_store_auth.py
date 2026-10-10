@@ -65,8 +65,8 @@ class StoreAuthTests(PostgresCase):
             self.store.token(token, "api")
 
     def test_clear_character_rejects_replaced_and_expired_lease(self):
-        first = self.store.begin_session(self.account)
-        second = self.store.begin_session(self.account)
+        first = self.store.begin_session(self.account, ttl=60)
+        second = self.store.begin_session(self.account, ttl=60)
         with self.assertRaises(ValueError):
             self.store.clear_character(self.account, first)
         self.store.clear_character(self.account, second)

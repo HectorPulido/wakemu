@@ -11,6 +11,57 @@ from wakfu_server.combat_shared import SharedFight
 
 
 class CheckpointTests(PostgresCase):
+    def test_rift_progress_and_checkpoint_share_one_commit(self):
+        from unittest.mock import patch
+
+        self.fight.rift_wave_state = dict(instance_id=1, wave=1, turn_budget=40)
+
+        def persist(db, fight):
+            self.assertIs(fight, self.fight)
+            db.execute(
+                "INSERT INTO settings(name,value) VALUES('rift_atomic_probe','1')"
+            )
+
+        with patch("wakfu_server.rift_runtime.persist_progress", side_effect=persist):
+            self.checkpoints.save(self.account, self.generation, self.fight)
+        with self.store.connection() as db:
+            self.assertIsNotNone(
+                db.execute(
+                    "SELECT value FROM settings WHERE name='rift_atomic_probe'"
+                ).fetchone()
+            )
+            self.assertIsNotNone(
+                db.execute(
+                    "SELECT fight_id FROM fight_checkpoints WHERE fight_id=77"
+                ).fetchone()
+            )
+
+    def test_failed_rift_progress_rolls_back_checkpoint_and_domain_write(self):
+        from unittest.mock import patch
+
+        self.fight.rift_wave_state = dict(instance_id=1, wave=1, turn_budget=40)
+
+        def fail(db, fight):
+            db.execute(
+                "INSERT INTO settings(name,value) VALUES('rift_atomic_probe','1')"
+            )
+            raise ValueError("rift receipt rejected")
+
+        with patch("wakfu_server.rift_runtime.persist_progress", side_effect=fail):
+            with self.assertRaisesRegex(ValueError, "rift receipt rejected"):
+                self.checkpoints.save(self.account, self.generation, self.fight)
+        with self.store.connection() as db:
+            self.assertIsNone(
+                db.execute(
+                    "SELECT value FROM settings WHERE name='rift_atomic_probe'"
+                ).fetchone()
+            )
+            self.assertIsNone(
+                db.execute(
+                    "SELECT fight_id FROM fight_checkpoints WHERE fight_id=77"
+                ).fetchone()
+            )
+
     def _add_shared_owner(self):
         other_account = self.store.register(
             f"checkpoint-{self.character}", "second-checkpoint-owner"

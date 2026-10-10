@@ -19,6 +19,28 @@ CATALOG = {
 }
 
 
+def passive_null_marker(effect):
+    """Native standard eXE400 has no calculation or characteristic mutation.
+
+    Conditional/subscribed/status variants still need their own execution
+    context. This recognizes the unconditional zero-parameter equipment root
+    without inventing a characteristic bonus or another execution path.
+    """
+    return (
+        effect.get("generic") == 400
+        and effect.get("runner") == "eXE"
+        and effect.get("parameter_count") == 0
+        and effect.get("params") == []
+        and effect.get("values") == []
+        and effect.get("stat_id") == -1
+        and effect.get("has_triggers") is False
+        and effect.get("effect_criteria") is False
+        and effect.get("target_mask") == 0
+        and effect.get("native_variant") == 0
+        and effect.get("native_active_effect") is False
+    )
+
+
 def _flat(effect):
     values = effect["values"]
     if (
@@ -77,7 +99,34 @@ def bonuses(character, *, build_index=None):
                     reason="missing-effect-template",
                 )
             )
+        pet_level = None
+        if "mount" in item:
+            models = protocol_catalog.load(DATA_ROOT / "mount-models.json")["models"]
+            model = next(
+                (
+                    model
+                    for model in models
+                    if model["model_id"]
+                    == item["mount"].get("model_id", item["mount"].get("definition_id"))
+                ),
+                None,
+            )
+            if model is None or model["xp_per_level"] <= 0:
+                raise ValueError("Missing native equipped pet level model")
+            pet_level = min(
+                model["max_level"], item["mount"]["xp"] // model["xp_per_level"]
+            )
         for effect in () if template is None else template["effects"]:
+            if pet_level is not None:
+                from wakfu_server.combat.combat_parameters import parameter_value
+
+                effect = dict(
+                    effect,
+                    values=[
+                        parameter_value(effect["params"], index, pet_level)
+                        for index in range(effect["parameter_count"])
+                    ],
+                )
             # eHi.a never registers these in the actor's passive equipment
             # context. Keep identity for the separate item action executor;
             # do not turn weapon attacks into bonuses or unsupported passives.
@@ -99,6 +148,8 @@ def bonuses(character, *, build_index=None):
                     )
                 )
                 continue
+            if passive_null_marker(effect):
+                continue  # Standard eXE has no characteristic contribution.
             if effect["generic"] in (1068, 1069):
                 from .inventory_elements import bonuses as selected_bonuses
 

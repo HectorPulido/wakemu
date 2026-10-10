@@ -189,6 +189,9 @@ class NativeCurrentHPRestoreHandler:
                 or type(strategy.get("restored")) is not bool
             ):
                 raise ValueError("Missing actual eGz restore strategy component")
+        from .combat_resurrection import prepare_resurrection, complete_resurrection
+
+        resurrection = prepare_resurrection(self.fight, target, effect)
         virtual = 0
         if parameters["percentage_mode"]:
             runner.set_calculated(
@@ -317,6 +320,13 @@ class NativeCurrentHPRestoreHandler:
                     application, execute=not context.retained
                 ),
             )
+        )
+        complete_resurrection(
+            self.fight,
+            target,
+            resurrection,
+            action_id=self.action_id,
+            packets=self.packets,
         )
         if context.retained and self.event_lifecycle is not None:
             self.event_lifecycle.register_applied(effect, invocation, runner.uid)

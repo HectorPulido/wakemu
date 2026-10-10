@@ -196,6 +196,7 @@ def fixture(
     monster_level=1,
     sex=0,
     character_fixture=None,
+    extra_monsters=(),
 ):
     if type(sex) is not int or sex not in (0, 1):
         raise ValueError("Offline PC fixture requires explicit native sex 0 or 1")
@@ -235,7 +236,12 @@ def fixture(
         y=enemy_cell[1],
         z=enemy_cell[2],
     )
-    placement = {0: {origin}, 1: {enemy_cell}}
+    if not isinstance(extra_monsters, tuple):
+        raise ValueError("Offline extra NPCs must be an explicit preplacement tuple")
+    creatures = [creature, *extra_monsters]
+    if len({row["id"] for row in creatures}) != len(creatures):
+        raise ValueError("Duplicate offline preplacement NPC identity")
+    placement = {0: {origin}, 1: {(row["x"], row["y"], row["z"]) for row in creatures}}
     own_arena = encode_arena(
         1134,
         0,
@@ -261,7 +267,7 @@ def fixture(
         character_fixture(character)
     fight, _ = create_placement(
         character,
-        creature,
+        creatures,
         own_arena,
         fight_id=10000 + breed * 100 + level,
         player_ap=resource["AP"],
@@ -275,16 +281,17 @@ def fixture(
     initialize_fight_snapshots(
         fight,
         characters={7: character},
-        monsters={-7: creature},
+        monsters={row["id"]: row for row in creatures},
         wp_resources={
             7: (resource["WP"], resource["WP"]),
-            -7: (creature["wp"], creature["wp"]),
+            **{row["id"]: (row["wp"], row["wp"]) for row in creatures},
         },
-        running_effects={7: (), -7: ()},
+        running_effects={7: (), **{row["id"]: () for row in creatures}},
         initial_effect_uid=200,
     )
     pc.direction = 0
-    npc.direction = 3
+    for row in creatures:
+        fight.actors[row["id"]].direction = 3
     fight.map_id = 1134
     fight.instance_id = 0
     if ready:

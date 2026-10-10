@@ -1,5 +1,96 @@
 # 22. Objetos sin identificar
 
+## Socket bonus source correction — verified, not deployed
+
+The user authorized the socket correction and explicitly prohibited restart.
+The source now consumes common native Esquirlas27083, not bonus definitions;
+uses the target item's level for bonus eligibility; treats unchanged late
+confirmations as an authoritative refresh without another charge; and sends
+BAGS13713 followed by native item-state13766 to refresh the open workshop while
+preserving elemental selections. No gameplay state repair/refund was performed.
+
+Luna's final targeted run passed28 tests with zero failures/errors/skips in
+22.489seconds: test_socket_enchantment, test_socket_enchantment_concurrency,
+test_socket_enchantment_wire and test_socket_enchantment_dispatch. SQL cases
+used temporary schemas in wakemu_migration_test; the published runtime catalog
+was read only. The initial run had two invalid concurrency fixtures missing a
+required slot position; fixtures were corrected, preserving the production
+validation, and the full targeted set was rerun successfully. The generated
+13766 packet also passed the installed native Java decoder with sockets and
+elemental state present. This is not a full-suite or visual acceptance claim.
+
+The live server was independently observed as r61; these socket modules differ
+from the corrected source. This review did not restart or deploy world. Retest
+only after a separately coordinated full shared build/deployment. Previous
+failed manual acceptance remains open until that acceptance passes.
+
+## Failed socket bonus acceptance — Capa Jalosa
+
+Hector reports ordinary socket installation fails manual acceptance. Before
+reconnect the client repeatedly displays `Native socket bonus request contains
+no changes`; after reconnect Capa Jalosa shows a blue elemental-mastery bonus,
+but the native Esquirla reserve is unchanged and a comparison with another
+unenhanced Jalosa shows no apparent stat difference. Do not mark socket bonuses
+accepted from the persisted attachment alone.
+
+Read-only request logs confirm one successful13269 request at2026-10-10
+00:57:13UTC: actor6 inventory reference27094 decreased7→6, while reference27083
+(Esquirlas) remained1. Subsequent requests were rejected without further
+consumption. The prior manual command `!item 27094 7` incorrectly treated the
+bonus definition as native currency. The server likewise aggregates consumption
+by bonus reference. Currency mapping, immediate native UI refresh/no-op response,
+bonus level eligibility and actual equipped-stat contribution require review.
+No runtime correction or restart was performed for this report.
+
+## Latest manual feedback
+
+Hector confirms identification works. Socket/enchantment operations have not
+been tested and remain pending; identification acceptance does not cover them.
+
+## Estado actual — 2026-10-09
+
+**Identificación aceptada en r55:** Hector confirmó en un objeto nuevo que el
+interrogante desapareció, aparecieron tres engastes y se mostró la elección
+elemental (aire23). Esta prueba reemplaza el fallo gráfico de r54 descrito
+abajo. Persistencia tras reconexión todavía no confirmada en esta aceptación.
+Sublimaciones se revisan por separado: instalar un pergamino y ejecutar su
+estado de combate son capacidades distintas; no se consideran aceptadas aquí.
+La revisión de instalación, comandos compatibles y pendientes del motor está en
+[Sublimaciones](SUBLIMATION-REVIEW-20261009.md). Corrección de wire y consumo
+de stacks verificada con 10 pruebas dirigidas y respuesta SQL aceptada por el
+parser nativo; todavía sin desplegar por este agente. El mapeador general de
+fuentes nativas se entrega sin hook automático para preservar combate.
+
+**Última prueba gráfica:** La Cola25069 sí abrió el modal y permitió elegir fuego;
+el tooltip cambió de agua a fuego. Se acepta selección elemental y su refresco.
+El interrogante permaneció y no aparecieron engastes: identificación completa
+sigue fallando en r54. El evento12487 de Audiluna a18:46:28UTC y su UID
+1099511633590 tienen máscara fuego2, sin engastes ni recibo de engastes.
+
+**Abierto por aceptación gráfica fallida de Hector; corrección general nueva en
+fuente, todavía sin desplegar:** el reporte inicial describía identificación sin
+resultado visible hasta reabrir; la prueba reciente precisa que selección
+elemental funciona y lo que sigue incompleto son los engastes y el interrogante.
+Se reprodujo con el lector del cliente la causa del recibo histórico de Npers:
+engastes sin el campo requerido de referencia del objeto vacío. La imagen
+activa r54 ya adapta ese recibo y el cliente nativo decodifica sus dos engastes
+correctamente, pero eso no resolvía todo el recorrido. Se encontró además que
+grants/drops/crafting preasignaban elementos aleatorios antes de identificar.
+Ahora su función compartida crea máscaras pendientes cero y la selección12487
+identifica elementos y engastes dentro de una sola transacción, sin cobrar ni
+sortear otra vez al reintentar. Falta desplegar esta corrección y aceptar el
+recorrido gráfico. No se cerró el issue ni se reinició world en esta revisión.
+Validación: 10/10 pruebas de codec/dispatcher/estado pendiente, 14/14 de SQL
+aislado y respuesta SQL real13766 aceptada por las clases del cliente con
+elementos elegidos y engastes presentes. No equivale a aceptación gráfica.
+También pasaron tres regresiones SQL dirigidas de crafting, drops e intercambio
+parcial, que usan la creación y conservación compartidas de metadata.
+
+El modal de selección elemental y el aviso breve de engastes son rutas distintas
+del cliente; no todos los objetos abren un modal. El estado debe refrescarse sin
+cerrar inventario en ambos casos. Evidencia y prueba exacta:
+[revisión UI](UI-IDENTIFICATION-REVIEW-20261009.md).
+
 Completar propiedades por unidad, identificación, selección elemental, engastes, reciclaje y sublimaciones con efectos reales.
 
 [Diagnóstico](DIAGNOSTICO.md) · [Cotejo de código](COTEJO.md) · [Solución](SOLUCION.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md)

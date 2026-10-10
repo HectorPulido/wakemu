@@ -90,6 +90,50 @@ class SpectatorSnapshotTests(unittest.TestCase):
         self.assertEqual(decoded["myG"][:15], timeline(fight, deadline_ms=123456)[:15])
         self.assertEqual(decoded["myG"][7:15], (123456).to_bytes(8, "big"))
 
+    def test_active_snapshot_includes_existing_summon_roster(self):
+        fight, shared = shared_fixture()
+        fight.ready(1)
+        summoned = Actor(33, 0, (1, 0, 0), 10, 0, 0, 0, 1)
+        fight.actors[summoned.id] = summoned
+        # Recovery snapshots require summon membership to come from the same
+        # authoritative registration record used by live combat.
+        fight.native_summon_registrations = {
+            summoned.id: {"fight_properties": (114,)},
+        }
+        creation = (12613, fight.id.to_bytes(4, "big", signed=True) + b"summon")
+        fight.native_summon_creation_deliveries = {
+            summoned.id: {"opcode": creation[0], "payload_hex": creation[1].hex()},
+        }
+        calls = []
+
+        def serialize(current_fight, actor):
+            calls.append(actor.id)
+            return actor_payload(current_fight, actor)
+
+        decoded = decode_spectator_bootstrap(
+            current_snapshot(
+                fight,
+                shared,
+                actor_payload=serialize,
+                deadline_ms=123456,
+            )[0][1]
+        )
+        self.assertEqual(calls, [5, -200, 33])
+        self.assertEqual(
+            [row["actor_id"] for row in decoded["participants"]], [5, -200, 33]
+        )
+        self.assertEqual(decoded["participants"][-1]["myE"], b"stats:33")
+        packets = current_snapshot(
+            fight,
+            shared,
+            actor_payload=actor_payload,
+            deadline_ms=123456,
+        )
+        self.assertEqual(packets[1], creation)
+        self.assertEqual(packets[2], (13420, fight.id.to_bytes(4, "big", signed=True)))
+        self.assertEqual([opcode for opcode, _ in packets[3:9]], [13912, 12873] * 3)
+        self.assertEqual(calls, [5, -200, 33])
+
     def test_active_snapshot_accepts_withdrawal_without_fake_death_history(self):
         from wakfu_server.combat_pve_withdraw import plan
         from wakfu_server.combat_runtime_messages import RuntimeMessages
@@ -253,7 +297,7 @@ class SpectatorSnapshotTests(unittest.TestCase):
             fight, shared, actor_payload=actor_payload, deadline_ms=123456
         )
         self.assertEqual(
-            [opcode for opcode, _ in packets], [12044, 12613, 12613, 12613]
+            [opcode for opcode, _ in packets], [12044, 12613, 12613, 12613, 13420]
         )
         self.assertEqual(
             before,

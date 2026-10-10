@@ -29,9 +29,11 @@ PUBLIC_COMBAT_EVENT_OPCODES = frozenset(
         13482,  # current turn
         13494,  # public actor orientation
         13497,  # native effect application
+        13420,  # execute the queued native action batch
         13509,  # weapon/melee animation
         13560,  # native effect/state update
         13624,  # combat movement
+        13652,  # authoritative placement actor positions
         13912,  # actor effect snapshot
     }
 )

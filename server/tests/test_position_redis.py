@@ -145,7 +145,9 @@ class RedisPositionTests(RedisFixture):
         self.assertEqual(report["stale"], 1)
         self.assertEqual(self.store.character(a, char["id"])["x"], char["x"])
 
-    def test_postgres_conflict_preserves_dirty_record_and_other_batch_rolls_back(self):
+    def test_postgres_conflict_preserves_owner_without_rolling_back_other_accounts(
+        self,
+    ):
         a, g, char = self.attach()
         b, h, other = self.attach("Other")
         self.move(a, g, char)
@@ -155,20 +157,21 @@ class RedisPositionTests(RedisFixture):
         )
         with self.assertRaisesRegex(ValueError, "CAS conflict"):
             self.buffer.flush()
-        self.assertEqual(self.store.character(a, char["id"])["x"], char["x"])
-        self.assertEqual(len(list(self.journal.records())), 2)
-        self.assertTrue(all(e["dirty"] for e in self.buffer.entries.values()))
+        self.assertEqual(self.store.character(a, char["id"])["x"], char["x"] + 1)
+        self.assertEqual(len(list(self.journal.records())), 1)
+        self.assertFalse(self.buffer.entries[(a, g, char["id"])]["dirty"])
+        self.assertTrue(self.buffer.entries[(b, h, other["id"])]["dirty"])
         # Recovery reports the conflicting position without overwriting it.
         report = self.journal.recover(self.store)
-        self.assertEqual(report["recovered"], 1)
+        self.assertEqual(report["recovered"], 0)
         self.assertEqual(report["conflicts"], [(b, h, other["id"])])
         self.assertEqual(self.store.character(b, other["id"])["y"], other["y"] + 1)
 
     def test_commit_before_redis_ack_crash_is_not_applied_twice(self):
         a, g, char = self.attach()
         current = self.move(a, g, char)
-        Positions.flush(
-            self.buffer
+        Positions._flush_one(
+            self.buffer, account_id=a
         )  # Simulate crash after PostgreSQL commit, before Redis ACK.
         report = self.journal.recover(self.store)
         self.assertEqual(report["already_committed"], 1)

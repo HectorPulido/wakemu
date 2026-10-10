@@ -7,7 +7,7 @@ import uuid
 
 import psycopg
 from postgres_case import PostgresCase
-from wakfu_server import inventory_items, mount_feeding, mount_feeding_wire
+from wakfu_server import inventory_items, mount_codec, mount_feeding, mount_feeding_wire
 from wakfu_server.items.inventory_items import grant
 from wakfu_server.wire import proto_fields
 from wakfu_server import native_catalog
@@ -157,7 +157,9 @@ class MountFeedingTests(PostgresCase):
         self.assertFalse(result["replayed"])
         self.assertEqual(result["xp_delta"], 100)
         self.assertEqual(result["health_delta"], 0)
-        self.assertEqual([op for op, _ in result["packets"]], [12470, 12470, 12471])
+        self.assertEqual(
+            [op for op, _ in result["packets"]], [12470, 12470, 12471, 13078]
+        )
         self.assertEqual(
             result["packets"][0], (12470, struct.pack(">qh", self.food["uid"], -2))
         )
@@ -169,6 +171,10 @@ class MountFeedingTests(PostgresCase):
         food = next(item for item in refreshed if item["uid"] == self.food["uid"])
         self.assertEqual((pet["mount"]["xp"], pet["mount"]["revision"]), (100, 1))
         self.assertEqual(food["quantity"], 3)
+        from wakfu_server.inventory_items import equipment_inventory
+
+        self.assertEqual(result["packets"][3], equipment_inventory(result["character"]))
+        self.assertIn(mount_codec.item_pet(pet["mount"]), result["packets"][3][1])
         _, _, receipts = self._rows()
         self.assertEqual(len(receipts), 1)
         self.assertEqual(receipts[0]["snapshot"]["packets"][2]["opcode"], 12471)
@@ -254,6 +260,34 @@ class MountFeedingTests(PostgresCase):
         # despite the model metadata's 20-hour display interval.
         self.now += timedelta(hours=2)
         second = self._feed(quantity=1)
+        self.assertEqual(second["xp_delta"], 50)
+        mount, food, receipts = self._rows()
+        self.assertEqual((mount["xp"], mount["revision"]), (100, 2))
+        self.assertEqual(food["quantity"], 3)
+        self.assertEqual(len(receipts), 2)
+
+    def test_daily_xp_limit_can_be_disabled_by_isolated_database_policy(self):
+        with self.store.connection() as db:
+            default = db.execute(
+                "SELECT value FROM settings WHERE name='pet_feeding_daily_limit_enabled'"
+            ).fetchone()
+            self.assertIsNotNone(default)
+            self.assertIs(default["value"], True)
+            db.execute(
+                "UPDATE settings SET value='false'::jsonb "
+                "WHERE name='pet_feeding_daily_limit_enabled'"
+            )
+
+        first = self._feed(quantity=1)
+        self.assertTrue(first["applied"])
+        self.assertEqual(first["xp_delta"], 50)
+
+        # Keep the second operation on the same UTC day while moving beyond
+        # the receipt replay window, so it represents a new meal.
+        self.now += timedelta(seconds=11)
+        second = self._feed(quantity=1)
+        self.assertTrue(second["applied"])
+        self.assertFalse(second["replayed"])
         self.assertEqual(second["xp_delta"], 50)
         mount, food, receipts = self._rows()
         self.assertEqual((mount["xp"], mount["revision"]), (100, 2))

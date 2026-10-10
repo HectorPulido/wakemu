@@ -131,7 +131,9 @@ class EncounterCellBudgetTests(unittest.TestCase):
     def test_ten_by_twohundredfifty_is_not_limited_by_radius_or_side_length(self):
         from wakfu_server.combat_arena_selection import compact_encounter
 
-        result = compact_encounter(self.grid(10, 250), (0, 0, 0), [(9, 249, 0)])
+        result = compact_encounter(
+            self.grid(10, 250), (0, 0, 0), [(9, 249, 0)], cell_budget=MAX_CELL_BUDGET
+        )
         self.assertEqual(len(result["cells"]), MAX_CELL_BUDGET)
         self.assertEqual(result["bounds"], (0, 0, 9, 249))
         self.assertEqual(result["placement"][1], [(9, 249, 0)])
@@ -141,7 +143,10 @@ class EncounterCellBudgetTests(unittest.TestCase):
 
         for size in (50, 80):
             result = compact_encounter(
-                self.grid(size, size), (0, 0, 0), [(size - 1, size - 1, 0)]
+                self.grid(size, size),
+                (0, 0, 0),
+                [(size - 1, size - 1, 0)],
+                cell_budget=MAX_CELL_BUDGET,
             )
             self.assertEqual(len(result["cells"]), MAX_CELL_BUDGET)
             self.assertEqual(
@@ -168,3 +173,31 @@ class EncounterCellBudgetTests(unittest.TestCase):
         enemy = result["placement"][1][0]
         self.assertIn(enemy, result["cells"])
         self.assertIn(path[0], _reachable(enemy, result["cells"], result["edges"]))
+
+
+class AutomaticArenaSizeTests(unittest.TestCase):
+    grid = EncounterCellBudgetTests.grid
+
+    def test_feasible_enemy_origin_is_preserved_even_when_it_expands_the_arena(self):
+        from wakfu_server.combat_arena_selection import compact_encounter
+
+        result = compact_encounter(self.grid(80, 80), (40, 40, 0), [(79, 79, 0)])
+        self.assertEqual(result["placement"][1], [(79, 79, 0)])
+        self.assertIn((79, 79, 0), result["cells"])
+        x0, y0, x1, y1 = result["bounds"]
+        self.assertLessEqual((x1 - x0 + 1) * (y1 - y0 + 1), MAX_CELL_BUDGET)
+
+    def test_large_roster_expands_beyond_minimum(self):
+        from wakfu_server.combat_arena_selection import compact_encounter
+
+        result = compact_encounter(
+            self.grid(20, 20), (0, 0, 0), [(100 + n, 100, 0) for n in range(40)]
+        )
+        self.assertGreaterEqual(len(result["cells"]), 64)
+        self.assertEqual(len(set(result["placement"][1])), 40)
+
+    def test_small_native_component_is_usable_below_minimum(self):
+        from wakfu_server.combat_arena_selection import compact_encounter
+
+        result = compact_encounter(self.grid(3, 3), (0, 0, 0), [(2, 2, 0)])
+        self.assertEqual(len(result["cells"]), 9)

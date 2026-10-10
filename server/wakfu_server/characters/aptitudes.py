@@ -81,6 +81,20 @@ EFFECTS = {
 }
 
 
+def validate_owned_sheet(character, blob, *, build_index=None):
+    """Validate against the selected build cap, as the build-save boundary does."""
+    index = (
+        character.get("active_build_index", 0) if build_index is None else build_index
+    )
+    saved = character.get("builds", {}).get(index, {})
+    if "sheet" in saved:
+        from wakfu_server.builds import effective_sheet_level
+
+        level = effective_sheet_level(character, index)
+        character = dict(character, level=level, effective_level=level)
+    return validate(character, blob)
+
+
 def bonuses(character, *, build_index=None):
     index = (
         character.get("active_build_index", 0) if build_index is None else build_index
@@ -89,7 +103,7 @@ def bonuses(character, *, build_index=None):
     blob = bytes.fromhex(saved.get("aptitudes", ""))
     if not blob:
         return dict(stats={}, percentages={}, unsupported=[])
-    parsed = validate(character, blob)
+    parsed = validate_owned_sheet(character, blob, build_index=index)
     stats = {}
     percentages = {}
     unsupported = []

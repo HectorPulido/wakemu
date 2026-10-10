@@ -1,0 +1,29 @@
+services:
+  profiler:
+    profiles: [observability]
+    build: ./server/profiler-service
+    init: true
+    pid: service:world
+    depends_on:
+      world:
+        condition: service_healthy
+    cap_drop: [ALL]
+    cap_add: [SYS_PTRACE]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    volumes:
+      - ./.runtime/local/profiler:/profiles
+      - ./.runtime/local/logs/profiles:/metrics:ro
+    ports:
+      - '127.0.0.1:18082:8092'
+    networks: [isolated, client-access]
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 64
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8092/health',timeout=2)"]
+      interval: 15s
+      timeout: 3s
+      retries: 3

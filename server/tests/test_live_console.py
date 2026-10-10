@@ -6,9 +6,59 @@ from wakfu_server.command_permissions import set_admin
 import urllib.request
 from wakfu_server.live_console import LiveConsole
 from wakfu_server.api import serve_api
+from wakfu_server.command_permissions import set_admin
+from wakfu_server.test_console import execute as execute_chat_command
+from wakfu_server.combat_groups import Groups
 
 
 class LiveConsoleTests(PostgresCase):
+    def test_expected_generation_rejects_stale_target_before_queueing(self):
+        console = LiveConsole(wait_timeout=0)
+        console.register(1, "current")
+        with self.assertRaisesRegex(ValueError, "sesión de destino cambió"):
+            console.submit(1, "!item 2021 1", expected_generation="stale")
+        self.assertFalse(console.sessions[1]["queue"])
+
+    def test_delegated_command_rechecks_owner_authorization_when_drained(self):
+        owner = self.store.register("live-owner", "password")["id"]
+        target = self.store.register("live-target", "password")["id"]
+        character = self.store.create_character(target, "Live Target")
+        generation = self.store.begin_session(target)
+        self.store.select_character(target, generation, character["id"])
+        set_admin(self.store, owner, True, operator="test", reason="fixture")
+
+        console = LiveConsole(wait_timeout=0)
+        console.register(character["id"], generation, account_id=target)
+        receipt = console.submit(
+            character["id"],
+            "!item 2021 1",
+            delegated_by=owner,
+            executor=lambda command, *, authorized_by: execute_chat_command(
+                self.store,
+                Groups(),
+                target,
+                generation,
+                character,
+                command,
+                authorized_by=authorized_by,
+            ),
+        )
+        self.assertEqual(receipt["status"], "pending")
+        self.assertNotIn("delegated_by", receipt)
+
+        set_admin(
+            self.store, owner, False, operator="test", reason="revoke before execution"
+        )
+        self.assertEqual(
+            console.drain(character["id"], generation, lambda command: None), 1
+        )
+        final = console.poll(receipt["handle"])
+        self.assertEqual(final["status"], "failed")
+        self.assertIn("no autorizado", final["error"])
+        self.assertEqual(
+            self.store.character(target, character["id"])["inventory_items"], []
+        )
+
     def test_generation_cancel_owner_thread_and_idempotency(self):
         console = LiveConsole(wait_timeout=0)
         console.register(1, "old")

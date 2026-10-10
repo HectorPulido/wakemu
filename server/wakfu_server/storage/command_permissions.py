@@ -8,6 +8,8 @@ COMMAND_ALIASES = {
     "!level": "!nivel",
     "!teleport": "!tp",
     "!monster": "!mob",
+    "!search": "!buscar",
+    "!ids": "!buscar",
 }
 
 

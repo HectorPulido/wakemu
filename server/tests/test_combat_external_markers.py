@@ -62,6 +62,41 @@ def sample_shared(*, instance_id=0, duel=False):
 
 
 class ExternalFightMarkerTests(unittest.TestCase):
+    def test_public_sword_center_matches_initiator_for_large_and_odd_arenas(self):
+        import copy
+        from wakfu_server.combat.combat_wire import decode_topology, topology
+        from wakfu_server.combat.combat_external_markers import _topology_partitions
+
+        # Actual 104/105 bounds were 52x48. Placing their origin on the
+        # initiator moved the native QI.bdT sword anchor by (26, 24).
+        for width, height in ((52, 48), (19, 22), (19, 19), (1, 1)):
+            with self.subTest(width=width, height=height):
+                shared = sample_shared()
+                arena = shared.join_context["arena"]
+                arena.update(
+                    width=width, height=height, cell_masks=[0] * (width * height)
+                )
+                shared.join_context["world_marker_cells"] = ((-243, -85),)
+                shared.join_context["world_marker_origin"] = (-243, -85, 0)
+                original = copy.deepcopy(arena)
+                private_wire = topology(arena)
+                packet = ExternalFightMarkers().update(
+                    shared, now_ms=100_000, now_monotonic=100.0
+                )
+                body = decode_external(packet[1])
+                public = decode_topology(body["topology"])
+                self.assertEqual(
+                    (
+                        public["x"] + public["width"] // 2,
+                        public["y"] + public["height"] // 2,
+                    ),
+                    (-243, -85),
+                )
+                self.assertEqual(tuple(body["mys"]), _topology_partitions(public))
+                self.assertEqual(public["cell_masks"], arena["cell_masks"])
+                self.assertEqual(arena, original)
+                self.assertEqual(topology(arena), private_wire)
+
     def test_marker_identity_survives_client_number_bridge_without_aliases(self):
         identities = [external_marker_actor_id(n) for n in (1, 91, 92, 2**31 - 1)]
         self.assertEqual(len(set(map(float, identities))), len(identities))

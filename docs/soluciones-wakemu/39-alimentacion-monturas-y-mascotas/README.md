@@ -6,7 +6,7 @@ Mantener separado de E17: equipar, montar y visibilidad del dragopavo ya fueron 
 
 La inspección del cliente instalado confirma que `cMD.togglePetFeedingDialog` y los botones del diálogo usan eventos locales `18423` y `19558`; no son peticiones de red. Al soltar comida sobre la mascota, `cMD.feedPet` distingue primero la comida curativa. Para una comida curativa con salud faltante y pila mayor que uno, envía el evento local `16923` a un selector de cantidad cuyo máximo es `min(cantidad de la pila, salud máxima - salud actual)`. Para las otras comidas crea `diP` (subclase de `diq`) con cantidad inicial 1. `diP.d()` también devuelve `16923`. El listener `ddX` consume ese evento y comprueba flags/tipo del item, propiedad en el inventario, combate, compatibilidad con el modelo, hambre y nivel máximo antes de pedir confirmación.
 
-Tras confirmar, `ddX.a(bLK,fnR,short)` crea `crX` opcode `12767`. `crX.aWH()` escribe dos `long` y un `int` big-endian: UID de comida, UID del item mascota y cantidad, 20 bytes dentro del wrapper de tipo 3. `mount_feeding_wire.py` implementa ese cuerpo. El cliente comprueba que la comida pertenece al inventario local y que no hay combate; el servidor debe repetir esas comprobaciones sobre su estado autoritativo.
+Tras confirmar, `ddX.a(bLK,fnR,short)` crea `crX` opcode `12767`. `crX.aWH()` escribe dos `long` y un `int` big-endian: UID del item mascota, UID de comida y cantidad, 20 bytes dentro del wrapper de tipo 3. `mount_feeding_wire.py` implementa ese cuerpo. El cliente comprueba que la comida pertenece al inventario local y que no hay combate; el servidor debe repetir esas comprobaciones sobre su estado autoritativo.
 
 El catálogo nativo `server/protocol/mount-models.json` contiene los 40 modelos y se cotejó con `sniffer/java/ExportMountFoodSemantics.java` (40 registros, cero errores). Las referencias `12284`, `13358` y `18377` son alimentos curativos por modelo: `YH=true`, con valor `YJ=1`, `YJ=1` y `YJ=20`, respectivamente, para los modelos que las ofrecen. No son alimentos de XP. `YI=true` identifica comida de XP: por ejemplo, `18378` es XP válido en los 40 modelos, incluso en los tres modelos cuya lista `gqr()` de dieta está vacía. La lista `gqr()` no basta para filtrar alimentos de XP. La migración 064 carga la matriz exacta por `(model_id,item_reference)` desde `aMo.ctc()` (curación `YH/YJ`) y `aMo.ctd()` (XP `YI`).
 
@@ -26,7 +26,7 @@ La capa de dominio está en `server/wakfu_server/items/mount_feeding.py`; usa le
 
 El adaptador `mount_feeding_dispatch.py` publica el lote solo después del commit, no reenvía paquetes de replay y propaga fallos de socket; la integración del dispatcher debe cerrar esa sesión para recuperar el snapshot al reconectar. Ya está conectado al dispatcher en fuente: los errores del dominio se manejan antes de publicar; los errores posteriores al commit se propagan para cerrar la sesión y recuperar el snapshot al reconectar. `test_mount_feeding.py` cubre recibo/replay (incluida pila consumida), XP y tope, curación repetida con salud faltante, política SQL para los 40 modelos, combate/lease, ownership, cantidad y rollback. `test_mount_feeding_wire.py` verifica eliminación de cantidades consumidas y reinserción de la mascota con el mismo UID/slot y ProtoPet; `test_mount_feeding_dispatch.py` cubre publicación, replay y fallo de socket. El gate fuente/PostgreSQL aislado ejecutó 36/36 pruebas (incluidas migraciones y enrutamiento) y aplicó 064 en esquemas UUID temporales. Falta probar el intercambio completo de paquetes con cliente; el handler no debe considerarse validado hasta esa prueba.
 
-**Trazas locales reproducibles (JAR instalado, sin modificarlo):** `ddX` está en `.runtime/local/mount-feeding-ddX.javap.txt`: `d(fvH)` (línea 54, bytecode 0–33) calcula elapsed desde `gpK` y compara con `gqt`; `b(aAa)` (línea 74) despacha el evento local; los chequeos de comida/ownership/combate/modelo están en `a(bLK,fnR,short,boolean)` (línea 489; ramas relevantes bytecode 54–294); el request se crea en `a(bLK,fnR,short)` (línea 702; `crX` serializa UID comida, UID mascota y cantidad). `fvL.a(fvH,TQ)` está en `.runtime/local/mount-feeding-fvL.javap.txt`, línea 84, bytecode 0–97; la rama de sueño ocupa 24–52 y la comparación final de fecha 53–97. `TP.bjy()` (normalización a medianoche) está en `.runtime/local/mount-feeding-TP2.javap.txt`, línea 1090; `TP.l(TQ)` resta timestamp base de `now`, y `TS.f(TT)` hace división entera (dumps `.runtime/local/mount-feeding-TP2.javap.txt` y `.runtime/local/mount-feeding-TS.javap.txt`). `fvN` getters/mutadores e hidratación están en `.runtime/local/mount-feeding-fvN.javap.txt`: `a(fwr,TQ)` línea 56, `Yz` línea 275, `mb` línea 317, fechas `ad/ae/ag` líneas 336–366, `Yy` línea 366 y `d(wS)` línea 530; `ddX.b(bLK,fnR,short)` (presentación local) inicia línea 830. El enlace de ProtoPet al item aparece en `.runtime/local/mount-feeding-fnR-full.javap.txt` (`a(wS)`/`efH`), y su constructor de item está en `.runtime/local/mount-feeding-bJk.javap.txt` (`a(eGj,long,fqd,boolean)`). Referencias de mutadores escaneadas por ASM en `.runtime/local/mount-feeding-mutator-callers.txt` con fuente `.runtime/local/ScanPetCalls.java`; llamadas a la fábrica `fvJ` y al setter de ProtoPet están en `.runtime/local/mount-feeding-factory-callers.txt` y `.runtime/local/mount-feeding-protopet-setter-callers.txt`. `fvJ`, `fvI`, `wS` y `crX` inspeccionados con `javap -c -p` en los dumps `.runtime/local/mount-feeding-{fvJ-full,fvI,wS,crX}.javap.txt`. `cMD.feedPet` y selector de cantidad están en `.runtime/local/mount-feeding-cMD.javap.txt`; modelo/dialog `bLE` en `.runtime/local/mount-feeding-bLE.javap.txt`. Los consumers 12471/12470 están en `.runtime/local/review-continuacion-20261004/trade-chK.javap.txt`, `.runtime/local/review-continuacion-20261004/trade-cxa.javap.txt`, `.runtime/local/review-continuacion-20261004/trade-cwZ.javap.txt` y `.runtime/local/mount-feeding-Rj.javap.txt`; el probe reproducible contra el modelo nativo está en `.runtime/local/InventoryPetRefreshProbe.java`.
+**Trazas locales reproducibles (JAR instalado, sin modificarlo):** `ddX` está en `.runtime/local/mount-feeding-ddX.javap.txt`: `d(fvH)` (línea 54, bytecode 0–33) calcula elapsed desde `gpK` y compara con `gqt`; `b(aAa)` (línea 74) despacha el evento local; los chequeos de comida/ownership/combate/modelo están en `a(bLK,fnR,short,boolean)` (línea 489; ramas relevantes bytecode 54–294); el request se crea en `a(bLK,fnR,short)` (línea 702; `crX` serializa UID mascota, UID comida y cantidad). `fvL.a(fvH,TQ)` está en `.runtime/local/mount-feeding-fvL.javap.txt`, línea 84, bytecode 0–97; la rama de sueño ocupa 24–52 y la comparación final de fecha 53–97. `TP.bjy()` (normalización a medianoche) está en `.runtime/local/mount-feeding-TP2.javap.txt`, línea 1090; `TP.l(TQ)` resta timestamp base de `now`, y `TS.f(TT)` hace división entera (dumps `.runtime/local/mount-feeding-TP2.javap.txt` y `.runtime/local/mount-feeding-TS.javap.txt`). `fvN` getters/mutadores e hidratación están en `.runtime/local/mount-feeding-fvN.javap.txt`: `a(fwr,TQ)` línea 56, `Yz` línea 275, `mb` línea 317, fechas `ad/ae/ag` líneas 336–366, `Yy` línea 366 y `d(wS)` línea 530; `ddX.b(bLK,fnR,short)` (presentación local) inicia línea 830. El enlace de ProtoPet al item aparece en `.runtime/local/mount-feeding-fnR-full.javap.txt` (`a(wS)`/`efH`), y su constructor de item está en `.runtime/local/mount-feeding-bJk.javap.txt` (`a(eGj,long,fqd,boolean)`). Referencias de mutadores escaneadas por ASM en `.runtime/local/mount-feeding-mutator-callers.txt` con fuente `.runtime/local/ScanPetCalls.java`; llamadas a la fábrica `fvJ` y al setter de ProtoPet están en `.runtime/local/mount-feeding-factory-callers.txt` y `.runtime/local/mount-feeding-protopet-setter-callers.txt`. `fvJ`, `fvI`, `wS` y `crX` inspeccionados con `javap -c -p` en los dumps `.runtime/local/mount-feeding-{fvJ-full,fvI,wS,crX}.javap.txt`. `cMD.feedPet` y selector de cantidad están en `.runtime/local/mount-feeding-cMD.javap.txt`; modelo/dialog `bLE` en `.runtime/local/mount-feeding-bLE.javap.txt`. Los consumers 12471/12470 están en `.runtime/local/review-continuacion-20261004/trade-chK.javap.txt`, `.runtime/local/review-continuacion-20261004/trade-cxa.javap.txt`, `.runtime/local/review-continuacion-20261004/trade-cwZ.javap.txt` y `.runtime/local/mount-feeding-Rj.javap.txt`; el probe reproducible contra el modelo nativo está en `.runtime/local/InventoryPetRefreshProbe.java`.
 
 ## Validación de imagen y reconexión — 7 de octubre
 
@@ -48,3 +48,132 @@ Imagen8e019af2: prueba con cuenta nueva aprobada para XP50, curas1/20, actualiza
 ## Despliegue integrado actual
 
 Imagen `1c3bbea5` (r9), único contenedor `wakfu-local-world-1`, saludable. La alimentación ya no espera promoción; conserva el TLS r5 aprobado y el gate integrado posterior. No se declara aceptación visual ni se altera el límite diario para facilitar la prueba.
+# Failed manual acceptance — 2026-10-09
+
+Hector's Dragopavo feeding test failed. The client announces food XP, but the
+pet panel remains level0, food quantity does not decrease, and the server
+rejects with `Pet item must be an unstacked unit` although the mount is a
+single visible item. Splitting the food does not resolve it. Feeding while
+unequipped is unavailable. Unequipping also prevents mounting again until
+reconnecting; reconnect restores mounting but not the reported XP/level.
+The tooltip lists elemental mastery and movement speed, but the user reports
+that the expected characteristics are not applied.
+
+Server logs confirm character1 opcode12767 rejections at18:38:32,
+18:39:32,18:39:51 and18:43:32UTC on2026-10-09. Client XP text is not proof of
+a committed reward. Investigate request identity, stack validation,
+transactional food consumption, pet hydration, equipment characteristics and
+mount state together. This issue is open; earlier automated gates do not
+override this failed live acceptance. Do not request another identical manual
+probe until the failure has been reproduced and corrected.
+
+## Confirmed protocol regression — 2026-10-09
+
+The four native requests captured at 18:38–18:43 UTC serialize mount UID
+`1099511628620` first (reference18704, quantity1), food UID `1099511627907`
+second (wheat reference1752, quantity3), then quantity1. The decoder had these
+UIDs reversed, so it validated the food stack as the pet and rejected all four
+requests. The native client prints its XP message optimistically; there was no
+successful durable feeding in these requests. Splitting food cannot fix this.
+
+Source now decodes pet UID first and food UID second, matching `ddX` setters
+`oa(pet UID)` / `nx(food UID)` and `crX.aWH`. Socket smoke fixtures previously
+reproduced the server's mistaken order; those fixtures are corrected too.
+A rejection now restores the rich ProtoItem registry after BAGS because BAGS
+alone omits ProtoPet; this addresses lost local pet metadata after rejection.
+These changes are source only until the complete world image is validated and
+deployed. Feeding, mount re-equipping and actual mount statistics remain open
+for acceptance. No XP/food state was manually changed for this investigation.
+
+Successful feeding also publishes the updated `13078` rich registry after
+`12470 → 12470 → 12471`. The equipped pet panel resolves that independent
+registry; updating physical bags alone is insufficient. The socket harness
+now requires the fourth packet instead of accepting only the physical refresh.
+
+## Repeat feeding policy and native XP scaling — 2026-10-09
+
+The live r55 test committed XP50 at 19:21:10 UTC; reconnect displayed pet
+level1, proving durable XP while the open UI remained stale. The next request
+at 19:23:17 UTC hit the daily gate. That is a failed immediate-refresh test.
+
+Migration084 introduces boolean setting `pet_feeding_daily_limit_enabled`,
+default true. Hector explicitly requested repeat feeding, so the current DEV
+database setting was changed to false. This requires the new server source to
+be deployed. No stored meal timestamps were changed. When false, both feeding
+validation and the unmodified client's independent date gate are disabled: the
+wire-only ProtoPet last-meal field is zero while storage and receipts retain the
+real successful timestamp. The setting can be restored to true without losing
+meal history. Receipt retry debounce remains in place to avoid transport repeats.
+
+Equipped mount effects now evaluate native parameter pairs at the actual pet
+XP level using the existing float32 native evaluator, rather than catalog values
+precomputed at base item level35. For the Dragopavo coefficient0.8, pet levels
+0/1/2/35/50 yield elemental mastery0/0/1/28/40. Level1 granting zero mastery is
+native rounding, not missing XP; the item's static level35 tooltip is not proof
+of the currently applied bonus. Successful feeding also refreshes the actor PET
+observer, effective characteristics and current riding state after the rich item
+registry. An additional client reconciliation fix is being integrated for open
+pet panels, which otherwise retain an old item model after registry replacement.
+
+Validation for this source change: **62 tests passed, zero skips**, using the
+existing Compose `world` image only as an ephemeral test runner with the
+current checkout mounted read-only. PostgreSQL tests used UUID schemas in
+`wakemu_migration_test`, never runtime tables. Command modules:
+`test_mount_feeding test_mount_feeding_wire test_mount_feeding_catalog
+test_mount_feeding_dispatch test_mount_feeding_routing test_mount_inventory
+test_mount_codec test_equipment_stats`. This verifies policy, durable meal
+history versus UI projection, fresh grants, registry publication, actor refresh
+ordering, and native XP-level scaling. Full integrated build/deployment and
+manual open-panel acceptance remain required.
+
+## r56 acceptance update — 2026-10-09
+
+Repeat feeding now works manually, but immediate UI refresh is only partial:
+Hector reports that touching another control updates the visible result.
+Equipment statistics failed acceptance: large bonuses appear when equipping
+and removing a mount, while feeding level increases do not update the bonus.
+This remains open and must not be marked accepted.
+
+The latest successful requests at 19:48–19:50 UTC belong to character6, not
+character1. Its fed mount is UID1099511633734/reference18682/model76 and stores
+XP400 (pet level8); its other mount UID1099511633735/reference18704 stores XP0.
+The durable active build24 contains slots7 and13 only, no mount, and no build
+save or activation requests were observed during that feeding window. A mount
+in an unsaved local equipment preview does not prove durable equipment. This
+difference is under investigation alongside deferred native item-effect reloads;
+it is evidence to isolate the failure, not a claimed explanation of all UI issues.
+No deployment or restart is authorized during the user's other manual tests.
+
+### Confirmed captured-stat overwrite in full world refresh
+
+The format11 world serializer copied the captured template's entire
+`PUBLIC_CHARACTERISTICS` section (597 bytes) unchanged. Equipping or removing
+a mount publishes a full PET/entity refresh after the authoritative build
+stat snapshot, so that refresh could restore captured high characteristics.
+This is a concrete serialization defect independent of the unsaved-preview
+question. Source now serializes owned effective public characteristics with the
+existing authoritative actor-stat codec for every format11 spawn/full refresh.
+Combat arithmetic and spell behavior were not changed. Automated full-wire
+transition regression is in progress; deployment and manual acceptance remain
+pending. Native deferred item-effect recalculation is still being reviewed,
+so this finding does not claim every reported preview problem is resolved.
+
+The native client JAR now decodes the corrected full world snapshot completely:
+92 public-characteristic rows and zero trailing bytes. The read-only character6
+snapshot verifies HP860, owned total damage123, and elemental rows21–24 equal
+zero, replacing captured elemental values71/435/435/184 and HP3084. The
+serializer publishes all fresh native characteristic defaults before applying
+owned values, so missing rows cannot retain old captured bonuses. Offline
+oracle: `sniffer/java/ProbeWorldPublicCharacteristics.java`; private artifacts
+are under `.runtime/local/pet-stats-world-refresh-20261009/`. This native decode
+is not a manual acceptance of the live client or unsaved build previews.
+
+Final regression for the captured-stat overwrite: **111 tests passed, zero
+skips** across wire, mount publication, feeding, inventory, codec and equipment.
+The real captured format11 template is refreshed through persisted equip →
+eight meals (XP400) → unequip → re-equip, verifying owned total damage6/0/6
+and explicit native defaults for capture-only characteristics. Native JAR oracle
+`ProbeWorldPublicCharacteristics` confirms92 rows, damage6, elemental rows21–24
+zero and complete decoding of `.runtime/local/dragopavo-owned-fmt11-xp400.bin`
+(SHA256 `4b51ccbfb5e98cc0727289aa8459c4a054de397e31bbb0588d9fbabf90c32e8d`).
+These source changes remain undeployed while Hector performs other tests.

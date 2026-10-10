@@ -70,6 +70,18 @@ def release():
     return row["revision"]
 
 
+def document_hashes():
+    """Return the active release's published path-to-SHA256 inventory."""
+    revision = release()
+    with _database().connection() as db:
+        rows = db.execute(
+            "SELECT path,sha256 FROM native_catalog_documents "
+            "WHERE revision=%s ORDER BY path",
+            (revision,),
+        ).fetchall()
+    return {row["path"]: row["sha256"] for row in rows}
+
+
 def read_bytes(path):
     if not _live(path):
         return Path(path).read_bytes()
@@ -127,6 +139,16 @@ def read_bytes(path):
 def _observe_read(name, source, raw, started, **stages):
     """Bounded slow-read metadata; never log catalog contents or credentials."""
     elapsed_ms = (time.monotonic() - started) * 1000
+    # Aggregate fixed labels, never individual document paths or cache keys.
+    from .performance_profiler import PROFILER
+
+    try:
+        PROFILER.observe("catalog.read." + source, elapsed_ms / 1000)
+        for stage in ("redis_ms", "query_ms"):
+            if stage in stages:
+                PROFILER.observe("catalog." + stage[:-3], stages[stage] / 1000)
+    except Exception:
+        pass
     if elapsed_ms >= 250:
         LOG.warning(
             "Slow native catalog read path=%s source=%s bytes=%s elapsed_ms=%.3f stages=%s",

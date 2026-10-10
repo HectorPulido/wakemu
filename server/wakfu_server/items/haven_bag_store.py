@@ -48,7 +48,24 @@ def initial_layout(character_id):
     ]
 
 
+def owner_id(db, character_id):
+    """Resolve the durable account bag without changing physical item identities."""
+    row = db.execute(
+        "SELECT b.character_id FROM account_haven_bags b "
+        "JOIN characters c ON c.account_id=b.account_id WHERE c.id=%s",
+        (character_id,),
+    ).fetchone()
+    if row is None:
+        raise ValueError("Missing account haven bag")
+    return row["character_id"]
+
+
+def instance_id(character):
+    return (character.get("haven_bag") or {}).get("owner_id", character["id"])
+
+
 def load(db, character_id):
+    character_id = owner_id(db, character_id)
     row = db.execute(
         "SELECT * FROM haven_bags WHERE character_id=%s",
         (character_id,),
@@ -56,6 +73,7 @@ def load(db, character_id):
     if row is None:
         raise ValueError("Missing owned haven bag")
     return {
+        "owner_id": character_id,
         "appearance_id": row["appearance_id"],
         "rooms": row["layout"],
         "locked": row["locked"],
@@ -76,6 +94,8 @@ def save(
     access=None,
     furniture=None,
 ):
+    with store.connection() as db:
+        bag_id = owner_id(db, character_id)
     if appearance_id is not None and (
         type(appearance_id) is not int or appearance_id not in MODELS
     ):
@@ -88,7 +108,7 @@ def save(
             base is None
             or base.get("enabled") is not True
             or base.get("primary_ref") != 4262
-            or base.get("primary_uid") != character_id * 256 + 1
+            or base.get("primary_uid") != bag_id * 256 + 1
         ):
             raise ValueError(
                 "The fixed entrance room and its owned base gem must remain intact"
@@ -164,7 +184,77 @@ def save(
         raise ValueError("Invalid haven-bag lock")
     with store.connection() as db:
         store.lock_character(db, account_id, generation, character_id)
+        db.execute(
+            "SELECT character_id FROM haven_bags WHERE character_id=%s FOR UPDATE",
+            (bag_id,),
+        )
         current = load(db, character_id)
+        if rooms is not None:
+            by_index = {room["index"]: room for room in rooms}
+            for plant in db.execute(
+                "SELECT DISTINCT (x / 6) * 3 + (y / 6) AS room_index "
+                "FROM planted_resources WHERE map_id=9 AND instance_id=%s",
+                (bag_id,),
+            ):
+                previous = next(
+                    (
+                        room
+                        for room in current["rooms"]
+                        if room["index"] == plant["room_index"]
+                    ),
+                    None,
+                )
+                if previous != by_index.get(plant["room_index"]):
+                    raise ValueError(
+                        "Remove garden plants before changing the room gems"
+                    )
+        if rooms is not None:
+            # Native room rearrangement moves physical gems as well as floor
+            # visuals. Preserve their durable ownership coordinates so a
+            # later reconnect/removal finds the same unit in its new slot.
+            gems = list(
+                db.execute(
+                    "SELECT * FROM haven_bag_gems WHERE character_id=%s FOR UPDATE",
+                    (bag_id,),
+                )
+            )
+            destinations = {}
+            for room in rooms:
+                for primary, key in ((True, "primary"), (False, "secondary")):
+                    if room[key + "_ref"] != -1:
+                        destinations[room[key + "_uid"]] = (
+                            room["index"],
+                            primary,
+                            room[key + "_ref"],
+                        )
+            for gem in gems:
+                destination = destinations.get(gem["uid"])
+                if destination is None or destination[2] != gem["reference"]:
+                    raise ValueError("Room rearrangement cannot discard an owned gem")
+            if gems:
+                # Slot uniqueness is immediate, so swap all coordinates in a
+                # single owner transaction by replacing the same owned rows.
+                db.execute(
+                    "DELETE FROM haven_bag_gems WHERE character_id=%s", (bag_id,)
+                )
+                for gem in gems:
+                    room_index, primary_slot, _reference = destinations[gem["uid"]]
+                    db.execute(
+                        "INSERT INTO haven_bag_gems(uid,account_id,character_id,room_index,primary_slot,reference,source_uid,damage_elements,resistance_elements,shard_state) "
+                        "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (
+                            gem["uid"],
+                            gem["account_id"],
+                            bag_id,
+                            room_index,
+                            primary_slot,
+                            gem["reference"],
+                            gem["source_uid"],
+                            gem["damage_elements"],
+                            gem["resistance_elements"],
+                            gem["shard_state"],
+                        ),
+                    )
         if access is not None:
             from wakfu_server.haven_bag import permission_payload, decode_permissions
             import struct
@@ -185,7 +275,7 @@ def save(
                 current["locked"] if locked is None else locked,
                 Jsonb(current["access"] if access is None else access),
                 Jsonb(current["furniture"] if furniture is None else furniture),
-                character_id,
+                bag_id,
             ),
         )
         return store.character(account_id, character_id, db)
@@ -237,10 +327,16 @@ def rearrange_rooms(config, body):
     if owned[0] == -1 or not owned[1]:
         raise ValueError("Source slot has no owned gem")
     other = gem(dst, dk)
+    if primary_source and source == 0:
+        raise ValueError("The fixed entrance gem cannot be moved")
+    if primary_target and target == 0 and other[0] != -1:
+        raise ValueError("The fixed entrance gem cannot be replaced")
     if primary_source and (
-        (src["enabled"] and other[0] == -1)
-        or src["secondary_ref"] != -1
-        or any(item.get("room") == source for item in config.get("furniture", []))
+        src["secondary_ref"] != -1
+        or any(
+            item.get("deployed") and item.get("room") == source
+            for item in config.get("furniture", [])
+        )
     ):
         raise ValueError("Room primary cannot be removed")
     if other[0] == -1:
@@ -263,6 +359,8 @@ def rearrange_rooms(config, body):
             raise ValueError("Secondary gem type does not match target room")
         set_gem(src, sk, other)
         set_gem(dst, dk, owned)
+    for room in rooms:
+        room["enabled"] = room["index"] == 0 or room["primary_ref"] != -1
     return sorted(rooms, key=lambda room: room["index"])
 
 
@@ -272,11 +370,11 @@ def deploy_furniture(config, body):
 
     request = decode_deploy_request(body)
     x, y = request["x"], request["y"]
-    if not (0 <= x < 18 and 0 <= y < 18):
-        raise ValueError("Furniture must be inside a haven-bag room")
+    if not (0 <= x < 18 and 0 <= y < 18) or request["z"] != 0:
+        raise ValueError("Furniture must be on the haven-bag room floor")
     room_id = (x // 6) * 3 + y // 6
     room = next((room for room in config["rooms"] if room["index"] == room_id), None)
-    if room is None or room["primary_ref"] == -1:
+    if room is None or not room.get("enabled") or room["primary_ref"] == -1:
         raise ValueError("Furniture room has no owned gem")
     furniture = copy.deepcopy(config["furniture"])
     owned = next(
@@ -300,7 +398,7 @@ def deploy_furniture(config, body):
 
 
 def edit_furniture(config, opcode, body):
-    """Modern itemizable actions use Re.Sn (template ID), not vj.item UID."""
+    """Resolve native dynamic instance IDs and legacy template-addressed actions."""
     import copy
     import struct
 
@@ -323,7 +421,7 @@ def edit_furniture(config, opcode, body):
     candidates = [
         item
         for item in furniture
-        if item["deployed"] and item["template_id"] == template_id
+        if item["deployed"] and template_id in (item["item_uid"], item["template_id"])
     ]
     if len(candidates) != 1:
         raise ValueError("Itemizable element is not uniquely owned in this bag")
@@ -334,13 +432,13 @@ def edit_furniture(config, opcode, body):
         # Our local server rotates furniture clockwise by one quarter turn.
         item["direction"] = (item.get("direction", 0) + 2) % 8
     else:
-        if not (0 <= x < 18 and 0 <= y < 18):
-            raise ValueError("Furniture must be inside a haven-bag room")
+        if not (0 <= x < 18 and 0 <= y < 18) or z != 0:
+            raise ValueError("Furniture must be on the haven-bag room floor")
         room_id = (x // 6) * 3 + y // 6
         room = next(
             (room for room in config["rooms"] if room["index"] == room_id), None
         )
-        if room is None or room["primary_ref"] == -1:
+        if room is None or not room.get("enabled") or room["primary_ref"] == -1:
             raise ValueError("Furniture destination room has no owned gem")
         if any(
             other is not item

@@ -25,11 +25,22 @@ def is_neo_server(store):
     return value["is_neo_server"]
 
 
-def evaluate(store, criterion, *, character=None, queries=None, now_ms=None):
+def evaluate(
+    store,
+    criterion,
+    *,
+    character=None,
+    queries=None,
+    now_ms=None,
+    bypass_mission_prerequisites=False,
+    bypass_state_prerequisites=False,
+):
     """Evaluate restricted native predicates against explicit server authority.
 
     Missing state/achievement snapshots are unknown, never false. The caller
     may supply trusted query producers; client-controlled fields are not used.
+    Explicit entrance-only bypasses use a three-valued result: required false
+    non-mission predicates still deny entry. Internal callers leave them off.
     """
     import ast
     import re
@@ -45,6 +56,14 @@ def evaluate(store, criterion, *, character=None, queries=None, now_ms=None):
         fresh_system_configuration,
     )
 
+    if any(
+        type(value) is not bool
+        for value in (
+            bypass_mission_prerequisites,
+            bypass_state_prerequisites,
+        )
+    ):
+        raise ValueError("Invalid dungeon prerequisite bypass flags")
     if not isinstance(criterion, str) or len(criterion) > 32768:
         raise ValueError("Malformed dungeon criterion")
     if not criterion.strip():
@@ -90,7 +109,11 @@ def evaluate(store, criterion, *, character=None, queries=None, now_ms=None):
         ast.NotEq: operator.ne,
     }
 
+    waived = object()
+
     def boolean(value):
+        if value is waived:
+            return value
         if type(value) is not bool:
             raise ValueError("Dungeon predicate lacks boolean authority")
         return value
@@ -101,11 +124,14 @@ def evaluate(store, criterion, *, character=None, queries=None, now_ms=None):
         if isinstance(node, ast.BoolOp):
             values = [boolean(visit(value)) for value in node.values]
             if isinstance(node.op, ast.And):
-                return all(values)
+                return (
+                    False if False in values else waived if waived in values else True
+                )
             if isinstance(node.op, ast.Or):
-                return any(values)
+                return True if True in values else waived if waived in values else False
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
-            return not boolean(visit(node.operand))
+            value = boolean(visit(node.operand))
+            return waived if value is waived else not value
         if isinstance(node, ast.Compare):
             left = visit(node.left)
             result = True
@@ -137,10 +163,17 @@ def evaluate(store, criterion, *, character=None, queries=None, now_ms=None):
                     raise ValueError("Missing real character level authority")
                 return level
             if name == "GetItemQuantity" and args:
-                return owned_item_quantity(
+                from wakfu_server.characters.exploration_secrets import account_quantity
+
+                quantity = owned_item_quantity(
                     None if character is None else character.get("inventory_items"),
                     args,
                 )
+                # Native eKE counts bag/character quest inventory first and
+                # then flX account quest quantities, preserving int32 overflow.
+                return (
+                    (quantity + account_quantity(character, args) + 2**31) % 2**32
+                ) - 2**31
             if name in ("IsAfter", "IsBefore"):
                 date = calendar_milliseconds(args)
                 current = now_ms
@@ -157,6 +190,13 @@ def evaluate(store, criterion, *, character=None, queries=None, now_ms=None):
             ):
                 if len(args) != 1 or type(args[0]) is not int or args[0] <= 0:
                     raise ValueError("Invalid dungeon state or achievement predicate")
+                if (
+                    name == "HasState"
+                    and bypass_state_prerequisites
+                    or name != "HasState"
+                    and bypass_mission_prerequisites
+                ):
+                    return waived
                 query = queries.get(name)
                 if not callable(query):
                     raise ValueError("Missing dungeon predicate authority: " + name)
@@ -164,4 +204,5 @@ def evaluate(store, criterion, *, character=None, queries=None, now_ms=None):
             raise ValueError("Unsupported dungeon criterion arguments")
         raise ValueError("Unsupported dungeon criterion syntax")
 
-    return boolean(visit(tree))
+    result = boolean(visit(tree))
+    return True if result is waived else result

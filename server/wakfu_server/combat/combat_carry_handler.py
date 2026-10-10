@@ -276,7 +276,13 @@ class NativeCarryHandler:
         )
         before = carried.position
         if effect["effect_class"] == 334:
-            success = carry_registered(self.fight, caster, carried, source_uid=uid)
+            success = carry_registered(
+                self.fight,
+                caster,
+                carried,
+                source_uid=uid,
+                source_reference=invocation.reference,
+            )
         else:
             from .combat_orientation_effect import _toward
 

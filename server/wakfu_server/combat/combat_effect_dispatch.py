@@ -43,6 +43,7 @@ class EffectInvocation:
         None  # Explicit PN/PL of synthetic owned applicators.
     )
     native_explicit_target: bool = False  # Native PK.a received a non-null PV argument.
+    wakemu_fresh_child_selection: bool = False
     native_target_cell_argument: bool = (
         False  # Criterion received raw aBn, not selected PV.
     )
@@ -178,6 +179,10 @@ class EffectDispatcher:
     def execute_pt(self, invocation, *, ancestors=None):
         from .combat_repeated_group import NativePtResult
 
+        # PT calls deliberately bind their supplied PV. The server fresh-child
+        # policy applies only to ordinary ordered-group child selection.
+        invocation = replace(invocation, wakemu_fresh_child_selection=False)
+
         if not callable(self.pt_preflight):
             raise UnsupportedEffectExecution("Missing native PT allocation preflight")
         effect = self.effects.get(str(invocation.reference))
@@ -207,8 +212,6 @@ class EffectDispatcher:
         )
 
     def _execute(self, invocation, *, ancestors):
-        if invocation.reference in ancestors:
-            raise UnsupportedEffectExecution("Recursive immediate effect tree")
         if len(ancestors) >= 128:
             raise UnsupportedEffectExecution("Effect recursion limit exceeded")
         effect = self.effects.get(str(invocation.reference))
@@ -242,6 +245,8 @@ class EffectDispatcher:
                 and self.group_retention is not None
                 and self.group_retention.is_subscription(effect, selected)
             ):
+                if invocation.reference in ancestors:
+                    raise UnsupportedEffectExecution("Recursive immediate effect tree")
                 pending = self.group_retention.begin_group(effect, values, selected)
                 if pending is None:
                     raise UnsupportedEffectExecution(
@@ -287,6 +292,13 @@ class EffectDispatcher:
                     selected, status="skipped_condition", criteria=effect["criteria"]
                 )
                 continue
+            # Native state clamps may reapply their carrier and revisit the
+            # same conditional root with an already bounded value. That is a
+            # terminating no-op, not an executable cycle. Keep the cycle guard
+            # after native eligibility/criteria and before probability or any
+            # handler execution; unconditional recursive trees still fail.
+            if invocation.reference in ancestors:
+                raise UnsupportedEffectExecution("Recursive immediate effect tree")
             accepted = (
                 True
                 if activation is None
@@ -720,9 +732,14 @@ class EffectDispatcher:
                             cell=child.cell,
                             native_context_hex=native_context_hex,
                             native_value_scope=None,
-                            # Preserve reconstructed child selection; transmitted
-                            # PV anchors it but cannot bypass a caster selector.
-                            native_explicit_target=False,
+                            # eYg.a passes bfs as the explicit PV only on its
+                            # actor branch with rFn (target transmission). Keep
+                            # that client contract distinct from the server's
+                            # fresh relationship-selector policy below.
+                            native_explicit_target=(
+                                mode.on_target and mode.transmit_target
+                            ),
+                            wakemu_fresh_child_selection=True,
                             base_uid=None
                             if activation is not None
                             else selected.base_uid,

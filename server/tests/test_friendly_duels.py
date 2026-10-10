@@ -15,6 +15,39 @@ from wakfu_server.friendly_duel_wire import (
 
 
 class FriendlyDuelWireTests(unittest.TestCase):
+    def test_answer_checkpoints_only_pending_invitation_owners(self):
+        from contextlib import contextmanager
+        from types import SimpleNamespace
+        from wakfu_server.friendly_duels import flush_answer_positions
+
+        class StoreStub:
+            invitation = {"challenger_account_id": 7}
+
+            @contextmanager
+            def connection(self):
+                yield self
+
+            def execute(self, sql, params):
+                self.params = params
+                return self
+
+            def fetchone(self):
+                return self.invitation
+
+        store = StoreStub()
+        target = SimpleNamespace(account_id=9, character_id=19, generation="g")
+        calls = []
+        flush = lambda **scope: calls.append(scope)
+        flush_answer_positions(store, target, struct.pack(">qBB", 17, 1, 0), flush)
+        self.assertEqual(store.params, (9, 19, 17))
+        self.assertEqual(calls, [{"account_id": 7}, {"account_id": 9}])
+        calls.clear()
+        flush_answer_positions(store, target, struct.pack(">qBB", 17, 0, 0), flush)
+        self.assertEqual(calls, [])
+        store.invitation = None
+        flush_answer_positions(store, target, struct.pack(">qBB", 17, 1, 0), flush)
+        self.assertEqual(calls, [])
+
     def test_adapter_routes_turn_expiry_to_shared_registry(self):
         from wakfu_server.combat_session_adapter import CombatSessionAdapter
 
@@ -612,6 +645,35 @@ class FriendlyDuelStoreTests(PostgresCase):
         self.store.clock = lambda: 1_700_000_020
         retry = self.challenge()
         self.assertEqual(retry["expires_at"].timestamp(), 1_700_000_030)
+
+    def test_expired_invitation_retries_do_not_extend_reply_quarantine(self):
+        self.set_policy(ttl=10, quarantine=20)
+        original = self.challenge()
+        for seconds in (10, 15, 29):
+            self.store.clock = lambda seconds=seconds: 1_700_000_000 + seconds
+            with self.assertRaisesRegex(ValueError, "same-pair"):
+                self.challenge()
+        self.store.clock = lambda: 1_700_000_030
+        retry = self.challenge()
+        self.assertNotEqual(retry["invitation_id"], original["invitation_id"])
+        with self.store.connection() as db:
+            retired = db.execute(
+                "SELECT status,responded_at,expires_at FROM friendly_duel_invitations WHERE id=%s",
+                (original["invitation_id"],),
+            ).fetchone()
+        self.assertEqual(retired["status"], "expired")
+        self.assertEqual(retired["responded_at"], retired["expires_at"])
+
+    def test_delayed_expiry_worker_does_not_restart_reply_quarantine(self):
+        from wakfu_server.friendly_duels import expire
+
+        self.set_policy(ttl=10, quarantine=20)
+        original = self.challenge()
+        self.store.clock = lambda: 1_700_000_040
+        self.assertEqual(expire(self.store), (original["invitation_id"],))
+        self.assertNotEqual(
+            self.challenge()["invitation_id"], original["invitation_id"]
+        )
 
     def test_same_direction_quarantine_does_not_block_immediate_reverse_challenge(self):
         from wakfu_server.friendly_duels import invite_challenge

@@ -81,7 +81,7 @@ class GrantedCastTests(unittest.TestCase):
 
         fixture = SpellTransactionTests()
         fixture.setUp()
-        character, monster, fight = fixture.native_server_fixture(5, 20)
+        character, monster, fight = fixture.native_server_fixture(5, 20, native_qi=True)
         factory, _ = server_runtime(
             character,
             {-7: monster},
@@ -104,7 +104,8 @@ class GrantedCastTests(unittest.TestCase):
                 )
             ),
         )
-        dispatcher.execute(EffectInvocation(313108, 1, 7, 7, (0, 0, 0)))
+        position = fight.actors[7].position
+        dispatcher.execute(EffectInvocation(313108, 1, 7, 7, position))
         self.assertEqual(fight.native_spell_grants[7][3909]["level"], 20)
         grant_uid = next(
             uid
@@ -112,7 +113,7 @@ class GrantedCastTests(unittest.TestCase):
             if row["effect_class"] == 649
         )
         before = snapshot(fight)
-        body = struct.pack(">qqiih", 7, 3909, 0, 0, 0)
+        body = struct.pack(">qqiih", 7, 3909, *position)
         tx = prepare_server_spell(
             body,
             character,

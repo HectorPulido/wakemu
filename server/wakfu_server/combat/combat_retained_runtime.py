@@ -26,6 +26,7 @@ from .combat_retained_effects import (
 from .combat_effect_removal import running_effect_removal, _identity_fields
 from .combat_stat_effects import owned_effect_delivery
 from .combat_pending_state import pending_state_registration, pending_state_uids
+from .combat_execution_count import native_execution_count
 from .combat_subscription_runners import (
     SUBSCRIPTION_FAMILIES,
     GROUP_SUBSCRIPTION_FAMILIES,
@@ -488,21 +489,25 @@ class NativeRetainedRuntime:
     ):
         if handler.fight is not self.fight:
             raise ValueError("Direct native state handler belongs to another preview")
-        self.open_state(invocation)
-        try:
-            result = handler.apply_reference(
-                None,
-                invocation,
-                reference,
-                level,
-                carrier_context=carrier_context,
-                protected=protected,
-            )
-        except BaseException:
-            self._carrier_parents.pop()
-            raise
-        self.close_state(invocation)
-        return result
+        # Direct constructor applications bypass wrap(). Establish their own
+        # PL scope so a nested summon constructor cannot inherit the spawning
+        # spell's container while registering an explicitly null PL.
+        with self.container_scope(invocation):
+            self.open_state(invocation)
+            try:
+                result = handler.apply_reference(
+                    None,
+                    invocation,
+                    reference,
+                    level,
+                    carrier_context=carrier_context,
+                    protected=protected,
+                )
+            except BaseException:
+                self._carrier_parents.pop()
+                raise
+            self.close_state(invocation)
+            return result
 
     def probability_bypassed(self, invocation):
         if invocation.native_context_hex is None:
@@ -1160,7 +1165,11 @@ class NativeRetainedRuntime:
         return dict(
             _delivery_effect=effect,
             _delivery_invocation=invocation,
-            execution_count=definition.get("event_execution_count"),
+            execution_count=native_execution_count(
+                definition.get("event_execution_count"),
+                definition.get("event_execution_count_per_level"),
+                invocation.level,
+            ),
             uid=uid,
             target_id=invocation.target_id,
             effect_class=effect["effect_class"],
@@ -1264,6 +1273,11 @@ class NativeRetainedRuntime:
         uid = row["uid"]
         self.fight.native_owned_group_effects[uid] = row
         self.record(record)  # Native Qf.p happens AFTER the group's child calls.
+        from .combat_periodic_aptitude import remember_periodic_aptitude
+
+        remember_periodic_aptitude(
+            self.fight, row, effect, self.definition(effect, invocation)
+        )
         if not notify:
             return  # eYC.c fRS: Qf ownership survives, its own PR does not fire.
         self.packets.append(

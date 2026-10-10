@@ -45,10 +45,12 @@ class TeleportSelectedSurfaceTests(unittest.TestCase):
             self.packets,
             action_id=1,
             allocate_uid=lambda: 2,
-            authority=None,
+            # This fixture isolates Vy selection; the actor has no native
+            # movement-blocking properties in the independent property gate.
+            authority=SimpleNamespace(properties=lambda fight, actor: set()),
             selected_surface=lambda fight, cell: self.surfaces.i(self.qi, *cell),
         )
-        self.handler._ordinary = lambda actor: set()
+        self.handler._ordinary = lambda actor, **kwargs: set()
 
     def execute(self, cell, check_cells=False):
         effect = dict(effect_class=302, native_effect_flags=[])

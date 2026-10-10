@@ -12,6 +12,14 @@ ROOT = Path(__file__).resolve().parents[2]
 HOST_SOURCES = (ROOT / "server/local_game_server.py",)
 
 
+class _IdentityProfiler:
+    """Keep source-extracted dispatcher tests independent of server bootstrap."""
+
+    @staticmethod
+    def profile(_name):
+        return lambda function: function
+
+
 def _source_paths():
     """Use the repository source, or the single source packaged in the image."""
     if HOST_SOURCES[0].is_file():
@@ -95,6 +103,10 @@ class _Database:
         self.queries.append((sql, params))
         if "SELECT e.fight_id" in sql:
             return _Cursor(self.pending)
+        if "SELECT current_room,status,revision" in sql:
+            return _Cursor({"current_room": 1, "status": "active", "revision": 4})
+        if "UPDATE dungeon_room_encounters SET result=result" in sql:
+            return _Cursor(None)
         raise AssertionError(f"Unexpected dispatch query: {sql}")
 
 
@@ -173,6 +185,7 @@ class DungeonAutoTransitionDispatchTests(unittest.TestCase):
             "position": {"x": 4, "y": -12, "z": 0},
         }
         namespace = {
+            "PROFILER": _IdentityProfiler(),
             "DUNGEON_TRANSITION_OUTBOX_AVAILABLE": True,
             "DUNGEON_ROOM_RUNTIME_AVAILABLE": True,
             "time": time,
@@ -425,6 +438,81 @@ class DungeonAutoTransitionDispatchTests(unittest.TestCase):
                 completed=False,
             ),
         )
+
+    def test_physical_victory_publishes_gate_and_current_group_without_teleport(self):
+        from wakfu_server.maps import dungeon_physical_doors, dungeon_runtime
+
+        for source in _source_paths():
+            with self.subTest(source=str(source)):
+                (
+                    dispatch,
+                    namespace,
+                    store,
+                    auto,
+                    runtime,
+                    delivery,
+                    _config,
+                    before_action,
+                ) = self._run(source, pending={"fight_id": 9003})
+                topology = dict(self.topology, policy=dungeon_physical_doors.POLICY)
+                config = {"topology": topology}
+                groups = Mock()
+                groups.lock = __import__("threading").RLock()
+                groups.available.return_value = (
+                    {"members": (), "key": (1087, self.instance_id, 33)},
+                )
+                namespace["COMBAT_GROUPS"] = groups
+                namespace["WORLD"].emit_location = Mock()
+                with patch.object(
+                    dungeon_physical_doors, "enabled", return_value=True
+                ), patch.object(
+                    dungeon_physical_doors,
+                    "packets",
+                    return_value=((13766, b"closed-gates"),),
+                ) as packets, patch.object(
+                    runtime,
+                    "configuration_for_instance",
+                    return_value=({"instance_id": self.instance_id}, config),
+                ), patch(
+                    "wakfu_server.combat_monster_world.spawn_group",
+                    return_value=b"spawn",
+                ) as spawn, patch.object(
+                    auto, "advance"
+                ) as advance, patch.object(
+                    delivery, "deliver_pending_transitions"
+                ) as poll:
+                    result = dispatch(before_action=before_action)
+
+                self.assertEqual(
+                    {"state": "physical_room_published", "pending_event_ids": ()},
+                    result,
+                )
+                self.assertEqual(2, store.connections)
+                packets.assert_called_once_with(
+                    topology,
+                    map_id=self.character["map_id"],
+                    instance_id=self.instance_id,
+                    unlocked_room=1,
+                    completed=False,
+                )
+                spawn.assert_called_once()
+                emitted = namespace["WORLD"].emit_location.call_args_list
+                self.assertEqual(2, len(emitted))
+                self.assertEqual(
+                    (
+                        self.character["map_id"],
+                        self.instance_id,
+                        13766,
+                        b"closed-gates",
+                    ),
+                    emitted[0].args,
+                )
+                self.assertEqual(
+                    (self.character["map_id"], self.instance_id, 12608, b"spawn"),
+                    emitted[1].args,
+                )
+                advance.assert_not_called()
+                poll.assert_not_called()
 
 
 class SimpleCombatSessions:

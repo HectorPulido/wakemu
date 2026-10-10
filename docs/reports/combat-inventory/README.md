@@ -1,5 +1,101 @@
 # Inventario de combate y seguimiento
 
+## Current provisional acceptance — 4/18
+
+On 2026-10-09 the user accepted Aniripsa provisionally alongside Cra, Iop and
+Sacrier: **4/18**. This records user acceptance; remaining manual coverage and
+shared combat resilience remain tracked separately. Historical counts below
+refer to earlier milestones.
+
+## Osamodas inventory — 2026-10-09
+
+The next class workstream is **inventory only**, before implementation.
+[Complete inventory](osamodas-complete-inventory-20261009.md) consolidates the
+owned/granted spell and state register, captured-creature dependencies,
+current source support, proven gaps, risks and acceptance requirements.
+[Summon lifecycle](osamodas-summons-inventory-20261009.md),
+[spells and states](osamodas-spells-states-inventory-20261009.md), and
+[current bounded runtime validation](osamodas-runtime-risk-inventory-20261009.md)
+provide detailed evidence. No gameplay change, restart or deployment is part
+of this inventory. Existing [capture-to-reuse manual sequence](manual-osamodas-system-20261008.md)
+is historical setup guidance, not a current client acceptance result.
+
+## Aniripsa inventory — 2026-10-09
+
+[Current local implementation and acceptance](aniripsa-implementation-review-20261009.md)
+supersedes the inventory-only baseline below. General resurrection, protected
+summon replacement and transmitted healing-recipient corrections are implemented
+locally. Real healing, marks, deferred healing, areas and summon/passive scenarios
+are being validated with prior-class regressions. No restart/deployment by this
+workstream. [Complete manual test](aniripsa-manual-acceptance-20261009.md).
+
+[Complete current Aniripsa inventory](aniripsa-complete-review-20261009.md):
+original inventory-only baseline, before implementation. Current native scope:
+21 actives,20 passives,3 granted actions,4 dependent summon profiles;
+974 effects,51 states and82 families. No missing definitions/factory bindings
+in the expanded closure. Baseline32/35 ordinary spell-level pairs and60/60
+prepared commits; remaining pairs require ally/KO contexts. Passive cycles20/20,
+with only3 specific activations observed. Resurrection, allied healing,
+Contra Natura, marks/death chains, Cunejo and conditional passive acceptance
+remain explicitly open. See the report for priorities and exact evidence.
+
+
+## Sacrier inventory — 2026-10-09
+
+[Current local implementation and acceptance](sacro-implementation-review-20261009.md):
+normal Cra/Iop/Sacrier regression105/105 spell-level pairs and195/195 commits;
+Sacrier passive cycles20/20, transformation lifecycle and three attacks passed.
+No restart or deployment performed. Graphical/manual acceptance remains pending;
+class acceptance remains2/18. The figures below describe the historical baseline.
+
+[Complete Sacrier review and readiness measurements](sacro-complete-review-20261009.md):
+inventory/audit only; no implementation or deployment by this workstream.
+The register includes 21 actives, 20 passives, five granted actions, three morph
+actions and two innates. Current dynamic reconciliation covers 1029 effects,
+52 states, 68 effect families, area1605 and profile5900. State759 is missing.
+Fresh basic normal casting prepares62/64 attempts; the two rejected Columnata
+self-centered variants remain visible rather than being hidden by other
+successful variants. Passive cycles:19/20, with Immolation7224 blocked by native
+dispel flag17. These are scoped audit measurements, not a class completion
+percentage. Shared current implementation, risks, exact backlog and complete
+manual acceptance are linked in the review. Acceptance remains Cra + Iop2/18.
+
+## Provisional class acceptance — 2/18
+
+On 2026-10-09 the user accepted Iop provisionally, matching the existing Cra
+acceptance. Count: Cra + Iop = 2/18. This records user acceptance, not exhaustive
+manual certification. The initial PvP combos were observed by the user and
+correlated with server traces, including fight 100 additional-damage combo.
+Higher-level spells/passives, remaining numerical cases, PvM and intermittent
+presentation issues remain subject to validation. Shared combat resilience is a
+separate cross-class workstream; a class acceptance does not close it.
+
+
+## Parallel resilience and aptitude review — 2026-10-09
+
+[Shared combat guardrails](shared-combat-guardrails-20261009.md): r54 deployed and healthy with the corrected serializable AI claim; eight current guard/idle regressions pass, including actual context serialization.
+
+[All aptitude attributes](aptitude-all-attributes-audit-20261009.md): selected-build cap validation corrected and deployed; 39 focused catalog/persistence/build tests pass. General tackle/dodge movement and native Barrier activation-count scaling are deployed with the matching complete catalog. Movement has 32 focused tests plus one real initialized-fight regression passing; real Barrier hit/exhaustion and per-turn renewal acceptance now pass. Renewal is deployed in r55. Received healing now passes actual allied-heal acceptance after a source-backed general group target-transmission correction; that correction and periodic renewal are deployed in r55. Arithmetic consumers and manual acceptance remain separately tracked. Final renewal-source regression passes35/35 across aptitude initialization, actual Cra/Iop casting and retained group/area lifecycles. [Complete 31-attribute manual acceptance](aptitude-manual-acceptance-20261009.md) records allocation, persistence, caps and combat checks.
+
+## Coordinated r55 verification update
+
+The concurrent agent deployed `wakemu-world:chat-admin-20261009-r55`
+(SHA256 `dfaaaf6afb3a7b60e3373b1f09d0c4aaf0aabddeea71c4120d12107398ac3346`).
+Running production hashes match the current periodic-aptitude, group dispatcher,
+retained runtime, turn-start and turn-guard files. World is healthy and HTTP
+health succeeds. This includes periodic Barrier renewal and explicit target
+transmission alongside the other agent's changes.
+
+The post-transmission batch completed62/64. One failure was new armor-test
+instrumentation (group children execute directly, not through activation); its
+actual armor assertion is retained. The reproducible Iop Preparation failure
+is real: its damage modifier applies but its consumption criterion skips.
+The final source correction now passes 16/16 focused tests (49.189 seconds),
+including actual Preparation consumption, five policy cases, allied healing,
+Cra casting and aptitude initialization/armor. The original 64-test batch has
+not been rerun in full. This final correction is not deployed.
+See the [deployment handoff](deployment-handoff-20261009.md).
+
 ## Environmental retained-effect lifecycle — 2026-10-09
 
 [Preparation and native null-Qf lifecycle](preparation-null-qf-lifecycle-20261009.md): general environmental subscription release and final-modifier PV correction; actual Jabs/Bofetada environmental regressions and Cra regression pass.
@@ -453,3 +549,7 @@ Sacudido8913/event2236 correction: the shared current-stat consumer receives nat
 ## Iop repair delivery update
 
 The shared Iop context, Preparation and voluntary-movement repairs are delivered in the complete r47 image. Current code and catalogs were verified before restart; actual Iop/Cra regressions and summon retirement checks passed. See the [delivery and validation record](iop-shared-repair-delivery-20261009.md). Manual whole-class acceptance remains pending.
+
+## Iop level 60 manual acceptance
+
+[Complete level-60 test plan](manual-iop-level60-acceptance-20261009.md): decks, five combos, Preparation/environment regression, banner variants, available passives, movement, LOS and multiplayer/dungeon lifecycle. Higher-level abilities remain explicitly pending.

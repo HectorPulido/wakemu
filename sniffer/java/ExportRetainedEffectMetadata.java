@@ -15,7 +15,7 @@ public class ExportRetainedEffectMetadata {
    Map<String,Object>m=new TreeMap<>();m.put("effect_class",e.awM());m.put("definition_type",(int)e.aZD());m.put("owner_on_caster",e.aZA());m.put("subscription",e.aZN());
    m.put("event_target_code",(int)e.aZV().aKg());m.put("event_caster_code",e.aZW()==null?null:(int)e.aZW().aKg());
    m.put("event_reverse_subscription",e.aZw());m.put("event_global_subscription",e.aZx());
-   m.put("event_priority",e.aZM());m.put("event_suppresses_level_one",e.aZB());m.put("event_execution_count",(int)e.aZS());
+   m.put("event_priority",e.aZM());m.put("event_suppresses_level_one",e.aZB());m.put("event_execution_count",(int)e.aZS());m.put("event_execution_count_per_level",e.cyc());
    var pf=eVE.class.getDeclaredField("ryR");pf.setAccessible(true);m.put("parameters",pf.get(e));m.put("variant",e.aZR());m.put("minimum_level",e.fKR());m.put("maximum_level",e.fKS());
    m.put("definition_dispellable",e instanceof eVv v?v.cxq():null);effects.put(""+id,m);
   }

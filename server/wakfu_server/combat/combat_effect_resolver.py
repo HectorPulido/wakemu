@@ -186,9 +186,47 @@ class NativeEffectResolver:
             if self.direct_target_policies is None
             else self.direct_target_policies.get(str(invocation.reference))
         )
-        if direct and (
+        if type(invocation.wakemu_fresh_child_selection) is not bool:
+            raise UnknownEffectResolution("Invalid server fresh-child selection policy")
+        # Client aZX defaults false and describes replay of an already chosen
+        # PV. Server-created children with an explicit relationship selector
+        # select that relationship first. Non-point areas also enumerate their
+        # occupants before passing a chosen PV to point children. A null/zero/
+        # point selector retains the group's intentional transmitted PV.
+        selector = effect.get("native_target_selector")
+        server_fresh_selection = (
+            invocation.wakemu_fresh_child_selection
+            and isinstance(selector, dict)
+            and selector.get("class") == "fcE"
+            and type(selector.get("mask")) is int
+            and (
+                bool(selector["mask"] & (2 | 4 | 8 | 64 | 128 | 256))
+                or (
+                    bool(selector["mask"] & 1)
+                    and effect.get("area_class") not in (None, "anA", "anD")
+                )
+            )
+        )
+        # A transmitted point PV with fcE(self + area) belongs to the
+        # triggering recipient. Re-selecting self here loses allied received-
+        # healing modifiers: the caster is outside the recipient's point.
+        # Keep Qe.g(PV)'s explicit-target contract for this combined selector;
+        # a pure self selector still requests the server relationship policy.
+        if (
             invocation.native_explicit_target
-            or (policy is not None and policy[2] is True)
+            and isinstance(selector, dict)
+            and selector.get("class") == "fcE"
+            and selector.get("mask") == 3
+            and effect.get("area_class") == "anD"
+        ):
+            server_fresh_selection = False
+        if (
+            direct
+            and not server_fresh_selection
+            and (
+                invocation.native_explicit_target
+                or (policy is not None and policy[2] is True)
+            )
         ):
             from .combat_direct_target import explicit_native_target
 

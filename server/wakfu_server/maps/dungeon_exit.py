@@ -61,6 +61,39 @@ def leave(
 def automatic_destination(character, run, configuration):
     """Use the pinned run's native exterior approach, never a client target."""
     topology = configuration["topology"]
+    from wakfu_server.dungeon_physical_doors import enabled as physical_doors_enabled
+
+    if physical_doors_enabled(topology):
+        if character.get("map_id") != topology.get("asset_map_id"):
+            raise ValueError("Dungeon exit command belongs to another asset map")
+        entrances = [
+            item
+            for item in topology.get("physical_exit_objects", ())
+            if item.get("room_order") == 1
+        ]
+        if len(entrances) != 1:
+            raise ValueError("Dungeon exit command has no unique native exterior route")
+        source = generic_transports.source(
+            character["map_id"], entrances[0]["source_id"]
+        )
+        if source is None:
+            raise ValueError("Dungeon exit command native source is absent")
+        destinations = [
+            row
+            for row in source["destinations"]
+            if row["map_id"] == run["entry_map_id"]
+        ]
+        if len(destinations) != 1:
+            raise ValueError("Dungeon exit command exterior route is ambiguous")
+        # Command travel intentionally needs no approach to the entrance object.
+        # resolve() still validates native criteria, costs, altitude and instance.
+        destination = resolve(
+            character,
+            struct.pack(">qiBi", source["id"], destinations[0]["destination_id"], 0, 2),
+            entry_map_id=run["entry_map_id"],
+            source_allowed=lambda actor, candidate: candidate["id"] == source["id"],
+        )
+        return {key: destination[key] for key in ("map_id", "x", "y", "z")}
     destination = topology.get("completion_destination")
     if (
         topology.get("policy") != "local_accessible_anchor_policy"

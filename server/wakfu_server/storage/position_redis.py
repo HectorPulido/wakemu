@@ -4,9 +4,11 @@ PostgreSQL owns leases and committed state. Redis holds only validated unflushed
 positions, including the exact PostgreSQL baseline required for crash recovery.
 This is not a distributed world server or a replacement for PostgreSQL ownership.
 """
+from contextlib import ExitStack
 import copy
 import json
 import uuid
+import time
 from .position_buffer import Positions, _KEYS
 
 
@@ -205,7 +207,7 @@ class RedisPositions(Positions):
 
     def move(self, account_id, generation, character_id, start, end):
         key = (account_id, generation, character_id)
-        with self.lock:
+        with self.account_barrier(account_id):
             if key not in self.entries:
                 raise ValueError("Stale buffered position session")
             # Use the same validated algorithm on an isolated candidate; durable
@@ -215,37 +217,55 @@ class RedisPositions(Positions):
             current = candidate.move(account_id, generation, character_id, start, end)
             entry = candidate.entries[key]
             encoded = self.journal.put(key, entry, self.mirrors.get(key))
-            self.entries[key] = entry
-            self.mirrors[key] = encoded
-            self.pending_acks.pop(key, None)
-            if not entry["dirty"]:
-                self.pending_acks[key] = encoded
+            with self.lock:
+                self.entries[key] = entry
+                self.mirrors[key] = encoded
+                self.pending_acks.pop(key, None)
+                if not entry["dirty"]:
+                    self.pending_acks[key] = encoded
             return current
 
-    def _ack_pending(self):
-        for key, encoded in list(self.pending_acks.items()):
+    def _ack_pending(self, accounts):
+        with self.lock:
+            pending = list(self.pending_acks.items())
+        for key, encoded in pending:
+            if key[0] not in accounts:
+                continue
             if not self.journal.ack(key, encoded):
                 raise PositionJournalError(
                     "Redis position changed after committed flush"
                 )
-            self.pending_acks.pop(key, None)
-            if self.mirrors.get(key) == encoded:
-                self.mirrors.pop(key, None)
+            with self.lock:
+                self.pending_acks.pop(key, None)
+                if self.mirrors.get(key) == encoded:
+                    self.mirrors.pop(key, None)
 
-    def flush(self, **scope):
-        with self.lock:
-            self._ack_pending()
-            count = super().flush(**scope)
-            for key, encoded in self.mirrors.items():
-                entry = self.entries.get(key)
-                if entry is None or not entry["dirty"]:
-                    self.pending_acks[key] = encoded
-            self._ack_pending()
-            return count
+    def _flush_one(self, **scope):
+        # Acquire scarce DB capacity before holding any account barrier.
+        started = time.monotonic()
+        with ExitStack() as transaction:
+            db = transaction.enter_context(self.store.connection(timeout=0.25))
+            self.observe("pool", started, account_id=scope.get("account_id"))
+            with self.flush_barrier(**scope) as accounts:
+                self._ack_pending(accounts)
+                count = self._flush(db, commit=transaction.close, **scope)
+                with self.lock:
+                    mirrors = list(self.mirrors.items())
+                for key, encoded in mirrors:
+                    if key[0] not in accounts:
+                        continue
+                    entry = self.entries.get(key)
+                    if entry is None or not entry["dirty"]:
+                        with self.lock:
+                            self.pending_acks[key] = encoded
+                started = time.monotonic()
+                self._ack_pending(accounts)
+                self.observe("redis_ack", started, account_id=scope.get("account_id"))
+                return count
 
     def release(self, account_id, generation, character_id, *, discard_stale=False):
         key = (account_id, generation, character_id)
-        with self.lock:
+        with self.account_barrier(account_id):
             entry = self.entries.get(key)
             if entry is not None and entry["dirty"] and not discard_stale:
                 raise ValueError("Flush position before release")
@@ -257,8 +277,9 @@ class RedisPositions(Positions):
                     raise PositionJournalError(
                         "Redis position revision conflict during release"
                     )
-                self.mirrors.pop(key, None)
-                self.pending_acks.pop(key, None)
+                with self.lock:
+                    self.mirrors.pop(key, None)
+                    self.pending_acks.pop(key, None)
             super().release(
                 account_id, generation, character_id, discard_stale=discard_stale
             )

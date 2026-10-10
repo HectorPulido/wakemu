@@ -25,6 +25,36 @@ def actor(identity, position):
 
 
 class NativeArmorTests(unittest.TestCase):
+    def test_actual_corpse_skips_armor_before_amount_and_uid_allocation(self):
+        from test_combat_damage_handler import DamageHandlerTests
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+        )
+
+        fixture = DamageHandlerTests()
+        fixture.setUp()
+        fight = fixture.fight
+        initialize_global_pv_collections(fight, tuple(fight.actors))
+        fight.native_active_spell_id = 5037
+        handler = object.__new__(NativeArmorHandler)
+        handler.fight = fight
+        effect = dict(
+            effect_class=1013,
+            native_effect_flags=[],
+            target_masks=(None,) * 7,
+        )
+        # The real damage operation registers the corpse; raw HP0 is not proof.
+        with fight.effect_resolution():
+            fight.apply_effect_damage(7, -7, 100)
+            self.assertFalse(handler.native_eligibility(effect, fixture.invocation))
+            self.assertFalse(handler(effect, {}, fixture.invocation))
+            with self.assertRaisesRegex(ValueError, "Dynamic native corpse guard"):
+                handler(
+                    dict(effect_class=1013, native_effect_flags=[]),
+                    {},
+                    fixture.invocation,
+                )
+
     def setUp(self):
         self.source, self.target = actor(22, (0, 0, 0)), actor(-33, (1, 0, 0))
         self.effect = dict(

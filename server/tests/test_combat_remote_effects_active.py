@@ -162,3 +162,81 @@ class ActiveRemoteEffectTests(unittest.TestCase):
         self.assertEqual(stats, b"stats")
         self.assertEqual(effects, active_actor_effects(fight, 7))
         self.assertEqual(len(decode_remote_effects(effects)), 5)
+
+
+class DirectStateContainerScopeTests(unittest.TestCase):
+    fixture = ActiveRemoteEffectTests.fixture
+
+    def test_null_constructor_container_does_not_inherit_spawning_spell(self):
+        from wakfu_server.combat_effect_dispatch import EffectInvocation
+        from wakfu_server.combat_retained_runtime import NativeRetainedRuntime
+        from wakfu_server.combat_running_container import (
+            running_container_scope,
+            running_container_payload,
+        )
+        from wakfu_server.combat_state_carrier import state_carrier_payload
+
+        fight = self.fixture()
+        retention = NativeRetainedRuntime(
+            fight,
+            [],
+            plan={"native_retained_container": {"present": False}},
+            state_catalog={},
+            action_id=1,
+            timing=None,
+            metadata={"states": {"1234": {"unremovable": False, "dispellable": True}}},
+        )
+        actor = fight.actors[7]
+
+        def apply(*args, **kwargs):
+            actor.state_ledger._entries += (
+                RunningState(
+                    800, 1234, 1, 7, 7, -1, "target", False, (), -1, True, None
+                ),
+            )
+            fight.state_wire_payloads[800] = state_carrier_payload(
+                uid=800,
+                base_uid=800,
+                caster_id=7,
+                target_id=7,
+                state_id=1234,
+                level=1,
+                native_turn_clock=-1,
+                native_realtime_remaining=0,
+            ).hex()
+
+        handler = SimpleNamespace(fight=fight, apply_reference=apply)
+        invocation = EffectInvocation(2226, 1, 7, 7, (0, 0, 0))
+        with running_container_scope(
+            {"container_present": True, "container_type": 11}, 315031602
+        ):
+            outer = running_container_payload()
+            retention.apply_state_reference(
+                handler,
+                invocation,
+                1234,
+                1,
+                carrier_context=None,
+            )
+            self.assertEqual(running_container_payload(), outer)
+            handler.apply_reference = lambda *a, **kw: (_ for _ in ()).throw(
+                ValueError("failed")
+            )
+            with self.assertRaisesRegex(ValueError, "failed"):
+                retention.apply_state_reference(
+                    handler,
+                    invocation,
+                    1234,
+                    1,
+                    carrier_context=None,
+                )
+            self.assertEqual(running_container_payload(), outer)
+        self.assertFalse(fight.native_retained_records[800]["container_present"])
+        fields = _identity_fields(
+            bytes.fromhex(fight.state_wire_payloads[800]), integer_fields=(9, 10)
+        )
+        self.assertNotIn(9, fields)
+        self.assertNotIn(10, fields)
+        self.assertTrue(decode_remote_effects(active_actor_effects(fight, 7)))
+        self.assertEqual(retention._carrier_parents, [])
+        self.assertEqual(retention._container_scopes, [])

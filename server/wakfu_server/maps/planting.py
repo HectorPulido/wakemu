@@ -84,12 +84,15 @@ def prepare(
     body,
     *,
     authorize_cell,
-    open_test_policy=False
+    open_test_policy=False,
+    location_context=None,
 ):
     request = decode(body)
     with store.connection() as db:
         _lease(store, db, account, generation, character["id"])
         current = store.character(account, character["id"], db)
+        if location_context is not None:
+            current = location_context(current)
         item = next(
             (
                 item
@@ -140,7 +143,8 @@ def complete(
     success=True,
     probability=None,
     monster_members=None,
-    group_id=None
+    group_id=None,
+    location_context=None,
 ):
     if type(success) is not bool:
         raise ValueError("Invalid authoritative planting outcome")
@@ -210,10 +214,16 @@ def complete(
                 probability=old["probability"],
             )
         current = store.character(account, character["id"], db)
+        if location_context is not None:
+            current = location_context(current)
         if any(
             current[k] != character[k] for k in ("map_id", "instance_id", "x", "y", "z")
         ):
             raise ValueError("Planting origin changed")
+        if current["map_id"] == 9:
+            from .haven_bag_garden import room_at
+
+            room_at(current, request["x"], request["y"])
         item = db.execute(
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (request["item_uid"], character["id"]),
@@ -331,7 +341,11 @@ def complete(
         + progress["packets"]
         + ecology["packets"],
         ecology=ecology,
-        character=store.character(account, character["id"]),
+        character=(
+            location_context(store.character(account, character["id"]))
+            if location_context is not None
+            else store.character(account, character["id"])
+        ),
     )
 
 

@@ -137,7 +137,7 @@ public class ExportClassMechanicGraph {
         row.put("native_registration",definition(registration));
         List<Integer> children=new ArrayList<>();for(int child:GROUPS.getOrDefault(id,new int[0])){children.add(child);enqueue("effect",child);}row.put("children_ordered",children);
         row.put("event_target_code",(int)effect.aZV().aKg());row.put("event_caster_code",effect.aZW()==null?null:(int)effect.aZW().aKg());
-        row.put("subscription",effect.aZN());row.put("owner_on_caster",effect.aZA());row.put("reverse_subscription",effect.aZw());row.put("global_subscription",effect.aZx());row.put("event_priority",effect.aZM());row.put("event_execution_count",(int)effect.aZS());row.put("suppresses_level_one",effect.aZB());
+        row.put("subscription",effect.aZN());row.put("owner_on_caster",effect.aZA());row.put("reverse_subscription",effect.aZw());row.put("global_subscription",effect.aZx());row.put("event_priority",effect.aZM());row.put("event_execution_count",(int)effect.aZS());row.put("event_execution_count_per_level",effect.cyc());row.put("suppresses_level_one",effect.aZB());
         row.put("minimum_level",effect.fKR());row.put("maximum_level",effect.fKS());row.put("raw_parameters",effect.fKI());
         Map<String,Object> samples=new LinkedHashMap<>();List<Map<String,Object>> references=new ArrayList<>();
         String referenceKind=registration!=null && nativeAreaReferenceRunner(registration.bkv()) ? "area" : switch(effect.awM()){case 304->"state";case 649->"spell";case 307->"profile";default->null;};

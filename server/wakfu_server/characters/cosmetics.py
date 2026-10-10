@@ -16,6 +16,8 @@ class OwnedCosmetics:
     items: tuple
     selections: tuple = ()
     inactive_characters: tuple = ()
+    costumes: tuple = ()
+    single_selections: tuple = ()
 
     def __post_init__(self):
         _positive(self.account_id, "account", bits=63)
@@ -60,6 +62,105 @@ class OwnedCosmetics:
             if identity not in owners:
                 raise ValueError("Inactive cosmetic preset is absent")
 
+        if type(self.costumes) is not tuple:
+            raise ValueError("Immutable owned costume selections required")
+        costume_owners = set()
+        for row in self.costumes:
+            if type(row) is not tuple or len(row) != 2:
+                raise ValueError("Malformed owned costume selection")
+            identity, reference = row
+            _positive(reference, "costume reference")
+            _positive(identity, "costume character", bits=63)
+            if identity in costume_owners or identity not in owners:
+                raise ValueError("Duplicate or missing costume preset")
+            if (3, reference) not in keys:
+                raise ValueError("Selected costume is not owned")
+            costume_owners.add(identity)
+
+        if type(self.single_selections) is not tuple:
+            raise ValueError("Immutable owned cosmetic selections required")
+        single_keys = set()
+        for row in self.single_selections:
+            if type(row) is not tuple or len(row) != 3:
+                raise ValueError("Malformed owned single cosmetic selection")
+            identity, category, reference = row
+            _positive(identity, "cosmetic character", bits=63)
+            _positive(reference, "cosmetic reference")
+            if category == 7 and reference > 65535:
+                raise ValueError("Native selected title exceeds unsigned short")
+            if (
+                type(category) is not int
+                or category not in (1, 4, 6, 7)
+                or identity not in owners
+            ):
+                raise ValueError(
+                    "Unsupported single cosmetic category or missing preset"
+                )
+            if (identity, category) in single_keys or (category, reference) not in keys:
+                raise ValueError("Duplicate or unowned single cosmetic selection")
+            single_keys.add((identity, category))
+
+    def selected_single(self, character_id, category):
+        if category == 3:
+            return self.selected_costume(character_id)
+        if character_id in self.inactive_characters:
+            return 0
+        return next(
+            (
+                ref
+                for identity, kind, ref in self.single_selections
+                if identity == character_id and kind == category
+            ),
+            0,
+        )
+
+    def equip_single(self, character, category, reference):
+        if category == 3:
+            return self.equip_costume(character, reference)
+        if category not in (1, 4, 6, 7):
+            raise ValueError("Unsupported single cosmetic category")
+        record = self.equip_finishers(
+            character, dict(self.selections).get(character["id"], ())
+        )
+        rows = tuple(
+            row
+            for row in record.single_selections
+            if row[:2] != (character["id"], category)
+        )
+        if reference:
+            rows += ((character["id"], category, reference),)
+        return OwnedCosmetics(
+            record.account_id,
+            record.items,
+            record.selections,
+            record.inactive_characters,
+            record.costumes,
+            rows,
+        )
+
+    def selected_costume(self, character_id):
+        return (
+            0
+            if character_id in self.inactive_characters
+            else dict(self.costumes).get(character_id, 0)
+        )
+
+    def equip_costume(self, character, reference):
+        record = self.equip_finishers(
+            character, dict(self.selections).get(character["id"], ())
+        )
+        values = tuple(row for row in record.costumes if row[0] != character["id"])
+        if reference:
+            values += ((character["id"], reference),)
+        return OwnedCosmetics(
+            record.account_id,
+            record.items,
+            record.selections,
+            record.inactive_characters,
+            values,
+            record.single_selections,
+        )
+
     def equip_finishers(self, character, references):
         if character.get("account_id") != self.account_id:
             raise ValueError("Cosmetic character belongs to another account")
@@ -76,6 +177,8 @@ class OwnedCosmetics:
             self.items,
             selections,
             tuple(key for key in self.inactive_characters if key != identity),
+            self.costumes,
+            self.single_selections,
         )
 
     def activate_preset(self, character, active):
@@ -87,7 +190,14 @@ class OwnedCosmetics:
         inactive = tuple(key for key in self.inactive_characters if key != identity)
         if not active:
             inactive += (identity,)
-        return OwnedCosmetics(self.account_id, self.items, self.selections, inactive)
+        return OwnedCosmetics(
+            self.account_id,
+            self.items,
+            self.selections,
+            inactive,
+            self.costumes,
+            self.single_selections,
+        )
 
     def selected_finishers(self, character_id):
         if character_id in self.inactive_characters:
@@ -103,6 +213,8 @@ class OwnedCosmetics:
                 [identity, list(values)] for identity, values in self.selections
             ],
             "inactive_characters": list(self.inactive_characters),
+            "costumes": [list(row) for row in self.costumes],
+            "single_selections": [list(row) for row in self.single_selections],
         }
 
     @classmethod
@@ -128,11 +240,23 @@ class OwnedCosmetics:
         inactive = record.get("inactive_characters", [])
         if type(inactive) is not list:
             raise ValueError("Malformed inactive cosmetic presets")
+        costumes = record.get("costumes", [])
+        if type(costumes) is not list or any(
+            type(row) is not list or len(row) != 2 for row in costumes
+        ):
+            raise ValueError("Malformed owned costume record")
+        singles = record.get("single_selections", [])
+        if type(singles) is not list or any(
+            type(row) is not list or len(row) != 3 for row in singles
+        ):
+            raise ValueError("Malformed owned single cosmetic record")
         return cls(
             account_id,
             tuple(tuple(row) for row in record["items"]),
             tuple((row[0], tuple(row[1])) for row in record["selections"]),
             tuple(inactive),
+            tuple(tuple(row) for row in costumes),
+            tuple(tuple(row) for row in singles),
         )
 
     def inventory_component(self):
@@ -141,6 +265,7 @@ class OwnedCosmetics:
             item = b"".join(
                 proto_field(tag, value)
                 for tag, value in ((8, reference), (16, color), (24, accessory))
+                if tag != 24 or category not in (1, 2) or accessory != 0
             )
             categories.setdefault(category, bytearray()).extend(proto_field(10, item))
         payload = b"".join(
@@ -167,13 +292,43 @@ class OwnedCosmetics:
                         for tag, value in ((8, reference), (16, color), (24, accessory))
                     ),
                 )
-            position = proto_field(8, 5) + proto_field(18, active)
+            positions = proto_field(42, proto_field(8, 5) + proto_field(18, active))
+            costume = dict(self.costumes).get(identity)
+            if costume is not None:
+                color, accessory = items[(3, costume)]
+                costume_item = b"".join(
+                    proto_field(tag, value)
+                    for tag, value in ((8, costume), (16, color), (24, accessory))
+                )
+                positions += proto_field(
+                    42,
+                    proto_field(8, 3) + proto_field(18, proto_field(10, costume_item)),
+                )
+            for owner, category, reference in self.single_selections:
+                if owner != identity:
+                    continue
+                color, accessory = items[(category, reference)]
+                cosmetic_item = b"".join(
+                    proto_field(tag, value)
+                    for tag, value in ((8, reference), (16, color), (24, accessory))
+                    if tag != 24 or category not in (1, 2) or accessory != 0
+                )
+                positions += proto_field(
+                    42,
+                    proto_field(8, category)
+                    + proto_field(18, proto_field(10, cosmetic_item)),
+                )
             preset = (
                 proto_field(8, preset_id)
                 + proto_field(16, 0)
-                + proto_field(26, b"Finisher")
+                + proto_field(
+                    26,
+                    b"Appearance"
+                    if any(row[0] != 5 for row in self.items)
+                    else b"Finisher",
+                )
                 + proto_field(32, 0)
-                + proto_field(42, position)
+                + positions
                 + proto_field(48, 0)
             )
             payload.extend(proto_field(10, preset))
@@ -187,7 +342,7 @@ class OwnedCosmetics:
 
 
 def finisher_request(record, character, opcode, body):
-    """Decode original cof/col requests restricted to existing finisher presets."""
+    """Decode native cof/col for existing owned costume and finisher presets."""
     from wakfu_server.wire import proto_fields
 
     if (
@@ -211,7 +366,11 @@ def finisher_request(record, character, opcode, body):
         if len(body) < 10:
             raise ValueError("Incomplete native col cosmetic request")
         preset, category, add, present = struct.unpack(">iiBB", body[:10])
-        if category != 5 or add not in (0, 1) or present not in (0, 1):
+        if (
+            category not in (1, 3, 4, 5, 6, 7)
+            or add not in (0, 1)
+            or present not in (0, 1)
+        ):
             raise ValueError("Unsupported cosmetic preset request")
         if (
             not 1 <= preset <= len(record.selections)
@@ -222,7 +381,11 @@ def finisher_request(record, character, opcode, body):
         if not present:
             if add or len(body) != 10:
                 raise ValueError("Invalid native empty cosmetic request")
-            return record.equip_finishers(character, ())
+            return (
+                record.equip_single(character, category, 0)
+                if category != 5
+                else record.equip_finishers(character, ())
+            )
         fields = list(proto_fields(body[10:]))
         item = dict(fields)
         if (
@@ -233,10 +396,22 @@ def finisher_request(record, character, opcode, body):
         ):
             raise ValueError("Invalid native finisher item")
         signed = lambda value: (value + (1 << 31)) % (1 << 32) - (1 << 31)
-        row = (5, signed(item[8]), signed(item.get(16, 0)), signed(item.get(24, 0)))
+        row = (
+            category,
+            signed(item[8]),
+            signed(item.get(16, 0)),
+            signed(item.get(24, 0)),
+        )
         if row not in record.items:
             raise ValueError("Finisher item is not owned with these operands")
         reference = row[1]
+        if category != 5:
+            current = record.selected_single(character["id"], category)
+            if add:
+                return record.equip_single(character, category, reference)
+            if current != reference:
+                raise ValueError("Cannot remove an unselected costume")
+            return record.equip_single(character, category, 0)
         if add and reference in selected or not add and reference not in selected:
             raise ValueError("Invalid duplicate or absent finisher selection")
         values = (
@@ -249,7 +424,7 @@ def finisher_request(record, character, opcode, body):
 
 
 def actor_component(character):
-    """Native pq.Tb/tF/tG selected-cosmetic section from owned character data."""
+    """Native pq.Tb/tF/tG selected costume and finishers from owned character data."""
     record = character.get("owned_cosmetics")
     if record is None:
         return b"\x00"
@@ -257,13 +432,22 @@ def actor_component(character):
     references = owned.selected_finishers(character["id"])
     if len(references) > 32767:
         raise ValueError("Native finisher selection count exceeds signed short")
-    title = character.get("appearance", {}).get("currentTitle", 0)
+    title = owned.selected_single(character["id"], 7)
     if type(title) is not int:
         raise ValueError("Missing owned current title")
-    title = title & 65535
+    if not 0 <= title <= 65535:
+        raise ValueError("Native selected title exceeds unsigned short")
     return (
         b"\x01"
-        + struct.pack(">iBiiHH", 0, 1, 0, 0, title, len(references))
+        + struct.pack(
+            ">iBiiHH",
+            owned.selected_costume(character["id"]),
+            1,
+            owned.selected_single(character["id"], 4),
+            owned.selected_single(character["id"], 6),
+            title,
+            len(references),
+        )
         + b"".join(struct.pack(">i", value) for value in references)
     )
 

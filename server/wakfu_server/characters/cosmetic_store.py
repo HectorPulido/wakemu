@@ -5,7 +5,7 @@ from .cosmetics import OwnedCosmetics
 
 def load(db, account_id):
     schema = db.execute(
-        "SELECT to_regclass('public.account_cosmetics') AS relation"
+        "SELECT to_regclass('account_cosmetics') AS relation"
     ).fetchone()
     if schema is None or schema["relation"] is None:
         return None

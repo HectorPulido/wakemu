@@ -18,6 +18,7 @@ from .combat_qi_registry import NativeQIRegistry
 
 
 SOURCE = "wakemu.summon_retirement.ko_zero_after_settlement.v1"
+PROTECTED_SOURCE = "wakemu.summon_retirement.protected_332_boundary.v1"
 RELATION_SOURCE = "big.new_bje.fdt_initial_registration"
 ORDINARY_SYMBIOT_SOURCE = "eZl.new_eHD.pRO_false"
 CAPTURED_SYMBIOT_SOURCE = "eZr324.after_common_factory_and_fan.lE_true"
@@ -154,7 +155,7 @@ def retired_summon_ids(fight, *, registry=None):
         if (
             type(actor_id) is not int
             or not isinstance(record, dict)
-            or record.get("source") != SOURCE
+            or record.get("source") not in (SOURCE, PROTECTED_SOURCE)
             or record.get("actor_id") != actor_id
             or type(record.get("qi_slot")) is not int
             or not 0 <= record["qi_slot"] <= 126
@@ -180,7 +181,7 @@ def retired_summon_ids(fight, *, registry=None):
             or not isinstance(event, dict)
             or event.get("kind") != "summon_out_of_play"
             or event.get("actor_id") != actor_id
-            or event.get("source") != SOURCE
+            or event.get("source") != record["source"]
             or event.get("qi_slot") != record["qi_slot"]
             or event.get("breed_id") != source["ref"]
             or event.get("captured") is not captured
@@ -229,15 +230,26 @@ def _death_is_registered(fight, actor):
     return registered_ordinary_death(fight, actor) is True
 
 
-def _retire_one(preview, actor_id):
+def _retire_one(preview, actor_id, *, protected=False):
     actor, _, source, captured, copied = _registration(preview, actor_id)
     if actor.hp != 0:
         raise ValueError("Only a zero-HP summon can leave play")
     life = global_fighter_guards(preview, actor_id)
-    if life != dict(baF=False, baG=True, baK=False):
-        raise ValueError("Summon retirement requires an actual OFF_PLAY death")
-    if not _death_is_registered(preview, actor):
-        raise ValueError("Summon retirement has no registered death transition")
+    if protected:
+        from .combat_protected_kill import registered_protected_kill
+
+        if life != dict(
+            baF=True, baG=False, baK=False
+        ) or not registered_protected_kill(preview, actor):
+            raise ValueError(
+                "Protected summon retirement requires the exact eZG receipt"
+            )
+    else:
+        if life != dict(baF=False, baG=True, baK=False):
+            raise ValueError("Summon retirement requires an actual OFF_PLAY death")
+        if not _death_is_registered(preview, actor):
+            raise ValueError("Summon retirement has no registered death transition")
+    retirement_source = PROTECTED_SOURCE if protected else SOURCE
     ko = _ko_current(actor)
     if ko != 0:
         return False
@@ -276,7 +288,7 @@ def _retire_one(preview, actor_id):
     event = preview._event(
         "summon_out_of_play",
         actor_id=actor_id,
-        source=SOURCE,
+        source=retirement_source,
         qi_slot=slot,
         breed_id=source["ref"],
         captured=captured,
@@ -288,7 +300,7 @@ def _retire_one(preview, actor_id):
     preview.native_summon_retirements = {
         **records,
         actor_id: dict(
-            source=SOURCE,
+            source=retirement_source,
             actor_id=actor_id,
             qi_slot=slot,
             position=list(actor.position[:2]),
@@ -359,3 +371,17 @@ def settle_summon_retirements(fight):
     fight.events = preview.events
     fight.sequence = preview.sequence
     return tuple(retired)
+
+
+def retire_protected_summon(fight, actor):
+    """Server replacement policy after an attested eZG runner has completed.
+
+    The original server publisher is unavailable. Native eZG proves HP minimum
+    and KO clock zero, not fdy removal. This explicit policy closes registered
+    summons before sibling free-cell criteria; ordinary fighters stay unchanged.
+    """
+    if actor.id not in getattr(fight, "native_summon_registrations", {}):
+        return False
+    if actor.hp != 0 or _ko_current(actor) != 0:
+        return False
+    return _retire_one(fight, actor.id, protected=True)

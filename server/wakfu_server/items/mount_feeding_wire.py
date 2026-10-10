@@ -1,6 +1,6 @@
 """Native client request for feeding an owned pet/mount item.
 
-The client ``crX`` message uses opcode 12767 and serializes food UID, pet item
+The client ``crX`` message uses opcode 12767 and serializes pet item UID, food
 UID, and selected quantity as two signed 64-bit integers followed by a signed
 32-bit integer, all big-endian. The outer protocol wrapper is handled by the
 transport; these helpers encode/decode only the fixed-width message body.
@@ -30,14 +30,14 @@ def _quantity(value):
 
 def encode_request(food_uid, pet_uid, quantity):
     """Return the exact 20-byte opcode-12767 payload."""
-    return _BODY.pack(_uid(food_uid), _uid(pet_uid), _quantity(quantity))
+    return _BODY.pack(_uid(pet_uid), _uid(food_uid), _quantity(quantity))
 
 
 def decode_request(payload):
     """Decode a complete opcode-12767 payload; reject truncation/trailing data."""
     if type(payload) is not bytes or len(payload) != _BODY.size:
         raise ValueError("Invalid feeding request body")
-    food_uid, pet_uid, quantity = _BODY.unpack(payload)
+    pet_uid, food_uid, quantity = _BODY.unpack(payload)
     return {
         "food_uid": _uid(food_uid),
         "pet_uid": _uid(pet_uid),

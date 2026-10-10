@@ -69,6 +69,40 @@ class SpectatorRegistryTests(unittest.TestCase):
             visible=True,
         )
 
+    def test_existing_observer_receives_events_while_new_entry_requires_fresh_snapshot(
+        self,
+    ):
+        self.registry.enter(self.observer, 900, authorize=lambda *_: True)
+        self.registry.defer_enter(self.other, 900, authorize=lambda *_: True)
+        self.registry.publish_events(
+            900, revision=5, event_packets=((13091, b"summon"), (13624, b"move"))
+        )
+        delivery = self.registry.poll(self.observer)
+        self.assertEqual(delivery[0].packets, ((13091, b"summon"), (13624, b"move")))
+        self.assertEqual(self.registry.observing(self.other), 900)
+        self.assertEqual(self.registry.poll(self.other), ())
+        with self.assertRaisesRegex(ValueError, "snapshot is not current"):
+            self.registry.enter(self.other, 900, authorize=lambda *_: True)
+        self.registry.publish_update(
+            900,
+            revision=6,
+            snapshot_packets=(native_snapshot(900, b"includes-summon"),),
+            event_packets=((12588, b"spell"),),
+        )
+        self.assertEqual(
+            self.registry.poll(self.observer)[0].packets, ((12588, b"spell"),)
+        )
+        # The explicit failed entry removed its pending lease; it can now enter
+        # at the rebuilt current roster, then consume only future actions.
+        late = self.registry.enter(self.other, 900, authorize=lambda *_: True)
+        self.assertTrue(late.is_snapshot)
+        self.registry.publish_events(
+            900, revision=7, event_packets=((13624, b"next-move"),)
+        )
+        self.assertEqual(
+            self.registry.poll(self.other)[0].packets, ((13624, b"next-move"),)
+        )
+
     def test_native_cva_bootstrap_roundtrip_matches_inherited_cvb_layout(self):
         timeline = timeline_snapshot(
             3,
@@ -388,6 +422,20 @@ class SpectatorRegistryTests(unittest.TestCase):
         self.assertEqual(deliveries[0].packets, ((12238, b"native-end"),))
         self.assertNotIn(900, self.registry.fights)
         self.assertIsNone(self.registry.observing(self.observer))
+
+    def test_repeated_owner_terminal_publication_does_not_duplicate_native_cleanup(
+        self,
+    ):
+        self.enter()
+        first = (12238, b"native-end-one")
+        self.registry.publish_terminal(900, revision=5, event_packets=(first,))
+        self.assertEqual(
+            self.registry.publish_terminal(
+                900, revision=6, event_packets=((12238, b"native-end-two"),)
+            ),
+            (),
+        )
+        self.assertEqual(self.registry.poll(self.observer)[0].packets, (first,))
 
     def test_new_generation_does_not_inherit_subscription(self):
         self.enter()

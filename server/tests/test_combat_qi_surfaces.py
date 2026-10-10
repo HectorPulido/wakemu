@@ -110,6 +110,34 @@ class NativeQISurfacesTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "columns"):
             self.provider([self.chunk(None)])
 
+    def test_repeated_values_preserve_order_without_aliasing_input(self):
+        raw = [[10, 20, [[1, 2], [3, -1], [1, 2]]]]
+        provider = self.provider([self.chunk(raw)])
+        ordered = provider.chunks[0][1][(10, 20)]
+        self.assertEqual(
+            ordered, (NativeSurface(1, 2), NativeSurface(3, -1), NativeSurface(1, 2))
+        )
+        self.assertIs(ordered[0], ordered[2])
+        raw[0][2][0][0] = 99
+        self.assertEqual(provider.i(self.qi([0]), 10, 20, 1), NativeSurface(1, 2))
+        with self.assertRaises(AttributeError):
+            ordered[0].z = 99
+
+    def test_repeated_equal_values_cannot_hide_invalid_types(self):
+        for invalid in ([True, 2], [1, True], [1.0, 2], [1, 2.0]):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "signed native"):
+                    self.provider([self.chunk([[10, 20, [[1, 2], invalid]]])])
+
+    def test_signed_boundaries_remain_exact(self):
+        values = [[-32768, -128], [32767, 127], [0, -1]]
+        provider = self.provider([self.chunk([[10, 20, values]])])
+        for index, (z, bld) in enumerate(values):
+            with self.subTest(index=index):
+                self.assertEqual(
+                    provider.i(self.qi([index]), 10, 20, z), NativeSurface(z, bld)
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

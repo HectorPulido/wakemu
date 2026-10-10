@@ -66,13 +66,13 @@ def _topology_partitions(value):
 
 
 def _marker_topology(arena, world_origin):
-    """Anchor the external marker's fbm actor at its public map cell.
+    """Center the external swords on the initiator's public map cell.
 
-    Native ckM creates fbm from QI.bgq/bgr/bdN (the QI origin and min-Z),
-    while `mys` separately associates the fight with public map cells. A
-    private arena's bounds therefore place the map sprite far from the fight
-    initiator. Shift only this 13753 QI envelope; the participant bootstrap
-    and its private arena remain unchanged.
+    Native aII.d(buG) places swords using QI.bdT(): origin plus half the
+    width/height, then resolves ground height through VF.y. The fbm created
+    by ckM at the QI origin is a separate terrain presentation, not a sword.
+    Translate only this 13753 envelope; the participant bootstrap and its
+    private arena remain unchanged.
     """
     if (
         not isinstance(world_origin, (tuple, list))
@@ -83,11 +83,9 @@ def _marker_topology(arena, world_origin):
         raise ValueError("Invalid public marker origin")
     native = topology(arena)
     value = decode_topology(native)
-    dx = world_origin[0] - value["x"]
-    dy = world_origin[1] - value["y"]
     dz = world_origin[2] - value["min_z"]
-    value["x"] += dx
-    value["y"] += dy
+    value["x"] = world_origin[0] - value["width"] // 2
+    value["y"] = world_origin[1] - value["height"] // 2
     # Exploration bootstrap uses native scene instance zero, including owned
     # dungeons. Durable server instance IDs isolate delivery, but cannot enter
     # this signed-int16 field. Participant arena instances are separate scenes.

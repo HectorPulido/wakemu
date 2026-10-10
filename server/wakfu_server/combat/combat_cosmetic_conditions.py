@@ -21,11 +21,11 @@ class NativeCosmeticState:
 
 
 def fresh_player_cosmetic_state(character):
-    """Capture the local fresh PC's actual empty eSU/eSP constructor state.
+    """Capture the PC's persisted native eSU/eSP selected cosmetic state.
 
-    The client account cosmetic sections are initialized empty by this server.
-    Appearance refs are not treated as equipped cosmetics; only currentTitle
-    is the eSU title value exposed by the native getter.
+    Owned costume, sprint, aura and finisher presets supply their native categories. Other
+    appearance refs are not treated as equipped cosmetics; currentTitle supplies
+    the native eSU title getter independently.
     """
     if not isinstance(character, Mapping) or type(character.get("id")) is not int:
         raise ValueError("Missing owned fresh player cosmetic source")
@@ -34,9 +34,11 @@ def fresh_player_cosmetic_state(character):
         appearance = {}
     if not isinstance(appearance, Mapping):
         raise ValueError("Malformed owned player appearance")
-    title = appearance.get("currentTitle", 0)
+    title = 0
     title = _int32(title, "appearance currentTitle")
     finishers = ()
+    costume = 0
+    sprint = aura = 0
     record = character.get("owned_cosmetics")
     if record is not None:
         from wakfu_server.characters.cosmetics import OwnedCosmetics
@@ -45,9 +47,27 @@ def fresh_player_cosmetic_state(character):
             record, account_id=character.get("account_id")
         )
         finishers = account.selected_finishers(character["id"])
+        costume = account.selected_costume(character["id"])
+        sprint = account.selected_single(character["id"], 4)
+        aura = account.selected_single(character["id"], 6)
+        title = account.selected_single(character["id"], 7)
     return {
-        "selected_values": {3: 0, 4: 0, 5: finishers, 6: 0, 7: title},
-        "active_cosmetics": {} if not finishers else {5: finishers},
+        "selected_values": {3: costume, 4: sprint, 5: finishers, 6: aura, 7: title},
+        "active_cosmetics": {
+            **({5: finishers} if finishers else {}),
+            **(
+                {
+                    category: (reference,)
+                    for category, reference in (
+                        (3, costume),
+                        (4, sprint),
+                        (6, aura),
+                        (7, title),
+                    )
+                    if reference
+                }
+            ),
+        },
     }
 
 

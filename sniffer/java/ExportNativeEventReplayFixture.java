@@ -22,7 +22,7 @@ public class ExportNativeEventReplayFixture {
    meta.put("definition_type",(int)e.aZD());meta.put("owner_on_caster",e.aZA());meta.put("subscription",e.aZN());
    meta.put("definition_dispellable",e instanceof eVv v?v.cxq():null);meta.put("event_target_code",(int)e.aZV().aKg());
    meta.put("event_caster_code",e.aZW()==null?null:(int)e.aZW().aKg());meta.put("event_global_subscription",e.aZx());
-   meta.put("event_reverse_subscription",e.aZw());meta.put("event_priority",e.aZM());meta.put("event_suppresses_level_one",e.aZB());meta.put("event_execution_count",(int)e.aZS());retained.put(""+id,meta);
+   meta.put("event_reverse_subscription",e.aZw());meta.put("event_priority",e.aZM());meta.put("event_suppresses_level_one",e.aZB());meta.put("event_execution_count",(int)e.aZS());meta.put("event_execution_count_per_level",e.cyc());retained.put(""+id,meta);
   }
   eXs heal=(eXs)eVi.fLJ().pS(25);heal.b(bcA.dcX().AH(source));heal.bbx();heal.bby();
   Map<String,Object> output=new TreeMap<>();output.put("effects",effects);output.put("source",source);output.put("damage_source",damageSource);output.put("native_source_event_ids",heal.bbw().stream().toArray());

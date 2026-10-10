@@ -9,6 +9,14 @@ from unittest.mock import Mock, patch
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
 
 
+class _IdentityProfiler:
+    """Preserve the extracted function while omitting the production profiler."""
+
+    @staticmethod
+    def profile(_name):
+        return lambda function: function
+
+
 def _extract_bootstrap(source):
     module = ast.parse(source.read_text(encoding="utf8"))
     node = next(
@@ -18,7 +26,7 @@ def _extract_bootstrap(source):
     )
     isolated = ast.Module(body=[node], type_ignores=[])
     ast.fix_missing_locations(isolated)
-    namespace = {}
+    namespace = {"PROFILER": _IdentityProfiler()}
     exec(compile(isolated, str(source), "exec"), namespace)
     return namespace["owned_native_bootstrap"]
 
@@ -189,6 +197,49 @@ class OwnedNativeBootstrapTests(unittest.TestCase):
                     },
                     states.call_args.kwargs,
                 )
+
+    def test_physical_topology_uses_native_gate_packets_instead_of_teleport_doors(self):
+        from wakfu_server import (
+            dungeon_object_states,
+            dungeon_runtime,
+            native_transports,
+        )
+        from wakfu_server.maps import dungeon_context, dungeon_physical_doors
+
+        db = _Database({"current_room": 2, "status": "active"})
+        store = _Store(db)
+        topology = {"policy": dungeon_physical_doors.POLICY}
+        with patch.object(
+            native_transports, "bootstrap", return_value=((13974, b"native"),)
+        ), patch.object(dungeon_context, "for_instance", return_value={}), patch.object(
+            dungeon_runtime.dungeon_runtime_config,
+            "pinned_configuration",
+            return_value={"topology": topology},
+        ), patch.object(
+            dungeon_physical_doors, "packets", return_value=((12344, b"gate"),)
+        ) as gates, patch.object(
+            dungeon_object_states, "packets"
+        ) as teleport_doors:
+            bootstrap = _extract_bootstrap(SERVER)
+            with patch.dict(
+                bootstrap.__globals__,
+                {
+                    "STORE": store,
+                    "is_dungeon_run": lambda instance: True,
+                    "native_transports": native_transports,
+                },
+            ):
+                self.assertEqual(
+                    ((13974, b"native"), (12344, b"gate")), bootstrap(self.character)
+                )
+        gates.assert_called_once_with(
+            topology,
+            map_id=self.character["map_id"],
+            instance_id=self.character["instance_id"],
+            unlocked_room=2,
+            completed=False,
+        )
+        teleport_doors.assert_not_called()
 
     def test_active_run_without_committed_room_progress_fails_closed(self):
         (

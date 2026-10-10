@@ -15,7 +15,11 @@ from wakfu_server.combat_states import (
 class BareIopCastTests(unittest.TestCase):
     def setUp(self):
         self.pc = Actor(7, 0, (0, 0, 0), 60, 6, 3, 10, 1, owner_id=9, controlled=True)
+        # Native po.SX is part of the real player snapshot authority. This
+        # bare cast fixture represents an owned player, not an unknown actor.
+        self.pc.native_controlled_by_ai = False
         self.npc = Actor(-7, 1, (1, 0, 0), 30, 3, 3, 0, 1)
+        self.npc.native_controlled_by_ai = True
         self.fight = Fight(
             1,
             [self.pc, self.npc],

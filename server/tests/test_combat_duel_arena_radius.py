@@ -11,7 +11,7 @@ class DuelArenaRadiusTests(unittest.TestCase):
         edges += [(b, a) for a, b in edges]
         geometry = dict(map_id=9001, cells=cells, edges=edges)
         with patch.dict("os.environ", {"WAKFU_COMBAT_ARENA_RADIUS": "89"}), patch(
-            "wakfu_server.combat_terrain.map_geometry", return_value=geometry
+            "wakfu_server.combat_terrain.published_geometry", return_value=geometry
         ), patch(
             "wakfu_server.combat_terrain.native_qi_surfaces", return_value=object()
         ), patch(

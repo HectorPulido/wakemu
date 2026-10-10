@@ -154,10 +154,12 @@ def current_snapshot(fight, shared, *, actor_payload, deadline_ms=None):
     if not actors or len(actors) > 127:
         raise ValueError("Unsupported live spectator roster size")
     participants = []
+    payloads = {}
     for actor in actors:
         stats, effects = actor_payload(fight, actor)
         if not isinstance(stats, bytes) or not isinstance(effects, bytes):
             raise ValueError("Native actor serializer returned invalid payloads")
+        payloads[actor.id] = (stats, effects)
         participants.append(
             dict(
                 actor_id=actor.id,
@@ -224,4 +226,44 @@ def current_snapshot(fight, shared, *, actor_payload, deadline_ms=None):
     state_packets = (
         _retained_carrier_packets(fight, action_id) if fight.phase == "active" else ()
     )
-    return (bootstrap_packet, *state_packets)
+    # Native buK resolves bootstrap roster IDs through bio.jv before applying
+    # their stat snapshots. A summon created before this observer arrived has
+    # no client entity yet; listing its ID in cva does not construct one.
+    # Reinstall its exact owned creation descriptor, as owned reconnect does,
+    # then overwrite constructor defaults with the current snapshot values.
+    births = getattr(fight, "native_summon_creation_deliveries", {})
+    creation_packets = []
+    for identity in getattr(fight, "native_summon_registrations", {}):
+        if identity not in payloads:
+            continue
+        birth = births.get(identity)
+        if (
+            not isinstance(birth, dict)
+            or type(birth.get("opcode")) is not int
+            or not isinstance(birth.get("payload_hex"), str)
+        ):
+            raise ValueError("Spectator snapshot lacks actual summon creation payload")
+        creation_packets.append((birth["opcode"], bytes.fromhex(birth["payload_hex"])))
+    current_packets = []
+    if creation_packets:
+        from .combat_wire import actor_state
+
+        for identity, (stats, effects) in payloads.items():
+            current_packets.extend(
+                (
+                    (13912, actor_state(13912, fight.id, identity, effects)),
+                    (12873, actor_state(12873, fight.id, identity, stats)),
+                )
+            )
+    import struct
+
+    flush = (13420, struct.pack(">i", fight.id))
+    packets = [bootstrap_packet]
+    if creation_packets:
+        packets.extend(creation_packets)
+        packets.append(flush)
+    packets.extend(current_packets)
+    packets.extend(state_packets)
+    if state_packets:
+        packets.append(flush)
+    return tuple(packets)

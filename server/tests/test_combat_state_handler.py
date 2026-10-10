@@ -200,7 +200,7 @@ class NativeStateHandlerTests(unittest.TestCase):
             )
         )
 
-        unknown = dict(parameters, reference=759, chance_parameter=50)
+        unknown = dict(parameters, reference=999999, chance_parameter=50)
         with self.assertRaisesRegex(ValueError, "outside proven"):
             self.handler._application_chance(definition, values, invocation, unknown)
 
@@ -369,6 +369,36 @@ class NativeStateHandlerTests(unittest.TestCase):
 
     def test_non_sentinel_chance_rejects_state_without_resistance_provenance(self):
         with self.assertRaisesRegex(ValueError, "outside proven"):
-            self.handler(self.effect, {"parameters": [759, 20, 50]}, self.invocation)
+            self.handler(self.effect, {"parameters": [999999, 20, 50]}, self.invocation)
+        self.assertEqual(self.fight.actors[7].state_ledger.entries, ())
+        self.assertEqual(self.packets, [])
+
+    def test_attested_native_missing_state_does_not_register_carrier_or_children(self):
+        self.assertNotIn("759", self.catalog["states"])
+        self.assertFalse(
+            self.handler(self.effect, {"parameters": [759, 1, -1]}, self.invocation)
+        )
+        self.assertEqual(self.fight.actors[7].state_ledger.entries, ())
+        self.assertEqual(self.fight.state_wire_payloads, {})
+        self.assertEqual(self.packets, [])
+        self.assertEqual(self.children, [])
+        self.assertEqual(next(self.uids), 200)
+
+    def test_attested_missing_state_chance_keeps_native_zero_draw_boundary(self):
+        values = {"parameters": [759, 1, 50]}
+        parameters = self.handler._parameters(self.effect, values, self.invocation)
+        self.handler.state_random = lambda limit: 1
+        self.assertFalse(
+            self.handler._application_chance(
+                self.effect, values, self.invocation, parameters
+            )
+        )
+        self.handler.state_random = lambda limit: 0
+        self.assertTrue(
+            self.handler._application_chance(
+                self.effect, values, self.invocation, parameters
+            )
+        )
+        self.assertFalse(self.handler(self.effect, values, self.invocation))
         self.assertEqual(self.fight.actors[7].state_ledger.entries, ())
         self.assertEqual(self.packets, [])

@@ -206,6 +206,19 @@ class Registry:
             return result.fight, result.runtime, cls._packets(result.packets)
         return fight, runtime, cls._packets(result)
 
+    def _prepare_accepted(self, shared, candidate, runtime, packets):
+        if getattr(candidate, "rift_wave_state", None) is None:
+            return candidate, runtime, packets
+        context = shared.join_context
+        provider = (
+            context.get("rift_accepted_action") if isinstance(context, dict) else None
+        )
+        if not callable(provider):
+            raise ValueError("Rift accepted action provider is missing")
+        return self._transition(
+            provider(shared, candidate, runtime, packets), candidate, runtime
+        )
+
     def register(
         self, fight, starter, *, runtime=None, group_lease=None, join_context=None
     ):
@@ -364,6 +377,27 @@ class Registry:
             if shared is None:
                 raise ValueError("Unknown shared fight")
             return shared
+
+    def retire_unpublished_rift(self, fight_id):
+        """Forget a failed initial party setup after its durable abort.
+
+        Caller holds registration and publication fenced until all joins and
+        native setup succeed. This is not a cleanup path for an active fight.
+        """
+        with self.lock:
+            shared = self.fights.get(fight_id)
+            if shared is None:
+                return False
+            with shared.lock:
+                if (
+                    getattr(shared.fight, "rift_wave_state", None) is None
+                    or shared.fight.phase != "placement"
+                    or shared.runtime is not None
+                    or shared.settlement_ready
+                ):
+                    raise ValueError("Cannot retire a published or active rift setup")
+                self._remove_locked(self, shared)
+                return True
 
     def lookup_character(self, character_id):
         """Return the registered fight for a character without exposing maps."""
@@ -586,6 +620,9 @@ class Registry:
             candidate, runtime, packets = self._transition(
                 operation(candidate, runtime), candidate, runtime
             )
+            candidate, runtime, packets = self._prepare_accepted(
+                shared, candidate, runtime, packets
+            )
             shared.fight = candidate
             shared.runtime = runtime
             self._retire_join_aliases_locked(shared)
@@ -603,6 +640,9 @@ class Registry:
             candidate, runtime = deepcopy((shared.fight, shared.runtime))
             candidate, runtime, packets = self._transition(
                 operation(candidate, runtime), candidate, runtime
+            )
+            candidate, runtime, packets = self._prepare_accepted(
+                shared, candidate, runtime, packets
             )
             shared.fight = candidate
             shared.runtime = runtime
@@ -649,12 +689,25 @@ class Registry:
         shared = self.lookup(fight_id)
         with shared.lock:
             self._member(shared, session)
+            prior_rift_ack = (
+                deepcopy(shared.ack)
+                if getattr(shared.fight, "rift_wave_state", None) is not None
+                else None
+            )
             if not shared.ack.accept(session, body):
                 return False
             candidate, runtime = deepcopy((shared.fight, shared.runtime))
-            candidate, runtime, packets = self._transition(
-                release_packets(candidate, runtime, body), candidate, runtime
-            )
+            try:
+                candidate, runtime, packets = self._transition(
+                    release_packets(candidate, runtime, body), candidate, runtime
+                )
+                candidate, runtime, packets = self._prepare_accepted(
+                    shared, candidate, runtime, packets
+                )
+            except Exception:
+                if prior_rift_ack is not None:
+                    shared.ack = prior_rift_ack
+                raise
             shared.fight = candidate
             shared.runtime = runtime
             shared.ack.release()
@@ -680,6 +733,10 @@ class Registry:
             # published its turn boundary. Never replace its state or packets.
             if shared.ack.turn is not None:
                 return False, None
+            if shared.runtime is None or shared.runtime.fight is not shared.fight:
+                raise ValueError("Shared fight runtime is missing or stale")
+            if not shared.runtime.expiration_due():
+                return False, None
             candidate, runtime = deepcopy((shared.fight, shared.runtime))
             if runtime is None or runtime.fight is not candidate:
                 raise ValueError("Shared fight runtime is missing or stale")
@@ -692,6 +749,9 @@ class Registry:
             if not packets:
                 return False, error
             packets = self._packets(packets)
+            candidate, runtime, packets = self._prepare_accepted(
+                shared, candidate, runtime, packets
+            )
             next_ack = deepcopy(shared.ack)
             if runtime.awaiting_ack is not None:
                 sessions = [

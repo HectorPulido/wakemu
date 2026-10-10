@@ -6,6 +6,20 @@ from wakfu_server.wire import proto_field
 
 
 class ShardIdentificationWireTests(unittest.TestCase):
+    def test_legacy_identification_receipt_initializes_native_required_slot_reference(
+        self,
+    ):
+        # Historical Npers receipt: native lD parsing rejects both slots
+        # without required lK field 11, before chK can refresh the item UI.
+        legacy = bytes.fromhex("0a04500060010a0450016003")
+        expected = bytes.fromhex("0a065000600158000a06500160035800")
+        result = dict(uid=1099511632524, status=0, shard_state=legacy)
+        opcode, body = response(result)
+        self.assertEqual(opcode, 13766)
+        self.assertEqual(body[21:], expected)
+        self.assertEqual(struct.unpack_from(">I", body, 17)[0], len(expected))
+        self.assertEqual(result["shard_state"], legacy)
+
     def test_success_preserves_both_native_blobs(self):
         shard = proto_field(
             10, proto_field(80, 0) + proto_field(96, 1) + proto_field(88, 0)

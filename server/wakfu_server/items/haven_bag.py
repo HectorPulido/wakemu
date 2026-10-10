@@ -10,7 +10,7 @@ def own_bag(character):
     """pC/tR: a local owner, one commerce room, no furniture or inherited IDs.
 
     tT/xL uses a byte room index, u16 furniture count and uB discriminator 0.
-    uB carries enabled/ref/uid/ref/uid. Reference 4262 is the starting commerce
+    uB carries fixed-primary/ref/uid/ref/uid. Reference 4262 is the starting commerce
     gem in the fresh-character capture. tR's model 408 is the standard bag.
     """
     name = character["name"].encode("utf-8")
@@ -52,7 +52,10 @@ def own_bag(character):
         room_data += struct.pack(
             ">BBiqiq",
             0,
-            room["enabled"],
+            # uB.adK is fvw.tky, the non-removable primary flag, rather
+            # than floor occupancy. Setting it for occupied rooms prevents
+            # the native client from even sending a gem recovery request.
+            room["index"] == 0,
             room["primary_ref"],
             room["primary_uid"] if room["primary_ref"] != -1 else -1,
             room["secondary_ref"],
@@ -79,11 +82,13 @@ def validate_leave_request(body):
         raise ValueError("Invalid haven bag leave request")
 
 
-def entry_result(*, success, own=True):
+def entry_result(*, success, own=True, owner=None):
     result = struct.pack(">BBi", bool(success), bool(own), 0)
     if success:
         if not own:
-            raise ValueError("Foreign bag entry requires a serialized owner")
+            if owner is None:
+                raise ValueError("Foreign bag entry requires a serialized owner")
+            return result + own_bag(owner)
         # own bags reuse biB.drc(), allow entry and mark the bag unlocked.
         result += bytes((0, 1))
     return result
@@ -113,12 +118,18 @@ def map_transition(template, character, map_id):
     return b"".join(struct.pack(">H", len(block)) + block for block in blocks)
 
 
-def entry_messages(template, character):
-    if character["map_id"] != 9 or character["instance_id"] != character["id"]:
+def entry_messages(template, character, *, owner=None):
+    from wakfu_server.haven_bag_store import instance_id
+
+    if character["map_id"] != 9 or character["instance_id"] != instance_id(character):
         raise ValueError("Own bag entry requires its private interior")
     return [
-        (13307, entry_result(success=True)),
+        # ctB invokes ciu.eDl() to remove actors from the previous world.
+        # csW alone changes our map without clearing the old mob registry.
+        (13256, b""),
+        (13307, entry_result(success=True, own=owner is None, owner=owner)),
         (13974, map_transition(template, character, 9)),
+        (12318, struct.pack(">ii", character["x"], character["y"])),
     ]
 
 
@@ -130,20 +141,29 @@ def leave_messages(template, character):
     return [
         (13959, leave_result()),
         (13019, b""),
+        (13256, b""),
         (13974, map_transition(template, character, character["map_id"])),
+        (12318, struct.pack(">ii", character["x"], character["y"])),
     ]
 
 
 class HavenBagSession:
     """Interior location stays in memory; PostgreSQL retains the exterior return point."""
 
-    def __init__(self, outside):
+    def __init__(self, outside, *, owner=None):
+        from wakfu_server.haven_bag_store import instance_id
+
+        self.owner = dict(owner or outside)
+        self.bag_instance_id = instance_id(self.owner)
+        self.is_owner = self.owner["account_id"] == outside["account_id"]
         self.outside = dict(outside)
         self.character_id = outside["id"]
         self.inside = {
             **outside,
             "map_id": 9,
-            "instance_id": outside["id"],
+            "instance_id": self.bag_instance_id,
+            "haven_bag": self.owner.get("haven_bag", outside.get("haven_bag")),
+            "haven_bag_visitor": not self.is_owner,
             "x": 3,
             "y": 3,
             "z": 0,
@@ -152,8 +172,9 @@ class HavenBagSession:
     def owns(self, character):
         return (
             character["id"] == self.character_id
+            and character["account_id"] == self.outside["account_id"]
             and character["map_id"] == 9
-            and character["instance_id"] == self.character_id
+            and character["instance_id"] == self.bag_instance_id
         )
 
     def move(self, character, end):
@@ -177,6 +198,8 @@ class HavenBagSession:
         self.inside = {
             **saved,
             **{key: character[key] for key in ("map_id", "instance_id", "x", "y", "z")},
+            "haven_bag_visitor": not self.is_owner,
+            **({"haven_bag": self.owner["haven_bag"]} if not self.is_owner else {}),
         }
         return dict(self.inside)
 

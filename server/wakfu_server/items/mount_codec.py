@@ -66,6 +66,14 @@ def item_pet(state):
         (10, "sleep_date"),
     ):
         values[number] = _integer(state[key], -(1 << 63), (1 << 63) - 1)
+    # The unmodified client independently blocks meals on the last-meal date.
+    # Suppress that UI-only gate when policy permits repeat feeding; the real
+    # meal timestamp remains intact in storage and receipts.
+    enforce_daily_limit = state.get("daily_limit_enabled", True)
+    if type(enforce_daily_limit) is not bool:
+        raise ValueError("Invalid pet feeding daily-limit policy")
+    if not enforce_daily_limit:
+        values[7] = 0
     return _field(50, b"".join(_field(n, values[n]) for n in sorted(values)))
 
 

@@ -95,10 +95,8 @@ class OrdinaryDisplacementEventTests(unittest.TestCase):
         self.assertEqual([row[3] for row in native], [0, 0, 0, 0, 2, 2, 2, 2])
         self.assertTrue(all(row[4] == (0, 185, 188) for row in native))
         self.assertEqual([row[5] for row in native], [(4, 0, 0)] * 4 + [(2, 0, 0)] * 4)
-        # 2128 is a separate server completion policy (reaction state 4801),
-        # emitted only after a real move; it does not replace native eVi phases.
-        self.assertEqual([row[0] for row in completion], [30, 3])
-        self.assertEqual([row[3] for row in completion], [2, 2])
+        # Native null effect producers own2128; displacement must not duplicate it.
+        self.assertEqual(completion, [])
         self.assertEqual(self.f.preview.native_effect_uid_next, 201)
 
     def test_targetless_teleport_keeps_native_null_target_and_caster_roles(self):
@@ -108,8 +106,7 @@ class OrdinaryDisplacementEventTests(unittest.TestCase):
         self.assertEqual([row[0] for row in native], [10, 20, 30, 40])
         self.assertTrue(all(row[1] == 7 and row[2] is None for row in native))
         self.assertTrue(all(row[4] == (0, 189, 197) for row in native))
-        self.assertEqual([row[0] for row in completion], [30, 3])
-        self.assertEqual(completion[0][4], (2128,))
+        self.assertEqual(completion, [])
         self.assertEqual(self.f.preview.actors[7].position, (2, 2, 0))
 
     def test_2128_completion_is_absent_when_native_displacement_does_not_move(self):
@@ -284,7 +281,6 @@ class OrdinaryDisplacementEventTests(unittest.TestCase):
                 (20, (0, 185, 188), None, 7, -7),
                 (30, (0, 185, 188), "activate", 7, -7),
                 (40, (0, 185, 188), None, 7, -7),
-                (30, (2128,), None, 7, -7),
             ],
         )
         self.assertTrue(

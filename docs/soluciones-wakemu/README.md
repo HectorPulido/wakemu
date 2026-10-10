@@ -1,4 +1,238 @@
+> 2026-10-09 22:57 incident, r64 correction: profiler preserved both receive threads waiting roughly 20 seconds in idle harvest availability maintenance while reproduction held the harvest fence. Socket maintenance now polls without waiting and retains due cooldowns for the next successful drain. Friendly duel challenges were independently trapped by expired invitations whose retry retirement restarted quarantine and rolled back; expiry now uses its original deadline, preserving finite stale-reply fencing. 258 combined combat/spectator/duel/harvest tests passed with no skips, including isolated PostgreSQL regressions. Deployment and live acceptance are tracked in [idle contention](../reports/health/R63-IDLE-HARVEST-CONTENTION-20261010.md) and [duel retry](../reports/health/DUEL-EXPIRY-RETRY-20261010.md). Global ecology lock scope remains a separate performance follow-up.
+
+> 2026-10-09 r63 follow-up: surrender sword cleanup remains accepted. Spectator placement movement now forwards 13652, native action flush 13420 is preserved, and late snapshots replay recorded summon creation descriptors before current effects/stats. Focused validation: 100 passed, 15 isolated-database cases skipped; 43 AI inventory/cache tests passed. AI inventory avoids duplicate physical validations within each fresh scan. Placement/active marker publication no longer waits for the global ecology group fence; terminal publication remains fenced. Full current checkout built and running source verified against 674 hashes. Live spectator and latency acceptance remain pending; global ecology lock contention and repeated actor metadata work remain documented investigations. See [spectator follow-up](../reports/health/SPECTATOR-ENTITY-PLACEMENT-SYNC-20261010.md), [marker contention](../reports/health/R62-LIVE-COMBAT-MARKER-CONTENTION-20261010.md), and [AI scan](../reports/health/AI-INVENTORY-SCAN-20261009.md).
+
+> r62 manual follow-up: surrender sword cleanup accepted by Hector. Combat action streaming for spectators now works, but placement presentation differs between clients and existing summons remain invisible on late entry (fights 126/127). Performance remains open: profiler records 17.6 s Ready, 11.4 s start, 11.8 s AI peaks; ongoing stack investigation. Do not treat spectator or performance issues as closed.
+
+> 2026-10-09 r62 deployed: committed surrender removes external swords without waiting for reward settlement; individual withdrawal keeps the active encounter marker. Direct constructor states establish their own retained-effect container scope, fixing spectator snapshot rejection after summons. Existing spectators keep committed events if a refresh fails; stale snapshots cannot admit new observers. Full current image verified against 657 source hashes, health/game ports available. Focused validation recorded in [spectator investigation](../reports/health/SPECTATOR-CONTAINER-SYNC-20261010.md) and [surrender investigation](../reports/health/SURRENDER-MARKER-CLEANUP-20261009.md); fresh manual acceptance pending.
+
+> 2026-10-09 r61: roomier arenas vary minimum dimensions from 5–7 per axis, preserve feasible original enemy separation, and prefer interior placement with maneuvering margin. No rendered border overlaps actor/placement cells; narrow native terrain has a best-effort fallback. 65 focused tests passed. See [release and acceptance steps](../reports/health/ROOMIER-ARENAS-R61-20261009.md). Live acceptance pending; interactive registration remains open.
+
+> 2026-10-09 r60: adaptive ordinary arenas now aim for 25 native cells and expand for roster/return-path capacity, capped at 2,500. Published geometry validation and adjacency are reused per catalog revision. Focused validation passed; full-suite and live latency acceptance remain pending. See [release and exact acceptance steps](../reports/health/ADAPTIVE-ARENA-RELEASE-R60-20261009.md). Duplicate interactive registration after combat remains open; unsafe update-only retry prototype was withdrawn.
+
+## Consolidated review status — current user feedback
+
+Read this snapshot before the historical implementation table below. Latest deployment is a single `wakemu-world:performance-20261009-r63`.
+Source and deployed code are compared per investigation, not assumed globally
+identical. Focused checks do not constitute a passing full suite. Shared combat
+and performance follow-up belong to the other agent.
+
+| Original issue | Current status | Remaining scope |
+| --- | --- | --- |
+| 0 Performance | Improved, open | r60 entry improvement accepted; residual latency, arena maneuvering and live checkpoint coverage remain under the other agent. |
+| 1 Seeds | Accepted | Immediate consumption/refresh. |
+| 2 Monster maturation | Accepted | Balance adjustments are separate. |
+| 3 Reproduction | Implemented, partial acceptance | Natural timing and recovery of offspring after restart. |
+| 4 Planting probability | Partial | Wider terrain/climate/bonus coverage and effective configuration. |
+| 5 Resource permissions | Accepted | Preserve public flora harvesting. |
+| 6 Flora stages | Partial | Normal Cardo accepted; Fresno/general species coverage remains. |
+| 7 Wakfu/Stasis | Accepted | Preserve confirmed ecology progression. |
+| 8 Profession XP | Accepted | Gathering, planting and tested crafting. |
+| 9 Combat XP | Accepted | Preserve transactional rewards. |
+| 10 Drops/kamas | Core accepted, partial catalog coverage | Complex criteria and roll limits remain. |
+| 11 Exchange | Accepted by user | Historical partial-stack reports retained as historical evidence. |
+| 12 Duels | Expired-invitation retry regression corrected in r64; live acceptance pending | Finite quarantine and stale-reply protection covered by isolated PostgreSQL tests; challenge/return lifecycle must be reconfirmed. |
+| 13 Chat/privacy | Accepted tested channels and contacts/ignored | DND and remaining specialized channels not accepted. |
+| 14 Joining combat | Basic joining accepted | Full shared lifecycle owned by another agent. |
+| 15 Parties | Accepted | Invitations, membership, leadership, dissolution and group chat. |
+| 16 Spectators | r63 deployed, live acceptance pending | r62 action streaming accepted; r63 repairs placement movement and existing summon entity/flush delivery. Mob cleanup/no spectator rewards accepted. |
+| 17 Aptitudes | Core accepted | General runtime consumers and mount-related zero-stat regression are not certified. |
+| 18 Placement facing | Accepted | Peer visibility remains E23. |
+| 19 Independent movement | Accepted | Global performance is issue0. |
+| 20 Initial population | Accepted observed maps | Published runtime catalog scope must not be inferred from an absent checkout asset. |
+| 21 Remote configuration | Partial | End-to-end connection from another device not certified. |
+| 22 Identification/enchantment | Identification accepted; corrected socket modules verified in r63 | Currency/item-level/no-op/native refresh:28 directed tests and native decoder pass. Live source hashes match; complete socket acceptance and sublimation effects remain pending. |
+| 23 Stacked Sadida bag | Accepted | Preserve split/equip/reconnect behavior. |
+| 24 Passport | Failed visual acceptance | Still Amaknian; neutral packets alone do not validate the UI. |
+| 25 Dimensional rifts | Solo entry and reaching wave two accepted; complete lifecycle pending | Hector surrendered during wave two. Party entry, reconnect, terminal result and exit remain unaccepted. Six-member DEV cap is implemented in source via migration096; six-member placement verified on all seven classic maps, deployment/manual acceptance pending. Rewards remain disabled in the live DB; configurable random equipment, shards, BASIC sublimations and physical learnable costumes are implemented in source with atomic inventory/temporary delivery and 9 automated tests; deployment pending. Artifacts, official scaling, ultimate keys, rankings and unlimited history remain. |
+| 26 Haven Bag | Owner journey provisionally accepted; guest access failed | Guest room permissions, configuration UI and bag zaap remain. Account chest41 manually accepted separately. |
+| 27 Weather | Partial | Regional visual behavior; not a complete official weather simulation. |
+| 28 Area bonus | Partial | Visual propagation and regional transition acceptance. |
+| 29 Dungeons | Tofu progression and manual exit accepted; two defects reported | `!exitdungeon` and traversable gates looking closed were reproduced; fixes are verified in source (25 pure,3 reachability PG,9 exit PG and native model/view oracle), not deployed. 156-entry inventory. Three physical rooms, victory gates and final-only boss verified by58 tests; first group reachable from arrival with both gates closed. General singleton-boss generator corrected in source; installed UB configurations and mechanics still require correction/acceptance. |
+| 30 Worktables | Accepted by user | Guest bag workshop authorization is separate issue26. |
+| 31 Placement variety | Implemented, unaccepted | Complete visual variety/coherence acceptance; coordinate with other combat agent. |
+| 32 Admin permissions | Accepted | Preserve authorization boundaries. |
+| 33 Surrender | Individual accepted; shared review ongoing | Other agent owns complete shared lifecycle. |
+| 34 Builds | Core accepted, partial | Unlock thresholds, full capacity, modulation/health and selected combat deck. |
+| 35 Zaap loading | Provisionally accepted interactives | Worktable confirmation alone does not close complete travel coverage. |
+| 36 Recycling/destruction | General reward journey accepted | Historical individual README remains stale; do not infer all eligibility/options covered. |
+| 38 Character deletion | Accepted | User confirms the deletion journey works perfectly. |
+| 39 Feeding/mount stats | Partial, active defect | Equip/unequip intermittently zeros stats; multi-mount identity/live refresh still open. |
+| 40 Monster corpses | Corpse appearance accepted; harvesting and expiry pending | Seed extraction is living-only; misleading recently-collected tooltip corrected in source, not deployed (66 focused tests/native oracle). Hand resource harvesting and hourly expiry still need acceptance. DEAD19 appearance, native harvesting with atomic resource/XP/receipt and disappearance; 3600-second configurable lifetime.65 tests and native consumer oracle pass. |
+| 41 Haven Bag chest | Accepted by Hector | User confirms: Cofre funciona perfecto. Shared account storage and transfers; recorded automated verification remains valid. |
+| 42 Kama shop | Pending | DB-configured products/prices and atomic purchase service. |
+| 43 Exploration secrets | Loaded in r63; manual acceptance pending | Eleven account artifacts and four native movement powers;33 tests/native consumers verified; policy unlock_all=true in live DB. |
+| 44 Costume learning/appearance | Costumes accepted by Hector; other categories under review | Aura, sprint and mount-skin selection implemented in source, pending deployment/manual acceptance. Companion-pet and equipment-skin selection remain unsupported; see [category audit](../reports/cosmetics/CATEGORY-AUDIT-20261009.md). Native learning, one-item consumption, selection, appearance and reconnect;27 tests and native decoder verified. |
+
+Focused investigations: [late spectators](16-espectadores-y-marcadores/STATUS-REVIEW-20261009.md),
+[sockets](22-identificacion-elementos-y-encantamiento/STATUS-REVIEW-20261009.md),
+[passport](24-nacion-y-pasaporte-neutral/STATUS-REVIEW-20261009.md),
+[guest room permissions](26-insertar-y-retirar-merkagemas/STATUS-REVIEW-20261009.md).
+These reviews have not applied gameplay corrections.
+
+There is no issue37 directory in this inventory:44 original issues including0,
+plus23 E issues =67 tracked issues.
+
+| Extra issues | Current status |
+| --- | --- |
+| E01/E03/E04/E07/E08/E10/E14/E16/E20 | Previously accepted/resolved in their recorded scope. |
+| E02 | Inventory recovery implemented; malformed-recovery UI acceptance pending. |
+| E05 | Partial; combat still has build/deck0 accesses. |
+| E06 | Level atomicity implemented; full modulation/library scope remains partial. |
+| E09 | Partial replay/cache optimization; complete latency/concurrency acceptance remains. |
+| E11 | Historical fixture/terrain issue, reserved to another session. |
+| E12 | Wound preservation implemented; controlled regeneration acceptance pending. |
+| E13 | Overlaps13; old private-chat failure text is stale. Specialized channels remain open. |
+| E15 | Full guild system pending. |
+| E17 | Mounting/visibility accepted; broader equipment zero-stat regression tracked with39. |
+| E18 | Basic NPC movement accepted; complete tactical attack behavior not certified. |
+| E19 | Full achievement progress/journal/rewards pending; minimal dungeon criterion authority exists. |
+| E21 | Zurkalia access pending. |
+| E22 | Attack-facing behavior under investigation. |
+| E23 | Orientation persistence/publication implemented; peer visual acceptance pending. |
+
+## Manual acceptance: contacts and ignored players
+
+Hector confirms all five review steps work perfectly: adding a contact survives
+reconnect; private messages arrive normally; ignoring the sender blocks delivery;
+the ignored entry and blocking survive reconnect; removing the ignored entry
+restores private-message delivery. Contacts and ignored-player behavior under13
+is manually accepted. This test does not cover DND or remaining guild/intergame/
+admin/political/PvP channels. Do not request these five checks again.
+
+## Follow-up: late spectators, identification and passport
+
+Hector assigns shared-combat acceptance step1 to another agent; do not duplicate
+that work in this review. Late spectator entry still fails: the observer cannot
+see summons, beacons and similar actors, and can become blocked. This report
+specifically concerns observers arriving after combat has started. Defeated mobs
+disappear for everyone and observers receive no rewards; both paths are accepted.
+Keep late snapshot actor/effect publication and blocking open under16.
+
+Identification works according to Hector. Socket/enchantment operations have
+not been tested and remain pending under22; visible sockets do not establish
+that their modification, costs or persistence work. Do not treat the acceptance
+of identification as acceptance of socket operations.
+
+Passport acceptance under24 failed: Hector still sees an Amaknian passport.
+The source's neutral serialization and historical codec tests do not establish
+correct live presentation. Keep the visible passport defect open.
+
 # Auditoría y soluciones de Wakemu
+
+## Latest Haven Bag follow-up
+
+Hector clarifies that the guest cannot move into other rooms; the owner can.
+The screenshot displays native `Esta sala está inaccesible` on a wheat-seed
+gathering action. Guest room access under26 remains open. The remainder of the
+reviewed journey appears to work according to Hector and is provisionally
+accepted. The responsible permission rule remains unconfirmed.
+
+## Latest review feedback — mount stats, worktables and deletion
+
+Hector confirms worktables (30) and character deletion (38) work. Character
+deletion is manually accepted. Equipping or unequipping a Dragopavo intermittently
+zeros character characteristics; reconnecting or changing spells/characteristics
+restores them. This is an open equipment synchronization defect, not accepted
+mount behavior. Server-state versus client-display divergence is not established.
+See [current acceptance](USER-ACCEPTANCE-20261009.md).
+
+## Current deployment — 2026-10-09, r59
+
+The user authorized performance optimization after live combat stalls. The
+complete shared `wakemu-world:performance-20261009-r59` image is deployed and
+healthy; all 648 Python/protocol/migration files matched the running container.
+It avoids no-op expiry copies, retains injected runtime services outside owned
+transaction copies, and shares an internal immutable actor-property view while
+preserving the public catalog contract. The final targeted set passed 67 tests;
+the full suite is not passing and its baseline failures are documented. Live
+combat latency acceptance remains pending. Continuous profiling is enabled on
+the restarted world. Beacon fixes are deferred at the user's explicit request.
+See [changes, evidence, limitations and exact manual acceptance](../reports/health/PERFORMANCE-RELEASE-R59-20261009.md).
+
+### Previous complete release — r58
+
+Complete shared image `wakemu-world:external-profiler-20261009-r58` is running
+and healthy;647 source/migration/tool files matched at build time. Subsequent
+shared combat source edits are not implicitly deployed. It retains all r57 changes
+and adds bounded feature timings, asynchronous summary export, and administrative
+`!perfil` commands. Optional external service `profiler` can start/stop without
+restarting world and captures external py-spy profiles. See [operation, exact
+acceptance and limitations](../reports/health/EXTERNAL-PROFILER-20261009.md).
+Tofullero failed live acceptance: the first encounter remains behind a closed
+gate and includes Tofu Real; entry placement and room composition/order are open.
+
+At r58 Hector requested diagnostics only. The later r59 authorization and
+performance correction above supersede that earlier restriction.
+The external profiler now records continuously while on, retaining one hour of
+profiles and metrics, deployed without restarting world. See
+[continuous profiler validation](../reports/health/CONTINUOUS-PROFILER-20261009.md).
+
+### Previous complete release — r57
+
+The complete shared image `wakemu-world:shared-bag-dungeons-checkpoint-20261009-r57`
+is running and its health endpoint returns HTTP 200. Startup applied migrations
+085 and 086. All 642 runtime source/migration files matched the built image.
+See [release evidence](../reports/admin-chat/RELEASE-R57-20261009.md).
+
+This release replaces captured player characteristics with owned values,
+repairs defeated-mob cleanup for spectators, publishes bag furniture and recovered
+gems, shares bags by account, adds exterior visitor entry, and supplies trusted
+achievement state for dungeon criteria. Diagnostic logging is asynchronous and a
+five-second checkpoint watchdog records thread stacks. These are automated-verified
+changes awaiting manual acceptance; the severe checkpoint freeze remains open.
+Fully close and relaunch clients to load the updated capture agent.
+
+Hector also reports momentary overhead HP-bar flickering. It may share the stale
+characteristics cause, but remaining HP/current-max refresh paths are under review.
+Sublimation combat effects, native dungeon room fidelity, and unsupported HasState
+entry criteria remain pending. See the current acceptance record below.
+
+### Previous complete release — r55
+
+The complete shared checkout is deployed as `wakemu-world:chat-admin-20261009-r55`,
+with catalog release `a1f84ebac9f26181f558e3adced85252d7892685f6a051f2b05f6a4b8d3e9b38`.
+All 548 server Python files were compared with the built image without differences.
+This includes concurrent combat/spell changes, checkpoint isolation, combined item
+identification, external sword coordinates, feeding protocol/refresh fixes and
+the Haven Bag extensions. Deployment does not replace manual acceptance.
+
+New administrative chat commands: `!kamas`, `!checkpoint`, `!buscar`, and optional
+final player targets for level, items, kamas, mobs and teleport.
+See [commands and complete acceptance steps](../reports/admin-chat/COMMANDS-20261009.md).
+The older image versions and source-only deployment notes below are historical.
+
+**Current user feedback:** [acceptance and remaining work](USER-ACCEPTANCE-20261009.md)
+is authoritative over the historical notes below. Chat commands, identification
+with sockets, sword placement, joining, spectating reward eligibility, garden
+planting and gem persistence are accepted. Exchange is accepted and dynamic
+interactives provisionally accepted. Defeated-mob cleanup, account-wide bag
+sharing and decoration persistence are now accepted. Remaining failures include
+checkpoint freezes, late spectator/beacon publication, multi-mount identity,
+bag management/visitor permissions and Tofullero access/encounter ordering.
+Low-level mount scaling is accepted; complete refresh and scaling coverage remain open.
+
+Parallel review is complete across performance/checkpoints, spectators/beacons,
+mount identity, Haven Bag permissions, dungeons and sublimation/state effects.
+See [findings and remaining work](../reports/health/PARALLEL-ISSUE-REVIEW-20261009.md).
+This review does not claim gameplay fixes or authorize performance optimization.
+
+## Historical implementation and acceptance notes
+
+## Haven Bag extension — 2026-10-09
+
+Decorative gem assignment is user-confirmed; persistence is explicitly reported
+missing or not accepted and must be checked before additions. Inventory decoration transfers,
+private gardening and portable native crafting are included in r55 with the
+published furniture catalog; manual acceptance remains pending. Sales are
+deferred. Follow the [complete test journey](26-insertar-y-retirar-merkagemas/HAVEN-BAG-SYSTEM-ACCEPTANCE.md),
+which records item commands and limitations separately from historical images.
+
+## Latest user acceptance — 2026-10-09
+
+Hector confirms that interactive elements work, joining another player's fight works, and friendly challenges work. Do not request those same basic acceptance probes again. The remaining reported defect is the external fight marker: swords were absent near a newly started fight, although they were visible in the Jalató dungeon. Hector suspects that they appear away from the initiator's original world position. Incorrect positioning is a reported hypothesis, not yet a demonstrated root cause. Track this under issue 16; do not describe the whole joining or duel system as unavailable. Full lifecycle checks remain separate from these accepted basic interactions.
+
+The deployment descriptions below are historical snapshots, not a reliable current image inventory. Read-only inspection during this review found world r53 running; the normal database contains 87 active dungeon context policies. Marker delivery logs alone do not establish correct client placement or visibility.
 
 Carpetas y seguimiento para **42 issues originales reportados por el usuario** y **23 issues adicionales (E)**: **65 en total**. Cada carpeta conserva contexto, solución propuesta, pruebas y pendientes; la columna **status** distingue implementación y aceptación.
 
@@ -175,10 +409,13 @@ Esta clasificación usa el cotejo disponible. **No cierra la auditoría**: esfue
 | Por ordenar | E23 | [Orientación invisible para otros jugadores](E23-orientacion-no-visible-otros-jugadores/README.md) | 🔍 En revision | Multijugador; esfuerzo por cotejar | Confirmar mensajes de exploración y difusión durante colocación, sin tocar hechizos. | Usuario confirma: caminar visible; cuatro giros no visibles; reentrada del observador conserva orientación incorrecta. Colocación tampoco visible externamente, relacionada con16. En fuente: dirección SQL029/snapshots y fanout mundial12401 tras giro validado; gate aislado137 PostgreSQL/Redis OK, sin despliegue. Dirección final integrada al buffer/CAS/journalRedisv2; recuperación y giro tras caminata pendiente verificados. UI de exploración y aceptación visual pendientes. |
 | Por ordenar | 36 | [El botón de reciclado no hace nada](36-destruir-objetos/README.md) | 🧪 Cambio hecho no confirmado | Inventario; esfuerzo por cotejar | Implementar petición12787 y producto/resultado12890 según contrato nativo. | Usuario confirma destrucción funcional. Reciclado conectado en fuente: SQL038, autoridad transaccional, filtros/protecciones, recibos y snapshot quiet13713/13078 seguido12890; gate32 OK. Catálogo20230 refs/0 errores; redondeo por producto parametrizado como política local. Imagen9af0658c activa, gate259 aprobado. Estado nativo de opciones derivado del catálogo y protecciones cubiertas; pendiente prueba manual de reciclado; no se declara cobertura completa. |
 | Por ordenar | 39 | [No se puede alimentar al dragopavo o mascotas](39-alimentacion-monturas-y-mascotas/README.md) | 🧪 Cambio hecho no confirmado | Tarea solicitada por el usuario | Revisar alimento compatible, acción nativa, consumo y persistencia. | Integrado en r9 y migración064 aplicada. TLS acredita alimentación, curación, protección contra replay e hidratación rica al reconectar. Falta aceptación visual del sistema; montaje E17 ya confirmado. |
-| Prioridad original nueva | 38 | [No se pueden eliminar personajes](38-eliminar-personajes/README.md) | 🧪 Cambio hecho no confirmado | Impide liberar cupo | Handler nativo22870, baja lógica, nombre/cupo libres y monedero histórico conservado. | 046 desplegada en merge9af0658c healthy;200 tests combinados y borrado socket aprobado. Confirmación visual pendiente. |
-| Prioridad original nueva | 40 | [Monster corpses after combat](40-cadaveres-de-monstruos/README.md) | ⏳ Pendiente | Solicitado por el usuario | Revisar captura oficial y desarrollar solución general. | Sin implementación confirmada. |
-| Prioridad original nueva | 41 | [Haven Bag chest](41-cofre-de-merkasaco/README.md) | ⏳ Pendiente | Solicitado por el usuario | Revisar captura oficial y desarrollar solución general. | Sin implementación confirmada. |
+| Prioridad original nueva | 38 | [No se pueden eliminar personajes](38-eliminar-personajes/README.md) | ✅ Solucionado totalmente | Impide liberar cupo | Handler nativo22870, baja lógica, nombre/cupo libres y monedero histórico conservado. | 046 desplegada en merge9af0658c healthy;200 tests combinados y borrado socket aprobado. Usuario confirma que funciona perfectamente; aceptación manual completada. |
+| Prioridad original nueva | 40 | [Monster corpses after combat](40-cadaveres-de-monstruos/README.md) | 🟡 Corrección visual preparada | Solicitado por el usuario | Cadáveres persistentes; duración configurable en PostgreSQL, 3600 segundos por defecto. | Usuario detecta NPC vivo e inaccesible tras despliegue externo. Corrección en fuente: propiedad nativa DEAD19 y recolección de recursos del cadáver con consumo transaccional, migración093. TTL configurable conservado; validación de recolección en curso, despliegue y aceptación gráfica pendientes. |
+| Prioridad original nueva | 41 | [Haven Bag chest](41-cofre-de-merkasaco/README.md) | ✅ Validado por el usuario | Solicitado por el usuario | Cofre compartido por cuenta, 100 espacios, transferencias atómicas, stacks parciales y metadatos persistentes. | Hector confirma el 2026-10-09: «Cofre funciona perfecto». Pruebas aisladas y lector nativo verificados; despliegue realizado por separado. |
 | Prioridad original nueva | 42 | [Custom shop paid with kamas](42-tienda-personalizada-por-kamas/README.md) | ⏳ Pendiente | Solicitado por el usuario | Revisar captura oficial y desarrollar solución general. | Sin implementación confirmada. |
+| Prioridad original nueva | 43 | [Secretos de exploración](43-secretos-de-exploracion/README.md) | 🟡 Fuente preparada; no desplegada | Solicitado por el usuario | Once artefactos de cuenta y cuatro capacidades nativas de movimiento, configurables en PostgreSQL. | Lectores nativos y pruebas automáticas en validación; aceptación gráfica pendiente del despliegue. |
+
+| Prioridad original nueva | 44 | [Aprendizaje y apariencia de trajes](44-aprendizaje-y-apariencia-de-trajes/README.md) | 🟡 Fuente preparada; no desplegada | Solicitado por el usuario | Aprender trajes, consumir un objeto y publicar la apariencia propia y de otros jugadores. | Corregidas ruta de muebles y referencia de traje fijada en cero. 27 pruebas dirigidas y lector nativo aprobados; aceptación visual pendiente. |
 
 ### Incorporación de las últimas revisiones
 

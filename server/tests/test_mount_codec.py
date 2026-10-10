@@ -5,6 +5,36 @@ from wakfu_server import mount_codec
 
 
 class NativeMountCodecTests(unittest.TestCase):
+    @staticmethod
+    def _varint(data, offset):
+        value = 0
+        shift = 0
+        while True:
+            byte = data[offset]
+            offset += 1
+            value |= (byte & 0x7F) << shift
+            if byte < 0x80:
+                return value, offset
+            shift += 7
+
+    @classmethod
+    def _fields(cls, data):
+        result = {}
+        offset = 0
+        while offset < len(data):
+            key, offset = cls._varint(data, offset)
+            number, wire_type = key >> 3, key & 7
+            if wire_type == 0:
+                value, offset = cls._varint(data, offset)
+            elif wire_type == 2:
+                size, offset = cls._varint(data, offset)
+                value = data[offset : offset + size]
+                offset += size
+            else:
+                raise AssertionError(f"Unexpected protobuf wire type {wire_type}")
+            result[number] = value
+        return result
+
     def test_pet_section_matches_rw_and_rz_layout(self):
         state = {
             "definition_id": 76,
@@ -51,6 +81,39 @@ class NativeMountCodecTests(unittest.TestCase):
             "50ffffffffffffffff7f"  # 10 sleepDate = INT64_MAX
         )
         self.assertEqual(mount_codec.item_pet(state), expected)
+
+    def test_daily_limit_policy_projects_ui_date_without_mutating_durable_state(self):
+        state = {
+            "definition_id": 76,
+            "name": "Drago",
+            "color_item_ref": 0,
+            "equipped_item_ref": 0,
+            "health": 20,
+            "xp": 1234,
+            "last_meal_date": 1735689600000,
+            "last_hungry_date": 1735689600000,
+            "sleep_item_ref": 0,
+            "sleep_date": 0,
+        }
+        original = dict(state)
+
+        default_payload = mount_codec.item_pet(state)
+        default_outer = self._fields(default_payload)
+        default_pet = self._fields(default_outer[50])
+        self.assertEqual(default_pet[6], 1234)
+        self.assertEqual(default_pet[7], 1735689600000)
+        self.assertEqual(state, original)
+
+        state["daily_limit_enabled"] = False
+        false_policy_input = dict(state)
+        projected_payload = mount_codec.item_pet(state)
+        projected_outer = self._fields(projected_payload)
+        projected_pet = self._fields(projected_outer[50])
+        self.assertEqual(projected_pet[6], 1234)
+        self.assertEqual(projected_pet[7], 0)
+        self.assertEqual(state, false_policy_input)
+        self.assertEqual(state["last_meal_date"], 1735689600000)
+        self.assertEqual(state["xp"], 1234)
 
     def test_entity_refresh_uses_native_signed_character_and_length(self):
         entity = b"\x00\x01\x00\x00"  # opaque entity bytes, not decoded here

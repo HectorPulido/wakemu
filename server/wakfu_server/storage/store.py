@@ -34,8 +34,8 @@ class Store:
             or os.environ.get("WAKFU_DATABASE_PASSWORD_FILE"),
         )
 
-    def connection(self):
-        return self.database.connection()
+    def connection(self, **options):
+        return self.database.connection(**options)
 
     def close(self):
         self.database.close()
@@ -342,6 +342,11 @@ class Store:
                     (character_id, Jsonb(initial_layout(character_id))),
                 )
                 db.execute(
+                    "INSERT INTO account_haven_bags(account_id,character_id) VALUES(%s,%s) "
+                    "ON CONFLICT(account_id) DO NOTHING",
+                    (account_id, character_id),
+                )
+                db.execute(
                     "INSERT INTO character_build_selection(character_id) VALUES(%s)",
                     (character_id,),
                 )
@@ -413,6 +418,9 @@ class Store:
         from wakfu_server.inventory_items import load as load_items
 
         result["inventory_items"] = load_items(db, character_id)
+        from wakfu_server.characters.exploration_secrets import load as load_secrets
+
+        result["exploration_secrets"] = load_secrets(db)
         from wakfu_server.mount_state import load as load_mount_state
 
         result["mount_state"] = load_mount_state(db, character_id)
@@ -640,10 +648,24 @@ class Store:
 
     def select_character(self, account_id, generation, character_id):
         with self.connection() as db:
+            # Shared cosmetic writers lock account before character.
+            db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
             self.lock_character(
                 db, account_id, generation, character_id, selected=False
             )
             character = self.character(account_id, character_id, db)
+            from wakfu_server.characters.cosmetic_store import load as load_cosmetics
+            from psycopg.types.json import Jsonb
+
+            cosmetics = load_cosmetics(db, account_id)
+            if cosmetics is not None and cosmetics.items and character_id not in dict(cosmetics.selections):
+                cosmetics = cosmetics.equip_finishers(character, ())
+                db.execute(
+                    "INSERT INTO account_cosmetics(account_id,record) VALUES(%s,%s) "
+                    "ON CONFLICT(account_id) DO UPDATE SET record=EXCLUDED.record,revision=account_cosmetics.revision+1",
+                    (account_id, Jsonb(cosmetics.to_record())),
+                )
+                character = self.character(account_id, character_id, db)
             db.execute(
                 "UPDATE sessions SET character_id=%s WHERE account_id=%s AND generation=%s",
                 (character_id, account_id, generation),
@@ -765,13 +787,11 @@ class Store:
         with self.connection() as db:
             self.lock_character(db, account_id, generation, character_id)
             character = self.character(account_id, character_id, db)
-            from wakfu_server.builds import validate
+            from wakfu_server.builds import validated_saved_blobs
 
-            validate(character, build_index, blobs)
-            previous = character["builds"].get(build_index, {})
+            merged = validated_saved_blobs(character, build_index, blobs)
             values = [
-                blobs[key] or bytes.fromhex(previous.get(key, ""))
-                for key in ("sheet", "equipment", "deck", "aptitudes")
+                merged[key] for key in ("sheet", "equipment", "deck", "aptitudes")
             ]
             db.execute(
                 "INSERT INTO character_builds VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT(character_id,build_index) DO UPDATE SET "

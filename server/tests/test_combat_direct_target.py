@@ -47,3 +47,62 @@ class DirectTargetTests(unittest.TestCase):
             explicit_native_target(
                 self.fixture.effect, inv, metadata={"50": [1, False, False]}
             )
+
+    def test_server_fresh_child_uses_selector_without_rewriting_replay_policy(self):
+        self.fixture.effect["native_target_selector"]["mask"] = 2
+        self.fixture.resolver.direct_target_policies = {"50": [25, False, False]}
+        explicit = replace(
+            self.fixture.invocation, target_id=2, native_explicit_target=True
+        )
+        self.assertEqual(
+            [i.target_id for i in self.fixture.resolver(self.fixture.effect, explicit)],
+            [2],
+        )
+        selected = self.fixture.resolver(
+            self.fixture.effect, replace(explicit, wakemu_fresh_child_selection=True)
+        )
+        self.assertEqual([i.target_id for i in selected], [1])
+        self.fixture.effect.update(area_class="anD", area_native="point")
+        for mask in (0, 1, 3):
+            self.fixture.effect["native_target_selector"]["mask"] = mask
+            selected = self.fixture.resolver(
+                self.fixture.effect,
+                replace(explicit, wakemu_fresh_child_selection=True),
+            )
+            self.assertEqual([i.target_id for i in selected], [2])
+
+    def test_fresh_area_group_enumerates_occupants_before_transmitting_point_pv(self):
+        self.fixture.effect["native_target_selector"]["mask"] = 1
+        self.fixture.effect.update(area_class="anu", area_native="circle-2")
+        self.fixture.resolver.direct_target_policies = {"50": [25, False, False]}
+        invocation = replace(
+            self.fixture.invocation,
+            target_id=2,
+            native_explicit_target=True,
+            wakemu_fresh_child_selection=True,
+        )
+        selected = self.fixture.resolver(self.fixture.effect, invocation)
+        self.assertGreater(len(selected), 1)
+        replay = self.fixture.resolver(
+            self.fixture.effect, replace(invocation, wakemu_fresh_child_selection=False)
+        )
+        self.assertEqual([i.target_id for i in replay], [2])
+
+    def test_fresh_qq_selector_replaces_transmitted_actor_with_registered_area(self):
+        self.fixture.native[2].update(is_Qq=True, is_amO=False, is_eGj=False)
+        self.fixture.effect["native_target_selector"]["mask"] = 64 | (1 << 51)
+        self.fixture.effect.update(area_class="anD", area_native="point")
+        self.fixture.resolver.direct_target_policies = {"50": [843, False, False]}
+        self.fixture.effect["effect_class"] = 843
+        invocation = replace(
+            self.fixture.invocation,
+            target_id=3,
+            native_explicit_target=True,
+            wakemu_fresh_child_selection=True,
+        )
+        selected = self.fixture.resolver(self.fixture.effect, invocation)
+        self.assertEqual([i.target_id for i in selected], [2])
+        replay = self.fixture.resolver(
+            self.fixture.effect, replace(invocation, wakemu_fresh_child_selection=False)
+        )
+        self.assertEqual([i.target_id for i in replay], [3])

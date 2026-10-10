@@ -69,8 +69,8 @@ def synthetic_surface_authority(cells):
     return selected_surface
 
 
-def install_synthetic_qi_occupancy(fight):
-    """Install exact radius-zero actor slots for the synthetic test arena."""
+def install_synthetic_qi_occupancy(fight, *, physical_radii=None):
+    """Install explicitly declared actor footprints for the synthetic arena."""
     from wakfu_server.combat_qi_registry import NativeQIRegistry
 
     cells = {tuple(cell) for cell in fight.walkable}
@@ -86,7 +86,7 @@ def install_synthetic_qi_occupancy(fight):
     slots = [None] * 127
     for slot, actor in enumerate(fight.actors.values()):
         actor.native_obstacle_id = slot
-        actor.physical_radius = 0
+        actor.physical_radius = (physical_radii or {}).get(actor.id, 0)
         if not hasattr(actor, "native_carrier_id"):
             actor.native_carrier_id = None
         if not hasattr(actor, "native_carried_actor_id"):
@@ -94,7 +94,7 @@ def install_synthetic_qi_occupancy(fight):
         slots[slot] = dict(
             identity=["actor", actor.id],
             position=list(actor.position[:2]),
-            radius=0,
+            radius=actor.physical_radius,
             indexed=True,
             movement_blocking=True,
         )
@@ -320,8 +320,96 @@ class NativeDisplacementTests(unittest.TestCase):
         self.assertEqual(self.packets, [])
         self.assertEqual(self.preview.native_effect_uid_next, 200)
 
-    def test_flag37_rejects_unknown_or_true_carrying_relation_before_mutation(self):
-        for carrying in (None, True):
+    def test_approach_carried_caster_is_native_noop(self):
+        original = self.authority
+
+        class CarriedAuthority:
+            def __call__(self, fight, actor):
+                return replace(original(fight, actor), is_carried=True)
+
+            def properties(self, *args):
+                raise AssertionError("eXq.fOS rejects before property/path work")
+
+        self.handler.authority = CarriedAuthority()
+        effect = deepcopy(self.effects["358000"])
+        effect.update(effect_class=305, parameters=[2.0, 0.0], parameter_count=1)
+        self.assertFalse(
+            self.handler(effect, None, EffectInvocation(358000, 1, 7, None, (4, 0, 0)))
+        )
+        self.assertEqual(self.packets, [])
+        self.assertEqual(self.preview.native_effect_uid_next, 200)
+
+    def test_stabilized_large_target_rejects_before_unsupported_footprint(self):
+        original = self.authority
+
+        class StabilizedAuthority:
+            def __call__(self, fight, actor):
+                return original(fight, actor)
+
+            def properties(self, fight, actor):
+                return {11} if actor.id == -7 else original.properties(fight, actor)
+
+        self.handler.authority = StabilizedAuthority()
+        self.preview.actors[-7].physical_radius = 1
+        before = self.preview.actors[-7].position
+        self.assertFalse(
+            self.handler(
+                self.effects["358000"],
+                None,
+                EffectInvocation(358000, 1, 7, -7, (4, 0, 0)),
+            )
+        )
+        self.assertEqual(self.preview.actors[-7].position, before)
+        self.assertEqual(self.packets, [])
+        self.assertEqual(self.preview.native_effect_uid_next, 200)
+
+    def test_swap_carried_actor_is_native_noop(self):
+        original = self.authority
+
+        class CarriedAuthority:
+            def __call__(self, fight, actor):
+                return replace(original(fight, actor), is_carried=actor.id == -7)
+
+            def properties(self, fight, actor):
+                return original.properties(fight, actor)
+
+        self.handler.authority = CarriedAuthority()
+        effect = deepcopy(self.effects["358000"])
+        effect.update(effect_class=422, parameters=[], parameter_count=0)
+        before = tuple(actor.position for actor in self.preview.actors.values())
+        self.assertFalse(
+            self.handler(effect, None, EffectInvocation(358000, 1, 7, -7, (4, 0, 0)))
+        )
+        self.assertEqual(
+            tuple(actor.position for actor in self.preview.actors.values()), before
+        )
+        self.assertEqual(self.packets, [])
+        self.assertEqual(self.preview.native_effect_uid_next, 200)
+
+    def test_carried_caster_does_not_prevent_forced_target_movement(self):
+        original = self.authority
+
+        class CarriedSourceAuthority:
+            def __call__(self, fight, actor):
+                return replace(original(fight, actor), is_carried=actor.id == 7)
+
+            def properties(self, fight, actor):
+                return original.properties(fight, actor)
+
+        self.handler.authority = CarriedSourceAuthority()
+        before = self.preview.actors[7].position
+        self.assertTrue(
+            self.handler(
+                self.effects["358000"],
+                None,
+                EffectInvocation(358000, 1, 7, -7, (4, 0, 0)),
+            )
+        )
+        self.assertEqual(self.preview.actors[7].position, before)
+        self.assertNotEqual(self.preview.actors[-7].position, (4, 0, 0))
+
+    def test_flag37_rejects_unknown_carrying_relation_before_mutation(self):
+        for carrying in (None,):
             with self.subTest(carrying=carrying):
                 self.setUp()
                 original = self.authority
@@ -349,12 +437,127 @@ class NativeDisplacementTests(unittest.TestCase):
                 self.assertEqual(self.preview.native_effect_uid_next, 200)
                 self.assertEqual(self.packets, [])
 
+    def test_flag37_forced_carrier_preserves_registered_partner(self):
+        from wakfu_server.combat_carrying import carry_registered, carrying_relations
+
+        carrier = self.preview.actors[-7]
+        carried = self.preview.actors[8]
+        carrier.native_los_height = 0
+        self.assertTrue(
+            carry_registered(self.preview, carrier, carried, source_uid=199)
+        )
+        effect = deepcopy(self.effects["358000"])
+        effect["native_effect_flags"] = [37]
+        self.assertTrue(
+            self.handler(effect, None, EffectInvocation(358000, 1, 7, -7, (4, 0, 0)))
+        )
+        self.assertEqual(carrier.position, (5, 0, 0))
+        self.assertEqual(carried.position, carrier.position)
+        self.assertTrue(carrying_relations(self.preview, carrier)["is_carrying"])
+
     def test_real_caster_teleport_and_swap_without_actor_fabrication(self):
         self.execute(349548, target=None, cell=(2, 2, 0))
         self.assertEqual(self.preview.actors[7].position, (2, 2, 0))
         self.execute(349546)
         self.assertEqual(self.preview.actors[7].position, (4, 0, 0))
         self.assertEqual(self.preview.actors[-7].position, (2, 2, 0))
+
+    def test_swap_keeps_large_qk_footprint_without_invented_free_cell_gate(self):
+        from wakfu_server.combat_qi_fight import current_registry
+
+        self.preview.actors[8].position = (-1, 0, 0)
+        install_synthetic_qi_occupancy(self.preview, physical_radii={-7: 1})
+        target_slot = self.preview.actors[-7].native_obstacle_id
+        other_slot = self.preview.actors[8].native_obstacle_id
+        self.assertTrue(self.execute(349546))
+        self.assertEqual(self.preview.actors[7].position, (4, 0, 0))
+        self.assertEqual(self.preview.actors[-7].position, (0, 0, 0))
+        qi = current_registry(self.preview).snapshot()
+        self.assertIn(target_slot, qi.U(-1, 0))
+        self.assertIn(other_slot, qi.U(-1, 0))
+
+    def test_large_forced_target_uses_complete_physical_columns_and_own_qk(self):
+        from wakfu_server.combat_sn_path import NativeSnColumns
+        from wakfu_server.combat_qi_fight import current_registry
+
+        original = self.authority
+
+        class PhysicalMapAuthority:
+            def __call__(self, fight, actor):
+                return replace(original(fight, actor), native_instance_id=999999)
+
+            def properties(self, fight, actor):
+                return original.properties(fight, actor)
+
+        self.handler.authority = PhysicalMapAuthority()
+        self.preview.actors[-7].native_los_height = 1
+        install_synthetic_qi_occupancy(self.preview, physical_radii={-7: 1})
+        columns = NativeSnColumns(
+            dict(
+                schema="native-Sn-Vy-columns-v1",
+                map_id=999999,
+                source_sha256="a" * 64,
+                chunks=[
+                    dict(
+                        x=-1,
+                        y=-1,
+                        width=18,
+                        height=18,
+                        columns=[
+                            [x, y, [[0, 0, 0, 0, 0, False]]]
+                            for x in range(-1, 17)
+                            for y in range(-1, 17)
+                        ],
+                    )
+                ],
+            ),
+            map_id=999999,
+            source_sha256="a" * 64,
+        )
+        with patch(
+            "wakfu_server.combat_forced_footprint.forced_physical_columns",
+            return_value=columns,
+        ):
+            self.assertTrue(self.execute(358000))
+        target = self.preview.actors[-7]
+        self.assertEqual(target.position, (5, 0, 0))
+        qi = current_registry(self.preview).snapshot()
+        self.assertIn(target.native_obstacle_id, qi.U(6, 1))
+        self.assertNotIn(target.native_obstacle_id, qi.U(3, 0))
+
+    def test_swap_carrier_moves_registered_partner_without_releasing_it(self):
+        from wakfu_server.combat_carrying import carry_registered, carrying_relations
+        from wakfu_server.combat_qi_fight import current_registry
+
+        carrier = self.preview.actors[7]
+        carried = self.preview.actors[8]
+        carrier.native_los_height = 0
+        self.assertTrue(
+            carry_registered(self.preview, carrier, carried, source_uid=199)
+        )
+        carried_slot = carried.native_obstacle_id
+        self.assertTrue(self.execute(349546))
+        self.assertEqual(carrier.position, (4, 0, 0))
+        self.assertEqual(carried.position, carrier.position)
+        self.assertTrue(carrying_relations(self.preview, carrier)["is_carrying"])
+        self.assertFalse(current_registry(self.preview).slots[carried_slot]["indexed"])
+
+    def test_teleport_carrier_keeps_registered_partner_and_qi_identity(self):
+        from wakfu_server.combat_carrying import carry_registered, carrying_relations
+        from wakfu_server.combat_qi_fight import current_registry
+
+        carrier = self.preview.actors[7]
+        carried = self.preview.actors[8]
+        carrier.native_los_height = 0
+        self.assertTrue(
+            carry_registered(self.preview, carrier, carried, source_uid=199)
+        )
+        slot = carried.native_obstacle_id
+        self.assertTrue(self.execute(349548, target=None, cell=(2, 2, 0)))
+        self.assertEqual(carrier.position, (2, 2, 0))
+        self.assertEqual(carried.position, carrier.position)
+        self.assertTrue(carrying_relations(self.preview, carrier)["is_carrying"])
+        self.assertFalse(current_registry(self.preview).slots[slot]["indexed"])
 
     def test_real_target_teleport_catalog351394(self):
         self.execute(351394, cell=(3, 3, 0))

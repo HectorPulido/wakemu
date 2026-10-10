@@ -16,7 +16,7 @@ public class ExportCollisionEffect {
   out.put("native_timing_definition",timing);
   List<Integer> flags=new ArrayList<>();for(eVl f:eVl.values())if(e.a(f))flags.add((int)f.fLK());out.put("native_effect_flags",flags);
   out.put("event_suppresses_level_one",e.aZB());out.put("event_global_subscription",e.aZx());
-  out.put("event_reverse_subscription",e.aZw());out.put("event_execution_count",e.aZS());
+  out.put("event_reverse_subscription",e.aZw());out.put("event_execution_count",e.aZS());out.put("event_execution_count_per_level",e.cyc());
   out.put("owner_on_caster",e.aZA());out.put("subscription",e.aZN());out.put("event_priority",e.aZM());
   out.put("event_target_code",e.aZV()==null?null:e.aZV().aKg());
   out.put("event_caster_code",e.aZW()==null?null:e.aZW().aKg());

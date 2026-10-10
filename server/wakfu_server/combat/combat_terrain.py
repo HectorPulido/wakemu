@@ -2,6 +2,7 @@
 from wakfu_server import native_catalog as protocol_catalog
 import json
 import os
+import random
 from functools import lru_cache
 from wakfu_server.paths import DATA_ROOT
 from .combat_wire import arena
@@ -11,6 +12,7 @@ from .combat_arena_selection import (
     cardinal_border_cells,
 )
 from .combat_placement_cells import generate
+from .combat_geometry import published_geometry
 from .combat_qi_surface_catalog import native_qi_surfaces, native_qi_surface_provenance
 from .combat_qi_surface_selection import native_surface_indices
 
@@ -33,7 +35,13 @@ def map_geometry(map_id):
 
 
 def local_arena(
-    map_id, instance_id, player_position, monster_position, *, relocate_monsters=True
+    map_id,
+    instance_id,
+    player_position,
+    monster_position,
+    *,
+    relocate_monsters=True,
+    variation_seed=None
 ):
     members = monster_position
     if (
@@ -44,20 +52,38 @@ def local_arena(
         members = [members]
     configured_radius = int(os.environ.get("WAKFU_COMBAT_ARENA_RADIUS", "89"))
     if relocate_monsters:
-        selected = compact_encounter(map_geometry(map_id), player_position, members)
+        # Callers may supply a stable seed for retries; new fights vary by default.
+        formation = random.Random(variation_seed)
+        minimum_width = formation.randint(5, 7)
+        minimum_height = formation.randint(5, 7)
+        selected = compact_encounter(
+            published_geometry(map_id),
+            player_position,
+            members,
+            minimum_cells=minimum_width * minimum_height,
+            minimum_dimensions=(minimum_width, minimum_height),
+        )
     else:
         selected = bounded_arena(
-            map_geometry(map_id), player_position, members, radius=configured_radius
+            published_geometry(map_id),
+            player_position,
+            members,
+            radius=configured_radius,
         )
+    perimeter = (
+        cardinal_border_cells(selected["cells"]) if relocate_monsters else frozenset()
+    )
     placement = generate(
         selected["cells"],
         selected["edges"],
         seeds=selected["placement"],
         slots_per_team=12,
+        avoid_cells=perimeter,
     )
-    borders = (
-        cardinal_border_cells(selected["cells"]) if relocate_monsters else frozenset()
-    )
+    # Native walls and narrow components may not offer interior formation
+    # capacity. Preserve their collision rules, but never draw a combat border
+    # beneath an actor seed or any selectable placement cell.
+    borders = perimeter - placement[0] - placement[1]
     indices = native_surface_indices(native_qi_surfaces(map_id), selected["cells"])
     result = arena(
         map_id,

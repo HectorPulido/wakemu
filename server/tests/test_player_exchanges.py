@@ -1,7 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import uuid
-from random import Random
 from unittest.mock import patch
 
 from postgres_case import PostgresCase
@@ -2312,10 +2311,7 @@ class PlayerExchangeInvitationTests(PostgresCase):
     def test_split_item_transfer_preserves_element_and_binding_metadata(self):
         inviter, invitee = self.player("splitfrom"), self.player("splitto")
         exchange = self.active_exchange(inviter, invitee)
-        with patch(
-            "wakfu_server.inventory_elements.SystemRandom", return_value=Random(0)
-        ):
-            source = self.grant_item(inviter, 2297, quantity=3)
+        source = self.grant_item(inviter, 2297, quantity=3)
         original_elements = self.fetchone(
             "SELECT damage_elements,resistance_elements FROM inventory_item_elements WHERE uid=%s",
             (source["uid"],),

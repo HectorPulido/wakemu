@@ -6,6 +6,22 @@ from wakfu_server.combat_wire import decode_actor_state
 
 
 class RuntimeMessageTests(unittest.TestCase):
+    def test_terminal_start_reaction_ack_delivers_pending_without_turn_owner(self):
+        fight, _ = self.state()
+        wire = RuntimeMessages(fight, clock=lambda: 0.0)
+        wire.awaiting_ack = fight.turn_id
+        wire.pending = [(13420, b"terminal reaction")]
+        wire.native_timeline_restore_pending_turn = fight.turn_id
+        wire.turn_deadline, wire.deadline_turn = 30, fight.turn_id
+        fight.phase = "finished"
+        result = wire.acknowledge_turn(struct.pack(">i", fight.turn_id))
+        self.assertEqual(list(result), [(13420, b"terminal reaction")])
+        self.assertIsNone(wire.awaiting_ack)
+        self.assertEqual(wire.pending, [])
+        self.assertIsNone(wire.turn_deadline)
+        self.assertIsNone(wire.deadline_turn)
+        self.assertIsNone(wire.native_timeline_restore_pending_turn)
+
     def test_multiowner_initial_start_restores_authoritative_su_once(self):
         actors = [
             Actor(100, 0, (0, 0, 0), 60, 6, 3, 1000, 1, 1, True),

@@ -6,7 +6,7 @@ QC/QD enum only on the success path.
 """
 import struct
 
-from .inventory_shards import validate
+from .inventory_shards import initialized_wire_state
 
 _REPLIES = {
     "add_charges": (13703, 0),
@@ -30,7 +30,7 @@ def encode_success(character_id, result):
     if type(character_id) is not int or not 0 < character_id < (1 << 63):
         raise ValueError("Invalid socket response character ID")
     uid = result.get("uid")
-    state = validate(bytes(result.get("shard_state", b"")))
+    state = initialized_wire_state(bytes(result.get("shard_state", b"")))
     if type(uid) is not int or not 0 < uid < (1 << 63) or len(state) > 32767:
         raise ValueError("Invalid native socket response item")
     try:
@@ -81,8 +81,9 @@ def bonus_installation_packets(character_id, result):
     """Refresh the native item/bag state after opcode13269 installation.
 
     The installed client has no dedicated 13269 action-reply enum. The BAGS
-    snapshot carries the updated ProtoItem/ProtoShard; a configured local fee
-    additionally refreshes the wallet through its absolute native carrier.
+    snapshot updates the material reserve. Native 13766 then updates the
+    existing item's socket state and refreshes an open enchantment window.
+    A configured local fee also refreshes the wallet.
     """
     if type(character_id) is not int or not 0 < character_id < (1 << 63):
         raise ValueError("Invalid socket bonus response character ID")
@@ -97,7 +98,11 @@ def bonus_installation_packets(character_id, result):
     cost = result.get("cost_kamas")
     if type(cost) is not int or cost < 0:
         raise ValueError("Invalid socket bonus local fee")
-    output = [inventory]
+    from wakfu_server.items.shard_identification_wire import response
+
+    # chK handles 13766 by updating fpI and refreshing daI's open item window.
+    # Send it after BAGS so the snapshot cannot replace the updated item.
+    output = [inventory, response(dict(result, status=0))]
     if cost:
         from wakfu_server.wire import account_kamas_update
 

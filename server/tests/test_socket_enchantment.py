@@ -108,10 +108,21 @@ class SocketEnchantmentTests(PostgresCase):
             self.account,
             self.generation,
             self.char["id"],
-            reference=27097,
+            reference=27083,
             quantity=3,
             container=self.bag,
             slot=3,
+            allowed_references={27083},
+        )
+        bonus_item = grant(
+            self.store,
+            self.account,
+            self.generation,
+            self.char["id"],
+            reference=27097,
+            quantity=1,
+            container=self.bag,
+            slot=4,
             allowed_references={27097},
         )
         body = struct.pack(">qB", self.target["uid"], 1) + struct.pack(
@@ -126,6 +137,7 @@ class SocketEnchantmentTests(PostgresCase):
         self.assertTrue(first["applied"])
         self.assertEqual(first["inventory_packet"][0], 13713)
         self.assertEqual(first["consumed"][0]["quantity"], 1)
+        self.assertEqual(first["consumed"][0]["reference"], 27083)
         with self.store.connection() as db:
             self.assertEqual(
                 db.execute(
@@ -133,6 +145,14 @@ class SocketEnchantmentTests(PostgresCase):
                     (shard_stack["uid"],),
                 ).fetchone()["quantity"],
                 2,
+            )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT quantity FROM inventory_items WHERE uid=%s",
+                    (bonus_item["uid"],),
+                ).fetchone()["quantity"],
+                1,
             )
         retry = install_bonus(
             self.store, self.account, self.generation, self.char["id"], body
@@ -146,6 +166,19 @@ class SocketEnchantmentTests(PostgresCase):
                 ).fetchone()["quantity"],
                 2,
             )
+
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE inventory_socket_bonus_installation_receipts "
+                "SET applied_at=applied_at - interval '1 minute'"
+            )
+        late_retry = install_bonus(
+            self.store, self.account, self.generation, self.char["id"], body
+        )
+        self.assertFalse(late_retry["applied"])
+        self.assertEqual(late_retry["consumed"], [])
+        self.assertEqual(late_retry["cost_kamas"], 0)
+        self.assertEqual(late_retry["inventory_packet"][0], 13713)
 
         upgrade = struct.pack(">qB", self.target["uid"], 1) + struct.pack(
             ">Bii", 0, 27097, 3
@@ -168,6 +201,31 @@ class SocketEnchantmentTests(PostgresCase):
             ).fetchone()["consumed"]
             self.assertEqual([row["quantity"] for row in receipt], [1])
 
+    def test_bonus_upgrade_is_limited_by_target_item_level_not_owner_level(self):
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET level=100 WHERE id=%s", (self.char["id"],)
+            )
+            db.execute(
+                "UPDATE inventory_items SET reference=2024 WHERE uid=%s",
+                (self.target["uid"],),
+            )
+            save(db, self.target["uid"], socket_blob(color=3))
+        body = struct.pack(">qB", self.target["uid"], 1) + struct.pack(
+            ">Bii", 0, 27094, 3
+        )
+        with self.assertRaisesRegex(ValueError, "native item-level gate"):
+            install_bonus(
+                self.store, self.account, self.generation, self.char["id"], body
+            )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM inventory_socket_bonus_installation_receipts"
+                ).fetchone()["n"],
+                0,
+            )
+
     def test_native_13269_rejects_color_level_and_inventory_without_partial_mutation(
         self,
     ):
@@ -176,11 +234,11 @@ class SocketEnchantmentTests(PostgresCase):
             self.account,
             self.generation,
             self.char["id"],
-            reference=27097,
+            reference=27083,
             quantity=1,
             container=self.bag,
             slot=3,
-            allowed_references={27097},
+            allowed_references={27083},
         )
         wrong_color = struct.pack(">qB", self.target["uid"], 1) + struct.pack(
             ">Bii", 0, 27094, 1
@@ -480,6 +538,56 @@ class SocketEnchantmentTests(PostgresCase):
             struct.pack(">qB", self.target["uid"], 0),
         )
         self.assertEqual(dict(proto_fields(removed["shard_state"]))[24], 0)
+
+    def test_sublimation_consumes_one_scroll_from_stack_and_late_retry_consumes_none(
+        self,
+    ):
+        state = b"".join(
+            proto_field(10, proto_field(80, position) + proto_field(96, 1))
+            for position in range(3)
+        )
+        with self.store.connection() as db:
+            save(db, self.target["uid"], state)
+            db.execute(
+                "UPDATE inventory_items SET quantity=3 WHERE uid=%s",
+                (self.sublimation["uid"],),
+            )
+        body = struct.pack(">qi", self.target["uid"], 27111)
+        result = mutate(
+            self.store, self.account, self.generation, self.char["id"], 12221, body
+        )
+        self.assertTrue(result["applied"])
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT quantity FROM inventory_items WHERE uid=%s",
+                    (self.sublimation["uid"],),
+                ).fetchone()["quantity"],
+                2,
+            )
+            db.execute(
+                "UPDATE inventory_socket_enchantment_receipts SET applied_at=%s",
+                (self.store.now() - timedelta(days=1),),
+            )
+        retry = mutate(
+            self.store, self.account, self.generation, self.char["id"], 12221, body
+        )
+        self.assertFalse(retry["applied"])
+        self.assertEqual(retry["shard_state"], result["shard_state"])
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT quantity FROM inventory_items WHERE uid=%s",
+                    (self.sublimation["uid"],),
+                ).fetchone()["quantity"],
+                2,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM inventory_socket_enchantment_receipts WHERE operation='apply_sublimation'"
+                ).fetchone()["n"],
+                1,
+            )
 
     def test_native_sublimation_requires_contiguous_order_and_enabled_native_row(self):
         mismatched = b"".join(

@@ -3,10 +3,20 @@ from contextlib import contextmanager
 from hashlib import sha256
 from pathlib import Path
 import re
+import time
 
 from psycopg import connect
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
+from .performance_profiler import PROFILER
+
+
+def _observe_duration(name, started, *, error=False):
+    """Diagnostics must never change connection or transaction outcomes."""
+    try:
+        PROFILER.observe(name, time.monotonic() - started, error=error)
+    except Exception:
+        pass
 
 
 class Database:
@@ -30,10 +40,26 @@ class Database:
         self.pool.open(wait=True)
 
     @contextmanager
-    def connection(self):
-        with self.pool.connection() as db:
-            with db.transaction():
-                yield db
+    def connection(self, *, timeout=None):
+        pool_started = time.monotonic()
+        acquired = False
+        try:
+            with self.pool.connection(timeout=timeout) as db:
+                acquired = True
+                _observe_duration("postgres.pool_wait", pool_started)
+                transaction_started = time.monotonic()
+                failed = True
+                try:
+                    with db.transaction():
+                        yield db
+                    failed = False
+                finally:
+                    _observe_duration(
+                        "postgres.transaction", transaction_started, error=failed
+                    )
+        finally:
+            if not acquired:
+                _observe_duration("postgres.pool_wait", pool_started, error=True)
 
     def acquire_runtime_lock(self):
         """Prevent a second world from recovering the same live database."""

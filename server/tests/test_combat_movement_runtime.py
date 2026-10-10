@@ -104,7 +104,18 @@ class MovementRuntimeTests(unittest.TestCase):
         self,
     ):
         runtime, actor = self.setup_fight()
-        actor.effect_stats = {1: 60, 2: 6, 3: 3}
+        from tests.test_combat_tackle_movement import Authority
+
+        runtime.fight.native_rail_movement_authority = Authority()
+        for candidate in runtime.fight.actors.values():
+            candidate.effect_stats = {
+                1: candidate.hp,
+                2: candidate.ap,
+                3: candidate.mp,
+                7: 0,
+                8: 0,
+            }
+            candidate.physical_radius = 0
         body = struct.pack(">qiih", 1, 1, 0, 0)
 
         def fail(candidate):

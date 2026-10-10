@@ -146,6 +146,13 @@ class NativeDispelTests(unittest.TestCase):
             dispel_flags({"native_effect_flags": [24, 20, 3]}, event_lifecycle=None),
             (24, 20, 3),
         )
+        self.assertEqual(
+            dispel_flags({"native_effect_flags": [17]}, event_lifecycle=None),
+            (17,),
+        )
+        # Flag17 does not suppress the inherited trigger-lifecycle contract.
+        with self.assertRaisesRegex(ValueError, "trigger flags"):
+            dispel_flags({"native_effect_flags": [17, 6]}, event_lifecycle=None)
 
     def test_generic_trigger_flag_keeps_lifecycle_and_qe_modifier_noop(self):
         effect = dict(

@@ -188,6 +188,8 @@ def main():
         "--add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED",
         f'-javaagent:{agents/"desktop-fix.jar"}',
         "-Dwakfu.local.openPlanting=" + str(settings()["open_planting"]).lower(),
+        "-Dwakfu.local.openDungeonMissions="
+        + str(cfg["open_dungeon_missions"]).lower(),
         f'-javaagent:{agents/"open-planting.jar"}',
         "-Xms512m",
         "-Xmx2G",

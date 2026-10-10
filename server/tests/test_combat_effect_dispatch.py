@@ -25,6 +25,37 @@ def effect(kind, parameters=(), *, criteria="", children=()):
 
 
 class EffectDispatchTests(unittest.TestCase):
+    def test_bounded_conditional_reentry_stops_before_cycle_guard(self):
+        dispatcher = EffectDispatcher(
+            {"90": effect(400, criteria="1 > 2")},
+            {400: lambda *args: self.fail("Terminating condition must stop execution")},
+            resolve=lambda definition, invocation: (invocation,),
+            condition_context=lambda invocation: ConditionContext({}),
+            probability_accepts=lambda *args: self.fail(
+                "No roll for a rejected condition"
+            ),
+            group_cells=lambda *args: (),
+            actor_position=lambda identity: (identity, 1, 2),
+        )
+        self.assertFalse(
+            dispatcher.execute(
+                EffectInvocation(90, 20, 7, 8, (0, 0, 0)), ancestors=(90,)
+            )
+        )
+
+    def test_unconditional_recursive_group_still_rejects(self):
+        dispatcher = EffectDispatcher(
+            {"90": effect(330, (1, 0, 1, 0), children=(90,))},
+            {},
+            resolve=lambda definition, invocation: (invocation,),
+            condition_context=lambda invocation: ConditionContext({}),
+            probability_accepts=lambda *args: True,
+            group_cells=lambda *args: (),
+            actor_position=lambda identity: (identity, 1, 2),
+        )
+        with self.assertRaisesRegex(UnsupportedEffectExecution, "Recursive immediate"):
+            dispatcher.execute(EffectInvocation(90, 20, 7, 8, (0, 0, 0)))
+
     def test_native_null_target_group_dispatches_no_children(self):
         effects = {"90": effect(330, children=(91,)), "91": effect(400)}
         dispatcher = EffectDispatcher(
@@ -42,7 +73,7 @@ class EffectDispatchTests(unittest.TestCase):
             dispatcher.execute(EffectInvocation(90, 20, 7, None, (0, 0, 0)))
         )
 
-    def test_native_actor_group_passes_target_coordinates_preserving_selector(self):
+    def test_native_actor_group_transmits_explicit_pv_and_target_coordinates(self):
         selected = []
         effects = {"90": effect(330, children=(91,)), "91": effect(400)}
 
@@ -64,8 +95,36 @@ class EffectDispatchTests(unittest.TestCase):
         )
         child = next(inv for inv in selected if inv.reference == 91)
         self.assertEqual(child.target_id, 8)
-        self.assertFalse(child.native_explicit_target)
+        self.assertTrue(child.native_explicit_target)
         self.assertEqual(child.cell, (8, 1, 2))
+
+    def test_native_group_cell_and_nontransmitted_branches_have_no_explicit_pv(self):
+        for parameters in ((0, 0, 1, 0, 0), (0, 0, 0, 0, 1)):
+            with self.subTest(parameters=parameters):
+                selected = []
+                effects = {
+                    "90": effect(330, parameters, children=(91,)),
+                    "91": effect(400),
+                }
+
+                def resolve(definition, invocation):
+                    selected.append(invocation)
+                    return (invocation,)
+
+                dispatcher = EffectDispatcher(
+                    effects,
+                    {400: lambda *args: True},
+                    resolve=resolve,
+                    condition_context=lambda inv: ConditionContext({}),
+                    probability_accepts=lambda *args: True,
+                    group_cells=lambda *args: ((3, 4, 0),),
+                    actor_position=lambda identity: (identity, 1, 2),
+                )
+                dispatcher.execute(EffectInvocation(90, 20, 7, 8, (0, 0, 0)))
+                children = [inv for inv in selected if inv.reference == 91]
+                self.assertEqual(len(children), 1)
+                self.assertIsNone(children[0].target_id)
+                self.assertFalse(children[0].native_explicit_target)
 
     def test_relative_authority_selects_children_and_bypasses_second_probability(self):
         from types import SimpleNamespace

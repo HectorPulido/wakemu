@@ -4,10 +4,41 @@ The breed reference supplies its native NPC visual data; sN only toggles
 visibility and never contains a player ProtoAppearance or arbitrary sprite ID.
 """
 import struct
+from functools import lru_cache
 from wakfu_server.monsters import owned_instance, reference
 
 
-def world_actor(monster, *, name=None, group_id, direction=3, members=None):
+@lru_cache(maxsize=None)
+def corpse_collect_actions(monster_ref):
+    """Let native life-state criteria explain exclusions; disable unknown ones."""
+    from wakfu_server import native_catalog
+    from wakfu_server.paths import DATA_ROOT
+
+    catalog = native_catalog.load(DATA_ROOT / "monster-encyclopedia.json")
+    for row in catalog["monsters"]:
+        if row["ref"] == monster_ref:
+            identities = tuple(
+                sorted(
+                    {
+                        action["d"]
+                        for action in row["collect_actions"]
+                        if action["clT"].strip()
+                        not in ('IsDead("target")', 'not IsDead("target")')
+                    }
+                )
+            )
+            if len(identities) > 65535 or any(
+                type(value) is not int or not -(2**31) <= value < 2**31
+                for value in identities
+            ):
+                raise ValueError("Invalid native corpse collection actions")
+            return identities
+    raise ValueError("Corpse breed missing native collection catalog")
+
+
+def world_actor(monster, *, name=None, group_id, direction=3, members=None, dead=False):
+    if type(dead) is not bool:
+        raise ValueError("Native death state must be explicit")
     verified = owned_instance(
         monster["ref"],
         monster["level"],
@@ -53,9 +84,12 @@ def world_actor(monster, *, name=None, group_id, direction=3, members=None):
         ">hH", monster["level"], 0
     )  # sN visible; sP public characteristics.
     out += b"\x00" + struct.pack(
-        ">iBBBBbB", -1, 0, 0, 0, 0, -1, 0
+        ">iBBBBbB", -1, 0, int(dead), 0, 0, -1, 0
     )  # fight props empty; no fight yet.
-    out += b"\x00"  # world properties empty rK.
+    # Outside combat eGZ.gg is a no-op. bje.dsA and native interaction menus
+    # read eHQ.DEAD (19) from rK/rN/wU world properties instead. cgN then
+    # calls bje.dsq, selecting the native AnimStatiqueCadavre presentation.
+    out += b"\x01\x00\x01\x13\x01" if dead else b"\x00"
     members = tuple(members) if members is not None else (monster,)
     if (
         not members
@@ -89,7 +123,10 @@ def world_actor(monster, *, name=None, group_id, direction=3, members=None):
     out += struct.pack(
         ">hh", -1, -1
     )  # sight/aggro-radius unspecified, captured native sentinels.
-    out += b"\x00\x00"  # collect empty sR.
+    disabled = corpse_collect_actions(monster["ref"]) if dead else ()
+    out += struct.pack(">H", len(disabled)) + b"".join(
+        struct.pack(">i", identity) for identity in disabled
+    )  # sR is the native disabled collection action set, consumed by bjh.
     out += b"\x00\x00"  # current movement py absent.
     out += bytes(16)  # companion controller sL (none).
     out += bytes(2) + b"\x00"  # downscale pK0, hero qpfalse.

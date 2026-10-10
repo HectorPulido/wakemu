@@ -27,12 +27,19 @@ ACTIONS = {
     12366: "chat",
     13220: "plant",
     13429: "plant_occupation",
+    12767: "pet_feed",
+    13826: "bag_furniture_place",
+    13578: "bag_visit",
+    12925: "fight_terminal_ack",
 }
 
 
 def safe_snapshot(callback):
     try:
-        return callback()
+        from wakfu_server.performance_profiler import PROFILER
+
+        with PROFILER.span("diagnostics.state_snapshot"):
+            return callback()
     except Exception as error:
         return {"diagnostic_snapshot_error": type(error).__name__}
 
@@ -228,6 +235,7 @@ class RequestTrace:
         self.snapshot = snapshot
         self.clock = clock
         self.started = clock()
+        self.cpu_started = time.thread_time()
         self.before = safe_snapshot(snapshot)
         self.rejections = []
         self.closed = False
@@ -270,4 +278,15 @@ class RequestTrace:
         finally:
             self.flush()
             self.closed = True
+            try:
+                from wakfu_server.performance_profiler import PROFILER
+
+                PROFILER.observe(
+                    "request." + ACTIONS.get(self.opcode, "other"),
+                    max(0.0, self.clock() - self.started),
+                    max(0.0, time.thread_time() - self.cpu_started),
+                    error=bool(self.rejections) or status in ("failed", "exception"),
+                )
+            except Exception:
+                pass  # Diagnostic aggregation cannot alter request completion.
             _current.reset(self.token)

@@ -11,6 +11,10 @@ FLAG_SEMANTICS = {
     3: "client_zone_display_only",
     5: "generic_level_one_suppression",
     6: "generic_level_two_suppression",
+    # eVl.rwN is BUFF_BYPASS_OUT_FIGHT_MAX (ID17, not ordinal15).
+    # eXe.c/E only select/remove retained effects; neither reads PA maxima
+    # or this buff-application flag. Generic Qe trigger flags stay separate.
+    17: "out_of_fight_buff_cap_not_read_by_eXe",
     20: "guild_metadata_not_read_by_eXe",
     24: "damage_distance_tag_not_read_by_eXe",
 }

@@ -100,6 +100,132 @@ class DungeonExitTests(PostgresCase):
                 {"map_id": 1086}, {"entry_map_id": 527}, configuration
             )
 
+    def test_physical_exit_command_uses_native_exterior_without_completion_override(
+        self,
+    ):
+        configuration = {
+            "topology": {
+                "policy": "native_physical_door_victory_policy",
+                "asset_map_id": 1087,
+                "physical_exit_objects": [
+                    {"source_id": 26871, "room_order": 1},
+                    {"source_id": 26872, "room_order": 3},
+                ],
+            }
+        }
+        destination = dungeon_exit.automatic_destination(
+            {"map_id": 1087, "instance_id": 42}, {"entry_map_id": 527}, configuration
+        )
+        self.assertEqual(destination, {"map_id": 527, "x": -128, "y": -33, "z": 0})
+        with self.assertRaises(ValueError):
+            dungeon_exit.automatic_destination(
+                {"map_id": 1086, "instance_id": 42},
+                {"entry_map_id": 527},
+                configuration,
+            )
+
+    def test_physical_exit_command_rejects_costly_native_route(self):
+        configuration = {
+            "topology": {
+                "policy": "native_physical_door_victory_policy",
+                "asset_map_id": 1087,
+                "physical_exit_objects": [{"source_id": 26871, "room_order": 1}],
+            }
+        }
+        source = {
+            "id": 26871,
+            "map_id": 1087,
+            "destinations": [
+                dict(
+                    map_id=527,
+                    destination_id=2517,
+                    x=-128,
+                    y=-33,
+                    z=0,
+                    criterion="",
+                    cyZ=-1,
+                    cyX=1,
+                    cyW=0,
+                    item_reference=0,
+                    native_altitude_walkable=True,
+                )
+            ],
+        }
+        with patch(
+            "wakfu_server.maps.dungeon_exit.generic_transports.source",
+            return_value=source,
+        ):
+            with self.assertRaisesRegex(ValueError, "not supported"):
+                dungeon_exit.automatic_destination(
+                    {"map_id": 1087, "instance_id": 42},
+                    {"entry_map_id": 527},
+                    configuration,
+                )
+
+    def test_physical_exit_command_leaves_one_member_and_preserves_party(self):
+        members, _ = self.party(2)
+        run = self.enter(members[0])
+        member = members[0]
+        configuration = {
+            "topology": {
+                "policy": "native_physical_door_victory_policy",
+                "asset_map_id": 1086,
+                "physical_exit_objects": [{"source_id": 26843, "room_order": 1}],
+            }
+        }
+        with patch(
+            "wakfu_server.dungeon_runtime.configuration_for_instance",
+            return_value=(None, configuration),
+        ):
+            result = dungeon_exit.leave_automatic(
+                self.store,
+                member["account"],
+                member["generation"],
+                member["character"]["id"],
+                in_fight=lambda identity: False,
+            )
+        self.assertEqual(result["instance_id"], 0)
+        self.assertEqual(
+            self.store.character(members[1]["account"], members[1]["character"]["id"])[
+                "instance_id"
+            ],
+            run["instance_id"],
+        )
+        events = dungeon_instances.pending_transitions(
+            self.store,
+            member["account"],
+            member["generation"],
+            member["character"]["id"],
+        )
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["transition_kind"], "exit")
+
+    def test_physical_exit_command_rejects_missing_or_ambiguous_native_destination(
+        self,
+    ):
+        configuration = {
+            "topology": {
+                "policy": "native_physical_door_victory_policy",
+                "asset_map_id": 1087,
+                "physical_exit_objects": [{"source_id": 26871, "room_order": 1}],
+            }
+        }
+        for destinations in ([], [{"map_id": 527}, {"map_id": 527}]):
+            with patch(
+                "wakfu_server.maps.dungeon_exit.generic_transports.source",
+                return_value={
+                    "id": 26871,
+                    "map_id": 1087,
+                    "destinations": destinations,
+                },
+            ):
+                with self.assertRaisesRegex(ValueError, "ambiguous"):
+                    dungeon_exit.automatic_destination(
+                        {"map_id": 1087, "instance_id": 42},
+                        {"entry_map_id": 527},
+                        configuration,
+                    )
+
     def leave(self, member, **callbacks):
         return dungeon_exit.leave(
             self.store,

@@ -11,6 +11,29 @@ from psycopg.pq import TransactionStatus
 from .friendly_duel_wire import cancellation, decode_answer, decode_challenge, invite
 
 
+def flush_answer_positions(store, target_session, request_body, flush):
+    """Flush only a pending invitation's owners before reading their positions.
+
+    Do not checkpoint unrelated accounts from a synchronous duel request.
+    The normal answer transaction still validates invitation/session ownership.
+    """
+    request = decode_answer(request_body)
+    if not request["accepted"]:
+        return
+    target = _session_fields(target_session)
+    with store.connection() as db:
+        invitation = db.execute(
+            "SELECT challenger_account_id FROM friendly_duel_invitations "
+            "WHERE target_account_id=%s AND target_character_id=%s "
+            "AND challenger_character_id=%s AND status='pending' "
+            "ORDER BY id DESC LIMIT 1",
+            (target[0], target[1], request["challenger_character_id"]),
+        ).fetchone()
+    if invitation is not None:
+        for account_id in sorted({target[0], invitation["challenger_account_id"]}):
+            flush(account_id=account_id)
+
+
 def _invitation_policy(db):
     row = db.execute(
         "SELECT value FROM settings WHERE name='friendly_duel_policy'"
@@ -104,11 +127,14 @@ def invite_challenge(
         )
         # A reply has no nonce. Keep one unresolved request per target and
         # pair, so a stale reply cannot select among concurrent invitations.
+        # Expiry is a fixed boundary, not a new reply on every retry. Using
+        # now here would extend quarantine and roll retirement back forever
+        # whenever the same-pair check rejects the surrounding transaction.
         db.execute(
-            "UPDATE friendly_duel_invitations SET status='expired',responded_at=%s "
+            "UPDATE friendly_duel_invitations SET status='expired',responded_at=expires_at "
             "WHERE target_account_id=%s AND target_character_id=%s "
             "AND status='pending' AND expires_at<=%s",
-            (now, b[0], b[1], now),
+            (b[0], b[1], now),
         )
         if db.execute(
             "SELECT id FROM friendly_duel_invitations WHERE target_account_id=%s "
@@ -387,9 +413,9 @@ def expire(store, *, limit=128):
             "WITH expired AS (SELECT id FROM friendly_duel_invitations "
             "WHERE status='pending' AND expires_at<=%s ORDER BY expires_at,id "
             "FOR UPDATE SKIP LOCKED LIMIT %s) "
-            "UPDATE friendly_duel_invitations i SET status='expired',responded_at=%s "
+            "UPDATE friendly_duel_invitations i SET status='expired',responded_at=i.expires_at "
             "FROM expired e WHERE i.id=e.id RETURNING i.id",
-            (store.now(), limit, store.now()),
+            (store.now(), limit),
         ).fetchall()
         return tuple(row["id"] for row in rows)
 

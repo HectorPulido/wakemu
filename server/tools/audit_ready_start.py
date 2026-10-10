@@ -30,17 +30,11 @@ from wakfu_server.combat_diagnostics import combat_diagnostic_scope
 from wakfu_server.fight_checkpoint_store import snapshot
 from wakfu_server.spells import available_spells, encode_deck, validate_deck
 from wakfu_server.paths import PROJECT_ROOT
+from wakfu_server import native_catalog as protocol_catalog
 
 
 def source_hashes():
     paths = list((PROJECT_ROOT / "server/wakfu_server").rglob("*.py"))
-    paths += list((PROJECT_ROOT / "server/protocol").glob("*.json")) + list(
-        (PROJECT_ROOT / "server/protocol").glob("*.json")
-    )
-    paths += [
-        PROJECT_ROOT / "server/protocol/native-qi-surfaces" / name
-        for name in ("publication.json", "manifest.json", "1134.json")
-    ]
     paths += [
         PROJECT_ROOT / "server/tools" / name
         for name in (
@@ -52,12 +46,24 @@ def source_hashes():
             "class_spell_eligible_targets.py",
         )
     ]
-    return {
+    hashes = {
         str(path.relative_to(PROJECT_ROOT)): hashlib.sha256(
             path.read_bytes()
         ).hexdigest()
         for path in sorted(paths)
     }
+    # Protocol JSON files are import artifacts. Pin audit stability to the
+    # same immutable published PostgreSQL release used by runtime readers.
+    hashes.update(
+        {
+            f"published-catalog/{path}": digest
+            for path, digest in protocol_catalog.document_hashes().items()
+        }
+    )
+    hashes["published-catalog/@release"] = hashlib.sha256(
+        protocol_catalog.release().encode()
+    ).hexdigest()
+    return hashes
 
 
 def planned_cases(breeds, spells_for, *, basics_only=False, legal_passive_levels=False):

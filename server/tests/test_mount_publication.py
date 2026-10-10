@@ -1,7 +1,10 @@
 import ast
+import base64
 import copy
 from datetime import datetime, timedelta, timezone
 import hashlib
+import json
+import os
 import struct
 import uuid
 from pathlib import Path
@@ -91,6 +94,51 @@ class MountPublicationTests(PostgresCase):
         self.assertEqual(code, 0)
         self.assertTrue(character["mount_state"]["mounted"])
         return character
+
+    def _captured_player_template(self):
+        from protocol_codec import Reader
+
+        capture = Path(os.environ.get("WAKFU_CAPTURE_PATH", "/fixtures/frames.jsonl"))
+        if not capture.is_file():
+            self.skipTest("real 12608 entity template requires the mounted capture")
+        for line in capture.read_text().splitlines():
+            frame = json.loads(line)
+            if frame.get("direction") != "in" or frame.get("opcode") != 12608:
+                continue
+            reader = Reader(base64.b64decode(frame["body_base64"], validate=True))
+            reader.take(1)  # outer actor list format
+            for _ in range(reader.number("B")):
+                actor_type = reader.number("B")
+                actor_id = reader.number("q")
+                entity = reader.take(reader.number("H"))
+                if actor_type == 0 and actor_id == wire.TEMPLATE_CHARACTER:
+                    self.assertEqual(entity[0], 11)
+                    return entity
+        self.fail("captured 12608 frame has no native player appearance template")
+
+    def _assert_owned_format11_characteristics(
+        self, template, entity, character, damage
+    ):
+        layout = wire.ENTITY_LAYOUTS[11]
+        public = next(
+            row for row in layout["sections"] if row["name"] == "PUBLIC_CHARACTERISTICS"
+        )
+        captured = template[public["start"] : public["end"]]
+        owned = wire.owned_public_characteristics(character)
+        self.assertNotEqual(owned, captured)
+        self.assertNotIn(captured, entity)
+        self.assertEqual(entity.count(owned), 1)
+        entries = [
+            struct.unpack_from(">Biiii", owned, 2 + index * 17)
+            for index in range(struct.unpack_from(">H", owned)[0])
+        ]
+        elemental = {identity: current for identity, current, *_ in entries}
+        if damage:
+            self.assertEqual(elemental[20], damage)
+        else:
+            # Native catalog defaults are serialized too, so unequipping must
+            # explicitly reset the mount bonus to zero.
+            self.assertEqual(elemental.get(20, 0), 0)
 
     @staticmethod
     def _template_layout():
@@ -200,6 +248,100 @@ class MountPublicationTests(PostgresCase):
         self.assertEqual(mount_inventory.equipped(current)["uid"], second["uid"])
         self.assertFalse(current["mount_state"]["mounted"])
         self._assert_refresh_then_dismount(previous, current)
+
+    def test_full_format11_build_and_feed_refresh_uses_owned_public_characteristics(
+        self,
+    ):
+        from wakfu_server import equipment_stats, mount_feeding, mount_feeding_wire
+        from wakfu_server.progression import level_xp
+        from wakfu_server.mount_publication import equipment_changes
+
+        template = self._captured_player_template()
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value='false'::jsonb "
+                "WHERE name='pet_feeding_daily_limit_enabled'"
+            )
+            db.execute(
+                "UPDATE character_progression SET xp=%s WHERE character_id=%s",
+                (level_xp(35), self.character["id"]),
+            )
+        pet = self._grant_mount()
+        character = self.store.character(self.account, self.character["id"])
+        food = grant(
+            self.store,
+            self.account,
+            self.generation,
+            self.character["id"],
+            reference=18378,
+            quantity=8,
+            container=character["inventory_containers"][0]["uid"],
+            slot=1,
+            allowed_references={18378},
+        )
+        self._save_build(0, pet["uid"])
+        self._save_build(1)
+        mounted = self.store.activate_build(
+            self.account,
+            self.generation,
+            self.character["id"],
+            0,
+            in_fight=False,
+        )
+
+        body = mount_feeding_wire.encode_request(food["uid"], pet["uid"], 8)
+        result = mount_feeding.feed(
+            self.store,
+            self.account,
+            self.generation,
+            self.character["id"],
+            body,
+            in_fight=False,
+        )
+        fed = result["character"]
+        self.assertEqual(equipment_stats.combat_resources(fed)["stats"].get(20, 0), 6)
+        opcode, refresh = wire.refresh_player(template, fed)
+        self.assertEqual(opcode, 15548)
+        entity_size = struct.unpack_from(">h", refresh, 8)[0]
+        entity = refresh[10 : 10 + entity_size]
+        self._assert_owned_format11_characteristics(template, entity, fed, 6)
+
+        artifact_path = os.environ.get("WAKFU_NATIVE_ENTITY_REFRESH_ARTIFACT")
+        if artifact_path:
+            Path(artifact_path).write_bytes(entity)
+
+        unequipped = self.store.activate_build(
+            self.account,
+            self.generation,
+            self.character["id"],
+            1,
+            in_fight=False,
+        )
+        packets = equipment_changes(template, fed, unequipped)
+        self.assertEqual([packet[0] for packet in packets], [15548, 13928])
+        body = packets[0][1]
+        entity_size = struct.unpack_from(">h", body, 8)[0]
+        self._assert_owned_format11_characteristics(
+            template, body[10 : 10 + entity_size], unequipped, 0
+        )
+
+        reequiped = self.store.activate_build(
+            self.account,
+            self.generation,
+            self.character["id"],
+            0,
+            in_fight=False,
+        )
+        packets = equipment_changes(template, unequipped, reequiped)
+        self.assertEqual([packet[0] for packet in packets], [15548, 13928])
+        body = packets[0][1]
+        entity_size = struct.unpack_from(">h", body, 8)[0]
+        self._assert_owned_format11_characteristics(
+            template, body[10 : 10 + entity_size], reequiped, 6
+        )
+        self.assertEqual(
+            equipment_stats.combat_resources(reequiped)["stats"].get(20, 0), 6
+        )
 
     def test_invalid_actor_identity_or_nonboolean_riding_state_is_rejected(self):
         from wakfu_server.mount_publication import equipment_changes
@@ -719,7 +861,13 @@ class MountPublicationTests(PostgresCase):
             decorator_list=[],
         )
         tree = ast.fix_missing_locations(ast.Module(body=[wrapper], type_ignores=[]))
-        namespace = {"WORLD": fake_world, "PLAYER_TEMPLATE": b"template"}
+        from wakfu_server.performance_profiler import PROFILER
+
+        namespace = {
+            "PLAYER_TEMPLATE": b"template",
+            "PROFILER": PROFILER,
+            "WORLD": fake_world,
+        }
         exec(compile(tree, str(source_path), "exec"), namespace)
         generation = object()
         publisher = namespace["make_publisher"](object(), generation)

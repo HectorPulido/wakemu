@@ -1,5 +1,30 @@
 # 30. Mesas de oficio ausentes o inoperantes
 
+## Live r55 corrections — source verified, deployment pending
+
+Hector reported gem recovery blocked, exterior actors retained and furniture
+inventory use rejected as a seed. The corrected native flow learns furniture
+through 12-byte generic item actions, persists account knowledge (migration083),
+then places virtual collection furniture; packing does not refund the learning
+item. Gem serialization now fixes only the entrance primary, and bag transitions
+clear the previous map actors. **50 focused tests passed with zero skips**, plus
+real-client Java packet oracles. No visual acceptance or deployment is claimed
+here; use the complete acceptance guide linked below after integration.
+
+## Haven Bag extension — source status, 2026-10-09
+
+Hector confirmed decorative gem assignment, but explicitly reports that persistence
+is missing or not accepted. Do not mark gem persistence accepted. Inventory-backed decoration placement,
+packing, private garden planting/harvesting and portable native crafting are now
+implemented in the shared checkout, pending complete-image integration and
+publication of `haven-bag-furniture-catalog.json`. This is not a deployment or
+visual acceptance claim. Selling remains lower priority and outside this scope.
+See the [complete acceptance journey](../26-insertar-y-retirar-merkagemas/HAVEN-BAG-SYSTEM-ACCEPTANCE.md)
+for exact item grants, expected results and current limits.
+Focused source verification: **67 tests passed, zero failures/skips**, including
+real PostgreSQL ownership, garden lifecycle and gem rearrangement persistence.
+The current deployed image and reported visual persistence defect remain unaccepted.
+
 Cargar mesas visibles y ejecutar recetas con consumo, producto y XP consistentes.
 
 [Diagnóstico](DIAGNOSTICO.md) · [Cotejo de código](COTEJO.md) · [Solución](SOLUCION.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md)

@@ -164,6 +164,14 @@ def validate(character, index, blobs):
         validate_deck(blobs["deck"], character["breed"], cap)
 
 
+def validated_saved_blobs(character, index, blobs):
+    """Validate the exact replacement record, including retained empty fields."""
+    previous = character.get("builds", {}).get(index, {})
+    merged = {key: blobs[key] or bytes.fromhex(previous.get(key, "")) for key in KEYS}
+    validate(character, index, merged)
+    return merged
+
+
 def response(character, index, status=0):
     # ctU.dp calls eQQ.eP(byte), which indexes values(): OK=0. eQQ.d()
     # returns a separate localization error code (-1 for OK), not the wire byte.

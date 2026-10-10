@@ -1235,6 +1235,15 @@ class NativeEffectRuntimeFactory:
                 preview, plan, effect, values, invocation, children
             ),
         )
+        if self.displacement_authority is not None:
+            from .combat_carry_release import execute_carry_release
+
+            displacement.carry_release_executor = (
+                lambda effect, invocation, actor: execute_carry_release(
+                    preview, self.effects, dispatcher.execute, invocation, actor
+                )
+            )
+
         state = NativeStateHandler(
             preview,
             packets,
@@ -1305,6 +1314,9 @@ class NativeEffectRuntimeFactory:
                         lambda: NativeCostPaymentEvents.from_healing(
                             healing.event_lifecycle
                         )
+                    )
+                    dispatcher.native_cost_payment_events_factory = (
+                        consume_resources.event_lifecycle_factory
                     )
                     state.event_lifecycle = healing.event_lifecycle
                     property_clear.event_lifecycle = healing.event_lifecycle

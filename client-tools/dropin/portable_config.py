@@ -103,8 +103,12 @@ def settings():
     open_planting = config.get("open_planting", True)
     if type(open_planting) is not bool:
         raise ValueError("open_planting must be boolean")
+    open_dungeon_missions = config.get("open_dungeon_missions", host == "127.0.0.1")
+    if type(open_dungeon_missions) is not bool:
+        raise ValueError("open_dungeon_missions must be boolean")
     return dict(
         open_planting=open_planting,
+        open_dungeon_missions=open_dungeon_missions,
         server_host=host,
         server_name=name,
         api_url=api,

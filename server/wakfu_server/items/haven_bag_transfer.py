@@ -7,7 +7,7 @@ import copy
 import struct
 from psycopg.types.json import Jsonb
 
-from .haven_bag_store import GEM_TYPES
+from .haven_bag_store import GEM_TYPES, owner_id
 
 
 def can_transfer(bag_session, character, *, fight_active):
@@ -15,6 +15,7 @@ def can_transfer(bag_session, character, *, fight_active):
     return (
         fight_active is False
         and bag_session is not None
+        and bag_session.is_owner
         and bag_session.owns(character)
     )
 
@@ -102,12 +103,15 @@ def insert(store, account_id, generation, character_id, body, *, location):
     if (
         not isinstance(location, dict)
         or location.get("map_id") != 9
-        or location.get("instance_id") != character_id
+        or type(location.get("instance_id")) is not int
     ):
         raise ValueError("Gem insertion requires the owner's active haven bag")
     with store.connection() as db:
         store.lock_character(db, account_id, generation, character_id)
-        layout = _layout_row(db, character_id)
+        bag_id = owner_id(db, character_id)
+        if location["instance_id"] != bag_id:
+            raise ValueError("Gem transfer requires the account owner bag")
+        layout = _layout_row(db, bag_id)
         rooms = _rooms(layout)
         room = rooms.get(request["room"])
         if room is None:
@@ -119,7 +123,7 @@ def insert(store, account_id, generation, character_id, body, *, location):
         installed = db.execute(
             "SELECT uid FROM haven_bag_gems WHERE account_id=%s AND character_id=%s "
             "AND room_index=%s AND source_uid=%s ORDER BY primary_slot DESC LIMIT 1",
-            (account_id, character_id, request["room"], source_uid),
+            (account_id, bag_id, request["room"], source_uid),
         ).fetchone()
         if installed is not None:
             current = store.character(account_id, character_id, db)
@@ -208,7 +212,7 @@ def insert(store, account_id, generation, character_id, body, *, location):
             (
                 item_uid,
                 account_id,
-                character_id,
+                bag_id,
                 request["room"],
                 primary_slot,
                 ref,
@@ -224,7 +228,7 @@ def insert(store, account_id, generation, character_id, body, *, location):
         room["enabled"] = True
         db.execute(
             "UPDATE haven_bags SET layout=%s WHERE character_id=%s",
-            (Jsonb(layout), character_id),
+            (Jsonb(layout), bag_id),
         )
         packets.append((12234, struct.pack(">qB", item_uid, request["room"])))
         current = store.character(account_id, character_id, db)
@@ -243,14 +247,17 @@ def remove(store, account_id, generation, character_id, body, *, location):
     if (
         not isinstance(location, dict)
         or location.get("map_id") != 9
-        or location.get("instance_id") != character_id
+        or type(location.get("instance_id")) is not int
     ):
         raise ValueError("Gem removal requires the owner's active haven bag")
     if location.get("other_occupants", False) is not False:
         raise ValueError("Cannot remove a gem while visitors are in the haven bag")
     with store.connection() as db:
         store.lock_character(db, account_id, generation, character_id)
-        layout = _layout_row(db, character_id)
+        bag_id = owner_id(db, character_id)
+        if location["instance_id"] != bag_id:
+            raise ValueError("Gem transfer requires the account owner bag")
+        layout = _layout_row(db, bag_id)
         rooms = _rooms(layout)
         room = rooms.get(request["room"])
         if room is None:
@@ -264,11 +271,20 @@ def remove(store, account_id, generation, character_id, body, *, location):
         if request["primary"] and room["secondary_ref"] != -1:
             raise ValueError("Remove the secondary gem before the primary gem")
         if request["primary"]:
+            if db.execute(
+                "SELECT 1 FROM planted_resources WHERE map_id=9 AND instance_id=%s "
+                "AND (x / 6) * 3 + (y / 6)=%s LIMIT 1",
+                (bag_id, request["room"]),
+            ).fetchone():
+                raise ValueError("Remove garden plants before removing the room gem")
             bag = db.execute(
                 "SELECT furniture FROM haven_bags WHERE character_id=%s",
-                (character_id,),
+                (bag_id,),
             ).fetchone()
-            if any(item.get("room") == request["room"] for item in bag["furniture"]):
+            if any(
+                item.get("deployed") and item.get("room") == request["room"]
+                for item in bag["furniture"]
+            ):
                 raise ValueError("Cannot disable a room that still contains furniture")
 
         target = db.execute(
@@ -286,7 +302,7 @@ def remove(store, account_id, generation, character_id, body, *, location):
         gem = db.execute(
             "SELECT * FROM haven_bag_gems WHERE uid=%s AND account_id=%s AND character_id=%s "
             "AND room_index=%s AND primary_slot=%s FOR UPDATE",
-            (uid, account_id, character_id, request["room"], request["primary"]),
+            (uid, account_id, bag_id, request["room"], request["primary"]),
         ).fetchone()
         if gem is None or gem["reference"] != ref:
             raise ValueError("Gem ownership record does not match the room")
@@ -311,9 +327,14 @@ def remove(store, account_id, generation, character_id, body, *, location):
         room["enabled"] = request["room"] == 0 or room["primary_ref"] != -1
         db.execute(
             "UPDATE haven_bags SET layout=%s WHERE character_id=%s",
-            (Jsonb(layout), character_id),
+            (Jsonb(layout), bag_id),
         )
         current = store.character(account_id, character_id, db)
+        from .inventory_items import insertion
+
+        restored_item = next(
+            item for item in current["inventory_items"] if item["uid"] == uid
+        )
         return {
             "uid": uid,
             "container": request["container"],
@@ -331,6 +352,10 @@ def remove(store, account_id, generation, character_id, body, *, location):
                         request["room"],
                         request["primary"],
                     ),
-                )
+                ),
+                # Native bpq.a(BJBZZ) only removes the room gem for remote
+                # acknowledgements; it never inserts it into the inventory.
+                # Publish the restored item after removing its room reference.
+                insertion(restored_item),
             ],
         }

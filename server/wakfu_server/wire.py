@@ -71,6 +71,13 @@ def minimal_entity(body, character):
             # rk constructor and clear(): rank/jobs/voteDate (3*i64),
             # governmentOpinion/candidate/pvpRank (3*byte), all zero.
             replacement = bytes(27)
+        elif (
+            section["name"] == "WORLD_PROPERTIES"
+            and character.get("exploration_secrets") is not None
+        ):
+            from wakfu_server.characters.exploration_secrets import world_properties
+
+            replacement = world_properties(character)
         elif section["name"] == "COSMETICS":
             from wakfu_server.characters.cosmetics import actor_component
 
@@ -89,6 +96,8 @@ def minimal_entity(body, character):
             from wakfu_server.inventory import bags
 
             replacement = bags(character)
+        elif section["name"] == "PUBLIC_CHARACTERISTICS":
+            replacement = owned_public_characteristics(character)
         elif section["name"] == "PET":
             from .mount_inventory import actor_pet
 
@@ -126,6 +135,51 @@ def minimal_entity(body, character):
         if replacement is not None:
             body = body[: section["start"]] + replacement + body[section["end"] :]
     return body
+
+
+def owned_public_characteristics(character):
+    """Use the existing authoritative PC codec for a world actor refresh.
+
+    A full PET/entity refresh must not restore the captured template's public
+    characteristics over the owned actor's effective equipment and aptitudes.
+    """
+    from wakfu_server.combat_actor import actor_stats
+    from wakfu_server.equipment_stats import effective_character, combat_resources
+
+    owned = effective_character(character)
+    resources = combat_resources(owned)
+    blob = actor_stats(
+        owned,
+        1,
+        wp=resources["wp"],
+        ap=resources["ap"],
+        mp=resources["mp"],
+        initiative=resources["initiative"],
+    )
+    offset = 1 + 8 + struct.calcsize(">iihqBB") + struct.calcsize(">iBBBBbB")
+    count = struct.unpack_from(">H", blob, offset)[0]
+    row_size = struct.calcsize(">Biiii")
+    from wakfu_server.combat.combat_actor_snapshot import native_actor_catalog
+
+    # A refresh can target an actor that previously received a richer capture
+    # or another equipment sheet. Send native defaults explicitly so omitted
+    # damage/resistance rows cannot survive from that older snapshot.
+    rows = {
+        int(identity): (
+            int(identity),
+            row["current"],
+            row["minimum"],
+            row["maximum"],
+            0,
+        )
+        for identity, row in native_actor_catalog()["characteristics"].items()
+    }
+    for index in range(count):
+        row = struct.unpack_from(">Biiii", blob, offset + 2 + index * row_size)
+        rows[row[0]] = row
+    return struct.pack(">H", len(rows)) + b"".join(
+        struct.pack(">Biiii", *row) for _, row in sorted(rows.items())
+    )
 
 
 def appearance_section(appearance):

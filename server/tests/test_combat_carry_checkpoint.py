@@ -22,6 +22,7 @@ class CarryCheckpointTests(unittest.TestCase):
                         carried_direction=3,
                         carrier_direction=1,
                         source_uid=205,
+                        source_reference=None,
                     )
                 },
             },

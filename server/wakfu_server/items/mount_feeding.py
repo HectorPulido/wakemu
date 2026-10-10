@@ -126,10 +126,14 @@ def feed(store, account_id, generation, character_id, body, *, in_fight):
         ):
             raise ValueError("Invalid pet food policy")
 
+        from .mount_inventory import daily_limit_enabled
+
+        enforce_daily_limit = daily_limit_enabled(db)
         if mount["sleep_item_ref"] > 0 or mount["sleep_date"] > 0:
             raise ValueError("Feeding a sleeping pet is unsupported")
         if (
-            effect["effect_kind"] == "xp"
+            enforce_daily_limit
+            and effect["effect_kind"] == "xp"
             and mount["last_meal_date"] > 0
             and datetime.fromtimestamp(
                 mount["last_meal_date"] / 1000, timezone.utc
@@ -214,6 +218,11 @@ def feed(store, account_id, generation, character_id, body, *, in_fight):
         packets = mount_feeding_wire.publication_packets(
             food, updated_pet, request["quantity"]
         )
+        # Equipped pet panels resolve a separate rich item registry. Physical
+        # bag replacement alone leaves that registry's ProtoPet stale.
+        from .inventory_items import equipment_inventory
+
+        packets.append(equipment_inventory(character))
         snapshot = dict(
             pet_uid=pet_item["uid"],
             food_uid=food["uid"],

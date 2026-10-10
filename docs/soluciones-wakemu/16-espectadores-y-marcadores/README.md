@@ -1,5 +1,44 @@
 # 16. No se pueden ver los combates
 
+## Latest manual feedback
+
+Late observers cannot see summons/beacons and can become blocked. Late-entry
+publication/synchronization remains open. Defeated mobs disappear for everyone
+and observers receive no rewards; these paths are accepted by Hector.
+
+## Live r56 acceptance — 2026-10-09
+
+Hector accepts sword placement, joining and observation. Participant A receives
+drops, XP and kamas; observer B correctly receives none. The remaining defect is
+terminal world cleanup: B retains the defeated NPC after A returns to the world.
+Do not treat the historical unintegrated-spectator statements below as current.
+
+Fight106 captures establish two normal terminal12238 events to B and no native
+return12925/leave12154. Only A receives the NPC12304 removal. Source now fences
+terminal marker publication to committed settlement, deduplicates observer
+termination, and replays authoritative map/instance tombstones before additive
+world spawns. These changes pass53 focused tests (including isolated PostgreSQL)
+and the original ctA decoder. The client completion hook now preserves the
+native coQ12925 path for spectators after aUH cleanup; its transformed class
+passes JVM verification and native codec checks. Full client relaunch and the
+next complete server deployment are required; no deployment or restart occurred
+while Hector continues the other acceptance tests.
+[Terminal cleanup evidence](../../reports/combat-inventory/spectator-terminal-world-cleanup-20261009.md).
+
+## Latest diagnosis — 2026-10-09
+
+The misplaced external swords have a confirmed geometry cause: the server
+anchored the QI origin on the initiator, but native `aII.d` uses `QI.bdT()`,
+the rectangle's center. Captured fights104/105 therefore preferred a point
+26 cells in X and24 in Y away from the initiator. The public marker now centers
+its rectangle on that cell in source; participant combat geometry is preserved.
+23 focused tests and original-client QI center checks pass. This correction
+has not been deployed by this investigation; visual acceptance remains pending.
+[Evidence and acceptance](../../reports/combat-inventory/external-sword-center-20261009.md).
+
+Hector confirms working shared joining, friendly challenges, and interactive
+elements. Historical pending statements below must not override that feedback.
+
 Mostrar combates vivos y permitir observación sin autoridad para actuar.
 
 [Diagnóstico](DIAGNOSTICO.md) · [Cotejo de código](COTEJO.md) · [Solución](SOLUCION.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md)
@@ -116,3 +155,10 @@ Dos cuentas de prueba propias entraron al mapa1134. Observador recibió13753 de 
 ## Aceptación parcial r16 y desconexión posterior
 
 El usuario confirma que pudo observar un combate completo. Después, al intentar iniciar otra pelea, se desconectó. No hubo reinicio: world sigue con inicio2026-10-07T21:43:03Z y RestartCount0. En fight34, el guardado empezó22:31:05.148Z y rechazó la sesión obsoleta22:32:19.532Z, unos74 segundos después. El espectador y el combatiente expiraron en ese intervalo. La espera exacta dentro del checkpoint aún no está identificada; no atribuirla a PostgreSQL o al retorno visual sin evidencia. Evidencia local privada: `.runtime/local/r16-spectator-disconnect-evidence.json`. Observación aceptada parcialmente, continuidad y nuevo combate pendientes.
+# Latest user report — 2026-10-09
+
+Hector confirms working interactive elements, shared-fight joining, and friendly challenges. External swords remain defective: a newly started fight had no nearby swords for joining or observing, while Jalató dungeon fights previously displayed them. The user suspects displacement from the initiator's original position; the actual rendered coordinates have not been established.
+
+Read-only inspection found marker publication for fight 105 on map 527, instance 0, at 18:04:07 UTC, delivered to one recipient. This is a recent candidate event, not a confirmed identification of the user's reported attempt. The emitter captures `world_marker_origin` from the initiating character and translates the external QI envelope to that origin. The original `ckM` consumer constructs the terrain presentation from QI origin/min-Z. Neither fact proves correct final sprite placement. Compare the observer's decoded 13753 and rendered position with the initiator's pre-fight world position before changing geometry. Preserve the participant arena, shared joining, and duel behavior.
+
+Status: partially working; external marker placement/visibility remains open. Do not ask Hector to repeat basic joining, challenges, or interactive-element acceptance.

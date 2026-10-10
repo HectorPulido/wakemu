@@ -1,9 +1,8 @@
-"""Persisted fnR.foX element selections, never rerolled by equipping.
+"""Persisted fnR.foX element choices, never assigned before identification.
 
-foX.cL draws without replacement from FIRE/WATER/EARTH/AIR at creation.
-kX.elements/le stores two masks; absence means foX=null and no eWe bonus.
+New selectable items carry zero masks until the native 12487 choice. The
+client treats these masks as unidentified; existing saved choices remain intact.
 """
-from random import SystemRandom
 
 ELEMENTS = (1, 2, 3, 4)
 FIELDS = {1068: "damage_elements", 1069: "resistance_elements"}
@@ -25,30 +24,28 @@ def masks(item):
     return values
 
 
-def create(reference, *, rng=None):
+def create(reference):
     from .equipment_stats import CATALOG
 
     item = CATALOG.get(reference)
     if item is None:
         return None
     selection = dict(damage_elements=0, resistance_elements=0)
-    found = False
+    seen = set()
     for effect in item["effects"]:
         family = effect["generic"]
         if family not in FIELDS:
             continue
-        # Native foX.cL uses (int)eVn.So(1), the raw parameter, not level growth.
+        # Native selectable element count is the raw parameter, not level growth.
         count = int(effect["params"][2])
         if not 0 <= count <= len(ELEMENTS):
-            raise ValueError("Unsupported native random element count")
-        if selection[FIELDS[family]]:
+            raise ValueError("Unsupported native selectable element count")
+        if family in seen:
             raise ValueError(
                 "Repeated native element selection requires reroll semantics"
             )
-        chosen = (SystemRandom() if rng is None else rng).sample(ELEMENTS, count)
-        selection[FIELDS[family]] = sum(1 << element for element in chosen)
-        found = True
-    return selection if found else None
+        seen.add(family)
+    return selection if seen else None
 
 
 def save(db, uid, selection):

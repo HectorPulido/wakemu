@@ -5,22 +5,12 @@ floors. Columns with multiple reachable heights remain blocked; no height or
 movement connection is invented to accommodate a fight participant.
 """
 from collections import defaultdict, deque
-
-
-def _cell(value):
-    if isinstance(value, dict):
-        value = value.get("position", (value.get("x"), value.get("y"), value.get("z")))
-    if not isinstance(value, (list, tuple)) or len(value) != 3:
-        raise ValueError("Invalid arena participant or topology coordinate")
-    x, y, z = value
-    if (
-        any(type(n) is not int for n in value)
-        or not -(1 << 31) <= x < (1 << 31)
-        or not -(1 << 31) <= y < (1 << 31)
-        or not -(1 << 15) <= z < (1 << 15)
-    ):
-        raise ValueError("Arena coordinate is outside native bounds")
-    return x, y, z
+from .combat_geometry import (
+    coordinate as _cell,
+    prepare_geometry,
+    reachable,
+    edges_within,
+)
 
 
 def _reachable(origin, cells, edges):
@@ -45,27 +35,14 @@ def bounded_arena(data, player, members, radius=12):
     Chebyshev window around the player. All monster positions must be reachable
     within the cropped arena; no relocation or guessed alternate floor occurs.
     """
-    if not isinstance(data, dict) or type(data.get("map_id")) is not int:
-        raise ValueError("Arena requires exported map metadata")
     if type(radius) is not int or not 1 <= radius <= 89:
         raise ValueError("Arena radius exceeds native rectangle limits")
     origin = _cell(player)
     members = [_cell(member) for member in members]
     if not members or len(members) > 126 or len({origin, *members}) != len(members) + 1:
         raise ValueError("Fight participants overlap or exceed native roster limits")
-    cells = {_cell(cell) for cell in data["cells"]}
-    edges = set()
-    for edge in data["edges"]:
-        if not isinstance(edge, (list, tuple)) or len(edge) != 2:
-            raise ValueError("Invalid native topology edge")
-        start, end = map(_cell, edge)
-        if (
-            start not in cells
-            or end not in cells
-            or abs(start[0] - end[0]) + abs(start[1] - end[1]) != 1
-        ):
-            raise ValueError("Native topology edge is missing or nonadjacent")
-        edges.add((start, end))
+    geometry = prepare_geometry(data)
+    cells = geometry.cells
     cropped = {
         cell
         for cell in cells
@@ -73,7 +50,7 @@ def bounded_arena(data, player, members, radius=12):
     }
     if origin not in cropped or any(member not in cropped for member in members):
         raise ValueError("Participant is outside exported walkable arena bounds")
-    reached = _reachable(origin, cropped, edges)
+    reached = reachable(origin, cropped, geometry.outgoing)
     columns = defaultdict(list)
     for cell in reached:
         columns[cell[:2]].append(cell)
@@ -82,18 +59,16 @@ def bounded_arena(data, player, members, radius=12):
         raise ValueError("Participant occupies an ambiguous reachable floor")
     selected = {cell for cell in reached if cell[:2] not in ambiguous}
     # Removing an ambiguous bridge may detach otherwise reachable cells.
-    selected = _reachable(origin, selected, edges)
+    selected = reachable(origin, selected, geometry.outgoing)
     if any(member not in selected for member in members):
         raise ValueError("Monster group is unreachable in the safe bounded arena")
-    chosen_edges = {
-        (start, end) for start, end in edges if start in selected and end in selected
-    }
+    chosen_edges = edges_within(selected, geometry.outgoing)
     xmin, xmax = min(c[0] for c in selected), max(c[0] for c in selected)
     ymin, ymax = min(c[1] for c in selected), max(c[1] for c in selected)
     if (xmax - xmin + 1) * (ymax - ymin + 1) > 32767:
         raise ValueError("Arena rectangle exceeds native wire bounds")
     return dict(
-        map_id=data["map_id"],
+        map_id=geometry.map_id,
         cells=selected,
         edges=chosen_edges,
         placement={0: [origin], 1: members},
@@ -103,17 +78,139 @@ def bounded_arena(data, player, members, radius=12):
 
 
 MAX_CELL_BUDGET = 2500
+MIN_ENCOUNTER_CELLS = 25
 
 
-def compact_encounter(data, player, members, cell_budget=None):
+def _bounds(cells):
+    return (
+        min(c[0] for c in cells),
+        min(c[1] for c in cells),
+        max(c[0] for c in cells),
+        max(c[1] for c in cells),
+    )
+
+
+def _rectangle_area(bounds):
+    xmin, ymin, xmax, ymax = bounds
+    return (xmax - xmin + 1) * (ymax - ymin + 1)
+
+
+def _preferred_originals(origin, originals, cells, budget):
+    """Keep reachable original positions whose combined rectangle can fit."""
+    preferred = {origin}
+    for original in originals:
+        if original in cells:
+            candidate = preferred | {original}
+            if _rectangle_area(_bounds(candidate)) <= budget:
+                preferred = candidate
+    return preferred
+
+
+def _rectangular_encounter(origin, preferred, cells, geometry, minimum, target, budget):
+    """Prefer native rectangular crops, never inventing cells in their holes."""
+    limits = _bounds(cells)
+    xmin, ymin, xmax, ymax = _bounds(preferred)
+    bounds = (
+        max(limits[0], xmin - 1),
+        max(limits[1], ymin - 1),
+        min(limits[2], xmax + 1),
+        min(limits[3], ymax + 1),
+    )
+    if _rectangle_area(bounds) > budget:
+        bounds = (xmin, ymin, xmax, ymax)
+    by_xy = {(x, y): (x, y, z) for x, y, z in cells}
+    # Native walls may make padding impossible. Never move the player or
+    # invent a floor to turn such a wall into a fight perimeter.
+    padded_preferred = {
+        cell
+        for cell in preferred
+        if all(
+            (cell[0] + dx, cell[1] + dy) in by_xy
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+        )
+    }
+    target = min(target, len(cells))
+    while True:
+        xmin, ymin, xmax, ymax = bounds
+        width, height = xmax - xmin + 1, ymax - ymin + 1
+        needs_width, needs_height = width < minimum[0], height < minimum[1]
+        if not needs_width and not needs_height:
+            cropped = {
+                by_xy[(x, y)]
+                for x in range(xmin, xmax + 1)
+                for y in range(ymin, ymax + 1)
+                if (x, y) in by_xy
+            }
+            connected = reachable(origin, cropped, geometry.outgoing) & reachable(
+                origin, cropped, geometry.incoming
+            )
+            interior = connected - cardinal_border_cells(connected)
+            if (
+                len(interior) >= target
+                and preferred <= connected
+                and padded_preferred <= interior
+            ):
+                return connected
+        choices = []
+        for candidate in (
+            (xmin - 1, ymin, xmax, ymax),
+            (xmin, ymin, xmax + 1, ymax),
+            (xmin, ymin - 1, xmax, ymax),
+            (xmin, ymin, xmax, ymax + 1),
+        ):
+            lo_x, lo_y, hi_x, hi_y = candidate
+            if (
+                lo_x < limits[0]
+                or lo_y < limits[1]
+                or hi_x > limits[2]
+                or hi_y > limits[3]
+                or _rectangle_area(candidate) > budget
+            ):
+                continue
+            grows_width = hi_x - lo_x + 1 > width
+            if needs_width and not needs_height and not grows_width:
+                continue
+            if needs_height and not needs_width and grows_width:
+                continue
+            aspect = abs(
+                (hi_x - lo_x + 1) / minimum[0] - (hi_y - lo_y + 1) / minimum[1]
+            )
+            choices.append((aspect, _rectangle_area(candidate), candidate))
+        if not choices:
+            return None
+        bounds = min(choices)[2]
+
+
+def compact_encounter(
+    data,
+    player,
+    members,
+    cell_budget=None,
+    *,
+    minimum_cells=25,
+    minimum_dimensions=(5, 5),
+):
     """Local encounter formation on one mutually reachable native component.
 
-    Monster world coordinates are preferences, not mandatory combat positions.
-    The player remains anchored. The requested4900-cell budget is independent
-    of aspect ratio. Native directed edges and selected heights are preserved,
-    including after ambiguous-column removal and budget truncation.
+    Automatic selection preserves feasible original monster positions and
+    leaves maneuvering space beyond both placement teams. Native rectangular
+    crops are preferred, with a bounded BFS fallback for irregular terrain.
+    Smaller native components remain usable. Directed edges, native heights,
+    and ambiguous-column removal remain authoritative.
     """
-    if cell_budget is None:
+    if type(minimum_cells) is not int or not 25 <= minimum_cells <= 49:
+        raise ValueError("Automatic encounter minimum must be between 25 and 49")
+    if (
+        not isinstance(minimum_dimensions, (tuple, list))
+        or len(minimum_dimensions) != 2
+        or any(
+            type(value) is not int or not 5 <= value <= 7
+            for value in minimum_dimensions
+        )
+    ):
+        raise ValueError("Automatic encounter dimensions must be between 5 and 7")
+    automatic_size = cell_budget is None
+    if automatic_size:
         cell_budget = MAX_CELL_BUDGET
 
     origin = _cell(player)
@@ -124,19 +221,14 @@ def compact_encounter(data, player, members, cell_budget=None):
         raise ValueError(
             "Encounter cell budget must be between2 and " + str(MAX_CELL_BUDGET)
         )
-    cells = {_cell(cell) for cell in data["cells"]}
-    edges = {tuple(map(_cell, edge)) for edge in data["edges"]}
-    # Reuse strict topology validation before selecting/repositioning anybody.
-    if any(
-        a not in cells or b not in cells or abs(a[0] - b[0]) + abs(a[1] - b[1]) != 1
-        for a, b in edges
-    ):
-        raise ValueError("Invalid native encounter topology edge")
+    geometry = prepare_geometry(data)
+    cells = geometry.cells
     cropped = cells
     if origin not in cropped:
         raise ValueError("Player is outside native encounter terrain")
-    reverse = {(b, a) for a, b in edges}
-    selected = _reachable(origin, cropped, edges) & _reachable(origin, cropped, reverse)
+    selected = reachable(origin, cropped, geometry.outgoing) & reachable(
+        origin, cropped, geometry.incoming
+    )
     columns = defaultdict(list)
     for cell in selected:
         columns[cell[:2]].append(cell)
@@ -144,24 +236,35 @@ def compact_encounter(data, player, members, cell_budget=None):
     if origin[:2] in ambiguous:
         raise ValueError("Player occupies ambiguous native encounter surface")
     selected = {c for c in selected if c[:2] not in ambiguous}
-    selected = _reachable(origin, selected, edges) & _reachable(
-        origin, selected, reverse
+    selected = reachable(origin, selected, geometry.outgoing) & reachable(
+        origin, selected, geometry.incoming
     )
+    preferred = _preferred_originals(origin, originals, selected, cell_budget)
+    target_cells = max(minimum_cells, 12 + max(12, len(originals)) + 12)
+    rectangle = None
+    if automatic_size:
+        rectangle = _rectangular_encounter(
+            origin,
+            preferred,
+            selected,
+            geometry,
+            minimum_dimensions,
+            target_cells,
+            cell_budget,
+        )
     # The requested map budget includes blocked rectangle holes, not only
-    # playable cells. Native dimensions are int32 and mask count allows32767,
-    # but the encounter policy caps both selected cells and the rectangle4900.
-    # Flexible shapes such as10x490 remain valid.
-    outgoing_full = defaultdict(set)
-    for a, b in edges:
-        if a in selected and b in selected:
-            outgoing_full[a].add(b)
-    bounded = {origin}
-    queue = deque([origin])
+    # playable cells. Both the selected count and rectangle are capped.
+    # Narrow native corridors remain valid without invented floor cells.
+    bounded = rectangle if rectangle is not None else {origin}
+    queue = deque() if rectangle is not None else deque([origin])
     xmin = xmax = origin[0]
     ymin = ymax = origin[1]
+    best_fallback = None
     while queue and len(bounded) < cell_budget:
         current = queue.popleft()
-        for target in sorted(outgoing_full[current]):
+        for target in geometry.outgoing.get(current, ()):
+            if target not in selected:
+                continue
             if target in bounded:
                 continue
             lo_x, hi_x = min(xmin, target[0]), max(xmax, target[0])
@@ -171,26 +274,42 @@ def compact_encounter(data, player, members, cell_budget=None):
             bounded.add(target)
             queue.append(target)
             xmin, xmax, ymin, ymax = lo_x, hi_x, lo_y, hi_y
+            if automatic_size and len(bounded) >= target_cells:
+                connected = reachable(origin, bounded, geometry.outgoing) & reachable(
+                    origin, bounded, geometry.incoming
+                )
+                if len(connected) >= target_cells and preferred <= connected:
+                    bounded = connected
+                    queue.clear()
+                    break
+                if len(connected) >= target_cells and (
+                    best_fallback is None
+                    or len(preferred & connected) > len(preferred & best_fallback)
+                ):
+                    best_fallback = connected
             if len(bounded) == cell_budget:
                 break
-    selected = _reachable(origin, bounded, edges) & _reachable(origin, bounded, reverse)
+    selected = reachable(origin, bounded, geometry.outgoing) & reachable(
+        origin, bounded, geometry.incoming
+    )
+    if automatic_size and not preferred <= selected and best_fallback is not None:
+        selected = best_fallback
     if len(selected) <= len(originals):
         raise ValueError(
             "Native reachable encounter component lacks participant capacity"
         )
-    outgoing = defaultdict(set)
-    for a, b in edges:
-        if a in selected and b in selected:
-            outgoing[a].add(b)
     distances = {origin: 0}
     pending = deque([origin])
     while pending:
         current = pending.popleft()
-        for target in sorted(outgoing[current]):
+        for target in geometry.outgoing.get(current, ()):
+            if target not in selected:
+                continue
             if target not in distances:
                 distances[target] = distances[current] + 1
                 pending.append(target)
     free = selected - {origin}
+    interior = selected - cardinal_border_cells(selected)
     relocated = []
     for original in originals:
         if original in free:
@@ -199,7 +318,7 @@ def compact_encounter(data, player, members, cell_budget=None):
             # Compact opposing formation around six native path steps; source
             # position breaks ties without expanding the fight to world groups.
             chosen = min(
-                free,
+                free & interior or free,
                 key=lambda c: (
                     abs(distances[c] - 6),
                     abs(c[0] - original[0]) + abs(c[1] - original[1]),
@@ -208,9 +327,9 @@ def compact_encounter(data, player, members, cell_budget=None):
             )
         relocated.append(chosen)
         free.remove(chosen)
-    chosen_edges = {(a, b) for a, b in edges if a in selected and b in selected}
+    chosen_edges = edges_within(selected, geometry.outgoing)
     return dict(
-        map_id=data["map_id"],
+        map_id=geometry.map_id,
         cells=selected,
         edges=chosen_edges,
         placement={0: [origin], 1: relocated},

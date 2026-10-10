@@ -1,5 +1,14 @@
 # 13. Mensajes privados y otros canales de chat
 
+## Manual acceptance: contacts and ignored players
+
+Hector confirms all five review steps work perfectly: adding a contact survives
+reconnect; private messages arrive normally; ignoring the sender blocks delivery;
+the ignored entry and blocking survive reconnect; removing the ignored entry
+restores private-message delivery. Contacts and ignored-player behavior under13
+is manually accepted. This test does not cover DND or remaining guild/intergame/
+admin/political/PvP channels. Do not request these five checks again.
+
 Enrutar cada mensaje solo a los destinatarios del canal correspondiente.
 
 [Diagnóstico](DIAGNOSTICO.md) · [Cotejo de código](COTEJO.md) · [Solución](SOLUCION.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md)

@@ -52,6 +52,13 @@ class SpectatorEventFilterTests(unittest.TestCase):
             (),
         )
 
+    def test_placement_positions_and_native_action_flush_reach_spectators(self):
+        positions = (13652, struct.pack(">ihqiihB", 7, 1, 16, 3, 4, 0, 1))
+        flush = (13420, struct.pack(">i", 7))
+        action = (12613, b"summon-creation")
+        batches = ((positions, action, flush), (positions, action, flush))
+        self.assertEqual(public_combat_events(batches), (positions, action, flush))
+
     def test_event_order_is_preserved_across_batches(self):
         batches = (
             ((13624, b"move"), (12873, b"stats")),

@@ -133,7 +133,31 @@ class IopPreparationMovementRuntimeTests(unittest.TestCase):
             additions.append((accumulator.family, value, result))
             return result
 
-        with patch.object(NativeFinalModifier, "add", observe_add):
+        from wakfu_server.combat_effect_dispatch import EffectDispatcher
+
+        executions = []
+        original_execute = EffectDispatcher.execute
+
+        def observe_execute(dispatcher, invocation, **kwargs):
+            result = original_execute(dispatcher, invocation, **kwargs)
+            if invocation.reference in (409890, 151186, 151188):
+                executions.append(
+                    {
+                        "reference": invocation.reference,
+                        "caster_id": invocation.caster_id,
+                        "target_id": invocation.target_id,
+                        "state_uid": invocation.state_uid,
+                        "native_context": invocation.native_trigger_context,
+                        "native_explicit_target": invocation.native_explicit_target,
+                        "result": result,
+                    }
+                )
+            return result
+
+        with (
+            patch.object(NativeFinalModifier, "add", observe_add),
+            patch.object(EffectDispatcher, "execute", observe_execute),
+        ):
             transaction, trace = helper.cast(
                 (character, monster, fight, deck, rng), 4785, 5
             )
@@ -152,6 +176,48 @@ class IopPreparationMovementRuntimeTests(unittest.TestCase):
             {
                 state.reference
                 for state in transaction.fight.actors[7].state_ledger.entries
+            },
+            msg={
+                "preparation_trace": [
+                    {
+                        key: row.get(key)
+                        for key in (
+                            "effect_reference",
+                            "status",
+                            "caster_id",
+                            "target_id",
+                            "state_uid",
+                            "reason",
+                        )
+                    }
+                    for row in trace
+                    if row.get("effect_reference") in range(151183, 151191)
+                    or row.get("effect_reference") in (409890, 151186)
+                ],
+                "selected_executions": executions,
+                "retained_rows": [
+                    {
+                        key: row.get(key)
+                        for key in (
+                            "uid",
+                            "target_id",
+                            "generic_effect",
+                            "owner_uid",
+                            "manager_id",
+                            "container_type",
+                            "container_id",
+                            "container_kind",
+                            "container_is_spell",
+                        )
+                    }
+                    for row in transaction.fight.native_retained_records.values()
+                    if row.get("generic_effect") in (409890, 151186, 151183, 151185)
+                ],
+                "remaining_preparation": [
+                    (state.reference, state.uid, state.level)
+                    for state in transaction.fight.actors[7].state_ledger.entries
+                    if state.reference == 3462
+                ],
             },
         )
         self.assertLess(transaction.fight.actors[-7].hp, fight.actors[-7].hp)

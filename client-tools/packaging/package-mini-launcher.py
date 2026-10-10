@@ -109,6 +109,30 @@ def build(output):
             for item in sorted(classes.glob("*.class")):
                 if any(item.stem.startswith(p) for p in prefixes):
                     items[item.name] = (item.read_bytes(), 0o644)
+            if premain == "OpenPlantingAgent":
+                # Bind the scoped native entry projections to this client release.
+                environment = dict(os.environ, PYTHONPATH=str(ROOT / "server"))
+                policy_file = Path(temp) / "dungeon-entry-overrides.properties"
+                subprocess.run(
+                    [
+                        sys.executable,
+                        str(ROOT / "server/tools/build_dungeon_entry_overrides.py"),
+                        "--inventory",
+                        str(ROOT / "docs/reports/dungeons/inventory.json"),
+                        "--client-jar",
+                        str(ROOT / "client/lib/wakfu-client.jar"),
+                        "--source-version",
+                        str(
+                            ROOT
+                            / "client-tools/runtime/dungeon-entry-source-version.json"
+                        ),
+                        "--output",
+                        str(policy_file),
+                    ],
+                    env=environment,
+                    check=True,
+                )
+                items[policy_file.name] = (policy_file.read_bytes(), 0o644)
             add("agents/" + jar, zip_bytes(items))
     manifest = {
         "format": 1,

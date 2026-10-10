@@ -114,11 +114,25 @@ class NativeArmorHandler:
         self.runner_amounts = {}
         self.rng = rng
 
+    def native_eligibility(self, effect, invocation):
+        """Apply eZR's actual corpse gate before armor preparation or UID allocation."""
+        target = self.fight.actors.get(invocation.target_id)
+        if target is None or target.hp > 0:
+            return True
+        from .combat_runner_target_life import runner_target_life_eligible
+
+        return runner_target_life_eligible(
+            self.fight, target, effect, invocation=invocation
+        )
+
     def _calculate(self, effect, invocation, *, additional_final=0):
         source = self.fight.actors[invocation.caster_id]
         target = self.fight.actors[invocation.target_id]
-        if self.fight.phase != "active" or self.fight.current is None or target.hp <= 0:
+        if self.fight.phase != "active" or self.fight.current is None:
             raise ValueError("Invalid native armor fight/target")
+        from .combat_runner_target_life import verify_runner_target_life
+
+        verify_runner_target_life(self.fight, target, effect, invocation=invocation)
         self.authority(self.fight, source)
         target_authority = self.authority(self.fight, target)
         context = self.context(effect, invocation)
@@ -170,6 +184,8 @@ class NativeArmorHandler:
         return invocation
 
     def __call__(self, effect, values, invocation):
+        if not self.native_eligibility(effect, invocation):
+            return False
         uid = invocation.native_running_uid
         if uid is None:
             # Qe.k/fNk clones enter without original preparation; rBA resets0.

@@ -8,6 +8,7 @@ from wakfu_server.items.socket_enchantment_wire import (
     packets,
 )
 from wakfu_server.wire import proto_field, proto_fields
+from wakfu_server.inventory_shards import initialized_wire_state
 
 
 class SocketEnchantmentWireTests(unittest.TestCase):
@@ -15,6 +16,7 @@ class SocketEnchantmentWireTests(unittest.TestCase):
         state = proto_field(10, proto_field(80, 0) + proto_field(96, 3)) + proto_field(
             72, 2
         )
+        expected_state = initialized_wire_state(state)
         cases = {
             "add_charges": (13703, 0),
             "add_slot": (13703, 1),
@@ -31,9 +33,10 @@ class SocketEnchantmentWireTests(unittest.TestCase):
                 self.assertEqual(opcode, expected_opcode)
                 status, character_id, uid, length = struct.unpack(">BqqH", body[:19])
                 self.assertEqual(
-                    (status, character_id, uid, length), (0, 123, 456, len(state))
+                    (status, character_id, uid, length),
+                    (0, 123, 456, len(expected_state)),
                 )
-                self.assertEqual(body[19:-1], state)
+                self.assertEqual(body[19:-1], expected_state)
                 self.assertEqual(body[-1], expected_action)
 
     def test_sublimation_replacement_responses_have_no_action_suffix(self):
@@ -47,7 +50,7 @@ class SocketEnchantmentWireTests(unittest.TestCase):
                     12, {"uid": 34, "operation": operation, "shard_state": state}
                 )
                 self.assertEqual(opcode, expected_opcode)
-                self.assertEqual(body[19:], state)
+                self.assertEqual(body[19:], initialized_wire_state(state))
 
     def test_native_failure_is_one_status_byte_and_maps_to_matching_response_class(
         self,
@@ -95,17 +98,38 @@ class SocketEnchantmentWireTests(unittest.TestCase):
         self.assertEqual(output[1][1], result["inventory_packet"][1])
         self.assertEqual(len(output[2][1]), 8)
 
-    def test_13269_uses_authoritative_bags_refresh_without_fabricating_action_enum(
+    def test_13269_refreshes_reserve_then_native_socket_window_without_action_enum(
         self,
     ):
         bag = (13713, struct.pack(">qB", 123, 35) + b"authoritative-bags")
-        result = {"inventory_packet": bag, "cost_kamas": 0, "wallet_kamas": 100}
-        self.assertEqual(bonus_installation_packets(123, result), [bag])
+        state = proto_field(
+            10,
+            proto_field(80, 0)
+            + proto_field(96, 3)
+            + proto_field(88, 27094)
+            + proto_field(112, 1),
+        )
+        result = {
+            "uid": 456,
+            "shard_state": state,
+            "elements": bytes((2, 0)),
+            "inventory_packet": bag,
+            "cost_kamas": 0,
+            "wallet_kamas": 100,
+        }
+        output = bonus_installation_packets(123, result)
+        self.assertEqual([opcode for opcode, _ in output], [13713, 13766])
+        self.assertEqual(output[0], bag)
+        self.assertEqual(struct.unpack(">iqBI", output[1][1][:17]), (0, 456, 0, 2))
+        self.assertEqual(output[1][1][17:19], bytes((2, 0)))
+        state_length = struct.unpack(">I", output[1][1][19:23])[0]
+        self.assertEqual(output[1][1][23:], initialized_wire_state(state))
+        self.assertEqual(state_length, len(output[1][1][23:]))
         result["cost_kamas"] = 5
         result["wallet_kamas"] = 95
         self.assertEqual(
             [opcode for opcode, _ in bonus_installation_packets(123, result)],
-            [13713, 12753],
+            [13713, 13766, 12753],
         )
 
 

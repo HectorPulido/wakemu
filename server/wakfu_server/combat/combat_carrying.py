@@ -24,6 +24,7 @@ class NativeCarryPair:
     carried_direction: int
     carrier_direction: int
     source_uid: int
+    source_reference: int | None = None
 
 
 def _pairs(fight):
@@ -108,8 +109,12 @@ def _position(actor, destination):
         actor.native_physical_position = tuple(destination)
 
 
-def carry_registered(fight, carrier, carried, *, source_uid):
+def carry_registered(fight, carrier, carried, *, source_uid, source_reference=None):
     """Successful base eGj.a(eHH), after eWB's typed property guards."""
+    if source_reference is not None and (
+        type(source_reference) is not int or source_reference <= 0
+    ):
+        raise ValueError("Invalid actual native carry definition reference")
     from .combat_qi_fight import current_registry
 
     if (
@@ -152,6 +157,7 @@ def carry_registered(fight, carrier, carried, *, source_uid):
         carried.direction,
         carrier.direction,
         source_uid,
+        source_reference,
     )
     pairs = dict(_pairs(fight))
     pairs[carrier.id] = pair

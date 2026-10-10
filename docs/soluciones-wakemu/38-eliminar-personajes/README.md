@@ -1,6 +1,6 @@
 # 38. No se pueden eliminar personajes
 
-🧪 **Estado: Cambio hecho no confirmado.** Desplegado en merge9af0658c, migración046 aplicada; prueba nativa por socket aprobada. Falta confirmación visual del usuario. El cliente nativo del selector envía `cDN` opcode `22870` con un único `i64` big-endian de personaje. El servidor no tenía handler para ese opcode. El selector recibe la lista `23548` para volver a pintar sus personajes.
+✅ **Estado: Solucionado totalmente.** Hector confirmó que la prueba de eliminación de personajes funciona perfectamente. Las notas de aceptación pendiente siguientes son históricas. Desplegado en merge9af0658c, migración046 aplicada; prueba nativa por socket aprobada. Falta confirmación visual del usuario. El cliente nativo del selector envía `cDN` opcode `22870` con un único `i64` big-endian de personaje. El servidor no tenía handler para ese opcode. El selector recibe la lista `23548` para volver a pintar sus personajes.
 
 La implementación añade el handler autenticado y una baja lógica PostgreSQL: marca `characters.deleted_at`, oculta el personaje de roster/selección/búsqueda social, libera el cupo y permite volver a usar el nombre sin borrar recibos, inventario ni relaciones históricas. Se conserva la fila y su ID; la cartera de la cuenta no se modifica. La migración `046_character_deletion.sql` reemplaza la unicidad global del nombre por unicidad entre personajes activos.
 

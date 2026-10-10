@@ -125,7 +125,16 @@ def authorize(rule, *, profession_id, profession_level):
     return rule
 
 
-def prepare(store, account_id, generation, character_id, body, *, reachable):
+def prepare(
+    store,
+    account_id,
+    generation,
+    character_id,
+    body,
+    *,
+    reachable,
+    location_context=None
+):
     """Resolve the target from leased SQL state, never supplied client metadata.
 
     This read snapshot does not reserve the cell or grant a harvest. Completion
@@ -135,6 +144,8 @@ def prepare(store, account_id, generation, character_id, body, *, reachable):
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
         character = store.character(account_id, character_id, db)
+        if location_context is not None:
+            character = location_context(character)
         resource = db.execute(
             "SELECT * FROM planted_resources WHERE map_id=%s AND instance_id=%s "
             "AND x=%s AND y=%s",
@@ -161,7 +172,7 @@ def prepare(store, account_id, generation, character_id, body, *, reachable):
     return dict(character=character, resource=resource, request=request, rule=rule)
 
 
-def reserve(store, account_id, generation, prepared):
+def reserve(store, account_id, generation, prepared, *, location_context=None):
     """Reserve an unchanged target; one cell and occupation per character."""
     character_id = prepared["character"]["id"]
     expected = prepared["resource"]
@@ -171,6 +182,8 @@ def reserve(store, account_id, generation, prepared):
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
         character = store.character(account_id, character_id, db)
+        if location_context is not None:
+            character = location_context(character)
         if any(
             character[k] != prepared["character"][k]
             for k in ("map_id", "instance_id", "x", "y", "z")
@@ -305,7 +318,7 @@ def pending(store, account_id, generation, character_id):
     return None if row is None else dict(row)
 
 
-def complete(store, ticket, body):
+def complete(store, ticket, body, *, location_context=None):
     """Commit a successful flora occupation and its rewards exactly once.
 
     Catalog cvF is an explicit local transition policy, supported by captured
@@ -369,6 +382,8 @@ def complete(store, ticket, body):
         if resource is None or dict(resource) != occupation["resource_snapshot"]:
             raise ValueError("Resource changed during harvest occupation")
         character = store.character(account, actor, db)
+        if location_context is not None:
+            character = location_context(character)
         validate_actor_position(character, occupation)
         rule = action(
             resource["resource_reference"], resource["stage"], occupation["action_id"]

@@ -4,6 +4,7 @@ No spell effects, AI, rewards or ordinary victory-result protobuf are invented.
 """
 import struct
 import time
+from copy import deepcopy
 from .combat_wire import actor_state
 from .combat_area_boundary import atomic_area_turn, adopt_fight
 from .combat_native_action_ids import native_delivery_boundary
@@ -11,6 +12,28 @@ from .combat_additional_turn import timeline_round
 
 
 class RuntimeMessages:
+    def __deepcopy__(self, memo):
+        """Clone transaction state without cloning service callback owners.
+
+        These providers receive the candidate fight explicitly. They are
+        injected services, not owned combat state; copying bound methods also
+        copies their entire service/catalog graph. All other fields, including
+        future mutable runtime fields, remain isolated through the shared memo.
+        """
+        clone = type(self).__new__(type(self))
+        memo[id(self)] = clone
+        providers = {
+            "stats_serializer",
+            "runtime_stats_serializer",
+            "turn_end_provider",
+            "turn_start_provider",
+            "expiration_runtime_factory",
+            "clock",
+        }
+        for name, value in vars(self).items():
+            setattr(clone, name, value if name in providers else deepcopy(value, memo))
+        return clone
+
     def __init__(
         self,
         fight,
@@ -70,6 +93,14 @@ class RuntimeMessages:
         )
         self.native_action_id = last
         self.last_native_delivery = delivery.native_actions
+        # aTS1 revives the same identity; a subsequent real death must be
+        # delivered again instead of being suppressed by its previous report.
+        for opcode, payload in delivery:
+            if opcode == 12727 and len(payload) == 21 and payload[-1] == 1:
+                identity = struct.unpack_from(">q", payload, 12)[0]
+                self._reported_deaths = getattr(self, "_reported_deaths", set()) - {
+                    identity
+                }
         return delivery
 
     def _arm_turn(self):
@@ -80,14 +111,10 @@ class RuntimeMessages:
             self.clock() + current_turn_duration(self.fight, self.duration) / 1000
         )
 
-    def expire_current_once(self):
-        """Call on the session's own thread; never synthesize a missing ACK.
-
-        Only a delivered controlled turn can expire. Its successor remains
-        behind the ordinary13510 barrier, even if that ACK never arrives.
-        """
+    def expiration_due(self):
+        """Read the same owned turn/deadline gate without copying or mutation."""
         actor = self.fight.current
-        if (
+        return not (
             self.fight.phase != "active"
             or actor is None
             or not actor.controlled
@@ -96,8 +123,13 @@ class RuntimeMessages:
             or self.turn_deadline is None
             or self.deadline_turn != self.fight.turn_id
             or self.clock() < self.turn_deadline
-        ):
+        )
+
+    def expire_current_once(self):
+        """Expire a delivered controlled turn without synthesizing its ACK."""
+        if not self.expiration_due():
             return []
+        actor = self.fight.current
         return self.end_turn(actor.owner_id, actor.id, actor.turn_count)
 
     def expire_current_or_recover(self, owner_id, *, now_ms):
@@ -443,6 +475,13 @@ class RuntimeMessages:
         self.awaiting_ack = None
         packets = self.pending
         self.pending = []
+        # Start-of-turn reactions can finish the fight behind this ACK.
+        # Deliver their committed packets without restoring/arming a turn
+        # that no longer has an authoritative owner.
+        if self.fight.phase != "active" or self.fight.current is None:
+            self.native_timeline_restore_pending_turn = None
+            self.turn_deadline = self.deadline_turn = None
+            return packets
         if (
             getattr(self, "native_timeline_restore_pending_turn", None)
             == self.fight.turn_id

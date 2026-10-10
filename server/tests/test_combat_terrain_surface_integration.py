@@ -2,6 +2,7 @@ import hashlib
 import json
 import tempfile
 import unittest
+from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import patch
 
@@ -10,6 +11,7 @@ from wakfu_server.combat_qi_surface_catalog import (
     _publication,
     native_qi_surfaces,
 )
+from wakfu_server.combat_geometry import _published_geometry
 from wakfu_server.combat_terrain import local_arena, map_geometry
 
 
@@ -18,6 +20,41 @@ class TerrainSurfaceIntegrationTests(unittest.TestCase):
         _publication.cache_clear()
         native_qi_surfaces.cache_clear()
         map_geometry.cache_clear()
+        _published_geometry.cache_clear()
+
+    def fixture_catalog(self, root):
+        """Patch the read-only published-catalog boundary to fixture files."""
+        stack = ExitStack()
+        stack.enter_context(patch("wakfu_server.combat_geometry.DATA_ROOT", root))
+        stack.enter_context(patch("wakfu_server.combat_terrain.DATA_ROOT", root))
+        stack.enter_context(
+            patch("wakfu_server.combat_qi_surface_catalog.DATA_ROOT", root)
+        )
+        stack.enter_context(
+            patch(
+                "wakfu_server.combat_geometry.protocol_catalog.release",
+                return_value="fixture",
+            )
+        )
+        stack.enter_context(
+            patch(
+                "wakfu_server.combat_geometry.protocol_catalog.exists",
+                side_effect=lambda path: Path(path).is_file(),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "wakfu_server.combat_geometry.protocol_catalog.load",
+                side_effect=lambda path: json.loads(Path(path).read_bytes()),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "wakfu_server.combat_geometry.protocol_catalog.read_bytes",
+                side_effect=lambda path: Path(path).read_bytes(),
+            )
+        )
+        return stack
 
     def fixture(self, root, *, tamper=None):
         directory = root / "native-qi-surfaces"
@@ -88,13 +125,13 @@ class TerrainSurfaceIntegrationTests(unittest.TestCase):
             self.fixture(root)
             self.clear()
             try:
-                with patch(
-                    "wakfu_server.combat_qi_surface_catalog.DATA_ROOT", root
-                ), patch("wakfu_server.combat_terrain.DATA_ROOT", root):
+                with self.fixture_catalog(root):
                     for identity, z in ((9001, 19), (9002, -3)):
                         first = local_arena(identity, 7, (0, 0, z), (1, 0, z))
                         second = local_arena(identity, 8, (0, 0, z), (1, 0, z))
-                        self.assertEqual(first["cell_masks"], [129, 129])
+                        # On this tiny map both native border cells are actor
+                        # seeds, so the displayed perimeter is suppressed there.
+                        self.assertEqual(first["cell_masks"], [1, 1])
                         self.assertEqual(
                             [mask & 63 for mask in first["cell_masks"]], [1, 1]
                         )
@@ -121,9 +158,7 @@ class TerrainSurfaceIntegrationTests(unittest.TestCase):
                 self.fixture(root, tamper=tamper)
                 self.clear()
                 try:
-                    with patch(
-                        "wakfu_server.combat_qi_surface_catalog.DATA_ROOT", root
-                    ), patch("wakfu_server.combat_terrain.DATA_ROOT", root):
+                    with self.fixture_catalog(root):
                         with self.assertRaisesRegex(ValueError, message):
                             local_arena(9001, 7, (0, 0, 19), (1, 0, 19))
                 finally:

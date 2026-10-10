@@ -234,6 +234,12 @@ def resolve_current(character, table_id):
     from wakfu_server import world_static
     from wakfu_server.combat_terrain import map_geometry
 
+    if character.get("map_id") == 9 and character.get("instance_id", 0) > 0:
+        from wakfu_server.haven_bag_furniture_catalog import furniture_templates
+
+        return resolve_haven_bag(
+            character, table_id, _native_catalog(), furniture_templates()
+        )
     return resolve(
         character,
         table_id,
@@ -252,3 +258,57 @@ def native_catalog():
 def native_interactions():
     """Return the complete native mask/orientation interaction export."""
     return load_interactions()
+
+
+def resolve_haven_bag(character, table_id, catalog, templates):
+    """Authorize native portable crafting against the current owned bag layout."""
+    from wakfu_server.haven_bag_store import instance_id
+
+    if (
+        character.get("map_id") != 9
+        or character.get("instance_id") != instance_id(character)
+        or type(table_id) is not int
+        or table_id <= 0
+    ):
+        raise ValueError("Crafting requires the owner's active haven-bag instance")
+    config = character.get("haven_bag") or {}
+    furniture = [
+        row
+        for row in config.get("furniture", [])
+        if row.get("deployed") is True
+        and table_id in (row.get("item_uid"), row.get("template_id"))
+    ]
+    if len(furniture) != 1:
+        raise ValueError("Unknown portable crafting table in current map")
+    item = furniture[0]
+    template = templates.get(item["template_id"], {})
+    definition_id = template.get("craft_definition_id")
+    definition = catalog.definitions.get(definition_id)
+    if not definition or not definition.get("profession_id"):
+        raise ValueError("Unknown native portable crafting table definition")
+    room = next(
+        (row for row in config.get("rooms", []) if row["index"] == item["room"]), None
+    )
+    if room is None or not room.get("enabled") or room.get("primary_ref", -1) == -1:
+        raise ValueError("Portable crafting table requires an active installed room")
+    offsets = template.get("interaction_cells_by_direction", [])
+    direction = item["direction"]
+    if not 0 <= direction < len(offsets):
+        raise ValueError("Missing native portable crafting interaction topology")
+    actor_position = tuple(character.get(axis) for axis in ("x", "y", "z"))
+    native_cells = {
+        (item["x"] + dx, item["y"] + dy, item["z"] + dz)
+        for dx, dy, dz in offsets[direction]
+    }
+    if actor_position not in native_cells:
+        raise ValueError("Crafting table is not reachable from the actor cell")
+    return dict(
+        table_uid=table_id,
+        map_id=9,
+        instance_id=character["instance_id"],
+        definition_id=definition_id,
+        profession_id=definition["profession_id"],
+        in_range=True,
+        position=tuple(item[axis] for axis in ("x", "y", "z")),
+        haven_bag=True,
+    )

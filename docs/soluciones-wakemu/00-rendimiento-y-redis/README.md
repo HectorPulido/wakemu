@@ -53,3 +53,16 @@ Candidata3523:117731ms para combat_catalogs_ready (208módulos/59104efectos). Li
 ## Native catalog PostgreSQL and Redis migration — 2026-10-08
 
 The native protocol catalog readers now share a versioned PostgreSQL authority and bounded Redis cache, retaining their existing in-memory entity and coordinate indexes. Plain JSON files are import artifacts; compressed JSON files were converted and removed after byte verification. See [architecture, indexed drop queries and complete manual acceptance](../../reports/native-catalog-postgres-redis.md), and [DBeaver access](../../reports/dbeaver-postgresql-access.md). Import and deployment are verified in complete build r46. World and AI are healthy, with AI preloading and a complete context seal before game listeners open. The full database dump is verified. This change does not claim all historical latency issues are resolved.
+
+## Priority regression: checkpoint freezes — 2026-10-09
+
+Hector reports that Redis-to-PostgreSQL checkpoints still freeze combat for minutes. This issue remains open and has top priority. [Confirmed lock amplification, source correction, 30 automated tests and full manual acceptance](CHECKPOINT-CONTENTION-2026-10-09.md). The source now separates account checkpoints, removes database/Redis I/O from the global position-buffer lock, bounds pool/row waits, preserves journal/CAS durability, and records timing stages. The first correction was deployed in r56 and the freeze recurred: a live empty checkpoint took41.43s, with fast individual SQL-pool/Redis stages. Complete release r57 now removes synchronous diagnostic-file writes from the global LIVE ownership lock and adds a five-second native thread-stack watchdog. It is deployed and healthy; live freeze acceptance remains open. A later idle stack capture did not reproduce the freeze. Do not interpret automated tests or earlier performance notes as closure.
+
+
+## Optional profiling service — 2026-10-09
+
+Complete r58 retains r57 fixes and adds bounded feature timings plus an external
+py-spy sidecar that starts/stops independently. [Operation and large unmodified
+findings](../../reports/health/EXTERNAL-PROFILER-20261009.md). Startup point-area
+metadata preparation was sampled as expensive; no optimization is authorized
+in this stage. Checkpoint freezes remain open until accepted live.

@@ -136,6 +136,7 @@ class WithdrawalDispatcherTests(unittest.TestCase):
             POSITIONS=Mock(),
             Movement=lambda position: position,
             WORLD=Mock(),
+            HAVEN_BAG_EXTERIORS=SimpleNamespace(discard=lambda *_args: None),
             native_transports=SimpleNamespace(
                 bootstrap=lambda character: [(234, b"y")]
             ),
@@ -268,7 +269,9 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                     struct=__import__("struct"),
                     wire=SimpleNamespace(account_kamas=lambda value: b""),
                     COMBAT_TEST=True,
-                    COMBAT_GROUPS=Mock(),
+                    COMBAT_GROUPS=SimpleNamespace(
+                        lock=threading.RLock(), finish=Mock()
+                    ),
                     EXTERNAL_FIGHT_MARKERS=markers,
                     SPECTATORS=SimpleNamespace(
                         sessions=lambda fight_id: tuple(observers)
@@ -278,6 +281,8 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                         side_effect=lambda *args: observers.clear()
                     ),
                 )
+                context["WORLD"].players = {}
+                context["WORLD"].lock = threading.RLock()
                 context["COMBAT_SESSIONS"].recover_withdrawn_pve.return_value = {
                     "hp": 42
                 }
@@ -301,6 +306,7 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                 def prepare(*args):
                     shared.fight.phase = "finished"
                     shared.fight.winner = None
+                    shared.runtime.abandon_owner = (17, "owner-generation")
                     return {"character": {"hp": 42}, "packets": [(12238, b"terminal")]}
 
                 with patch(
@@ -321,6 +327,10 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                     self.assertIsNone(markers.location(shared.fight.id))
                     # Simulate poll detaching immediately after terminal publication.
                     # Marker removal must capture its exclusion before that happens.
+                    self.assertIsNotNone(
+                        context["WORLD"].emit_location_batch.call_args,
+                        context["record"].call_args_list,
+                    )
                     self.assertIn(
                         (33, "observer"),
                         context["WORLD"].emit_location_batch.call_args.kwargs[

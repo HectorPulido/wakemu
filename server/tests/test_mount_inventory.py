@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import uuid
 import unittest
 
@@ -127,6 +127,160 @@ class MountInventoryTests(PostgresCase):
         )
         self.assertEqual(repeated["last_meal_date"], expected_ms)
         self.assertEqual(repeated["last_hungry_date"], expected_ms)
+
+    def test_new_mount_item_projects_daily_limit_policy_to_protopet(self):
+        from wakfu_server import inventory_items, wire
+
+        default_mount = self._grant(slot=0)["mount"]
+        self.assertTrue(default_mount["daily_limit_enabled"])
+        self.assertGreater(default_mount["last_meal_date"], 0)
+
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value='false'::jsonb "
+                "WHERE name='pet_feeding_daily_limit_enabled'"
+            )
+        item = self._grant(slot=1)
+        durable_mount = dict(item["mount"])
+        self.assertFalse(durable_mount["daily_limit_enabled"])
+        self.assertGreater(durable_mount["last_meal_date"], 0)
+
+        pet_payload = next(
+            value
+            for tag, value in wire.proto_fields(inventory_items.item_proto(item))
+            if tag == 402
+        )
+        pet_fields = {tag >> 3: value for tag, value in wire.proto_fields(pet_payload)}
+        self.assertEqual(pet_fields[6], 0)
+        self.assertEqual(pet_fields[7], 0)
+        self.assertEqual(item["mount"], durable_mount)
+
+    def test_saved_active_build_tracks_fed_mount_stats_through_unequip_and_reequip(
+        self,
+    ):
+        from wakfu_server import equipment_stats, mount_feeding, mount_feeding_wire
+
+        self.now = self.first_time
+        self.store.clock = lambda: self.now.timestamp()
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET level=50 WHERE id=%s",
+                (self.character["id"],),
+            )
+            db.execute(
+                "UPDATE settings SET value='false'::jsonb "
+                "WHERE name='pet_feeding_daily_limit_enabled'"
+            )
+
+        pet = self._grant(reference=18682, slot=0)
+        food = grant(
+            self.store,
+            self.account,
+            self.generation,
+            self.character["id"],
+            reference=18378,
+            quantity=12,
+            container=self.container,
+            slot=1,
+            allowed_references={18378},
+        )
+        self.store.save_build(
+            self.account,
+            self.generation,
+            self.character["id"],
+            0,
+            self._build(0, 50, pet["uid"]),
+        )
+        self.store.save_build(
+            self.account,
+            self.generation,
+            self.character["id"],
+            1,
+            self._build(1, 50),
+        )
+
+        character = self.store.activate_build(
+            self.account,
+            self.generation,
+            self.character["id"],
+            0,
+            in_fight=False,
+        )
+        expected_by_level = {0: 0, 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 4, 7: 5, 8: 6}
+        self.assertEqual(
+            equipment_stats.combat_resources(character)["stats"].get(20, 0), 0
+        )
+
+        body = mount_feeding_wire.encode_request(food["uid"], pet["uid"], 1)
+        for level in range(1, 9):
+            self.now += timedelta(seconds=11)
+            result = mount_feeding.feed(
+                self.store,
+                self.account,
+                self.generation,
+                self.character["id"],
+                body,
+                in_fight=False,
+            )
+            character = result["character"]
+            item = next(
+                row for row in character["inventory_items"] if row["uid"] == pet["uid"]
+            )
+            self.assertEqual(item["mount"]["xp"], level * 50)
+            self.assertEqual(
+                equipment_stats.combat_resources(character)["stats"].get(20, 0),
+                expected_by_level[level],
+            )
+
+        with self.store.connection() as db:
+            mount = db.execute(
+                "SELECT xp,revision,last_meal_date FROM inventory_mounts WHERE uid=%s",
+                (pet["uid"],),
+            ).fetchone()
+            receipts = db.execute(
+                "SELECT count(*) AS n FROM mount_feeding_receipts WHERE pet_uid=%s",
+                (pet["uid"],),
+            ).fetchone()["n"]
+        self.assertEqual(
+            (mount["xp"], mount["revision"], mount["last_meal_date"]),
+            (400, 8, int(self.now.timestamp()) * 1000),
+        )
+        self.assertEqual(receipts, 8)
+
+        character = self.store.activate_build(
+            self.account,
+            self.generation,
+            self.character["id"],
+            1,
+            in_fight=False,
+        )
+        self.assertNotIn(20, equipment_stats.combat_resources(character)["stats"])
+        character = self.store.activate_build(
+            self.account,
+            self.generation,
+            self.character["id"],
+            0,
+            in_fight=False,
+        )
+        self.assertEqual(
+            equipment_stats.combat_resources(character)["stats"].get(20, 0), 6
+        )
+
+        reopened = self.reopen()
+        persisted = reopened.character(self.account, self.character["id"])
+        self.assertEqual(
+            equipment_stats.combat_resources(persisted)["stats"].get(20, 0), 6
+        )
+        with reopened.connection() as db:
+            final_mount = db.execute(
+                "SELECT xp,revision FROM inventory_mounts WHERE uid=%s", (pet["uid"],)
+            ).fetchone()
+            final_receipts = db.execute(
+                "SELECT count(*) AS n FROM mount_feeding_receipts WHERE pet_uid=%s",
+                (pet["uid"],),
+            ).fetchone()["n"]
+        self.assertEqual((final_mount["xp"], final_mount["revision"]), (400, 8))
+        self.assertEqual(final_receipts, 8)
 
     def test_state_mutation_rolls_back_when_outer_transaction_fails(self):
         item = self._grant()
@@ -372,6 +526,7 @@ class MountInventoryTests(PostgresCase):
             + b"Pekebu"
             + b"\x00\x00"
             + wire.INITIAL_POSITION
+            + struct.pack(">qBB", self.character["map_id"], 0, 0)
         )
         pet_start = 26
         layout = {

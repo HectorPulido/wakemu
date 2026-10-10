@@ -26,3 +26,4 @@ wakfu_server/__pycache__/
 !tools/generate_initial_monster_population.py
 !tools/import_native_catalogs.py
 !tools/equip_test_finisher.py
+!tools/performance_report.py

@@ -16,7 +16,8 @@ def draft(
     *,
     room_count=None,
     capacity=121,
-    generation_target=8
+    generation_target=8,
+    boss_references=(),
 ):
     """Return an optional policy artifact; never an installable configuration."""
     if type(capacity) is not int or not 1 <= capacity <= 121:
@@ -85,6 +86,23 @@ def draft(
             )
     if type(count) is not int or not 1 <= count <= 100:
         raise ValueError("Invalid local room count")
+    # Boss identity must come from reviewed roles, explicit policy, or a single-
+    # species ultimate-boss definition. A species pool is never a room roster.
+    bosses = set(boss_references)
+    if any(type(ref) is not int or ref not in pool for ref in bosses):
+        raise ValueError("Explicit boss identity is outside the native species pool")
+    bosses.update(
+        row["ref_id"]
+        for room in known_rooms
+        for row in room.get("monsters", ())
+        if row.get("role") == "boss" and row.get("ref_id") in pool
+    )
+    ultimate = definition.get("type") == "ULTIMATE_BOSS"
+    if ultimate and not bosses and len(pool) == 1:
+        bosses.update(pool)
+    regular_pool = [ref for ref in pool if ref not in bosses]
+    if ultimate and len(bosses) != 1:
+        raise ValueError("Ultimate boss requires one resolved boss identity")
     rooms = []
     for order in range(1, count + 1):
         existing = (
@@ -138,13 +156,22 @@ def draft(
                 raise ValueError("Known guide species has invalid native grade bounds")
             changes = []
             if ref is None:
-                ref = pool[(order - 1 + index) % len(pool)]
+                candidates = (
+                    sorted(bosses)
+                    if bosses and order == count and monster.get("role") == "boss"
+                    else regular_pool
+                )
+                if ultimate and order == count:
+                    candidates = sorted(bosses)
+                if not candidates:
+                    raise ValueError(
+                        "Unresolved intermediate encounter cannot substitute the final boss"
+                    )
+                ref = candidates[(order - 1 + index) % len(candidates)]
                 monster["ref_id"] = ref
                 monster["name"] = catalog[ref].get("name", str(ref))
                 # A replacement species is not evidence for a boss identity.
-                monster["role"] = (
-                    "boss" if catalog[ref].get("is_boss") is True else "monster"
-                )
+                monster["role"] = "boss" if ref in bosses else "monster"
                 changes.extend(("ref_id", "name", "role"))
             if monster.get("count") is None:
                 monster["count"] = 1
@@ -161,15 +188,33 @@ def draft(
                     }
                 )
         total = sum(monster["count"] for monster in monsters)
-        for index in range(max(0, generation_target - total)):
-            ref = pool[(order - 1 + len(monsters)) % len(pool)]
+        # Ultimate encounters never receive synthetic padding to eight actors.
+        target = 1 if ultimate else generation_target
+        final_boss_missing = (
+            bool(bosses)
+            and order == count
+            and not any(monster["ref_id"] in bosses for monster in monsters)
+        )
+        slots = max(0, target - total)
+        if final_boss_missing and slots == 0:
+            if total >= capacity:
+                raise ValueError("Final boss would exceed local combat capacity")
+            slots = 1
+        for index in range(slots):
+            reserve_boss = final_boss_missing and index == slots - 1
+            candidates = sorted(bosses) if reserve_boss else regular_pool
+            if ultimate and order == count:
+                candidates = sorted(bosses)
+            if not candidates:
+                raise ValueError("Generated encounter has no resolved non-boss species")
+            ref = candidates[(order - 1 + len(monsters)) % len(candidates)]
             native = catalog[ref]
             monsters.append(
                 {
                     "name": native.get("name", str(ref)),
                     "ref_id": ref,
                     "count": 1,
-                    "role": "boss" if native.get("is_boss") is True else "monster",
+                    "role": "boss" if ref in bosses else "monster",
                     "native_min_level": native["min_level"],
                     "native_max_level": native["max_level"],
                     "guide_min_level": None,
@@ -206,6 +251,8 @@ def draft(
         "definition_id": definition["id"],
         "transport_npc_capacity": capacity,
         "generation_target": generation_target,
+        "boss_references": sorted(bosses),
+        "ultimate_boss_singleton_policy": ultimate,
         "room_count": count,
         "room_count_source": count_source,
         "species_pool": pool,
@@ -217,5 +264,5 @@ def draft(
         "identity_policy": definition.get("policy_mode", "native_aKU_definition"),
         "original_plan": original,
         "rooms": rooms,
-        "policy": "Preserve complete rooms and known quantities; fill unresolved slots deterministically from the native species pool.",
+        "policy": "Preserve complete rooms and known quantities; generated fillers exclude resolved bosses except one final boss; ultimate encounters have no synthetic padding.",
     }

@@ -28,6 +28,14 @@ class CarryRuntimeTests(unittest.TestCase):
             actor.native_los_height = 0
         combined = dict(f.effects)
         combined.update(f.fixture.states["effects"])
+        from wakfu_server import native_catalog
+        from wakfu_server.paths import DATA_ROOT
+
+        combined.update(
+            native_catalog.load(DATA_ROOT / "granted-spell-effect-trees.json")[
+                "effects"
+            ]
+        )
         definitions = {}
         for family in (333, 334):
             candidates = [
@@ -57,7 +65,7 @@ class CarryRuntimeTests(unittest.TestCase):
             ),
         )
         factory = NativeEffectRuntimeFactory(
-            effects=f.effects,
+            effects=combined,
             state_catalog=f.fixture.states,
             characteristic_registry=f.fixture.registry,
             action_id=1,
@@ -98,3 +106,42 @@ class CarryRuntimeTests(unittest.TestCase):
                 replace(carry, native_context_hex=None),
             )
         self.assertEqual(len(packets), before)
+
+        # Actual Panda carry definition has native table29 release child
+        # 290563 (eZE, qcl=true). The source actor is a registered ordinary
+        # fighter; the explicit instant context above isolates machinery.
+        self.assertEqual(combined["290562"]["effect_class"], 334)
+        self.assertEqual(combined["290562"]["children"][0], 290563)
+        self.assertTrue(
+            raw(
+                combined["290562"],
+                {},
+                EffectInvocation(
+                    290562,
+                    1,
+                    -7,
+                    8,
+                    preview.actors[8].position,
+                    native_context_hex=context_hex,
+                ),
+            )
+        )
+        carrier_before = preview.actors[-7].position
+        carried_before = preview.actors[8].position
+        self.assertEqual(carrier_before, carried_before)
+        movement = dispatcher.handlers[300]
+        self.assertTrue(
+            movement(
+                combined["358000"],
+                None,
+                EffectInvocation(358000, 1, 7, -7, carrier_before),
+            )
+        )
+        self.assertIsNone(preview.actors[-7].native_carried_actor_id)
+        self.assertIsNone(preview.actors[8].native_carrier_id)
+        self.assertNotEqual(preview.actors[-7].position, carrier_before)
+        self.assertEqual(preview.actors[8].position, carried_before)
+        from wakfu_server.combat_qi_fight import current_registry
+
+        registry = current_registry(preview)
+        self.assertTrue(registry.slots[preview.actors[8].native_obstacle_id]["indexed"])

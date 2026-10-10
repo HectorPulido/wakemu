@@ -396,6 +396,9 @@ def prepare_server_turn_start(
     )
     with preview.effect_resolution():
         if native_events:
+            from .combat_periodic_aptitude import renew_periodic_aptitudes
+
+            renew_periodic_aptitudes(dispatcher, actor_id=actor_id)
             deliver_turn_start(dispatcher, actor_id=actor_id)
         if area_callbacks and preview.phase == "active":
             dispatcher.native_area_events.turn_start(actor_id)

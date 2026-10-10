@@ -79,6 +79,8 @@ class _Fight:
     revision: int
     snapshot: tuple
     observers: dict = field(default_factory=dict)
+    terminal: bool = False
+    snapshot_current: bool = True
 
 
 @dataclass
@@ -201,6 +203,7 @@ class SpectatorRegistry:
             current.visible = visible
             current.revision = revision
             current.snapshot = packets
+            current.snapshot_current = True
             participant_accounts = {entry.account_id for entry in participants}
             for identity, observer in tuple(current.observers.items()):
                 if (
@@ -245,6 +248,8 @@ class SpectatorRegistry:
             fight = self.fights.get(fight_id)
             if fight is None or not fight.visible:
                 raise ValueError("Fight is not published for spectators")
+            if not fight.snapshot_current:
+                raise ValueError("Fight spectator snapshot is not current")
             if (session.map_id, session.instance_id) != (
                 fight.map_id,
                 fight.instance_id,
@@ -327,6 +332,8 @@ class SpectatorRegistry:
 
     def _materialize_pending(self, fight):
         """Install queued leases at this exact current snapshot, never history."""
+        if not fight.snapshot_current:
+            return
         snapshot = SpectatorDelivery(
             fight.fight_id, fight.revision, fight.snapshot, True
         )
@@ -361,6 +368,13 @@ class SpectatorRegistry:
             fight.observers[identity] = observer
             self.by_session[identity] = fight.fight_id
 
+    def invalidate_snapshot(self, fight_id):
+        """Fence new entrants without detaching initialized event subscribers."""
+        with self.lock:
+            fight = self.fights.get(fight_id)
+            if fight is not None:
+                fight.snapshot_current = False
+
     def publish_events(self, fight_id, *, revision, event_packets):
         """Deliver public events while retaining the prior snapshot in an ACK gap."""
         event = self._packets(event_packets)
@@ -373,6 +387,7 @@ class SpectatorRegistry:
             if type(revision) is not int or revision <= fight.revision:
                 raise ValueError("Spectator revision must increase")
             fight.revision = revision
+            fight.snapshot_current = False
             delivery = SpectatorDelivery(fight_id, revision, event, False)
             for identity, observer in tuple(fight.observers.items()):
                 if len(observer.deliveries) >= self.max_pending_batches:
@@ -392,6 +407,7 @@ class SpectatorRegistry:
                 raise ValueError("Spectator revision must increase")
             fight.revision = revision
             fight.snapshot = snapshot
+            fight.snapshot_current = True
             if not fight.visible:
                 self._remove_fight_observers(fight)
                 return
@@ -412,6 +428,10 @@ class SpectatorRegistry:
             raise ValueError("Invalid terminal spectator revision")
         with self.lock:
             fight = self.fights.get(fight_id)
+            if fight is not None and fight.terminal:
+                # Multiple owner drains can revisit the same resolved fight
+                # before observers poll. Native aUH cleanup must run once.
+                return ()
             if fight is None or revision <= fight.revision:
                 raise ValueError("Terminal spectator revision must increase")
             delivery = SpectatorDelivery(fight_id, revision, event, False)
@@ -426,6 +446,7 @@ class SpectatorRegistry:
                 if pending_fight_id == fight_id:
                     self.pending_entries.pop(identity, None)
             fight.visible = False
+            fight.terminal = True
             if not fight.observers:
                 self.fights.pop(fight_id, None)
             return tuple(observer.session for observer in observers)

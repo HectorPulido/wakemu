@@ -20,8 +20,10 @@ class Plantings:
         open_test_policy=False,
         growth_seconds=30,
         probability_context=None,
+        location_context=None,
     ):
         self.store = store
+        self.location_context = location_context
         if probability_context is not None and not callable(probability_context):
             raise ValueError("Invalid authoritative planting probability resolver")
         self.probability_context = probability_context
@@ -47,6 +49,7 @@ class Plantings:
                 body,
                 authorize_cell=authorize_cell,
                 open_test_policy=self.open_test_policy,
+                location_context=self.location_context,
             )
             current = prepared["character"]
             cid = current["id"]
@@ -163,6 +166,7 @@ class Plantings:
                 creation_time=int(self.store.clock() * 1000),
                 result_prefix=(cid, ticket["prepared"]["request"]["action_id"]),
                 probability=ticket["probability"],
+                location_context=self.location_context,
             )
             self.cancel(cid, generation)
             finished["applied"] = not finished["duplicate"]

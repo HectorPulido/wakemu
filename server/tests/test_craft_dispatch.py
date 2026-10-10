@@ -92,9 +92,7 @@ class CraftDispatcherRoutingTests(unittest.TestCase):
         self.assertIsNotNone(craft_complete)
         self.assertIs(craft_complete, craft_cancel)
         self.assertIn("craft_completion_target", ast.unparse(craft_complete))
-        self.assertIn(
-            "fight is not None or bag_session is not None", ast.unparse(craft_complete)
-        )
+        self.assertIn("if fight is not None:", ast.unparse(craft_complete))
 
         flora = route(bytes.fromhex("020003"))
         monster = route(bytes.fromhex("020006"))
@@ -132,7 +130,18 @@ class CraftDispatcherRoutingTests(unittest.TestCase):
             if "craft_completion_target" in ast.unparse(node)
         )
         text = ast.unparse(craft)
-        guard = text.index("fight is not None or bag_session is not None")
+        craft_try = next(node for node in craft.body if isinstance(node, ast.Try))
+        guard_node = craft_try.body[0]
+        self.assertIsInstance(guard_node, ast.If)
+        self.assertEqual("fight is not None", ast.unparse(guard_node.test))
+        guard = text.index("if fight is not None:")
+        self.assertIn("location_resolver=", text)
+        self.assertIn("lambda saved: bag_session.refresh(character, saved)", text)
+        self.assertIn("bag_session.owns(character)", text)
+        self.assertLess(
+            text.index("saved = STORE.character", text.index("else:")),
+            text.index("event='craft_occupation_completed'"),
+        )
         finish = text.index("complete_crafting(")
         self.assertLess(guard, finish)
         self.assertIn("except ValueError", text)

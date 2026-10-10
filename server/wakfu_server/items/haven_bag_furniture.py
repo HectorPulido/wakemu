@@ -60,6 +60,11 @@ decode_vf = decode_furniture
 
 
 def decode_deploy_request(blob):
+    """Decode crM; second long is a template ID in cKB/cKC, UID in older UI.
+
+    The historical item_uid key is retained for callers; ownership must be
+    resolved against native template metadata and the owner's inventory.
+    """
     if len(blob) != 26:
         raise ValueError("13826 requires exactly 26 bytes")
     ref, uid, x, y, z, direction = struct.unpack(">iqiihi", blob)

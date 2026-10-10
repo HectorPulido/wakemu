@@ -324,7 +324,8 @@ class CombatSessionAdapter:
                 return actual_actor_stats(
                     source, actor, fight.id, wp_current=wp, wp_maximum=maximum
                 )
-            monster = monsters.get(actor.id)
+            current_monsters = getattr(current, "rift_monsters", monsters)
+            monster = current_monsters.get(actor.id)
             if monster is None:
                 raise ValueError("Unowned combat actor has no monster snapshot")
             wp = (
@@ -450,6 +451,8 @@ class CombatSessionAdapter:
             monsters = (
                 None if not isinstance(context, dict) else context.get("monsters")
             )
+            if getattr(fight, "rift_wave_state", None) is not None:
+                monsters = getattr(fight, "rift_monsters", None)
             monster = None if monsters is None else monsters.get(actor.id)
             if monster is None:
                 raise ValueError("Native monster bootstrap metadata is missing")
@@ -495,7 +498,7 @@ class CombatSessionAdapter:
             actor.id: serializer(fight, actor, session)
             for actor in fight.actors.values()
         }
-        return placement_messages(
+        packets = placement_messages(
             fight,
             context["arena"],
             payloads,
@@ -504,6 +507,11 @@ class CombatSessionAdapter:
             leaders=context["leaders"],
             duration_ms=context["duration_ms"],
         )
+        if getattr(fight, "rift_wave_state", None) is not None:
+            from .rift_combat_adapter import world_snapshot
+
+            return tuple(world_snapshot(fight)) + tuple(packets)
+        return packets
 
     def join(
         self,
@@ -755,7 +763,18 @@ class CombatSessionAdapter:
     def owned_reconnect_bootstrap(self, fight, shared, session):
         from .combat_reconnect_snapshot import owned_snapshot
 
-        return owned_snapshot(fight, shared, session, actor_payload=self.actor_payload)
+        packets = owned_snapshot(
+            fight, shared, session, actor_payload=self.actor_payload
+        )
+        # Placement delegates to placement_bootstrap, which owns its prefix.
+        if (
+            getattr(fight, "rift_wave_state", None) is not None
+            and fight.phase != "placement"
+        ):
+            from .rift_combat_adapter import world_snapshot
+
+            return world_snapshot(fight) + tuple(packets)
+        return packets
 
     def reconcile_disconnected_pve(self, session, *, groups=None):
         """Heal an orphaned old lease before initializing a reconnect's world HP."""

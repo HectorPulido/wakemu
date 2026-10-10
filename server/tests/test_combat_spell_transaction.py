@@ -29,9 +29,10 @@ class SpellTransactionTests(unittest.TestCase):
             {pc.position, npc.position},
             {0: {pc.position}, 1: {npc.position}},
         )
-        for actor in self.fight.actors.values():
-            if getattr(actor, "native_los_height", None) is None:
-                actor.native_los_height = 0
+        for slot, actor in enumerate(self.fight.actors.values()):
+            # This compact fixture owns a two-actor native QI population. The
+            # actual actor height comes from each fresh snapshot builder.
+            actor.native_obstacle_id = slot
             actor.native_fight_properties = frozenset()
             actor.spell_ap_cost_modifiers = (
                 {}
@@ -59,7 +60,9 @@ class SpellTransactionTests(unittest.TestCase):
             ),
         )
         self.fight.ready(3)
-        self.character = dict(id=7, breed=15, level=1)
+        # The synthetic owned terrain and its patched native LOS columns use
+        # this explicit test map identity; real server fixtures use map1134.
+        self.character = dict(id=7, breed=15, level=1, map_id=999999)
         self.body = struct.pack(">qqiih", 7, (7 << 32) | 6266, 1, 0, 0)
         # This transaction fixture owns a compact native Vz terrain domain;
         # the shared Sf program, QI population and target selectors still run.
@@ -459,7 +462,7 @@ class SpellTransactionTests(unittest.TestCase):
         import random
         from wakfu_server.combat_server_spell import prepare_server_spell
 
-        character, monster, fight = self.native_server_fixture(2, 19)
+        character, monster, fight = self.native_server_fixture(2, 19, native_qi=True)
         # Forced movement uses the installed map's surface-selection authority.
         # The old synthetic z=0 grid was not a surface of map 1134.
         from wakfu_server.combat_terrain import local_arena
@@ -581,46 +584,13 @@ class SpellTransactionTests(unittest.TestCase):
     ):
         import random
         from wakfu_server.combat_server_spell import prepare_server_spell
-        from wakfu_server.combat_actor_snapshot import (
-            build_player_snapshot,
-            build_npc_snapshot,
-        )
-        from wakfu_server.equipment_stats import effective_character
-        from wakfu_server.health import maximum
 
-        character = effective_character(
-            dict(
-                id=7,
-                breed=11,
-                level=6,
-                hp=60,
-                max_hp=maximum(11, 6),
-                builds={},
-                inventory_items=[],
-            )
+        character, monster, fight = self.native_server_fixture(
+            11, 6, native_qi=True, target_distance=2
         )
-        caster = Actor(
-            7, 0, (0, 0, 0), 60, 6, 3, 10, 6, 3, True, max_hp=character["max_hp"]
-        )
-        target = Actor(-7, 1, (2, 0, 0), 20, 6, 3, 5, 1)
-        fight = Fight(
-            78,
-            [caster, target],
-            {(x, y, 0) for x in range(-3, 8) for y in range(-3, 4)},
-            {0: {caster.position}, 1: {target.position}},
-        )
-        fight.ready(3)
-        caster.direction = 0
-        target.direction = 3
-        build_player_snapshot(
-            character, caster, wp_current=6, wp_maximum=6, running_effects=()
-        ).install(caster)
-        monster = dict(id=-7, ref=5525, map_id=1134)
-        build_npc_snapshot(
-            monster, target, wp_current=0, wp_maximum=0, running_effects=()
-        ).install(target)
-        fight.native_effect_uid_next = 1
-        body = struct.pack(">qqiih", 7, (7 << 32) | 5043, 2, 0, 0)
+        caster = fight.actors[7]
+        target = fight.actors[-7]
+        body = struct.pack(">qqiih", 7, (7 << 32) | 5043, -6, -7, -1)
         result = prepare_server_spell(
             body,
             character,
@@ -633,12 +603,12 @@ class SpellTransactionTests(unittest.TestCase):
             critical=False,
             rng=random.Random(1),
         )
-        self.assertEqual(result.fight.actors[7].position, (2, 0, 0))
-        self.assertEqual(result.fight.actors[-7].position, (0, 0, 0))
+        self.assertEqual(result.fight.actors[7].position, (-6, -7, -1))
+        self.assertEqual(result.fight.actors[-7].position, (-8, -7, -1))
         self.assertEqual(result.fight.actors[7].ap, 5)
         self.assertEqual(result.wp_remaining, 5)
-        self.assertEqual(caster.position, (0, 0, 0))
-        self.assertEqual(target.position, (2, 0, 0))
+        self.assertEqual(caster.position, (-8, -7, -1))
+        self.assertEqual(target.position, (-6, -7, -1))
         self.assertEqual(caster.ap, 6)
         self.assertEqual([op for op, _ in result.packets][:3], [12588, 12678, 12613])
 

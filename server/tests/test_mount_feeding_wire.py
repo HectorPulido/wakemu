@@ -1,3 +1,4 @@
+import os
 import struct
 import unittest
 
@@ -6,14 +7,15 @@ from wakfu_server import mount_feeding_wire, mount_codec
 
 class MountFeedingWireTests(unittest.TestCase):
     def test_native_payload_fixture_roundtrips(self):
-        # crX.aWH writes food UID, pet item UID, then quantity with
+        # ddX sets oa(pet UID) and nx(food UID); crX.aWH writes pet UID,
+        # food UID, then quantity with
         # ByteBuffer.putLong/putLong/putInt (big-endian by default).
         payload = bytes.fromhex("0000000000000123 0000000000000456 00000002")
         self.assertEqual(
             mount_feeding_wire.decode_request(payload),
-            {"food_uid": 0x123, "pet_uid": 0x456, "quantity": 2},
+            {"food_uid": 0x456, "pet_uid": 0x123, "quantity": 2},
         )
-        self.assertEqual(mount_feeding_wire.encode_request(0x123, 0x456, 2), payload)
+        self.assertEqual(mount_feeding_wire.encode_request(0x456, 0x123, 2), payload)
         self.assertEqual(mount_feeding_wire.OPCODE, 12767)
 
     def test_rejects_bad_length_and_nonpositive_values(self):
@@ -45,6 +47,10 @@ class MountFeedingWireTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     mount_feeding_wire.decode_request(payload)
 
+    @unittest.skipUnless(
+        os.environ.get("WAKFU_DATABASE_URL"),
+        "insertion serialization loads the native protocol catalog from PostgreSQL",
+    )
     def test_publication_removes_consumed_food_then_recreates_same_pet_uid(self):
         food = {"uid": 100, "quantity": 3}
         pet = {

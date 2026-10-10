@@ -5,21 +5,60 @@ bootstrap/broadcast. Commands are development privileges, not ordinary chat.
 """
 import secrets
 import os
+import shlex
 from .combat_terrain import map_geometry
 from .inventory_items import grant, insertion, equipment_inventory, _lease
 from .inventory_move import STACKS
 from .monsters import owned_instance, statistics, reference as monster_reference
 from .combat_monster_world import spawn_group
 
-HELP = "!help | !position | !level level | !teleport map x y z | !item reference quantity | !monster reference level quantity | !equip uid slot | !unequip slot | !exitdungeon"
+HELP = "!help | !position | !level level [target] | !teleport map x y z [target] | !item reference quantity [target] | !monster reference level quantity [target] | !kamas amount [target] | !buscar [item|mob] name [--pagina N] | !checkpoint [receipt] | !resultado receipt | !perfil [informe|estado|iniciar seconds|detener|reiniciar] | !equip uid slot | !unequip slot | !exitdungeon"
+
+TARGET_ARITY = {"!nivel": 1, "!tp": 4, "!item": 2, "!mob": 3, "!kamas": 1}
 
 
-def execute(store, groups, account, generation, character, text):
+def parse_target(text):
+    """Extract an optional final player name without changing numeric arguments."""
+    from .command_permissions import canonical_command
+
+    try:
+        fields = shlex.split(text)
+    except ValueError:
+        raise ValueError("Nombre entre comillas incompleto") from None
+    if not fields:
+        raise ValueError("Comando vacío")
+    command = canonical_command(fields[0])
+    arity = TARGET_ARITY.get(command)
+    if arity is None:
+        return text, None
+    if len(fields) not in (arity + 1, arity + 2):
+        raise ValueError(HELP)
+    args = fields[1 : arity + 1]
+    try:
+        for value in args:
+            int(value, 10)
+    except ValueError:
+        raise ValueError("Los argumentos deben ser números enteros") from None
+    target = fields[-1].removeprefix("@") if len(fields) == arity + 2 else None
+    if target is not None and not target.strip():
+        raise ValueError("El nombre de destino está vacío")
+    return " ".join([command, *args]), target
+
+
+def execute(store, groups, account, generation, character, text, *, authorized_by=None):
     if not isinstance(text, str) or not text.startswith("!"):
         return None
     from .command_permissions import authorize_command, canonical_command
 
-    authorize_command(store, account, text)
+    issuer = account if authorized_by is None else authorized_by
+    authorize_command(store, issuer, text)
+    if issuer != account:
+        from .command_permissions import is_admin
+
+        if not is_admin(store, issuer):
+            raise PermissionError(
+                "Solo un administrador puede modificar otro personaje"
+            )
     fields = text.split()
     if not fields:
         raise ValueError("Comando vacío")
@@ -28,6 +67,7 @@ def execute(store, groups, account, generation, character, text):
         "!ayuda": 0,
         "!pos": 0,
         "!nivel": 1,
+        "!kamas": 1,
         "!tp": 4,
         "!item": 2,
         "!mob": 3,
@@ -95,6 +135,27 @@ def execute(store, groups, account, generation, character, text):
             character=updated,
             packets=[packet],
             message=f"Nivel {level} guardado; vuelve a seleccionar el personaje para actualizar sus hechizos y puntos",
+        )
+    elif command == "!kamas":
+        from .wire import account_kamas_update
+
+        amount = values[0]
+        if not 1 <= amount <= (1 << 63) - 1:
+            raise ValueError("La cantidad de kamas debe ser positiva")
+        with store.connection() as db:
+            _lease(store, db, account, generation, current["id"])
+            row = db.execute(
+                "UPDATE account_wallets SET kamas=kamas+%s "
+                "WHERE account_id=%s AND kamas<=%s RETURNING kamas",
+                (amount, account, (1 << 63) - 1 - amount),
+            ).fetchone()
+            if row is None:
+                raise ValueError("El saldo de kamas excedería el máximo permitido")
+            updated = store.character(account, current["id"], db)
+        result.update(
+            character=updated,
+            packets=[(12753, account_kamas_update(row["kamas"]))],
+            message=f"{amount} kamas añadidos; saldo={row['kamas']}",
         )
     elif command == "!tp":
         map_id, x, y, z = values

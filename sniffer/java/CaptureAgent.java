@@ -329,6 +329,35 @@ public final class CaptureAgent {
         }
     }
 
+    static byte[] spectatorTerminalAck(byte[] data) {
+        ClassReader reader = new ClassReader(data);
+        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        int[] patched = {0};
+        reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
+            @Override
+            public MethodVisitor visitMethod(int access, String method, String desc, String signature, String[] exceptions) {
+                MethodVisitor target = super.visitMethod(access, method, desc, signature, exceptions);
+                if (!method.equals("cbj") || !desc.equals("()V")) return target;
+                return new MethodVisitor(Opcodes.ASM8, target) {
+                    @Override
+                    public void visitFieldInsn(int opcode, String owner, String field, String descriptor) {
+                        if (opcode == Opcodes.GETFIELD && owner.equals("aUH") && field.equals("huP") && descriptor.equals("Z")) {
+                            // cbj runs after native terminal cleanup. Preserve its
+                            // coQ packet and loss flag, but acknowledge observers
+                            // too so the server can safely clear retained NPCs.
+                            // Keep the original receiver/result stack shape.
+                            super.visitInsn(Opcodes.POP);
+                            super.visitInsn(Opcodes.ICONST_0);
+                            patched[0]++;
+                        } else super.visitFieldInsn(opcode, owner, field, descriptor);
+                    }
+                };
+            }
+        }, 0);
+        if (patched[0] != 1) throw new IllegalStateException("Unexpected native spectator terminal ACK boundary");
+        return writer.toByteArray();
+    }
+
     public static void premain(String directory, Instrumentation instrumentation) throws Exception {
         Path base = Path.of(directory);
         Files.createDirectories(base);
@@ -339,6 +368,40 @@ public final class CaptureAgent {
         instrumentation.addTransformer(new ClassFileTransformer() {
             @Override
             public byte[] transform(ClassLoader loader, String name, Class<?> clazz, ProtectionDomain domain, byte[] data) {
+                if ("aUH".equals(name)) return spectatorTerminalAck(data);
+                if ("fnR".equals(name)) {
+                    ClassReader reader = new ClassReader(data);
+                    ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+                    reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
+                        @Override
+                        public MethodVisitor visitMethod(int access, String method, String desc, String signature, String[] exceptions) {
+                            MethodVisitor target = super.visitMethod(access, method, desc, signature, exceptions);
+                            boolean snapshot = method.equals("f") && desc.equals("(LfvH;)V");
+                            boolean hydrated = method.equals("a") && desc.equals("(LwS;)V");
+                            if (!snapshot && !hydrated) return target;
+                            return new MethodVisitor(Opcodes.ASM8, target) {
+                                @Override
+                                public void visitCode() {
+                                    super.visitCode();
+                                    if (snapshot) {
+                                        super.visitVarInsn(Opcodes.ALOAD, 0);
+                                        super.visitVarInsn(Opcodes.ALOAD, 1);
+                                        super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativePetStateRefresh", "reconcile", "(LfnR;LfvH;)LfvH;", false);
+                                        super.visitVarInsn(Opcodes.ASTORE, 1);
+                                    }
+                                }
+                                @Override
+                                public void visitFieldInsn(int opcode, String owner, String field, String descriptor) {
+                                    if (hydrated && opcode == Opcodes.PUTFIELD && owner.equals("fnR") && field.equals("kuu") && descriptor.equals("LfvH;")) {
+                                        // Preserve the original receiver/value stack shape and stack maps.
+                                        super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativePetStateRefresh", "assignHydrated", "(LfnR;LfvH;)V", false);
+                                    } else super.visitFieldInsn(opcode, owner, field, descriptor);
+                                }
+                            };
+                        }
+                    }, 0);
+                    return writer.toByteArray();
+                }
                 if ("bPO".equals(name)) {
                     ClassReader reader = new ClassReader(data);
                     ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);

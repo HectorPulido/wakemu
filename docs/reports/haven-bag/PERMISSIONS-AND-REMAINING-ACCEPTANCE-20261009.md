@@ -1,0 +1,36 @@
+# Haven Bag permissions and remaining acceptance review
+
+Read-only review of the current shared checkout, 2026-10-09. No runtime, database, service, or gameplay source changes were made. This report distinguishes source behavior from live acceptance; the running r58 image is not presumed identical to every current shared source file.
+
+## Accepted and failed live behavior
+
+Account-shared layouts, entry by another character, persistent visible decorations, persistent gems, and absence of exterior monsters have user acceptance. Another character cannot leave the entrance room or use the herbalist station. The central management action does not open; gem layout and craft-price dialogs do open. Whether the affected other character belongs to the same account remains unestablished. Zaap and account chest remain untested/unaccepted. Historical gem disappearance is not closed by gem persistence alone.
+
+## Source evidence and limits
+
+- `items/haven_bag.py:HavenBagSession` uses account equality for `is_owner`; visitors receive the owner's `haven_bag` layout and canonical instance. Refresh preserves this layout for foreign visitors. `items/haven_bag_store.py:instance_id` reads `haven_bag.owner_id`, so a visitor with the live owner overlay is not automatically rejected as being in the wrong bag.
+- `items/haven_bag_exterior.py:can_visit` checks same-account ownership, lock, individual rights bit 1, then ALL-group bit 1. It does not evaluate GUILD membership or room/workshop rights. Guild permissions therefore cannot be claimed supported.
+- `items/haven_bag.py:permission_payload` serializes ALL/GUILD masks and character masks. The fallback default is ALL rights 1. This proves an entry permission baseline, not permission to every room. Exact native room-mask semantics and the central UI activation condition need client oracle inspection. The observed inaccessible-room tooltip is consistent with native client authorization but does not identify the wrong bit conclusively.
+- The live dispatcher accepts permission writes on opcode 12580 only for an owning active bag session, validates and persists the payload, then replies on 13522. This write handler does not prove that the central configuration UI can open. For same-account alternate characters, inspect serialized owner/account identity and native UI ownership predicates before changing permissions.
+- `items/craft_station.py:resolve_haven_bag` resolves deployed furniture, enabled room, native definition/profession and directional interaction cells. It has no explicit visitor room/workshop ACL evaluation. The dispatcher passes the live character and refreshes stored character context through the bag session. The currently observed station failure cannot honestly be attributed to its instance guard alone. It may be blocked client-side by room permission or by exact interaction topology; request/absence and rejection reason need correlation.
+- `maps/movement.py:Movement.validate` validates route continuity and endpoints, not Haven Bag room permissions. Room policy must be enforced authoritatively in the appropriate shared movement/interaction boundary as well as encoded for the client; avoid relying only on client tooltips.
+- `items/haven_bag_transfer.py:remove` restores the physical gem UID into owned inventory in the same transaction, removes its room ownership, and returns native 12451 plus inventory insertion 12471. It rejects fixed entrance primary, occupied inventory destinations, visitors present, plants/furniture in a disabled room, or primary removal before secondary removal. This addresses the historical missing inventory packet in source, but successful live removal, immediate visibility and reconnect conservation still require acceptance.
+- The furniture renderer supports Decoration, FxDecoration, DimensionalBagBackgroundDisplay and PortableCraftTable only. No dedicated Haven Bag chest implementation was located in the reviewed modules; issue 41 explicitly requires identity/protocol verification. Existing general transport support does not demonstrate a working bag zaap. Both remain open, rather than accepted by visible scenery.
+
+## General remediation boundary
+
+Establish one canonical bag owner/account/instance context shared by entry, UI serialization, ACL updates, movement, harvesting and portable crafting. Derive native room masks and management predicates from the installed client; do not guess universal masks or bypass ownership. Implement shared server authorization for requested room and operation, including explicit decisions for workshop use and guild membership. Publish permission changes to active occupants and test subsequent actions against the fresh configuration. Keep inventory UID conservation separate from layout rendering and preserve atomic gem transfers. Treat account chest and bag transport as independently verified storage/transport contracts.
+
+## Complete system acceptance after implementation
+
+Use owner A, alternate character A2 on the same account, and B on a distinct account. Record the account relation explicitly. Do not use administrator teleport to bypass rooms.
+
+1. With A, install a garden room and a crafting room, place the existing herbalist station and a decoration, then open the central management option. Expect a real access/configuration dialog, distinct from gem layout and pricing.
+2. Reconnect as A2. Expect the same layout and owner capabilities, including central management. Traverse enabled rooms, interact with the station from a valid native interaction cell, and complete one recipe for which A2 has the profession level and ingredients. Expect correct ingredient/output changes and persistence.
+3. With A inside, enter as B through the exterior bag. Configure B explicitly for entrance only. Expect B to enter but be denied other rooms and station use without losing items or freezing movement.
+4. Grant B the verified relevant room/workshop rights using the UI. Expect B to traverse those rooms and complete one permitted recipe; revoke rights and expect subsequent actions denied. B must remain unable to change gems, decoration ownership or owner configuration.
+5. Leave with B, clear an expendable gem's room of plants/furniture, remove its secondary gem first if present, then remove its non-entrance primary. Expect exactly one physical gem immediately in A's inventory, no room reference, and the same totals after reconnect. Reinsert/remove again; expect no duplication. Repeat with a full inventory and visitors present; expect a clear rejection and no ownership loss.
+6. Test the bag zaap only once its real interaction is supported: open destinations, use a valid destination, verify location/cost/return behavior, and reject unauthorized or invalid destinations without item loss.
+7. Test the account chest only once implemented: deposit a partial stack with A, withdraw with A2, reconnect, and verify one conserved account-owned total. B must not open or transfer account contents. Full inventory, replay and duplicate submission must not duplicate or destroy units.
+
+Steps 1–5 are the next complete bag test; steps 6–7 remain pending implementation/protocol evidence and should not be represented as currently working.

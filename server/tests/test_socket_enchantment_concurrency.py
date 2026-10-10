@@ -36,7 +36,11 @@ class EnchantmentConcurrencyTests(PostgresCase):
             db.execute(
                 "UPDATE characters SET level=80 WHERE id=%s", (self.character["id"],)
             )
-            save(db, self.target["uid"], proto_field(10, proto_field(96, 1)))
+            save(
+                db,
+                self.target["uid"],
+                proto_field(10, proto_field(80, 0) + proto_field(96, 1)),
+            )
             db.execute(
                 "UPDATE account_wallets SET kamas=100 WHERE account_id=%s",
                 (self.account,),

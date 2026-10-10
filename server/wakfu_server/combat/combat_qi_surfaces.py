@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from .combat_qi_snapshot import NativeQISnapshot
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class NativeSurface:
     z: int
     bld: int
@@ -29,6 +29,9 @@ class NativeQISurfaces:
             raise ValueError("Missing complete ordered native QI chunks")
         self.chunks = []
         self.map_id, self.source_sha256 = map_id, source_sha256
+        # Surface values are immutable and heavily repeated across a map. Keep
+        # interning local to this provider, without retaining a global catalog.
+        interned = {}
         for chunk in chunks:
             if not isinstance(chunk, dict):
                 raise ValueError("Invalid native QI surface chunk")
@@ -66,12 +69,17 @@ class NativeQISurfaces:
                     if (
                         not isinstance(surface, list)
                         or len(surface) != 2
-                        or any(type(value) is not int for value in surface)
+                        or type(surface[0]) is not int
+                        or type(surface[1]) is not int
                         or not -32768 <= surface[0] <= 32767
                         or not -128 <= surface[1] <= 127
                     ):
                         raise ValueError("Invalid signed native Vy surface")
-                    ordered.append(NativeSurface(*surface))
+                    key = (surface[0], surface[1])
+                    value = interned.get(key)
+                    if value is None:
+                        value = interned[key] = NativeSurface(*surface)
+                    ordered.append(value)
                 parsed[(cx, cy)] = tuple(ordered)
             self.chunks.append((bounds, parsed))
 

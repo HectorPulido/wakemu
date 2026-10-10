@@ -72,6 +72,40 @@ class MigrationTests(unittest.TestCase):
             self.migration_count,
         )
 
+    def test_achievement_authority_migration_seeds_existing_characters(self):
+        from wakfu_server.postgres import migrate
+
+        before_authority = self.directory / "before_achievement_authority"
+        before_authority.mkdir()
+        for path in self.directory.glob("*.sql"):
+            if int(path.name[:3]) <= 85:
+                shutil.copy(path, before_authority / path.name)
+        self.assertEqual(85, migrate(self.db, before_authority))
+
+        account = self.db.execute(
+            "INSERT INTO accounts(username,username_key,salt,password_hash) "
+            "VALUES(%s,%s,%s,%s) RETURNING id",
+            ("ExistingAchievement", "existingachievement", bytes(16), b"test-hash"),
+        ).fetchone()["id"]
+        character = self.db.execute(
+            "INSERT INTO characters(account_id,name,name_key,breed,sex,face,hair,colors,appearance,hp,max_hp) "
+            "VALUES(%s,'Existing Achievement','existing achievement',8,false,0,0,'[]','{}',20,60) "
+            "RETURNING id",
+            (account,),
+        ).fetchone()["id"]
+
+        self.assertEqual(self.migration_count - 85, migrate(self.db, self.directory))
+        row = self.db.execute(
+            "SELECT snapshot,revision,provenance FROM character_achievement_authority "
+            "WHERE character_id=%s",
+            (character,),
+        ).fetchone()
+        self.assertEqual(
+            {"running": [], "completed": [], "objectives": []}, row["snapshot"]
+        )
+        self.assertEqual(0, row["revision"])
+        self.assertEqual("local_server_initial_empty", row["provenance"])
+
     def test_failed_migration_rolls_back_ddl_and_version(self):
         from wakfu_server.postgres import migrate
         from psycopg.errors import UndefinedTable

@@ -277,7 +277,7 @@ class NativeEventReplay:
             if entry.uid not in self.retention.fight.native_owned_group_effects:
                 continue
             count = row.get("execution_count")
-            if type(count) is not int or not -32768 <= count <= 32767:
+            if type(count) is not int or not -2147483648 <= count <= 2147483647:
                 raise ValueError("Missing native retained listener execution count")
             original = EffectInvocation(
                 **dict(
@@ -351,6 +351,7 @@ class NativeEventReplay:
                 target_id=target,
                 cell=cell,
                 base_uid=entry.uid,
+                wakemu_fresh_child_selection=False,
                 native_trigger_context=(source_context),
                 native_cast_boundary_context=(
                     source.cast_boundary_context

@@ -8,6 +8,7 @@ from wakfu_server import native_catalog as protocol_catalog
 import hashlib
 import json
 import secrets
+from contextlib import nullcontext
 
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.wire import proto_field
@@ -157,7 +158,9 @@ def _wallet_balance(db, account_id):
     return row["kamas"]
 
 
-def identify(store, account_id, generation, character_id, body, *, randbelow=None):
+def identify(
+    store, account_id, generation, character_id, body, *, randbelow=None, db=None
+):
     """Apply local 13787 policy once to one owned, unstacked inventory UID.
 
     `status` uses only the client-confirmed 13766 ordinals: 0 success and 2
@@ -172,7 +175,10 @@ def identify(store, account_id, generation, character_id, body, *, randbelow=Non
     if uid <= 0:
         raise ValueError("Invalid native socket identification UID")
     randbelow = secrets.randbelow if randbelow is None else randbelow
-    with store.connection() as db:
+    # Element selection also identifies sockets. Share its transaction so
+    # the choice, sockets, receipt, and optional charge commit together.
+    transaction = store.connection() if db is None else nullcontext(db)
+    with transaction as db:
         _lease(store, db, account_id, generation, character_id)
         if (
             db.execute(

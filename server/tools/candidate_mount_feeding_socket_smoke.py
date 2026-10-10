@@ -151,10 +151,13 @@ def _wait_item(store, character_id, reference, quantity, timeout=15):
 
 def _feed(peer, food, pet):
     peer.drain()
-    peer.send(12767, struct.pack(">qqi", food["uid"], pet["uid"], 1))
+    peer.send(12767, struct.pack(">qqi", pet["uid"], food["uid"], 1))
     first, _ = peer.until(12470)
     second, _ = peer.until(12470)
     insert, _ = peer.until(12471)
+    registry, _ = peer.until(13078)
+    if not registry[1]:
+        raise AssertionError("Feeding omitted the refreshed equipped item registry")
     food_uid, food_delta = struct.unpack(">qh", first[1])
     pet_uid, pet_delta = struct.unpack(">qh", second[1])
     if (food_uid, food_delta, pet_uid, pet_delta) != (food["uid"], -1, pet["uid"], -1):
@@ -278,7 +281,7 @@ def main():
 
         # The same body is indistinguishable from a transport retry inside the
         # configured debounce. It emits no additive packet and makes no receipt.
-        peer.send(12767, struct.pack(">qqi", xp_food["uid"], pet["uid"], 1))
+        peer.send(12767, struct.pack(">qqi", pet["uid"], xp_food["uid"], 1))
         time.sleep(0.25)
         duplicate_packets = peer.drain()
         if any(opcode in (12470, 12471, 13078) for opcode, _ in duplicate_packets):
@@ -288,7 +291,7 @@ def main():
         # After the non-native debounce expires, an identical second request
         # on the same UTC date must still fail the native daily XP gate.
         time.sleep(3.4)
-        peer.send(12767, struct.pack(">qqi", xp_food["uid"], pet["uid"], 1))
+        peer.send(12767, struct.pack(">qqi", pet["uid"], xp_food["uid"], 1))
         _info, rejected_packets = peer.until(349)
         if any(opcode in (12470, 12471) for opcode, _ in rejected_packets):
             raise AssertionError("Same-day XP rejection changed or refreshed inventory")

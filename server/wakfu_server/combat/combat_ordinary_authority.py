@@ -16,6 +16,15 @@ def native_property_catalog():
     return protocol_catalog.load(DATA_ROOT / "native-actor-properties.json")
 
 
+@lru_cache(maxsize=1)
+def _immutable_property_catalog():
+    from .combat_static_catalogs import ImmutableCatalog
+
+    # Asset definitions are immutable services, not owned preview state.
+    # Mutable actor/deck sources still follow the ordinary deepcopy boundary.
+    return ImmutableCatalog(native_property_catalog())
+
+
 def ordinary_native_sex(source, player):
     """Fresh ordinary eGj.aXz: actual owned PC sex or aWs NPC byte zero."""
     if type(player) is not bool or not isinstance(source, dict):
@@ -53,7 +62,7 @@ class OrdinaryActorAuthority:
             raise ValueError("Exact owned player/NPC and deck sources required")
         self.characters, self.monsters = characters, monsters
         self.decks, self.excluded_decks = decks, excluded_decks
-        self.catalog = native_property_catalog() if catalog is None else catalog
+        self.catalog = _immutable_property_catalog() if catalog is None else catalog
         self.deck_caps = (
             {identity: None for identity in characters}
             if deck_caps is None
@@ -68,6 +77,14 @@ class OrdinaryActorAuthority:
             raise ValueError("Every owned player requires its exact raw fzf deck bytes")
         self.deck_blobs = None if deck_blobs is None else dict(deck_blobs)
 
+    def _monster_sources(self, preview):
+        if getattr(preview, "rift_wave_state", None) is None:
+            return self.monsters
+        sources = getattr(preview, "rift_monsters", None)
+        if not isinstance(sources, dict):
+            raise ValueError("Missing checkpointed ordinary rift monster sources")
+        return sources
+
     def __call__(self, preview, actor):
         from .combat_native_actor_lookup import detached_authority
 
@@ -79,7 +96,8 @@ class OrdinaryActorAuthority:
             for identity, candidate in preview.actors.items()
             if getattr(candidate, "pve_withdrawn", False)
         }
-        if set(preview.actors) - withdrawn != set(self.characters) | set(self.monsters):
+        monsters = self._monster_sources(preview)
+        if set(preview.actors) - withdrawn != set(self.characters) | set(monsters):
             raise ValueError(
                 "Ordinary authority roster changed: summons/wrapped actors need native registration"
             )
@@ -88,7 +106,7 @@ class OrdinaryActorAuthority:
         if actor.id in withdrawn:
             raise ValueError("Withdrawn PvE actor has no active ordinary authority")
         player = actor.id in self.characters
-        source = (self.characters if player else self.monsters)[actor.id]
+        source = (self.characters if player else monsters)[actor.id]
         if source["id"] != actor.id or actor.controlled != player:
             raise ValueError("Creation actor kind disagrees with owned source")
         profile = (
@@ -262,7 +280,9 @@ class OrdinaryActorAuthority:
         row = (
             self.catalog["player"]
             if actor.id in self.characters
-            else self.catalog["npc"][str(self.monsters[actor.id]["ref"])]
+            else self.catalog["npc"][
+                str(self._monster_sources(preview)[actor.id]["ref"])
+            ]
         )
         from .combat_fight_property import property_registry
 
@@ -360,7 +380,9 @@ class OrdinaryActorAuthority:
         row = (
             self.catalog["player"]
             if actor.id in self.characters
-            else self.catalog["npc"][str(self.monsters[actor.id]["ref"])]
+            else self.catalog["npc"][
+                str(self._monster_sources(preview)[actor.id]["ref"])
+            ]
         )
         return frozenset(row["fight_properties"])
 
@@ -384,7 +406,9 @@ class OrdinaryActorAuthority:
         row = (
             self.catalog["player"]
             if actor.id in self.characters
-            else self.catalog["npc"][str(self.monsters[actor.id]["ref"])]
+            else self.catalog["npc"][
+                str(self._monster_sources(preview)[actor.id]["ref"])
+            ]
         )
         counts = {}
         # ExportActorProperties stores actual profile.fsq(), not a presence set.
@@ -407,7 +431,9 @@ class OrdinaryActorAuthority:
         row = (
             self.catalog["player"]
             if actor.id in self.characters
-            else self.catalog["npc"][str(self.monsters[actor.id]["ref"])]
+            else self.catalog["npc"][
+                str(self._monster_sources(preview)[actor.id]["ref"])
+            ]
         )
         return frozenset(row["world_properties"])
 

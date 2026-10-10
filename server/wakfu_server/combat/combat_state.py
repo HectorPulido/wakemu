@@ -397,15 +397,30 @@ class Fight:
             cost += step
             origin = target
         from .combat_rail_movement import movement_cost
+        from .combat_tackle_movement import movement_tackle_cost
 
         cost, on_rails = movement_cost(self, actor, path)
-        if not path or cost > actor.mp:
-            raise ValueError("Empty path or insufficient MP")
+        tackle_ap, tackle_mp = (
+            movement_tackle_cost(self, actor, path) if path else (0, 0)
+        )
+        cost += tackle_mp
+        if not path or cost > actor.mp or tackle_ap > actor.ap:
+            raise ValueError("Empty path or insufficient AP/MP for combat movement")
         if getattr(actor, "effect_resource_raw_currents", None) is not None:
-            from .combat_resource_pa_notifications import shift_resource_current
+            from .combat_resource_pa_notifications import (
+                shift_resource_current,
+                resource_shift_result,
+            )
 
+            # Validate both PA mutations before the first notification or write.
+            if tackle_ap:
+                resource_shift_result(actor, 2, tackle_ap, subtract=True)
+            resource_shift_result(actor, 3, cost, subtract=True)
+            if tackle_ap:
+                shift_resource_current(self, actor, 2, tackle_ap, subtract=True)
             shift_resource_current(self, actor, 3, cost, subtract=True)
         else:
+            actor.ap -= tackle_ap
             actor.mp -= cost
         self._sync_resources(actor)
         from .combat_qi_fight import move_registered_actor
@@ -416,6 +431,11 @@ class Fight:
             actor_id=actor_id,
             path=path,
             cost=cost,
+            **(
+                {"tackle_ap": tackle_ap, "tackle_mp": tackle_mp}
+                if tackle_ap or tackle_mp
+                else {}
+            ),
             **({"on_rails": True} if on_rails else {}),
         )
 
@@ -456,6 +476,11 @@ class Fight:
             self.native_base_turn_order = None
         self.turn_index = next_index
         self.turn_id += 1
+        if getattr(self, "rift_wave_state", None) is not None:
+            from .rift_combat_adapter import finish_survival
+
+            if finish_survival(self):
+                return
         self._begin_turn()
 
     def apply_damage(self, source_id, target_id, amount):
@@ -563,7 +588,12 @@ class Fight:
         participating = {a.id for a in self.actors.values() if self._in_play(a)}
         self.order = [uid for uid in old_order if uid in participating]
         alive = {a.team for a in self.actors.values() if a.id in participating}
-        if len(alive) < 2:
+        defer_victory = False
+        if getattr(self, "rift_wave_state", None) is not None:
+            from .rift_combat_adapter import defer_wave_victory
+
+            defer_victory = defer_wave_victory(self, alive)
+        if len(alive) < 2 and not defer_victory:
             self.phase = "finished"
             self.winner = next(iter(alive), None)
             self._event("finished", winner=self.winner)

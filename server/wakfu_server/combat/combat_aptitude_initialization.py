@@ -29,7 +29,9 @@ def plan(character):
     )
     if not blob:
         return ()
-    allocations = aptitudes.validate(character, blob)["allocations"]
+    allocations = aptitudes.validate_owned_sheet(character, blob, build_index=index)[
+        "allocations"
+    ]
     effects = effect_catalog()["effects"]
     result = []
     for bonus, points in allocations.items():

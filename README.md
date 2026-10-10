@@ -63,3 +63,8 @@ Client version: 1.93.1+79 <- no other version compatible
 ## Iop repair delivery update
 
 The shared Iop context, Preparation and voluntary-movement repairs are delivered in the complete r47 image. Current code and catalogs were verified before restart; actual Iop/Cra regressions and summon retirement checks passed. See the [delivery and validation record](docs/reports/combat-inventory/iop-shared-repair-delivery-20261009.md). Manual whole-class acceptance remains pending.
+
+
+## Aniripsa local verification — 2026-10-09
+
+Provisional manual acceptance remains **3/18** (Cra, Iop and Sacrier). Aniripsa implementation passed the final local gate: **134 tests, zero failures or skips**, including prior-class regressions. No restart or deployment was performed by this workstream. See the [implementation evidence](docs/reports/combat-inventory/aniripsa-implementation-review-20261009.md) and [complete manual acceptance test](docs/reports/combat-inventory/aniripsa-manual-acceptance-20261009.md). Aniripsa awaits manual acceptance.

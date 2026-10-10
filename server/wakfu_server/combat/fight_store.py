@@ -609,6 +609,10 @@ def abort(
         query += " AND (p.session_generation IS NULL OR p.session_generation=%s)"
         params.append(expected_generation)
     applied = db.execute(query, tuple(params)).rowcount == 1
-    if applied and on_aborted is not None:
-        on_aborted(db, fight_id)
+    if applied:
+        from .rift_runtime import abort_bound_fight
+
+        abort_bound_fight(db, fight_id)
+        if on_aborted is not None:
+            on_aborted(db, fight_id)
     return applied

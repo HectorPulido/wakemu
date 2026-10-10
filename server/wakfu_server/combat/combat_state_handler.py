@@ -134,14 +134,30 @@ class NativeStateHandler:
         if chance == -1:
             return True
         if chance != -2:
-            from .combat_state_resistance_metadata import native_state_resistance_mode
+            from .combat_state_resistance_metadata import (
+                native_state_absence_proven,
+                native_state_resistance_mode,
+            )
 
-            mode = native_state_resistance_mode(parameters["reference"])
-            if not isinstance(mode, dict) or mode.get("enum_class") != "fza":
+            # eWu.fNa returns zero for an original null fyZ.aax lookup.
+            # Keep the ordinary zero-chance draw below; do not fabricate a mode.
+            native_missing = native_state_absence_proven(parameters["reference"])
+            mode = (
+                None
+                if native_missing
+                else native_state_resistance_mode(parameters["reference"])
+            )
+            if native_missing:
+                chance = 0
+            if not native_missing and (
+                not isinstance(mode, dict) or mode.get("enum_class") != "fza"
+            ):
                 raise UnsupportedEffectExecution(
                     "Missing native eWu state resistance mode"
                 )
-            if not (mode.get("name") == "POSITIF" and mode.get("ordinal") == 2):
+            if not native_missing and not (
+                mode.get("name") == "POSITIF" and mode.get("ordinal") == 2
+            ):
                 caster = self.fight.actors.get(invocation.caster_id)
                 target = self.fight.actors.get(invocation.target_id)
                 caster_stats = getattr(caster, "effect_stats", None)
@@ -396,6 +412,13 @@ class NativeStateHandler:
         304's separate chance gate belongs to its parameter interpreter;321
         reapplication has no invented304 parameters and uses its own context.
         """
+        if str(reference) not in self.catalog["states"]:
+            from .combat_state_resistance_metadata import native_state_absence_proven
+
+            if native_state_absence_proven(reference):
+                # eZk.a/fRb returns null; eWu.D returns before allocating or
+                # registering a carrier. Unattested missing data still fails.
+                return False
         context = (
             self.context(effect, invocation)
             if carrier_context is None

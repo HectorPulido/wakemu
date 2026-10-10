@@ -80,7 +80,14 @@ def _station(catalog, character, table_id, station):
         or station["instance_id"] != character["instance_id"]
     ):
         raise ValueError("Crafting station is in another map instance")
-    definition = catalog.resolve_table(station["map_id"], table_id)
+    if station.get("haven_bag") is True:
+        # The world adapter resolves a deployed, owned portable table from the
+        # fresh bag snapshot; recipe membership remains native catalog policy.
+        definition = catalog.definitions.get(station["definition_id"])
+        if definition is not None:
+            definition = {**definition, "status": "resolved"}
+    else:
+        definition = catalog.resolve_table(station["map_id"], table_id)
     if (
         not isinstance(definition, dict)
         or definition.get("status") != "resolved"
@@ -224,6 +231,7 @@ def begin(
     *,
     station,
     craft_speed_modifier=0,
+    location_resolver=None,
 ):
     """Validate and persist one occupation; no materials are consumed here.
 
@@ -238,6 +246,11 @@ def begin(
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
         character = store.character(account_id, character_id, db)
+        if location_resolver is not None:
+            character = location_resolver(character)
+            from .craft_station import resolve_current
+
+            station = resolve_current(character, table_id)
         definition = _station(catalog, character, table_id, station)
         recipe = _recipe(catalog, definition, request["recipe_id"])
         batch_count, mode = _batch(opcode, request, recipe)
@@ -483,6 +496,7 @@ def complete(
     body,
     *,
     station,
+    location_resolver=None,
 ):
     """Atomically apply one finished native craft occupation."""
     craft_wire.completion_request(body)
@@ -497,6 +511,11 @@ def complete(
         if store.now() < row["due_at"]:
             raise ValueError("Crafting occupation completed before its duration")
         character = store.character(account_id, character_id, db)
+        if location_resolver is not None:
+            character = location_resolver(character)
+            from .craft_station import resolve_current
+
+            station = resolve_current(character, row["table_uid"])
         definition = _station(catalog, character, row["table_uid"], station)
         if (
             definition["definition_id"] != row["definition_id"]

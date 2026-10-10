@@ -15,6 +15,9 @@ from wakfu_server.wire import proto_field, proto_fields
 from .inventory_items import _lease
 from .inventory_shards import validate
 
+# Native bqI counts inventory reference 27083 for the common shard reserve.
+SHARD_MATERIAL_REFERENCE = 27083
+
 OPS = {
     "add_charges",
     "add_slot",
@@ -385,14 +388,23 @@ def _published_state(
     return result
 
 
-def _consume(store, db, account_id, character_id, uid, *, expected_reference=None):
+def _consume(
+    store,
+    db,
+    account_id,
+    character_id,
+    uid,
+    *,
+    expected_reference=None,
+    allow_stack=False
+):
     item = db.execute(
         "SELECT quantity,reference FROM inventory_items WHERE uid=%s AND character_id=%s FOR UPDATE",
         (uid, character_id),
     ).fetchone()
     if item is None:
         raise ValueError("Socket sacrifice item is unavailable or foreign")
-    if item["quantity"] != 1:
+    if item["quantity"] < 1 or (item["quantity"] != 1 and not allow_stack):
         raise ValueError("Socket sacrifice requires an unstacked item UID")
     if expected_reference is not None and item["reference"] != expected_reference:
         raise ValueError("Socket sacrifice reference is incompatible")
@@ -402,7 +414,12 @@ def _consume(store, db, account_id, character_id, uid, *, expected_reference=Non
         raise ValueError("Socket sacrifice item is offered in an exchange")
     if _equipped(store, db, account_id, character_id, uid):
         raise ValueError("Unequip socket sacrifice before consuming it")
-    db.execute("DELETE FROM inventory_items WHERE uid=%s", (uid,))
+    if item["quantity"] == 1:
+        db.execute("DELETE FROM inventory_items WHERE uid=%s", (uid,))
+    else:
+        db.execute(
+            "UPDATE inventory_items SET quantity=quantity-1 WHERE uid=%s", (uid,)
+        )
 
 
 def mutate(
@@ -515,6 +532,22 @@ def mutate(
             )
 
         if operation == "apply_sublimation":
+            # The native request names a scroll reference, not a unique unit.
+            # Replaying an already-installed scroll must not consume another
+            # copy, including after the short transport retry window expires.
+            if any(tag == 24 and value == extra for tag, value in proto_fields(state)):
+                return _published_state(
+                    store,
+                    db,
+                    account_id,
+                    character_id,
+                    uid,
+                    operation,
+                    state,
+                    cost_kamas=0,
+                    consumed_uid=None,
+                    applied=False,
+                )
             scroll = db.execute(
                 "SELECT uid,quantity FROM inventory_items WHERE character_id=%s AND reference=%s "
                 "AND uid<>%s ORDER BY uid LIMIT 1 FOR UPDATE",
@@ -522,8 +555,8 @@ def mutate(
             ).fetchone()
             if scroll is None:
                 raise ValueError("Owned sublimation item is unavailable")
-            if scroll["quantity"] != 1:
-                raise ValueError("Sublimation item must be unstacked")
+            if scroll["quantity"] < 1:
+                raise ValueError("Sublimation item stack is empty")
             ingredient = scroll["uid"]
 
         rows = _slots(state)
@@ -642,6 +675,7 @@ def mutate(
                 character_id,
                 ingredient,
                 expected_reference=extra,
+                allow_stack=True,
             )
             result = validate(_put(list(proto_fields(result)), 24, extra))
         elif operation == "remove_sublimation":
@@ -706,7 +740,7 @@ def install_bonus(store, account_id, generation, character_id, body):
         ).fetchone()
         if item is None or item["quantity"] != 1:
             raise ValueError("Socket bonus target must be one owned item")
-        from .shard_identification import _catalog as socket_catalog
+        from .shard_identification import _catalog as socket_catalog, _current_elements
 
         template = socket_catalog().get(item["reference"])
         if template is None:
@@ -820,11 +854,11 @@ def install_bonus(store, account_id, generation, character_id, body):
                 eligible_amounts = [
                     cost
                     for cost, minimum in zip(costs, bonus["minimum_levels"])
-                    if minimum <= level_row["level"]
+                    if minimum <= template["item_level"]
                 ]
                 if not eligible_amounts or amount not in eligible_amounts:
                     raise ValueError(
-                        "Socket bonus amount exceeds the native character-level gate"
+                        "Socket bonus amount exceeds the native item-level gate"
                     )
                 charge = (
                     max(0, amount - old_amount)
@@ -832,12 +866,31 @@ def install_bonus(store, account_id, generation, character_id, body):
                     else amount
                 )
                 if charge:
-                    requirements[reference] = requirements.get(reference, 0) + charge
+                    requirements[SHARD_MATERIAL_REFERENCE] = (
+                        requirements.get(SHARD_MATERIAL_REFERENCE, 0) + charge
+                    )
                 row["raw"] = _set_slot(row, reference=reference, level=amount)
                 row["reference"], row["level"] = reference, amount
 
             if not changed:
-                raise ValueError("Native socket bonus request contains no changes")
+                # Unchanged confirmations can arrive after the retry window.
+                # Publish authoritative state without another receipt or fee.
+                character = store.character(account_id, character_id, db)
+                from wakfu_server.inventory_move import synchronization
+
+                return dict(
+                    uid=target_uid,
+                    operation="install_bonus",
+                    shard_state=state,
+                    elements=_current_elements(db, target_uid),
+                    inventory_packet=synchronization(character),
+                    inventory_items=character["inventory_items"],
+                    inventory_containers=character["inventory_containers"],
+                    wallet_kamas=character["kamas"],
+                    cost_kamas=0,
+                    consumed=[],
+                    applied=False,
+                )
 
             # Validate aggregate inventory availability before consuming any
             # stack. Offer/trade rows are excluded, and all candidate stacks
@@ -937,6 +990,7 @@ def install_bonus(store, account_id, generation, character_id, body):
             uid=target_uid,
             operation="install_bonus",
             shard_state=state,
+            elements=_current_elements(db, target_uid),
             inventory_packet=inventory_packet,
             inventory_items=character["inventory_items"],
             inventory_containers=character["inventory_containers"],

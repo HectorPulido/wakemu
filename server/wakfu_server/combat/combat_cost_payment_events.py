@@ -6,6 +6,62 @@ from .combat_ordinary_events import OrdinaryHealingEvents
 _payment = ContextVar("native_cost_payment", default=None)
 
 
+def payment_event_ids(costs):
+    """Fresh eWf.bbx: AP55, MP65, WP60; mh/mi default false.
+
+    The fourth native resource is absent from current spell plans. Do not
+    invent its event73, or special mh/mi events74/2188/2234/2263.
+    """
+    if (
+        not isinstance(costs, dict)
+        or set(costs) != {"ap", "mp", "wp"}
+        or any(type(v) is not int or not 0 <= v <= 127 for v in costs.values())
+    ):
+        raise ValueError("Missing actual nonnegative byte payment costs")
+    selected = {0}
+    for key, event in (("ap", 55), ("mp", 65), ("wp", 60)):
+        if costs[key] > 0:
+            selected.add(event)
+    return tuple(sorted(selected))
+
+
+def replay_paid_spell_costs(dispatcher, plan):
+    """Publish the already-paid preview receipt, never pay a second time.
+
+    Original eWf post-application phases and cost descriptors are preserved.
+    Placing the receipt before spell roots is explicit Wakemu server policy:
+    the original server normal-cast caller is unavailable.
+    """
+    factory = getattr(dispatcher, "native_cost_payment_events_factory", None)
+    if factory is None:
+        return  # Minimal focused dispatchers have no retained event system.
+    events = factory()
+    costs = {key: plan["costs"][key] for key in ("ap", "mp", "wp")}
+    identifiers = payment_event_ids(costs)
+    actor_id = plan["actor_id"]
+    from .combat_effect_dispatch import EffectInvocation
+
+    invocation = EffectInvocation(
+        -1,
+        -1,
+        actor_id,
+        actor_id,
+        (0, 0, 0),
+        native_retained_container={"present": False},
+    )
+    definition = dict(effect_class=30, native_effect_flags=[], native_costs=costs)
+    packed = costs["ap"] | (costs["mp"] << 8) | (costs["wp"] << 16)
+    for channel in (3, 4):
+        events.phase(
+            definition,
+            invocation,
+            uid=-1,
+            value=packed,
+            channel=channel,
+            _event_ids=identifiers,
+        )
+
+
 class NativeCostPaymentEvents(OrdinaryHealingEvents):
     def __init__(self, *, adapter, preview, plan, replay, retention):
         def actual_cost_source(source, *, authority):

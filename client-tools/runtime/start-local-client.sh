@@ -26,6 +26,7 @@ exec /usr/bin/sandbox-exec -f "$experiment_dir/client-tools/runtime/local-networ
   --add-exports=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED \
   "-javaagent:$agents_dir/desktop-fix.jar" \
   "-Dwakfu.local.openPlanting=${WAKFU_OPEN_PLANTING:-true}" \
+  "-Dwakfu.local.openDungeonMissions=${WAKFU_OPEN_DUNGEON_MISSIONS:-true}" \
   "-javaagent:$agents_dir/open-planting.jar" \
   "-javaagent:$experiment_dir/.runtime/capture-agent.jar=$runtime_dir/captures" \
   -Xms512m -Xmx2G -Djava.net.preferIPv4Stack=true \

@@ -10,6 +10,9 @@ from .ecology_feedback import describe, information
 def change(db, character_id, resource, *, operation, action):
     if action not in ("plant", "remove", "harvest"):
         raise ValueError("Invalid flora ecology action")
+    if resource["map_id"] == 9:
+        # Private gardens never modify exterior ecology or personal affinity.
+        return {"packets": [], "reason": "private_haven_bag_garden"}
     definition = RESOURCES[resource["resource_reference"]]
     if definition["monster_resource"]:
         message = (

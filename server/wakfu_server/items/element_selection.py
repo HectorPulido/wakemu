@@ -81,6 +81,10 @@ def encode_result(uid, damage, resistance, *, status=0, sockets=b""):
     _validate_mask(resistance)
     if not isinstance(sockets, bytes):
         raise ValueError("Invalid socket result blob")
+    if sockets:
+        from .inventory_shards import initialized_wire_state
+
+        sockets = initialized_wire_state(sockets)
     elements = bytes((damage, resistance))
     return (
         13766,
@@ -133,6 +137,32 @@ def select(store, account_id, generation, character_id, body):
             for tag, value in proto_fields(bytes.fromhex(build["equipment"])):
                 if tag == 10 and dict(proto_fields(value)).get(8) == uid:
                     raise ValueError("Unequip item before selecting its elements")
+
+        from .shard_identification import _catalog as socket_templates, identify
+
+        socket_result = None
+        if item["reference"] in socket_templates():
+            socket_result = identify(
+                store,
+                account_id,
+                generation,
+                character_id,
+                struct.pack(">q", uid),
+                db=db,
+            )
+            if socket_result["status"] != 0:
+                from .shard_identification_wire import response
+
+                return dict(
+                    uid=uid,
+                    applied=False,
+                    status=socket_result["status"],
+                    packet=response(socket_result),
+                    cost_kamas=0,
+                    damage_elements=damage,
+                    resistance_elements=resistance,
+                    shard_state=None,
+                )
 
         prior = db.execute(
             "SELECT damage_elements,resistance_elements FROM inventory_element_selection_receipts "
@@ -197,4 +227,13 @@ def select(store, account_id, generation, character_id, body):
                 sockets=b"" if shard_state is None else shard_state,
             ),
             applied=applied,
+            status=0,
+            cost_kamas=(
+                socket_result["cost_kamas"]
+                if socket_result is not None and socket_result["applied"]
+                else 0
+            ),
+            wallet_kamas=None
+            if socket_result is None
+            else socket_result["wallet_kamas"],
         )

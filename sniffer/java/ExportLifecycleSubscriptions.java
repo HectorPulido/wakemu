@@ -18,7 +18,7 @@ public class ExportLifecycleSubscriptions {
    Map<String,Object> row=new TreeMap<>(ExportSpellEffectTrees.metadata(e));
    row.put("reference",e.aZE());row.put("effect_class",e.awM());row.put("criteria",raw.cyi());
    row.put("event_reverse_subscription",e.aZw());row.put("event_global_subscription",e.aZx());
-   row.put("event_execution_count",(int)e.aZS());row.put("event_target_code",(int)e.aZV().aKg());
+   row.put("event_execution_count",(int)e.aZS());row.put("event_execution_count_per_level",e.cyc());row.put("event_target_code",(int)e.aZV().aKg());
    row.put("event_caster_code",e.aZW()==null?null:(int)e.aZW().aKg());
    row.put("children",groups.getOrDefault(e.aZE(),new int[0]));
    row.put("spells",new TreeSet<Integer>());row.put("states",new TreeSet<Integer>());rows.put(e.aZE(),row);

@@ -1,3 +1,5 @@
+> 2026-10-09 22:57 follow-up: repeated challenges failed forever after old pending invitations expired. The retry transaction renewed the quarantine then rolled retirement back. Retirement now anchors to expires_at; actual received replies retain their receipt-time protection. Full duel suite: 29 passed on an isolated PostgreSQL database; combined combat/spectator/harvest suite: 258 passed, no skips. Live acceptance pending. See [investigation and exact retry steps](../../reports/health/DUEL-EXPIRY-RETRY-20261010.md).
+
 # 12. No se puede pelear contra otros personajes
 
 Permitir desafíos consensuados entre personajes sin usar el resolver de grupos NPC.
