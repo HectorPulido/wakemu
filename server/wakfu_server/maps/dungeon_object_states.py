@@ -110,7 +110,9 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
         if abs(start - end) != 1:
             raise ValueError("Dungeon door does not connect adjacent reviewed rooms")
         position = tuple(source[axis] for axis in ("x", "y", "z"))
-        if cells.get(position) != start:
+        from wakfu_server import dungeon_native_flow
+
+        if dungeon_native_flow.object_room(topology, source) != start:
             raise ValueError("Dungeon door source disagrees with native terrain")
         destination = next(
             (
@@ -142,9 +144,22 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
         ]
         if not exterior:
             continue
-        order = cells.get(tuple(source[axis] for axis in ("x", "y", "z")))
+        from wakfu_server import dungeon_native_flow
+
+        order = dungeon_native_flow.object_room(topology, source)
         if order not in (1, count):
-            raise ValueError("Unsupported exterior exit in an intermediate room")
+            witness = topology.get("completed_exit_witness", {})
+            bindings = [
+                b
+                for b in topology.get("physical_exit_objects", ())
+                if b["source_id"] == source["id"] and b["room_order"] == order
+            ]
+            if (
+                len(bindings) != 1
+                or witness.get("source_id") != source["id"]
+                or witness.get("room_order") != order
+            ):
+                raise ValueError("Unsupported exterior exit in an intermediate room")
         availability[source["id"]] = order == 1 or completed
     return tuple(
         state_packet(

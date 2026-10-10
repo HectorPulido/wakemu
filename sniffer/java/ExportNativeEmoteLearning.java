@@ -11,7 +11,7 @@ public class ExportNativeEmoteLearning {
   apw.bGL().a(new aLO(),new apB<aLO>(){public void load(aLO raw){
    bJp item=new bIJ().f(raw); foH action=item.gfJ();
    if(action instanceof bIw) try {rows.add(Map.of("item_ref",item.d(),"action_id",action.d(),
-    "emote_id",emote.getInt(action),"has_criteria",item.a(fnE.sGH)!=null));}
+    "emote_id",emote.getInt(action),"has_criteria",action.bdt()!=null));}
    catch(IllegalAccessException error){throw new RuntimeException(error);}
   }});
   Files.writeString(Path.of(args[0]),new GsonBuilder().setPrettyPrinting().create().toJson(Map.of("items",rows))+"\n");

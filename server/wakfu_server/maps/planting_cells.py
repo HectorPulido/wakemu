@@ -115,6 +115,12 @@ def authorize(store, character, request, seed, resource, *, open_test_policy=Fal
         authorize_family(character["map_id"], cell["region_id"], resource)
     with store.connection() as db:
         if db.execute(
+            "SELECT 1 FROM mining_vein_slots "
+            "WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s AND enabled",
+            (character["map_id"], character["instance_id"], request["x"], request["y"]),
+        ).fetchone():
+            raise ValueError("Planting surface is reserved for a mineral vein")
+        if db.execute(
             "SELECT 1 FROM planted_resources WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s",
             (character["map_id"], character["instance_id"], request["x"], request["y"]),
         ).fetchone():

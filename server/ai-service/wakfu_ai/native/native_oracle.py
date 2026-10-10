@@ -198,6 +198,7 @@ class NativeOracle:
             displacement_authority=actors,
             summon_authority=actors,
         )
+        factory.native_rail_movement_authority = actors
         factory.relative_group_children = RelativeGroupAuthority(
             effects=factory.effects,
             actor_authority=actors,
@@ -763,6 +764,18 @@ class NativeOracle:
                 raise ValueError(
                     "Native movement requires a complete directed XYZ route"
                 )
+            # A forecast can start from a reconstructed encounter whose pure
+            # runtime providers are intentionally absent from checkpoints.
+            # Bind the same complete owned actor authority as native casts.
+            movement_rng = random.Random()
+            movement_factory, _ = self.factory(
+                private.fight,
+                private.action_id + 2,
+                movement_rng,
+            )
+            private.fight.native_rail_movement_authority = (
+                movement_factory.native_rail_movement_authority
+            )
             if actor.controlled:
                 private.fight.move(actor.owner_id, actor.id, path)
             else:
@@ -783,18 +796,24 @@ class NativeOracle:
                 )
             ]
             if self.flags.get("native_area_callbacks", False):
-                factory, _ = self.factory(
-                    private.fight,
-                    private.action_id + 1,
-                    self._rng(private.fight, action) if forecast else random.Random(),
-                )
-                dispatcher, callbacks = factory(
+                # Preserve the original post-movement forecast seed. Binding
+                # actor authority above consumes no execution RNG draws.
+                if forecast:
+                    movement_rng.setstate(self._rng(private.fight, action).getstate())
+                dispatcher, callbacks = movement_factory(
                     private.fight, {"native_retained_container": {"present": False}}
                 )
                 before = origin
                 with private.fight.effect_resolution():
                     for cell in path:
-                        private.fight.actors[actor.id].position = cell
+                        from wakfu_server.combat_qi_fight import move_registered_actor
+
+                        # The full route already moved QI to its final cell.
+                        # Qs callbacks observe each actual intermediate QK,
+                        # including the shared native position operand.
+                        move_registered_actor(
+                            private.fight, private.fight.actors[actor.id], cell
+                        )
                         dispatcher.native_area_events.movement(
                             actor.id, from_cell=before, to_cell=cell
                         )

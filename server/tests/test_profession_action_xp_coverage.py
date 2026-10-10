@@ -302,6 +302,29 @@ class ProfessionActionXpCoverageTests(PostgresCase):
                 self.assertEqual(result["outcome"]["item_reference"], product)
                 self.assertEqual(result["outcome"]["quantity"], 1)
                 self.assertEqual(result["outcome"]["xp"], 50)
+                if profession_id == 73:
+                    # Mining shares the native resource protocol, but it is
+                    # not flora and must not affect plant ecology or affinity.
+                    self.assertEqual(reference, 433)
+                    self.assertEqual(
+                        result["outcome"]["ecology"]["reason"],
+                        "mineral_not_ecological",
+                    )
+                    self.assertFalse(
+                        any(opcode == 13574 for opcode, _ in result["packets"])
+                    )
+                    ecology_operation = (
+                        "flora:" + sha256(ticket["token"].encode()).hexdigest()
+                    )
+                    with self.store.connection() as db:
+                        self.assertEqual(
+                            db.execute(
+                                "SELECT count(*) AS count FROM personal_ecology_receipts "
+                                "WHERE character_id=%s AND operation=%s",
+                                (self.character["id"], ecology_operation),
+                            ).fetchone()["count"],
+                            0,
+                        )
                 rewards = [
                     body for opcode, body in result["packets"] if opcode == 12916
                 ]

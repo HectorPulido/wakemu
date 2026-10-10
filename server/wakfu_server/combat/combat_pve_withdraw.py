@@ -66,7 +66,16 @@ def plan(session, fight, runtime):
     candidate = deepcopy(fight)
     candidate_runtime = _clone_runtime(runtime, candidate)
     original_current = None if fight.current is None else fight.current.id
-    removed_set = {actor.id}
+    from .combat_terminal_metadata import registered_summon_actor_ids
+
+    summons = registered_summon_actor_ids(candidate)
+    removed_set = {
+        member.id
+        for member in candidate.actors.values()
+        if member.controlled
+        and member.owner_id == session.account_id
+        and member.id not in summons
+    }
     # Native summons retain caster/controller identities, including recursive
     # summon chains. NPC owner IDs alone cannot establish summon ownership.
     while True:

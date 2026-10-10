@@ -1,9 +1,14 @@
 """Inventory exact static factory bindings; registration never proves execution."""
 import ast
+import argparse
 from collections import Counter, defaultdict
 import hashlib
 import json
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from wakfu_server.storage import native_catalog
 from import_class_summon_dependencies import entries
 from class_native_requirement_sources import (
     merged_nodes,
@@ -18,7 +23,7 @@ SOURCES = {}
 
 
 def read(path):
-    data = path.read_bytes()
+    data = native_catalog.read_bytes(path)
     SOURCES[str(path.relative_to(ROOT))] = hashlib.sha256(data).hexdigest()
     return data
 
@@ -33,7 +38,7 @@ def literal_constant(path, name):
     raise ValueError("Missing literal declaration " + name)
 
 
-def build():
+def build(output=None):
     read(Path(__file__).resolve())
     read(ROOT / "server/tools/class_native_requirement_sources.py")
     projection = BASE / "class-captured-native-typed-closure-20261008.jsonl.gz"
@@ -288,7 +293,8 @@ def build():
             )
         )
     after = {
-        name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in SOURCES
+        name: hashlib.sha256(native_catalog.read_bytes(ROOT / name)).hexdigest()
+        for name in SOURCES
     }
     if after != SOURCES:
         raise ValueError("Source changed during inventory; retry")
@@ -296,6 +302,7 @@ def build():
         schema="class-static-effect-routes-v1",
         sources=SOURCES,
         sources_stable=True,
+        published_catalog_revision=native_catalog.release(),
         counts=dict(Counter(r["status"] for r in rows)),
         families=rows,
         native_breed_names={
@@ -311,7 +318,7 @@ def build():
             "No functionality percentage is inferred.",
         ],
     )
-    out = BASE / "class-effect-route-inventory-20261008"
+    out = output or BASE / "class-effect-route-inventory-20261008"
     out.with_suffix(".json").write_text(json.dumps(result, indent=2) + "\n")
     gaps = sorted(
         (r for r in rows if r["status"] == "no_handler"),
@@ -357,4 +364,6 @@ def build():
 
 
 if __name__ == "__main__":
-    build()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path)
+    build(parser.parse_args().output)

@@ -2,7 +2,6 @@ from contextlib import contextmanager
 import struct
 from concurrent.futures import ThreadPoolExecutor
 import json
-from pathlib import Path
 import unittest
 
 from psycopg.errors import CheckViolation
@@ -15,6 +14,7 @@ from wakfu_server.profession_store import ensure_learned
 from wakfu_server.resource_collect import complete, prepare, reserve
 from wakfu_server.wire import proto_field
 from wakfu_server import native_catalog
+from wakfu_server.paths import DATA_ROOT
 
 
 def harvest_request(action_id, x, y):
@@ -87,10 +87,7 @@ class PlantGrowthGraphTests(PostgresCase):
 
     @staticmethod
     def optional_variant_references():
-        project_root = Path(__file__).resolve().parents[1]
-        path = project_root / "protocol" / "flora-variant-classification.json"
-        if not path.is_file():
-            path = Path("/app/protocol/flora-variant-classification.json")
+        path = DATA_ROOT / "flora-variant-classification.json"
         return {
             row["resource_reference"]
             for row in json.loads(native_catalog.read_text(path))["resources"]

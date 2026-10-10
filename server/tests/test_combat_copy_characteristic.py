@@ -48,9 +48,51 @@ class CopyCharacteristicTests(unittest.TestCase):
         payload = bytes.fromhex(fight.owned_stat_effects[101]["payload"])
         extra = dict(proto_fields(payload))[66]
         self.assertEqual(extra.hex(), "50036004")  # Actual ij.em(4).ek(3).
+        # Qe.k owns the allocated clone UID; it executes a copy without Qf.p.
+        from wakfu_server.combat_subscription_runners import deferred_payload
+        from wakfu_server.combat_effect_removal import _identity_fields
+
+        listener_payload = deferred_payload(
+            family=1001,
+            uid=77,
+            base_uid=None,
+            generic_effect=1,
+            caster_id=7,
+            target_id=-7,
+            cell=(1, 0, 0),
+            timing_payload=b"\x08\x00",
+            container_type=None,
+            container_id=None,
+        )
+        fight.native_owned_group_effects[77] = dict(
+            effect_class=1001,
+            invocation={"reference": 1},
+            payload=listener_payload.hex(),
+        )
+        handler.allocate_uid = lambda: self.fail("Clone allocated a second UID")
+        handler(
+            {"effect_class": 1001, "parameters": [4, 0, 50, 0]},
+            None,
+            EffectInvocation(
+                1, 1, 7, -7, (1, 0, 0), base_uid=77, native_running_uid=201
+            ),
+        )
+        self.assertEqual(set(fight.owned_stat_effects), {101})
+        self.assertEqual(set(fight.native_owned_group_effects), {77})
+        self.assertEqual((target.effect_stats[4], target.effect_maxima[4]), (1, 3))
+        self.assertEqual(packets[-1][0], 12613)
+        import struct
+
+        body = packets[-1][1]
+        length = struct.unpack_from(">h", body, 17)[0]
+        cloned_payload = body[19 : 19 + length]
+        fields = _identity_fields(cloned_payload)
+        self.assertEqual((fields[1], fields[2], fields[3], fields[4]), (201, 77, 1, 1))
+        self.assertEqual(dict(proto_fields(cloned_payload))[66].hex(), "50036004")
+        self.assertNotIn(9, fields)  # Preserve actual null PL.
         remove_copied_characteristic(handler, 101)
         self.assertEqual((target.effect_stats[4], target.effect_maxima[4]), (1, 3))
-        self.assertEqual([opcode for opcode, _ in packets], [13497, 13560])
+        self.assertEqual([opcode for opcode, _ in packets], [13497, 12613, 13560])
         self.assertFalse(fight.owned_stat_effects)
 
     def test_current_and_maximum_are_independent(self):

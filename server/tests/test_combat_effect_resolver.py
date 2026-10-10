@@ -12,10 +12,157 @@ from wakfu_server.combat_effect_targets import UnsupportedTargetSelector
 
 
 class NativeResolverTests(unittest.TestCase):
+    def test_preselection_is_consumed_before_runner_creates_area_children(self):
+        definition = dict(
+            self.effect,
+            minimum_level=0,
+            maximum_level=100,
+            parameters=[],
+            parameter_count=0,
+            probability_base=100,
+            probability_per_level=0,
+            criteria="",
+            effect_class=400,
+        )
+        descendants = []
+
+        def apply(effect, values, invocation):
+            self.assertFalse(invocation.native_preselected_target)
+            descendants.extend(self.resolver(effect, invocation))
+            return True
+
+        dispatcher = EffectDispatcher(
+            {"50": definition},
+            {400: apply},
+            resolve=self.resolver,
+            condition_context=lambda i: {},
+            probability_accepts=lambda p, i: True,
+            group_cells=lambda e, i: (),
+            actor_position=lambda i: self.actors[0].position,
+        )
+        self.assertTrue(
+            dispatcher.execute(
+                replace(
+                    self.invocation,
+                    target_id=2,
+                    native_preselected_target=True,
+                )
+            )
+        )
+        self.assertEqual([i.target_id for i in descendants], [1, 2, 3])
+
+    def test_preselected_state_recipient_bypasses_empty_area_and_aZX(self):
+        self.effect.update(area_class="anA", area_native="empty")
+        self.resolver.direct_target_policies = {50: [400, True, False]}
+        self.effect["effect_class"] = 400
+        invocation = replace(
+            self.invocation, target_id=2, native_preselected_target=True
+        )
+        self.assertEqual(
+            [i.target_id for i in self.resolver(self.effect, invocation)], [2]
+        )
+        self.assertEqual(
+            self.resolver(
+                self.effect, replace(invocation, native_preselected_target=False)
+            ),
+            (),
+        )
+
+    def test_preselected_recipient_is_not_reselected_as_caster_or_area(self):
+        self.effect["native_target_selector"]["mask"] = 2
+        invocation = replace(
+            self.invocation, target_id=2, native_preselected_target=True
+        )
+        self.assertEqual(
+            [i.target_id for i in self.resolver(self.effect, invocation)], [2]
+        )
+        self.assertEqual(
+            self.resolver(self.effect, replace(invocation, target_id=99)), ()
+        )
+
+    def test_fresh_zero_mask_enumerates_candidates_but_replay_keeps_explicit_pv(self):
+        self.effect.update(
+            effect_class=330, parameter_count=0, area_class="anD", area_native="point"
+        )
+        self.effect["native_target_selector"] = {"class": "fcE", "mask": 0}
+        self.resolver.direct_target_policies = {"50": [330, False, False]}
+        self.actors[1].hp = 0
+        invocation = replace(self.invocation, target_id=3, native_explicit_target=True)
+        self.assertEqual(
+            [row.target_id for row in self.resolver(self.effect, invocation)], [3]
+        )
+        selected = self.resolver(
+            self.effect, replace(invocation, wakemu_fresh_child_selection=True)
+        )
+        self.assertEqual([row.target_id for row in selected], [1, 2, 3])
+
+    def test_zero_mask_event_group_preserves_its_trigger_recipient(self):
+        self.effect.update(
+            effect_class=330,
+            parameter_count=0,
+            area_class="anD",
+            area_native="point",
+        )
+        self.effect["native_target_selector"] = {"class": "fcE", "mask": 0}
+        self.resolver.direct_target_policies = {"50": [330, False, False]}
+        invocation = replace(
+            self.invocation,
+            target_id=3,
+            native_explicit_target=True,
+            wakemu_fresh_child_selection=True,
+            native_trigger_context={"target_id": 3},
+        )
+        self.assertEqual(
+            [row.target_id for row in self.resolver(self.effect, invocation)], [3]
+        )
+
+    def test_fresh_zero_mask_leaf_keeps_the_transmitted_hit_recipient(self):
+        self.effect.update(effect_class=5, area_class="anD", area_native="point")
+        self.effect["native_target_selector"] = {"class": "fcE", "mask": 0}
+        self.resolver.direct_target_policies = {"50": [5, False, False]}
+        invocation = replace(
+            self.invocation,
+            target_id=3,
+            native_explicit_target=True,
+            wakemu_fresh_child_selection=True,
+        )
+        self.assertEqual(
+            [row.target_id for row in self.resolver(self.effect, invocation)], [3]
+        )
+
     def test_removal_only_mask_does_not_defer_initial_application(self):
         self.effect["target_masks"][2] = [6, 7, 8]
         selected = self.resolver(self.effect, self.invocation)
         self.assertEqual([inv.target_id for inv in selected], [1, 2, 3])
+
+    def test_transmitted_rebound_point_recipient_keeps_identity(self):
+        self.effect.update(effect_class=25, area_class="anD", area_native="point")
+        self.effect["native_target_selector"] = {"class": "fcE", "mask": 129}
+        self.resolver.direct_target_policies = {"50": [25, False, False]}
+        invocation = replace(
+            self.invocation,
+            caster_id=2,
+            target_id=2,
+            cell=self.actors[1].position,
+            native_explicit_target=True,
+            wakemu_fresh_child_selection=True,
+        )
+        self.assertEqual(
+            [row.target_id for row in self.resolver(self.effect, invocation)], [2]
+        )
+        # Without the transmitted PV, normal ally selection excludes self.
+        self.assertEqual(
+            self.resolver(
+                self.effect, replace(invocation, native_explicit_target=False)
+            ),
+            (),
+        )
+        # A non-point area still selects its allies instead of collapsing to
+        # the rebound caster's identity.
+        self.effect.update(area_class="anu", area_native="circle-2")
+        self.assertEqual(
+            [row.target_id for row in self.resolver(self.effect, invocation)], [1]
+        )
 
     def setUp(self):
         self.actors = [
@@ -89,7 +236,15 @@ class NativeResolverTests(unittest.TestCase):
         with self.assertRaises(UnknownEffectResolution):
             self.resolver(self.effect, empty)
         self.resolver.cell_eligible = lambda e, i: True
-        self.assertEqual(self.resolver(self.effect, empty), (empty,))
+        selected = self.resolver(self.effect, empty)
+        self.assertEqual(selected, (replace(empty, native_target_cell_argument=True),))
+        self.assertIsNone(selected[0].target_id)
+
+    def test_actor_child_does_not_inherit_parent_cell_criterion_argument(self):
+        invocation = replace(self.invocation, native_target_cell_argument=True)
+        selected = self.resolver(self.effect, invocation)
+        self.assertEqual([row.target_id for row in selected], [1, 2, 3])
+        self.assertTrue(all(not row.native_target_cell_argument for row in selected))
 
     def test_events_require_verified_apply_channel_and_remove_has_separate_path(self):
         self.effect["target_masks"][0] = [1028]

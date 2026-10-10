@@ -373,6 +373,7 @@ class SpellTransactionTests(unittest.TestCase):
         native_qi=False,
         owned_cosmetics=None,
         target_distance=2,
+        variation_seed=None,
     ):
         from wakfu_server.combat_actor_snapshot import (
             build_player_snapshot,
@@ -407,7 +408,13 @@ class SpellTransactionTests(unittest.TestCase):
 
             caster.position = (-8, -7, -1)
             target.position = (-8 + target_distance, -7, -1)
-            terrain = local_arena(1134, 7, caster.position, target.position)
+            terrain = local_arena(
+                1134,
+                7,
+                caster.position,
+                target.position,
+                variation_seed=variation_seed,
+            )
         fight = Fight(
             78,
             [caster, target],

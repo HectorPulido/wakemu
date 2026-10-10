@@ -31,15 +31,15 @@ Categories with zero bIt items still exist in the native enum. They may use anot
 
 | Native action class | Purpose | Items | Valid example command | Current route |
 | --- | --- | ---: | --- | --- |
-| bIs | title_learning | 467 | Título "Pico de oro": `!item 7749 1` | Separate native action; not implemented by cosmetic bIt learning |
-| bIw | emote_learning | 314 | La Buena Educación: `!item 8189 1` | Separate native action; not implemented by cosmetic bIt learning |
+| bIs | title_learning | 467 | Título "Pico de oro": `!item 7749 1` | Source implemented through its own native learning route; pending deployment/manual acceptance |
+| bIw | emote_learning | 314 | La Buena Educación: `!item 8189 1` | Source implemented through its own native learning route; pending deployment/manual acceptance |
 | bIv | haven_bag_custom_learning | 91 | Kit de merkasako tofu: `!item 11426 1` | Separate native action; not implemented by cosmetic bIt learning |
 | bHY | play_emote_item | 8 | Pócima pompota: `!item 19023 1` | Separate native action; not implemented by cosmetic bIt learning |
 | bHv | learn_target_equipment_appearance | 1 | Transespejo: `!item 31508 1` | Separate native action; not implemented by cosmetic bIt learning |
 | bHT | mimibiote_interface | 1 | Mimobionte: `!item 19292 1` | Separate native action; not implemented by cosmetic bIt learning |
 | bIb | character_recustomization | 4 | Cambio de sexo y de apariencia: `!item 18292 1` | Separate native action; not implemented by cosmetic bIt learning |
 
-These examples validate item existence, not a functioning action. The current shared 12-byte 13220 item-use route supports bIt cosmetics and bIx furniture. Title/emote/bag-custom actions require their own authoritative knowledge storage and native response; sending them to bIt would not implement them. Character customization and target-appearance actions also need their distinct native UI/payload contracts.
+These examples validate item existence, not a functioning action. The shared 12-byte 13220 item-use route now dispatches bIt cosmetics, bIs titles, bIw emotes and bIx furniture to their respective authoritative acquisition services. Title and emote additions are source implemented and pending deployment/manual acceptance; see TITLES-IMPLEMENTATION-20261010.md and EMOTES-IMPLEMENTATION-20261010.md. Bag customizations still require their own native response. Character customization and target-appearance actions also need their distinct native UI/payload contracts.
 
 ## Dofus equipment versus learnable aura items
 

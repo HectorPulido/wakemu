@@ -265,6 +265,27 @@ class NativeTurnDriverTests(unittest.TestCase):
             [entry["action"]["type"] for entry in self.oracle.commits], ["end_turn"]
         )
 
+    def test_expired_streaming_source_guard_rejects_action_and_ends_turn(self):
+        from wakfu_ai.context.native_fingerprint import fingerprint
+
+        FakeSession.decisions = [{"type": "cast", "spellId": 77, "level": 1}]
+        now = [10.0]
+
+        def guard(_session):
+            now[0] = 14.0
+            fingerprint(self.runtime)
+
+        with patch.object(FakeSession, "guard", guard):
+            deliveries = list(self.run_turn(budget_seconds=3, clock=lambda: now[0]))
+        self.assertEqual(deliveries[0][1]["error"], "TimeoutError")
+        self.assertEqual(self.runtime.fight.actors[-9].ap, 6)
+        self.assertEqual(
+            [entry["action"]["type"] for entry in self.oracle.commits], ["end_turn"]
+        )
+        self.assertEqual(self.runtime.fight.phase, "complete")
+        self.assertIsNone(self.runtime.awaiting_ack)
+        self.assertEqual(self.runtime.pending, [])
+
     def test_preparation_time_is_part_of_the_owner_turn_allowance(self):
         now = [10.0]
         self.runtime.native_ai_preparation_started_at = 9.0

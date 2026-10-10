@@ -16,6 +16,53 @@ from wakfu_server.combat_multiplayer_wire import (
 
 
 class SharedCombatTests(unittest.TestCase):
+    def test_join_prepares_heroes_before_bootstrap_and_publishes_all_aliases(self):
+        self.fight.placement[0].add((2, 0, 0))
+        observed = []
+
+        def prepare(candidate, actor, shared, session):
+            candidate.actors[21] = Actor(
+                21, 0, (2, 0, 0), 40, 6, 3, 80, 1, session.account_id, True
+            )
+            return candidate
+
+        def bootstrap(candidate, shared, session):
+            observed.append(21 in candidate.actors)
+            return [(12847, b"both-owned-pcs")]
+
+        shared = self.registry.join(
+            self.two,
+            struct.pack(">qB", 10, 0),
+            Actor(20, 0, (0, 0, 0), 60, 6, 3, 90, 1, 2, True),
+            actor_payload=lambda *args: (b"stats", b"effects"),
+            bootstrap_packets=bootstrap,
+            prepare_members=prepare,
+            member_packets=lambda *args: [(12608, b"hero-world")],
+        )
+        self.assertEqual(observed, [True])
+        self.assertIs(self.registry.lookup_character(21), shared)
+        packets = self.registry.drain(99, self.one)[0].packets
+        self.assertEqual([op for op, body in packets], [12608, 13091, 13091, 13026])
+        self.assertEqual(set(shared.participants), {1, 2})
+
+    def test_same_account_heroes_have_one_session_and_all_character_aliases(self):
+        registry = Registry(lambda session: session == self.one)
+        hero = Actor(11, 0, (1, 0, 0), 30, 6, 3, 90, 1, 1, True)
+        self.fight.actors[11] = hero
+        shared = registry.register(self.fight, self.one)
+        self.assertEqual(set(shared.participants), {1})
+        self.assertEqual(registry.by_character, {10: 99, 11: 99})
+        self.assertIs(registry.lookup_character(11), shared)
+        self.fight.ready(1)
+        self.fight.end_turn(1, 10, 1)
+        self.fight.end_server_turn(-200, self.fight.turn_id)
+        self.assertEqual(self.fight.current.id, 11)
+        registry.execute(99, self.one, 11, lambda candidate, runtime: [])
+        with registry.lock, shared.lock:
+            registry._remove_locked(registry, shared)
+        self.assertEqual(registry.by_character, {})
+        self.assertEqual(registry.by_actor, {})
+
     def test_failed_unpublished_rift_setup_removes_all_reserved_aliases(self):
         self.fight.rift_wave_state = dict(instance_id=1, wave=1, turn_budget=40)
         self.shared.runtime = None

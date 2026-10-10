@@ -29,7 +29,7 @@ def _participant(account_id, character, runtime):
         or actor.id in summon_ids
         or not actor.controlled
         or actor.owner_id != account_id
-        or len(controlled) != 1
+        or any(member.owner_id != account_id for member in controlled)
     ):
         raise ValueError("Unsupported or foreign abandon participant")
     return actor
@@ -102,7 +102,7 @@ def prepare(store, account_id, generation, character, runtime, body):
     participant = _participant(account_id, character, runtime)
     owner = (account_id, character["id"])
     if getattr(runtime, "abandon_owner", None) == owner:
-        saved = combat_health.persist(
+        saved = combat_health.persist_owned(
             store, account_id, generation, character, runtime.fight, reason="abort"
         )["character"]
         return dict(character=saved, packets=[], applied=False)
@@ -127,7 +127,7 @@ def prepare(store, account_id, generation, character, runtime, body):
             is None
         ):
             raise ValueError("Fight cannot be durably abandoned")
-        exit_health = combat_health.persist(
+        exit_health = combat_health.persist_owned(
             store,
             account_id,
             generation,
@@ -168,14 +168,11 @@ def return_to_world(
     # already persisted abort. Accept either native boolean after validating
     # the fight ID and owned abort; this also recovers old reversed-list ends.
     combat_results.continuation(runtime.fight.id, body)
-    if runtime.abandon_returned:
-        saved = combat_health.persist(
-            store, account_id, generation, character, runtime.fight, reason="abort"
-        )["character"]
-        return dict(character=saved, packets=[], applied=False)
-    result = combat_health.persist(
+    result = combat_health.persist_owned(
         store, account_id, generation, character, runtime.fight, reason="abort"
     )
+    if runtime.abandon_returned:
+        return dict(character=result["character"], packets=[], applied=False)
     saved = result["character"]
     packets = combat_results.outside_fight_updates(runtime.fight)
     packets.extend(

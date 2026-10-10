@@ -33,6 +33,7 @@ import math
 import struct
 from dataclasses import dataclass
 from typing import Mapping
+from functools import lru_cache
 from .combat_characteristic_conditions import canonical_aliases
 
 
@@ -267,6 +268,35 @@ class ConditionContext:
     )
 
 
+class _UncachedConditionRoot(Exception):
+    def __init__(self, root):
+        self.root = root
+
+
+@lru_cache(maxsize=512)
+def _cached_condition_root(criteria):
+    from .combat_local_criteria import parse_local_criterion
+
+    root = parse_local_criterion(criteria)
+    for count, _ in enumerate(ast.walk(root), 1):
+        if count > 256:
+            # Exceptions are not retained by lru_cache. Return this already
+            # parsed large tree through the uncached wrapper, without reparsing.
+            raise _UncachedConditionRoot(root)
+    return root
+
+
+def _condition_root(criteria):
+    from .combat_local_criteria import parse_local_criterion
+
+    if len(criteria) > 2048:
+        return parse_local_criterion(criteria)
+    try:
+        return _cached_condition_root(criteria)
+    except _UncachedConditionRoot as error:
+        return error.root
+
+
 def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
     """Evaluate the proven subset; raise UnknownCondition for all other input.
 
@@ -276,10 +306,10 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
     """
     if not criteria.strip():
         return True
-    from .combat_local_criteria import parse_local_criterion, LocalCriterionSyntax
+    from .combat_local_criteria import LocalCriterionSyntax
 
     try:
-        root = parse_local_criterion(criteria.strip())
+        root = _condition_root(criteria.strip())
     except LocalCriterionSyntax as exc:
         raise UnknownCondition(
             f"Unsupported native criterion: {criteria}: {exc}"

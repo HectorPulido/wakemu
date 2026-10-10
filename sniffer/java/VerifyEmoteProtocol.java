@@ -18,6 +18,8 @@ public class VerifyEmoteProtocol {
   var id=blU.class.getDeclaredField("ezG");id.setAccessible(true);if(id.getInt(occupation)!=42)throw new AssertionError("emote payload");
   byte[] targeted=ByteBuffer.allocate(25).putInt(20069).put((byte)1).putInt(8).put("targetId".getBytes(java.nio.charset.StandardCharsets.UTF_8)).putLong(123L).array();
   occupation.dX(targeted);if(!Long.valueOf(123).equals(((Map<?,?>)values.get(occupation)).get("targetId")))throw new AssertionError("target parameter");
+  amb randomCriterion=eQe.tz("GetRandomNumber(2) == 0");var left=randomCriterion.getClass().getDeclaredField("cGH");left.setAccessible(true);alP random=(alP)left.get(randomCriterion);
+  for(int draw=0;draw<100;draw++){long value=random.d(null,null,null,null);if(value<0||value>=2)throw new AssertionError("random bound");}
   cnn request=new cnn();request.LS(42);request.fe(-1);if(request.d()!=13498)throw new AssertionError("request");
   cuF ack=new cuF();ack.dp(ByteBuffer.allocate(5).putInt(42).put((byte)1).array());if(ack.d()!=12266||ack.eGO()!=42||!ack.aHi())throw new AssertionError("ack");
   System.out.println("PASS native account EMOTES restore and native blU/cyN occupation/ack decoders");

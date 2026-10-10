@@ -8,6 +8,7 @@ from .combat_subscription_runners import SUBSCRIPTION_FAMILIES
 from dataclasses import dataclass, replace
 from .combat_effect_dispatch import EffectInvocation
 from .combat_effect_targets import select_native_effect_targets
+from .combat_effect_groups import native_group_route
 from .combat_trigger_masks import match_trigger_masks
 
 
@@ -155,15 +156,26 @@ class NativeEffectResolver:
             accepted = self.cell_eligible(effect, invocation)
             if type(accepted) is not bool:
                 raise UnknownEffectResolution("Unknown native cell eligibility")
-            return (replace(invocation, target_id=None),) if accepted else ()
+            # eZR.I supplies bft (aBn) to criteria when bfs (PV) is absent.
+            # Keep cell delivery unbound; the condition adapter separately
+            # resolves eII's first QI fighter without changing child targeting.
+            return (
+                (replace(invocation, target_id=None, native_target_cell_argument=True),)
+                if accepted
+                else ()
+            )
         return self.candidate_invocations(effect, invocation, direct=True)
 
     def candidate_invocations(self, effect, invocation, *, direct=False):
         """eZR.a actor selection used by eYE.e, independent of parent bbB."""
+        # A selected PV takes precedence over an inherited parent's raw aBn.
+        invocation = replace(invocation, native_target_cell_argument=False)
         actors = tuple(self.actors(effect, invocation))
         identities = [actor.id for actor in actors]
         if len(set(identities)) != len(identities):
             raise UnknownEffectResolution("Duplicate runtime actor identities")
+        if type(invocation.native_preselected_target) is not bool:
+            raise UnknownEffectResolution("Invalid native Qe.g recipient binding")
         caster = (
             self.caster(effect, invocation)
             if self.caster is not None
@@ -176,6 +188,14 @@ class NativeEffectResolver:
         if caster.id != invocation.caster_id:
             raise UnknownEffectResolution(
                 "Caster callback changed authoritative source identity"
+            )
+        if direct and invocation.native_preselected_target:
+            # Qe.g(PV) invokes d(singletonList(PV)); unlike Qe.a, neither
+            # aZX nor fcE/area selection is consulted for this chosen PV.
+            return tuple(
+                replace(invocation, target_id=actor.id)
+                for actor in actors
+                if actor.id == invocation.target_id
             )
         if type(invocation.native_explicit_target) is not bool:
             raise UnknownEffectResolution(
@@ -191,8 +211,11 @@ class NativeEffectResolver:
         # Client aZX defaults false and describes replay of an already chosen
         # PV. Server-created children with an explicit relationship selector
         # select that relationship first. Non-point areas also enumerate their
-        # occupants before passing a chosen PV to point children. A null/zero/
-        # point selector retains the group's intentional transmitted PV.
+        # occupants before passing a chosen PV to point children. An absent or
+        # point self selector retains the group's intentional transmitted PV.
+        # Fresh actor groups with mask zero enumerate their criterion candidates.
+        # Leaf runners and event-bound groups keep the transmitted PV; a
+        # zero selector must not fan a direct hit out across the whole fight.
         selector = effect.get("native_target_selector")
         server_fresh_selection = (
             invocation.wakemu_fresh_child_selection
@@ -200,7 +223,12 @@ class NativeEffectResolver:
             and selector.get("class") == "fcE"
             and type(selector.get("mask")) is int
             and (
-                bool(selector["mask"] & (2 | 4 | 8 | 64 | 128 | 256))
+                (
+                    selector["mask"] == 0
+                    and invocation.native_trigger_context is None
+                    and native_group_route(effect) == "actors"
+                )
+                or bool(selector["mask"] & (2 | 4 | 8 | 64 | 128 | 256))
                 or (
                     bool(selector["mask"] & 1)
                     and effect.get("area_class") not in (None, "anA", "anD")
@@ -212,12 +240,22 @@ class NativeEffectResolver:
         # healing modifiers: the caster is outside the recipient's point.
         # Keep Qe.g(PV)'s explicit-target contract for this combined selector;
         # a pure self selector still requests the server relationship policy.
+        # A group may also rebind the selected recipient as its caster. Its
+        # transmitted point PV is still already selected: rerunning an ally
+        # selector would now reject that same actor as self. Area children
+        # retain fresh selection so rebinding cannot collapse their recipients.
         if (
             invocation.native_explicit_target
             and isinstance(selector, dict)
             and selector.get("class") == "fcE"
-            and selector.get("mask") == 3
             and effect.get("area_class") == "anD"
+            and (
+                selector.get("mask") == 3
+                or (
+                    selector.get("mask") == 129
+                    and invocation.caster_id == invocation.target_id
+                )
+            )
         ):
             server_fresh_selection = False
         if (

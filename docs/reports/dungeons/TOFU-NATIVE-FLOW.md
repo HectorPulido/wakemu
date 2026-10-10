@@ -61,3 +61,68 @@ After the future complete build and restart, accept the two corrections in one r
 3. Win the second encounter. Gate 26875 should likewise clear its closed graphic and obstruction. The final group should contain exactly one Tofu Royal.
 4. Outside combat, use `!exitdungeon` on one member. That character should return outside the entrance, the other should stay in the private run, and neither should lose party membership. The Spanish alias `!salirmazmorra` uses the same handler.
 5. The remaining member can finish the final encounter and leave through the previously accepted native exit. A command during combat should remain rejected.
+
+### Party transport and reentry follow-up (2026-10-10, source prepared)
+
+Manual testing confirmed `!exitdungeon` succeeds. A two-player entry then
+exposed two independent general transition defects. Read-only runtime evidence
+at 05:37–05:39 UTC showed both characters atomically moved into run
+144115188075855881, but companion 4's entry event 37 remained pending while
+leader 13's entry 38 and exterior return 39 were acknowledged. Worker delivery
+previously required exact source coordinates, so ordinary walking within the
+same source scene could prevent delivery indefinitely. Delivery now accepts the
+same source map and instance, retaining authoritative destination, generation,
+hydration and acknowledgement checks.
+
+The leader's reentry was rejected with `Party already owns a different active
+dungeon session`: the returned leader had been excluded from comparison with
+the frozen roster while the companion retained active membership. Existing-run
+entry now compares the complete frozen roster, permits a selected frozen member
+to rejoin, and moves only members outside the dungeon. Companions already inside
+retain their position and progress. Creating a new run still requires the party
+leader; adding new members to a frozen run remains rejected.
+
+Automated regression covers two- and three-member parties, leader and ordinary
+member exterior return/reentry, and preservation of the inside companion's
+position. Manual acceptance after deployment: enter together while a companion
+walks near the entrance; all clients must load the same instance. One member
+uses `!exitdungeon`, enters again while another remains inside, and must rejoin
+the same run without moving the inside member. Repeat with the nonleader, then
+exit everyone and enter again to obtain a fresh run.
+
+
+### Manual acceptance update — 2026-10-10
+
+Hector completed the Tofullero boss and exited successfully. The complete solo
+room progression and exterior return are accepted. He also confirmed
+`!exitdungeon` works and the opened gate disappears, allowing continuation to
+the final room. These confirmations supersede the earlier command and closed
+gate visual defects.
+
+Party transport and reentry are still pending acceptance. Leaving the party
+allowed reentry during the reported failure, consistent with the retained
+active run/frozen roster mismatch. General source corrections preserve the
+party and permit returned frozen members to rejoin the same active instance;
+companions already inside keep their position. Companion transition delivery
+now tolerates movement within the source map and instance. These follow-up
+changes are prepared and tested, but have not been deployed or manually
+accepted. No restart was performed for this update.
+
+### Stale private-location login recovery — 2026-10-10
+
+A companion whose durable entry remained pending subsequently left the social
+party while retaining private dungeon coordinates. Login selection then rejected
+`Dungeon recovery membership is not active` before the initial map bootstrap.
+The individual runtime character was repaired separately by the coordinator using
+the pinned validated exterior destination and explicit absence-of-combat checks.
+
+The general source correction now returns invalid/inactive dungeon membership
+to the pinned validated exterior during selection, supersedes obsolete pending
+travel, and closes the run only if no active members remain. The worker reloads
+the resulting exterior character before constructing its initial bootstrap.
+Valid active combat recovery remains inside even if social membership was lost;
+invalid membership during live combat is never forcibly transported outside.
+Four isolated PostgreSQL tests pass, including missing social membership,
+returned membership, completed/closed runs, and live-combat location preservation.
+This general correction is prepared in source; its deployment remains separate
+from the individual runtime repair.

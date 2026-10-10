@@ -111,11 +111,13 @@ def referenced_projection_owners(path, manifest_path, source_membership):
 
 
 def verified_projection(path, manifest_path, runtime_path):
+    from wakfu_server.storage import native_catalog
+
     manifest = json.loads(manifest_path.read_text())
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     # The large effects dictionary is irrelevant to this metadata comparison.
     # Keep a bounded prefix/tail instead of materializing the runtime catalog.
-    with open(runtime_path, "rt") as stream:
+    with native_catalog.open(runtime_path, "rt") as stream:
         prefix = stream.read(1024)
         tail = prefix
         while chunk := stream.read(65536):

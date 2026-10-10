@@ -115,6 +115,33 @@ class PartySnapshotTests(PostgresCase):
         self.assertEqual(refreshed["revision"], before_revision)
         self.assertEqual(refreshed["members"], snapshot["members"])
 
+    def test_owned_hero_party_rows_set_native_activation_identity_flag(self):
+        from wakfu_server.characters import heroes
+
+        account = self.store.register(f"h{uuid.uuid4().hex[:10]}", "test-password")[
+            "id"
+        ]
+        main = self.store.create_character(account, "Party Hero Main", sex=0, breed=8)
+        hero = self.store.create_character(account, "Party Hero Actor", sex=1, breed=15)
+        generation = self.store.begin_session(account, ttl=10_000)
+        self.store.select_character(account, generation, main["id"])
+        heroes.add(self.store, account, generation, main["id"], hero["id"])
+
+        with self.store.connection() as db:
+            main_row = self.store.character(account, main["id"], db)
+            members = heroes.augment_party(db, self.store, [main_row])
+            snapshot = {
+                "party_id": (1 << 56) | 123,
+                "leader_id": main["id"],
+                "members": members,
+            }
+            levels = {row["id"]: row["effective_level"] for row in members}
+        opcode, body = party_snapshot.packet(snapshot, effective_levels=levels)
+        self.assertEqual(1184, opcode)
+        decoded = {row["id"]: row for row in self._decode_roster(body)}
+        self.assertFalse(decoded[main["id"]]["native_identity_flag"])
+        self.assertTrue(decoded[hero["id"]]["native_identity_flag"])
+
     def test_snapshot_packet_requires_explicit_effective_levels_and_consistent_death(
         self,
     ):

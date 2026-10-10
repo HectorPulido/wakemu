@@ -189,6 +189,7 @@ def compact_encounter(
     *,
     minimum_cells=25,
     minimum_dimensions=(5, 5),
+    spread_opponents=False,
 ):
     """Local encounter formation on one mutually reachable native component.
 
@@ -198,17 +199,19 @@ def compact_encounter(
     Smaller native components remain usable. Directed edges, native heights,
     and ambiguous-column removal remain authoritative.
     """
-    if type(minimum_cells) is not int or not 25 <= minimum_cells <= 49:
-        raise ValueError("Automatic encounter minimum must be between 25 and 49")
+    if type(minimum_cells) is not int or not 25 <= minimum_cells <= MAX_CELL_BUDGET:
+        raise ValueError("Automatic encounter minimum exceeds the cell budget")
+    if type(spread_opponents) is not bool:
+        raise ValueError("Invalid opposing formation spread policy")
     if (
         not isinstance(minimum_dimensions, (tuple, list))
         or len(minimum_dimensions) != 2
         or any(
-            type(value) is not int or not 5 <= value <= 7
+            type(value) is not int or not 5 <= value <= 50
             for value in minimum_dimensions
         )
     ):
-        raise ValueError("Automatic encounter dimensions must be between 5 and 7")
+        raise ValueError("Automatic encounter dimensions must be between 5 and 50")
     automatic_size = cell_budget is None
     if automatic_size:
         cell_budget = MAX_CELL_BUDGET
@@ -310,17 +313,25 @@ def compact_encounter(
                 pending.append(target)
     free = selected - {origin}
     interior = selected - cardinal_border_cells(selected)
+    separation = max(distances.values()) * 0.6
     relocated = []
     for original in originals:
-        if original in free:
+        if original in free and not spread_opponents:
             chosen = original
         else:
-            # Compact opposing formation around six native path steps; source
-            # position breaks ties without expanding the fight to world groups.
+            # Spread policy uses the distant native side and distributes NPCs;
+            # legacy callers retain their six-step source-near formation.
             chosen = min(
                 free & interior or free,
                 key=lambda c: (
-                    abs(distances[c] - 6),
+                    distances[c] < separation if spread_opponents else False,
+                    -min(
+                        abs(c[0] - previous[0]) + abs(c[1] - previous[1])
+                        for previous in relocated
+                    )
+                    if spread_opponents and relocated
+                    else 0,
+                    -distances[c] if spread_opponents else abs(distances[c] - 6),
                     abs(c[0] - original[0]) + abs(c[1] - original[1]),
                     c,
                 ),

@@ -151,6 +151,7 @@ class CombatSessionAdapter:
     def player_actor(self, session, *, team):
         """Build and natively initialize a joining owner actor from Store state."""
         from wakfu_server.combat_state import Actor
+        from wakfu_server.combat_orientation import INITIAL_PLAYER_DIRECTION
         from wakfu_server.combat_actor_snapshot import build_player_snapshot
         from wakfu_server.equipment_stats import combat_resources
         from wakfu_server.builds import effective_sheet_level
@@ -173,7 +174,7 @@ class CombatSessionAdapter:
             character["account_id"],
             True,
             max_hp=character["max_hp"],
-            direction=0,
+            direction=INITIAL_PLAYER_DIRECTION,
         )
         snapshot = build_player_snapshot(
             character,
@@ -539,31 +540,117 @@ class CombatSessionAdapter:
         if request["target_id"] not in shared.fight.actors:
             raise ValueError("Join target disappeared")
 
+        pending = {}
+
+        def prepare(candidate, joined, prior_shared, owner):
+            from wakfu_server.combat_heroes import admit_owned_heroes
+
+            context = self.store.connection()
+            pending["context"] = context
+            db = context.__enter__()
+            db.execute(
+                "SELECT id FROM accounts WHERE id=%s FOR UPDATE", (owner.account_id,)
+            )
+            join_participant(
+                self.store,
+                db,
+                owner.account_id,
+                owner.generation,
+                owner.character_id,
+                candidate.id,
+                target_character_id=request["target_id"],
+                team=candidate.actors[request["target_id"]].team,
+            )
+            metadata = prior_shared.join_context or {}
+            admission = admit_owned_heroes(
+                db,
+                self.store,
+                owner,
+                candidate,
+                frozen_members=metadata.get("frozen_company_members"),
+            )
+            from wakfu_server.health_store import timestamp
+
+            now = timestamp(int(self.store.clock() * 1000))
+            db.execute(
+                "INSERT INTO character_regeneration "
+                "(character_id,initial_hp,started_at,coefficient,last_at) VALUES(%s,%s,%s,0,%s) "
+                "ON CONFLICT(character_id) DO UPDATE SET initial_hp=EXCLUDED.initial_hp,"
+                "started_at=EXCLUDED.started_at,coefficient=0,last_at=EXCLUDED.last_at",
+                (joined.id, joined.hp, now, now),
+            )
+            pending["admission"] = admission
+            return admission["fight"]
+
         def persist(candidate, joined, prior_shared, owner):
-            with self.store.connection() as db:
-                join_participant(
-                    self.store,
-                    db,
-                    owner.account_id,
-                    owner.generation,
-                    owner.character_id,
-                    candidate.id,
-                    target_character_id=request["target_id"],
-                    team=candidate.actors[request["target_id"]].team,
+            context = pending.pop("context")
+            context.__exit__(None, None, None)
+
+        def appearances(candidate, prior_shared, owner):
+            from wakfu_server import health
+
+            sources = pending["admission"]["characters"]
+            serializer = (prior_shared.join_context or {}).get("hero_appearance")
+            if sources and not callable(serializer):
+                raise ValueError("Native hero appearance serializer is unavailable")
+            return tuple(serializer(source) for source in sources.values()) + tuple(
+                (12436, health.packet(actor.id, actor.hp, 0))
+                for actor in (
+                    candidate.actors[owner.character_id],
+                    *pending["admission"]["actors"],
                 )
+            )
 
         actor_payload = actor_payload or self.actor_payload
         if bootstrap_packets is None:
             bootstrap_packets = self.placement_bootstrap
-        return self.registry.join(
-            session,
-            body,
-            actor,
-            actor_payload=actor_payload,
-            bootstrap_packets=bootstrap_packets,
-            persist_member=persist,
-            expected_fight_id=fight_id,
-        )
+
+        def owned_bootstrap(candidate, prior_shared, owner):
+            serializer = (prior_shared.join_context or {}).get("hero_appearance")
+            world_actors = ()
+            if callable(serializer):
+                world_actors = tuple(
+                    serializer(self.store.character(actor.owner_id, actor.id))
+                    for actor in candidate.actors.values()
+                    if actor.controlled
+                    and actor.owner_id is not None
+                    and actor.id != owner.character_id
+                    and not getattr(actor, "pve_withdrawn", False)
+                )
+            from wakfu_server import health
+
+            regeneration = tuple(
+                (12436, health.packet(actor.id, actor.hp, 0))
+                for actor in (
+                    candidate.actors[owner.character_id],
+                    *pending["admission"]["actors"],
+                )
+            )
+            return (
+                world_actors
+                + regeneration
+                + tuple(bootstrap_packets(candidate, prior_shared, owner))
+            )
+
+        try:
+            return self.registry.join(
+                session,
+                body,
+                actor,
+                actor_payload=actor_payload,
+                bootstrap_packets=owned_bootstrap,
+                prepare_members=prepare,
+                member_packets=appearances,
+                persist_member=persist,
+                expected_fight_id=fight_id,
+            )
+        except BaseException:
+            import sys
+
+            context = pending.pop("context", None)
+            if context is not None:
+                context.__exit__(*sys.exc_info())
+            raise
 
     def ready(self, session, fight_id, ready, packets):
         return self.registry.ready(fight_id, session, ready, packets)
@@ -762,6 +849,7 @@ class CombatSessionAdapter:
 
     def owned_reconnect_bootstrap(self, fight, shared, session):
         from .combat_reconnect_snapshot import owned_snapshot
+        from .combat_reconnect_world_actors import ordinary_npc_appearances
 
         packets = owned_snapshot(
             fight, shared, session, actor_payload=self.actor_payload
@@ -774,7 +862,7 @@ class CombatSessionAdapter:
             from .rift_combat_adapter import world_snapshot
 
             return world_snapshot(fight) + tuple(packets)
-        return packets
+        return ordinary_npc_appearances(fight, shared) + tuple(packets)
 
     def reconcile_disconnected_pve(self, session, *, groups=None):
         """Heal an orphaned old lease before initializing a reconnect's world HP."""

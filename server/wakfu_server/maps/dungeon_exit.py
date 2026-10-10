@@ -61,9 +61,9 @@ def leave(
 def automatic_destination(character, run, configuration):
     """Use the pinned run's native exterior approach, never a client target."""
     topology = configuration["topology"]
-    from wakfu_server.dungeon_physical_doors import enabled as physical_doors_enabled
+    from wakfu_server.dungeon_native_flow import enabled as native_flow_enabled
 
-    if physical_doors_enabled(topology):
+    if native_flow_enabled(topology):
         if character.get("map_id") != topology.get("asset_map_id"):
             raise ValueError("Dungeon exit command belongs to another asset map")
         entrances = [
@@ -212,6 +212,32 @@ def _leave(store, account_id, generation, character_id, *, in_fight, destination
                 destination["z"],
             ),
         )
+        owned_heroes = db.execute(
+            "SELECT h.character_id FROM account_hero_slots h JOIN account_hero_rosters r USING(account_id) "
+            "JOIN dungeon_instance_members m ON m.character_id=h.character_id "
+            "WHERE h.account_id=%s AND r.leader_id=%s AND m.instance_id=%s AND m.status='active'",
+            (account_id, character_id, run["instance_id"]),
+        ).fetchall()
+        for owned in owned_heroes:
+            hero_id = owned["character_id"]
+            store.lock_character(db, account_id, generation, hero_id, selected=False)
+            if in_fight(hero_id) is not False:
+                raise ValueError("Owned hero cannot leave during combat")
+            db.execute(
+                "UPDATE characters SET map_id=%s,instance_id=0,x=%s,y=%s,z=%s WHERE id=%s",
+                tuple(destination[key] for key in ("map_id", "x", "y", "z"))
+                + (hero_id,),
+            )
+            db.execute(
+                "UPDATE dungeon_instance_members SET status='returned',ended_at=%s "
+                "WHERE instance_id=%s AND character_id=%s",
+                (store.now(), run["instance_id"], hero_id),
+            )
+            db.execute(
+                "UPDATE dungeon_transition_outbox SET status='superseded',superseded_at=%s "
+                "WHERE character_id=%s AND status='pending'",
+                (store.now(), hero_id),
+            )
         remaining = db.execute(
             "SELECT 1 FROM dungeon_instance_members WHERE instance_id=%s AND status='active' LIMIT 1",
             (run["instance_id"],),

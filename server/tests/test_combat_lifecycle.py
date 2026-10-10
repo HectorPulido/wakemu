@@ -14,6 +14,104 @@ from wakfu_server import health_store, health
 
 
 class LifecycleTests(PostgresCase):
+    def test_same_account_heroes_each_receive_rewards_with_one_native_result(self):
+        from unittest.mock import patch
+        from wakfu_server.combat_state import Actor
+        from wakfu_server.combat_lifecycle import prepare_finish_shared
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server import combat_results
+
+        (
+            store,
+            account,
+            main,
+            generation,
+            fight,
+        ) = test_combat_rewards.setup_reward_state(self.store)
+        hero = store.create_character(account, "Reward Hero")
+        fight.actors[hero["id"]] = Actor(
+            hero["id"],
+            0,
+            (2, 0, 0),
+            hero["hp"],
+            6,
+            3,
+            80,
+            hero["level"],
+            account,
+            True,
+            max_hp=hero["max_hp"],
+        )
+        with store.connection() as db:
+            db.execute(
+                "UPDATE combat_fight_participants SET session_generation=%s WHERE fight_id=%s",
+                (generation, fight.id),
+            )
+            db.execute(
+                "INSERT INTO combat_fight_participants"
+                "(fight_id,character_id,account_id,team,session_generation) VALUES(%s,%s,%s,0,%s)",
+                (fight.id, hero["id"], account, generation),
+            )
+        metadata = {
+            character["id"]: dict(
+                kind="player",
+                account_id=account,
+                name=character["name"],
+                breed=character["breed"],
+                is_male=character["sex"] == 0,
+            )
+            for character in (main, hero)
+        }
+        metadata[-200] = dict(kind="monster", ref=5525)
+
+        def settle():
+            return prepare_finish_shared(
+                store,
+                account,
+                generation,
+                main["id"],
+                RuntimeMessages(fight),
+                metadata,
+                duration_ms=100,
+                fight_instance_id=fight.id,
+                policy_resolver=lambda db, member, source: Policy(xp=10, kamas=3),
+                loot_resolver=lambda db, member, reward: dict(
+                    loots=[],
+                    packets=[(13713, struct.pack(">q", member["character_id"]))],
+                ),
+                expected_accounts={account},
+                owner_character_ids={account: main["id"]},
+            )
+
+        with patch.object(
+            combat_results, "finish_messages", wraps=combat_results.finish_messages
+        ) as report:
+            packets = settle()[account]
+            self.assertEqual(report.call_count, 1)
+            self.assertEqual(report.call_args.kwargs["initiator_id"], main["id"])
+        self.assertEqual(sum(opcode == 12755 for opcode, _ in packets), 1)
+        self.assertEqual(sum(opcode == 13420 for opcode, _ in packets), 1)
+        self.assertEqual(
+            [
+                struct.unpack(">q", body)[0]
+                for opcode, body in packets
+                if opcode == 13713
+            ],
+            [main["id"], hero["id"]],
+        )
+        with store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_rewards WHERE fight_id=%s",
+                    (fight.id,),
+                ).fetchone()["n"],
+                2,
+            )
+        self.assertEqual(store.character(account, main["id"])["kamas"], 6)
+        self.assertEqual(store.character(account, hero["id"])["xp"], hero["xp"] + 10)
+        settle()
+        self.assertEqual(store.character(account, main["id"])["kamas"], 6)
+
     def test_shared_level_up_keeps_pre_award_drop_context_frozen(self):
         from wakfu_server.combat_actor_snapshot import build_player_snapshot
         from wakfu_server.combat_lifecycle import prepare_finish_shared

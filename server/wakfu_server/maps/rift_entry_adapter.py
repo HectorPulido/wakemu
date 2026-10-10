@@ -92,6 +92,10 @@ def _roster(db, store, account_id, generation, character_id):
         for r in rows
     ):
         raise ValueError("Every rift member must have a current selected session")
+    from wakfu_server.characters.heroes import expand_session_rows
+
+    rows = expand_session_rows(db, store, rows)
+    ids = [row["id"] for row in rows]
     if db.execute(
         "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
         "WHERE p.character_id=ANY(%s) AND f.status IN('placement','active') LIMIT 1",
@@ -216,15 +220,17 @@ def authorize_start(
     ):
         raise ValueError("Native rift start was not authorized")
     members = db.execute(
-        "SELECT c.id,c.map_id,c.instance_id,s.character_id AS selected_character_id,s.expires_at "
+        "SELECT c.id,c.account_id,c.map_id,c.instance_id,s.character_id AS selected_character_id,s.expires_at "
         "FROM characters c LEFT JOIN sessions s ON s.account_id=c.account_id "
         "WHERE c.id=ANY(%s)",
         (run["members"],),
     ).fetchall()
+    from wakfu_server.characters.heroes import session_authorized
+
     if {r["id"] for r in members} != set(run["members"]) or any(
         r["map_id"] != character["map_id"]
         or r["instance_id"] != run["instance_id"]
-        or r["selected_character_id"] != r["id"]
+        or not session_authorized(db, r)
         or r["expires_at"] is None
         or r["expires_at"] <= store.now()
         for r in members

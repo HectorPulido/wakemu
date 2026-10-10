@@ -130,7 +130,9 @@ class RuntimeMessages:
         if not self.expiration_due():
             return []
         actor = self.fight.current
-        return self.end_turn(actor.owner_id, actor.id, actor.turn_count)
+        from .combat_timeline_snapshot import current_wire_turn
+
+        return self.end_turn(actor.owner_id, actor.id, current_wire_turn(self.fight))
 
     def expire_current_or_recover(self, owner_id, *, now_ms):
         """Keep the world socket and owned turn when an end reaction rejects.
@@ -420,14 +422,16 @@ class RuntimeMessages:
         if self.awaiting_ack is not None:
             raise ValueError("Turn synchronization pending")
         actor = self.fight._current_owned(owner_id, actor_id)
-        if actor_turn != actor.turn_count:
+        from .combat_timeline_snapshot import current_wire_turn
+
+        if actor_turn != current_wire_turn(self.fight):
             raise ValueError("Stale turn identifier")
         expiry = self._end_owned(actor)
         if self.fight.phase != "active":
             self.turn_deadline = self.deadline_turn = None
             return expiry
         previous = self.fight.turn_id
-        self.fight.end_turn(owner_id, actor_id, actor_turn)
+        self.fight.end_turn(owner_id, actor_id, actor.turn_count)
         packets = expiry + [
             (12502, self._prefix() + struct.pack(">qii", actor_id, -1, 0)),
             self._flush(),
@@ -435,6 +439,34 @@ class RuntimeMessages:
         self.pending = self.turn_started(arm_deadline=False)
         self.turn_deadline = self.deadline_turn = None
         self.awaiting_ack = previous
+        return packets
+
+    @native_delivery_boundary
+    @atomic_area_turn
+    def synchronize_defeated_turn(self, actor_id, global_turn):
+        """Close an already advanced lethal action before publishing its successor."""
+        actor = self.fight.actors.get(actor_id)
+        if (
+            self.fight.phase != "active"
+            or actor is None
+            or actor.hp > 0
+            or self.fight.current is None
+            or self.fight.current.id == actor_id
+            or self.fight.turn_id <= global_turn
+            or self.awaiting_ack is not None
+            or self.pending
+        ):
+            raise ValueError("Invalid defeated current turn synchronization")
+        # The authoritative lethal action already ran death/turn lifecycle.
+        # Do not end or advance that actor again. The client must finish its
+        # existing actor turn before either a successor action or AI can run.
+        packets = [
+            (12502, self._prefix() + struct.pack(">qii", actor_id, -1, 0)),
+            self._flush(),
+        ]
+        self.pending = self.turn_started(arm_deadline=False)
+        self.turn_deadline = self.deadline_turn = None
+        self.awaiting_ack = global_turn
         return packets
 
     @native_delivery_boundary
@@ -514,6 +546,13 @@ class RuntimeMessages:
             a.controlled and a.owner_id == owner_id for a in self.fight.actors.values()
         ):
             raise ValueError("Account does not participate in this fight")
+        if len(body) != 4 or struct.unpack(">i", body)[0] != self.fight.id:
+            raise ValueError("Recovery request belongs to another fight")
+        # A delayed coX can cross placement or the terminal notification. Neither
+        # phase owns an active SU/deadline. Preserve its existing presentation
+        # and ACK queue instead of constructing an invalid active-turn recovery.
+        if self.fight.phase in ("placement", "finished"):
+            return []
         from .combat_recovery import recovery_packet
 
         from .combat_turn_duration import current_turn_duration

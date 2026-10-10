@@ -12,6 +12,8 @@ Se conserva también el [probe del decoder de chat](probe-decoder-actual.json). 
 
 ## Investigación y propuesta pendientes
 
+Revisión del checkout del 10 de octubre: [plan de implementación y brechas actuales](IMPLEMENTATION-READINESS-20261010.md). Sigue sin existir un dominio/esquema de gremios ni handlers completos. Se reprodujo de nuevo el fallo del decoder 13744. El transporte local ya tiene una ruta `15548/format22` usada al cambiar de héroe; falta validar e integrar el modelo no vacío y la carga inicial, preservando esa sincronización.
+
 Completar invitación/aceptación, salida/expulsión, transferencia de liderazgo, disolución, progresión, bonus y servicios de gremio; cotejar cada solicitud con dispatcher, almacenamiento y respuesta. Resolver normalización/unicidad de nombre, significado de `ownerId`, unidades de fechas y transporte del bootstrap. El modelo propone tablas concretas y transacciones para creación/coste, miembros y permisos; esas propuestas siguen sin implementación ni validación de durabilidad.
 
 Cuando los contratos y requisitos estén preparados, crear un gremio exclusivo de auditoría con dos personajes: creación, invitación, aceptación/rechazo, permisos, chat, salida/expulsión y reconexión. Comprobar SQL y estado visible antes/después; reiniciar únicamente la instancia propia autorizada para verificar durabilidad. Estas pruebas funcionales todavía no se han ejecutado.

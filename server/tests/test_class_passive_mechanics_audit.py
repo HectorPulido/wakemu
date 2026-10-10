@@ -10,15 +10,23 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from audit_class_passive_mechanics import passive_plan, native_contracts
 from wakfu_server.combat_class_initialization import BREEDS
-from wakfu_server.spells import encode_deck, validate_deck
+from wakfu_server.spells import available_spells, encode_deck, validate_deck
 
 
 class PassiveMechanicAuditTests(unittest.TestCase):
     def test_all_passives_use_legal_single_passive_decks_without_cartesian_cases(self):
         cases, provider, inventory = passive_plan(BREEDS)
-        self.assertEqual(len(cases), 339)
+        expected_pairs = {
+            (breed, spell["id"])
+            for breed in BREEDS
+            for spell in available_spells(breed, 200)
+            if spell["kind"] == "passive"
+        }
+        observed_pairs = {(breed, passive) for breed, _level, passive in cases}
+        self.assertEqual(observed_pairs, expected_pairs)
+        self.assertEqual(len(cases), len(observed_pairs))
+        self.assertEqual(len(inventory), len(expected_pairs))
         self.assertEqual(len({breed for breed, _, _ in cases}), 18)
-        self.assertEqual(len({passive for _, _, passive in cases}), 339)
         for breed, level, passive in cases:
             parsed = validate_deck(
                 encode_deck(provider(breed, level, passive), [passive]), breed, level

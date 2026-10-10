@@ -37,15 +37,27 @@ def owner_characters_for_finish(store, shared, fight, active_characters):
         if not getattr(actor, "pve_withdrawn", False):
             raise ValueError("Active terminal actor has no current owner source")
         participant = participants.get(actor.owner_id)
-        if (
-            participant is None
-            or participant.account_id != actor.owner_id
-            or participant.character_id != actor.id
-        ):
+        if participant is None or participant.account_id != actor.owner_id:
             raise ValueError(
                 "Withdrawn terminal actor has no retained owner participant"
             )
-        historical = store.character(participant.account_id, participant.character_id)
+        if participant.character_id != actor.id:
+            connection = getattr(store, "connection", None)
+            if not callable(connection):
+                raise ValueError(
+                    "Withdrawn terminal actor has no retained owner participant with durable membership authority"
+                )
+            with connection() as db:
+                durable = db.execute(
+                    "SELECT 1 FROM combat_fight_participants p JOIN combat_pve_withdrawals w "
+                    "ON w.fight_id=p.fight_id AND w.character_id=p.character_id "
+                    "WHERE p.fight_id=%s AND p.character_id=%s AND p.account_id=%s "
+                    "AND p.session_generation=%s",
+                    (fight.id, actor.id, actor.owner_id, participant.generation),
+                ).fetchone()
+                if durable is None:
+                    raise ValueError("Withdrawn hero lacks frozen durable membership")
+        historical = store.character(participant.account_id, actor.id)
         if (
             historical.get("id") != actor.id
             or historical.get("account_id") != actor.owner_id

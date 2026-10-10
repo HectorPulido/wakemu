@@ -27,7 +27,7 @@ from types import SimpleNamespace
 from contextvars import ContextVar
 from contextlib import contextmanager
 
-from ..context.native_context import encode
+from ..context.native_context import encode, encode_bytes
 from ..context.native_fingerprint import fingerprint
 from ..native.native_deadline import check, remaining
 
@@ -378,9 +378,19 @@ class CompleteContextExporter:
                             pending.append((Path(entry.path), relative))
                         elif entry.is_file():
                             result.append((relative, Path(entry.path), entry.stat()))
+
             # Preserve the previous Path ordering while retaining the exact
             # relative name from enumeration, without rebuilding ancestors.
-            enumerated_roots[root] = sorted(result, key=lambda pair: pair[1])
+            # All paths share this root. Path ordering compares normalized
+            # component tuples, not the slash-joined string. Build relative
+            # components once instead of invoking Path comparison and parsing
+            # ancestors for every O(n log n) sorting comparison.
+            def ordering_key(pair):
+                check()
+                return tuple(pair[0].split("/"))
+
+            enumerated_roots[root] = sorted(result, key=ordering_key)
+            check()
             return enumerated_roots[root]
 
         def register(name, path, status=None):
@@ -1361,7 +1371,14 @@ class NativeSession:
             )
             if target_envelope is not None:
                 metadata["nativeTargetEnvelope"] = target_envelope
-            result = dict(nativeMetadata=self.transport.instance(encode(metadata)))
+            instance_bytes = getattr(self.transport, "instance_bytes", None)
+            if callable(instance_bytes):
+                # Preserve the identical complete graph while serializing
+                # nodes directly, avoiding a second full mutable graph tree.
+                metadata_instance = instance_bytes(encode_bytes(metadata))
+            else:
+                metadata_instance = self.transport.instance(encode(metadata))
+            result = dict(nativeMetadata=metadata_instance)
         elif operation == "project_turn":
             target = request.get("actorId")
             maximum = request.get("maxTurns", len(runtime.fight.actors))

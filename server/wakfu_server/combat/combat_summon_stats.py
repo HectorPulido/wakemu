@@ -2,6 +2,7 @@
 import struct
 
 from .combat_snapshot_wire import snapshot_characteristics
+from .combat_property_wire import fight_property_payload
 
 
 def registered_summon_stats(actor, fight, map_id):
@@ -73,8 +74,9 @@ def registered_summon_stats(actor, fight, map_id):
             ">iBBBBbB", fight.id, 0, 0, int(authority["is_summon"]), 0, obstacle, 0
         )
         + stats
+        + fight_property_payload(actor.native_fight_property_counts)
+        + struct.pack(">h", reference)
         + bytes((int(controlled_by_ai),))
-        + struct.pack(">hB", reference, 1)
         + struct.pack(">hH", level, 0)
         + struct.pack(">qBqBh", actor.id, 1, -1, 0, 0)
     )

@@ -38,41 +38,86 @@ def persist(
     ).fetchone()
     if participant is None or participant["session_generation"] != session.generation:
         raise ValueError("PvE withdrawal has a stale durable participant")
-    health = combat_health.persist(
-        store,
-        session.account_id,
-        session.generation,
-        character,
-        original_fight,
-        reason="abort",
-        db=db,
+    store.lock_character(
+        db, session.account_id, session.generation, session.character_id
     )
+    from .combat_terminal_metadata import registered_summon_actor_ids
+
+    summons = registered_summon_actor_ids(original_fight)
+    owned_ids = {
+        actor.id
+        for actor in original_fight.actors.values()
+        if actor.controlled
+        and actor.owner_id == session.account_id
+        and actor.id not in summons
+    }
+    members = tuple(
+        db.execute(
+            "SELECT character_id,session_generation FROM combat_fight_participants "
+            "WHERE fight_id=%s AND account_id=%s ORDER BY character_id FOR UPDATE",
+            (original_fight.id, session.account_id),
+        )
+    )
+    if {member["character_id"] for member in members} != owned_ids or any(
+        member["session_generation"] != session.generation for member in members
+    ):
+        raise ValueError(
+            "Withdrawal hero roster differs from frozen account participants"
+        )
+    characters = {}
+    applied = False
+    for member in members:
+        identity = member["character_id"]
+        source = (
+            character
+            if identity == session.character_id
+            else store.character(session.account_id, identity, db)
+        )
+        health = combat_health.persist(
+            store,
+            session.account_id,
+            session.generation,
+            source,
+            original_fight,
+            reason="abort",
+            db=db,
+            session_character_id=session.character_id,
+        )
+        characters[identity] = health["character"]
+        inserted = db.execute(
+            "INSERT INTO combat_pve_withdrawals "
+            "(fight_id,character_id,account_id,session_generation,created_at) "
+            "VALUES(%s,%s,%s,%s,%s) ON CONFLICT(fight_id,character_id) DO NOTHING",
+            (
+                original_fight.id,
+                identity,
+                session.account_id,
+                session.generation,
+                store.now(),
+            ),
+        )
+        applied = applied or inserted.rowcount == 1
     if captured_departure_fight is not None:
         if captured_departure_fight.id != original_fight.id:
             raise ValueError("Captured teardown belongs to another fight")
         from .combat_captured_roster_checkpoint import persist_captured_roster_updates
 
         persist_captured_roster_updates(
-            db, captured_departure_fight, owner_ids={session.character_id}
+            db, captured_departure_fight, owner_ids=owned_ids
         )
         reset = getattr(
             captured_departure_fight, "native_captured_roster_updates", {}
         ).get(str(session.character_id))
         if reset is not None:
-            health["character"] = {**health["character"], "captured_roster": reset}
-    inserted = db.execute(
-        "INSERT INTO combat_pve_withdrawals "
-        "(fight_id,character_id,account_id,session_generation,created_at) "
-        "VALUES(%s,%s,%s,%s,%s) ON CONFLICT(fight_id,character_id) DO NOTHING",
-        (
-            original_fight.id,
-            session.character_id,
-            session.account_id,
-            session.generation,
-            store.now(),
-        ),
+            characters[session.character_id] = {
+                **characters[session.character_id],
+                "captured_roster": reset,
+            }
+    return dict(
+        character=characters[session.character_id],
+        characters=characters,
+        applied=applied,
     )
-    return dict(character=health["character"], applied=inserted.rowcount == 1)
 
 
 def acknowledge(store, session, fight_id):
@@ -84,12 +129,11 @@ def acknowledge(store, session, fight_id):
         )
         row = db.execute(
             "UPDATE combat_pve_withdrawals SET returned_at=COALESCE(returned_at,%s) "
-            "WHERE fight_id=%s AND character_id=%s AND account_id=%s "
+            "WHERE fight_id=%s AND account_id=%s "
             "AND session_generation=%s RETURNING character_id",
             (
                 store.now(),
                 fight_id,
-                session.character_id,
                 session.account_id,
                 session.generation,
             ),
@@ -126,6 +170,18 @@ def recover(store, session, fight_id, previous_generation):
         ).fetchone()
         if row is None:
             raise ValueError("No matching interrupted PvE withdrawal")
+        db.execute(
+            "UPDATE combat_pve_withdrawals SET session_generation=%s,"
+            "returned_at=COALESCE(returned_at,%s) WHERE fight_id=%s AND account_id=%s "
+            "AND session_generation=%s",
+            (
+                session.generation,
+                store.now(),
+                fight_id,
+                session.account_id,
+                previous_generation,
+            ),
+        )
         return store.character(session.account_id, session.character_id, db)
 
 
@@ -153,13 +209,12 @@ def recover_pending(store, session):
         for row in pending:
             db.execute(
                 "UPDATE combat_pve_withdrawals SET returned_at=COALESCE(returned_at,%s),"
-                "session_generation=%s WHERE fight_id=%s AND character_id=%s "
+                "session_generation=%s WHERE fight_id=%s "
                 "AND account_id=%s AND session_generation=%s",
                 (
                     store.now(),
                     session.generation,
                     row["fight_id"],
-                    session.character_id,
                     session.account_id,
                     row["session_generation"],
                 ),

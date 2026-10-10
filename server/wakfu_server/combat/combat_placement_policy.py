@@ -117,6 +117,9 @@ def freeze(
             variation_seed=(fight_id << 31) | policy["version"]
             if policy["variation_enabled"]
             else None,
+            spread_teams=selected_arena.get("native_border_policy")
+            == "wakemu.compact-cardinal-perimeter-v1",
+            avoid_cells=selected_arena.get("native_border_cells", ()),
         )
         layout = dict(
             native_border_cells=sorted(selected_arena.get("native_border_cells", [])),

@@ -22,7 +22,7 @@ services:
       retries: 30
       start_period: 180s
   world:
-    image: ${WAKFU_WORLD_IMAGE:-wakemu-world:performance-20261009-r64}
+    image: ${WAKFU_WORLD_IMAGE:-wakemu-world:performance-20261010-r73}
     build: ./server
     init: true
     depends_on:
@@ -54,7 +54,7 @@ services:
       WAKFU_DEV_SKIP_UNSUPPORTED_INITIALIZATION: ${WAKFU_DEV_SKIP_UNSUPPORTED_INITIALIZATION:-1}
       WAKFU_NATIVE_GRANTED_CAST: ${WAKFU_NATIVE_GRANTED_CAST:-1}
       WAKFU_NATIVE_AREA_CALLBACKS: ${WAKFU_NATIVE_AREA_CALLBACKS:-1}
-      WAKFU_MAX_CHARACTERS: ${WAKFU_MAX_CHARACTERS:-24}
+      WAKFU_MAX_CHARACTERS: ${WAKFU_MAX_CHARACTERS:-18}
       WAKFU_COMBAT_TEST_GROUP_SIZE: ${WAKFU_COMBAT_TEST_GROUP_SIZE:-2}
       # Empty uses the native breed resource; a number is an explicit test override.
       WAKFU_COMBAT_TEST_WP: ${WAKFU_COMBAT_TEST_WP:-}

@@ -69,6 +69,9 @@ class Parties:
                 "WHERE m.party_id=%s ORDER BY m.joined_order",
                 (party_id,),
             ).fetchall()
+            from wakfu_server.characters.heroes import augment_party
+
+            rows = augment_party(db, self.store, rows)
             members, levels, fighting = [], {}, set()
             recipients = []
             for row in rows:
@@ -130,6 +133,13 @@ class Parties:
             snapshot = player_parties.snapshot(
                 self.store, account_id, generation, character_id
             )
+            if snapshot is None:
+                from wakfu_server.characters.heroes import ensure_company_party
+
+                ensure_company_party(self.store, account_id, generation, character_id)
+                snapshot = player_parties.snapshot(
+                    self.store, account_id, generation, character_id
+                )
             return False if snapshot is None else self._publish(snapshot["party_id"])
 
     def handle(self, opcode, body, account_id, generation, character_id):
@@ -213,6 +223,18 @@ class Parties:
         live = {row["id"] for row in self.world.snapshot()}
         if not live:
             return
+        with self.store.connection() as db:
+            missing = db.execute(
+                "SELECT r.leader_id FROM account_hero_rosters r "
+                "WHERE r.leader_id=ANY(%s) "
+                "AND EXISTS(SELECT 1 FROM account_hero_slots s WHERE s.account_id=r.account_id) "
+                "AND NOT EXISTS(SELECT 1 FROM player_party_members m WHERE m.character_id=r.leader_id)",
+                (list(live),),
+            ).fetchall()
+        for row in missing:
+            current = self.world.live_identity(character_id=row["leader_id"])
+            if current is not None:
+                self.refresh(current[1]["account_id"], current[0], row["leader_id"])
         with self.store.connection() as db:
             rows = db.execute(
                 "SELECT party_id,min(character_id) AS anchor FROM player_party_members "

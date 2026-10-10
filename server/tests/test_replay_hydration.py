@@ -37,6 +37,7 @@ def _production_replay(globals_update=None):
 
 class _Store:
     def __init__(self, characters):
+        self.max_characters = 18
         self.rows = list(characters)
         self.calls = []
 
@@ -67,7 +68,7 @@ class _Wire:
 
 class _Social:
     @staticmethod
-    def adapt(opcode, original, account_id, character, owned):
+    def adapt(opcode, original, account_id, character, owned, *, cosmetic_record=None):
         if opcode == 13873:
             return b"social-response"
         return None
@@ -119,9 +120,19 @@ class ReplayHydrationTests(unittest.TestCase):
                 (13873, b"social-response"),
                 (13078, b"equipment:101"),
                 (13078, b"equipment:202"),
+                (23992, b"\x0d"),
                 (23548, b"list:101,202"),
                 (12393, b"sheets:101,202"),
             ],
+        )
+
+    def test_captured_slot_count_is_replaced_before_current_roster(self):
+        frames = [self._frame(23992, b"\x00"), self._frame(23548, b"")]
+        store = _Store(({"id": 101},))
+        store.max_characters = 24
+        self.assertEqual(
+            self._replay(frames, store),
+            [(23992, b"\x13"), (23992, b"\x13"), (23548, b"list:101")],
         )
 
     def test_packets_without_account_hydration_do_not_query_store(self):
@@ -142,8 +153,8 @@ class ReplayHydrationTests(unittest.TestCase):
         second = self._replay(frames, store)
 
         self.assertEqual(store.calls, [42, 42])
-        self.assertEqual(first, [(23548, b"list:101")])
-        self.assertEqual(second, [(23548, b"list:303,404")])
+        self.assertEqual(first, [(23992, b"\x0d"), (23548, b"list:101")])
+        self.assertEqual(second, [(23992, b"\x0d"), (23548, b"list:303,404")])
 
 
 class ReplayHydrationPostgresTests(PostgresCase):
@@ -240,6 +251,9 @@ class ReplayHydrationPostgresTests(PostgresCase):
                     for character in owned
                 )
             elif opcode == 23548:
+                from wakfu_server.characters.selection_capacity import packet
+
+                expected.append(packet(self.store.max_characters))
                 expected.append(
                     (
                         opcode,

@@ -274,6 +274,162 @@ class RewardPolicyPostgresTests(PostgresCase):
             )
         self.ctx = context(self.character["id"])
 
+    def _finish_owned_company(self, *, summon_kill):
+        from wakfu_server.characters import heroes
+        from wakfu_server.combat_state import Actor, Fight
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_lifecycle import prepare_finish_shared
+
+        company = [self.character]
+        for name in ("Policy Hero One", "Policy Hero Two"):
+            hero = self.store.create_character(self.account_id, name)
+            heroes.add(
+                self.store,
+                self.account_id,
+                self.generation,
+                self.character["id"],
+                hero["id"],
+            )
+            company.append(hero)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_fights SET status='active' WHERE id=%s", (self.fight_id,)
+            )
+            db.execute(
+                "UPDATE combat_fight_participants SET session_generation=%s "
+                "WHERE fight_id=%s",
+                (self.generation, self.fight_id),
+            )
+            for hero in company[1:]:
+                db.execute(
+                    "INSERT INTO combat_fight_participants"
+                    "(fight_id,character_id,account_id,team,session_generation) "
+                    "VALUES(%s,%s,%s,0,%s)",
+                    (self.fight_id, hero["id"], self.account_id, self.generation),
+                )
+        actors = [
+            Actor(
+                member["id"],
+                0,
+                (index, 0, 0),
+                member["hp"],
+                6,
+                3,
+                100 - index,
+                member["level"],
+                self.account_id,
+                True,
+            )
+            for index, member in enumerate(company)
+        ]
+        summon = Actor(232, 0, (3, 0, 0), 20, 4, 3, 90, 1, self.account_id, True)
+        enemy = Actor(-550, 1, (4, 0, 0), 20, 4, 3, 1, 1)
+        fight = Fight(
+            self.fight_id,
+            actors + [summon, enemy],
+            [(index, 0, 0) for index in range(5)],
+            {0: {(index, 0, 0) for index in range(4)}, 1: {(4, 0, 0)}},
+        )
+        summon.native_summon_source = dict(
+            ref=5525,
+            level=1,
+            caster_id=self.character["id"],
+            controller_id=self.character["id"],
+        )
+        fight.native_summon_registrations = {
+            summon.id: dict(
+                actor_id=summon.id,
+                caster_id=self.character["id"],
+                controller_id=self.character["id"],
+                authority=dict(is_summon=True, breed_id=5525, native_real_level=1),
+            )
+        }
+        fight.ready(self.account_id)
+        killer = summon.id if summon_kill else company[1]["id"]
+        while fight.current.id != killer:
+            if fight.current.controlled:
+                fight.end_turn(
+                    self.account_id, fight.current.id, fight.current.turn_count
+                )
+            else:
+                fight.end_server_turn(fight.current.id, fight.turn_id)
+        fight.apply_damage(killer, enemy.id, enemy.hp)
+        self.assertEqual((fight.phase, fight.winner), ("finished", 0))
+        metadata = {
+            member["id"]: dict(
+                kind="player",
+                account_id=self.account_id,
+                name=member["name"],
+                breed=member["breed"],
+                is_male=True,
+            )
+            for member in company
+        }
+        metadata[summon.id] = dict(kind="monster", ref=5525)
+        metadata[enemy.id] = dict(kind="monster", ref=5525)
+        ctx = context(
+            self.character["id"],
+            winners=[
+                dict(
+                    level=1,
+                    player=True,
+                    eligible=True,
+                    character_id=member["id"],
+                    wisdom=0,
+                )
+                for member in company
+            ],
+        )
+        completed = prepare_finish_shared(
+            self.store,
+            self.account_id,
+            self.generation,
+            self.character["id"],
+            RuntimeMessages(fight),
+            metadata,
+            duration_ms=1000,
+            fight_instance_id=self.fight_id,
+            expected_accounts={self.account_id},
+            owner_character_ids={self.account_id: self.character["id"]},
+            policy_resolver=lambda db, member, source: resolve(
+                self.store,
+                db,
+                account_id=self.account_id,
+                generation=self.generation,
+                character_id=member["character_id"],
+                fight_id=self.fight_id,
+                context=ctx,
+                kamas_roll_index=0,
+            ).policy,
+        )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (self.fight_id,)
+                ).fetchone()["status"],
+                "finished",
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_rewards WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["n"],
+                3,
+            )
+            self.assertIsNone(
+                db.execute(
+                    "SELECT 1 FROM fight_rewards WHERE fight_id=%s AND character_id=%s",
+                    (self.fight_id, summon.id),
+                ).fetchone()
+            )
+        self.assertEqual(set(completed), {self.account_id})
+
+    def test_hero_killing_last_enemy_settles_all_company_rewards(self):
+        self._finish_owned_company(summon_kill=False)
+
+    def test_owned_summon_killing_last_enemy_settles_all_company_rewards(self):
+        self._finish_owned_company(summon_kill=True)
+
     def test_resolve_persists_policy_hash_and_replays_after_config_and_catalog_change(
         self,
     ):
@@ -682,7 +838,8 @@ class RewardPolicyPostgresTests(PostgresCase):
         with self.store.connection() as db:
             actual = db.execute(
                 "SELECT monster_level,base_xp,min_kamas,max_kamas,source "
-                "FROM combat_reward_level_defaults ORDER BY monster_level"
+                "FROM combat_reward_level_defaults WHERE monster_level BETWEEN 1 AND 200 "
+                "ORDER BY monster_level"
             ).fetchall()
         self.assertEqual(len(actual), 200)
         for row, expected_row in zip(actual, expected):

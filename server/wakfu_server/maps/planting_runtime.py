@@ -196,6 +196,12 @@ class Plantings:
         and group occupancy before spawn. No lease belongs to a planted world
         resource: it continues growing after its planter logs out.
         """
+        from .mining_veins import refill
+
+        # Minerals retain fixed slots and use their own SQL respawn deadlines.
+        # Their queued full appearances share only the durable delivery outbox.
+        with self.publisher_lock:
+            refill(self.store)
         due = int((self.store.clock() - self.growth_seconds) * 1000)
         now_ms = int(self.store.clock() * 1000)
         monster_references = [
@@ -367,7 +373,11 @@ class Plantings:
                             )
                         )
                 else:
-                    packets = [state_packet(resource, resource["stage"])]
+                    packets = [
+                        planting.resource_packet(resource)
+                        if resource.get("mining_spawn")
+                        else state_packet(resource, resource["stage"])
+                    ]
                 delivery = dict(
                     map_id=resource["map_id"],
                     instance_id=resource["instance_id"],

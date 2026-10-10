@@ -7,6 +7,7 @@ import struct
 from .combat_wire import bootstrap, topology, initial_timeline
 from .combat_turns import initial_order
 from .combat_actor import actor_stats, actor_effects
+from .combat_orientation import INITIAL_PLAYER_DIRECTION
 
 
 def placement_positions(fight, immediate=True):
@@ -127,6 +128,7 @@ def player_payload(character, actor, fight_id, *, wp):
             snapshot,
             fight_id,
             actor.team,
+            direction=actor.direction,
             obstacle_id=actor.native_obstacle_id,
             wp=wp,
             ap=actor.max_ap,
@@ -204,7 +206,7 @@ def create_placement(
         character["account_id"],
         True,
         max_hp=character["max_hp"],
-        direction=0,
+        direction=INITIAL_PLAYER_DIRECTION,
     )
     relocations = arena.get("participant_positions", [])
     if relocations and (

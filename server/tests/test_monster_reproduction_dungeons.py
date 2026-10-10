@@ -61,7 +61,9 @@ class DungeonReproductionTests(unittest.TestCase):
             monster_reproduction, "pending", return_value=[]
         ) as pending, patch.object(
             monster_reproduction, "unpublished", return_value=[]
-        ) as unpublished:
+        ) as unpublished, patch.object(
+            monster_reproduction, "policy", return_value={"test": "snapshot"}
+        ) as policy:
             remaining = monster_reproduction.tick(
                 store,
                 {(1086, 700), (1134, 0), (527, 701)},
@@ -83,6 +85,7 @@ class DungeonReproductionTests(unittest.TestCase):
             self.assertEqual(
                 {call.args[1:3] for call in unpublished.call_args_list}, remaining
             )
+            policy.assert_called_once_with(store)
 
     def test_exterior_observation_still_enters_active_clock_engine(self):
         store = RunRegistry()

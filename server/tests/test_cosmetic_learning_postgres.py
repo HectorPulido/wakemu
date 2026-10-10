@@ -4,6 +4,7 @@ from unittest.mock import patch
 from postgres_case import PostgresCase
 from wakfu_server import cosmetic_learning as learning
 from wakfu_server.characters.cosmetic_store import load
+from wakfu_server.wire import proto_fields
 
 
 class CosmeticLearningTests(PostgresCase):
@@ -137,8 +138,16 @@ class CosmeticLearningTests(PostgresCase):
             owned = load(db, self.account)
         self.assertIn((7, 137, 0, 0), owned.items)
         self.assertNotIn((7, 11431, 0, 0), owned.items)
+        category = next(
+            value
+            for tag, value in proto_fields(owned.inventory_component()[4:])
+            if tag == 10 and dict(proto_fields(value))[8] == 7
+        )
+        published = list(proto_fields(dict(proto_fields(category))[18]))
+        self.assertEqual([tag for tag, _ in published], [10])
+        self.assertEqual(dict(proto_fields(published[0][1]))[8], 137)
 
-    def test_wrong_title_action_or_native_criterion_does_not_consume(self):
+    def test_wrong_title_action_does_not_consume_and_bound_title_is_learnable(self):
         with self.store.connection() as db:
             db.execute(
                 "UPDATE inventory_items SET reference=11431 WHERE uid=%s", (self.guard,)
@@ -150,9 +159,10 @@ class CosmeticLearningTests(PostgresCase):
             db.execute(
                 "UPDATE inventory_items SET reference=14199 WHERE uid=%s", (self.guard,)
             )
-        with self.assertRaisesRegex(ValueError, "criteria"):
-            self.learn(self.guard, 12302)
-        self.assertEqual(self.quantity(self.guard), 2)
+        self.assertTrue(self.learn(self.guard, 12302)["applied"])
+        self.assertEqual(self.quantity(self.guard), 1)
+        with self.store.connection() as db:
+            self.assertIn((7, 656, 0, 0), load(db, self.account).items)
 
     def test_title_receipt_failure_rolls_back_account_knowledge_and_consumption(self):
         with self.store.connection() as db:
@@ -176,13 +186,33 @@ class CosmeticLearningTests(PostgresCase):
 
     def test_another_character_can_select_account_owned_title_after_login(self):
         with self.store.connection() as db:
-            db.execute("UPDATE inventory_items SET reference=11431 WHERE uid=%s", (self.guard,))
+            db.execute(
+                "UPDATE inventory_items SET reference=11431 WHERE uid=%s", (self.guard,)
+            )
         self.learn(self.guard, 1619)
         other = self.store.create_character(self.account, "Title Alt")
         other = self.store.select_character(self.account, self.generation, other["id"])
         from wakfu_server.characters.cosmetics import OwnedCosmetics
-        record = OwnedCosmetics.from_record(other["owned_cosmetics"], account_id=self.account)
-        preset = next(index for index, row in enumerate(record.selections, 1) if row[0] == other["id"])
+
+        record = OwnedCosmetics.from_record(
+            other["owned_cosmetics"], account_id=self.account
+        )
+        preset = next(
+            index
+            for index, row in enumerate(record.selections, 1)
+            if row[0] == other["id"]
+        )
         from wakfu_server.wire import proto_field
-        selected = self.store.equip_owned_finishers(self.account, other["id"], 13765, struct.pack(">iiBB", preset, 7, 1, 1) + proto_field(8, 137))
-        self.assertEqual(OwnedCosmetics.from_record(selected["owned_cosmetics"], account_id=self.account).selected_single(other["id"], 7), 137)
+
+        selected = self.store.equip_owned_finishers(
+            self.account,
+            other["id"],
+            13765,
+            struct.pack(">iiBB", preset, 7, 1, 1) + proto_field(8, 137),
+        )
+        self.assertEqual(
+            OwnedCosmetics.from_record(
+                selected["owned_cosmetics"], account_id=self.account
+            ).selected_single(other["id"], 7),
+            137,
+        )

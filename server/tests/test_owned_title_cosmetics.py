@@ -7,7 +7,7 @@ from wakfu_server.characters.cosmetics import (
     finisher_request,
 )
 from wakfu_server.combat_cosmetic_conditions import fresh_player_cosmetic_state
-from wakfu_server.wire import proto_field
+from wakfu_server.wire import proto_field, proto_fields
 
 
 class OwnedTitleTests(unittest.TestCase):
@@ -42,6 +42,15 @@ class OwnedTitleTests(unittest.TestCase):
         self.assertEqual(
             fresh_player_cosmetic_state(character)["selected_values"][7], 137
         )
+        category = next(
+            value
+            for tag, value in proto_fields(saved.inventory_component()[4:])
+            if tag == 10 and dict(proto_fields(value))[8] == 7
+        )
+        title_items = list(proto_fields(dict(proto_fields(category))[18]))
+        self.assertEqual(len(title_items), 1)
+        self.assertEqual(title_items[0][0], 10)
+        self.assertEqual(dict(proto_fields(title_items[0][1]))[8], 137)
         self.assertEqual(saved.selected_finishers(42), (20753,))
         self.assertEqual(
             saved.activate_preset(self.character, False).selected_single(42, 7), 0

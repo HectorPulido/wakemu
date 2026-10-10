@@ -12,6 +12,7 @@ def persist(
     reason="return",
     db=None,
     disconnected_baseline=None,
+    session_character_id=None,
 ):
     """Record HP once; duplicate callbacks preserve subsequent world HP/position.
 
@@ -39,13 +40,30 @@ def persist(
                 fight,
                 reason=reason,
                 disconnected_baseline=disconnected_baseline,
+                session_character_id=session_character_id,
                 db=connection,
             )
     from psycopg.pq import TransactionStatus
 
     if db.info.transaction_status != TransactionStatus.INTRANS:
         raise ValueError("Fight health persistence requires an active transaction")
-    if disconnected_baseline is None:
+    if disconnected_baseline is None and session_character_id not in (
+        None,
+        character["id"],
+    ):
+        store.lock_character(db, account_id, generation, session_character_id)
+        member = db.execute(
+            "SELECT session_generation FROM combat_fight_participants WHERE fight_id=%s "
+            "AND character_id=%s AND account_id=%s FOR UPDATE",
+            (fight.id, character["id"], account_id),
+        ).fetchone()
+        if member is None or member["session_generation"] != generation:
+            raise ValueError("Hero health exit lacks a frozen account combat lease")
+        store.lock_character(
+            db, account_id, generation, character["id"], selected=False
+        )
+        saved = store.character(account_id, character["id"], db)
+    elif disconnected_baseline is None:
         saved = health_store._owned(store, db, account_id, generation, character["id"])
     else:
         # A shared owner may have cleanly disconnected before the final owner.
@@ -410,3 +428,57 @@ def persist_aborted_shared_fight(
             ):
                 raise ValueError("Shared fight group lease could not be restored")
     return results
+
+
+def persist_owned(
+    store, account_id, generation, character, fight, *, reason="return", db=None
+):
+    """Persist real account PCs together under the selected main session fence."""
+    if db is None:
+        with store.connection() as connection:
+            return persist_owned(
+                store,
+                account_id,
+                generation,
+                character,
+                fight,
+                reason=reason,
+                db=connection,
+            )
+    main_id = character["id"]
+    from .combat_terminal_metadata import registered_summon_actor_ids
+
+    registrations = registered_summon_actor_ids(fight)
+    identities = [main_id] + sorted(
+        actor.id
+        for actor in fight.actors.values()
+        if actor.controlled
+        and actor.owner_id == account_id
+        and actor.id != main_id
+        and actor.id not in registrations
+    )
+    results = {}
+    for identity in identities:
+        source = (
+            character
+            if identity == main_id
+            else store.character(account_id, identity, db)
+        )
+        results[identity] = persist(
+            store,
+            account_id,
+            generation,
+            source,
+            fight,
+            reason=reason,
+            db=db,
+            session_character_id=main_id,
+        )
+    main = results[main_id]
+    return dict(
+        main,
+        characters={
+            identity: result["character"] for identity, result in results.items()
+        },
+        applied=any(result["applied"] for result in results.values()),
+    )

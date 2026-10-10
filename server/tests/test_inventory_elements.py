@@ -149,6 +149,20 @@ class InventoryElementsTests(PostgresCase):
         self.assertEqual(
             (reopened["damage_elements"], reopened["resistance_elements"]), (26, 0)
         )
+        from wakfu_server.inventory_items import equipment_inventory
+
+        # Reconnect reconstructs a separate native hR equipment-item registry.
+        # It must carry the same chosen masks as the physical inventory item.
+        refreshed = self.reopen().character(account, char["id"])
+        equipment_packet = equipment_inventory(refreshed)
+        self.assertEqual(equipment_packet[0], 13078)
+        native_items = [
+            dict(proto_fields(value))
+            for tag, value in proto_fields(equipment_packet[1][13:])
+            if tag == 10
+        ]
+        native_item = next(row for row in native_items if row[8] == item["uid"])
+        self.assertEqual(dict(proto_fields(native_item[450])), {8: 26, 16: 0})
         retry = select_elements(store, account, generation, char["id"], body)
         self.assertFalse(retry["applied"])
         self.assertEqual(retry["packet"], applied["packet"])

@@ -377,14 +377,40 @@ def _answer_challenge_inner(
         }
 
 
-def answer_challenge(store, target_session, request_body, *, prepare_duel=None):
+def answer_challenge(
+    store, target_session, request_body, *, prepare_duel=None, prewarm_duel=None
+):
     """Wrap SQL commit so a pre-registered in-memory fight can be undone."""
     rollback_callbacks = []
+    prepared_terrain = None
+    if prewarm_duel is not None:
+        if not callable(prewarm_duel):
+            raise ValueError("Invalid duel terrain preparation callback")
+        request = decode_answer(request_body)
+        if request["accepted"]:
+            target = _session_fields(target_session)
+            with store.connection() as db:
+                invitation = db.execute(
+                    "SELECT map_id FROM friendly_duel_invitations "
+                    "WHERE target_account_id=%s AND target_character_id=%s "
+                    "AND challenger_character_id=%s AND status='pending' "
+                    "ORDER BY id DESC LIMIT 1",
+                    (target[0], target[1], request["challenger_character_id"]),
+                ).fetchone()
+            # The read connection is closed before expensive static loading.
+            # This is only a hint; the transaction below revalidates authority.
+            if invitation is not None:
+                prepared_terrain = prewarm_duel(invitation["map_id"])
 
     def prepare(*args):
         if not callable(prepare_duel):
             raise ValueError("Accepted duel requires a runtime preparation callback")
-        result = prepare_duel(*args)
+        if prewarm_duel is not None:
+            if prepared_terrain is None:
+                raise ValueError("Duel terrain was not prepared before acceptance")
+            result = prepare_duel(*args, prepared_terrain=prepared_terrain)
+        else:
+            result = prepare_duel(*args)
         if not isinstance(result, tuple) or len(result) != 2 or not callable(result[1]):
             raise ValueError("Duel runtime preparation must provide rollback")
         rollback_callbacks.append(result[1])
@@ -494,8 +520,13 @@ def settle(
         from wakfu_server.equipment_stats import effective_character
         from wakfu_server.health_policy import visible
 
+        from .combat_terminal_metadata import registered_summon_actor_ids
+
+        summon_ids = registered_summon_actor_ids(candidate)
         actors = {
-            actor.id: actor for actor in candidate.actors.values() if actor.controlled
+            actor.id: actor
+            for actor in candidate.actors.values()
+            if actor.controlled and actor.id not in summon_ids
         }
         if set(actors) != {row["character_id"] for row in members}:
             raise ValueError("Friendly duel runtime roster is incomplete")

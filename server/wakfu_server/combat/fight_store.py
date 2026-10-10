@@ -39,6 +39,8 @@ def create(store, account_id, generation, character_id, *, team=0, on_created=No
     if on_created is not None and not callable(on_created):
         raise ValueError("Fight creation callback must be callable")
     with store.connection() as db:
+        # Roster and selected-character mutations use account-before-session.
+        db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
         store.lock_character(db, account_id, generation, character_id)
         baseline = _health_baseline(db, account_id, character_id)
         fight_id = db.execute(

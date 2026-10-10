@@ -1,13 +1,69 @@
 # Inventario de combate y seguimiento
 
-## Current provisional acceptance — 4/18
+## Current provisional acceptance — 6/18
 
-On 2026-10-09 the user accepted Aniripsa provisionally alongside Cra, Iop and
-Sacrier: **4/18**. This records user acceptance; remaining manual coverage and
+The user now records Cra, Iop, Sacrier, Aniripsa and Osamodas as provisionally
+accepted, together with Ouginak following the latest user confirmation: **6/18**. This records user acceptance; remaining manual coverage and
 shared combat resilience remain tracked separately. Historical counts below
 refer to earlier milestones.
 
+## Remaining class inventory and implementation priority
+
+[Current implementation priority](next-class-priority-20261010.md) ranks the twelve remaining classes. This is a risk-based scheduling estimate, not functional certification.
+
+[Complete review register](remaining-classes-20261010/README.md) preserves the thirteen-class baseline and links all thirteen
+class reviews and reproducible machine inventories: 521 primary active/passive
+definitions, 65 extra/granted records, states and secondary dependencies,
+summon books, areas, class resources, lifecycle risks and shared engine routes.
+[Published PostgreSQL reconciliation](remaining-classes-20261010/published-catalog-reconciliation.json)
+checks all class rosters and innates, extras and 29 unique fixed summon profiles.
+Catalog presence and route registration are separate from functional acceptance;
+this inventory does not raise the playable class count or implement mechanics.
+
+## Zobal workstream — 2026-10-10
+
+[Current implementation and validation](zobal-implementation-20261010.md) records the shared initiative correction, complete copied-book metadata, staged catalog revision and bounded active/passive/mask/copy validation. The [complete manual battery](zobal-manual-acceptance-20261010.md) covers masks, all owned actives/passives, copy control and multiplayer cleanup. Zobal remains pending user acceptance; the project stays **6/18**. No deployment or restart by this workstream.
+
+## Osamodas incident fixes — 2026-10-10
+
+[Incident evidence and recovery](osamodas-incident-recovery-20261010.md) tracks
+capture eligibility, missing NPC appearances on reconnect and the placement
+socket EOF. Ordinary PvE reconnect now projects the claimed NPC appearances
+before the combat bootstrap; nonactive recovery preserves pending delivery and
+ACK state. [Native NPC property serialization](osamodas-capture-client-property-fix-20261010.md) now passes the shipped Java parser through
+all format2 sections, including capturable and noncapturable controls. The final
+offline regression matrix passed **116 tests without failures or skips**. The original EOF remains unexplained because the client log rotated.
+These are local changes, without deployment or manual acceptance.
+
+[Captured-creature deployment correction](captured-summon-copy-clone-20261010.md)
+addresses the subsequent Invocation7348 rejection reported at 01:15 local time.
+Family1001 event clones now receive the allocated execution identity and do not
+become duplicate retained listeners. The actual saved capture continuation
+restored, deployed and completed the summon-owned7359 attack offline; 17 focused
+regressions passed. Deployment and live-client acceptance remain pending.
+
+[Cross-class visual-state inventory](class-visual-state-recipient-inventory-20261010.md)
+scans the published visual effects and distinguishes the two exact Dragon
+empty-area state-child failures from other visual paths. The [general one-time native recipient binding correction](state-visual-recipient-fix-20261010.md)
+is implemented locally; the final shared gate passed **174 tests without
+failures or skips**. Both native sex branches deliver their visual effect,
+retain it in the active snapshot and remove it by UID on return. Rendering and
+real socket reconnection remain manual acceptance requirements.
+Pesante7313 in Dragon correctly targets self or an owned summon as its area
+center; direct hostile-player targeting is not permitted by native criteria.
+
+[Dragon self-cast damage incident](osamodas-dragon-self-cast-incident-20261010.md)
+records the fight 161 Látigo 7317 failure: a self-selected Dragon AoE center lost
+its native cell criterion context before root 326119 ran. A shared resolver
+correction now preserves that input while child actor selection resets it. The
+new 7317/7312 production regressions and focused cross-class gate passed **2/2**
+and **115/115** respectively. These changes remain local. The appearance
+intermittency is still open; emitted state effects do not establish rendered
+client behavior.
+
 ## Osamodas inventory — 2026-10-09
+
+[Complete manual battery — 2026-10-10](osamodas-manual-acceptance-20261010.md) includes capture-to-reuse, all21 actives/17 passives, Jamajam, Dragon, multiplayer and the33 catalog-eligible spawn commands. This is a pending test plan, not a class pass.
 
 The next class workstream is **inventory only**, before implementation.
 [Complete inventory](osamodas-complete-inventory-20261009.md) consolidates the

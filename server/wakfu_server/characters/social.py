@@ -23,7 +23,14 @@ def company(account_id, character):
     # eSO.qD uses native rank ranges beginning at XP=1. XP=0 falls through
     # to the highest rank and produces negative progress in the client.
     return struct.pack(
-        ">qqiqIiB", account_id, character["id"] if character else 0, 0, 0, 0, 1, 0
+        ">qqiqIiB",
+        account_id,
+        character["id"] if character else 0,
+        0,
+        0,
+        0,
+        1,
+        int(character is not None),
     )
 
 

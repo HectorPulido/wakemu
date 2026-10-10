@@ -113,10 +113,12 @@ def complete(store, instance_id, fight_id, *, topology, in_fight):
             return dict(
                 deferred=True, reason="member_unavailable", instance_id=instance_id
             )
+        from wakfu_server.characters.heroes import session_authorized
+
         now = store.now()
         for member in members:
             if (
-                member["selected_character_id"] != member["id"]
+                not session_authorized(db, member)
                 or member["expires_at"] <= now
                 or member["membership_generation"] != member["generation"]
                 or member["instance_id"] != instance_id
@@ -151,6 +153,8 @@ def complete(store, instance_id, fight_id, *, topology, in_fight):
                 "WHERE character_id=%s AND status='pending'",
                 (now, member["id"]),
             )
+            if member["selected_character_id"] != member["id"]:
+                continue
             db.execute(
                 "INSERT INTO dungeon_transition_outbox(instance_id,party_id,transition_revision,character_id,"
                 "session_generation,source_map_id,source_instance_id,source_x,source_y,source_z,"

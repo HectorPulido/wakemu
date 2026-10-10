@@ -986,7 +986,7 @@ def install_bonus(store, account_id, generation, character_id, body):
         from wakfu_server.inventory_move import synchronization
 
         inventory_packet = synchronization(character)
-        return dict(
+        publication = dict(
             uid=target_uid,
             operation="install_bonus",
             shard_state=state,
@@ -999,3 +999,9 @@ def install_bonus(store, account_id, generation, character_id, body):
             consumed=consumed,
             applied=applied,
         )
+
+        # Validate the native response before committing material consumption.
+        from wakfu_server.socket_enchantment_wire import bonus_installation_packets
+
+        bonus_installation_packets(character_id, publication)
+        return publication

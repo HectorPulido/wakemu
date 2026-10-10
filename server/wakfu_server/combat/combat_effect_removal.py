@@ -6,6 +6,7 @@ ProtoRunningEffect bytes: an empty/minimal proto would overwrite runtime
 UID/value/caster/target. The ledger decides whether removal is valid.
 """
 import struct
+from functools import lru_cache
 
 EFFECT_UNAPPLICATION_OPCODE = 13560
 STATE_CARRIER_EFFECT_CLASS = 310  # eVi.rpJ -> eZk, distinct from apply304/eWu.
@@ -26,7 +27,7 @@ def _read_varint(data, offset):
     raise ValueError("Invalid running-effect protobuf varint")
 
 
-def _identity_fields(data, *, integer_fields=(1, 2, 3, 4, 6, 7), messages=None):
+def _parse_identity_fields(data, *, integer_fields=(1, 2, 3, 4, 6, 7), messages=None):
     fields, offset = {}, 0
     while offset < len(data):
         tag, offset = _read_varint(data, offset)
@@ -53,6 +54,47 @@ def _identity_fields(data, *, integer_fields=(1, 2, 3, 4, 6, 7), messages=None):
         if offset > len(data):
             raise ValueError("Truncated running-effect protobuf")
     return fields
+
+
+@lru_cache(maxsize=512)
+def _cached_identity_fields(data, integer_fields, collect_messages):
+    messages = {} if collect_messages else None
+    fields = _parse_identity_fields(
+        data, integer_fields=integer_fields, messages=messages
+    )
+    return tuple(fields.items()), tuple((messages or {}).items())
+
+
+def _identity_fields(data, *, integer_fields=(1, 2, 3, 4, 6, 7), messages=None):
+    # Cache immutable wire facts only, never fight ownership or a retained view.
+    # Bound both entry count and byte/field sizes: at most 2 MiB source bytes,
+    # 2 MiB extracted message bytes, and 8192 selected integer fields.
+    if (
+        type(data) is not bytes
+        or len(data) > 4096
+        or type(integer_fields) is not tuple
+        or len(integer_fields) > 16
+        or any(type(field) is not int for field in integer_fields)
+        or (messages is not None and bool(messages))
+    ):
+        return _parse_identity_fields(
+            data, integer_fields=integer_fields, messages=messages
+        )
+    try:
+        fields, extracted = _cached_identity_fields(
+            data, integer_fields, messages is not None
+        )
+    except ValueError:
+        # Preserve the parser's existing partial-message/error semantics too.
+        return _parse_identity_fields(
+            data, integer_fields=integer_fields, messages=messages
+        )
+    if messages is not None:
+        for field, value in extracted:
+            if field in messages:
+                raise ValueError("Duplicate running-effect AdditionalDatas")
+            messages[field] = value
+    return dict(fields)
 
 
 def _proto_replace(data, field, wire, replacement):

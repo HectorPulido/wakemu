@@ -59,6 +59,7 @@ def _encode(value, *, serialize_nodes=False, _geometry_cache=True, _parts=None):
     if _parts is not None and not serialize_nodes:
         raise ValueError("Native parts encoding requires serialized nodes")
     nodes, identities = [], {}
+    visits = 0
     node_encoder = (
         json.JSONEncoder(separators=(",", ":"), allow_nan=False)
         if serialize_nodes
@@ -82,6 +83,13 @@ def _encode(value, *, serialize_nodes=False, _geometry_cache=True, _parts=None):
         tuple_value_bytes = cached_int_tuple_values
 
     def visit(item):
+        nonlocal visits
+        # Primitive values and repeated references do not allocate graph nodes.
+        # Count traversal work rather than node allocation so long scalar
+        # arrays and heavily aliased authority graphs remain interruptible.
+        visits += 1
+        if visits % 256 == 0:
+            check()
         if item is None or type(item) in (str, int, bool):
             return {"value": item}
         if type(item) is float:
@@ -161,7 +169,7 @@ def _encode(value, *, serialize_nodes=False, _geometry_cache=True, _parts=None):
             node.update(type="decimal", value=str(item))
         elif isinstance(item, dict):
             node.update(
-                type="dict", entries=[[visit(k), visit(v)] for k, v in item.items()]
+                type="dict", entries=[[visit(k), visit(v)] for k, v in dict.items(item)]
             )
         elif isinstance(item, (list, tuple, set, frozenset, deque)):
             sequence = item
@@ -296,8 +304,13 @@ class NativeGraph:
             raise ValueError("Invalid native graph")
         self.data = encoded
         self.nodes = encoded["nodes"]
+        references = 0
 
         def reference(ref):
+            nonlocal references
+            references += 1
+            if references % 256 == 0:
+                check()
             if not isinstance(ref, dict) or len(ref) != 1:
                 raise ValueError("Invalid native graph reference")
             if "value" in ref:
@@ -449,11 +462,15 @@ class NativeGraph:
             raise KeyError(key)
         raise ValueError("Native value has no instance fields")
 
-    def plain(self, reference, *, _visiting=None):
+    def plain(self, reference, *, _visiting=None, _progress=None):
         """Decode data containers/scalars only; never instantiate native classes.
 
         Cycles remain available through field/reference navigation. Explicit plain
         conversion rejects cycles and objects instead of silently losing their data."""
+        progress = [0] if _progress is None else _progress
+        progress[0] += 1
+        if progress[0] % 256 == 0:
+            check()
         if "value" in reference:
             return reference["value"]
         visiting = set() if _visiting is None else _visiting
@@ -465,7 +482,10 @@ class NativeGraph:
         visiting.add(identity)
         try:
             if kind in ("list", "tuple", "set", "frozenset", "deque"):
-                result = [self.plain(v, _visiting=visiting) for v in node["items"]]
+                result = [
+                    self.plain(v, _visiting=visiting, _progress=progress)
+                    for v in node["items"]
+                ]
                 if kind == "deque":
                     return deque(result, maxlen=node["maxlen"])
                 return {
@@ -476,7 +496,9 @@ class NativeGraph:
                 }[kind](result)
             if kind == "dict":
                 return {
-                    self.plain(k, _visiting=visiting): self.plain(v, _visiting=visiting)
+                    self.plain(k, _visiting=visiting, _progress=progress): self.plain(
+                        v, _visiting=visiting, _progress=progress
+                    )
                     for k, v in node["entries"]
                 }
             if kind in ("bytes", "bytearray", "memoryview"):

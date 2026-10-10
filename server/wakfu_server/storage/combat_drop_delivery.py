@@ -221,7 +221,9 @@ def apply(store, db, batch):
     generation = batch.snapshot.get("generation")
     if not isinstance(generation, str) or not generation:
         raise ValueError("Drop award has no session generation")
-    store.lock_character(db, account_id, generation, character_id)
+    from wakfu_server.combat_reward_ownership import lock_recipient
+
+    lock_recipient(store, db, account_id, generation, character_id, fight_id)
     award = db.execute(
         "SELECT account_id,generation,snapshot,snapshot_sha256 FROM fight_drop_awards "
         "WHERE fight_id=%s AND character_id=%s FOR UPDATE",

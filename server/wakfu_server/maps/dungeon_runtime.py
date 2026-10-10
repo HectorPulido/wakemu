@@ -104,6 +104,22 @@ def room_for_position(config, map_id, x, y, z):
         for room in config["topology"]["rooms"]
         if (x, y, z) in set(map(tuple, room["cells"]))
     ]
-    if len(matches) != 1:
-        raise ValueError("Dungeon position does not identify one native room")
-    return matches[0]
+    if len(matches) == 1:
+        return matches[0]
+    from wakfu_server import dungeon_native_flow, generic_transports
+
+    if config["topology"].get("policy") == dungeon_native_flow.TELEPORT_POLICY:
+        sources = [
+            source
+            for source in generic_transports._CATALOG
+            if source["map_id"] == map_id
+            and tuple(source[k] for k in ("x", "y", "z")) == (x, y, z)
+        ]
+        rooms = {
+            dungeon_native_flow.object_room(config["topology"], source)
+            for source in sources
+        }
+        rooms.discard(None)
+        if len(rooms) == 1:
+            return rooms.pop()
+    raise ValueError("Dungeon position does not identify one native room")

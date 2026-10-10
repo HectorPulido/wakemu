@@ -13,6 +13,7 @@ from wakfu_server.profession_store import (
     account_packet,
     award,
     ensure_learned,
+    ensure_all_learned,
     learned,
     level,
 )
@@ -31,6 +32,61 @@ class ProfessionTests(PostgresCase):
         generation = store.begin_session(account)
         store.select_character(account, generation, character["id"])
         return account, character, generation
+
+    def test_default_unlock_covers_native_jobs_and_preserves_existing_progress(self):
+        from wakfu_server import native_catalog
+        from wakfu_server.paths import DATA_ROOT
+
+        account, character, generation = self.actor()
+        native_ids = set(
+            native_catalog.load(DATA_ROOT / "profession-actions.json")["profession_ids"]
+        )
+        result = ensure_all_learned(self.store, account, generation, character["id"])
+        self.assertEqual(result["levels"], dict.fromkeys(native_ids, 0))
+        self.assertEqual(
+            {
+                struct.unpack(">i", body)[0]
+                for opcode, body in result["packets"]
+                if opcode == 12675
+            },
+            native_ids,
+        )
+        self.assertEqual(result["packets"][-1][0], 13873)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE account_professions SET xp=30000,counters=ARRAY[1,2,3,4],actions=ARRAY[1632] "
+                "WHERE account_id=%s AND profession_id=73",
+                (account,),
+            )
+            db.execute(
+                "DELETE FROM account_professions WHERE account_id=%s AND profession_id=74",
+                (account,),
+            )
+            db.execute(
+                "UPDATE account_craft_state SET configuration=%s,additional=%s WHERE account_id=%s",
+                (bytes.fromhex("0801"), bytes.fromhex("18012001"), account),
+            )
+        repaired = ensure_all_learned(self.store, account, generation, character["id"])
+        self.assertEqual(set(repaired["levels"]), native_ids)
+        self.assertEqual(repaired["levels"][73], 20)
+        self.assertEqual(repaired["levels"][74], 0)
+        with self.store.connection() as db:
+            row = db.execute(
+                "SELECT xp,counters,actions FROM account_professions "
+                "WHERE account_id=%s AND profession_id=73",
+                (account,),
+            ).fetchone()
+            self.assertEqual(
+                dict(row),
+                {"xp": 30000, "counters": [1, 2, 3, 4], "actions": [1632]},
+            )
+            self.assertEqual(account_packet(db, account), repaired["packets"][-1])
+        self.assertEqual(
+            ensure_all_learned(self.store, account, generation, character["id"]),
+            repaired,
+        )
+        with self.assertRaises(ValueError):
+            ensure_all_learned(self.store, account, "stale", character["id"])
 
     def test_action_reward_policy_validates_exact_fields_types_ranges_and_recipe_slots(
         self,

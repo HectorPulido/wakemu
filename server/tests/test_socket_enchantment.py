@@ -75,6 +75,66 @@ class SocketEnchantmentTests(PostgresCase):
                 "UPDATE characters SET level=100 WHERE id=%s", (self.char["id"],)
             )
 
+    def test_bonus_response_failure_rolls_back_shards_state_fee_and_receipt(self):
+        from unittest.mock import patch
+
+        material = grant(
+            self.store,
+            self.account,
+            self.generation,
+            self.char["id"],
+            reference=27083,
+            quantity=2,
+            container=self.bag,
+            slot=3,
+            allowed_references={27083},
+        )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=jsonb_set(value,'{cost_kamas}','7') "
+                "WHERE name='socket_bonus_installation_policy'"
+            )
+        request = struct.pack(">qBBii", self.target["uid"], 1, 0, 27097, 1)
+        with patch(
+            "wakfu_server.socket_enchantment_wire.bonus_installation_packets",
+            side_effect=ValueError("native response rejected"),
+        ):
+            with self.assertRaisesRegex(ValueError, "native response rejected"):
+                install_bonus(
+                    self.store, self.account, self.generation, self.char["id"], request
+                )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT quantity FROM inventory_items WHERE uid=%s",
+                    (material["uid"],),
+                ).fetchone()["quantity"],
+                2,
+            )
+            self.assertEqual(
+                bytes(
+                    db.execute(
+                        "SELECT shard_state FROM inventory_item_shards " "WHERE uid=%s",
+                        (self.target["uid"],),
+                    ).fetchone()["shard_state"]
+                ),
+                socket_blob(),
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT kamas FROM account_wallets WHERE account_id=%s",
+                    (self.account,),
+                ).fetchone()["kamas"],
+                100,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM "
+                    "inventory_socket_bonus_installation_receipts"
+                ).fetchone()["n"],
+                0,
+            )
+
     def test_sacrifice_adds_one_local_charge_and_consumes_only_one_uid(self):
         body = struct.pack(">qBq", self.target["uid"], 0, self.sacrifice["uid"])
         result = mutate(
@@ -187,6 +247,23 @@ class SocketEnchantmentTests(PostgresCase):
             self.store, self.account, self.generation, self.char["id"], upgrade
         )
         self.assertTrue(upgraded["applied"])
+        # A fresh character snapshot must expose the persisted effect to the
+        # same evaluator used by equipment snapshots and combat bootstraps.
+        from wakfu_server.shard_bonuses import bonuses
+
+        loaded = self.store.character(self.account, self.char["id"])
+        equipped_item = next(
+            item
+            for item in loaded["inventory_items"]
+            if item["uid"] == self.target["uid"]
+        )
+        actual = bonuses(equipped_item, 0)
+        self.assertTrue(actual["stats"])
+        clean = dict(equipped_item, shard_state=socket_blob())
+        self.assertEqual(bonuses(clean, 0)["stats"], {})
+        self.assertEqual(
+            actual, bonuses(dict(equipped_item, shard_state=upgraded["shard_state"]), 0)
+        )
         slot_blob = dict(proto_fields(upgraded["shard_state"]))[10]
         self.assertEqual(dict(proto_fields(slot_blob))[112], 3)
         with self.store.connection() as db:

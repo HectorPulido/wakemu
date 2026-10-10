@@ -44,6 +44,42 @@ class ProfilerTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    def test_recorder_health_exposes_stalled_loop_and_stale_capture(self):
+        self.profiler.enabled = True
+        self.profiler.last_loop_progress = time.monotonic() - 30
+        self.assertFalse(self.profiler.recorder_health()["ok"])
+        self.assertTrue(self.profiler.status()["degraded"])
+        self.profiler.last_loop_progress = time.monotonic()
+        self.profiler.loop_thread = mock.Mock()
+        self.profiler.loop_thread.is_alive.return_value = False
+        self.assertTrue(self.profiler.recorder_health()["stale_loop"])
+        self.profiler.loop_thread = None
+        self.profiler.current = {"started_at": time.time() - 150}
+        self.assertTrue(self.profiler.recorder_health()["stale_capture"])
+        self.profiler.current = None
+        self.assertTrue(self.profiler.recorder_health()["ok"])
+
+    def test_unexpected_timeline_error_is_persisted_and_next_tick_recovers(self):
+        self.profiler.enabled = True
+        self.profiler.shutdown = mock.Mock()
+        self.profiler.shutdown.wait.side_effect = [False, False, True]
+        with mock.patch.object(
+            service,
+            "process_metrics",
+            side_effect=[TypeError("broken metric shape"), {"available": True}],
+        ), mock.patch.object(self.profiler, "capture") as capture, mock.patch.object(
+            service.traceback, "print_exc"
+        ):
+            self.profiler.run()
+        capture.assert_called_once_with(
+            {"seconds": service.CHUNK_SECONDS, "mode": "waits"}, continuous=True
+        )
+        records = []
+        for path in self.output.glob("timeline-*.jsonl"):
+            records.extend(json.loads(line) for line in path.read_text().splitlines())
+        self.assertEqual(records[0]["recorder_error"], "TypeError: broken metric shape")
+        self.assertTrue(records[1]["world"]["available"])
+
     def test_world_pid_finds_only_local_game_server_process(self):
         proc = Path(self.temp.name) / "proc"
         proc.mkdir()
@@ -320,6 +356,18 @@ class HandlerTests(unittest.TestCase):
         response.close()
         return result
 
+    def test_health_endpoint_rejects_stale_recording_even_when_http_is_alive(self):
+        self.profiler.enabled = True
+        self.profiler.last_loop_progress = time.monotonic() - 30
+        try:
+            code, _, body = self.request("GET", "/health")
+            self.assertEqual(code, 503)
+            self.assertTrue(json.loads(body)["stale_loop"])
+        finally:
+            self.profiler.enabled = False
+            self.profiler.last_loop_progress = time.monotonic()
+        self.assertEqual(self.request("GET", "/health")[0], 200)
+
     def test_report_endpoint_serves_json_and_missing_or_invalid_report_is_404(self):
         metrics = Path(self.temp.name) / "report.json"
         with mock.patch.object(service, "METRICS", metrics):
@@ -346,6 +394,98 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(self.request("GET", "/artifacts/capture-link.log")[0], 404)
         code, content_type, body = self.request("GET", "/artifacts/capture-good.log")
         self.assertEqual((code, content_type, body), (200, "text/plain", b"ok"))
+
+    def test_artifact_download_uses_bounded_reads_and_exact_content_length(self):
+        destination = self.output / "capture-large.speedscope.json"
+        payload = b"0123456789abcdef" * (service.ARTIFACT_CHUNK_BYTES // 4) + b"tail"
+        destination.write_bytes(payload)
+        real_fdopen = os.fdopen
+        read_sizes = []
+        streams = []
+
+        class TrackingReader:
+            def __init__(self, descriptor, mode):
+                self.stream = real_fdopen(descriptor, mode)
+                streams.append(self.stream)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                self.stream.close()
+
+            def fileno(self):
+                return self.stream.fileno()
+
+            def read(self, size):
+                read_sizes.append(size)
+                return self.stream.read(size)
+
+        with mock.patch.object(service.os, "fdopen", TrackingReader):
+            with urlopen(self.base + "/artifacts/" + destination.name) as response:
+                self.assertEqual(int(response.headers["Content-Length"]), len(payload))
+                self.assertEqual(response.read(), payload)
+        self.assertGreater(len(read_sizes), 1)
+        self.assertTrue(
+            all(0 < size <= service.ARTIFACT_CHUNK_BYTES for size in read_sizes)
+        )
+        self.assertTrue(all(stream.closed for stream in streams))
+
+    def test_artifact_disconnect_closes_reader_without_propagating(self):
+        destination = self.output / "capture-disconnected.log"
+        destination.write_bytes(b"x" * (service.ARTIFACT_CHUNK_BYTES * 2))
+        handler = object.__new__(service.Handler)
+        handler.send_response = mock.Mock()
+        handler.send_header = mock.Mock()
+        handler.end_headers = mock.Mock()
+        handler.wfile = mock.Mock()
+        handler.wfile.write.side_effect = BrokenPipeError("reader disconnected")
+        handler.close_connection = False
+        real_fdopen = os.fdopen
+        streams = []
+
+        def open_reader(*args):
+            stream = real_fdopen(*args)
+            streams.append(stream)
+            return stream
+
+        with mock.patch.object(service.os, "fdopen", side_effect=open_reader):
+            handler.serve_artifact(destination)
+        self.assertTrue(handler.close_connection)
+        self.assertTrue(streams[0].closed)
+        self.assertEqual(handler.wfile.write.call_count, 1)
+
+    def test_artifact_snapshot_does_not_send_bytes_appended_during_download(self):
+        destination = self.output / "timeline-growing.jsonl"
+        payload = b"x" * (service.ARTIFACT_CHUNK_BYTES + 7)
+        destination.write_bytes(payload)
+        handler = object.__new__(service.Handler)
+        handler.send_response = mock.Mock()
+        handler.send_header = mock.Mock()
+        handler.end_headers = mock.Mock()
+        handler.wfile = mock.Mock()
+        chunks = []
+
+        def write(chunk):
+            chunks.append(chunk)
+            if len(chunks) == 1:
+                with destination.open("ab") as stream:
+                    stream.write(b"new data after headers")
+
+        handler.wfile.write.side_effect = write
+        handler.serve_artifact(destination)
+        self.assertEqual(b"".join(chunks), payload)
+        handler.send_header.assert_any_call("Content-Length", str(len(payload)))
+
+    def test_artifact_open_rejects_symlink_even_after_route_check(self):
+        destination = self.output / "capture-raced.log"
+        outside = Path(self.temp.name) / "outside-raced.log"
+        outside.write_text("private")
+        destination.symlink_to(outside)
+        handler = object.__new__(service.Handler)
+        handler.respond = mock.Mock()
+        handler.serve_artifact(destination)
+        handler.respond.assert_called_once_with(404, {"error": "Artifact not found"})
 
     def test_post_body_size_limit_and_input_errors_return_400(self):
         request = Request(

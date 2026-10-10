@@ -45,6 +45,15 @@ def _party(db, character_id):
     ).fetchone()
 
 
+def _controlled_count(db, party_id):
+    return db.execute(
+        "SELECT count(*) + coalesce(sum((SELECT count(*) FROM account_hero_slots h "
+        "JOIN account_hero_rosters r USING(account_id) WHERE r.leader_id=m.character_id)),0) AS n "
+        "FROM player_party_members m WHERE m.party_id=%s",
+        (party_id,),
+    ).fetchone()["n"]
+
+
 def dissolve(db, party_id):
     """Remove live membership while retaining referenced dungeon ownership.
 
@@ -117,10 +126,7 @@ def invite(store, account_id, generation, character_id, target_id):
         if party is not None:
             if party["leader_id"] != character_id:
                 raise ValueError("Only the party leader may invite")
-            count = db.execute(
-                "SELECT count(*) AS n FROM player_party_members WHERE party_id=%s",
-                (party["id"],),
-            ).fetchone()["n"]
+            count = _controlled_count(db, party["id"])
             if count >= policy["max_members"]:
                 raise ValueError("Player party is full")
         token = uuid.uuid4()
@@ -195,10 +201,7 @@ def answer(store, account_id, generation, character_id, token, accepted):
             )
         if party["leader_id"] != inviter:
             raise ValueError("Inviter no longer leads the party")
-        count = db.execute(
-            "SELECT count(*) AS n FROM player_party_members WHERE party_id=%s",
-            (party["id"],),
-        ).fetchone()["n"]
+        count = _controlled_count(db, party["id"])
         if count >= policy["max_members"]:
             raise ValueError("Player party is full")
         db.execute(

@@ -22,6 +22,7 @@ ENTITY_DEFAULTS = {
     for name, value in protocol_catalog.load(PROTOCOL / "entity-defaults.json").items()
 }
 EMPTY_SECTIONS = {
+    "HP",
     "GUILD_ID",
     "GUILD_BLAZON",
     "SOCIAL_STATES",
@@ -52,6 +53,14 @@ def minimal_entity(body, character):
     """Replace verified fixture sections with the client's own empty encoding."""
     if character.get("level") is None:
         return body
+    if body and body[0] == 22:
+        # Native FOR_GLOBAL_TO_LOCAL_CHARACTER: NATION_ID (i32),
+        # NATION_SYNCHRO (27 bytes), GUILD_LOCAL_INFO, NATION_PVP_MONEY.
+        # This later snapshot otherwise restores the fixture's nation after
+        # the primary owned entity has already established neutral identity.
+        if len(body) != 46:
+            raise ValueError("Invalid native global-to-local entity snapshot")
+        return body[:1] + bytes(31) + body[32:]
     level_xp(character["level"])
     layout = ENTITY_LAYOUTS.get(body[0])
     if layout is None or not any(
@@ -98,6 +107,10 @@ def minimal_entity(body, character):
             replacement = bags(character)
         elif section["name"] == "PUBLIC_CHARACTERISTICS":
             replacement = owned_public_characteristics(character)
+        elif section["name"] == "HP":
+            from wakfu_server.equipment_stats import effective_character
+
+            replacement = struct.pack(">i", effective_character(character)["hp"])
         elif section["name"] == "PET":
             from .mount_inventory import actor_pet
 
@@ -382,6 +395,10 @@ def position(body, character):
 
 
 def character_list(template, account_id, characters):
+    from .characters.selection_capacity import NATIVE_MAX_CHARACTERS
+
+    if len(characters) > NATIVE_MAX_CHARACTERS:
+        raise ValueError("Character roster exceeds native signed-byte capacity")
     r = Reader(template)
     r.take(1)
     template_blob = r.take(r.number("I"))
@@ -565,6 +582,15 @@ def empty_equipment_sheets(body, character):
 
 
 def adapt(opcode, body, account_id, character=None, *, kamas=None):
+    if opcode == 15548 and character and character.get("level") is not None:
+        if len(body) < 11:
+            raise ValueError("Truncated native global-to-local actor update")
+        _, size = struct.unpack_from(">qH", body)
+        if len(body) != 10 + size:
+            raise ValueError("Invalid native global-to-local actor update length")
+        if body[10] == 22:
+            entity = minimal_entity(body[10:], character)
+            return struct.pack(">qH", character["id"], len(entity)) + entity
     if opcode == 12436 and character is not None:
         from wakfu_server.health import packet
 

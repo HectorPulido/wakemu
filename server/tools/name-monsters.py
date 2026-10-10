@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Añade nombres españoles del cliente instalado al catálogo, sin red."""
+"""Add Spanish names from the installed client to the catalog offline."""
 import json
 from pathlib import Path
 import zipfile
@@ -33,7 +33,7 @@ def main():
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
     missing = sum(m["name"] is None for m in data["monsters"])
     print(
-        f"{len(data['monsters'])} monstruos: {len(data['monsters'])-missing} nombres españoles; {missing} sin traducción (null)."
+        f"{len(data['monsters'])} monsters: {len(data['monsters'])-missing} Spanish names; {missing} untranslated (null)."
     )
 
 

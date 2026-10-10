@@ -218,7 +218,9 @@ class NativeEventReplay:
                 )
                 if definition is not None and definition["subscription"]:
                     raise ValueError(
-                        "Subscribed retained family has no native replay runner"
+                        "Subscribed retained family has no native replay runner "
+                        f"(uid={entry.uid}, reference={entry.generic_effect}, "
+                        f"family={entry.effect_class}, manager={entry.manager_id})"
                     )
                 continue
             definition = self.retention.metadata["effects"][
@@ -421,7 +423,7 @@ def healing_event_source(
     manager_actor_id,
     source_suppressed,
     definition_suppresses_level_one,
-    extra_dynamic_event_ids
+    extra_dynamic_event_ids,
 ):
     """Build source from an actual eXs application packet and audited event production.
 

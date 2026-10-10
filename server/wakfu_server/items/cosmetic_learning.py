@@ -69,7 +69,9 @@ def learn(store, account_id, generation, character_id, body, *, kind="cosmetic")
             active is None
             or active.get("use_action_class") != native_class
             or active.get("use_action_id") != action_id
-            or active.get("use_has_criteria") is not False
+            # The legacy published flag includes EXCHANGE criteria. Titles use
+            # the action's native USE criterion from the authoritative table.
+            or (kind != "title" and active.get("use_has_criteria") is not False)
         ):
             raise ValueError(
                 "Cosmetic action does not match the published native catalog"

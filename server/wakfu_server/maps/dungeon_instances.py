@@ -288,9 +288,12 @@ def create_or_reuse(
             or leader["account_id"] != account_id
             or leader["generation"] != generation
             or leader["selected_character_id"] != character_id
-            or party["leader_id"] != character_id
         ):
-            raise ValueError("Only the selected party leader may enter")
+            raise ValueError("Only a selected party leader or frozen member may enter")
+        from wakfu_server.characters.heroes import expand_session_rows
+
+        live_rows = expand_session_rows(db, store, live_rows)
+        member_ids = [row["id"] for row in live_rows]
         existing = db.execute(
             "SELECT * FROM dungeon_instances WHERE party_id=%s AND status='active' "
             "FOR UPDATE",
@@ -317,8 +320,8 @@ def create_or_reuse(
                 )
             )
             stored_members = db.execute(
-                "SELECT character_id,session_generation FROM dungeon_instance_members "
-                "WHERE instance_id=%s AND status='active' ORDER BY character_id",
+                "SELECT character_id,session_generation,status FROM dungeon_instance_members "
+                "WHERE instance_id=%s ORDER BY character_id",
                 (existing["instance_id"],),
             ).fetchall()
             if (
@@ -343,11 +346,57 @@ def create_or_reuse(
                     _session_result(existing, member_ids, reused=True),
                     dict(transition_destination),
                 )
+            outside = [m for m in live_rows if m["instance_id"] == 0]
+            inside = [
+                m for m in live_rows if m["instance_id"] == existing["instance_id"]
+            ]
+            if transition_destination is not None and outside and inside:
+                # Rejoin a frozen roster without teleporting companions already
+                # progressing inside. New members remain rejected above.
+                _validate_entry_members(outside, selected_route, store.now())
+                if len(outside) + len(inside) != len(live_rows) or any(
+                    m["selected_character_id"] != m.get("hero_main_id", m["id"])
+                    or m["expires_at"] <= store.now()
+                    for m in inside
+                ):
+                    raise ValueError("Every frozen member must have a current session")
+                if (
+                    authorize_entry(
+                        store.character(account_id, character_id, db), selected_route
+                    )
+                    is not True
+                ):
+                    raise ValueError("Native dungeon entry is not authorized")
+                for member in outside:
+                    db.execute(
+                        "UPDATE dungeon_instance_members SET status='active',ended_at=NULL,"
+                        "session_generation=%s WHERE instance_id=%s AND character_id=%s",
+                        (member["generation"], existing["instance_id"], member["id"]),
+                    )
+                    db.execute(
+                        "UPDATE dungeon_transition_outbox SET status='superseded',"
+                        "superseded_at=%s WHERE character_id=%s AND status='pending'",
+                        (store.now(), member["id"]),
+                    )
+                existing = db.execute(
+                    "UPDATE dungeon_instances SET revision=revision+1 "
+                    "WHERE instance_id=%s RETURNING *",
+                    (existing["instance_id"],),
+                ).fetchone()
+                result = _session_result(existing, member_ids, reused=True)
+                result["context_policy_version"] = pinned_policy.policy_version
+                result["transition"] = _move_party_members(
+                    db, outside, existing, transition_destination
+                )
+                if initialize_instance is not None:
+                    initialize_instance(db, result)
+                return result
             if transition_destination is not None and _party_is_at_destination(
                 live_rows, existing, transition_destination
             ):
                 if any(
-                    member["selected_character_id"] != member["id"]
+                    member["selected_character_id"]
+                    != member.get("hero_main_id", member["id"])
                     or member["expires_at"] <= store.now()
                     for member in live_rows
                 ):
@@ -447,6 +496,9 @@ def create_or_reuse(
             if initialize_instance is not None:
                 initialize_instance(db, result)
             return result
+
+        if party["leader_id"] != character_id:
+            raise ValueError("Only the selected party leader may enter")
 
         # An outside character can retain membership after leaving an old
         # party. Reconcile only foreign rosters whose authoritative location
@@ -584,6 +636,8 @@ def _move_party_members(db, live_rows, session, destination):
             raise ValueError("Party member location changed during dungeon entry")
         moved.append(member["id"])
     for member in live_rows:
+        if member.get("hero_main_id") is not None:
+            continue
         db.execute(
             "INSERT INTO dungeon_transition_outbox(instance_id,party_id,"
             "transition_revision,character_id,session_generation,source_map_id,"
@@ -795,7 +849,7 @@ def _party_is_at_destination(live_rows, session, destination):
 def _validate_entry_members(live_rows, selected_route, now):
     for member in live_rows:
         if (
-            member["selected_character_id"] != member["id"]
+            member["selected_character_id"] != member.get("hero_main_id", member["id"])
             or member["expires_at"] <= now
             or member["map_id"] != selected_route.entry_map_id
             or member["instance_id"] != 0

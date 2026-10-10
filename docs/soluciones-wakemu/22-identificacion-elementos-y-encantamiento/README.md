@@ -1,5 +1,41 @@
 # 22. Objetos sin identificar
 
+## Identified sword rejected by equipment UI — source correction
+
+Read-only inspection of actor13's Espada Mento UID1099511635222 confirmed both
+identification receipts and selected damage mask26/resistance mask0. This was
+not an unconfirmed elemental choice. Native13766 resolves the physical item;
+the equipment/build registry13078 maintains a separate item representation.
+Identification previously refreshed only the first representation, leaving a
+previously published equipment item with its pending elemental state.
+
+The three identification/element-selection/enchantment dispatcher paths now
+publish the refreshed equipment registry after their native responses, with
+explicit branch-local serializer imports. Six focused PostgreSQL/dispatch tests
+passed; after correcting those imports, five dispatch tests passed again.
+The installed Java client parser also verified physical, equipment and13766
+carriers for that existing UID agree and report no pending elemental selection.
+No live item repair or repeated identification was performed. Deployment and
+graphical acceptance remain with the coordinated full-server build.
+
+## Additional transactional review — source only
+
+Ordinary bonus installation now constructs and validates its native BAGS13713
+and item-state13766 responses before committing. A PostgreSQL regression forces
+response rejection and verifies rollback of common shards, socket state, local
+fee and installation receipt. The incremental-cost regression also reloads a
+fresh character snapshot and verifies a nonzero passive bonus against an
+otherwise identical unenhanced item. Both targeted tests passed; the broader
+gate and graphical acceptance remain separate.
+
+Native `bqI.dGz` counts only inventory reference27083 for the reserve. Request13269
+contains the target UID and changed bonus references/cumulative shard amounts;
+the separate request12365 carries a sacrificed equipment UID. Bonus definitions
+are therefore not newly treated as consumable materials. The user's proposed
+object-once rule still requires distinguishing equipment sacrifice from ordinary
+effect installation. No consumption policy, migration or live state was changed
+by this review.
+
 ## Socket bonus source correction — verified, not deployed
 
 The user authorized the socket correction and explicitly prohibited restart.

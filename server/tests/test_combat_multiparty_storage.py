@@ -1139,6 +1139,9 @@ class SharedFightStorageTests(PostgresCase):
         )
         shared = adapter.register(left, starter_fight)
         actor = adapter.player_actor(right, team=0)
+        from wakfu_server.combat_orientation import INITIAL_PLAYER_DIRECTION
+
+        self.assertEqual(actor.direction, INITIAL_PLAYER_DIRECTION)
         joined = adapter.join(
             right,
             struct.pack(">qB", self.left_char, 0),
@@ -1146,6 +1149,9 @@ class SharedFightStorageTests(PostgresCase):
             bootstrap_packets=lambda *_: [(12847, b"native-placement")],
         )
         self.assertIs(joined, shared)
+        joined_actor = shared.fight.actors[self.right_char]
+        payload, _effects = adapter.actor_payload(shared.fight, joined_actor, right)
+        self.assertEqual(payload[27], joined_actor.direction)
         with self.store.connection() as db:
             rows = tuple(
                 db.execute(

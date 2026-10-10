@@ -30,7 +30,7 @@ def deliver_pending_transitions(
     """Deliver pending transitions for one session-owning worker.
 
     ``current_location()`` returns the worker's loaded location. It must match
-    the event's source or destination; another map is a stale worker snapshot
+    the event's source scene or exact destination; another map is a stale worker snapshot
     and is deferred for authoritative reload. ``in_fight()`` is rechecked
     immediately before bootstrap. ``bootstrap(event)`` must reconcile runtime
     membership and send the complete map bootstrap, returning exactly True on
@@ -74,10 +74,14 @@ def deliver_pending_transitions(
 
         location = current_location()
         _validate_location(location)
-        if location not in (
-            _location(event, "source"),
-            _location(event, "destination"),
-        ):
+        source = _location(event, "source")
+        # A companion may keep walking while another worker commits the party
+        # transition. Coordinates are not a scene identity. The hydration and
+        # acknowledgement callbacks still verify the exact DB destination.
+        source_scene = all(
+            location[key] == source[key] for key in ("map_id", "instance_id")
+        )
+        if not source_scene and location != _location(event, "destination"):
             return _result("deferred_map_mismatch", acknowledged, events)
 
         if bootstrap(event) is not True:

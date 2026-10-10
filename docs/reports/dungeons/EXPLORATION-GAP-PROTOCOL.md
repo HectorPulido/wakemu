@@ -36,3 +36,14 @@ javap -classpath client/lib/wakfu-client.jar -c -p cnl
 ```
 
 Relevant methods are listed above. Regression tests in `server/tests/test_exploration_movement_wire.py` cover stair height preservation, signed climb/descent, approved-origin enforcement and malformed packed paths. Client acceptance remains necessary after the future complete build/bootstrap deployment; no running services were changed for this review.
+
+## Exact manual jump location in Astrub
+
+A native artifact-gated jump is available on ordinary outdoor map **527 (Astrub)**. The all-chunk native exporter verified 521 chunks, 65,283 walkable cells and 231,685 directed edges. This concrete crossing is independent of any dungeon gate or ordinary height-four stair.
+
+1. Outside combat, enter `!teleport 527 -212 -2 0`.
+2. Click the solid landing across the short gap, two cells toward the lower left: native destination `(-212,0,0)`, across `(-212,-1,0)`.
+3. The character should jump across. Enter `!position`; the destination should be map 527, x -212, y 0, z 0.
+4. Click the original landing to return; both directions are native-valid.
+
+The exact terrain masks are 16 at the starting landing, 11 at the gap (includes jump bit 8), and 18 at the destination (includes landing bit 16). The installed `Sn` pathfinder rejects entry into the gap unless `Sp.bpJ` is enabled by world property **85**; landing-to-gap and gap-to-landing native `Sm(6,0,4,true)` edges are present in both directions. [EXPLORATION-MANUAL-JUMP.json](EXPLORATION-MANUAL-JUMP.json) preserves the exact decoded surfaces, edges and client/topology hashes. These are verified offline facts; the visible avatar animation still needs Hector's acceptance after the prepared secrets changes are deployed.

@@ -1,0 +1,1 @@
+import java.nio.file.*;public class VerifyHeroRoster{public static void main(String[]a)throws Exception{cEk m=new cEk();m.dp(Files.readAllBytes(Path.of(a[0])));for(byte[]b:m.ePp()){eHk h=new eHk();h.ew(b);System.out.println("actor="+h.fsS().Vc+" account="+h.fsR().Vh+" format="+b[0]+" nation="+h.fvS().Wi+" listNation="+h.fvT().Wi+" guild="+h.fvL().Uz);}}}

@@ -25,6 +25,11 @@ def acknowledge(account_id, generation, character_id, destination):
 def queue(members, destination):
     with _LOCK:
         for member in members:
+            if member.get("hero_main_id") is not None or (
+                member.get("selected_character_id") is not None
+                and member["selected_character_id"] != member["id"]
+            ):
+                continue
             _PENDING[(member["account_id"], member["generation"], member["id"])] = dict(
                 destination
             )

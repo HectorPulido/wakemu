@@ -81,6 +81,21 @@ public final class CaptureAgent {
     Object item=entry.getValue();Map<String,Object> value=new LinkedHashMap<>();
     value.put("reference",call(item,"aZY"));value.put("quantity",call(item,"bfh"));items.put(String.valueOf(entry.getKey()),value);
    }}out.put("owned_items",items);
+   Map<String,Object> physicalItems=new LinkedHashMap<>();
+   if(player instanceof biB nativePlayer) nativePlayer.drK().K(item->{
+    Map<String,Object> value=new LinkedHashMap<>();
+    value.put("reference",item.awe());
+    value.put("identification_needed",item.ghf());
+    value.put("elements_present",item.ghh());
+    foX elements=item.eJZ();
+    if(elements!=null) {
+     value.put("damage_mask",elements.Wh(1068));
+     value.put("resistance_mask",elements.Wh(1069));
+     value.put("elements_empty",elements.aKv());
+    }
+    physicalItems.put(String.valueOf(item.LV()),value);return true;
+   });
+   out.put("physical_items",physicalItems);
    Object dialog=call(Class.forName("dbU"),"fdS");out.put("dialog_open",call(Class.forName("dbU"),"fay"));
    out.put("dialog.omt",field(dialog,"omt"));out.put("dialog.omz",field(dialog,"omz"));
    Object clone=field(dialog,"omy");
@@ -672,8 +687,13 @@ public final class CaptureAgent {
         Path config = sessionDir.getParent().getParent().resolve("inspector.json");
         if (!Files.exists(config)) Files.createFile(config,
             PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
-        Files.writeString(config, JSON.toJson(Map.of("port", server.getAddress().getPort(), "secret", secret,
-            "capture", sessionDir.toString())));
+        String inspectorConfig = JSON.toJson(Map.of("port", server.getAddress().getPort(), "secret", secret,
+            "capture", sessionDir.toString(), "pid", ProcessHandle.current().pid()));
+        Path sessionConfig = sessionDir.resolve("inspector.json");
+        Files.createFile(sessionConfig,
+            PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
+        Files.writeString(sessionConfig, inspectorConfig);
+        Files.writeString(config, inspectorConfig);
         server.createContext("/", exchange -> {
             if (!secret.equals(exchange.getRequestHeaders().getFirst("X-Inspector-Key"))) {
                 exchange.sendResponseHeaders(403, -1); exchange.close(); return;
@@ -897,6 +917,16 @@ public final class CaptureAgent {
                             } catch(Exception error) {picks.put("error",error.toString());}
                         });
                         response=(JSON.toJson(picks)+"\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                    case "/hero-eligibility-diagnostic" -> {
+                        Map<String,Object> diagnostic = new LinkedHashMap<>();
+                        SwingUtilities.invokeAndWait(() -> diagnostic.putAll(HeroEligibilityDiagnosticAgent.diagnostic()));
+                        response = (JSON.toJson(diagnostic) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                    case "/item-use-diagnostic" -> {
+                        Map<String,Object> diagnostic = new LinkedHashMap<>();
+                        SwingUtilities.invokeAndWait(() -> diagnostic.putAll(ItemUseDiagnosticAgent.diagnostic()));
+                        response = (JSON.toJson(diagnostic) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     }
                     case "/equipment-diagnostic" -> {
                         Map<String,Object> diagnostic = new LinkedHashMap<>();

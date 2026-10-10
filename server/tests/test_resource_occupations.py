@@ -206,7 +206,17 @@ class ResourceOccupationTests(PostgresCase):
                     with store.connection() as db:
                         migrate(db, prefix_dir)
                     account = store.register("old-harvest", "local-password")["id"]
-                    character = store.create_character(account, "Old Harvest")
+                    # This migration probe intentionally stops at schema 013,
+                    # before deleted_at was introduced in migration 046. Do not
+                    # use the current Store.create_character() against this old
+                    # schema: insert the minimal legacy row the test needs.
+                    with store.connection() as db:
+                        character = db.execute(
+                            "INSERT INTO characters(account_id,name,name_key,breed,sex,face,hair,"
+                            "colors,appearance,hp,max_hp) VALUES(%s,%s,%s,1,false,0,0,'[]','{}',100,100) "
+                            "RETURNING id,map_id,instance_id,x,y,z",
+                            (account, "Old Harvest", "old harvest"),
+                        ).fetchone()
                     resource = dict(
                         resource_uid=89001,
                         map_id=character["map_id"],

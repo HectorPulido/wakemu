@@ -63,7 +63,20 @@ def _exit(
         )
         if result["destination"]["map_id"] == character["map_id"]:
             raise ValueError("Rift exit does not leave its interior")
-        ids = run["members"] if run["status"] == "entered" else [character_id]
+        ids = (
+            run["members"]
+            if run["status"] == "entered"
+            else [character_id]
+            + [
+                row["character_id"]
+                for row in db.execute(
+                    "SELECT h.character_id FROM account_hero_slots h JOIN account_hero_rosters r USING(account_id) "
+                    "WHERE h.account_id=%s AND r.leader_id=%s",
+                    (account_id, character_id),
+                ).fetchall()
+                if row["character_id"] in run["members"]
+            ]
+        )
         if run["status"] == "entered" and run["owner_character_id"] != character_id:
             raise ValueError("Only the owner may cancel an unstarted rift")
         rows = db.execute(

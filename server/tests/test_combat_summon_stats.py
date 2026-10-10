@@ -36,6 +36,7 @@ class RegisteredSummonStatsTests(unittest.TestCase):
             direction=1,
             native_obstacle_id=5,
             native_controlled_by_ai=False,
+            native_fight_property_counts={40: 1},
             position=(2, 3, 0),
         )
         row = dict(
@@ -71,7 +72,11 @@ class RegisteredSummonStatsTests(unittest.TestCase):
             (77, 0, 0, 1, 0, 5, 0),
         )
         self.assertEqual(struct.unpack_from(">q", payload, len(payload) - 20)[0], 901)
-        self.assertIn(struct.pack(">hBhH", 3251, 1, 20, 0), payload)
+        self.assertIn(struct.pack(">hBhH", 3251, 0, 20, 0), payload)
+        properties_offset = common_offset + struct.calcsize(">iBBBBbB") + len(snapshot)
+        self.assertEqual(
+            payload[properties_offset : properties_offset + 5], b"\x01\x00\x01\x28\x01"
+        )
         from wakfu_server.combat_wire import actor_state, decode_actor_state
 
         decoded = decode_actor_state(12873, actor_state(12873, 77, 901, payload))

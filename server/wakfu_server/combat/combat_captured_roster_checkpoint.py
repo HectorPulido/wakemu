@@ -3,7 +3,7 @@ from wakfu_server.characters.captured_roster import OwnedCapturedRoster
 from wakfu_server.characters.captured_roster_store import save
 
 
-def persist_captured_roster_updates(db, fight, *, owner_ids=None):
+def persist_captured_roster_updates(db, fight, *, owner_ids=None, departure=False):
     updates = getattr(fight, "native_captured_roster_updates", {})
     if not isinstance(updates, dict):
         raise ValueError("Invalid native captured roster mutation queue")
@@ -30,6 +30,16 @@ def persist_captured_roster_updates(db, fight, *, owner_ids=None):
         ).fetchone()
         if row is None:
             raise ValueError("Captured mutation lacks actual owned Osamodas character")
+        # The character lock serializes checkpoint writes with the health exit.
+        # After native teardown, an older fight overlay must not reclaim slots.
+        if not departure and getattr(fight, "id", None) is not None:
+            exited = db.execute(
+                "SELECT reason FROM fight_health_exits WHERE fight_id=%s "
+                "AND character_id=%s",
+                (fight.id, owner_id),
+            ).fetchone()
+            if exited is not None:
+                continue
         previous = db.execute(
             "SELECT record FROM character_captured_rosters WHERE character_id=%s FOR UPDATE",
             (owner_id,),
@@ -55,5 +65,7 @@ def persist_departing_captured_roster(db, fight, character):
     preview = deepcopy(fight)
     if not restore_departing_roster(preview, character):
         return False
-    persist_captured_roster_updates(db, preview, owner_ids={character["id"]})
+    persist_captured_roster_updates(
+        db, preview, owner_ids={character["id"]}, departure=True
+    )
     return True

@@ -477,7 +477,9 @@ def resolve(
     fight_id = _integer(fight_id, "fight id", 1, 2**31 - 1)
     if not isinstance(generation, str) or not generation:
         raise ValueError("Invalid session generation")
-    store.lock_character(db, account_id, generation, character_id)
+    from .combat_reward_ownership import lock_recipient
+
+    lock_recipient(store, db, account_id, generation, character_id, fight_id)
     reward = db.execute(
         "SELECT r.generation,p.team,f.status,f.fight_kind FROM fight_rewards r "
         "JOIN combat_fight_participants p ON p.fight_id=r.fight_id AND p.character_id=r.character_id "

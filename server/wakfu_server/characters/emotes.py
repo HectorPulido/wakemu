@@ -1,5 +1,6 @@
 """Account-owned native emotes with an explicitly configurable DEV unlock view."""
 import struct
+import time
 from wakfu_server.items.inventory_items import _varint
 
 
@@ -49,67 +50,102 @@ def authorize(db, account_id, body):
 
 
 def occupation(actor_id, emote_id, parameters=()):
-    payload = struct.pack('>iB', emote_id, len(parameters))
+    payload = struct.pack(">iB", emote_id, len(parameters))
     for key, value in parameters:
-        encoded = key.encode('utf-8')
-        payload += struct.pack('>I', len(encoded)) + encoded + struct.pack('>q', value)
-    return 12088, struct.pack('>BhqI', 1, 20, actor_id, len(payload)) + payload
+        encoded = key.encode("utf-8")
+        payload += struct.pack(">I", len(encoded)) + encoded + struct.pack(">q", value)
+    return 12088, struct.pack(">BhqI", 1, 20, actor_id, len(payload)) + payload
 
 
-def prepare_play(store, account_id, generation, character, body, *, resolve_target, in_fight):
+def prepare_play(
+    store,
+    account_id,
+    generation,
+    character,
+    body,
+    *,
+    resolve_target,
+    in_fight,
+    occupied=lambda actor_id: False
+):
     """Validate own lease and target scope before creating a native occupation."""
-    if in_fight(character['id']):
-        raise ValueError('World emotes cannot interrupt combat')
+    if (
+        character.get("hp", 0) <= 0
+        or in_fight(character["id"])
+        or occupied(character["id"])
+    ):
+        raise ValueError("World emotes cannot interrupt combat")
     with store.connection() as db:
-        store.lock_character(db, account_id, generation, character['id'])
+        store.lock_character(db, account_id, generation, character["id"])
+        if db.execute(
+            "SELECT 1 FROM craft_occupations WHERE character_id=%s AND state='active'",
+            (character["id"],),
+        ).fetchone():
+            raise ValueError("Emotes cannot interrupt crafting")
         emote_id, target_id = authorize(db, account_id, body)
-        definition = db.execute('SELECT * FROM native_emote_definitions WHERE emote_id=%s',
-                                (emote_id,)).fetchone()
-        metadata = definition['metadata']
-        if metadata.get('ehu') not in ('', 'not IsBattleground()'):
-            raise ValueError('Unverified native emote criterion')
-        if character.get('mount_state', {}).get('mounted', False) and (
-                metadata['eiW'] or metadata['eiV']):
-            raise ValueError('Native emote is unavailable while riding')
+        definition = db.execute(
+            "SELECT * FROM native_emote_definitions WHERE emote_id=%s", (emote_id,)
+        ).fetchone()
+        metadata = definition["metadata"]
+        if metadata.get("ehu") not in ("", "not IsBattleground()"):
+            raise ValueError("Unverified native emote criterion")
+        if character.get("_emote_until", 0) > time.monotonic() and (
+            metadata["eiW"] or metadata["eiV"]
+        ):
+            raise ValueError("Native emote is incompatible with the active occupation")
         parameters = []
-        if metadata['eiV']:
+        if metadata["eiV"]:
             target = resolve_target(target_id)
-            if (target is None or target['id'] == character['id']
-                    or (target['map_id'], target['instance_id']) !=
-                       (character['map_id'], character['instance_id'])
-                    or target.get('hp', 0) <= 0 or in_fight(target_id)
-                    or target.get('_emote_until', 0) > __import__('time').monotonic()):
-                raise ValueError('Native emote target is unavailable')
-            parameters.append(('targetId', target_id))
+            if (
+                target is None
+                or target["id"] == character["id"]
+                or (target["map_id"], target["instance_id"])
+                != (character["map_id"], character["instance_id"])
+                or target.get("hp", 0) <= 0
+                or in_fight(target_id)
+                or occupied(target_id)
+                or target.get("_emote_until", 0) > time.monotonic()
+            ):
+                raise ValueError("Native emote target is unavailable")
+            if db.execute(
+                "SELECT 1 FROM craft_occupations WHERE character_id=%s AND state='active'",
+                (target_id,),
+            ).fetchone():
+                raise ValueError("Target is occupied with crafting")
+            parameters.append(("targetId", target_id))
         elif target_id != -1:
-            raise ValueError('Untargeted native emote cannot specify a target')
-        expressions = metadata.get('eiY', [])
+            raise ValueError("Untargeted native emote cannot specify a target")
+        expressions = metadata.get("eiY", [])
         if expressions:
-            if len(expressions) != 3 or expressions[0] != 'true':
-                raise ValueError('Unverified native emote parameters')
+            if len(expressions) != 3 or expressions[0] != "true":
+                raise ValueError("Unverified native emote parameters")
             import json
             import re
             import secrets
+
             key = json.loads(expressions[1])
-            random = re.fullmatch(r'GetRandomNumber\((\d+)\)', expressions[2])
+            random = re.fullmatch(r"GetRandomNumber\((\d+)\)", expressions[2])
             if random and 0 < int(random[1]) <= 1000:
                 value = secrets.randbelow(int(random[1]))
-            elif expressions[2] == 'GetNationId()':
+            elif expressions[2] == "GetNationId()":
                 # Own characters currently have native nation0 (wire identity).
                 value = 0
             else:
-                raise ValueError('Unverified native emote expression')
+                raise ValueError("Unverified native emote expression")
             parameters.append((key, value))
-    return {'packet': occupation(character['id'], emote_id, parameters),
-            'duration_ms': metadata['bKb']}
+    return {
+        "packet": occupation(character["id"], emote_id, parameters),
+        "duration_ms": metadata["bKb"],
+    }
 
 
 def retained(character):
     import time
-    if character.get('_emote_until', 0) > time.monotonic():
-        return (character['_emote_packet'],)
+
+    if character.get("_emote_until", 0) > time.monotonic():
+        return (character["_emote_packet"],)
     return ()
 
 
 def stopped(actor_id):
-    return 12088, struct.pack('>BhqI', 2, 20, actor_id, 0)
+    return 12088, struct.pack(">BhqI", 2, 20, actor_id, 0)

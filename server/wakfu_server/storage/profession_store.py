@@ -86,6 +86,16 @@ def ensure_learned(store, account_id, generation, character_id, profession_ids):
     )
 
 
+def ensure_all_learned(store, account_id, generation, character_id):
+    """Unlock every native job at zero XP without resetting existing progress.
+
+    Profession progress is account-owned, so this also repairs older accounts
+    when any of their characters joins the world.
+    """
+    ids = protocol_catalog.load(DATA_ROOT / "profession-actions.json")["profession_ids"]
+    return ensure_learned(store, account_id, generation, character_id, sorted(ids))
+
+
 def learned(store, account_id, generation, character_id, profession_id):
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)

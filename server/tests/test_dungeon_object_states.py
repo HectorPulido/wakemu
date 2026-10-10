@@ -223,3 +223,22 @@ class DungeonObjectStateTests(unittest.TestCase):
                 previous_unlocked_room=2,
                 unlocked_room=1,
             )
+
+    def test_intermediate_exterior_requires_explicit_completed_exit_proof(self):
+        source = self.source(16, 10, 106, 99, target_map=2)
+        sources = self.sources + [source]
+        self.registry[16] = source
+        with self.assertRaisesRegex(ValueError, "intermediate room"):
+            self.hydrate(3, completed=True, sources=sources)
+        topology = copy.deepcopy(self.topology)
+        topology["completed_exit_witness"] = dict(source_id=16, room_order=2)
+        topology["physical_exit_objects"] = [dict(source_id=16, room_order=2)]
+        before = self.flags(self.hydrate(3, sources=sources, topology=topology))
+        after = self.flags(
+            self.hydrate(3, completed=True, sources=sources, topology=topology)
+        )
+        self.assertEqual(before[16], (0, 0))
+        self.assertEqual(after[16], (1, 1))
+        topology["completed_exit_witness"]["source_id"] = 999
+        with self.assertRaisesRegex(ValueError, "intermediate room"):
+            self.hydrate(3, completed=True, sources=sources, topology=topology)

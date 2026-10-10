@@ -196,8 +196,26 @@ class NativeRetainedRuntime:
             uid for uid in self.fight.native_retained_order if uid in live
         ]
         facts = getattr(self.fight, "native_owned_state_containers", {})
+        users = set()
+        unhashable_users = []
+        if facts:
+            # These are fresh operation-local facts, not a retained cache.
+            # Scan owned children once instead of once per carrier snapshot.
+            for collection in (
+                self.fight.owned_stat_effects,
+                self.fight.native_owned_group_effects,
+                getattr(self.fight, "native_owned_area_effects", {}),
+            ):
+                for row in collection.values():
+                    state_uid = row.get("state_uid")
+                    try:
+                        users.add(state_uid)
+                    except TypeError:
+                        # Preserve legacy equality semantics for malformed
+                        # unhashable values; authority validation is separate.
+                        unhashable_users.append(state_uid)
         for uid in tuple(facts):
-            if not owned_container_users(self.fight, uid):
+            if uid not in users and not any(value == uid for value in unhashable_users):
                 del facts[uid]
         from .combat_state_managers import prune_retired_state_managers
 

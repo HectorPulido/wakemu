@@ -108,7 +108,11 @@ class CombatActorTests(unittest.TestCase):
         # Ordinary NPCs also retain the eHj format without summon authority.
         self.assertEqual(b[0], 2)
         self.assertEqual(b[25:29], b"\x00\x00\x00\x00")
-        control_offset = 31 + 2 + 17 * struct.unpack_from(">H", b, 31)[0]
+        # rK follows fight characteristics, then native breed and AI flag.
+        property_offset = 33 + 17 * struct.unpack_from(">H", b, 31)[0]
+        self.assertEqual(b[property_offset], 1)
+        property_count = struct.unpack_from(">H", b, property_offset + 1)[0]
+        control_offset = property_offset + 3 + property_count * 2 + 2
         self.assertEqual(b[control_offset], 1)
         stats = [struct.unpack_from(">Biiii", b, 33 + i * 17) for i in range(4)]
         self.assertEqual(

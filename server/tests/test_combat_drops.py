@@ -410,6 +410,92 @@ class CombatDropPostgresTests(PostgresCase):
             rng=rng,
         )
 
+    def test_ordinary_company_resolves_all_three_pcs_under_one_main_session(self):
+        from wakfu_server.characters import heroes
+
+        company = [self.character]
+        for index in range(2):
+            hero = self.store.create_character(
+                self.account_id, ("DropHero One", "DropHero Two")[index]
+            )
+            heroes.add(
+                self.store,
+                self.account_id,
+                self.generation,
+                self.character["id"],
+                hero["id"],
+            )
+            company.append(hero)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_fight_participants SET session_generation=%s "
+                "WHERE fight_id=%s",
+                (self.generation, self.fight_id),
+            )
+            for hero in company[1:]:
+                db.execute(
+                    "INSERT INTO combat_fight_participants"
+                    "(fight_id,character_id,account_id,team,session_generation) "
+                    "VALUES(%s,%s,%s,0,%s)",
+                    (self.fight_id, hero["id"], self.account_id, self.generation),
+                )
+                db.execute(
+                    "INSERT INTO fight_rewards"
+                    "(generation,fight_id,character_id,account_id,xp,kamas,created_at,"
+                    "start_xp,end_xp,start_level,end_level) "
+                    "VALUES(%s,%s,%s,%s,0,0,CURRENT_TIMESTAMP,0,0,1,1)",
+                    (self.generation, self.fight_id, hero["id"], self.account_id),
+                )
+            for member in company:
+                batch = resolve(
+                    self.store,
+                    db,
+                    account_id=self.account_id,
+                    generation=self.generation,
+                    character_id=member["id"],
+                    fight_id=self.fight_id,
+                    monsters=[{"actor_id": -123456, "reference": 1}],
+                    prospecting_bonus=0,
+                    can_loot=True,
+                    fight_context={},
+                    rng=lambda upper: 0,
+                )
+                self.assertFalse(batch.replayed)
+                self.assertTrue(batch.decisions)
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(DISTINCT character_id) AS n "
+                    "FROM fight_drop_awards WHERE fight_id=%s",
+                    (self.fight_id,),
+                ).fetchone()["n"],
+                3,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT character_id FROM sessions WHERE account_id=%s",
+                    (self.account_id,),
+                ).fetchone()["character_id"],
+                self.character["id"],
+            )
+            db.execute(
+                "DELETE FROM account_hero_slots WHERE account_id=%s AND character_id=%s",
+                (self.account_id, company[-1]["id"]),
+            )
+            with self.assertRaisesRegex(ValueError, "frozen owned hero"):
+                resolve(
+                    self.store,
+                    db,
+                    account_id=self.account_id,
+                    generation=self.generation,
+                    character_id=company[-1]["id"],
+                    fight_id=self.fight_id,
+                    monsters=[{"actor_id": -123456, "reference": 1}],
+                    prospecting_bonus=0,
+                    can_loot=True,
+                    fight_context={},
+                    rng=lambda upper: 0,
+                )
+
     def test_receipt_and_multiplier_are_versioned_replayed_and_atomic(self):
         with self.store.connection() as db:
             first = self._resolve(db, rng=lambda upper: 0)

@@ -42,6 +42,28 @@ class NativeQIDeathLifecycleTests(unittest.TestCase):
         registry = prepare_fresh_actor_slots(fight, physical_radii={7: 0, -7: 0, -8: 0})
         install_fresh_actor_slots(fight, registry)
         fight.ready(1)
+        # This isolated QI fixture declares a complete zero tackle/dodge
+        # characteristic domain and typed life/property authority.
+        from test_combat_tackle_movement import Authority
+
+        class LifecycleAuthority(Authority):
+            def __call__(self, current, actor):
+                from dataclasses import replace
+                from wakfu_server.combat_global_pv_collections import (
+                    global_fighter_guards,
+                )
+
+                facts = super().__call__(current, actor)
+                return replace(
+                    facts,
+                    targeting=dict(
+                        facts.targeting, **global_fighter_guards(current, actor.id)
+                    ),
+                )
+
+        fight.native_rail_movement_authority = LifecycleAuthority()
+        for actor in fight.actors.values():
+            actor.effect_stats = {1: actor.hp, 2: actor.ap, 3: actor.mp, 7: 0, 8: 0}
         return fight, pc, first, second
 
     def kill_first(self, fight, first):
@@ -207,3 +229,24 @@ class NativeQIDeathLifecycleTests(unittest.TestCase):
             fight.move(1, pc.id, [(1, 0, 0)])
         self.assertEqual(fight.native_qi_slots, before)
         self.assertEqual(pc.position, (0, 0, 0))
+
+    def test_registration_mismatch_identifies_actual_actor_without_repairing_qi(self):
+        fight, _, first, _ = self.fight()
+        before = deepcopy(fight.native_qi_slots)
+        first.position = (2, 3, 0)  # Deliberately bypass the actual QK producer.
+        with self.assertRaisesRegex(
+            ValueError, r"actor=-7 boundary=physical_registration.*expected="
+        ):
+            current_registry(fight)
+        self.assertEqual(fight.native_qi_slots, before)
+
+    def test_actual_multi_step_registration_remains_current_at_each_area_boundary(self):
+        from wakfu_server.combat_qi_fight import move_registered_actor
+
+        fight, _, first, _ = self.fight()
+        slot = first.native_obstacle_id
+        for destination in ((2, 3, 0), (1, 3, 0), (1, 2, 0)):
+            move_registered_actor(fight, first, destination)
+            registry = current_registry(fight)
+            self.assertEqual(registry.ordered_U(*destination[:2]), (slot,))
+            self.assertEqual(tuple(registry.slots[slot]["position"]), destination[:2])

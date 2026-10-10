@@ -1,5 +1,7 @@
 # Dungeon evidence inventory
 
+Automatic all-dungeon flow and composition preparation: [native flow coverage](AUTOMATIC-NATIVE-FLOW-COVERAGE.md) and [composition/placement audit](AUTOMATIC-COMPOSITION-COVERAGE.md).
+
 Natural gate progression research: [AUTOMATIC-FLOW-REVIEW.md](AUTOMATIC-FLOW-REVIEW.md).
 
 Detailed per-dungeon room rosters, names, criteria, doors and extras: [DETAILS.md](DETAILS.md).

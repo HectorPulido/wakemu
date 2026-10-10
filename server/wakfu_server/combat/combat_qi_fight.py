@@ -69,6 +69,24 @@ def install_fresh_actor_slots(fight, registry):
     fight.native_qi_fresh_actor_order = None
 
 
+def _actor_lifecycle_error(identity, slot, actor, row, *, boundary):
+    """Keep a rejected QK's actual identity and mismatch in bounded diagnostics."""
+    actual = (
+        None
+        if actor is None
+        else (
+            actor.native_obstacle_id,
+            actor.physical_radius,
+            tuple(actor.position[:2]),
+        )
+    )
+    expected = (slot, row["radius"], tuple(row["position"]))
+    return ValueError(
+        "Native QI actor registration requires an actual lifecycle update: "
+        f"actor={identity} boundary={boundary} actual={actual} expected={expected}"
+    )
+
+
 def current_registry(fight, *, pending_area_id=None):
     """Reject stale or unproved populations instead of rebuilding a roster."""
     arena = getattr(fight, "native_qi_snapshot", None)
@@ -147,8 +165,8 @@ def current_registry(fight, *, pending_area_id=None):
             if life["baK"]:
                 # Native OUT_OF_PLAY H performs QI.g and M(-1), including
                 # actors whose HP is positive. A remaining slot is stale.
-                raise ValueError(
-                    "Native QI actor registration requires an actual lifecycle update"
+                raise _actor_lifecycle_error(
+                    identity, slot, actor, row, boundary="out_of_play"
                 )
         if actor is not None and actor.hp <= 0:
             from .combat_ordinary_death import registered_ordinary_death
@@ -157,8 +175,8 @@ def current_registry(fight, *, pending_area_id=None):
             # fcb.aC/B/baE has no QI.g; OUT_OF_PLAY aD/H does. Preserve
             # existing exact slots only for the owned registered transition.
             if life is None:
-                raise ValueError(
-                    "Native QI actor registration requires an actual lifecycle update"
+                raise _actor_lifecycle_error(
+                    identity, slot, actor, row, boundary="missing_life"
                 )
             in_play_hp_operand = False
             if life["baF"] is True and life["baG"] is False and life["baK"] is False:
@@ -186,8 +204,8 @@ def current_registry(fight, *, pending_area_id=None):
                 and registered_ordinary_death(fight, actor) is True
             )
             if not (in_play_hp_operand or protected_kill or ordinary_death):
-                raise ValueError(
-                    "Native QI actor registration requires an actual lifecycle update"
+                raise _actor_lifecycle_error(
+                    identity, slot, actor, row, boundary="unproved_hp_zero"
                 )
         if (
             actor is None
@@ -195,8 +213,8 @@ def current_registry(fight, *, pending_area_id=None):
             or actor.physical_radius != row["radius"]
             or list(actor.position[:2]) != list(row["position"])
         ):
-            raise ValueError(
-                "Native QI actor registration requires an actual lifecycle update"
+            raise _actor_lifecycle_error(
+                identity, slot, actor, row, boundary="physical_registration"
             )
         from .combat_carrying import carrying_relations
 

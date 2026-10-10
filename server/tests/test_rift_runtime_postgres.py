@@ -1,7 +1,11 @@
 """Rift progression/reward receipts are durable and share caller transactions."""
 import uuid
+import struct
+from contextlib import nullcontext
+from unittest.mock import Mock
 from postgres_case import PostgresCase
-from wakfu_server import rift_runtime as rifts
+from wakfu_server import rift_runtime as rifts, rift_transition_delivery
+from wakfu_server.characters import heroes
 from wakfu_server.rift_policy import select_wave
 
 
@@ -360,3 +364,128 @@ class RiftPostgresTests(PostgresCase):
             self.assertEqual(
                 rifts._run(db, self.run["instance_id"])["status"], "closed"
             )
+
+
+class RiftOwnedHeroLifecycleTests(PostgresCase):
+    def setUp(self):
+        super().setUp()
+        self.account = self.store.register(
+            "rfhero" + uuid.uuid4().hex[:8], "hero-rift-password"
+        )["id"]
+        self.main = self.store.create_character(self.account, "Rift Hero Main")
+        self.hero = self.store.create_character(self.account, "Rift Owned Hero")
+        self.generation = self.store.begin_session(self.account, ttl=10000)
+        self.store.select_character(self.account, self.generation, self.main["id"])
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET map_id=527,instance_id=0,level=30 "
+                "WHERE id=ANY(%s)",
+                ([self.main["id"], self.hero["id"]],),
+            )
+        heroes.add(
+            self.store, self.account, self.generation, self.main["id"], self.hero["id"]
+        )
+
+    def test_enter_freezes_owned_hero_and_cancel_delivers_only_main(self):
+        from wakfu_server import rift_entry_adapter, rift_exit
+
+        positions = Mock()
+        positions.account_barrier = lambda *_: nullcontext()
+        entry = rift_transition_delivery.enter(
+            self.store,
+            positions,
+            self.account,
+            self.generation,
+            self.main["id"],
+            527,
+            struct.pack(">qHH", 33010, 11, 0),
+            source_allowed=lambda *_: True,
+            resolve_destination=lambda _db, selected, _rows: {
+                "map_id": selected["map_id"],
+                "x": 0,
+                "y": 1,
+                "z": 0,
+            },
+            seed="owned-hero-rift",
+        )
+        run = entry["run"]
+        expected = {self.main["id"], self.hero["id"]}
+        self.assertEqual(expected, set(run["members"]))
+        self.assertEqual(expected, {member["id"] for member in entry["members"]})
+        with self.store.connection() as db:
+            stored = db.execute(
+                "SELECT id,map_id,instance_id FROM characters WHERE id=ANY(%s)",
+                (list(expected),),
+            ).fetchall()
+            auth = db.execute(
+                "SELECT c.id,c.account_id,c.map_id,c.instance_id,s.character_id "
+                "AS selected_character_id,s.expires_at FROM characters c "
+                "LEFT JOIN sessions s ON s.account_id=c.account_id WHERE c.id=ANY(%s)",
+                (list(expected),),
+            ).fetchall()
+            for row in auth:
+                self.assertTrue(heroes.session_authorized(db, row))
+            authorized = rift_entry_adapter.authorize_start(
+                db,
+                self.store,
+                self.account,
+                self.generation,
+                self.main["id"],
+                struct.pack(">qHH", 33012, 0, 0),
+                source_allowed=lambda *_: True,
+            )
+            self.assertEqual(expected, set(authorized["members"]))
+        self.assertEqual(expected, {row["id"] for row in stored})
+        self.assertTrue(
+            all(
+                row["map_id"] == 1314 and row["instance_id"] == run["instance_id"]
+                for row in stored
+            )
+        )
+
+        exit_object = next(
+            obj for obj in run["catalog"]["objects"] if obj["type"] == "Teleporter"
+        )
+        source = __import__(
+            "wakfu_server.generic_transports", fromlist=["source"]
+        ).source(run["catalog"]["map_id"], exit_object["id"])
+        destination = source["destinations"][0]
+        body = struct.pack(
+            ">qiBi", exit_object["id"], destination["destination_id"], 0, 2
+        )
+        exited = rift_exit.leave(
+            self.store,
+            positions,
+            self.account,
+            self.generation,
+            self.main["id"],
+            body,
+            source_allowed=lambda *_: True,
+            fighting=lambda *_: False,
+        )
+        self.assertEqual(expected, {row["id"] for row in exited["moved_members"]})
+        self.assertEqual({self.main["id"]}, {row["id"] for row in exited["members"]})
+        self.assertEqual(destination["map_id"], exited["destination"]["map_id"])
+        self.assertEqual(
+            exited["destination"],
+            rift_transition_delivery.pending(
+                self.account, self.generation, self.main["id"]
+            ),
+        )
+        self.assertIsNone(
+            rift_transition_delivery.pending(
+                self.account, self.generation, self.hero["id"]
+            )
+        )
+        with self.store.connection() as db:
+            rows = db.execute(
+                "SELECT id,map_id,instance_id FROM characters WHERE id=ANY(%s)",
+                (list(expected),),
+            ).fetchall()
+            self.assertEqual(
+                {self.main["id"], self.hero["id"]}, {r["id"] for r in rows}
+            )
+            self.assertTrue(all(r["instance_id"] == 0 for r in rows))
+        rift_transition_delivery.acknowledge(
+            self.account, self.generation, self.main["id"], exited["destination"]
+        )

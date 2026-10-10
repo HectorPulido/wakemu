@@ -188,6 +188,7 @@ def prepare_finish_shared(
     loot_resolver=None,
     group_settlement=None,
     expected_accounts=None,
+    owner_character_ids=None,
     trace=None,
 ):
     """Settle a finished shared roster once and build private owner packets.
@@ -210,6 +211,17 @@ def prepare_finish_shared(
     ):
         raise ValueError("Invalid expected shared fight owners")
     fight = runtime.fight
+    if owner_character_ids is not None and (
+        not isinstance(owner_character_ids, dict)
+        or any(
+            type(owner) is not int
+            or owner <= 0
+            or type(identity) is not int
+            or identity <= 0
+            for owner, identity in owner_character_ids.items()
+        )
+    ):
+        raise ValueError("Invalid shared result owner character identities")
     if fight.phase != "finished" or fight.winner not in (0, 1):
         raise ValueError("Shared settlement requires a resolved fight")
     from .fight_store import settle_shared
@@ -254,8 +266,8 @@ def prepare_finish_shared(
             actor = candidate.actors[actor_id]
             character = observe("character", store.character, owner, actor_id, db)
             if member.get("withdrawn", False) or actor.team != candidate.winner:
-                participant_rewards[owner] = None
-                participant_loot[owner] = None
+                participant_rewards[actor_id] = None
+                participant_loot[actor_id] = None
                 continue
             policy = observe("policy", policy_resolver, db, member, character)
             reward = observe(
@@ -269,7 +281,7 @@ def prepare_finish_shared(
                 candidate,
                 policy,
             )
-            participant_rewards[owner] = reward
+            participant_rewards[actor_id] = reward
             shared_report = report_metadata(shared_report, actor_id, reward)
             delivery = None
             if loot_resolver is not None:
@@ -289,7 +301,7 @@ def prepare_finish_shared(
                     for packet in packets
                 ):
                     raise ValueError("Invalid shared loot packets")
-            participant_loot[owner] = delivery
+            participant_loot[actor_id] = delivery
 
         ecology = None
         if group_settlement is not None:
@@ -312,19 +324,51 @@ def prepare_finish_shared(
         packets_by_owner = {}
         original_ack, original_pending = runtime.awaiting_ack, runtime.pending
         try:
+            by_owner = {}
             for member in members:
-                owner = member["account_id"]
-                actor_id = member["character_id"]
-                if member.get("withdrawn", False):
+                by_owner.setdefault(member["account_id"], []).append(member)
+            for owner, owned_members in by_owner.items():
+                active_members = [
+                    member
+                    for member in owned_members
+                    if not member.get("withdrawn", False)
+                ]
+                if not active_members:
                     packets_by_owner[owner] = ()
                     continue
-                reward = participant_rewards[owner]
+                preferred = (owner_character_ids or {}).get(owner)
+                if preferred is None:
+                    preferred = (
+                        character_id
+                        if owner == account_id
+                        else active_members[0]["character_id"]
+                    )
+                if preferred not in {
+                    member["character_id"] for member in owned_members
+                }:
+                    raise ValueError(
+                        "Result initiator is not an owned durable participant"
+                    )
+                actor_id = preferred
+                rewards = [
+                    (
+                        member["character_id"],
+                        participant_rewards[member["character_id"]],
+                    )
+                    for member in active_members
+                    if participant_rewards[member["character_id"]] is not None
+                ]
+                reward = rewards[-1][1] if rewards else None
                 report = {
                     identity: dict(value) for identity, value in shared_report.items()
                 }
-                delivery = participant_loot[owner]
-                if delivery is not None:
-                    report[actor_id]["loots"] = delivery["loots"]
+                deliveries = [
+                    (member["character_id"], participant_loot[member["character_id"]])
+                    for member in active_members
+                    if participant_loot[member["character_id"]] is not None
+                ]
+                for recipient_id, delivery in deliveries:
+                    report[recipient_id]["loots"] = delivery["loots"]
                 packets = []
                 if reward is not None:
                     from wakfu_server.wire import account_kamas_update
@@ -344,13 +388,17 @@ def prepare_finish_shared(
                     )
                 )
                 packets.append((13420, struct.pack(">i", fight.id)))
-                if reward is not None:
+                if rewards:
                     from .combat_xp_gain import notification
 
-                    notice = notification(actor_id, reward)
-                    if notice is not None:
-                        packets.insert(1, notice)
-                if delivery is not None:
+                    notices = [
+                        notice
+                        for recipient_id, owned_reward in rewards
+                        if (notice := notification(recipient_id, owned_reward))
+                        is not None
+                    ]
+                    packets[1:1] = notices
+                for _, delivery in deliveries:
                     packets.extend(delivery["packets"])
                 if ecology is not None and actor_id == character_id:
                     packets.extend(ecology.get("packets", ()))
@@ -428,10 +476,12 @@ def return_to_world(
     actor = fight.actors.get(character["id"])
     if actor is None or not actor.controlled or actor.owner_id != account_id:
         raise ValueError("Foreign fight return participant")
-    from .combat_health import persist
+    from .combat_health import persist_owned
 
     with store.connection() as db:
-        health_exit = persist(store, account_id, generation, character, fight, db=db)
+        health_exit = persist_owned(
+            store, account_id, generation, character, fight, db=db
+        )
         saved = health_exit["character"]
         if not health_exit["applied"]:
             return dict(character=saved, packets=[], applied=False)

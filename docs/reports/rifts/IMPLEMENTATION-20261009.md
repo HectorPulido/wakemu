@@ -181,3 +181,8 @@ Reproduce the native gate extraction from repository root:
 javac -proc:none -cp 'client/lib/*' -d /tmp sniffer/java/ExportRiftPartyGateEvidence.java
 java -cp '/tmp:client/lib/*' ExportRiftPartyGateEvidence docs/reports/rifts/native-party-gates.json
 ```
+
+
+## Owned-hero reward audit and full acceptance (2026-10-10)
+
+[Concrete hero payout correction, native definitive-key gap and exact six-member manual test](HEROES-AND-ACCEPTANCE-20261010.md). Inactive hero loot now requires a verified real company/main lease and matching finished-fight participants; no synthetic sessions. Source only.

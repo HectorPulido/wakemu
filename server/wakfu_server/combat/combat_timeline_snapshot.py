@@ -30,6 +30,16 @@ def end_current(fight):
     rows[key] = short(rows[key] + 1)  # SU end -> Tc.bit -> SY.bif.
 
 
+def current_wire_turn(fight):
+    """buH.aX -> cpb uses SU.bhN (global round), never actor/SY progress."""
+    if fight.current is None:
+        raise ValueError("No current native timeline actor")
+    value = getattr(fight, "native_timeline_round", None)
+    if type(value) is not int or not -32768 <= value <= 32767:
+        raise ValueError("Invalid native timeline round")
+    return value
+
+
 def insert(fight, identity, slot):
     rows = counters(fight)
     key = str(identity)

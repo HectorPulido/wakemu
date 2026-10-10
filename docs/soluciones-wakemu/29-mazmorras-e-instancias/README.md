@@ -160,3 +160,53 @@ authority, native-criterion and automatic party-transition tests with zero
 skips. This source change requires deployment and manual acceptance.
 
 See [implementation limits and complete dungeon acceptance steps](ACHIEVEMENT-AUTHORITY-20261009.md).
+
+
+### Manual acceptance update — 2026-10-10
+
+Hector completed the Tofullero boss and exited successfully. The complete solo
+room progression and exterior return are accepted. He also confirmed
+`!exitdungeon` works and the opened gate disappears, allowing continuation to
+the final room. These confirmations supersede the earlier command and closed
+gate visual defects.
+
+Party transport and reentry are still pending acceptance. Leaving the party
+allowed reentry during the reported failure, consistent with the retained
+active run/frozen roster mismatch. General source corrections preserve the
+party and permit returned frozen members to rejoin the same active instance;
+companions already inside keep their position. Companion transition delivery
+now tolerates movement within the source map and instance. These follow-up
+changes are prepared and tested, but have not been deployed or manually
+accepted. No restart was performed for this update.
+
+### General automatic native flow extraction — 2026-10-10
+
+The Tofullero exploration method now runs offline across all 139 native entry
+routes: 52 directed physical gate chains produce topology candidates, 29 need
+native transport graph review, 30 have no separator gates, 24 have unresolved
+physical flow, and four mix gates with internal teleports and are withheld.
+Seventeen of the 156 inventory definitions have no native entry route.
+First encounter placement inputs are derived from directed native arrival
+reachability with all physical gates closed. Candidate encounter formations,
+rosters and exit contracts require independent validation before activation.
+The accepted Tofullero configuration is unchanged. See
+[coverage and reproduction](../../reports/dungeons/AUTOMATIC-NATIVE-FLOW-COVERAGE.md)
+and [per-route evidence](../../reports/dungeons/AUTOMATIC-NATIVE-FLOW-COVERAGE.json).
+
+
+### Native physical flow activation — 2026-10-10
+
+Hector explicitly requested activation of the eight validated physical flows.
+Seven routes (80, 178, 142, 176, 177, 88, 137) now use immutable v3 native
+physical configurations in the runtime database; accepted Tofullero 27 v3 was
+preserved. All pointers were read back and verified. Existing runs keep their
+pinned versions until the party leaves and starts a fresh run. The previous
+rows/context pointers were backed up before the atomic activation. No server
+restart was performed.
+
+The current shared checkout passed all eight isolated PostgreSQL lifecycle and
+economy subcases before activation (20 room victories, 60 reward receipts),
+including partial party exit/reentry, native final exits, fresh runs, replay and
+atomic reward/progression rollback. Boss spell/AI coverage remains incomplete;
+these are explicit DEV flow activations, not complete boss mechanics acceptance.
+See [verified activation and exact manual steps](../../reports/dungeons/AUTOMATIC-PHYSICAL-ACTIVATION.md).

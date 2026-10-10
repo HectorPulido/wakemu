@@ -59,6 +59,8 @@ class NativeStateHandlerTests(unittest.TestCase):
         fields = _identity_fields(proto)
         self.assertEqual((fields[1], fields[2]), (200, 100))
         for child in self.children:
+            self.assertTrue(child.native_preselected_target)
+            self.assertFalse(child.wakemu_fresh_child_selection)
             self.assertEqual(
                 (child.base_uid, child.state_uid, child.level), (None, 200, 20)
             )

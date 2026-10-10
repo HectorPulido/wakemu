@@ -136,6 +136,118 @@ class DungeonInstanceTests(PostgresCase):
             source_allowed=source,
         )
 
+    def test_frozen_party_members_rejoin_without_moving_inside_companions(self):
+        from wakfu_server.maps import dungeon_exit
+
+        for count in (2, 3):
+            with self.subTest(count=count):
+                members, _ = self.party(count)
+                first = self.enter(members[0])
+                inside_id = members[-1]["character"]["id"]
+                with self.store.connection() as db:
+                    db.execute("UPDATE characters SET x=x+4 WHERE id=%s", (inside_id,))
+                before = self.store.character(members[-1]["account"], inside_id)
+                # Both leader and ordinary member may return to the same run.
+                for member in members[:-1]:
+                    dungeon_exit._leave(
+                        self.store,
+                        member["account"],
+                        member["generation"],
+                        member["character"]["id"],
+                        in_fight=lambda _: False,
+                        destination_for=lambda db, character, run: {
+                            "map_id": 527,
+                            "x": -245,
+                            "y": -90,
+                            "z": 0,
+                        },
+                    )
+                    again = self.enter(member)
+                    self.assertEqual(again["instance_id"], first["instance_id"])
+                    self.assertTrue(again["reused"])
+                after = self.store.character(members[-1]["account"], inside_id)
+                self.assertEqual(
+                    tuple(before[k] for k in ("map_id", "instance_id", "x", "y", "z")),
+                    tuple(after[k] for k in ("map_id", "instance_id", "x", "y", "z")),
+                )
+
+    def test_owned_hero_is_frozen_moved_and_returned_without_private_outbox(self):
+        from wakfu_server.characters import heroes
+        from wakfu_server.maps import dungeon_exit
+
+        main = self.player("hero-main")
+        hero = self.store.create_character(main["account"], "Dng Owned Hero")
+        heroes.add(
+            self.store,
+            main["account"],
+            main["generation"],
+            main["character"]["id"],
+            hero["id"],
+        )
+        result = self.enter(main)
+        instance_id = result["instance_id"]
+        main_id, hero_id = main["character"]["id"], hero["id"]
+        self.assertEqual({main_id, hero_id}, set(result["members"]))
+        with self.store.connection() as db:
+            rows = db.execute(
+                "SELECT character_id,status FROM dungeon_instance_members "
+                "WHERE instance_id=%s ORDER BY character_id",
+                (instance_id,),
+            ).fetchall()
+            outbox = db.execute(
+                "SELECT character_id,transition_kind FROM dungeon_transition_outbox "
+                "WHERE instance_id=%s ORDER BY character_id",
+                (instance_id,),
+            ).fetchall()
+        self.assertEqual({main_id, hero_id}, {row["character_id"] for row in rows})
+        self.assertEqual({"active"}, {row["status"] for row in rows})
+        self.assertEqual(
+            [(main_id, "enter")],
+            [(row["character_id"], row["transition_kind"]) for row in outbox],
+        )
+        hero_inside = self.store.character(main["account"], hero_id)
+        self.assertEqual(
+            (result["destination"]["map_id"], instance_id),
+            (hero_inside["map_id"], hero_inside["instance_id"]),
+        )
+
+        dungeon_exit._leave(
+            self.store,
+            main["account"],
+            main["generation"],
+            main_id,
+            in_fight=lambda _identity: False,
+            destination_for=lambda _db, _character, _run: {
+                "map_id": 527,
+                "x": -245,
+                "y": -90,
+                "z": 0,
+            },
+        )
+        hero_outside = self.store.character(main["account"], hero_id)
+        self.assertEqual(
+            (527, 0), (hero_outside["map_id"], hero_outside["instance_id"])
+        )
+        with self.store.connection() as db:
+            returned = db.execute(
+                "SELECT character_id,status FROM dungeon_instance_members "
+                "WHERE instance_id=%s ORDER BY character_id",
+                (instance_id,),
+            ).fetchall()
+            final_outbox = db.execute(
+                "SELECT character_id,transition_kind,status FROM dungeon_transition_outbox "
+                "WHERE instance_id=%s AND transition_kind='exit'",
+                (instance_id,),
+            ).fetchall()
+        self.assertEqual({"returned"}, {row["status"] for row in returned})
+        self.assertEqual(
+            [(main_id, "exit", "pending")],
+            [
+                (row["character_id"], row["transition_kind"], row["status"])
+                for row in final_outbox
+            ],
+        )
+
     def test_entry_creates_live_run_and_moves_all_members_atomically(self):
         members, party_id = self.party(2)
         checks = []

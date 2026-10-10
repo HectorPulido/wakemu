@@ -1,6 +1,7 @@
 """Local reproduction policy and collision-free creature identity allocation."""
 import math
 import secrets
+from contextlib import nullcontext
 
 
 def dungeon_population(store, instance_id):
@@ -28,6 +29,11 @@ def policy(store):
             "SELECT value FROM settings WHERE name='monster_reproduction'"
         ).fetchone()
     value = None if row is None else row["value"]
+    return validate_policy(value)
+
+
+def validate_policy(value):
+    """Validate an explicit per-cycle snapshot without reading settings again."""
     if type(value) is not dict or set(value) != {
         "interval_ms",
         "birth_probability",
@@ -96,7 +102,8 @@ def attempt(
     excluded_ids=(),
     draw=None,
     group_draw=None,
-    choose=secrets.choice
+    choose=secrets.choice,
+    configuration=None,
 ):
     """Resolve a due birth atomically; caller holds group and harvest locks.
 
@@ -112,7 +119,9 @@ def attempt(
     from .monsters import owned_instance
     from .combat_monster_world import spawn_group
 
-    configuration = policy(store)
+    configuration = (
+        policy(store) if configuration is None else validate_policy(configuration)
+    )
     key = (
         ticket["map_id"],
         ticket["instance_id"],
@@ -300,7 +309,15 @@ def attempt(
 
 
 def observe(
-    store, map_id, instance_id, *, present, generation, now_ms, excluded_ids=()
+    store,
+    map_id,
+    instance_id,
+    *,
+    present,
+    generation,
+    now_ms,
+    excluded_ids=(),
+    configuration=None,
 ):
     from .monster_active_clocks import observe as observe_clocks
     from .monster_maturation import STAGES
@@ -318,7 +335,9 @@ def observe(
         excluded_ids=excluded_ids,
         table="monster_reproduction_timers",
         eligible_refs=adults,
-        policy_provider=policy,
+        policy_provider=policy
+        if configuration is None
+        else lambda _: validate_policy(configuration),
     )
 
 
@@ -338,7 +357,7 @@ def pending(store, map_id, instance_id):
         ]
 
 
-def unpublished(store, map_id, instance_id):
+def unpublished(store, map_id, instance_id, *, group_id=None):
     if dungeon_population(store, instance_id):
         return []
     with store.connection() as db:
@@ -348,8 +367,12 @@ def unpublished(store, map_id, instance_id):
                 "SELECT o.*,g.members,g.status,g.revision AS current_revision "
                 "FROM monster_reproduction_outbox o JOIN combat_groups g "
                 "USING(map_id,instance_id,group_id) WHERE o.map_id=%s AND o.instance_id=%s "
-                "AND NOT o.published ORDER BY o.group_id,o.revision,o.monster_id,o.cycle",
-                (map_id, instance_id),
+                "AND NOT o.published "
+                + ("AND o.group_id=%s " if group_id is not None else "")
+                + "ORDER BY o.group_id,o.revision,o.monster_id,o.cycle",
+                (map_id, instance_id)
+                if group_id is None
+                else (map_id, instance_id, group_id),
             )
         ]
 
@@ -387,10 +410,28 @@ def tick(
     indexed_by_map,
     players,
     excluded_ids,
-    emit
+    emit,
+    coordination=None,
 ):
-    """One non-catch-up birth cycle in active zones, under group/harvest locks."""
+    """One non-catch-up cycle with a fresh fence for each authoritative operation.
+
+    A coordinator yields current (players, excluded harvest identities) while
+    holding the caller's group/harvest fences. Without one, the caller retains
+    the historical responsibility to hold those fences around this function.
+    Enumeration is advisory; attempts and publication revalidate under a fence.
+    """
     from .combat_monster_world import remove_message, spawn_group
+
+    def guarded(stage, map_id, instance_id):
+        if coordination is None:
+            return nullcontext((players, excluded_ids))
+        return coordination(stage, map_id, instance_id)
+
+    def present_here(current_players, map_id, instance_id):
+        return coordination is None or any(
+            p.get("map_id") == map_id and p.get("instance_id", 0) == instance_id
+            for p in current_players
+        )
 
     locations = {
         location for location in locations if not dungeon_population(store, location[1])
@@ -400,54 +441,79 @@ def tick(
         for location in previous_locations
         if not dungeon_population(store, location[1])
     }
+    # Live settings remain dynamic: reload once on each tick, outside registry
+    # fences, rather than reopening a settings transaction for every parent.
+    configuration = policy(store) if locations else None
     for map_id, instance_id in previous_locations - locations:
-        observe(
-            store,
-            map_id,
-            instance_id,
-            present=False,
-            generation=generation,
-            now_ms=now_ms,
-        )
-    for map_id, instance_id in sorted(locations):
-        observe(
-            store,
-            map_id,
-            instance_id,
-            present=True,
-            generation=generation,
-            now_ms=now_ms,
-            excluded_ids=excluded_ids,
-        )
-        for ticket in pending(store, map_id, instance_id):
-            attempt(
+        with guarded("absent", map_id, instance_id):
+            observe(
                 store,
-                ticket,
-                present=True,
-                indexed=indexed_by_map[map_id],
-                players=players,
-                excluded_ids=excluded_ids,
-            )
-        grouped = {}
-        for event in unpublished(store, map_id, instance_id):
-            grouped.setdefault(event["group_id"], []).append(event)
-        for group_id, batch in grouped.items():
-            current = batch[-1]
-            if current["status"] != "available" or any(
-                m["id"] in excluded_ids for m in current["members"]
-            ):
-                continue
-            spawn = spawn_group(current["members"], group_id=group_id)
-            # Replay of a new-group event may already have reached a peer;
-            # retire its identities first just as for a roster replacement.
-            emit(
                 map_id,
                 instance_id,
-                *remove_message([m["id"] for m in current["members"]])
+                present=False,
+                generation=generation,
+                now_ms=now_ms,
             )
-            emit(map_id, instance_id, 12608, spawn)
-            for event in batch:
-                acknowledge(store, event)
+    for map_id, instance_id in sorted(locations):
+        with guarded("observe", map_id, instance_id) as (
+            current_players,
+            current_excluded,
+        ):
+            observe(
+                store,
+                map_id,
+                instance_id,
+                present=present_here(current_players, map_id, instance_id),
+                generation=generation,
+                now_ms=now_ms,
+                excluded_ids=current_excluded,
+                configuration=configuration,
+            )
+        for ticket in pending(store, map_id, instance_id):
+            with guarded("attempt", map_id, instance_id) as (
+                current_players,
+                current_excluded,
+            ):
+                attempt(
+                    store,
+                    ticket,
+                    present=present_here(current_players, map_id, instance_id),
+                    indexed=indexed_by_map[map_id],
+                    players=current_players,
+                    excluded_ids=current_excluded,
+                    configuration=configuration,
+                )
+        group_ids = dict.fromkeys(
+            event["group_id"] for event in unpublished(store, map_id, instance_id)
+        )
+        for group_id in group_ids:
+            with guarded("publish", map_id, instance_id) as (_, current_excluded):
+                # Claims, defeats and harvest occupations can change between
+                # enumeration and fence acquisition. Never publish that old row.
+                batch = [
+                    event
+                    for event in unpublished(
+                        store, map_id, instance_id, group_id=group_id
+                    )
+                ]
+                if not batch:
+                    continue
+                current = batch[-1]
+                if current["status"] != "available" or any(
+                    m["id"] in current_excluded for m in current["members"]
+                ):
+                    continue
+                spawn = spawn_group(current["members"], group_id=group_id)
+                # Preserve removal, replacement and acknowledgment as one
+                # fenced operation through the current authoritative revision.
+                emit(
+                    map_id,
+                    instance_id,
+                    *remove_message([m["id"] for m in current["members"]]),
+                )
+                emit(map_id, instance_id, 12608, spawn)
+                for event in batch:
+                    acknowledge(store, event)
     return locations
 
 

@@ -122,8 +122,18 @@ class ConsoleTests(PostgresCase):
         p = tuple(self.char[k] for k in ("x", "y", "z"))
         a = (p[0] + 1, p[1], p[2])
         b = (p[0] + 2, p[1], p[2])
-        geometry = {"cells": [p, a, b], "edges": [(p, a), (a, b)]}
-        with patch("wakfu_server.test_console.map_geometry", return_value=geometry):
+        from wakfu_server.combat_geometry import prepare_geometry
+
+        geometry = prepare_geometry(
+            {
+                "map_id": self.char["map_id"],
+                "cells": [p, a, b],
+                "edges": [(p, a), (a, b)],
+            }
+        )
+        with patch(
+            "wakfu_server.test_console.published_geometry", return_value=geometry
+        ):
             result = self.run_command("!mob 5525 1 2")
             with self.assertRaises(ValueError):
                 self.run_command("!mob 5525 1 1")

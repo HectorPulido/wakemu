@@ -1,6 +1,7 @@
 """Construct an owned two-player placement runtime for a consented duel."""
 import secrets
 import time
+from .combat_orientation import INITIAL_PLAYER_DIRECTION
 
 
 def prepare_and_register(
@@ -14,6 +15,7 @@ def prepare_and_register(
     *,
     auto_locked,
     terrain_effect_id=46,
+    prepared_terrain=None,
 ):
     """Build, serialize, and reserve a duel before the acceptance TX commits.
 
@@ -65,7 +67,19 @@ def prepare_and_register(
         (challenger["x"], challenger["y"], challenger["z"]),
         [(target["x"], target["y"], target["z"])],
         relocate_monsters=False,
+        compact=True,
+        minimum_dimensions=(30, 30),
+        prepared_terrain=prepared_terrain,
     )
+    from wakfu_server.combat_placement_cells import opposing_starts
+
+    combat_positions = opposing_starts(
+        selected["validated_cells"],
+        selected["valid_edges"],
+        selected["placement_cells"],
+        avoid_cells=selected.get("native_border_cells", ()),
+    )
+    selected = dict(selected, participant_positions=[])
     arena = freeze(
         store,
         account_id=challenger["account_id"],
@@ -76,10 +90,18 @@ def prepare_and_register(
         instance_id=instance_id,
         selected_arena=selected,
         seeds={
-            0: [(challenger["x"], challenger["y"], challenger["z"])],
-            1: [(target["x"], target["y"], target["z"])],
+            0: [combat_positions[0]],
+            1: [combat_positions[1]],
         },
         db=db,
+    )
+    # A retry may reuse an already committed placement layout. Always derive
+    # starts from that authoritative final layout, not the fresh proposal.
+    combat_positions = opposing_starts(
+        arena["validated_cells"],
+        arena["valid_edges"],
+        arena["placement_cells"],
+        avoid_cells=arena.get("native_border_cells", ()),
     )
 
     from wakfu_server import territory_bonuses
@@ -88,8 +110,13 @@ def prepare_and_register(
     target = territory_bonuses.attach_character(db, target)
     actors = []
     resources_by_actor = {}
-    characters = {challenger["id"]: challenger, target["id"]: target}
+    # Exterior DB rows remain unchanged. Snapshot producers receive owned
+    # combat copies matching the actors' initial placement coordinates.
+    characters = {}
     for character, team in ((challenger, 0), (target, 1)):
+        combat_character = dict(character)
+        combat_character.update(zip(("x", "y", "z"), combat_positions[team]))
+        characters[character["id"]] = combat_character
         resources = combat_resources(character)
         resources_by_actor[character["id"]] = resources
         from wakfu_server.builds import effective_sheet_level
@@ -98,7 +125,7 @@ def prepare_and_register(
             Actor(
                 character["id"],
                 team,
-                (character["x"], character["y"], character["z"]),
+                combat_positions[team],
                 character["hp"],
                 resources["ap"],
                 resources["mp"],
@@ -109,10 +136,7 @@ def prepare_and_register(
                 character["account_id"],
                 True,
                 max_hp=character["max_hp"],
-                # actual_actor_stats serializes the fresh owned actor's
-                # native position direction as 0 unless an orientation
-                # action has already changed it. Store the same value in FSM.
-                direction=0,
+                direction=INITIAL_PLAYER_DIRECTION,
             )
         )
     fight = Fight(

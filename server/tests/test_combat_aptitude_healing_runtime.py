@@ -25,8 +25,11 @@ class AptitudeHealingRuntimeTests(unittest.TestCase):
         passive_spells=(),
         injury=60,
         level=60,
+        caster_breed=7,
         caster_aptitudes=((27, 2),),
         enemy_position=(-5, -7, -1),
+        third_player_position=(-8, -6, -1),
+        compact_arena=True,
     ):
         from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
         from wakfu_server.combat_global_pv_collections import (
@@ -46,19 +49,26 @@ class AptitudeHealingRuntimeTests(unittest.TestCase):
         positions = {
             7: (-8, -7, -1),
             8: (-7, -7, -1),
-            9: (-8, -6, -1),
+            9: tuple(third_player_position),
             -7: enemy_position,
         }
-        arena = local_arena(1134, 78, positions[7], positions[-7])
+        arena = local_arena(
+            1134,
+            78,
+            positions[7],
+            positions[-7],
+            compact=compact_arena,
+            relocate_monsters=compact_arena,
+        )
         characters = {
             7: effective_character(
                 dict(
                     id=7,
                     account_id=3,
                     map_id=1134,
-                    breed=7,
+                    breed=caster_breed,
                     level=level,
-                    hp=maximum(7, level) - injury,
+                    hp=maximum(caster_breed, level) - injury,
                     builds={
                         0: {
                             "sheet": proto_field(24, 0xFFFFFFFF).hex(),

@@ -100,7 +100,6 @@ class EcologyPopulationTests(PostgresCase):
             if definition["monster_resource"]
         )
         self._plant(6, resource_reference=seed_reference, stage=1)
-
         self._group(92001, [self._member(2, -92001, 0)])
         self._group(92002, [self._member(39, -92002, 1)], status="fighting")
         self._group(92003, [self._member(2, -92003, 1)], status="defeated")

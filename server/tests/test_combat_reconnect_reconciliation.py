@@ -227,7 +227,7 @@ class ReconnectReconciliationTests(unittest.TestCase):
             ((12847, b"continued-placement"),),
         )
 
-    def test_active_takeover_preserves_peer_outbox_and_rebinds_only_returning_ack(self):
+    def test_active_takeover_preserves_peer_outbox_and_remaining_peer_ack(self):
         peer = Session(2, 20, "peer-generation", 1134, 0)
         self.live.add((2, "peer-generation", 20))
         peer_actor = Actor(20, 0, (1, 0, 0), 60, 6, 3, 90, 1, 2, True)
@@ -246,15 +246,10 @@ class ReconnectReconciliationTests(unittest.TestCase):
         )
         peer_outbox_before = deepcopy(self.shared.outboxes[2])
         self.adapter.registry.arm_ack(fight.id, 5)
-        self.assertFalse(
-            self.adapter.registry.acknowledge(
-                fight.id,
-                peer,
-                struct.pack(">i", 5),
-                lambda *args: self.fail("early release"),
-            )
-        )
-        self.assertEqual(self.shared.ack.received, {2})
+        # Keep the connected peer unacknowledged. Disconnect removes the old
+        # transport from the barrier; takeover must not enroll a fresh socket
+        # in a presentation batch it never received.
+        self.assertEqual(self.shared.ack.received, set())
 
         self.assertEqual(self.adapter.registry.disconnect(self.old), [fight.id])
         self.live.remove((1, "generation-old", 10))
@@ -274,10 +269,8 @@ class ReconnectReconciliationTests(unittest.TestCase):
         self.assertIs(self.shared.runtime, runtime)
         self.assertEqual(self._fight_state(self.shared), before)
         self.assertEqual(durable, [self.old])
-        self.assertEqual(
-            self.shared.ack.expected, {1: "generation-new", 2: "peer-generation"}
-        )
-        self.assertEqual(self.shared.ack.received, {2})
+        self.assertEqual(self.shared.ack.expected, {2: "peer-generation"})
+        self.assertEqual(self.shared.ack.received, set())
         self.assertFalse(self.shared.ack.complete)
         self.assertEqual(list(self.shared.outboxes[2]), list(peer_outbox_before))
         self.assertEqual(self.shared.participants[2], peer)
@@ -288,9 +281,16 @@ class ReconnectReconciliationTests(unittest.TestCase):
             ((12847, b"continued-active"),),
         )
 
+        with self.assertRaises(ValueError):
+            self.adapter.registry.acknowledge(
+                fight.id,
+                replacement,
+                struct.pack(">i", 5),
+                lambda *args: self.fail("returning socket cannot release peer barrier"),
+            )
         released = self.adapter.registry.acknowledge(
             fight.id,
-            replacement,
+            peer,
             struct.pack(">i", 5),
             lambda candidate, candidate_runtime, body: [(13482, b"after-reconnect")],
         )
@@ -456,14 +456,9 @@ class ReconnectReconciliationTests(unittest.TestCase):
         fight = self.shared.fight
         runtime = self.shared.runtime
         self.adapter.registry.arm_ack(fight.id, 5)
-        self.assertFalse(
-            self.adapter.registry.acknowledge(
-                fight.id,
-                peer,
-                struct.pack(">i", 5),
-                lambda *args: self.fail("early release"),
-            )
-        )
+        # An unfinished connected-peer presentation stays pending through a
+        # failed takeover. The departed transport is already removed by
+        # disconnect and must not be restored by takeover rollback.
         peer_outbox_before = deepcopy(self.shared.outboxes[2])
         self.assertEqual(self.adapter.registry.disconnect(self.old), [fight.id])
         self.live.remove((1, "generation-old", 10))
@@ -487,10 +482,8 @@ class ReconnectReconciliationTests(unittest.TestCase):
         self.assertEqual(self.shared.participants[1], self.old)
         self.assertNotIn(1, self.shared.connected)
         self.assertFalse(self.shared.disconnect_abort_pending)
-        self.assertEqual(
-            self.shared.ack.expected, {1: "generation-old", 2: "peer-generation"}
-        )
-        self.assertEqual(self.shared.ack.received, {2})
+        self.assertEqual(self.shared.ack.expected, {2: "peer-generation"})
+        self.assertEqual(self.shared.ack.received, set())
         self.assertEqual(list(self.shared.outboxes[2]), list(peer_outbox_before))
         self.assertIn(2, self.shared.connected)
         self.assertEqual(self.adapter.registry.by_actor[10], fight.id)

@@ -31,6 +31,56 @@ class StoreTests(PostgresCase):
         with self.assertRaisesRegex(ValueError, "Máximo 24"):
             expanded.create_character(self.a, "One Extra")
 
+    def test_expanded_default_applies_to_existing_and_new_accounts(self):
+        from unittest.mock import patch
+        import os
+        from wakfu_server.characters.selection_capacity import packet
+
+        self.store.create_character(self.a, "Existing Character")
+        with patch.dict(os.environ, {"WAKFU_MAX_CHARACTERS": "18"}):
+            expanded = self.reopen()
+        new_account = expanded.register("new-capacity", "test-password")["id"]
+        for account, prefix in ((self.a, "Existing"), (new_account, "New")):
+            for letter in "ABCDEF":
+                expanded.create_character(account, prefix + " Slot " + letter)
+            self.assertGreater(len(expanded.characters(account)), 5)
+            self.assertEqual(packet(expanded.max_characters), (23992, b"\x0d"))
+        self.assertEqual(len(expanded.characters(self.a)), 7)
+        self.assertEqual(len(expanded.characters(new_account)), 6)
+        self.assertEqual(expanded.characters(self.b), [])
+
+    def test_native_maximum_rejects_character_128_without_changing_roster(self):
+        self.store.max_characters = 127
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO characters(account_id,name,name_key,breed,sex,face,hair,"
+                "colors,appearance,hp,max_hp) SELECT %s,'Capacity ' || n,"
+                "'capacity ' || n,2,false,0,0,'[]'::jsonb,'{}'::jsonb,1,1 "
+                "FROM generate_series(1,127) AS n",
+                (self.a,),
+            )
+        with self.assertRaisesRegex(ValueError, "Máximo 127"):
+            self.store.create_character(self.a, "Overflow Character")
+        # These boundary rows intentionally omit progression and wallet
+        # records, so count their persisted roster rows without hydrating them.
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS total FROM characters "
+                    "WHERE account_id=%s AND deleted_at IS NULL",
+                    (self.a,),
+                ).fetchone()["total"],
+                127,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS total FROM characters "
+                    "WHERE account_id=%s AND deleted_at IS NULL",
+                    (self.b,),
+                ).fetchone()["total"],
+                0,
+            )
+
     def test_signed_appearance_survives_reopen_without_losing_costume_colors(self):
         appearance = {
             "skinColor": -6720193,

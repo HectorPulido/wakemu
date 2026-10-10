@@ -440,6 +440,7 @@ class DungeonAutoTransitionDispatchTests(unittest.TestCase):
         )
 
     def test_physical_victory_publishes_gate_and_current_group_without_teleport(self):
+        from wakfu_server import dungeon_native_flow
         from wakfu_server.maps import dungeon_physical_doors, dungeon_runtime
 
         for source in _source_paths():
@@ -464,9 +465,89 @@ class DungeonAutoTransitionDispatchTests(unittest.TestCase):
                 namespace["COMBAT_GROUPS"] = groups
                 namespace["WORLD"].emit_location = Mock()
                 with patch.object(
-                    dungeon_physical_doors, "enabled", return_value=True
+                    dungeon_native_flow, "enabled", return_value=True
                 ), patch.object(
-                    dungeon_physical_doors,
+                    dungeon_native_flow,
+                    "packets",
+                    return_value=((13766, b"closed-gates"),),
+                ) as packets, patch.object(
+                    runtime,
+                    "configuration_for_instance",
+                    return_value=({"instance_id": self.instance_id}, config),
+                ), patch(
+                    "wakfu_server.combat_monster_world.spawn_group",
+                    return_value=b"spawn",
+                ) as spawn, patch.object(
+                    auto, "advance"
+                ) as advance, patch.object(
+                    delivery, "deliver_pending_transitions"
+                ) as poll:
+                    result = dispatch(before_action=before_action)
+
+                self.assertEqual(
+                    {"state": "physical_room_published", "pending_event_ids": ()},
+                    result,
+                )
+                self.assertEqual(2, store.connections)
+                packets.assert_called_once_with(
+                    topology,
+                    map_id=self.character["map_id"],
+                    instance_id=self.instance_id,
+                    unlocked_room=1,
+                    completed=False,
+                )
+                spawn.assert_called_once()
+                emitted = namespace["WORLD"].emit_location.call_args_list
+                self.assertEqual(2, len(emitted))
+                self.assertEqual(
+                    (
+                        self.character["map_id"],
+                        self.instance_id,
+                        13766,
+                        b"closed-gates",
+                    ),
+                    emitted[0].args,
+                )
+                self.assertEqual(
+                    (self.character["map_id"], self.instance_id, 12608, b"spawn"),
+                    emitted[1].args,
+                )
+                advance.assert_not_called()
+                poll.assert_not_called()
+
+    def test_native_teleport_victory_publishes_next_group_without_automatic_travel(
+        self,
+    ):
+        from wakfu_server import dungeon_native_flow
+        from wakfu_server.maps import dungeon_runtime
+
+        for source in _source_paths():
+            with self.subTest(source=str(source)):
+                (
+                    dispatch,
+                    namespace,
+                    store,
+                    auto,
+                    runtime,
+                    delivery,
+                    _config,
+                    before_action,
+                ) = self._run(source, pending={"fight_id": 9003})
+                topology = dict(
+                    self.topology, policy=dungeon_native_flow.TELEPORT_POLICY
+                )
+                config = {"topology": topology}
+                groups = Mock()
+                groups.lock = __import__("threading").RLock()
+                groups.available.return_value = (
+                    {"members": (), "key": (1087, self.instance_id, 33)},
+                )
+                namespace["COMBAT_GROUPS"] = groups
+                namespace["WORLD"].emit_location = Mock()
+                with patch.object(
+                    dungeon_native_flow, "enabled", return_value=True
+                ), patch.object(
+                    dungeon_native_flow,
                     "packets",
                     return_value=((13766, b"closed-gates"),),
                 ) as packets, patch.object(

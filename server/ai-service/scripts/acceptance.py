@@ -118,23 +118,23 @@ def scenarios():
         position=[0, 0, 0],
         mp=1,
     )
-    result.append(("mover → rematar → retirarse", combo, ["move", "cast", "retreat"]))
+    result.append(("move → finish → retreat", combo, ["move", "cast", "retreat"]))
     heal = fixture()
     heal["actors"][0]["hp"] = 5
     heal["states"][0]["actors"] = deepcopy(heal["actors"])
     successor(heal, "root", "heal", cast(-2), hp={-2: 30}, ap=3)
     successor(heal, "root", "damage", cast(), hp={1: 1}, ap=3)
-    result.append(("curación útil supera desgaste", heal, ["heal"]))
+    result.append(("useful healing outweighs attrition", heal, ["heal"]))
     fire = fixture()
     successor(fire, "root", "fire", cast(), hp={1: 1, -2: 1}, ap=3)
-    result.append(("friendly fire supera beneficio: terminar", fire, []))
+    result.append(("friendly fire outweighs benefit: end turn", fire, []))
     unknown = fixture()
     successor(unknown, "root", "unknown", cast(), hp={1: 0}, supported=False)
-    result.append(("rama sin soporte descartada", unknown, []))
+    result.append(("unsupported branch discarded", unknown, []))
     finish = fixture()
     successor(finish, "root", "kill", cast(), hp={1: 0}, ap=3)
     successor(finish, "root", "damage", cast(), hp={1: 1}, ap=3)
-    result.append(("preferir remate", finish, ["kill"]))
+    result.append(("prefer finishing blow", finish, ["kill"]))
     risk = fixture()
     successor(
         risk,
@@ -172,7 +172,7 @@ def scenarios():
         state["rivalForecasts"] = [dict(actorId=1, mode="native", plans=plans)]
     result.append(
         (
-            "evitar mejor respuesta rival sin sumar alternativas",
+            "avoid the best rival response without adding alternatives",
             risk,
             ["avoid-response"],
         )
@@ -239,8 +239,8 @@ def main():
     response = request(args.url, legacy, endpoint="/v1/decide")
     assert response["decision"]["path"] == [[1, 0, 0], [2, 0, 0], [3, 0, 0]]
     assert response["decision"]["attack"] is None
-    print("OK: revisiones/contexto, JSON, tamaño HTTP y compatibilidad protocolo 1")
-    print("Aceptación HTTP completa: OK")
+    print("OK: revisions/context, JSON, HTTP size and protocol 1 compatibility")
+    print("Full HTTP acceptance: OK")
 
 
 if __name__ == "__main__":

@@ -26,6 +26,37 @@ class OrdinaryAuthorityTests(unittest.TestCase):
             excluded_decks={7: []},
         )
 
+    @staticmethod
+    def install_fresh_qi_population(fight):
+        """Give real cell-obstacle evaluation an owned constructor snapshot."""
+        from wakfu_server.combat_qi_registry import NativeQIRegistry
+
+        terrain = dict(
+            x=0,
+            y=0,
+            width=2,
+            height=2,
+            cell_masks=[0x100 | index for index in range(4)],
+        )
+        registry = NativeQIRegistry(terrain, [None] * 127)
+        registered = []
+        for actor in fight.actors.values():
+            actor.native_obstacle_id = registry.register(
+                dict(
+                    identity=["actor", actor.id],
+                    position=list(actor.position[:2]),
+                    radius=0,
+                    indexed=True,
+                    movement_blocking=True,
+                )
+            )
+            registered.append(actor.native_obstacle_id)
+        registry.capture_fresh_cell_topology(registered)
+        fight.native_qi_snapshot = terrain
+        fight.native_qi_slots = registry.serialized_slots()
+        fight.native_qi_touched_cells = registry.serialized_cells()
+        fight.native_qi_byte_topology = registry.serialized_byte_topology()
+
     def test_native_export_properties_and_kind(self):
         data = native_property_catalog()
         self.assertEqual(data["player"]["fight_properties"], [])
@@ -161,6 +192,7 @@ class OrdinaryAuthorityTests(unittest.TestCase):
         timing.stat = lambda *a: None
         self.preview.native_obstacle_cells = frozenset()
         self.preview.native_effect_uid_next = 200
+        self.install_fresh_qi_population(self.preview)
         for actor in self.preview.actors.values():
             actor.effect_stats[87] = 0
         self.preview.actors[7].direction = 0
@@ -215,6 +247,7 @@ class OrdinaryAuthorityTests(unittest.TestCase):
 
         self.preview.native_obstacle_cells = frozenset()
         self.preview.native_effect_uid_next = 200
+        self.install_fresh_qi_population(self.preview)
         for actor in self.preview.actors.values():
             actor.effect_stats[87] = 0
         cast = ordinary_cast_authority(

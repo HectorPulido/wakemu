@@ -93,3 +93,32 @@ The user screenshot at 22:37 on 2026-10-09 confirms the corpse pose. It shows th
 The misleading “Recolectado recientemente” tooltip came from serializing the living-only action as unavailable in `sR`. Native `cXc.eVy` reports `collect.error.npc.collected` for that availability flag before evaluating the action criterion. The corrected encoder leaves native living/dead criteria available for their own eligibility evaluation, so the seed action is rejected by its actual target-state criterion rather than a fake cooldown. Server validation still rejects living-only actions on corpses.
 
 `VerifyMonsterCorpse.java` now applies the real decoded world property to a native `bje`, checks that native action availability is not falsely marked collected, and evaluates the real `eQb/eQd` parsed predicates: dead collection succeeds and living-only seed extraction fails for the dead target. The independent `VerifyCorpseHarvestCriteria.java` probe verifies the same native predicates against both living and dead actors. No restart or deployment was performed for this tooltip correction.
+
+### Actual breed-loader verification
+
+`VerifyCorpseBreedCriteria.java` strengthens the criterion probe: it reads the
+installed binary breed and invokes the actual native `bbo` collection loader,
+then evaluates the resulting `boq.bdt()` criteria against a real native NPC
+before and after world property `DEAD19`. For ordinary Jalato (breed 1), resource
+action 3722/item 2731 accepts only the dead target; seed action 3723/item 2246
+accepts only the living target. Both checks pass. The native `cVP` menu builder
+requires `isUsable()` and `bxQ()`; `cXc.bxQ()` evaluates this actual criterion.
+
+The breed additionally contains action 3724/item 7361 with an empty criterion.
+It is a distinct action and remains outside the supported corpse-harvest
+allowlist. A remaining report of a visible seed icon therefore needs the actual
+native action ID and bound actor/death state to distinguish the living-only seed
+action from this third action or a stale target binding. Do not force a fake
+collection cooldown or enable living-only seed extraction to conceal the issue.
+This investigation changes no gameplay code, deployment, or runtime data.
+
+## Seed menu correction rejected and withdrawn
+
+Hector reports that the disabled seed button remains after restarting the client.
+The attempted capture-agent menu transformation did not pass live acceptance and
+has been removed, together with its helper and transformation-specific oracle.
+Offline component checks did not establish the actual graphical result.
+Further fixes must use server/protocol behavior without modifying client assets
+or introducing gameplay transformations in the capture agent. Corpse appearance
+and hand-resource harvesting retain their earlier acceptance. No services or
+clients were restarted during withdrawal.

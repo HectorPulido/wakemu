@@ -225,10 +225,18 @@ def owned_effect_payload(
     return payload
 
 
-def null_listener_clone_payload(
-    original, *, uid, base_uid, execution_status, caster_id, target_id
+def listener_clone_payload(
+    original,
+    *,
+    uid,
+    base_uid,
+    execution_status,
+    caster_id,
+    target_id,
+    value=0,
+    additional_payload=None,
 ):
-    """Qe.h/k eXE copy: preserve container/clocks, replace clone identity/status."""
+    """Qe.h/k copy: preserve container/clocks, replace calculated clone fields."""
     from .combat_effect_removal import _read_varint, _identity_fields
 
     identity = _identity_fields(original)
@@ -241,9 +249,11 @@ def null_listener_clone_payload(
         generic_effect=identity[3],
         caster_id=caster_id,
         target_id=target_id,
-        value=0,
+        value=value,
         execution_status=execution_status,
     )
+    if additional_payload is not None and not isinstance(additional_payload, bytes):
+        raise ValueError("Native clone additional payload must be bytes")
 
     def fields(data):
         offset = 0
@@ -274,7 +284,9 @@ def null_listener_clone_payload(
             timing = b"".join(
                 raw for key, raw, _ in fields(content) if key not in (2, 5)
             )
-        elif field not in (1, 2, 4, 6, 7):
+        elif field not in (1, 2, 4, 6, 7) and not (
+            field == 8 and additional_payload is not None
+        ):
             preserved.append(encoded)
     if timing is None:
         raise ValueError("Missing original native listener TimeDatas")
@@ -282,13 +294,31 @@ def null_listener_clone_payload(
     return (
         _integer(1, uid)
         + _integer(2, base_uid)
-        + _integer(4, 0)
+        + _integer(4, value)
         + _integer(6, caster_id)
         + _integer(7, target_id)
         + b"".join(preserved)
+        + (
+            b""
+            if additional_payload is None
+            else b"\x42" + _varint(len(additional_payload)) + additional_payload
+        )
         + b"\x5a"
         + _varint(len(timing))
         + timing
+    )
+
+
+def null_listener_clone_payload(
+    original, *, uid, base_uid, execution_status, caster_id, target_id
+):
+    return listener_clone_payload(
+        original,
+        uid=uid,
+        base_uid=base_uid,
+        execution_status=execution_status,
+        caster_id=caster_id,
+        target_id=target_id,
     )
 
 

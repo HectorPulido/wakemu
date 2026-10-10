@@ -13,6 +13,7 @@ import json
 import threading
 
 from .native_context import NativeGraph
+from ..native.native_deadline import check
 
 
 FORMAT = "wakfu-native-graph-parts-1"
@@ -23,6 +24,16 @@ TERRAIN = {
 _BLOBS = OrderedDict()
 _BLOB_LOCK = threading.RLock()
 _READ_BLOBS = OrderedDict()
+
+
+def _checked(values):
+    """Visit every value while bounding uninterrupted Python traversal work."""
+    check()
+    for index, value in enumerate(values):
+        if index % 1024 == 0:
+            check()
+        yield value
+    check()
 
 
 def _verified_blob(digest, read_blob):
@@ -110,13 +121,13 @@ def read_parts(manifest, read_blob):
             raise ValueError("Duplicate or invalid native parts identity")
         owners[identity] = node, indices
 
-    for row in manifest["dynamic"]:
+    for row in _checked(manifest["dynamic"]):
         if not isinstance(row, list) or len(row) != 2:
             raise ValueError("Invalid native dynamic node")
         node = deepcopy(row[1])
         own(row[0], node, None)
         dynamic.append(node)
-    for fragment in manifest["fragments"]:
+    for fragment in _checked(manifest["fragments"]):
         if (
             not isinstance(fragment, dict)
             or set(fragment) != {"sha256", "indices", "emitted"}
@@ -137,7 +148,7 @@ def read_parts(manifest, read_blob):
         if len(set(indices)) != length or len(set(emitted)) != len(emitted):
             raise ValueError("Invalid native fragment identity map")
         emitted = set(emitted)
-        for local, node in enumerate(graph["nodes"]):
+        for local, node in _checked(enumerate(graph["nodes"])):
             if local in emitted:
                 own(indices[local], node, indices)
             else:
@@ -145,7 +156,7 @@ def read_parts(manifest, read_blob):
     if len(owners) != count:
         raise ValueError("Incomplete native parts node ownership")
     nodes = _VirtualNodes(owners)
-    for identity, node, indices in aliases:
+    for identity, node, indices in _checked(aliases):
         if _bytes(nodes[identity]) != _bytes(_remap(node, indices)):
             raise ValueError("Conflicting native fragment alias")
     return NativeGraph(
@@ -284,7 +295,7 @@ def _bytes(value):
 def _pack(values):
     """Encode every identity as consecutive runs, without merging identities."""
     runs = []
-    for value in values:
+    for value in _checked(values):
         if runs and runs[-1][0] + runs[-1][1] == value:
             runs[-1][1] += 1
         else:
@@ -304,7 +315,7 @@ def _unpack(encoded, *, bound, maximum_count, expected_count=None):
     ):
         raise ValueError("Invalid native fragment identity map")
     total = 0
-    for run in encoded["runs"]:
+    for run in _checked(encoded["runs"]):
         if (
             not isinstance(run, list)
             or len(run) != 2
@@ -322,12 +333,13 @@ def _unpack(encoded, *, bound, maximum_count, expected_count=None):
     return [
         value
         for start, length in encoded["runs"]
-        for value in range(start, start + length)
+        for value in _checked(range(start, start + length))
     ]
 
 
 def _terrain_ids(nodes, root):
     """Return complete identity order only for the known immutable schema."""
+    check()
     node = nodes[root]
     if (
         set(node) != {"type", "items", "nativeClass", "fields"}
@@ -339,6 +351,7 @@ def _terrain_ids(nodes, root):
     order, seen, visiting = [root], {root}, set()
 
     def visit(identity):
+        check()
         if identity == root:
             return False
         if identity in visiting:
@@ -351,7 +364,7 @@ def _terrain_ids(nodes, root):
         seen.add(identity)
         visiting.add(identity)
         order.append(identity)
-        for child in value["items"]:
+        for child in _checked(value["items"]):
             if "ref" in child:
                 if not visit(child["ref"]):
                     return False
@@ -361,7 +374,7 @@ def _terrain_ids(nodes, root):
         return True
 
     try:
-        for child in node["items"]:
+        for child in _checked(node["items"]):
             if "ref" not in child or not visit(child["ref"]):
                 return None
         return order
@@ -371,11 +384,15 @@ def _terrain_ids(nodes, root):
 
 def _remap(node, indices):
     """Translate every reference in an eligible node; preserve field order."""
-    result = deepcopy(node)
-    result["items"] = [
-        {"ref": indices[value["ref"]]} if "ref" in value else deepcopy(value)
-        for value in node["items"]
-    ]
+    result = {}
+    for key, item in _checked(node.items()):
+        if key == "items":
+            result[key] = [
+                {"ref": indices[value["ref"]]} if "ref" in value else deepcopy(value)
+                for value in _checked(item)
+            ]
+        else:
+            result[key] = deepcopy(item)
     return result
 
 
@@ -383,7 +400,7 @@ def partition(graph):
     """Return a complete manifest and all raw CAS blobs, without mutation."""
     NativeGraph(graph)
     nodes, claimed, fragments, blobs = graph["nodes"], set(), [], {}
-    for root, node in enumerate(nodes):
+    for root, node in _checked(enumerate(nodes)):
         if root in claimed:
             continue
         identities = _terrain_ids(nodes, root)
@@ -394,7 +411,9 @@ def partition(graph):
             dict(
                 encoding="wakfu-native-graph-1",
                 root={"ref": 0},
-                nodes=[_remap(nodes[identity], local) for identity in identities],
+                nodes=[
+                    _remap(nodes[identity], local) for identity in _checked(identities)
+                ],
             )
         )
         digest = hashlib.sha256(body).hexdigest()
@@ -449,11 +468,11 @@ def restore(manifest, read_blob):
             raise ValueError("Duplicate or invalid native parts identity")
         owners[identity] = node
 
-    for row in manifest["dynamic"]:
+    for row in _checked(manifest["dynamic"]):
         if not isinstance(row, list) or len(row) != 2:
             raise ValueError("Invalid native dynamic node")
         own(row[0], deepcopy(row[1]))
-    for fragment in manifest["fragments"]:
+    for fragment in _checked(manifest["fragments"]):
         if (
             not isinstance(fragment, dict)
             or set(fragment) != {"sha256", "indices", "emitted"}
@@ -497,7 +516,7 @@ def restore(manifest, read_blob):
         ):
             raise ValueError("Incomplete or unsupported native fragment graph")
         emitted = set(emitted)
-        for local, node in enumerate(graph["nodes"]):
+        for local, node in _checked(enumerate(graph["nodes"])):
             mapped = _remap(node, indices)
             identity = indices[local]
             if local in emitted:
@@ -508,13 +527,13 @@ def restore(manifest, read_blob):
     # field/node is omitted and a forged huge count cannot request that memory.
     if len(owners) != count:
         raise ValueError("Incomplete native parts node ownership")
-    for identity, expected in aliases:
+    for identity, expected in _checked(aliases):
         if _bytes(owners.get(identity)) != _bytes(expected):
             raise ValueError("Conflicting native fragment alias")
     graph = dict(
         encoding="wakfu-native-graph-1",
         root=deepcopy(manifest["root"]),
-        nodes=[owners[index] for index in range(count)],
+        nodes=[owners[index] for index in _checked(range(count))],
     )
     NativeGraph(graph)
     return graph

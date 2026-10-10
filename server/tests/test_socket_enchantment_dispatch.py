@@ -16,6 +16,14 @@ class SocketEnchantmentDispatchTests(unittest.TestCase):
             and ast.unparse(node.test)
             == "opcode in (12365, 13257, 12221, 12364, 13269) and loaded"
         )
+        self.assertTrue(
+            any(
+                isinstance(node, ast.ImportFrom)
+                and node.module == "wakfu_server.inventory_items"
+                and any(alias.name == "equipment_inventory" for alias in node.names)
+                for node in branch.body
+            )
+        )
         text = ast.dump(branch)
         self.assertIn("loaded", text)
         self.assertIn("mutate", text)

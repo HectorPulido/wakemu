@@ -3,9 +3,11 @@ import json
 import os
 from pathlib import Path
 import signal
+import stat
 import subprocess
 import threading
 import time
+import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
@@ -16,6 +18,7 @@ RETENTION_SECONDS = 3600
 MAX_BYTES = int(os.environ.get("PROFILER_MAX_BYTES", str(1024**3)))
 CHUNK_SECONDS = 60
 TIMELINE_SECONDS = 5
+ARTIFACT_CHUNK_BYTES = 64 * 1024
 
 
 def world_pid(proc_root=Path("/proc")):
@@ -78,13 +81,16 @@ class Profiler:
         self.enabled_at = time.time()
         self.shutdown = threading.Event()
         self.last_error = None
+        self.last_loop_progress = time.monotonic()
+        self.loop_thread = None
         self.capacity_truncated = False
         self.last_capacity_eviction_at = None
         self.retained_bytes = 0
         self.active_bytes = 0
         self.prune()
         if continuous:
-            threading.Thread(target=self.run, daemon=True).start()
+            self.loop_thread = threading.Thread(target=self.run, daemon=True)
+            self.loop_thread.start()
 
     def prune(self):
         cutoff = time.time() - RETENTION_SECONDS
@@ -131,6 +137,27 @@ class Profiler:
             self.capacity_truncated = True
             self.last_error = "Active capture exceeds byte cap; finalizing early"
             self.process.send_signal(signal.SIGINT)
+
+    def recorder_health(self):
+        age = max(0.0, time.monotonic() - self.last_loop_progress)
+        loop_alive = self.loop_thread is None or self.loop_thread.is_alive()
+        stale_loop = self.enabled and (not loop_alive or age > TIMELINE_SECONDS * 4)
+        stale_capture = bool(
+            self.current and time.time() - self.current["started_at"] > 140
+        )
+        missing_capture = (
+            self.enabled and self.process is None and time.time() - self.enabled_at > 15
+        )
+        return {
+            "ok": not (
+                stale_loop or stale_capture or missing_capture or self.last_error
+            ),
+            "loop_alive": loop_alive,
+            "loop_progress_age_seconds": age,
+            "stale_loop": stale_loop,
+            "stale_capture": stale_capture,
+            "missing_capture": missing_capture,
+        }
 
     def status(self):
         with self.lock:
@@ -179,7 +206,9 @@ class Profiler:
                         "ongoing": True,
                     }
                 )
+            health = self.recorder_health()
             return {
+                "recorder": health,
                 "running": self.process is not None,
                 "continuous_enabled": self.enabled,
                 "current": self.current,
@@ -190,7 +219,9 @@ class Profiler:
                 "retained_bytes": self.retained_bytes,
                 "active_bytes": self.active_bytes,
                 "capacity_truncated": self.capacity_truncated,
-                "degraded": self.capacity_truncated or bool(self.last_error),
+                "degraded": self.capacity_truncated
+                or bool(self.last_error)
+                or not health["ok"],
                 "last_error": self.last_error,
                 "coverage_started_at": successful[0]["started_at"]
                 if successful
@@ -217,6 +248,7 @@ class Profiler:
         """Persist bounded history and rotate the external sampler for the service lifetime."""
         while not self.shutdown.wait(TIMELINE_SECONDS):
             try:
+                self.last_loop_progress = time.monotonic()
                 now = time.time()
                 row = {"recorded_at": now, "world": process_metrics()}
                 try:
@@ -243,8 +275,25 @@ class Profiler:
                     self.capture(
                         {"seconds": CHUNK_SECONDS, "mode": "waits"}, continuous=True
                     )
-            except (OSError, RuntimeError, ValueError) as exc:
-                self.last_error = str(exc)
+                self.last_loop_progress = time.monotonic()
+            except Exception as exc:
+                # An unexpected metrics/retention error must not silently end
+                # the only timeline/retry thread while HTTP still says healthy.
+                self.last_error = type(exc).__name__ + ": " + str(exc)
+                traceback.print_exc()
+                try:
+                    now = time.time()
+                    path = self.output / ("timeline-" + str(int(now // 60)) + ".jsonl")
+                    with path.open("a") as stream:
+                        stream.write(
+                            json.dumps(
+                                {"recorded_at": now, "recorder_error": self.last_error}
+                            )
+                            + "\n"
+                        )
+                except OSError:
+                    pass
+                self.last_loop_progress = time.monotonic()
 
     def capture(self, request, continuous=False):
         if not isinstance(request, dict) or set(request) - {"seconds", "mode"}:
@@ -378,10 +427,47 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
+    def serve_artifact(self, destination):
+        # Open once: retention may unlink the path while a download is active.
+        # NOFOLLOW also rejects a symlink substituted after route validation.
+        try:
+            descriptor = os.open(
+                destination, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+            )
+        except OSError:
+            return self.respond(404, {"error": "Artifact not found"})
+        with os.fdopen(descriptor, "rb") as stream:
+            info = os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode):
+                return self.respond(404, {"error": "Artifact not found"})
+            try:
+                self.send_response(200)
+                self.send_header(
+                    "Content-Type",
+                    "application/json"
+                    if destination.name.endswith(".json")
+                    else "text/plain",
+                )
+                self.send_header("Content-Length", str(info.st_size))
+                self.end_headers()
+                remaining = info.st_size
+                # Active timelines/captures can grow; serve only the advertised snapshot.
+                while remaining:
+                    chunk = stream.read(min(ARTIFACT_CHUNK_BYTES, remaining))
+                    if not chunk:
+                        self.close_connection = True
+                        break
+                    self.wfile.write(chunk)
+                    remaining -= len(chunk)
+            except OSError:
+                # A disconnected reader must not leak the file or kill the service.
+                self.close_connection = True
+
     def do_GET(self):
         path = urlsplit(self.path).path
         if path == "/health":
-            return self.respond(200, {"ok": True})
+            health = self.profiler.recorder_health()
+            return self.respond(200 if health["ok"] else 503, health)
         if path == "/status":
             return self.respond(200, self.profiler.status())
         if path == "/report":
@@ -417,16 +503,7 @@ class Handler(BaseHTTPRequestHandler):
             destination = self.profiler.output / name
             if destination.is_symlink() or not destination.is_file():
                 return self.respond(404, {"error": "Artifact not found"})
-            payload = destination.read_bytes()
-            self.send_response(200)
-            self.send_header(
-                "Content-Type",
-                "application/json" if name.endswith(".json") else "text/plain",
-            )
-            self.send_header("Content-Length", str(len(payload)))
-            self.end_headers()
-            self.wfile.write(payload)
-            return
+            return self.serve_artifact(destination)
         self.respond(404, {"error": "Unknown endpoint"})
 
     def do_POST(self):

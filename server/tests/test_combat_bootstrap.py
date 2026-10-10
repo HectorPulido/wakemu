@@ -109,6 +109,7 @@ class BootstrapTests(unittest.TestCase):
 
     def test_selected_fixed_build_controls_actor_level_without_rewriting_real_xp(self):
         from wakfu_server.combat_bootstrap import create_placement, player_payload
+        from wakfu_server.combat_orientation import INITIAL_PLAYER_DIRECTION
         from wakfu_server.monsters import owned_instance
         from wakfu_server.wire import proto_field
         from wakfu_server.progression import level_xp
@@ -171,12 +172,19 @@ class BootstrapTests(unittest.TestCase):
         terrain["cell_masks"][0] ^= 128
         self.assertEqual(fight.native_qi_snapshot, captured_qi)
         self.assertEqual(fight.actors[100].effective_level, 49)
-        self.assertEqual(fight.actors[100].direction, 0)
+        self.assertEqual(fight.actors[100].direction, INITIAL_PLAYER_DIRECTION)
         self.assertEqual(fight.actors[-200].direction, 3)
+        for direction in (INITIAL_PLAYER_DIRECTION, 5):
+            fight.actors[100].direction = direction
+            stats, _effects = player_payload(char, fight.actors[100], 7, wp=6)
+            self.assertEqual(stats[27], direction)
+        fight.actors[100].direction = INITIAL_PLAYER_DIRECTION
         self.assertEqual(
             fight.actors[100].native_cosmetic_state,
             {
-                "selected_values": {3: 0, 4: 0, 5: (), 6: 0, 7: 42},
+                # currentTitle in raw appearance is not proof of account-owned
+                # title knowledge; the fresh actor keeps the empty title slot.
+                "selected_values": {3: 0, 4: 0, 5: (), 6: 0, 7: 0},
                 "active_cosmetics": {},
             },
         )
@@ -187,6 +195,10 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(struct.unpack_from(">h", payload, len(payload) - 2)[0], 50)
         self.assertEqual(
             decode_bootstrap(messages[1][1])["participants"][0]["actor_id"], 100
+        )
+        self.assertEqual(
+            decode_bootstrap(messages[1][1])["participants"][0]["myE"][27],
+            fight.actors[100].direction,
         )
         self.assertEqual(
             decode_body("in", 13684, messages[2][1]),

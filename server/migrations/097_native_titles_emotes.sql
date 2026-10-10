@@ -82,7 +82,7 @@ INSERT INTO native_title_learning_actions(item_ref,action_id,title_id,has_criter
 (14111,2346,149,false),
 (14170,13695,803,false),
 (14178,12499,658,false),
-(14199,12302,656,true),
+(14199,12302,656,false),
 (14204,12009,654,false),
 (14252,2397,152,false),
 (14287,2427,154,false),

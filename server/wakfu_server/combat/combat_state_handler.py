@@ -567,6 +567,10 @@ class NativeStateHandler:
                         if self.register_subscription is not None
                         else invocation.native_value_scope,
                         native_explicit_target=False,
+                        # eZk.bbA is true: c(Qe,boolean) calls child.g(bfs)
+                        # before bal(), including empty-area graphical roots.
+                        native_preselected_target=True,
+                        wakemu_fresh_child_selection=False,
                     )
                 )
         return True

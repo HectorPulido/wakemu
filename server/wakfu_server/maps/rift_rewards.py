@@ -232,8 +232,15 @@ def apply(db, run, result, *, store, eligible_character_ids, rng=secrets.randbel
             or not member["session_generation"]
         ):
             raise ValueError("Rift rewards require finished durable participant lease")
-        store.lock_character(
-            db, member["account_id"], member["session_generation"], cid
+        from wakfu_server.combat_reward_ownership import lock_recipient
+
+        lock_recipient(
+            store,
+            db,
+            member["account_id"],
+            member["session_generation"],
+            cid,
+            run["fight_id"],
         )
         draws = plan(policy, result, rng=rng)
         snapshot = dict(

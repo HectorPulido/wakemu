@@ -176,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument("--db", required=True)
     parser.add_argument("--account-id", required=True, type=int)
     parser.add_argument("--level", type=int, default=200)
-    parser.add_argument("--max-characters", type=int, default=24)
+    parser.add_argument("--max-characters", type=int, default=None)
     parser.add_argument("--prefix", default="Prueba")
     parser.add_argument(
         "--breed",

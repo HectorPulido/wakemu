@@ -95,7 +95,18 @@ class NativeCopyCharacteristicHandler:
         after = max(
             minimum, min(high if row["expandable"] else updated, copied.current)
         )
-        uid = self.allocate_uid()
+        clone = invocation.native_running_uid is not None
+        listener = None
+        if clone:
+            listener = self.fight.native_owned_group_effects.get(invocation.base_uid)
+            if (
+                listener is None
+                or listener.get("effect_class") != 1001
+                or listener.get("invocation", {}).get("reference")
+                != invocation.reference
+            ):
+                raise ValueError("Missing native copied-characteristic listener source")
+        uid = invocation.native_running_uid if clone else self.allocate_uid()
         payload = owned_effect_payload(
             uid=uid,
             base_uid=invocation.base_uid,
@@ -107,6 +118,19 @@ class NativeCopyCharacteristicHandler:
         )
         extra = _integer(10, copied.maximum) + _integer(12, stat)
         payload += b"\x42" + _varint(len(extra)) + extra
+        if clone:
+            from .combat_stat_effects import listener_clone_payload
+
+            payload = listener_clone_payload(
+                bytes.fromhex(listener["payload"]),
+                uid=uid,
+                base_uid=invocation.base_uid,
+                execution_status=-1,
+                caster_id=caster.id,
+                target_id=target.id,
+                value=copied.current,
+                additional_payload=extra,
+            )
         packet = owned_effect_application(
             self.fight.id,
             self.action_id,
@@ -147,7 +171,7 @@ class NativeCopyCharacteristicHandler:
             actual=after - before,
             current=after,
         )
-        if ctx.retained:
+        if ctx.retained and not clone:
             self.fight.owned_stat_effects[uid] = dict(
                 uid=uid,
                 target_id=target.id,
@@ -161,7 +185,21 @@ class NativeCopyCharacteristicHandler:
                 state_uid=invocation.state_uid,
                 timer=None if ctx.timer is None else dict(vars(ctx.timer)),
             )
-        self.packets.append((13497, packet))
+        if clone:
+            from .combat_observation_delivery import (
+                evaluated_application_from_observation,
+            )
+
+            self.packets.append(
+                (
+                    12613,
+                    evaluated_application_from_observation(
+                        packet, execute=not ctx.retained
+                    ),
+                )
+            )
+        else:
+            self.packets.append((13497, packet))
         return True
 
 

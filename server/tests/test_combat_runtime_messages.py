@@ -187,6 +187,7 @@ class RuntimeMessageTests(unittest.TestCase):
         actor.native_controller_id = 12
         actor.native_obstacle_id = 5
         actor.native_controlled_by_ai = False
+        actor.native_fight_property_counts = {}
         authority = NativeActorAuthority(
             targeting={},
             is_player=False,

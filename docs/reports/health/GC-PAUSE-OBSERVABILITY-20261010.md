@@ -1,0 +1,9 @@
+# Deferred garbage-collection pause observations
+
+A catalogue metadata encoding reproduction measured a generation-1 collection pause around 629 ms, while the live incident spent more than 15 seconds in encoding. The reproduction establishes that GC can contribute to this path; it does not establish the live pause duration. The server now captures bounded GC timing facts to distinguish collection pauses from graph traversal in future profiler evidence.
+
+`storage.gc_pause_monitor` installs one idempotent callback when the performance export monitor starts. The callback records generation, elapsed wall time and elapsed collecting-thread CPU time. It never calls the profiler, logs, or acquires a lock: GC can run while the profiler already holds its own lock. The existing performance monitor thread drains observations under fixed labels `diagnostics.gc.gen0`, `diagnostics.gc.gen1`, and `diagnostics.gc.gen2` before writing its periodic report. Normal monitor shutdown unregisters the callback.
+
+At most 256 completed timings and 16 in-progress timing keys are retained. Overflow discards oldest timing evidence rather than accumulating memory or blocking gameplay. Records contain no player data, collected objects, stack traces or object references. GC enablement, thresholds and collection policy are unchanged. A timing measures this callback's start-to-stop interval, including any earlier callback overhead or thread scheduling during collection; CPU time helps distinguish these cases without proving their causes.
+
+Four regressions pass, including an actual `gc.collect(2)`, deferred profiler interaction, wall/CPU timing, bounded retention, idempotent registration/removal, and faulty diagnostic-clock handling. Broader monitor/profiler validation is delegated. No server restart was performed by this task.

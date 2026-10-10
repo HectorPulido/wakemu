@@ -22,18 +22,25 @@ def write_report(profiler, path, *, lag_seconds=0.0):
 def start_monitor(profiler, path, stopping, *, interval=30.0):
     if interval < 1:
         raise ValueError("Performance export interval must be at least one second")
+    from .gc_pause_monitor import MONITOR
+
+    MONITOR.install()
 
     def run():
-        expected = time.monotonic() + interval
-        while not stopping.wait(interval):
-            lag = max(0.0, time.monotonic() - expected)
-            profiler.observe("diagnostics.monitor_lag", lag, 0.0)
-            try:
-                write_report(profiler, path, lag_seconds=lag)
-            except Exception:
-                # Disk faults must not affect gameplay or recursively log.
-                profiler.observe("diagnostics.report_failure", 0.0, 0.0, error=True)
+        try:
             expected = time.monotonic() + interval
+            while not stopping.wait(interval):
+                lag = max(0.0, time.monotonic() - expected)
+                MONITOR.drain(profiler)
+                profiler.observe("diagnostics.monitor_lag", lag, 0.0)
+                try:
+                    write_report(profiler, path, lag_seconds=lag)
+                except Exception:
+                    # Disk faults must not affect gameplay or recursively log.
+                    profiler.observe("diagnostics.report_failure", 0.0, 0.0, error=True)
+                expected = time.monotonic() + interval
+        finally:
+            MONITOR.uninstall()
 
     worker = threading.Thread(target=run, name="performance-report-writer", daemon=True)
     worker.start()

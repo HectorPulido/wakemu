@@ -61,6 +61,133 @@ def setup_abandon_state(store):
 
 
 class AbandonTests(PostgresCase):
+    def test_returns_persist_all_owned_hero_health_atomically(self):
+        from wakfu_server import combat_lifecycle
+
+        s, a, g, c, f, r = setup_abandon_state(self.store)
+        hero = s.create_character(a, "Return Hero")
+        f.actors[hero["id"]] = Actor(
+            hero["id"],
+            0,
+            (2, 0, 0),
+            hero["hp"] - 4,
+            6,
+            3,
+            0,
+            hero["level"],
+            a,
+            True,
+            max_hp=hero["max_hp"],
+        )
+        with s.connection() as db:
+            db.execute(
+                "INSERT INTO combat_fight_participants"
+                "(fight_id,character_id,account_id,team,session_generation) "
+                "VALUES(%s,%s,%s,0,%s)",
+                (f.id, hero["id"], a, g),
+            )
+        f.phase, f.winner = "finished", 0
+        result = combat_lifecycle.return_to_world(
+            s, a, g, c, r, struct.pack(">iB", f.id, 0), wp=6
+        )
+        self.assertTrue(result["applied"])
+        self.assertEqual(s.character(a, hero["id"])["hp"], hero["hp"] - 4)
+        # The abort continuation shares the same atomic per-account helper;
+        # existing receipts make a repeated callback preserve later world HP.
+        r.abandon_owner = (a, c["id"])
+        r.abandon_returned = False
+        f.winner = None
+        returned = combat_abandon.return_to_world(
+            s, a, g, result["character"], r, struct.pack(">iB", f.id, 0), wp=6
+        )
+        self.assertEqual(returned["character"]["id"], c["id"])
+        with s.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_health_exits " "WHERE fight_id=%s",
+                    (f.id,),
+                ).fetchone()["n"],
+                2,
+            )
+
+    def test_abort_returns_persist_all_owned_hero_health_atomically(self):
+        from wakfu_server import combat_lifecycle
+
+        s, a, g, c, f, r = setup_abandon_state(self.store)
+        hero = s.create_character(a, "Return Hero")
+        f.actors[hero["id"]] = Actor(
+            hero["id"],
+            0,
+            (2, 0, 0),
+            hero["hp"] - 4,
+            6,
+            3,
+            0,
+            hero["level"],
+            a,
+            True,
+            max_hp=hero["max_hp"],
+        )
+        with s.connection() as db:
+            db.execute(
+                "INSERT INTO combat_fight_participants"
+                "(fight_id,character_id,account_id,team,session_generation) "
+                "VALUES(%s,%s,%s,0,%s)",
+                (f.id, hero["id"], a, g),
+            )
+        f.phase, f.winner = "finished", None
+        r.abandon_owner = (a, c["id"])
+        r.abandon_returned = False
+        result = combat_abandon.return_to_world(
+            s, a, g, c, r, struct.pack(">iB", f.id, 0), wp=6
+        )
+        self.assertTrue(result["applied"])
+        self.assertEqual(s.character(a, hero["id"])["hp"], hero["hp"] - 4)
+
+    def test_prepare_abort_persists_all_hero_receipts_before_client_callback(self):
+        s, a, g, c, f, r = setup_abandon_state(self.store)
+        hero = s.create_character(a, "Abort Hero")
+        f.actors[hero["id"]] = Actor(
+            hero["id"],
+            0,
+            (2, 0, 0),
+            hero["hp"] - 4,
+            6,
+            3,
+            0,
+            hero["level"],
+            a,
+            True,
+            max_hp=hero["max_hp"],
+        )
+        with s.connection() as db:
+            db.execute(
+                "INSERT INTO combat_fight_participants"
+                "(fight_id,character_id,account_id,team,session_generation) "
+                "VALUES(%s,%s,%s,0,%s)",
+                (f.id, hero["id"], a, g),
+            )
+        prepared = combat_abandon.prepare(s, a, g, c, r, b"")
+        self.assertTrue(prepared["applied"])
+        self.assertEqual(s.character(a, hero["id"])["hp"], hero["hp"] - 4)
+        with s.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM fight_health_exits " "WHERE fight_id=%s",
+                    (f.id,),
+                ).fetchone()["n"],
+                2,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (f.id,)
+                ).fetchone()["status"],
+                "aborted",
+            )
+        self.assertFalse(
+            combat_abandon.prepare(s, a, g, prepared["character"], r, b"")["applied"]
+        )
+
     def setup(self, directory):
         return setup_abandon_state(self.store)
 

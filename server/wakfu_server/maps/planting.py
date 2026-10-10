@@ -113,6 +113,10 @@ def prepare(
         resource = RESOURCES.get(seed["resource_reference"])
         if resource is None:
             raise ValueError("Unknown native resource reference")
+        from .resource_domains import is_mineral
+
+        if is_mineral(seed["resource_reference"]):
+            raise ValueError("Mining resources cannot be planted")
         from .profession_store import stored_level
 
         learned = stored_level(db, account, seed["profession_id"])
@@ -235,6 +239,12 @@ def complete(
             "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
             ("planting-cell:" + ":".join(map(str, cell)),),
         )
+        if db.execute(
+            "SELECT 1 FROM mining_vein_slots "
+            "WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s AND enabled",
+            cell,
+        ).fetchone():
+            raise ValueError("Planting surface is reserved for a mineral vein")
         if db.execute(
             "SELECT 1 FROM planted_resources "
             "WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s",

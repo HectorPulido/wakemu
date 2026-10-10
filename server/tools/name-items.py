@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Añade nombres españoles nativos a los catálogos de objetos, sin red."""
+"""Add native Spanish names to item catalogs without network access."""
 import json
 from pathlib import Path
 import zipfile
@@ -32,7 +32,7 @@ def main():
         data["name_source"] = "i18n_es.jar/texts_es.properties; content.15.<reference>"
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
         print(
-            f'{path.name}: {sum(r["name"] is not None for r in rows)}/{len(rows)} nombres'
+            f'{path.name}: {sum(r["name"] is not None for r in rows)}/{len(rows)} names'
         )
 
 

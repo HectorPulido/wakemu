@@ -7,12 +7,13 @@ import secrets
 import os
 import shlex
 from .combat_terrain import map_geometry
+from .combat_geometry import published_geometry
 from .inventory_items import grant, insertion, equipment_inventory, _lease
 from .inventory_move import STACKS
 from .monsters import owned_instance, statistics, reference as monster_reference
 from .combat_monster_world import spawn_group
 
-HELP = "!help | !position | !level level [target] | !teleport map x y z [target] | !item reference quantity [target] | !monster reference level quantity [target] | !kamas amount [target] | !buscar [item|mob] name [--pagina N] | !checkpoint [receipt] | !resultado receipt | !perfil [informe|estado|iniciar seconds|detener|reiniciar] | !equip uid slot | !unequip slot | !exitdungeon"
+HELP = "!help | !position | !level level [target] | !teleport map x y z [target] | !item reference quantity [target] | !monster reference level quantity [target] | !kamas amount [target] | !buscar [item|mob] name [--pagina N] | !checkpoint [receipt] | !resultado receipt | !perfil [informe|estado|iniciar seconds|detener|reiniciar] | !equip uid slot | !unequip slot | !exitdungeon | !winfight | !losefight"
 
 TARGET_ARITY = {"!nivel": 1, "!tp": 4, "!item": 2, "!mob": 3, "!kamas": 1}
 
@@ -282,11 +283,8 @@ def execute(store, groups, account, generation, character, text, *, authorized_b
                 "El codec de monstruos locales todavía requiere instancia 0"
             )
         origin = (current["x"], current["y"], current["z"])
-        data = map_geometry(current["map_id"])
-        edges = {}
-        for start, end in data["edges"]:
-            edges.setdefault(tuple(start), []).append(tuple(end))
-        if origin not in {tuple(cell) for cell in data["cells"]}:
+        geometry = published_geometry(current["map_id"])
+        if origin not in geometry.cells:
             raise ValueError("Posición del personaje fuera de la geometría nativa")
         occupied = {
             tuple(m[k] for k in ("x", "y", "z"))
@@ -295,7 +293,7 @@ def execute(store, groups, account, generation, character, text, *, authorized_b
         }
         seen, queue, cells = {origin}, [origin], []
         for cell in queue:
-            for neighbor in sorted(edges.get(cell, ())):
+            for neighbor in geometry.outgoing.get(cell, ()):
                 if neighbor not in seen:
                     seen.add(neighbor)
                     queue.append(neighbor)

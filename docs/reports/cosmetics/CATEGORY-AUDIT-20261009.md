@@ -16,6 +16,7 @@ Selection must additionally populate the native preset and actor visual fields.
 | 4 PLAYER_SPRINT | 51 | Implemented | Source implemented; native actor sprint field, pending deployment/manual acceptance |
 | 5 PLAYER_FINISHER | 36 | Implemented | Existing implementation preserved |
 | 6 PLAYER_AURA | 127 | Implemented | Source implemented; native actor aura field, pending deployment/manual acceptance |
+| 7 PLAYER_TITLE | 467 separate bIs actions | Source implemented | Native account title IDs, preset and actor title; pending deployment/manual acceptance |
 | 8 PLAYER_HEAD_SKIN | 8 | Implemented | Native active equipment appearance component under review; selection rejected |
 | 11 PLAYER_BACK_SKIN | 7 | Implemented | Native active equipment appearance component under review; selection rejected |
 | 12 PLAYER_BOOTS_SKIN | 6 | Implemented | Native active equipment appearance component under review; selection rejected |
@@ -129,3 +130,10 @@ See `FULL-INVENTORY-DOFUS-AUDIT-20261009.md`, `inventory.json`,
 all 1,234 validated account cosmetic IDs, cosmetic-related non-bIt action items,
 and all 42 Dofus-named Wakfu items. Native flag-35 audit identifies 127 cosmetic
 auras plus 45 equippable aura items, rather than 172 equippable relics.
+
+## Titles and emotes follow-up
+
+Titles and emotes have dedicated native learning routes in migration 097. See
+[TITLES-IMPLEMENTATION-20261010.md](TITLES-IMPLEMENTATION-20261010.md) and
+[EMOTES-IMPLEMENTATION-20261010.md](EMOTES-IMPLEMENTATION-20261010.md) for
+source status, native ownership contracts and complete acceptance procedures.

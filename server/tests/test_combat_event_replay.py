@@ -198,6 +198,40 @@ class NativeEventReplayTests(unittest.TestCase):
         )
         return ConditionContext({"caster": actor, "target": actor})
 
+    def test_copy_characteristic_activation_forwards_allocated_clone_uid(self):
+        # Reuse the fixture's native activation envelope; substitute the runner
+        # family to exercise the central eWZ handoff independently of PA maths.
+        reference = 359836
+        effect = deepcopy(self.effects[str(reference)])
+        effect["effect_class"] = 1001
+        self.dispatcher.effects[str(reference)] = effect
+        calls, allocations = [], []
+
+        def execute(effect, values, invocation):
+            calls.append(invocation)
+            return True
+
+        self.dispatcher.handlers[1001] = execute
+
+        def allocate():
+            allocations.append(902)
+            return 902
+
+        invocation = EffectInvocation(reference, 40, 7, 7, (0, 0, 0), base_uid=901)
+        self.assertTrue(
+            self.dispatcher.execute_activation(
+                invocation,
+                source=self.source(),
+                condition_context=lambda *args: self.conditions(),
+                executable=True,
+                allocate_uid=allocate,
+            )
+        )
+        self.assertEqual(allocations, [902])
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0].native_running_uid, 902)
+        self.assertEqual(calls[0].base_uid, 901)
+
     def test_real_feline_impact_400_clone_uses_one_uid_without_server_duplication(
         self,
     ):

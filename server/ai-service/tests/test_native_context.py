@@ -46,6 +46,64 @@ def child_ref(graph, container, key):
 
 
 class NativeContextTests(unittest.TestCase):
+    def test_hostile_dict_overrides_are_not_executed_and_stored_entries_survive(self):
+        class HostileDict(dict):
+            __slots__ = ("__hidden", "__dict__")
+
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.__hidden = {"marker": [b"slot-value"]}
+
+            def items(self):
+                raise AssertionError("custom items must not run")
+
+            def __iter__(self):
+                raise AssertionError("custom iteration must not run")
+
+            def __getitem__(self, key):
+                raise AssertionError("custom lookup must not run")
+
+        hostile = HostileDict({"secret": {"revision": 1}})
+        # Read the physical entry through the builtin API and form an alias
+        # cycle without invoking subclass lookup hooks.
+        stored = dict.items(hostile).__iter__().__next__()[1]
+        hostile.alias = stored
+        stored["owner"] = hostile
+        encoded = encode_bytes({"value": hostile, "alias": stored})
+        graph = NativeGraph(encoded)
+        root_ref = graph.data["root"]
+        value_ref = graph.field(root_ref, "value")
+        value_node = graph.resolve(value_ref)
+        self.assertEqual(value_node["type"], "dict")
+        self.assertIn("secret", [graph.plain(key) for key, _ in value_node["entries"]])
+        hidden_ref = value_node["fields"]["_HostileDict__hidden"]
+        hidden_node = graph.resolve(hidden_ref)
+        self.assertEqual(hidden_node["type"], "dict")
+        self.assertEqual(
+            graph.plain(graph.field(hidden_ref, "marker")), [b"slot-value"]
+        )
+        stored_ref = graph.field(root_ref, "alias")
+        self.assertEqual(stored_ref, value_node["fields"]["alias"])
+        self.assertEqual(graph.field(stored_ref, "owner"), value_ref)
+
+    def test_immutable_catalog_lazy_views_stay_lazy_during_native_encoding(self):
+        from wakfu_server.combat.combat_static_catalogs import ImmutableCatalog
+
+        source = {"unused": {"nested": [1, 2]}, "scalar": 7}
+        catalog = ImmutableCatalog(source)
+        self.assertEqual(catalog._views, {})
+        graph = NativeGraph(encode_bytes(catalog))
+        self.assertEqual(catalog._views, {})
+        root_ref = graph.data["root"]
+        self.assertEqual(graph.plain(graph.field(root_ref, "scalar")), 7)
+        root_node = graph.resolve(root_ref)
+        source_ref = root_node["fields"]["_source"]
+        self.assertEqual(
+            graph.plain(graph.field(source_ref, "unused")), {"nested": [1, 2]}
+        )
+        views = graph.plain(root_node["fields"]["_views"])
+        self.assertEqual(views, {})
+
     def test_native_graph_accepts_gzip_and_legacy_plain_bytes(self):
         value = {"future": {"bytes": b"complete", "tuple": (1, 2)}}
         raw = encode_bytes(value)

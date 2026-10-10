@@ -44,6 +44,7 @@ class EffectInvocation:
     )
     native_explicit_target: bool = False  # Native PK.a received a non-null PV argument.
     wakemu_fresh_child_selection: bool = False
+    native_preselected_target: bool = False  # Qe.g(PV), bypassing area and aZX.
     native_target_cell_argument: bool = (
         False  # Criterion received raw aBn, not selected PV.
     )
@@ -240,6 +241,10 @@ class EffectDispatcher:
                 or selected.level != invocation.level
             ):
                 raise ValueError("Resolver changed effect identity or evaluation level")
+            if selected.native_preselected_target:
+                # g(PV) binds this runner once. Its newly allocated children
+                # still execute their own native target-selection contracts.
+                selected = replace(selected, native_preselected_target=False)
             if (
                 activation is None
                 and self.group_retention is not None
@@ -322,7 +327,7 @@ class EffectDispatcher:
                     )
                     if self._prepared_scopes:
                         self._prepared_scopes[-1].append((effect, selected))
-                elif effect["effect_class"] in (400, 933, 1000, 1080):
+                elif effect["effect_class"] in (400, 933, 1000, 1001, 1080):
                     selected = replace(selected, native_running_uid=clone_uid)
             if effect["effect_class"] == 865:
                 from .combat_value_transfer_runtime import execute_runtime_transfer

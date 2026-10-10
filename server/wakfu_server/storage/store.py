@@ -11,6 +11,7 @@ from psycopg.types.json import Jsonb
 from wakfu_server.postgres import Database
 import time
 from protocol_codec import APPEARANCE_FIELDS
+from wakfu_server.characters.selection_capacity import configured_capacity
 
 
 class Store:
@@ -21,13 +22,7 @@ class Store:
             raise ValueError("PostgreSQL connection configuration required")
         self.database_url = database_url
         self.clock = clock
-        self.max_characters = (
-            int(os.environ.get("WAKFU_MAX_CHARACTERS", "5"))
-            if max_characters is None
-            else max_characters
-        )
-        if type(self.max_characters) is not int or not 1 <= self.max_characters <= 127:
-            raise ValueError("Invalid character selection capacity")
+        self.max_characters = configured_capacity(max_characters)
         self.database = Database(
             database_url,
             password_file=password_file
@@ -606,6 +601,20 @@ class Store:
                 "UPDATE sessions SET character_id=NULL WHERE account_id=%s AND character_id=%s",
                 (account_id, character_id),
             )
+            # Saved heroes must never retain a soft-deleted owned actor.
+            removed_hero = db.execute(
+                "DELETE FROM account_hero_slots WHERE account_id=%s AND character_id=%s RETURNING slot",
+                (account_id, character_id),
+            ).fetchone()
+            db.execute(
+                "DELETE FROM account_hero_rosters WHERE account_id=%s AND leader_id=%s",
+                (account_id, character_id),
+            )
+            if removed_hero is not None:
+                db.execute(
+                    "UPDATE account_hero_rosters SET revision=revision+1 WHERE account_id=%s",
+                    (account_id,),
+                )
             db.execute(
                 "UPDATE characters SET deleted_at=%s WHERE id=%s AND account_id=%s "
                 "AND deleted_at IS NULL",
@@ -658,7 +667,11 @@ class Store:
             from psycopg.types.json import Jsonb
 
             cosmetics = load_cosmetics(db, account_id)
-            if cosmetics is not None and cosmetics.items and character_id not in dict(cosmetics.selections):
+            if (
+                cosmetics is not None
+                and cosmetics.items
+                and character_id not in dict(cosmetics.selections)
+            ):
                 cosmetics = cosmetics.equip_finishers(character, ())
                 db.execute(
                     "INSERT INTO account_cosmetics(account_id,record) VALUES(%s,%s) "

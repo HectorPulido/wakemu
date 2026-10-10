@@ -88,6 +88,11 @@ def _write(fight, source_id, actor, stat, value):
     elif stat == 3:
         actor.mp = value
     if actor.effect_stats is not None:
+        # Initiative35 is mirrored by Actor.initiative for snapshots and
+        # checkpoints. Keep the already-built timeline untouched; changing a
+        # characteristic is not a timeline-reordering operation.
+        if stat == 35:
+            actor.initiative = value
         actor.effect_stats[stat] = value
     from .combat_resource_pa_notifications import notify_resource_pa
 

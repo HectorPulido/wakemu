@@ -122,3 +122,16 @@ class CopiedRuntimeBookTests(unittest.TestCase):
             self.assertEqual(
                 struct.unpack_from(">qih", notification, 26), (uid, 623, 200)
             )
+
+
+class CopiedBookCatalogCoverageTests(unittest.TestCase):
+    def test_metadata_covers_complete_owned_book_including_universal_passives(self):
+        from wakfu_server.spells import available_spells
+
+        flags = native_copy_book_flags()
+        from wakfu_server.combat_class_initialization import BREEDS
+
+        for breed in BREEDS:
+            for row in available_spells(breed, 245):
+                with self.subTest(breed=breed, reference=row["id"]):
+                    self.assertIn(str(row["id"]), flags)

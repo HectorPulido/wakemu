@@ -5,11 +5,14 @@ from .ecology_policy import decision
 from .personal_ecology import apply
 from .planting import RESOURCES
 from .ecology_feedback import describe, information
+from .resource_domains import is_mineral
 
 
 def change(db, character_id, resource, *, operation, action):
     if action not in ("plant", "remove", "harvest"):
         raise ValueError("Invalid flora ecology action")
+    if is_mineral(resource["resource_reference"]):
+        return {"packets": [], "reason": "mineral_not_ecological"}
     if resource["map_id"] == 9:
         # Private gardens never modify exterior ecology or personal affinity.
         return {"packets": [], "reason": "private_haven_bag_garden"}

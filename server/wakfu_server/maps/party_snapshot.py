@@ -1,4 +1,4 @@
-"""Native roster for ordinary player characters, excluding hero/companion rows.
+"""Native roster for real player characters and their owned heroes.
 
 Account association and portrait sex are taken from authoritative characters.
 Effective levels and active-fight identities must be supplied by the caller's
@@ -26,7 +26,7 @@ def packet(snapshot, *, effective_levels, fighting_ids=()):
                 name=row["name"],
                 breed=row["breed"],
                 portrait_variant=int(row["sex"]),
-                native_identity_flag=False,
+                native_identity_flag=row.get("hero_main_id") is not None,
                 level=row["level"],
                 effective_level=effective_levels[row["id"]],
                 in_fight=row["id"] in fighting,

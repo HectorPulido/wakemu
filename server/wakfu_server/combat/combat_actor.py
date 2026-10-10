@@ -145,6 +145,7 @@ def monster_actor_stats(
     obstacle_id=None,
     native_controlled_by_ai=False,
     native_qi_retired=False,
+    fight_property_counts=None,
 ):
     """NPC eHj format2; public stats use sP, not the player's pl section."""
     identity = actor["id"]
@@ -182,14 +183,27 @@ def monster_actor_stats(
         0 <= obstacle <= 126 or native_qi_retired is True and obstacle == -1
     ):
         raise ValueError("Invalid native obstacle byte")
+    from .combat_property_wire import (
+        fight_property_payload,
+        ordinary_monster_property_counts,
+    )
+
+    # The native rK component follows fight characteristics, separately from
+    # pW's optional descriptor flag. Null rK clears the client's PB.
+    counts = (
+        ordinary_monster_property_counts(actor)
+        if fight_property_counts is None
+        else fight_property_counts
+    )
     fight = struct.pack(">iBBBBbB", fight_id, 0, 0, 0, 0, obstacle, 0)
     return (
         b"\x02"
         + position
         + fight
         + stats
+        + fight_property_payload(counts)
+        + struct.pack(">h", actor["ref"])
         + _ai_control_byte(native_controlled_by_ai)
-        + struct.pack(">hB", actor["ref"], 1)
         + struct.pack(">hH", actor["level"], 0)
         + struct.pack(">qBqBh", identity, 1, -1, 0, 0)
     )
@@ -243,6 +257,8 @@ def actual_monster_actor_stats(
     monster, actor, fight_id, *, wp_current, wp_maximum, direction=0
 ):
     """NPC snapshot from live fight resources, preserving its native reference."""
+    from .combat_property_wire import ordinary_monster_property_counts
+
     if (
         getattr(actor, "native_summon_source", None) is not None
         or getattr(actor, "is_summon", False) is True
@@ -284,4 +300,5 @@ def actual_monster_actor_stats(
             getattr(actor, "native_ordinary_qi_retirement", {}).get("source")
             == "wakemu.owned-npc-state2-qi-completion-v1"
         ),
+        fight_property_counts=ordinary_monster_property_counts(monster, actor),
     )

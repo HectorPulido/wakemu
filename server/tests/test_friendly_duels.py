@@ -708,6 +708,79 @@ class FriendlyDuelStoreTests(PostgresCase):
 
         return self.answer(True, prepare)
 
+    def _finished_duel_with_registered_summon(
+        self, fight_id, *, include_second_owner=True, forged=False
+    ):
+        owner_a = Actor(
+            self.char_a["id"],
+            0,
+            (0, 0, 0),
+            60,
+            6,
+            3,
+            10,
+            1,
+            self.account_a,
+            True,
+        )
+        summon = Actor(
+            -7001,
+            0,
+            (1, 0, 0),
+            15,
+            4,
+            2,
+            8,
+            1,
+            self.account_a,
+            True,
+        )
+        summon.is_summon = True
+        summon.native_controller_id = owner_a.id
+        summon.native_summon_source = {
+            "ref": 3251,
+            "level": 6,
+            "caster_id": owner_a.id,
+            "controller_id": owner_a.id,
+        }
+        if include_second_owner:
+            opponent = Actor(
+                self.char_b["id"],
+                1,
+                (2, 0, 0),
+                60,
+                6,
+                3,
+                9,
+                1,
+                self.account_b,
+                True,
+            )
+        else:
+            opponent = Actor(-7002, 1, (2, 0, 0), 20, 4, 2, 4, 1)
+        fight = Fight(
+            fight_id,
+            [owner_a, summon, opponent],
+            {(0, 0, 0), (1, 0, 0), (2, 0, 0)},
+            {0: {(0, 0, 0), (1, 0, 0)}, 1: {(2, 0, 0)}},
+        )
+        breed = 3252 if forged else 3251
+        fight.native_summon_registrations = {
+            summon.id: {
+                "actor_id": summon.id,
+                "caster_id": owner_a.id,
+                "controller_id": owner_a.id,
+                "authority": {
+                    "breed_id": breed,
+                    "is_summon": True,
+                    "native_real_level": 6,
+                    "native_controller_id": owner_a.id,
+                },
+            }
+        }
+        fight.phase, fight.winner = "finished", 0
+        return fight
+
     def test_acceptance_creates_durable_opposing_player_teams_once(self):
         result = self._create_accepted_fight()
         self.assertTrue(result["accepted"])
@@ -880,24 +953,39 @@ class FriendlyDuelStoreTests(PostgresCase):
         from wakfu_server.combat_session_adapter import CombatSessionAdapter
         from wakfu_server.friendly_duel_runtime import prepare_and_register
         from wakfu_server.combat_terrain import map_geometry
+        from wakfu_server.combat_orientation import INITIAL_PLAYER_DIRECTION
+        from wakfu_server.combat_wire import decode_bootstrap
 
-        first_cell, second_cell = map_geometry(1134)["edges"][0]
+        # Map 1134 has only a 45-cell native component; use the larger real
+        # published map 527 to validate the full duel formation spread.
+        duel_map = 527
+        first_cell, second_cell = map_geometry(duel_map)["edges"][0]
         with self.store.connection() as db:
             db.execute(
-                "UPDATE characters SET x=%s,y=%s,z=%s WHERE id=%s",
-                (*first_cell, self.char_a["id"]),
+                "UPDATE characters SET map_id=%s,x=%s,y=%s,z=%s WHERE id=%s",
+                (duel_map, *first_cell, self.char_a["id"]),
             )
             db.execute(
-                "UPDATE characters SET x=%s,y=%s,z=%s WHERE id=%s",
-                (*second_cell, self.char_b["id"]),
+                "UPDATE characters SET map_id=%s,x=%s,y=%s,z=%s WHERE id=%s",
+                (duel_map, *second_cell, self.char_b["id"]),
             )
+        exterior_before = {
+            char["id"]: tuple(
+                self.store.character(account, char["id"])[key]
+                for key in ("map_id", "instance_id", "x", "y", "z", "hp")
+            )
+            for account, char in (
+                (self.account_a, self.char_a),
+                (self.account_b, self.char_b),
+            )
+        }
         self.char_a = self.store.character(self.account_a, self.char_a["id"])
         self.char_b = self.store.character(self.account_b, self.char_b["id"])
         self.session_a = Session(
-            self.account_a, self.char_a["id"], self.generation_a, 1134, 0
+            self.account_a, self.char_a["id"], self.generation_a, duel_map, 0
         )
         self.session_b = Session(
-            self.account_b, self.char_b["id"], self.generation_b, 1134, 0
+            self.account_b, self.char_b["id"], self.generation_b, duel_map, 0
         )
 
         self.challenge()
@@ -924,6 +1012,20 @@ class FriendlyDuelStoreTests(PostgresCase):
         self.assertEqual(
             {actor.team for actor in fight.actors.values() if actor.controlled}, {0, 1}
         )
+        first_actor, second_actor = (
+            fight.actors[self.char_a["id"]],
+            fight.actors[self.char_b["id"]],
+        )
+        self.assertGreater(
+            sum(
+                abs(a - b) for a, b in zip(first_actor.position, second_actor.position)
+            ),
+            30,
+        )
+        self.assertIn(first_actor.position, fight.placement[0])
+        self.assertIn(second_actor.position, fight.placement[1])
+        self.assertEqual(first_actor.native_physical_position, first_actor.position)
+        self.assertEqual(second_actor.native_physical_position, second_actor.position)
         self.assertEqual(fight.native_effect_uid_next, 1)
         from wakfu_server.combat_qi_fight import current_registry
 
@@ -939,23 +1041,55 @@ class FriendlyDuelStoreTests(PostgresCase):
         )
         self.assertEqual(shared.join_context["monsters"], {})
         self.assertTrue(all(len(box) == 1 for box in shared.outboxes.values()))
+        initial_batches = []
         for session in prepared["sessions"]:
             batch = adapter.registry.drain(fight.id, session)[0]
+            initial_batches.append(batch)
             self.assertEqual(
                 [opcode for opcode, _ in batch.packets], [13652, 12847, 13684, 13026]
             )
-        # The owned placement codec emits direction 0 for each fresh player.
-        # The canonical actors must retain that exact value so either owner's
-        # first ordinary action can evaluate the opponent's native facing.
+        self.assertEqual(initial_batches[0].packets, initial_batches[1].packets)
+        from protocol_codec import decode_body
+
+        placement = decode_body("in", 13652, initial_batches[0].packets[0][1])
+        position_by_actor = {
+            row["actor_id"]: (row["x"], row["y"], row["z"])
+            for row in placement["actors"]
+        }
+        self.assertEqual(position_by_actor[first_actor.id], first_actor.position)
+        self.assertEqual(position_by_actor[second_actor.id], second_actor.position)
+        for account, character in (
+            (self.account_a, self.char_a),
+            (self.account_b, self.char_b),
+        ):
+            saved = self.store.character(account, character["id"])
+            self.assertEqual(
+                tuple(
+                    saved[key] for key in ("map_id", "instance_id", "x", "y", "z", "hp")
+                ),
+                exterior_before[character["id"]],
+            )
+        # The default cardinal direction must survive owned actor creation and
+        # the exact 12847 fighter payload for both duel participants.
         from wakfu_server.combat_ordinary_authority import native_facing
 
         first, second = (fight.actors[identity] for identity in sorted(fight.actors))
-        self.assertEqual((first.direction, second.direction), (0, 0))
+        self.assertEqual(
+            (first.direction, second.direction),
+            (INITIAL_PLAYER_DIRECTION, INITIAL_PLAYER_DIRECTION),
+        )
+        bootstrap = decode_bootstrap(initial_batches[0].packets[1][1])
+        payloads_by_actor = {
+            row["actor_id"]: row["myE"]
+            for row in bootstrap["participants"]
+            if row["myB"] == 0
+        }
         self.assertIn(native_facing(first, second), ("FRONT", "BACK", "SIDE"))
         self.assertIn(native_facing(second, first), ("FRONT", "BACK", "SIDE"))
         for actor, session in zip((first, second), prepared["sessions"]):
             payload, _effects = adapter.actor_payload(fight, actor, session)
             self.assertEqual(payload[27], actor.direction)
+            self.assertEqual(payloads_by_actor[actor.id][27], actor.direction)
 
         # The first owner's ready packet previews a deep-copied Fight while
         # placement remains open. Its RuntimeMessages must point to that same
@@ -985,6 +1119,102 @@ class FriendlyDuelStoreTests(PostgresCase):
             self.assertIs(canonical.runtime.fight, canonical.fight)
             snapshot(canonical.fight, runtime=canonical.runtime)
         self.assertEqual(adapter.registry.lookup(fight.id).fight.phase, "active")
+
+        # A surrender after real placement settles back to the invitation's
+        # exterior coordinates and full HP; a second consented duel can then
+        # start from that same exterior state.
+        from wakfu_server.friendly_duels import return_packets, settle
+
+        with self.store.connection() as db:
+            for account, character in (
+                (self.account_a, self.char_a),
+                (self.account_b, self.char_b),
+            ):
+                db.execute(
+                    "UPDATE characters SET hp=5,hp_damage=max_hp-5 "
+                    "WHERE id=%s AND account_id=%s",
+                    (character["id"], account),
+                )
+        self.assertTrue(
+            adapter.registry.forfeit_duel(prepared["sessions"][0], reason="defeat")
+        )
+        fight = adapter.registry.lookup(fight.id).fight
+        settled = settle(
+            self.store,
+            self.account_a,
+            self.generation_a,
+            self.char_a["id"],
+            fight,
+            reason="defeat",
+        )
+        self.assertEqual(
+            settled["positions"],
+            {
+                character_id: exterior_before[character_id][:5]
+                for character_id in exterior_before
+            },
+        )
+        for account, character in (
+            (self.account_a, self.char_a),
+            (self.account_b, self.char_b),
+        ):
+            saved = self.store.character(account, character["id"])
+            self.assertEqual(saved["hp"], saved["max_hp"])
+            self.assertEqual(saved["hp_damage"], 0)
+            self.assertEqual(
+                tuple(saved[key] for key in ("map_id", "instance_id", "x", "y", "z")),
+                exterior_before[character["id"]][:5],
+            )
+            return_packets(
+                self.store,
+                account,
+                self.generation_a if account == self.account_a else self.generation_b,
+                character["id"],
+                fight,
+                struct.pack(">iB", fight.id, 0),
+            )
+        adapter.registry.remove_finished(
+            fight.id,
+            lambda shared: settle(
+                self.store,
+                self.account_a,
+                self.generation_a,
+                self.char_a["id"],
+                shared.fight,
+                reason="defeat",
+            ),
+        )
+
+        self.store.clock = lambda: 1_700_000_060
+        self.challenge()
+
+        def prepare_retry(db, fight_id, invitation, source, target):
+            prepared_retry = prepare_and_register(
+                self.store,
+                adapter,
+                db,
+                fight_id,
+                invitation,
+                source,
+                target,
+                auto_locked=False,
+            )
+            return prepared_retry, prepared_retry["rollback"]
+
+        retry = self.answer(True, prepare_retry)["prepared"]
+        retry_actors = tuple(retry["fight"].actors.values())
+        self.assertGreater(
+            sum(
+                abs(a - b)
+                for a, b in zip(retry_actors[0].position, retry_actors[1].position)
+            ),
+            30,
+        )
+        retry_batches = [
+            adapter.registry.drain(retry["fight"].id, session)[0]
+            for session in retry["sessions"]
+        ]
+        self.assertEqual(retry_batches[0].packets, retry_batches[1].packets)
 
     def test_duel_settlement_heals_both_without_rewards_or_location_change(self):
         from wakfu_server.friendly_duels import settle
@@ -1177,6 +1407,54 @@ class FriendlyDuelStoreTests(PostgresCase):
                 self.char_a["id"],
                 fight_id,
                 previous_generation=replacement_generation,
+            )
+
+    def test_duel_settlement_accepts_valid_registered_controlled_summon(self):
+        from wakfu_server.friendly_duels import settle
+
+        result = self._create_accepted_fight()
+        fight = self._finished_duel_with_registered_summon(result["fight_id"])
+        settled = settle(
+            self.store, self.account_a, self.generation_a, self.char_a["id"], fight
+        )
+        self.assertEqual(settled["outcome"]["winner_character_id"], self.char_a["id"])
+        self.assertEqual(settled["outcome"]["loser_character_id"], self.char_b["id"])
+        self.assertEqual(len(fight.native_summon_registrations), 1)
+
+    def test_duel_settlement_still_rejects_missing_true_owner(self):
+        from wakfu_server.friendly_duels import settle
+
+        missing_result = self._create_accepted_fight()
+        missing_owner = self._finished_duel_with_registered_summon(
+            missing_result["fight_id"], include_second_owner=False
+        )
+        with self.assertRaisesRegex(
+            ValueError, "Runtime and durable shared fight rosters differ"
+        ):
+            settle(
+                self.store,
+                self.account_a,
+                self.generation_a,
+                self.char_a["id"],
+                missing_owner,
+            )
+
+    def test_duel_settlement_rejects_forged_summon_registration(self):
+        from wakfu_server.friendly_duels import settle
+
+        forged_result = self._create_accepted_fight()
+        forged = self._finished_duel_with_registered_summon(
+            forged_result["fight_id"], forged=True
+        )
+        with self.assertRaisesRegex(
+            ValueError, "Registered terminal summon authority changed"
+        ):
+            settle(
+                self.store,
+                self.account_a,
+                self.generation_a,
+                self.char_a["id"],
+                forged,
             )
 
     def test_settlement_failure_rolls_back_hp_return_and_outcome(self):

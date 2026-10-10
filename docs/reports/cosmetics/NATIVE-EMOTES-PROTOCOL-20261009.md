@@ -6,7 +6,9 @@ Research only: no service restart, database mutation, or gameplay handler change
 
 `ExportNativeEmotes.java` loads native `aKY` definitions, producing `.runtime/local/native-emote-definitions.json`. There are 319 definitions: 295 ordinary (`bkI=1`, `eiV=false`) and 24 targeted (`bkI=2`, `eiV=true`). Native loader `baq` rejects type0, dispatches type1 to `bdu.b`, and type2 to `bdu.c`. All 319 have corresponding `emotes/<id>.lua` in the installed scripts jar. No command contains test/admin/fx; this is an asset audit, not proof that every animation was visually exercised.
 
-Other flags: `eiW` / `cns()` allows the mounted-use branch, and `eiX` / `cnt()` controls a local camera behavior. Native `bIw.ezG` is the emote ID directly and its duplicate check calls `bdn.AO`, which reads account knowledge.
+**Occupation correction:** `biB.dtg()` is the current `blH` occupation, not mount state. With an existing occupation, the native client allows a new emote only when `occupation.dwr()` is true and both `eiW` and `eiV` are false. This branch does not establish any mount restriction.
+
+Other flags: `eiW` / `cns()` forbids playback during an existing occupation that otherwise allows emotes (`dwr()`), as does targeting flag `eiV`, and `eiX` / `cnt()` controls a local camera behavior. Native `bIw.ezG` is the emote ID directly and its duplicate check calls `bdn.AO`, which reads account knowledge.
 
 ## Account knowledge
 
@@ -51,3 +53,7 @@ java -cp '/tmp/wakemu-rift-native-oracle:client/lib/*' VerifyEmoteProtocol
 ## Titles cross-check
 
 Native `biB.Do(titleId)` delegates to private `dqK()`, which is exactly `bkK.c(fn.pB)`: owned cosmetic category7. `bIs.jiK` is the direct title ID. Therefore titles reuse account cosmetics ownership; they do not require an independent title collection component. Their active appearance field is the existing unsigned-short title field in `pq/tG`.
+
+## Random criterion bounds
+
+Native `GetRandomNumber(2)` parses to `eLb`, whose `d(...)` builds `Range.closedOpen(0, limit)`, removes optional exclusions, then selects with `GS.ne`. The valid results are exactly 0 and 1. The native oracle additionally performed 100 draws and verified this bound.

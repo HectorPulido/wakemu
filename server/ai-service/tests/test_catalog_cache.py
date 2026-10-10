@@ -179,6 +179,33 @@ class CatalogCacheTests(unittest.TestCase):
             self.assertEqual(actual, expected)
             self.assertEqual(len(sources), 1)
 
+    def test_inventory_orders_relative_components_without_path_comparisons(self):
+        # Slash-string sorting differs from Path component ordering for these
+        # names: directory "a" must precede sibling "a!".
+        names = ("a/z.asset", "a!/leaf.asset", "a.asset", "a/child/deep.asset")
+        for name in names:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(name.encode())
+        expected = [
+            "all/" + path.relative_to(self.root).as_posix()
+            for path in sorted(self.root.rglob("*"))
+            if path.is_file()
+        ]
+        exporter = self.exporter()
+        with patch.object(
+            Path, "__lt__", side_effect=AssertionError("No Path sort comparisons")
+        ):
+            manifest, _ = exporter.inventory()
+        self.assertEqual([row["path"] for row in manifest["entries"]], expected)
+        # A later inventory must still see a newly created nested asset.
+        added = self.root / "a" / "new.asset"
+        added.write_bytes(b"new")
+        self.assertIn(
+            "all/a/new.asset",
+            [row["path"] for row in exporter.inventory()[0]["entries"]],
+        )
+
     def test_root_aliases_keep_all_entries_and_removed_files_do_not_survive_manifest(
         self,
     ):

@@ -430,6 +430,10 @@ def complete(store, ticket, body, *, location_context=None):
             action="remove" if stage == 0 else "harvest",
         )
         item_reference = rule["item_reference"]
+        if rule["profession_id"] == 73:
+            from .mining_products import resolve
+
+            item_reference = resolve(db, rule)
         packets = []
         product = None
         if item_reference:
@@ -459,6 +463,12 @@ def complete(store, ticket, body, *, location_context=None):
             (resource["resource_uid"],),
         )
         if stage == 0:
+            from .resource_domains import is_mineral
+
+            if is_mineral(resource["resource_reference"]):
+                from .mining_veins import deplete
+
+                deplete(db, resource, now)
             db.execute(
                 "DELETE FROM planted_resources WHERE resource_uid=%s",
                 (resource["resource_uid"],),

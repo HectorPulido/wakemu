@@ -1,0 +1,9 @@
+# Plant request disconnected on recoverable position contention
+
+At 16:34:58.386 UTC, world boot `4aae1337f25a490ab725aa1b81921bec` disconnected connection `dd62dceda4bb44839e04945e3967cdfd`, character 19, while processing plant opcode 13220 / request `38cebd2807a743cea24331176ec50f85`. Error: `TimeoutError: Position owner is busy; retry checkpoint`. Stack: pre-action flush_positions → Positions.flush → RedisPositions._flush_one → flush_barrier → nonblocking account_barrier. No service restart caused this event. Dispatcher EOF at 16:35:07 is secondary.
+
+Evidence retained under `.runtime/local/diagnostics/disconnect-20261010-1636/`. Continuous samples in the minute include HTTP global task threads performing position flush SQL and Redis acknowledgement/commit. This establishes concurrent background flush activity, but sparse samples do not identify the exact account owner at the instant of contention. A short expected contention race should not terminate the game socket.
+
+Fix: introduce typed `PositionOwnerBusy(TimeoutError)` only for this specific nonblocking account-lock condition. The request's pre-action position barrier catches only that type, sends native chat feedback requesting retry, and skips the action before mutation. Dirty authoritative positions remain owned by the active writer; planting cannot consume resources or use stale durable coordinates. Subsequent socket requests proceed normally. Other timeout/error classes still propagate, preserving terminal error visibility.
+
+Validation: two AST-extracted production dispatch regression tests pass: busy planting attempt performs no mutation and the following request succeeds; unrelated TimeoutError remains terminal and emits no retry response. Existing PostgreSQL contention tests require psycopg, unavailable in the local Python interpreter; root deployment validation must run them in the configured test environment. No restart or deployment was performed by this agent.

@@ -7,13 +7,13 @@ lossless graph remains the transport format; this is only a local guard.
 """
 import hashlib
 import inspect
-import io
 import pickle
 from datetime import date, datetime
 from decimal import Decimal
 from collections import deque
 
 from .native_context import _instance_fields, _LOCK_TYPES, _lock_fields
+from ..native.native_deadline import check
 
 
 def _record(*descriptor):
@@ -22,6 +22,9 @@ def _record(*descriptor):
 
 class _CompletePickler(pickle.Pickler):
     def reducer_override(self, value):
+        # Primitive containers run in C; the output writer checks their frames.
+        # Native reducers also check so an object-heavy graph remains bounded.
+        check()
         if value is _record:
             return NotImplemented
         kind = type(value)
@@ -53,7 +56,8 @@ class _CompletePickler(pickle.Pickler):
                 ("dict", *descriptor),
                 fields or None,
                 None,
-                iter(value.items()),
+                # Inspect stored state without invoking a lazy or custom view.
+                iter(dict.items(value)),
             )
         if isinstance(value, (list, tuple, set, frozenset)):
             container = next(
@@ -76,7 +80,25 @@ class _CompletePickler(pickle.Pickler):
         return _record, ("object", *descriptor), fields
 
 
+class _HashWriter:
+    """Hash the exact pickle stream without retaining a second graph in memory."""
+
+    def __init__(self):
+        self.digest = hashlib.sha256()
+
+    def write(self, payload):
+        # Pickle emits bounded frames for ordinary graph traversal. Large raw
+        # buffers may be emitted directly, so hash those in bounded blocks too.
+        view = memoryview(payload)
+        for offset in range(0, len(view), 64 * 1024):
+            check()
+            self.digest.update(view[offset : offset + 64 * 1024])
+        return len(view)
+
+
 def fingerprint(value):
-    stream = io.BytesIO()
+    check()
+    stream = _HashWriter()
     _CompletePickler(stream, protocol=5).dump(value)
-    return hashlib.sha256(stream.getbuffer()).hexdigest()
+    check()
+    return stream.digest.hexdigest()

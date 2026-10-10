@@ -49,29 +49,31 @@ def main():
             post=True,
         )
         if not isinstance(result, dict) or not result.get("key"):
-            raise ValueError("La respuesta no contiene una API key.")
+            raise ValueError("Response does not contain an API key.")
         save_private("api-key.json", result)
-        print("API key obtenida; valor omitido.")
+        print("API key obtained; value omitted.")
         token = request("Account/CreateToken", {"game": 3}, key=result["key"])
         if not isinstance(token, dict) or not token.get("token"):
-            raise ValueError("La respuesta no contiene un token de juego.")
+            raise ValueError("Response does not contain a game token.")
         save_private("game-token.json", token)
-        print("Token de Wakfu obtenido; valor omitido.")
+        print("Wakfu token obtained; value omitted.")
         return 0
     except urllib.error.HTTPError as error:
         raw = error.read()
         try:
             data = json.loads(raw)
-            message = str(data.get("message", data.get("reason", "Error sin mensaje")))
+            message = str(
+                data.get("message", data.get("reason", "Error without message"))
+            )
         except (ValueError, AttributeError):
-            message = "Respuesta sin error JSON."
+            message = "Response does not contain a JSON error."
         for secret in credentials.values():
             message = message.replace(secret, "[REDACTED]")
         save_private("auth-error.json", {"http_status": error.code, "message": message})
-        print(f"Autenticación rechazada: HTTP {error.code}: {message[:400]}")
+        print(f"Authentication rejected: HTTP {error.code}: {message[:400]}")
         return 1
     except (OSError, ValueError) as error:
-        print(f"No se obtuvo el token: {type(error).__name__}.")
+        print(f"Token could not be obtained: {type(error).__name__}.")
         return 1
 
 

@@ -385,6 +385,20 @@ def player_template():
 PLAYER_TEMPLATE = player_template()
 
 
+def owned_hero_template():
+    """Use the owned entity format with spellbook, decks and shortcuts."""
+    reader = Reader(fixture(12666))
+    count = reader.number("H")
+    reader.take(count * 8)
+    entity = reader.take(reader.number("I"))
+    if not entity or entity[0] != 10:
+        raise ValueError("Missing native owned hero entity template")
+    return entity
+
+
+OWNED_HERO_TEMPLATE = owned_hero_template()
+
+
 class Connection:
     """Serialize frames sent by the receiver and other players' workers."""
 
@@ -510,7 +524,11 @@ def world_state_packets(character):
 
     from wakfu_server.characters.emotes import retained as emote_snapshot
 
-    return (*mount_snapshot(character), *ecology_snapshot(character), *emote_snapshot(character))
+    return (
+        *mount_snapshot(character),
+        *ecology_snapshot(character),
+        *emote_snapshot(character),
+    )
 
 
 def rich_inventory_packet(character):
@@ -650,15 +668,14 @@ def monster_corpse_snapshot(map_id, instance_id, *, peer=None, peers=()):
 
 
 @PROFILER.profile("world.join")
-def join_world(generation, connection, character):
-    from wakfu_server.profession_store import ensure_learned
+def join_world(generation, connection, character, *, hydrate_heroes=True):
+    from wakfu_server.profession_store import ensure_all_learned
 
-    profession = ensure_learned(
+    profession = ensure_all_learned(
         STORE,
         character["account_id"],
         generation,
         character["id"],
-        (64, 71, 72, 73, 74, 75),
     )
     for packet in profession["packets"]:
         send(connection, "world", *packet)
@@ -667,6 +684,22 @@ def join_world(generation, connection, character):
     send_planting_context(connection, character)
     for packet in PLANTINGS.snapshots(character["map_id"], character["instance_id"]):
         send(connection, "world", *packet)
+    from wakfu_server.characters import heroes, hero_wire
+
+    hero_roster = heroes.ensure_company_party(
+        STORE, character["account_id"], generation, character["id"]
+    )
+    if hydrate_heroes:
+        for hero in hero_roster["heroes"]:
+            send(connection, "world", *hero_wire.activate(OWNED_HERO_TEMPLATE, hero))
+            send(connection, "world", *hero_wire.statistics(hero))
+    # Repeated cue activation replaces owned objects without an activation
+    # event. COMPANY rebuilds native hero rows from the final owned registry.
+    send(
+        connection,
+        "world",
+        *hero_wire.company(character["account_id"], character["id"]),
+    )
     if not COMBAT_TEST:
         WORLD.join(generation, connection, character)
         refresh_party(generation, character)
@@ -768,10 +801,10 @@ def owned_native_bootstrap(character, **options):
         ).fetchone()
     if progress is None:
         raise ValueError("Dungeon bootstrap has no committed room progress")
-    from wakfu_server.maps import dungeon_physical_doors
+    from wakfu_server import dungeon_native_flow
 
-    if dungeon_physical_doors.enabled(configuration["topology"]):
-        return tuple(messages) + dungeon_physical_doors.packets(
+    if dungeon_native_flow.enabled(configuration["topology"]):
+        return tuple(messages) + dungeon_native_flow.packets(
             configuration["topology"],
             map_id=character["map_id"],
             instance_id=character["instance_id"],
@@ -897,6 +930,15 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
                     secret_packet = exploration_account_packet(db)
                 send(connection, "world", *secret_packet)
                 continue
+            if (
+                character is not None
+                and frame["opcode"] == 13873
+                and original[:8] == struct.pack(">II", 1, 1)
+            ):
+                from wakfu_server.characters.hero_wire import company as hero_company
+
+                send(connection, "world", *hero_company(account_id, character["id"]))
+                continue
             if frame["opcode"] == 13873 and original[:8] == struct.pack(">II", 1, 10):
                 from wakfu_server.characters.emotes import (
                     packet as emote_account_packet,
@@ -972,6 +1014,21 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
                             wire.adapt(13078, original, account_id, owned),
                         )
                 continue
+            if frame["opcode"] == 23053:
+                from wakfu_server.characters.hero_wire import (
+                    configuration as hero_configuration,
+                )
+
+                send(connection, "world", *hero_configuration(original))
+                continue
+            if frame["opcode"] in (23992, 23548):
+                from wakfu_server.characters.selection_capacity import (
+                    packet as capacity_packet,
+                )
+
+                send(connection, "world", *capacity_packet(STORE.max_characters))
+                if frame["opcode"] == 23992:
+                    continue
             if frame["opcode"] == 23548:
                 body = wire.character_list(CHARACTERS, account_id, owned_characters())
             elif frame["opcode"] == 12393:
@@ -1042,6 +1099,7 @@ def session(raw, peer, service, context):
     world_snapshot_due = time.monotonic() + 0.75
     world_snapshot_identity = None
     account_id = generation = character = None
+    hero_switch_pending = None
     bag_session = None
     chest_opening = None
     fight = None
@@ -1341,6 +1399,17 @@ def session(raw, peer, service, context):
         record(event="rift_map_transition", actor_id=character["id"], **destination)
         return True
 
+    def publish_heroes(roster):
+        from wakfu_server.characters import hero_wire
+
+        for hero in roster["heroes"]:
+            send(connection, service, *hero_wire.activate(OWNED_HERO_TEMPLATE, hero))
+            send(connection, service, *hero_wire.statistics(hero))
+        send(
+            connection, service, *hero_wire.company(account_id, roster["leader"]["id"])
+        )
+        refresh_party(generation, roster["leader"])
+
     def prepare_rift_start(body):
         if character is None or not (1 << 58) < character.get("instance_id", 0) < (
             1 << 59
@@ -1484,10 +1553,10 @@ def session(raw, peer, service, context):
                         db, character["instance_id"]
                     )
             if pending is not None:
-                from wakfu_server.maps import dungeon_physical_doors
+                from wakfu_server import dungeon_native_flow
 
-                if dungeon_physical_doors.enabled(configuration["topology"]):
-                    # Room progress is committed by settlement; publish without moving players.
+                if dungeon_native_flow.enabled(configuration["topology"]):
+                    # Native room progress is committed by settlement; publish without automatic travel.
                     from wakfu_server.combat_monster_world import spawn_group
 
                     with COMBAT_GROUPS.lock:
@@ -1502,7 +1571,7 @@ def session(raw, peer, service, context):
                             "WHERE instance_id=%s FOR UPDATE",
                             (character["instance_id"],),
                         ).fetchone()
-                        physical_packets = dungeon_physical_doors.packets(
+                        physical_packets = dungeon_native_flow.packets(
                             configuration["topology"],
                             map_id=character["map_id"],
                             instance_id=character["instance_id"],
@@ -2005,6 +2074,10 @@ def session(raw, peer, service, context):
                     policy_resolver=shared_policy,
                     loot_resolver=shared_loot,
                     expected_accounts=set(current_shared.participants),
+                    owner_character_ids={
+                        owner: session.character_id
+                        for owner, session in current_shared.participants.items()
+                    },
                     trace=lambda stage, **fields: record(
                         event="persistence_stage",
                         domain="fight_settlement",
@@ -2309,7 +2382,7 @@ def session(raw, peer, service, context):
 
     @PROFILER.profile("admin.command")
     def execute_test_command(text, *, authorized_by=None):
-        nonlocal character, position, movement_state
+        nonlocal character, position, movement_state, fight, fight_messages
         from wakfu_server.test_console import execute, parse_target
         from wakfu_server.command_permissions import (
             authorize_command,
@@ -2323,6 +2396,58 @@ def session(raw, peer, service, context):
             authorize_command(STORE, issuer, text)
             text, target = parse_target(text)
             command = canonical_command(text.split()[0])
+            if command in ("!winfight", "!losefight"):
+                from wakfu_server.combat.combat_test_commands import finish
+
+                if len(text.split()) != 1 or target is not None:
+                    raise ValueError("Uso: !winfight | !losefight")
+                if issuer != account_id:
+                    raise ValueError("El comando solo afecta al combate propio")
+                if combat_session is not None:
+                    refresh_shared_combat()
+                    COMBAT_SESSIONS.execute(
+                        combat_session,
+                        fight.id,
+                        combat_session.character_id,
+                        lambda candidate, runtime: finish(
+                            candidate,
+                            runtime,
+                            account_id=account_id,
+                            character_id=combat_session.character_id,
+                            win=command == "!winfight",
+                        ),
+                        require_turn=False,
+                    )
+                    refresh_shared_combat()
+                else:
+                    terminal = finish(
+                        fight,
+                        fight_messages,
+                        account_id=account_id,
+                        character_id=character["id"],
+                        win=command == "!winfight",
+                    )
+                    fight, fight_messages = terminal.fight, terminal.runtime
+                record(
+                    event="test_console_combat_outcome",
+                    command=command,
+                    actor_id=character["id"],
+                    account_id=account_id,
+                    fight_id=fight.id,
+                    winner=fight.winner,
+                )
+                complete_test_fight()
+                checkpoint_fight("ended")
+                answer = (
+                    "Combate ganado." if command == "!winfight" else "Combate perdido."
+                )
+                send(
+                    connection,
+                    service,
+                    674,
+                    wire.chat(dict(character, name="Consola local"), answer),
+                )
+                return {"message": answer}
             if command == "!perfil":
                 from wakfu_server.performance_commands import execute_profile_command
 
@@ -3247,14 +3372,15 @@ def session(raw, peer, service, context):
                 if fight is not None and fight.phase == "finished":
                     try:
                         shared_state = COMBAT_SESSIONS.registry.lookup(fight.id)
-                        if (
-                            getattr(shared_state, "is_duel", False)
-                            and not shared_state.settlement_ready
-                        ):
+                        from wakfu_server.combat_terminal_retry import (
+                            pending_terminal_settlement,
+                        )
+
+                        if pending_terminal_settlement(shared_state):
                             complete_test_fight()
                     except ValueError as error:
                         record(
-                            event="friendly_duel_settlement_retry",
+                            event="combat_terminal_settlement_retry",
                             actor_id=character["id"],
                             fight_id=fight.id,
                             reason=str(error),
@@ -3545,11 +3671,32 @@ def session(raw, peer, service, context):
                 # All transactional actions/DB refreshes see the last approved
                 # outside-world position; own-bag moves remain session-only.
                 if character is not None and opcode != 13331:
-                    flush_positions(
-                        account_id=account_id,
-                        generation=generation,
-                        character_id=character["id"],
-                    )
+                    from wakfu_server.position_buffer import PositionOwnerBusy
+
+                    try:
+                        flush_positions(
+                            account_id=account_id,
+                            generation=generation,
+                            character_id=character["id"],
+                        )
+                    except PositionOwnerBusy:
+                        # Reject this action before any mutation; another
+                        # writer retains the dirty authoritative position.
+                        record(
+                            event="request_position_busy",
+                            actor_id=character["id"],
+                            opcode=opcode,
+                        )
+                        send(
+                            connection,
+                            service,
+                            674,
+                            wire.chat(
+                                dict(character, name="Consola local"),
+                                "Guardado de posición en curso. Reintenta la acción.",
+                            ),
+                        )
+                        continue
                 if flora_ticket is not None and opcode in (
                     13331,
                     13686,
@@ -3729,6 +3876,20 @@ def session(raw, peer, service, context):
                 ):
                     sync_loaded_world_snapshot(force=True)
                 rift_start_run = None
+                if opcode == 12197 and loaded and COMBAT_TEST:
+                    from wakfu_server.combat.combat_party_prompt import (
+                        accepted_join_request,
+                    )
+
+                    try:
+                        accepted_body = accepted_join_request(body)
+                    except ValueError as error:
+                        record(event="party_combat_answer_rejected", reason=str(error))
+                        continue
+                    if accepted_body is None:
+                        continue
+                    # coK's boolean is acceptance; coU's boolean is autoLock.
+                    opcode, body = 13241, accepted_body
                 if opcode == 33:
                     send(connection, service, 23, b"\x01" + body)
                     send(connection, service, 309, struct.pack(">I", 12345))
@@ -3930,6 +4091,7 @@ def session(raw, peer, service, context):
                             )
                         WORLD.leave(character["id"], generation)
                     selected = loaded = False
+                    hero_switch_pending = None
                     character = None
                     movement_state = None
                     bag_session = None
@@ -4088,20 +4250,30 @@ def session(raw, peer, service, context):
                         from wakfu_server.maps import dungeon_recovery, dungeon_runtime
                         from wakfu_server.combat_terrain import map_geometry
 
-                        dungeon_recovery.resume_member(
+                        recovery = dungeon_recovery.resume_member(
                             STORE,
                             account_id,
                             generation,
                             character["id"],
                             character["instance_id"],
-                        )
-                        with STORE.connection() as dungeon_db:
-                            dungeon_runtime.ensure_current_room(
-                                dungeon_db,
-                                COMBAT_GROUPS,
-                                character["instance_id"],
-                                map_geometry(character["map_id"]),
+                            in_fight=lambda actor_id: COMBAT_SESSIONS.lookup_character(
+                                actor_id
                             )
+                            is not None,
+                        )
+                        if recovery.get("recovered_exterior"):
+                            character = STORE.character(account_id, character["id"])
+                        if is_dungeon_run(character.get("instance_id", 0)):
+                            with STORE.connection() as dungeon_db:
+                                dungeon_runtime.ensure_current_room(
+                                    dungeon_db,
+                                    COMBAT_GROUPS,
+                                    character["instance_id"],
+                                    map_geometry(character["map_id"]),
+                                )
+                    from wakfu_server.characters import heroes
+
+                    heroes.select_main(STORE, account_id, generation, character["id"])
                     if request["character_name"] != character["name"]:
                         raise ValueError("Character name mismatch")
                     reconnect_session = COMBAT_SESSIONS.session(
@@ -4536,6 +4708,12 @@ def session(raw, peer, service, context):
                         cancel_flora()
 
                         def reachable_flora(current, resource):
+                            from wakfu_server.resource_domains import is_mineral
+
+                            if is_mineral(resource["resource_reference"]):
+                                from wakfu_server.mining_navigation import reachable
+
+                                return reachable(current, resource)
                             if current["map_id"] == 9:
                                 from wakfu_server.haven_bag_garden import reachable
 
@@ -5098,7 +5276,17 @@ def session(raw, peer, service, context):
                             flush_positions,
                         )
 
-                        def prepare_duel(db, fight_id, invitation, challenger, target):
+                        from wakfu_server.combat_terrain import prepare_terrain
+
+                        def prepare_duel(
+                            db,
+                            fight_id,
+                            invitation,
+                            challenger,
+                            target,
+                            *,
+                            prepared_terrain=None,
+                        ):
                             prepared = prepare_and_register(
                                 STORE,
                                 COMBAT_SESSIONS,
@@ -5108,6 +5296,7 @@ def session(raw, peer, service, context):
                                 challenger,
                                 target,
                                 auto_locked=bool(invitation["auto_lock"]),
+                                prepared_terrain=prepared_terrain,
                             )
                             rollback = prepared.pop("rollback")
                             return prepared, rollback
@@ -5117,6 +5306,7 @@ def session(raw, peer, service, context):
                             COMBAT_SESSIONS.session(account_id, generation, character),
                             body,
                             prepare_duel=prepare_duel,
+                            prewarm_duel=prepare_terrain,
                         )
                         if result.get("accepted"):
                             adopt_shared_duel()
@@ -5608,6 +5798,85 @@ def session(raw, peer, service, context):
                         combat_session = COMBAT_SESSIONS.session(
                             account_id, generation, character
                         )
+                        from wakfu_server.combat_heroes import admit_owned_heroes
+                        from wakfu_server.combat_bootstrap import (
+                            placement_messages,
+                            player_payload,
+                        )
+                        from wakfu_server.combat_actor import (
+                            monster_actor_stats,
+                            actor_effects,
+                        )
+                        from wakfu_server.breed_resources import live_wp
+
+                        with STORE.connection() as hero_db:
+                            hero_admission = admit_owned_heroes(
+                                hero_db,
+                                STORE,
+                                combat_session,
+                                candidate,
+                                frozen_members=(
+                                    rift_start_run["members"]
+                                    if rift_start_run is not None
+                                    else None
+                                ),
+                            )
+                            candidate = hero_admission["fight"]
+                            hero_packets = tuple(
+                                (12608, wire.spawn_player(PLAYER_TEMPLATE, source))
+                                for source in hero_admission["characters"].values()
+                            )
+                            if hero_admission["actors"]:
+                                sources = {
+                                    character["id"]: character,
+                                    **hero_admission["characters"],
+                                }
+                                actor_payloads = {}
+                                for placement_actor in candidate.actors.values():
+                                    wp_current, wp_maximum = live_wp(
+                                        candidate, placement_actor.id
+                                    )
+                                    if placement_actor.controlled:
+                                        actor_payloads[
+                                            placement_actor.id
+                                        ] = player_payload(
+                                            sources[placement_actor.id],
+                                            placement_actor,
+                                            candidate.id,
+                                            wp=wp_current,
+                                        )
+                                    else:
+                                        source = dict(
+                                            TEST_MONSTERS_BY_ID[placement_actor.id],
+                                            **dict(
+                                                zip(
+                                                    ("x", "y", "z"),
+                                                    placement_actor.position,
+                                                )
+                                            ),
+                                        )
+                                        stats = monster_actor_stats(
+                                            source,
+                                            candidate.id,
+                                            direction=3,
+                                            obstacle_id=placement_actor.native_obstacle_id,
+                                        )
+                                        actor_payloads[placement_actor.id] = (
+                                            stats,
+                                            actor_effects(),
+                                        )
+                                packets = placement_messages(
+                                    candidate,
+                                    arena,
+                                    actor_payloads,
+                                    terrain_effect_id=46,
+                                    terrain_instance_id=terrain_instance_id,
+                                    leaders={
+                                        0: character["id"],
+                                        1: TEST_MONSTERS[0]["id"],
+                                    },
+                                    duration_ms=placement_duration,
+                                )
                         COMBAT_SESSIONS.register(
                             combat_session,
                             candidate,
@@ -5627,6 +5896,15 @@ def session(raw, peer, service, context):
                                     1: TEST_MONSTERS[0]["id"],
                                 },
                                 "duration_ms": placement_duration,
+                                "hero_appearance": lambda source: (
+                                    12608,
+                                    wire.spawn_player(PLAYER_TEMPLATE, source),
+                                ),
+                                "frozen_company_members": (
+                                    rift_start_run["members"]
+                                    if rift_start_run is not None
+                                    else None
+                                ),
                                 "monsters": TEST_MONSTERS_BY_ID,
                                 "group_key": TEST_GROUP_KEY,
                                 "fight_started_at": fight_started_at,
@@ -5647,18 +5925,12 @@ def session(raw, peer, service, context):
                             shared_rift = COMBAT_SESSIONS.registry.lookup(candidate.id)
                             with COMBAT_SESSIONS.registry.lock, shared_rift.lock:
                                 with STORE.connection() as rift_db:
-                                    party_rows = rift_db.execute(
-                                        "SELECT c.id,c.account_id,s.generation FROM characters c "
-                                        "JOIN sessions s ON s.account_id=c.account_id "
-                                        "WHERE c.id=ANY(%s) AND s.character_id=c.id AND s.expires_at>%s "
-                                        "ORDER BY c.id",
-                                        (rift_start_run["members"], STORE.now()),
-                                    ).fetchall()
-                                if {row["id"] for row in party_rows} != set(
-                                    rift_start_run["members"]
-                                ):
-                                    raise ValueError(
-                                        "Frozen rift party has a stale selected session"
+                                    from wakfu_server.combat_heroes import (
+                                        frozen_main_sessions,
+                                    )
+
+                                    party_rows = frozen_main_sessions(
+                                        rift_db, STORE, rift_start_run["members"]
                                     )
                                 for member in party_rows:
                                     if member["id"] == character["id"]:
@@ -5680,6 +5952,14 @@ def session(raw, peer, service, context):
                                         expected_fight_id=candidate.id,
                                     )
                                 candidate = shared_rift.fight
+                                if {
+                                    actor.id
+                                    for actor in candidate.actors.values()
+                                    if actor.controlled
+                                } != set(rift_start_run["members"]):
+                                    raise ValueError(
+                                        "Rift combat differs from the frozen real company"
+                                    )
                                 with STORE.connection() as rift_db:
                                     rift_runtime.start(
                                         rift_db,
@@ -5703,6 +5983,15 @@ def session(raw, peer, service, context):
                                     spawn_group(TEST_MONSTERS, group_id=candidate.id),
                                 )
                         fight = candidate
+                        for hero_packet in hero_packets:
+                            send(connection, service, *hero_packet)
+                        for hero_actor in hero_admission["actors"]:
+                            send(
+                                connection,
+                                service,
+                                12436,
+                                health.packet(hero_actor.id, hero_actor.hp, 0),
+                            )
                         publish_external_marker(
                             COMBAT_SESSIONS.registry.lookup(candidate.id)
                         )
@@ -5744,6 +6033,17 @@ def session(raw, peer, service, context):
                                     warning_text(warning),
                                 ),
                             )
+                        from wakfu_server.combat.combat_party_prompt import (
+                            notify as notify_party_combat,
+                        )
+
+                        notify_party_combat(
+                            STORE,
+                            WORLD,
+                            COMBAT_SESSIONS,
+                            COMBAT_SESSIONS.registry.lookup(fight.id),
+                            character["id"],
+                        )
                         record(
                             event="combat_test_placement_started",
                             actor_id=character["id"],
@@ -5935,14 +6235,16 @@ def session(raw, peer, service, context):
                                     candidate
                                 )
                                 from wakfu_server.combat_cast_delivery_source import (
-                                    connected_cast_source,
+                                    connected_action_source,
                                 )
 
-                                source, owner_deck = connected_cast_source(
+                                source, owner_deck = connected_action_source(
+                                    candidate,
                                     characters,
                                     decks,
-                                    character["id"],
+                                    combat_session.character_id,
                                     combat_session.account_id,
+                                    cast_request["actor_id"],
                                 )
                                 transaction = prepare_server_spell(
                                     body,
@@ -7101,24 +7403,35 @@ def session(raw, peer, service, context):
                             reason=str(error),
                         )
                 elif opcode == 12161 and fight_messages is not None:
-                    from wakfu_server.combat_movement_runtime import apply_client
+                    from wakfu_server.combat_movement_runtime import (
+                        apply_client,
+                        decode_request,
+                    )
                     from wakfu_server.combat_actor import actual_actor_stats
 
                     if combat_session is not None:
                         from wakfu_server.combat_shared import Transition
 
                         try:
+                            movement_actor_id, _ = decode_request(body)
                             movement_result = {}
 
                             def shared_move(candidate, runtime):
                                 characters, decks = COMBAT_SESSIONS.player_sources(
                                     candidate
                                 )
-                                source = characters.get(combat_session.character_id)
-                                if source is None:
-                                    raise ValueError(
-                                        "Movement actor has no owner snapshot"
-                                    )
+                                from wakfu_server.combat_cast_delivery_source import (
+                                    connected_action_source,
+                                )
+
+                                connected_action_source(
+                                    candidate,
+                                    characters,
+                                    decks,
+                                    combat_session.character_id,
+                                    combat_session.account_id,
+                                    movement_actor_id,
+                                )
                                 packets, event = apply_client(
                                     runtime,
                                     combat_session.account_id,
@@ -7139,7 +7452,7 @@ def session(raw, peer, service, context):
                             COMBAT_SESSIONS.execute(
                                 combat_session,
                                 fight.id,
-                                combat_session.character_id,
+                                movement_actor_id,
                                 shared_move,
                             )
                             refresh_shared_combat()
@@ -7147,7 +7460,7 @@ def session(raw, peer, service, context):
                             checkpoint_fight()
                             record(
                                 event="combat_movement",
-                                actor_id=combat_session.character_id,
+                                actor_id=movement_actor_id,
                                 movement=movement_result.get("event"),
                             )
                         except ValueError as error:
@@ -7392,6 +7705,7 @@ def session(raw, peer, service, context):
                         map_id=character["map_id"],
                     )
                 elif opcode == 13787 and loaded:
+                    from wakfu_server.inventory_items import equipment_inventory
                     from psycopg import Error as DatabaseError
                     from psycopg_pool import PoolTimeout
                     from wakfu_server.shard_identification import identify
@@ -7409,6 +7723,8 @@ def session(raw, peer, service, context):
                         )
                         character = reload_inventory(STORE, account_id, character)
                         send(connection, service, *response(result))
+                        if result["status"] == 0:
+                            send(connection, service, *equipment_inventory(character))
                         if result["cost_kamas"] > 0 and result["status"] == 0:
                             with STORE.connection() as db:
                                 balance = db.execute(
@@ -7436,6 +7752,7 @@ def session(raw, peer, service, context):
                             reason=type(error).__name__,
                         )
                 elif opcode == 12487 and loaded:
+                    from wakfu_server.inventory_items import equipment_inventory
                     from psycopg import Error as DatabaseError
                     from psycopg_pool import PoolTimeout
                     from wakfu_server.element_selection import select as select_elements
@@ -7452,6 +7769,7 @@ def session(raw, peer, service, context):
                         )
                         character = reload_inventory(STORE, account_id, character)
                         send(connection, service, *result["packet"])
+                        send(connection, service, *equipment_inventory(character))
                         if result.get("cost_kamas", 0) > 0:
                             send(
                                 connection,
@@ -7478,6 +7796,7 @@ def session(raw, peer, service, context):
                             reason=type(error).__name__,
                         )
                 elif opcode in (12365, 13257, 12221, 12364, 13269) and loaded:
+                    from wakfu_server.inventory_items import equipment_inventory
                     from psycopg import Error as DatabaseError
                     from psycopg_pool import PoolTimeout
                     from wakfu_server.socket_enchantment import install_bonus, mutate
@@ -7514,6 +7833,7 @@ def session(raw, peer, service, context):
                         )
                         for message_id, message_body in response_packets:
                             send(connection, service, message_id, message_body)
+                        send(connection, service, *equipment_inventory(character))
                         record(
                             event="inventory_socket_enchantment_changed",
                             actor_id=character["id"],
@@ -7969,9 +8289,9 @@ def session(raw, peer, service, context):
                                     )
 
                                 if destination["map_id"] != character["map_id"]:
-                                    from wakfu_server.maps import dungeon_physical_doors
+                                    from wakfu_server import dungeon_native_flow
 
-                                    if dungeon_physical_doors.enabled(
+                                    if dungeon_native_flow.enabled(
                                         dungeon_config["topology"]
                                     ):
                                         physical_exit = next(
@@ -7994,7 +8314,7 @@ def session(raw, peer, service, context):
                                             and exit_progress["status"] != "completed"
                                         ):
                                             raise ValueError(
-                                                "Physical dungeon exit is locked"
+                                                "Native dungeon exit is locked"
                                             )
                                     dungeon_exit.leave(
                                         STORE,
@@ -8969,6 +9289,153 @@ def session(raw, peer, service, context):
                         actor_id=character["id"],
                         position=position,
                     )
+                elif opcode == 12219 and loaded:
+                    from wakfu_server.characters import heroes, hero_wire
+                    from wakfu_server.ecology_feedback import information
+
+                    try:
+                        if fight is not None or combat_session is not None:
+                            raise ValueError("Hero roster cannot change during combat")
+                        target = hero_wire.add_request(body)
+                        with POSITIONS.account_barrier(account_id):
+                            flush_positions(account_id=account_id)
+                            roster = heroes.add(
+                                STORE, account_id, generation, character["id"], target
+                            )
+                        publish_heroes(roster)
+                        send(connection, service, *hero_wire.added_success())
+                        record(
+                            event="hero_added", actor_id=character["id"], hero_id=target
+                        )
+                    except ValueError as error:
+                        text = str(error)
+                        result = (
+                            14
+                            if "combat" in text
+                            else 11
+                            if "full" in text
+                            else 13
+                            if "Dead" in text
+                            else 15
+                        )
+                        send(connection, service, *hero_wire.added_result(result))
+                        send(connection, service, *information(text))
+                        record(
+                            event="hero_add_rejected",
+                            actor_id=character["id"],
+                            reason=text,
+                        )
+                elif opcode == 12006 and loaded:
+                    from wakfu_server.characters import heroes, hero_wire
+                    from wakfu_server.ecology_feedback import information
+
+                    switch_target = None
+                    try:
+                        switch_target = hero_wire.switch_request(body)
+                        if hero_switch_pending is not None:
+                            raise ValueError("A native hero switch is already pending")
+                        if fight is not None or combat_session is not None:
+                            raise ValueError(
+                                "Native hero switching is unavailable during combat"
+                            )
+                        target = switch_target
+                        cancel_crafting()
+                        with POSITIONS.account_barrier(account_id):
+                            flush_positions(account_id=account_id)
+                            roster = heroes.switch_main(
+                                STORE, account_id, generation, character["id"], target
+                            )
+                            previous_character_id = character["id"]
+                            WORLD.leave(previous_character_id, generation)
+                            character = roster["leader"]
+                            POSITIONS.attach(account_id, generation, character)
+                        position = {key: character[key] for key in ("x", "y", "z")}
+                        movement_state = Movement(position)
+                        send(
+                            connection,
+                            service,
+                            *hero_wire.refresh(OWNED_HERO_TEMPLATE, character),
+                        )
+                        # SwitchHeroCommand has already selected the existing
+                        # owned actor. Native map resets target the original
+                        # master actor and would tear down this unchanged scene.
+                        hero_switch_pending = character["id"]
+                        send(connection, service, *hero_wire.statistics(character))
+                        send(
+                            connection,
+                            service,
+                            *hero_wire.switched_result(character["id"]),
+                        )
+                        record(
+                            event="hero_main_switch_pending",
+                            actor_id=character["id"],
+                            previous_id=previous_character_id,
+                        )
+                    except ValueError as error:
+                        if switch_target is not None:
+                            send(
+                                connection,
+                                service,
+                                *hero_wire.switched_result(
+                                    switch_target,
+                                    2
+                                    if fight is not None or combat_session is not None
+                                    else 6,
+                                ),
+                            )
+                        send(connection, service, *information(str(error)))
+                        record(
+                            event="hero_switch_rejected",
+                            actor_id=character["id"],
+                            reason=str(error),
+                        )
+                elif opcode == 12054 and loaded:
+                    from wakfu_server.characters import hero_wire
+                    from wakfu_server.ecology_feedback import information
+
+                    try:
+                        target = hero_wire.switch_request(body)
+                        if hero_switch_pending is None:
+                            if target != character["id"]:
+                                raise ValueError(
+                                    "Native hero switch completion has no pending target"
+                                )
+                            continue
+                        if target != hero_switch_pending or target != character["id"]:
+                            raise ValueError(
+                                "Native hero switch completion targets another character"
+                            )
+                        if not STORE.current_character_session(
+                            account_id, generation, target
+                        ):
+                            raise ValueError(
+                                "Native hero switch completion belongs to a replaced session"
+                            )
+                        # The native post-swap cinematic waits for the selected
+                        # actor's format22 GUILD_LOCAL_INFO consumer, even when
+                        # the character has no guild. Format10 lacks this section.
+                        send(
+                            connection,
+                            service,
+                            15548,
+                            wire.adapt(15548, fixture(15548), account_id, character),
+                        )
+                        join_world(
+                            generation, connection, character, hydrate_heroes=False
+                        )
+                        send(connection, service, *rich_inventory_packet(character))
+                        from wakfu_server.inventory_move import synchronization
+
+                        send(connection, service, *synchronization(character))
+                        hero_switch_pending = None
+                        record(event="hero_main_switched", actor_id=character["id"])
+                    except ValueError as error:
+                        send(connection, service, *information(str(error)))
+                        record(
+                            event="hero_switch_completion_rejected",
+                            actor_id=character["id"],
+                            reason=str(error),
+                        )
                 elif opcode == 13498 and loaded:
                     from wakfu_server.characters.emotes import prepare_play
 
@@ -8976,15 +9443,52 @@ def session(raw, peer, service, context):
                         identity = WORLD.live_identity(character_id=actor_id)
                         return None if identity is None else identity[1]
 
-                    emote = prepare_play(
-                        STORE, account_id, generation, character, body,
-                        resolve_target=visible_emote_target,
-                        in_fight=lambda actor_id: COMBAT_SESSIONS.lookup_character(actor_id) is not None,
-                    )
-                    character["_emote_packet"] = emote["packet"]
-                    character["_emote_until"] = (float("inf") if emote["duration_ms"] < 0
-                        else time.monotonic() + emote["duration_ms"] / 1000)
-                    WORLD.update(generation, character, *emote["packet"])
+                    try:
+                        emote = prepare_play(
+                            STORE,
+                            account_id,
+                            generation,
+                            character,
+                            body,
+                            resolve_target=visible_emote_target,
+                            in_fight=lambda actor_id: (
+                                actor_id == character["id"]
+                                and (fight is not None or combat_session is not None)
+                            )
+                            or COMBAT_SESSIONS.lookup_character(actor_id) is not None,
+                            occupied=lambda actor_id: actor_id in HARVESTS.pending
+                            or actor_id in PLANTINGS.pending,
+                        )
+                        character["_emote_packet"] = emote["packet"]
+                        character["_emote_until"] = (
+                            float("inf")
+                            if emote["duration_ms"] < 0
+                            else time.monotonic() + emote["duration_ms"] / 1000
+                        )
+                        WORLD.update(generation, character, *emote["packet"])
+                    except ValueError as error:
+                        from wakfu_server.characters.emotes import (
+                            packet as emote_account_packet,
+                        )
+
+                        record(
+                            event="emote_play_rejected",
+                            actor_id=character["id"],
+                            reason=str(error),
+                        )
+                        send(
+                            connection,
+                            service,
+                            674,
+                            wire.chat(
+                                dict(character, name="Consola local"), str(error)
+                            ),
+                        )
+                        send(
+                            connection,
+                            service,
+                            *emote_account_packet(STORE, account_id),
+                        )
                 elif opcode == 13331 and loaded:
                     movement_started = time.monotonic()
                     movement_timings = {}
@@ -9010,8 +9514,8 @@ def session(raw, peer, service, context):
                         if DUNGEON_ROOM_RUNTIME_AVAILABLE and is_dungeon_run(
                             character.get("instance_id", 0)
                         ):
-                            from wakfu_server.maps import (
-                                dungeon_physical_doors,
+                            from wakfu_server import (
+                                dungeon_native_flow,
                                 dungeon_runtime,
                             )
 
@@ -9022,14 +9526,14 @@ def session(raw, peer, service, context):
                                 ) = dungeon_runtime.configuration_for_instance(
                                     movement_db, character["instance_id"]
                                 )
-                                if dungeon_physical_doors.enabled(
+                                if dungeon_native_flow.enabled(
                                     walking_config["topology"]
                                 ):
                                     walking_progress = movement_db.execute(
                                         "SELECT current_room FROM dungeon_room_runs WHERE instance_id=%s",
                                         (character["instance_id"],),
                                     ).fetchone()
-                                    dungeon_physical_doors.validate_movement(
+                                    dungeon_native_flow.validate_movement(
                                         walking_config["topology"],
                                         movement,
                                         unlocked_room=walking_progress["current_room"],
@@ -9135,8 +9639,11 @@ def session(raw, peer, service, context):
                     response = wire.movement_path(character["id"], body)
                     if character.pop("_emote_packet", None) is not None:
                         from wakfu_server.characters.emotes import stopped
+
                         character.pop("_emote_until", None)
-                        WORLD.broadcast(generation, character["id"], *stopped(character["id"]))
+                        WORLD.broadcast(
+                            generation, character["id"], *stopped(character["id"])
+                        )
                     WORLD.update(
                         generation, character, 13852, response, include_sender=False
                     )
@@ -9285,9 +9792,49 @@ def session(raw, peer, service, context):
                     from wakfu_server.ecology_feedback import information
 
                     try:
-                        PARTIES.handle(
-                            opcode, body, account_id, generation, character["id"]
-                        )
+                        owned_hero_removal = False
+                        if opcode == 1074:
+                            from wakfu_server import party_wire
+                            from wakfu_server.characters import heroes
+
+                            request = party_wire.member_request(body)
+                            with STORE.connection() as hero_db:
+                                hero_slot = hero_db.execute(
+                                    "SELECT s.character_id FROM account_hero_slots s "
+                                    "JOIN player_party_members m ON m.character_id=%s "
+                                    "WHERE s.account_id=%s AND s.character_id=%s AND m.party_id=%s",
+                                    (
+                                        character["id"],
+                                        account_id,
+                                        request["member_id"],
+                                        request["group_id"],
+                                    ),
+                                ).fetchone()
+                            if hero_slot is not None:
+                                with POSITIONS.account_barrier(account_id):
+                                    flush_positions(account_id=account_id)
+                                    roster = heroes.remove(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character["id"],
+                                        request["member_id"],
+                                    )
+                                send(
+                                    connection,
+                                    service,
+                                    *party_wire.removed(
+                                        request["group_id"], [request["member_id"]]
+                                    ),
+                                )
+                                publish_heroes(roster)
+                                owned_hero_removal = True
+                        if not owned_hero_removal:
+                            PARTIES.handle(
+                                opcode, body, account_id, generation, character["id"]
+                            )
+                            if opcode == 1074:
+                                refresh_party(generation, character)
                     except (
                         ValueError,
                         UnicodeError,
@@ -9944,6 +10491,25 @@ def reproduce_monsters():
     from wakfu_server.monster_wander import edge_index
     from wakfu_server.combat_terrain import map_geometry
     import uuid
+    from contextlib import contextmanager, ExitStack
+
+    @contextmanager
+    def coordination(_stage, _map_id, _instance_id):
+        # Keep each mutation/publication fenced against claims and harvests,
+        # but release global registries between independent birth tickets.
+        labels = {
+            "absent": "observe",
+            "observe": "observe",
+            "attempt": "attempt",
+            "publish": "publish",
+        }
+        label = labels[_stage]
+        with ExitStack() as fences:
+            with PROFILER.span("background.reproduction_guard_wait." + label):
+                fences.enter_context(COMBAT_GROUPS.lock)
+                fences.enter_context(HARVESTS.lock)
+            with PROFILER.span("background.reproduction_guard_held." + label):
+                yield WORLD.snapshot(), set(HARVESTS.targets)
 
     generation = uuid.uuid4().hex
     locations, indexes = set(), {}
@@ -9957,24 +10523,24 @@ def reproduce_monsters():
                 for map_id in active_maps:
                     if map_id not in indexes:
                         indexes[map_id] = edge_index(map_geometry(map_id)["edges"])
-                with COMBAT_GROUPS.lock, HARVESTS.lock:
-                    players = WORLD.snapshot()
-                    active = {
-                        (p["map_id"], p["instance_id"])
-                        for p in players
-                        if p["map_id"] in indexes
-                    }
-                    locations = tick(
-                        STORE,
-                        active,
-                        locations,
-                        generation=generation,
-                        now_ms=time.monotonic_ns() // 1000000,
-                        indexed_by_map=indexes,
-                        players=players,
-                        excluded_ids=set(HARVESTS.targets),
-                        emit=WORLD.emit_location,
-                    )
+                players = WORLD.snapshot()
+                active = {
+                    (p["map_id"], p["instance_id"])
+                    for p in players
+                    if p["map_id"] in indexes
+                }
+                locations = tick(
+                    STORE,
+                    active,
+                    locations,
+                    generation=generation,
+                    now_ms=time.monotonic_ns() // 1000000,
+                    indexed_by_map=indexes,
+                    players=players,
+                    excluded_ids=(),
+                    emit=WORLD.emit_location,
+                    coordination=coordination,
+                )
             except Exception as error:
                 record(event="monster_reproduction_error", reason=str(error))
 
@@ -10019,24 +10585,35 @@ def refresh_player_exchanges():
 
 def mature_monsters():
     from wakfu_server.monster_maturation import tick
+    from contextlib import contextmanager, ExitStack
     import uuid
+
+    @contextmanager
+    def coordination(stage, _map_id, _instance_id):
+        label = "observe" if stage == "absent" else stage
+        with ExitStack() as fences:
+            with PROFILER.span("background.maturation_guard_wait." + label):
+                fences.enter_context(COMBAT_GROUPS.lock)
+                fences.enter_context(HARVESTS.lock)
+            with PROFILER.span("background.maturation_guard_held." + label):
+                yield WORLD.snapshot(), set(HARVESTS.targets)
 
     generation = uuid.uuid4().hex
     locations = set()
     while not STOPPING.wait(1):
         with PROFILER.span("background.mature_monsters"):
             try:
-                with COMBAT_GROUPS.lock, HARVESTS.lock:
-                    active = {(p["map_id"], p["instance_id"]) for p in WORLD.snapshot()}
-                    locations = tick(
-                        STORE,
-                        active,
-                        locations,
-                        generation=generation,
-                        now_ms=time.monotonic_ns() // 1000000,
-                        excluded_ids=set(HARVESTS.targets),
-                        emit=WORLD.emit_location,
-                    )
+                active = {(p["map_id"], p["instance_id"]) for p in WORLD.snapshot()}
+                locations = tick(
+                    STORE,
+                    active,
+                    locations,
+                    generation=generation,
+                    now_ms=time.monotonic_ns() // 1000000,
+                    excluded_ids=(),
+                    emit=WORLD.emit_location,
+                    coordination=coordination,
+                )
             except Exception as error:
                 record(event="monster_maturation_error", reason=str(error))
 

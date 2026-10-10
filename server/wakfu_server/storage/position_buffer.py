@@ -11,6 +11,10 @@ from contextlib import contextmanager, ExitStack
 _KEYS = ("map_id", "instance_id", "x", "y", "z", "direction")
 
 
+class PositionOwnerBusy(TimeoutError):
+    """Recoverable contention; the authoritative position remains dirty."""
+
+
 class Positions:
     def __init__(self, store, *, lease_active):
         self.store = store
@@ -40,7 +44,7 @@ class Positions:
         with self.lock:
             lock = self.account_locks.setdefault(account_id, threading.RLock())
         if not lock.acquire(blocking=blocking):
-            raise TimeoutError("Position owner is busy; retry checkpoint")
+            raise PositionOwnerBusy("Position owner is busy; retry checkpoint")
         try:
             yield
         finally:

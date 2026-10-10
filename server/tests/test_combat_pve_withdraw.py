@@ -316,6 +316,75 @@ class WithdrawalPlanTests(unittest.TestCase):
 
 
 class WithdrawalPostgresTests(PostgresCase):
+    def test_account_withdrawal_retires_and_persists_all_owned_heroes(self):
+        (
+            store,
+            account,
+            generation,
+            character,
+            fight,
+            adapter,
+            owner,
+            shared,
+            other_account,
+            other_generation,
+            other,
+        ) = self.state(marker=True)
+        hero = store.create_character(account, "Withdraw Hero")
+        position = (3, 0, 0)
+        fight.walkable.add(position)
+        fight.placement[0].add(position)
+        fight.actors[hero["id"]] = Actor(
+            hero["id"],
+            0,
+            position,
+            hero["hp"] - 4,
+            6,
+            3,
+            80,
+            hero["level"],
+            account,
+            True,
+            max_hp=hero["max_hp"],
+        )
+        adapter.registry.by_character[hero["id"]] = fight.id
+        adapter.registry.by_actor[hero["id"]] = fight.id
+        with store.connection() as db:
+            db.execute(
+                "INSERT INTO combat_fight_participants"
+                "(fight_id,character_id,account_id,team,session_generation) VALUES(%s,%s,%s,0,%s)",
+                (fight.id, hero["id"], account, generation),
+            )
+        receipt = adapter.withdraw_pve(owner, character, b"")
+        self.assertEqual(shared.fight.phase, "placement")
+        self.assertTrue(shared.fight.actors[hero["id"]].pve_withdrawn)
+        self.assertEqual(shared.fight.actors[hero["id"]].hp, 0)
+        self.assertEqual(store.character(account, hero["id"])["hp"], hero["hp"] - 4)
+        with store.connection() as db:
+            ids = {
+                row["character_id"]
+                for row in db.execute(
+                    "SELECT character_id FROM combat_pve_withdrawals WHERE account_id=%s",
+                    (account,),
+                )
+            }
+        self.assertEqual(ids, {character["id"], hero["id"]})
+        adapter.return_withdrawn_pve(
+            owner, fight.id, receipt["character"], struct.pack(">iB", fight.id, 1), wp=6
+        )
+        self.assertNotIn(hero["id"], adapter.registry.by_character)
+        self.assertNotIn(character["id"], adapter.registry.by_character)
+        self.assertEqual(adapter.registry.by_character[other["id"]], fight.id)
+        with store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM combat_pve_withdrawals "
+                    "WHERE account_id=%s AND returned_at IS NULL",
+                    (account,),
+                ).fetchone()["n"],
+                0,
+            )
+
     def state(self, *, marker=False):
         import test_combat_abandon as fixture
         from collections import deque

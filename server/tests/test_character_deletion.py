@@ -163,6 +163,67 @@ class CharacterDeletionTests(PostgresCase):
         )
         self.assertEqual(replacement["name"], "Delete Target")
 
+    def test_deleting_owned_hero_removes_slot_and_preserves_roster_main(self):
+        from wakfu_server.characters import heroes
+
+        main = self.store.create_character(self.account, "Hero Roster Main")
+        self.store.select_character(self.account, self.generation, main["id"])
+        heroes.add(
+            self.store, self.account, self.generation, main["id"], self.target["id"]
+        )
+        self.store.clear_character(self.account, self.generation)
+        with self.store.connection() as db:
+            roster_before = db.execute(
+                "SELECT revision FROM account_hero_rosters WHERE account_id=%s",
+                (self.account,),
+            ).fetchone()["revision"]
+        result = self.store.delete_character(
+            self.account, self.generation, self.target["id"]
+        )
+        self.assertEqual(self.target["id"], result["character_id"])
+        with self.store.connection() as db:
+            slots = db.execute(
+                "SELECT character_id FROM account_hero_slots WHERE account_id=%s",
+                (self.account,),
+            ).fetchall()
+            roster = db.execute(
+                "SELECT leader_id,revision FROM account_hero_rosters WHERE account_id=%s",
+                (self.account,),
+            ).fetchone()
+        self.assertEqual([], slots)
+        self.assertEqual(main["id"], roster["leader_id"])
+        self.assertEqual(roster_before + 1, roster["revision"])
+
+    def test_deleting_hero_roster_main_cascades_saved_slots(self):
+        from wakfu_server.characters import heroes
+
+        main = self.store.create_character(self.account, "Deleted Roster Main")
+        hero = self.store.create_character(self.account, "Deleted Roster Hero")
+        self.store.select_character(self.account, self.generation, main["id"])
+        heroes.add(self.store, self.account, self.generation, main["id"], hero["id"])
+        self.store.clear_character(self.account, self.generation)
+        self.store.delete_character(self.account, self.generation, main["id"])
+        with self.store.connection() as db:
+            self.assertIsNone(
+                db.execute(
+                    "SELECT account_id FROM account_hero_rosters WHERE account_id=%s",
+                    (self.account,),
+                ).fetchone()
+            )
+            self.assertEqual(
+                0,
+                db.execute(
+                    "SELECT count(*) AS n FROM account_hero_slots WHERE account_id=%s",
+                    (self.account,),
+                ).fetchone()["n"],
+            )
+            self.assertIsNotNone(
+                db.execute(
+                    "SELECT id FROM characters WHERE id=%s AND deleted_at IS NULL",
+                    (hero["id"],),
+                ).fetchone()
+            )
+
     def test_delete_requires_owned_live_unselected_session_and_does_not_partially_hide(
         self,
     ):

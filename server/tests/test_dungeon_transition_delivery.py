@@ -69,6 +69,27 @@ class DungeonTransitionDeliveryTests(unittest.TestCase):
         pending.assert_called_once_with(self.store, 9, "lease-a", 27)
         acknowledge.assert_called_once_with(self.store, 9, "lease-a", 27, 4)
 
+    def test_party_companion_can_walk_before_its_entry_is_delivered(self):
+        with (
+            patch.object(
+                delivery.dungeon_instances,
+                "pending_transitions",
+                return_value=(self.event,),
+            ),
+            patch.object(
+                delivery.dungeon_instances, "acknowledge_transition", return_value=True
+            ) as ack,
+        ):
+            result = self.invoke(
+                current_location=lambda: {
+                    **self.source,
+                    "x": self.source["x"] + 3,
+                    "y": self.source["y"] - 2,
+                }
+            )
+        self.assertEqual(result["state"], "delivered")
+        ack.assert_called_once()
+
     def test_stale_worker_generation_does_not_query_or_send(self):
         with patch.object(delivery.dungeon_instances, "pending_transitions") as pending:
             result = self.invoke(worker_generation="lease-old")

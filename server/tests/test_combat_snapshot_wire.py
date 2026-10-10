@@ -52,6 +52,46 @@ class SnapshotWireTests(unittest.TestCase):
             (rows[2][0], rows[4][0], rows[92][0], rows[97][0]), (8, 3, 15, 50)
         )
 
+    def test_initiative_current_stat_updates_snapshot_without_reordering_turns(self):
+        from wakfu_server.combat_stat_handler import _write
+
+        actor = self.actor()
+        actor.effect_base_maxima[1] = 100
+        other = self.actor(controlled=False)
+        other.effect_base_maxima[1] = 100
+        other.id = -1
+        other.initiative = 20
+        other.effect_stats[35] = 20
+        for current in (actor, other):
+            current.effect_maxima[35] = 1000
+            current.effect_base_maxima[35] = 1000
+        fight = SimpleNamespace(
+            actors={actor.id: actor, other.id: other},
+            current=actor,
+            order=[-1, actor.id],
+            turn_index=1,
+            apply_effect_damage=lambda *args: None,
+            apply_effect_healing=lambda *args: None,
+        )
+        original_order = list(fight.order)
+
+        _write(fight, actor.id, actor, 35, 22)
+
+        self.assertEqual((actor.effect_stats[35], actor.initiative), (22, 22))
+        self.assertEqual(
+            (fight.order, fight.current, fight.turn_index),
+            (original_order, actor, 1),
+        )
+        self.assertEqual(self.decode(snapshot_characteristics(actor))[35][0], 22)
+
+        _write(fight, actor.id, actor, 35, 10)
+        self.assertEqual((actor.effect_stats[35], actor.initiative), (10, 10))
+        self.assertEqual(
+            (fight.order, fight.current, fight.turn_index),
+            (original_order, actor, 1),
+        )
+        self.assertEqual(self.decode(snapshot_characteristics(actor))[35][0], 10)
+
     def test_expandable_raw_current_is_serialized_without_changing_effective_actor(
         self,
     ):

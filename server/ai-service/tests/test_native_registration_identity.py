@@ -81,6 +81,8 @@ def registration(oracle, runtime, *, transition=None):
     session.transport = CapturingTransport()
     session.states = {}
     session.state_identities = {}
+    session.preparation_stages_ms = {}
+    session.native_query_metrics = {}
     digest = session.register(runtime, transition=transition)
     return session, digest
 

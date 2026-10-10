@@ -96,7 +96,7 @@ def _normalize_context(context, character_id):
         raw = _record(raw, name="loser")
         if set(raw) != {"level", "monster_reference"}:
             raise ValueError("Loser has unknown or missing fields")
-        level = _integer(raw["level"], "loser level", 1, 200)
+        level = _integer(raw["level"], "loser level", 1, 32767)
         ref = raw["monster_reference"]
         if ref is not None:
             ref = _integer(ref, "monster reference", 1, 2**31 - 1)
@@ -269,7 +269,9 @@ def resolve(
     if not isinstance(generation, str) or not generation:
         raise ValueError("Invalid session generation")
     normalized = _normalize_context(context, character_id)
-    store.lock_character(db, account_id, generation, character_id)
+    from .combat_reward_ownership import lock_recipient
+
+    lock_recipient(store, db, account_id, generation, character_id, fight_id)
     participant = db.execute(
         "SELECT p.team,f.status FROM combat_fight_participants p "
         "JOIN combat_fights f ON f.id=p.fight_id "

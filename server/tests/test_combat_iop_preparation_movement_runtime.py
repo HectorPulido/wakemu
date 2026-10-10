@@ -23,13 +23,19 @@ class IopPreparationMovementRuntimeTests(unittest.TestCase):
         # local arena through the normal faP/faY producers, never a fake manager.
         terrain_uid = 645778764256831384
         character, monster, fight = SpellTransactionTests().native_server_fixture(
-            8, 200, target_hp=2000, native_qi=True, target_distance=1
+            8,
+            200,
+            target_hp=2000,
+            native_qi=True,
+            target_distance=1,
+            variation_seed=17,
         )
         arena = local_arena(
             character["map_id"],
             character["id"],
             fight.actors[7].position,
             fight.actors[-7].position,
+            variation_seed=17,
         )
         fight.native_border_constructor = dict(
             reference=46,

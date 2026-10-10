@@ -7,6 +7,7 @@ from collections import Counter
 from .planting_cells import surface
 from .planting import RESOURCES
 from .monsters import reference
+from .resource_domains import is_mineral
 
 
 def snapshot(db, map_id, instance_id, *, locate=surface, kinds=("plant", "monster")):
@@ -49,7 +50,9 @@ def snapshot(db, map_id, instance_id, *, locate=surface, kinds=("plant", "monste
     for row in plants:
         definition = RESOURCES[row["resource_reference"]]
         # A planted monster seed is not yet a living monster.
-        if not definition["monster_resource"]:
+        if not definition["monster_resource"] and not is_mineral(
+            row["resource_reference"]
+        ):
             add(
                 "plant",
                 row["resource_uid"],

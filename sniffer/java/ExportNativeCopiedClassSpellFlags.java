@@ -11,6 +11,13 @@ public final class ExportNativeCopiedClassSpellFlags {
             references.add(row.getAsJsonObject().get("id").getAsInt());
         for(JsonElement reference:scope.getAsJsonArray("granted_spell_references"))
             references.add(reference.getAsInt());
+        // The actual sy book also contains shared breed -2 passives.
+        // Supply the current published spells.json as the third input.
+        if(args.length > 2) {
+            JsonObject owned=JsonParser.parseString(Files.readString(Path.of(args[2]))).getAsJsonObject();
+            for(JsonElement row:owned.getAsJsonArray("spells"))
+                references.add(row.getAsJsonObject().get("id").getAsInt());
+        }
         apw.bGL().dd("jar:file:"+Path.of("client/contents/bdata").toAbsolutePath()+"/%d.jar!/%d.bin");
         apw.bGL().a(new aKX(),new apB<aKX>(){public void load(aKX row){}});
         apw.bGL().a(new aNw(),new apB<aNw>(){public void load(aNw row){}});

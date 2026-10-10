@@ -219,6 +219,56 @@ class Registry:
             provider(shared, candidate, runtime, packets), candidate, runtime
         )
 
+    def _accepted_ack(self, shared, runtime):
+        """Stage the presentation barrier before adopting any accepted action."""
+        pending = getattr(runtime, "awaiting_ack", None)
+        barrier = deepcopy(shared.ack)
+        if pending is None:
+            if barrier.turn is not None:
+                raise ValueError("Accepted action cleared a pending shared turn ACK")
+            return barrier
+        if barrier.turn == pending:
+            # Preserve both the original membership fence and received ACKs.
+            return barrier
+        if barrier.turn is not None:
+            raise ValueError("Accepted action replaced a pending shared turn ACK")
+        sessions = [
+            session
+            for account, session in shared.participants.items()
+            if account in shared.connected and self.live_session(session)
+        ]
+        barrier.arm(pending, sessions)
+        return barrier
+
+    @staticmethod
+    def _synchronize_defeated_current(shared, candidate, runtime, packets):
+        if (
+            shared.fight.phase != "active"
+            or candidate.phase != "active"
+            or not shared.fight.order
+            or not candidate.order
+        ):
+            return packets
+        previous = shared.fight.current
+        current = candidate.current
+        defeated = candidate.actors.get(previous.id) if previous is not None else None
+        if (
+            shared.fight.phase == "active"
+            and candidate.phase == "active"
+            and previous is not None
+            and previous.hp > 0
+            and defeated is not None
+            and defeated.hp <= 0
+            and current is not None
+            and current.id != previous.id
+            and candidate.turn_id > shared.fight.turn_id
+            and getattr(runtime, "awaiting_ack", None) is None
+        ):
+            packets += tuple(
+                runtime.synchronize_defeated_turn(previous.id, shared.fight.turn_id)
+            )
+        return packets
+
     def register(
         self, fight, starter, *, runtime=None, group_lease=None, join_context=None
     ):
@@ -229,7 +279,10 @@ class Registry:
         with self.lock:
             if (
                 fight.id in self.fights
-                or starter.character_id in self.by_character
+                or any(
+                    a.controlled and a.id in self.by_character
+                    for a in fight.actors.values()
+                )
                 or any(a in self.by_actor for a in fight.actors)
             ):
                 raise ValueError("Fight/actor already registered")
@@ -240,7 +293,11 @@ class Registry:
             shared.connected.add(starter.account_id)
             shared.outboxes[starter.account_id] = deque()
             self.fights[fight.id] = shared
-            self.by_character[starter.character_id] = fight.id
+            self.by_character.update(
+                (actor.id, fight.id)
+                for actor in fight.actors.values()
+                if actor.controlled
+            )
             self.by_actor.update((actor_id, fight.id) for actor_id in fight.actors)
             leaders = (
                 join_context.get("leaders") if isinstance(join_context, dict) else None
@@ -467,6 +524,8 @@ class Registry:
         actor_payload,
         bootstrap_packets,
         persist_member=None,
+        prepare_members=None,
+        member_packets=None,
         expected_fight_id=None,
     ):
         """bootstrap_packets(candidateFSM,shared,session)->own native packets.
@@ -541,15 +600,50 @@ class Registry:
                     team=new_actor.team,
                     position=new_actor.position,
                 )
-                stats, effects = actor_payload(candidate, new_actor, session)
-                notification = added(
-                    candidate.id,
-                    new_actor.id,
-                    actor_type=0,
-                    team=new_actor.team,
-                    stats=stats,
-                    effects=effects,
+                if prepare_members is not None:
+                    candidate = prepare_members(candidate, new_actor, shared, session)
+                    if candidate is fight or candidate.id != fight.id:
+                        raise ValueError(
+                            "Joined roster preparation requires detached same fight"
+                        )
+                    new_actor = candidate.actors[actor.id]
+                    if runtime is not None and hasattr(runtime, "fight"):
+                        runtime.fight = candidate
+                newcomers = [
+                    member
+                    for identity, member in candidate.actors.items()
+                    if identity not in fight.actors
+                ]
+                if any(
+                    not member.controlled
+                    or member.owner_id != session.account_id
+                    or member.team != new_actor.team
+                    or member.hp <= 0
+                    or member.id in self.by_character
+                    or member.id in self.by_actor
+                    for member in newcomers
+                ):
+                    raise ValueError(
+                        "Joined roster contains foreign or reserved actors"
+                    )
+                candidate._check_positions()
+                notifications = (
+                    list(self._packets(member_packets(candidate, shared, session)))
+                    if member_packets is not None
+                    else []
                 )
+                for member in newcomers:
+                    stats, effects = actor_payload(candidate, member, session)
+                    notifications.append(
+                        added(
+                            candidate.id,
+                            member.id,
+                            actor_type=0,
+                            team=member.team,
+                            stats=stats,
+                            effects=effects,
+                        )
+                    )
                 own_packets = self._packets(
                     bootstrap_packets(candidate, shared, session)
                 )
@@ -571,13 +665,14 @@ class Registry:
                 shared.participants[session.account_id] = session
                 shared.connected.add(session.account_id)
                 shared.outboxes[session.account_id] = deque()
-                self.by_character[session.character_id] = candidate.id
-                self.by_actor[new_actor.id] = candidate.id
+                for member in newcomers:
+                    self.by_character[member.id] = candidate.id
+                    self.by_actor[member.id] = candidate.id
                 shared.auto_locked = request["auto_lock"]
                 self._retire_join_aliases_locked(shared)
                 sequence = self._broadcast(
                     shared,
-                    [notification, (13026, placement_positions(candidate))],
+                    [*notifications, (13026, placement_positions(candidate))],
                     exclude=(session.account_id,),
                 )
                 shared.outboxes[session.account_id].append(Batch(sequence, own_packets))
@@ -623,8 +718,13 @@ class Registry:
             candidate, runtime, packets = self._prepare_accepted(
                 shared, candidate, runtime, packets
             )
+            packets = self._synchronize_defeated_current(
+                shared, candidate, runtime, packets
+            )
+            next_ack = self._accepted_ack(shared, runtime)
             shared.fight = candidate
             shared.runtime = runtime
+            shared.ack = next_ack
             self._retire_join_aliases_locked(shared)
             return self._broadcast(shared, packets)
 
@@ -644,8 +744,13 @@ class Registry:
             candidate, runtime, packets = self._prepare_accepted(
                 shared, candidate, runtime, packets
             )
+            packets = self._synchronize_defeated_current(
+                shared, candidate, runtime, packets
+            )
+            next_ack = self._accepted_ack(shared, runtime)
             shared.fight = candidate
             shared.runtime = runtime
+            shared.ack = next_ack
             self._retire_join_aliases_locked(shared)
             return self._broadcast(shared, packets)
 
@@ -673,6 +778,10 @@ class Registry:
     def arm_ack(self, fight_id, turn):
         shared = self.lookup(fight_id)
         with shared.lock:
+            if shared.ack.turn == turn:
+                # Legacy socket adapters may announce the accepted barrier.
+                # They must not reset a participant's already received ACK.
+                return
             sessions = [
                 s
                 for a, s in shared.participants.items()
@@ -954,6 +1063,8 @@ class Registry:
         for actor_id in shared.fight.actors:
             if registry.by_actor.get(actor_id) == shared.fight.id:
                 registry.by_actor.pop(actor_id, None)
+            if registry.by_character.get(actor_id) == shared.fight.id:
+                registry.by_character.pop(actor_id, None)
         for participant in shared.participants.values():
             if registry.by_character.get(participant.character_id) == shared.fight.id:
                 registry.by_character.pop(participant.character_id, None)
@@ -1068,6 +1179,8 @@ class Registry:
                 for identity in receipt["withdrawal"].removed_actor_ids:
                     if self.by_actor.get(identity) == fight_id:
                         self.by_actor.pop(identity)
+                    if self.by_character.get(identity) == fight_id:
+                        self.by_character.pop(identity)
                 if self.by_character.get(session.character_id) == fight_id:
                     self.by_character.pop(session.character_id)
                 self._retire_join_aliases_locked(shared)
@@ -1106,6 +1219,8 @@ class Registry:
                 for identity in receipt["withdrawal"].removed_actor_ids:
                     if self.by_actor.get(identity) == fight_id:
                         self.by_actor.pop(identity)
+                    if self.by_character.get(identity) == fight_id:
+                        self.by_character.pop(identity)
                 if self.by_character.get(session.character_id) == fight_id:
                     self.by_character.pop(session.character_id)
                 self._retire_join_aliases_locked(shared)

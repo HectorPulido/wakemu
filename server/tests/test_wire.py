@@ -5,6 +5,20 @@ from wakfu_server import wire
 
 
 class WireTests(unittest.TestCase):
+    def test_global_to_local_snapshot_does_not_restore_fixture_nation(self):
+        entity = (
+            bytes([22]) + struct.pack(">i", 30) + bytes([7]) * 27 + bytes(range(14))
+        )
+        original = struct.pack(">qH", wire.TEMPLATE_CHARACTER, len(entity)) + entity
+        actual = wire.adapt(15548, original, 5, {"id": 4, "level": 60})
+        self.assertEqual(actual[:10], struct.pack(">qH", 4, 46))
+        self.assertEqual(actual[10:42], bytes([22]) + bytes(31))
+        self.assertEqual(actual[42:], entity[32:])
+        self.assertEqual(wire.adapt(15548, actual, 5, {"id": 4, "level": 60}), actual)
+        for malformed in (original[:-1], original + b"x", b"x"):
+            with self.subTest(size=len(malformed)), self.assertRaises(ValueError):
+                wire.adapt(15548, malformed, 5, {"id": 4, "level": 60})
+
     @staticmethod
     def _world_r_e_direction(body):
         offset = body.index(wire.INITIAL_POSITION)

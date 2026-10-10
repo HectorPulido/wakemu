@@ -7,6 +7,7 @@ from wakfu_server import native_catalog as protocol_catalog
 import json
 import math
 import secrets
+from contextlib import nullcontext
 from .paths import DATA_ROOT
 
 CATALOG = protocol_catalog.load(DATA_ROOT / "monster-growth-catalog.json")
@@ -30,6 +31,10 @@ def policy(store):
             "SELECT value FROM settings WHERE name='monster_maturation'"
         ).fetchone()
     value = None if row is None else row["value"]
+    return validate_policy(value)
+
+
+def validate_policy(value):
     keys = {"interval_ms", "base_probability", "stage_decay", "boss_probability"}
     if type(value) is not dict or set(value) != keys:
         raise ValueError("Invalid monster maturation policy")
@@ -86,7 +91,15 @@ def choose_next(reference, configuration, *, draw, choose=secrets.choice):
 
 
 def observe(
-    store, map_id, instance_id, *, present, generation, now_ms, excluded_ids=()
+    store,
+    map_id,
+    instance_id,
+    *,
+    present,
+    generation,
+    now_ms,
+    excluded_ids=(),
+    configuration=None,
 ):
     from .monster_active_clocks import observe as observe_clocks
 
@@ -100,12 +113,21 @@ def observe(
         excluded_ids=excluded_ids,
         table="monster_maturation_timers",
         eligible_refs=GROWABLE,
-        policy_provider=policy,
+        policy_provider=policy
+        if configuration is None
+        else lambda _: validate_policy(configuration),
     )
 
 
 def attempt(
-    store, ticket, *, present, excluded_ids=(), draw=None, choose=secrets.choice
+    store,
+    ticket,
+    *,
+    present,
+    excluded_ids=(),
+    draw=None,
+    choose=secrets.choice,
+    configuration=None,
 ):
     """Commit one pending cycle under the same group lock used by fight claims.
 
@@ -120,7 +142,9 @@ def attempt(
         raise ValueError("Invalid monster maturation presence")
     if not present:
         return None
-    configuration = policy(store)
+    configuration = (
+        policy(store) if configuration is None else validate_policy(configuration)
+    )
     key = (
         ticket["map_id"],
         ticket["instance_id"],
@@ -252,7 +276,7 @@ def pending(store, map_id, instance_id):
         ]
 
 
-def unpublished(store, map_id, instance_id):
+def unpublished(store, map_id, instance_id, *, group_id=None):
     """Read committed publications with the latest durable group snapshot.
 
     Several growth events may share a group. Publish its current revision,
@@ -267,8 +291,11 @@ def unpublished(store, map_id, instance_id):
                 "FROM monster_maturation_outbox o JOIN combat_groups g "
                 "USING(map_id,instance_id,group_id) "
                 "WHERE o.map_id=%s AND o.instance_id=%s AND NOT o.published "
-                "ORDER BY o.group_id,o.revision,o.monster_id,o.cycle",
-                (map_id, instance_id),
+                + ("AND o.group_id=%s " if group_id is not None else "")
+                + "ORDER BY o.group_id,o.revision,o.monster_id,o.cycle",
+                (map_id, instance_id)
+                if group_id is None
+                else (map_id, instance_id, group_id),
             )
         ]
 
@@ -369,48 +396,86 @@ def reconcile_seed(store, key, seeds, persisted):
 
 
 def tick(
-    store, locations, previous_locations, *, generation, now_ms, excluded_ids, emit
+    store,
+    locations,
+    previous_locations,
+    *,
+    generation,
+    now_ms,
+    excluded_ids,
+    emit,
+    coordination=None,
 ):
-    """One active-zone cycle; caller owns group/harvest locks throughout."""
+    """Refresh authority per operation instead of fencing a complete zone cycle.
+
+    The optional coordinator yields current players and harvest exclusions while
+    holding group/harvest fences. Legacy callers retain their outer fence.
+    """
     from .combat_monster_world import remove_message, spawn_group
 
+    def guarded(stage, map_id, instance_id):
+        if coordination is None:
+            return nullcontext(((), excluded_ids))
+        return coordination(stage, map_id, instance_id)
+
+    def present(players, map_id, instance_id):
+        return coordination is None or any(
+            (player["map_id"], player["instance_id"]) == (map_id, instance_id)
+            for player in players
+        )
+
     locations = set(locations)
+    configuration = policy(store) if locations else None
     for map_id, instance_id in set(previous_locations) - locations:
-        observe(
-            store,
-            map_id,
-            instance_id,
-            present=False,
-            generation=generation,
-            now_ms=now_ms,
-        )
+        with guarded("absent", map_id, instance_id):
+            observe(
+                store,
+                map_id,
+                instance_id,
+                present=False,
+                generation=generation,
+                now_ms=now_ms,
+            )
     for map_id, instance_id in sorted(locations):
-        observe(
-            store,
-            map_id,
-            instance_id,
-            present=True,
-            generation=generation,
-            now_ms=now_ms,
-            excluded_ids=excluded_ids,
-        )
+        with guarded("observe", map_id, instance_id) as (players, current_excluded):
+            observe(
+                store,
+                map_id,
+                instance_id,
+                present=present(players, map_id, instance_id),
+                generation=generation,
+                now_ms=now_ms,
+                excluded_ids=current_excluded,
+                configuration=configuration,
+            )
         for ticket in pending(store, map_id, instance_id):
-            attempt(store, ticket, present=True, excluded_ids=excluded_ids)
-        events = unpublished(store, map_id, instance_id)
-        grouped = {}
-        for event in events:
-            grouped.setdefault(event["group_id"], []).append(event)
-        for group_id, batch in grouped.items():
-            current = batch[-1]
-            if current["status"] != "available" or any(
-                member["id"] in excluded_ids for member in current["members"]
-            ):
-                continue
-            # Build both packets before removing any visible member.
-            remove = remove_message([member["id"] for member in current["members"]])
-            spawn = spawn_group(current["members"], group_id=group_id)
-            emit(map_id, instance_id, *remove)
-            emit(map_id, instance_id, 12608, spawn)
-            for event in batch:
-                acknowledge(store, event)
+            with guarded("attempt", map_id, instance_id) as (players, current_excluded):
+                attempt(
+                    store,
+                    ticket,
+                    present=present(players, map_id, instance_id),
+                    excluded_ids=current_excluded,
+                    configuration=configuration,
+                )
+        group_ids = dict.fromkeys(
+            event["group_id"] for event in unpublished(store, map_id, instance_id)
+        )
+        for group_id in group_ids:
+            with guarded("publish", map_id, instance_id) as (_, current_excluded):
+                # Enumeration is advisory: a claim or harvest can start before
+                # this fence. Reload the authoritative roster before delivery.
+                batch = unpublished(store, map_id, instance_id, group_id=group_id)
+                if not batch:
+                    continue
+                current = batch[-1]
+                if current["status"] != "available" or any(
+                    member["id"] in current_excluded for member in current["members"]
+                ):
+                    continue
+                remove = remove_message([member["id"] for member in current["members"]])
+                spawn = spawn_group(current["members"], group_id=group_id)
+                emit(map_id, instance_id, *remove)
+                emit(map_id, instance_id, 12608, spawn)
+                for event in batch:
+                    acknowledge(store, event)
     return locations

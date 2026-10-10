@@ -6,6 +6,10 @@ facing only; it does not debit AP/MP or use the world position packet13530.
 import struct
 
 CARDINAL_DIRECTIONS = frozenset((1, 3, 5, 7))
+# Fresh controlled fighters need a tactical facing before their first movement.
+# EAST (0) is a world direction, but transformed rigs can lack its idle clip.
+# Use a supported cardinal default; subsequent native facing stays authoritative.
+INITIAL_PLAYER_DIRECTION = 1
 
 
 def decode_request(body):

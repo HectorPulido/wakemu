@@ -24,3 +24,5 @@ The pinned sampler is **py-spy 0.4.2**, verified against PyPI package metadata o
 Open the JSON in a local Speedscope installation. Do not upload private captures to external services without reviewing them. Artifacts contain source paths and function names but do not intentionally capture locals or game payloads.
 
 Official implementation and limits: [py-spy README](https://github.com/benfred/py-spy), especially nonblocking sampling, idle thread detection, and Docker `SYS_PTRACE` requirements.
+
+Recorder health is independent of HTTP liveness. `/health` returns 503 for a dead/stalled recorder thread (20-second progress limit), a capture older than 140 seconds, enabled sampling without a child after 15 seconds, or an outstanding lifecycle error. `/status.recorder` exposes the individual reasons and heartbeat age. Unexpected recorder-loop errors are persisted to timeline JSONL when storage permits and retried on the next tick.
