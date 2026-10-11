@@ -52,6 +52,10 @@ def compact(document):
         result["effects"][key] = dict(
             family=family, children=row.get("children", []), references=references
         )
+        if family == 994:
+            # Installed eZq/eZn constructs faB; eHI.cmY is fixed2349.
+            result["effects"][key]["references"] = [2349]
+            result["effects"][key]["fixed_profile_source"] = "eZq.eZn.faB.eHI.cmY"
         if family == 307:
             result["effects"][key]["parameter_samples"] = sorted(
                 {tuple(values) for values in row.get("parameters_by_level", [])}
@@ -91,6 +95,7 @@ def dependency_closure(tables, monsters, seed_spell_ids, seed_state_ids=()):
                 304: "states",
                 321: "states",
                 307: "profiles",
+                994: "profiles",
                 315: "areas",
                 649: "spells",
             }.get(row["family"])
@@ -102,6 +107,13 @@ def dependency_closure(tables, monsters, seed_spell_ids, seed_state_ids=()):
                     if row["family"] == 307:
                         ref = ((ref + 32768) % 65536) - 32768
                         edges.add((int(key), ref))
+                    if row["family"] == 994:
+                        if (
+                            ref != 2349
+                            or row.get("fixed_profile_source") != "eZq.eZn.faB.eHI.cmY"
+                        ):
+                            raise ValueError("Missing native994 fixed-profile source")
+                        edges.add((int(key), ref))
                     if ref <= 0:
                         missing.add(target + ":" + str(ref))
                     else:
@@ -112,7 +124,20 @@ def dependency_closure(tables, monsters, seed_spell_ids, seed_state_ids=()):
             for kind, refs in seen.items()
         },
         effect_profile_edges=[
-            dict(effect_reference=e, profile_id=p) for e, p in sorted(edges)
+            dict(
+                effect_reference=e,
+                profile_id=p,
+                **(
+                    dict(
+                        family=994,
+                        edge_type="native_fixed_profile",
+                        producer="eZq.eZn.faB.eHI.cmY",
+                    )
+                    if tables["effects"][str(e)]["family"] == 994
+                    else {}
+                )
+            )
+            for e, p in sorted(edges)
         ],
         missing_definitions=sorted(missing)
     )
@@ -208,6 +233,44 @@ def summon_dependency_scopes(
             raise ValueError("Invalid source actor level domain")
         for effect_id in closure["closure_effect_ids"]:
             effect = tables["effects"].get(str(effect_id))
+            if effect is not None and effect["family"] == 994:
+                if (
+                    effect.get("references") != [2349]
+                    or effect.get("fixed_profile_source") != "eZq.eZn.faB.eHI.cmY"
+                ):
+                    raise ValueError("Missing native994 fixed-profile source")
+                profile = monsters.get("2349")
+                if profile is not None:
+                    scope = scopes.setdefault(
+                        "2349",
+                        dict(
+                            descriptor_levels=set(),
+                            level_domain_exact=False,
+                            level_modes=set(),
+                            nonexecuting_samples=[],
+                            spell_ids=sorted(
+                                a["spell_id"] for a in profile["native_abilities"]
+                            ),
+                        ),
+                    )
+                    scope["level_domain_exact"] = False
+                    scope.setdefault("contextual_target_levels", []).append(
+                        dict(
+                            family=994,
+                            effect_id=effect_id,
+                            producer="eZq.eZn.faB.eHI.cmZ.target_real_level",
+                            target_domain="actual_owned_class_target",
+                            finite_domain=None,
+                            reason="target_level_population_not_supplied",
+                        )
+                    )
+                    if not profile["native_abilities"]:
+                        from monster_summon_book_source import empty_book_source
+
+                        scope["native_empty_book_source"] = empty_book_source(
+                            2349, profile
+                        )
+                continue
             if effect is None or effect["family"] != 307:
                 continue
             for values in effect.get("parameter_samples", ()):
@@ -221,6 +284,39 @@ def summon_dependency_scopes(
                 # effect container level, exactly as summon_specification does.
                 # Its level domain remains unproven below; this is no bypass.
                 mode = values[1] if len(values) > 1 else -1
+                current_scope = scopes.setdefault(
+                    str(reference),
+                    dict(
+                        descriptor_levels=set(),
+                        level_domain_exact=True,
+                        level_modes=set(),
+                        nonexecuting_samples=[],
+                        spell_ids=sorted(
+                            ability["spell_id"]
+                            for ability in profile["native_abilities"]
+                        ),
+                    ),
+                )
+                current_scope["level_modes"].add(mode)
+                if not profile["native_abilities"]:
+                    from monster_summon_book_source import empty_book_source
+
+                    current_scope["native_empty_book_source"] = empty_book_source(
+                        reference, profile
+                    )
+                if mode <= 0 and mode not in (-3, -2, -1):
+                    # eZl.C 227..249 logs and returns BEFORE eHD creation.
+                    # Keep the sample/closure; it produces no descriptor level.
+                    current_scope["nonexecuting_samples"].append(
+                        dict(
+                            effect_id=int(effect_id),
+                            parameters=list(values),
+                            level_mode=mode,
+                            reason="native_invalid_level_mode_no_summon",
+                            source="eZl.C.227_249",
+                        )
+                    )
+                    continue
                 # These are original evaluated eZl parameters. Preserve their
                 # actual native descriptor mode instead of wild species bounds.
                 levels = (
@@ -236,20 +332,7 @@ def summon_dependency_scopes(
                 )
                 if not levels or any(level < 0 for level in levels):
                     raise ValueError("Unsupported native summon descriptor level mode")
-                current_scope = scopes.setdefault(
-                    str(reference),
-                    dict(
-                        descriptor_levels=set(),
-                        level_domain_exact=True,
-                        level_modes=set(),
-                        spell_ids=sorted(
-                            ability["spell_id"]
-                            for ability in profile["native_abilities"]
-                        ),
-                    ),
-                )
                 current_scope["descriptor_levels"].update(levels)
-                current_scope["level_modes"].add(mode)
                 if (
                     mode == -1
                     or mode == -2
@@ -259,8 +342,11 @@ def summon_dependency_scopes(
         for scope in scopes.values():
             scope["descriptor_levels"] = sorted(scope["descriptor_levels"])
             scope["level_modes"] = sorted(scope["level_modes"])
-            scope["min_level"] = min(scope["descriptor_levels"])
-            scope["max_level"] = max(scope["descriptor_levels"])
+            scope["min_level"] = min(scope["descriptor_levels"], default=None)
+            scope["max_level"] = max(scope["descriptor_levels"], default=None)
+            if not scope["descriptor_levels"]:
+                # A native non-execution witness is not an activation proof.
+                scope["level_domain_exact"] = False
         report["spell_summon_profiles"][str(spell)] = scopes
     return report
 
@@ -272,7 +358,8 @@ def build_documents(
     output,
     *,
     seed_state_ids=(),
-    seed_actor_levels=None
+    seed_actor_levels=None,
+    spell_supplement=None
 ):
     """Return changed shared documents and closure report; never write the DB."""
     bundle, output = Path(bundle).resolve(), Path(output).resolve()
@@ -316,6 +403,15 @@ def build_documents(
                         "Conflicting native dependency identity " + kind + ":" + key
                     )
                 tables[kind][key] = row
+    if spell_supplement is not None:
+        from monster_spell_supplement import (
+            verify_spell_supplement,
+            merge_dependency_supplement,
+        )
+
+        tables = merge_dependency_supplement(
+            tables, verify_spell_supplement(spell_supplement, bundle)
+        )
     # Native level zero is a distinct sampled producer, not index one.
     extra = compact(read_bundle(bundle, "zero-effect-definitions"))["effects"]
     for key, row in extra.items():
@@ -349,6 +445,13 @@ def build_documents(
         str(row["ref"]): row for row in read_bundle(bundle, "monsters")["monsters"]
     }
     report = dependency_closure(tables, monsters, seed_spell_ids, seed_state_ids)
+    if spell_supplement is not None:
+        report["spell_supplement"] = dict(
+            receipt_sha256=digest(Path(spell_supplement) / "source-receipt.json"),
+            document_sha256=digest(Path(spell_supplement) / "supplement.json"),
+            ownership_changed=False,
+            effect_parameters_above_200_qualified=False,
+        )
     report.update(
         summon_dependency_scopes(
             tables, monsters, seed_spell_ids, seed_actor_levels=seed_actor_levels

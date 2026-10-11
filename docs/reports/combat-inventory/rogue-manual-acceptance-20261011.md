@@ -1,6 +1,6 @@
 # Rogue manual acceptance
 
-This battery is prepared for manual execution after the corrected current-source gate. It is not evidence of manual acceptance. Native breed13 is Tymador/Rogue. The corrected nine-method semantic bundle passed on catalog677, but that result is historical relative to deployed catalog `bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1`; no Rogue suite has yet run against bd79. The stronger robot7952 movement scenario remains under diagnosis and must stay visible in the final18 repeat. Current findings are in `rogue-runtime-qualification-20261011.md` and `rogue-passive-semantic-matrix-20261011.md`.
+This battery is prepared for manual execution after the corrected current-source gate. It is not evidence of manual acceptance. Native breed13 is Tymador/Rogue. The corrected nine-method semantic bundle passed on catalog677, but that result is historical relative to deployed catalog `bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1`; the strengthened robot6520/7951/7952 selector has since passed a private19/19 and integrated28/28 focal on bd79. The7952 discrepancy was resolved by actual paid movement through the live wrapper, preserving native orientation and PUSH1 assertions. Keep the qualified selector in the final18 repeat; this is not manual acceptance. Current findings are in `rogue-runtime-qualification-20261011.md` and `rogue-passive-semantic-matrix-20261011.md`.
 
 ## Preparation
 

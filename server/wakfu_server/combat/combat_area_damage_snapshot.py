@@ -20,7 +20,9 @@ def area_has_damage_characteristic(row, definition):
 
         constructor = verified_fake_fighter(row, definition)
         if constructor["characteristic_ids"]:
-            raise ValueError("Native faW damage PC authority unavailable")
+            from .combat_fake_fighter_resources import fake_fighter_characteristics
+
+            return 20 in fake_fighter_characteristics(row, definition)
     elif contract == "fbd":
         from .combat_wall_area import wall_constructor
 
@@ -35,11 +37,21 @@ def area_has_damage_characteristic(row, definition):
 
 
 def copy_area_damage_snapshot(
-    row, definition, *, source_stats=None, container_type=None, spell_element_stat=None
+    row,
+    definition,
+    *,
+    source_stats=None,
+    container_type=None,
+    spell_element_stat=None,
+    spell_element_provider=None,
 ):
     if not area_has_damage_characteristic(row, definition):
         row["native_eyw_damage_copy"] = "eYW.fQG.skipped_no_sgQ"
         return False
+    if row.get("native_area_contract") == "faW":
+        # Unlike ordinary eYQ315, eYW308 copies additional source/spell PCs.
+        # Its actual source/PL authority is not produced for faW yet.
+        raise ValueError("Native faW eYW copy authority unavailable")
     if not isinstance(source_stats, dict) or any(
         type(k) is not int or type(v) is not int for k, v in source_stats.items()
     ):
@@ -67,6 +79,16 @@ def copy_area_damage_snapshot(
         for name in ("sgR", "sgS", "sgU", "sgT", "shY", "shX", "shV", "shW"):
             add(fields[name], fields[name], reset=True)
     elif container_type == 11:
+        if spell_element_provider is not None:
+            from .combat_spell_element_pc import NativeSpellElementPC
+
+            operand = spell_element_provider()
+            if not isinstance(operand, NativeSpellElementPC):
+                raise ValueError("Missing actual native fyG spell element operand")
+            spell_element_stat = operand.characteristic_id
+            if spell_element_stat is None:
+                row["native_eyw_damage_copy"] = "eYW.fQG.ordered_PA_nG"
+                return True  # Actual PV.a(null) is false, not a missing PC ID.
         if type(spell_element_stat) is not int:
             raise ValueError("Missing actual native fyG spell element PC")
         add(fields["sgQ"], spell_element_stat)

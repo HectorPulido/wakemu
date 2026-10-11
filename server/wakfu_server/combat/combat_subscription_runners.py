@@ -16,6 +16,7 @@ GROUP_SUBSCRIPTION_FAMILIES = (
     949,
     999,
     1020,
+    1041,
     1047,
     1076,
     1080,

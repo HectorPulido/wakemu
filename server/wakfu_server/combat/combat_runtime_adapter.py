@@ -1522,20 +1522,18 @@ class NativeServerRuntimeAdapter:
         def glyph_count_query(selector):
             from .combat_effect_area_queries import _rows
             from .combat_glyph_count import native_glyph_count
+            from .combat_global_pv_collections import global_area_order
 
+            # A missing manager must not be mistaken for an empty Qs.
+            global_area_order(preview)
             if selector is None:
                 return native_glyph_count(_rows(preview))
             selector = selector.lower()
             if selector == "target" and native_cell_argument:
                 raise ValueError("Missing native NbGlyphs cell-to-eGj resolution")
-            selected = aliases.get(selector)
+            selected = state_actor_query(selector)
             if selected is None:
-                if (
-                    selector in ("triggeringcaster", "triggeringtarget")
-                    and triggering_effect is None
-                ):
-                    return native_glyph_count(_rows(preview), filter_owner=True)
-                raise ValueError("Missing native NbGlyphs actor authority")
+                return native_glyph_count(_rows(preview), filter_owner=True)
             if selected.is_native_fighter is False:
                 return native_glyph_count(_rows(preview), filter_owner=True)
             if (

@@ -127,6 +127,8 @@ def server_runtime(
         parsed = validate_deck(deck_blobs[actor_id], source["breed"], source["level"])
         decks[actor_id] = frozenset(parsed["active"] + parsed["passive"])
         deck_caps[actor_id] = parsed["level_cap"] if parsed["level_cap"] >= 0 else None
+    from .combat_npc_spellbook import ordinary_npc_spellbook
+
     actors = OrdinaryActorAuthority(
         characters=player_characters,
         monsters=monsters,
@@ -134,6 +136,7 @@ def server_runtime(
         deck_caps=deck_caps,
         deck_blobs=deck_blobs,
         excluded_decks={actor_id: frozenset() for actor_id in player_characters},
+        npc_spellbook=ordinary_npc_spellbook,
     )
     from .combat_summon import RegisteredSummonAuthority
 

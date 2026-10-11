@@ -29,10 +29,20 @@ def ray_program():
 
 @lru_cache(maxsize=4)
 def topology_columns(map_id):
+    from wakfu_server.prepared_los import published_columns
+
+    prepared = published_columns(map_id)
+    if prepared is not None:
+        return prepared
     path = DATA_ROOT / "native-los-topology" / f"{map_id}.json"
     if not protocol_catalog.exists(path):
         raise ValueError("Missing native LOS topology columns for this map")
     data = protocol_catalog.load(path)
+    return prepare_columns(data, map_id)
+
+
+def prepare_columns(data, map_id):
+    """Preserve original column overwrite, surface order and value sharing."""
     if data.get("map_id") != map_id or data.get("schema") != "native-Sf-Vz-columns-v1":
         raise ValueError("Native LOS topology identity mismatch")
     shared = {}

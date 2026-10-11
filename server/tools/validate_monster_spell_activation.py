@@ -825,6 +825,96 @@ class ReferenceFixtureCache:
         return value
 
 
+def passive_case_qualification(case):
+    from monster_passive_initialization import passive_case_proven
+
+    monster = NATIVE_SOURCE_MONSTERS.get(case.get("reference"))
+    if monster is None:
+        return False
+    from wakfu_server.combat_npc_attack import npc_spell_catalog
+    from wakfu_server.combat_native_spell_casting import catalog
+
+    return passive_case_proven(
+        case, monster, npc_spell_catalog(), catalog(), initialization_proven
+    )
+
+
+def case_qualification_complete(case):
+    return case.get("status") == "validated" or passive_case_qualification(case)
+
+
+def passive_initialization_case(
+    reference,
+    level,
+    spell,
+    spell_level,
+    cells,
+    result,
+    fixture_cache=None,
+    propagate_infrastructure=False,
+):
+    """Use an actual initialized fixture, never cast an inert representation."""
+    monster = NATIVE_SOURCE_MONSTERS.get(reference)
+    if monster is None:
+        return None
+    from wakfu_server.combat_native_spell_casting import catalog
+
+    casting = catalog()
+    if casting.get(str(spell), {}).get("cast_criterion_raw", "").strip() != "False":
+        return None
+    from wakfu_server.combat_npc_attack import npc_spell_catalog
+    from monster_passive_initialization import (
+        passive_state_identity,
+        passive_initialization_proof,
+    )
+
+    document = npc_spell_catalog()
+    if (
+        passive_state_identity(monster, level, spell, spell_level, document, casting)
+        is None
+    ):
+        return None
+    result["reference"] = reference
+    destination = next((cell for cell in cells if tuple(cell) != (-8, -7, -1)), None)
+    if destination is None:
+        result["errors"] = {"passive initialization: missing actual fixture cell": 1}
+        return result
+    result["scenes_attempted"] = 1
+    try:
+        context = (fixture if fixture_cache is None else fixture_cache.get)(
+            reference, level, destination, scenario=None
+        )
+        receipt = getattr(context[0], "native_npc_initialization_receipts", {}).get(
+            -200
+        )
+        if receipt is not None:
+            result["initialization_receipts"].append(receipt)
+        proof = passive_initialization_proof(
+            monster,
+            level,
+            spell,
+            spell_level,
+            document,
+            casting,
+            receipt,
+            initialization_proven,
+        )
+        if proof is None:
+            raise ValueError("Exact native passive constructor proof is missing")
+        if fixture_cache is not None:
+            fixture_cache.verify(context)
+        result.update(
+            status="passive_initialization_only", passive_initialization_proof=proof
+        )
+    except Exception as exc:
+        if propagate_infrastructure:
+            raise_infrastructure_failure(exc)
+        result["errors"] = {
+            "passive initialization: " + type(exc).__name__ + ": " + str(exc): 1
+        }
+    return result
+
+
 def evaluate_reference_cases(
     row,
     abilities_for_level,
@@ -873,7 +963,7 @@ def evaluate_reference_cases(
                         fixture_cache.clear()
                     gc.collect()
                     gc.freeze()
-                if fail_fast and case["status"] != "validated":
+                if fail_fast and not case_qualification_complete(case):
                     return cases
         except Exception as exc:
             if not fail_fast:
@@ -932,6 +1022,18 @@ def run_case(
         ),
         scenes_attempted=0,
     )
+    passive = passive_initialization_case(
+        reference,
+        level,
+        spell,
+        spell_level,
+        cells,
+        result,
+        fixture_cache=fixture_cache,
+        propagate_infrastructure=propagate_infrastructure,
+    )
+    if passive is not None:
+        return passive
     errors = Counter()
     try:
         capability = describe_spell(spell, spell_level)
@@ -1071,12 +1173,14 @@ def run_case(
             # Retain the certified ordinary-spell search order. Proximity
             # ordering is useful for free-cell AoE, but can discard the aligned
             # displacement target before the finite preview budget is spent.
-            occupied = {tuple(actor.position) for actor in fight.actors.values()}
+            from monster_target_cells import native_empty_target_predicate
+
+            empty = native_empty_target_predicate(fight)
             ordinary_empty = [
                 cell
                 for cell in destinations
                 if cell in fight.walkable
-                and cell not in occupied
+                and empty(cell)
                 and capability["minimum"]
                 <= abs(cell[0] - source[0]) + abs(cell[1] - source[1])
                 <= capability["maximum"]
@@ -1509,6 +1613,7 @@ def main():
     global NATIVE_SOURCE_MONSTERS
     NATIVE_SOURCE_MONSTERS = native_monsters
     result["native_monsters_sha256"] = digest(args.native_monsters)
+    result["native_monsters_path"] = str(args.native_monsters.resolve())
     if args.class_tests_only:
         selected = set()
     cells = published_geometry(1134).cells
@@ -1543,7 +1648,15 @@ def main():
         status = (
             "validated"
             if cases
-            and all(c["status"] == "validated" for c in cases)
+            and all(case_qualification_complete(c) for c in cases)
+            and any(
+                c["status"] == "validated"
+                and any(
+                    target.get("effectful") is True
+                    for target in c.get("successful_targets", [])
+                )
+                for c in cases
+            )
             and not pending_initialization
             else "pending"
         )
@@ -1565,6 +1678,9 @@ def main():
                     status=status,
                     cases=len(cases),
                     validated=sum(c["status"] == "validated" for c in cases),
+                    passive_initialization_only=sum(
+                        c["status"] == "passive_initialization_only" for c in cases
+                    ),
                 )
             ),
             flush=True,
@@ -1657,7 +1773,7 @@ def main():
         reasons = []
         if monster["pending_initialization"]:
             reasons.append("native_initial_states_not_initialized")
-        if any(c["status"] != "validated" for c in monster["cases"]):
+        if any(not case_qualification_complete(c) for c in monster["cases"]):
             reasons.append("no_effectful_native_execution_in_finite_target_search")
         if monster.get("ai_commit", {}).get("status", "validated") != "validated":
             reasons.append("ai_delivery_validation_pending")

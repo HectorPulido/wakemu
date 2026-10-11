@@ -1504,6 +1504,8 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             return
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
             name = node.func.id
+            if name == "IsSpecific":
+                name = "IsSpecificArea"  # eQb lexical aliases share one token.
             args = node.args
             if name in ("IsPvp", "GetBooleanSystemConfiguration"):
                 check_number(node)
@@ -2041,6 +2043,8 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 else any(run(v) for v in node.values)
             )
         name = node.func.id
+        if name == "IsSpecific":
+            name = "IsSpecificArea"  # Preserve the same area authority callback.
         if name == "HasActiveCosmeticId":
             if not callable(context.has_active_cosmetic_query):
                 raise UnknownCondition(

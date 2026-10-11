@@ -9,6 +9,11 @@ from wakfu_server.combat_effect_area_queries import (
 class NativeAreaQueriesTests(unittest.TestCase):
     def fixture(self):
         return SimpleNamespace(
+            # Ordinary fighters are distinct from the registered area PV901.
+            actors={
+                7: SimpleNamespace(id=7, team=0, position=(2, -2, 0)),
+                8: SimpleNamespace(id=8, team=1, position=(3, -2, 0)),
+            },
             native_effect_areas={
                 901: dict(
                     uid=901,
@@ -16,8 +21,10 @@ class NativeAreaQueriesTests(unittest.TestCase):
                     cell=(2, -3, 4),
                     owner_id=7,
                     native_hour_contract=True,
+                    native_area_contract="faZ",
+                    native_running_effect_manager=False,
                 )
-            }
+            },
         )
 
     def test_eLn_uses_reference_not_uid_and_ignores_height(self):

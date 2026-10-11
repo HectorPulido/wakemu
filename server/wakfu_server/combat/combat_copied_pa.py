@@ -7,6 +7,16 @@ from .combat_character_copy_metadata import native_copy_characteristics
 SOURCE = "eHI.pRU.ffh.a"
 
 
+def _known_copied_profile(source):
+    return isinstance(source, dict) and (
+        source.get("profile") == 2382
+        and "native_copy_family" not in source
+        or source.get("profile") == 2349
+        and type(source.get("native_copy_family")) is int
+        and source["native_copy_family"] == 994
+    )
+
+
 def copied_pa_present(actor):
     return getattr(actor, "native_copy_pa_source", None) is not None
 
@@ -18,7 +28,7 @@ def copied_raw_current(actor, stat):
         not isinstance(source, dict)
         or source.get("producer") != SOURCE
         or source.get("actor_id") != actor.id
-        or source.get("profile") != 2382
+        or not _known_copied_profile(source)
         or type(source.get("effect_reference")) is not int
         or type(source.get("source_actor_id")) is not int
         or not isinstance(raw, dict)
@@ -156,7 +166,7 @@ def install_copied_pa_pool(actor, characteristics, *, metadata, source_record):
         or not isinstance(source_record, dict)
         or source_record.get("producer") != SOURCE
         or source_record.get("actor_id") != actor.id
-        or source_record.get("profile") != 2382
+        or not _known_copied_profile(source_record)
         or any(
             type(source_record.get(key)) is not int
             for key in ("effect_reference", "source_actor_id")

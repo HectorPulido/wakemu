@@ -1,0 +1,1013 @@
+{
+  "source": "Installed actual faW.aQc p9=0; ProbeFakeFighterPA.java damage mode",
+  "cases": [
+    {
+      "base": 100.0,
+      "per_level": 0.0,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.0,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.0,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.0,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.1,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.1,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 105,
+        "maximum": 105,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.1,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 107,
+        "maximum": 107,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.1,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 3376,
+        "maximum": 3376,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.184,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.184,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 110,
+        "maximum": 110,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.184,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 112,
+        "maximum": 112,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.184,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 6129,
+        "maximum": 6129,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.0,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.0,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.0,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.0,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.1,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.1,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 5,
+        "maximum": 5,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.1,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 7,
+        "maximum": 7,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.1,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 3276,
+        "maximum": 3276,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.184,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.184,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 10,
+        "maximum": 10,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.184,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 12,
+        "maximum": 12,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.184,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 6029,
+        "maximum": 6029,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.0,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.0,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.0,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.0,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.1,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.1,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 3,
+        "maximum": 3,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.1,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 5,
+        "maximum": 5,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.1,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 3274,
+        "maximum": 3274,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.184,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.184,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 8,
+        "maximum": 8,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.184,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 10,
+        "maximum": 10,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.184,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 6027,
+        "maximum": 6027,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.0,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.0,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.0,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.0,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.1,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.1,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777222,
+        "maximum": 16777222,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.1,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777224,
+        "maximum": 16777224,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.1,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 16780492,
+        "maximum": 16780492,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.184,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.184,
+      "level": 55,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777226,
+        "maximum": 16777226,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.184,
+      "level": 70,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777228,
+        "maximum": 16777228,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.184,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 16783246,
+        "maximum": 16783246,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_id": 20,
+      "damage": {
+        "current": 0,
+        "maximum": 50000,
+        "minimum": -5000,
+        "absolute_minimum": -5000,
+        "absolute_maximum": 50000
+      }
+    }
+  ]
+}

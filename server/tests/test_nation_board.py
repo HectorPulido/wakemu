@@ -1,10 +1,16 @@
 import struct
 import unittest
 from contextlib import contextmanager
-from unittest.mock import patch
+import ast
+from pathlib import Path
+import uuid
+from unittest.mock import DEFAULT, Mock, patch
 
 from wakfu_server.characters import nation_state
+from wakfu_server import environment_interactions as dispatcher_environment_interactions
+from wakfu_server import nation_board as dispatcher_nation_board
 from wakfu_server.maps import nation_board
+from postgres_case import PostgresCase
 
 
 BOARD_ID = 20158
@@ -44,6 +50,44 @@ class FakeStore:
 
 
 class NationBoardTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        tree = ast.parse(
+            (Path(__file__).resolve().parents[1] / "local_game_server.py").read_text()
+        )
+        branch = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.If)
+            and ast.unparse(node.test) == "opcode == 12870 and len(body) == 12"
+            and any(
+                isinstance(child, ast.Attribute)
+                and isinstance(child.value, ast.Name)
+                and child.value.id == "nation_board"
+                for child in ast.walk(node)
+            )
+        )
+        following = None
+        for parent in ast.walk(tree):
+            for _, value in ast.iter_fields(parent):
+                if isinstance(value, list) and branch in value:
+                    index = value.index(branch)
+                    following = value[index + 1]
+                    break
+            if following is not None:
+                break
+        wrapper = ast.For(
+            target=ast.Name(id="_once", ctx=ast.Store()),
+            iter=ast.Tuple(elts=[ast.Constant(0)], ctx=ast.Load()),
+            body=[branch, following],
+            orelse=[],
+        )
+        cls.dispatch_code = compile(
+            ast.fix_missing_locations(ast.Module(body=[wrapper], type_ignores=[])),
+            "<actual-nation-board-dispatch>",
+            "exec",
+        )
+
     def setUp(self):
         self.character = dict(
             id=77,
@@ -189,6 +233,160 @@ class NationBoardTests(unittest.TestCase):
             ):
                 nation_board.open_selection(store, 9, 4, self.character, BODY)
             self.assertEqual(store.db.queries, [])
+
+    def dispatch_context(self):
+        return dict(
+            opcode=12870,
+            body=BODY,
+            character={"id": 77, "map_id": MAP_ID},
+            account_id=9,
+            generation=4,
+            STORE=object(),
+            environment_blocked=lambda: False,
+            connection=object(),
+            service="world",
+            send=Mock(),
+            record=Mock(),
+            struct=struct,
+            environment_ticket=None,
+            publish_environment_scene=Mock(),
+            world_static=Mock(),
+        )
+
+    def test_actual_dispatcher_opens_board_and_consumes_invalid_board_action(self):
+        for behavior in ("success", "rejected"):
+            context = self.dispatch_context()
+            selection = (14006, b"chooser")
+            with patch.object(
+                dispatcher_nation_board,
+                "definition",
+                return_value=self.rule,
+            ), patch.object(
+                dispatcher_nation_board,
+                "open_selection",
+                return_value=selection if behavior == "success" else DEFAULT,
+                side_effect=ValueError("invalid board action")
+                if behavior == "rejected"
+                else None,
+            ) as opened:
+                exec(self.dispatch_code, context)
+            opened.assert_called_once()
+            if behavior == "success":
+                context["send"].assert_called_once_with(
+                    context["connection"], "world", 14006, b"chooser"
+                )
+                context["record"].assert_not_called()
+            else:
+                context["send"].assert_not_called()
+                self.assertEqual(
+                    context["record"].call_args.kwargs["event"],
+                    "nation_board_rejected",
+                )
+
+    def test_actual_dispatcher_falls_through_for_other_interactive_objects(self):
+        context = self.dispatch_context()
+        with patch.object(
+            dispatcher_nation_board, "definition", return_value=None
+        ), patch.object(
+            dispatcher_nation_board, "open_selection"
+        ) as opened, patch.object(
+            dispatcher_environment_interactions,
+            "definition",
+            return_value={"kind": "switch"},
+        ), patch.object(
+            dispatcher_environment_interactions, "toggle", return_value=[]
+        ) as toggle:
+            exec(self.dispatch_code, context)
+        opened.assert_not_called()
+        toggle.assert_called_once()
+        context["publish_environment_scene"].assert_called_once_with(force=True)
+
+
+class NationBoardPostgresTests(PostgresCase):
+    def test_selected_lease_citizenship_combat_and_proximity_are_enforced(self):
+        account = self.store.register(
+            "board" + uuid.uuid4().hex[:10], "local-test-password"
+        )["id"]
+        character = self.store.create_character(account, "Board Owner")
+        sibling = self.store.create_character(account, "Board Sibling")
+        generation = self.store.begin_session(account)
+        self.store.select_character(account, generation, character["id"])
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET map_id=527,instance_id=0,x=90,y=0,z=5 "
+                "WHERE id=%s",
+                (character["id"],),
+            )
+            db.execute(
+                "INSERT INTO character_chat_nations(character_id,nation_id) "
+                "VALUES(%s,30)",
+                (sibling["id"],),
+            )
+        character = self.store.character(account, character["id"])
+
+        self.assertEqual(
+            nation_board.open_selection(
+                self.store, account, generation, character, BODY
+            ),
+            nation_state.selection_packet({30: 1}),
+        )
+        with self.assertRaises(ValueError):
+            nation_board.open_selection(
+                self.store, account, generation, dict(character, x=95), BODY
+            )
+        with self.assertRaises(ValueError):
+            nation_board.open_selection(
+                self.store, account, generation, dict(character, instance_id=4), BODY
+            )
+
+        stale_generation = generation
+        generation = self.store.begin_session(account)
+        self.store.select_character(account, generation, character["id"])
+        with self.assertRaises(ValueError):
+            nation_board.open_selection(
+                self.store, account, stale_generation, character, BODY
+            )
+
+        with self.store.connection() as db:
+            fight_id = db.execute(
+                "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
+            ).fetchone()["id"]
+            db.execute(
+                "INSERT INTO combat_fight_participants"
+                "(fight_id,character_id,account_id,team,session_generation,entry_hp,"
+                "entry_max_hp,entry_hp_damage,entry_health_dead) "
+                "VALUES(%s,%s,%s,0,%s,%s,%s,%s,%s)",
+                (
+                    fight_id,
+                    character["id"],
+                    account,
+                    generation,
+                    character["hp"],
+                    character["max_hp"],
+                    character["hp_damage"],
+                    character["health_dead"],
+                ),
+            )
+        with self.assertRaisesRegex(ValueError, "combat"):
+            nation_board.open_selection(
+                self.store, account, generation, character, BODY
+            )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_fights SET status='finished' WHERE id=%s", (fight_id,)
+            )
+
+        nation_state.enroll(
+            self.store,
+            account,
+            generation,
+            character["id"],
+            struct.pack(">i", 31) + bytes(2),
+        )
+        with self.assertRaisesRegex(ValueError, "already belongs"):
+            nation_board.open_selection(
+                self.store, account, generation, character, BODY
+            )
 
 
 if __name__ == "__main__":

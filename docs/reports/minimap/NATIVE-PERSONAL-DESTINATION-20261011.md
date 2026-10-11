@@ -1,3 +1,8 @@
+> Correction after Hector's manual probe: the `?` and downward-arrow markers
+> remain on the big map without requesting text. This is valid native placement,
+> not an editor failure. Previous automatic-editor instructions are superseded.
+> Hector confirms both are absent from the minimap and produce no compass.
+
 # Personal destination, minimap and compass investigation
 
 ## Scope and current result
@@ -72,8 +77,9 @@ before and after hero switching. A wrong actor identity, scene attachment or
 map identity must be traced back to its actual publication/lifecycle source.
 
 The exact palette and existing-point routes are documented below. Do not close
-the issue from the offline oracle alone. Live minimap note rendering and a
-reachable compass gesture still need graphical acceptance.
+the issue from the offline oracle alone. Hector has now verified minimap note
+rendering after reconnect, while immediate rendering fails. A genuine compass
+creator remains a separate graphical acceptance step.
 
 ## Read-only live diagnostic and attachment result
 
@@ -132,7 +138,10 @@ The current PID76870 remains open. Read-only inspection of the latest6MB of its 
 The installed `cRI` map UI binds its palette to `wakfu.map:onLandMarkDrag`.
 `cLa.onLandMarkDrag` always writes mode1 and retains the selected icon.
 `cLa.onDrop` case1 calls `bLa.aa(x,y,icon)`, selects the resulting `bUY` and
-opens the note editor. `cLa.applyNote` updates its text, calls `bUZ.esc` for
+does not open the note editor: its `eTQ` helper only updates map presentation.
+`bLa.aa` supplies localized `desc.landMark.personalNote` text automatically.
+Editing that text is optional, via the existing editable-note click route.
+`cLa.applyNote` updates edited text, calls `bUZ.esc` for
 local persistence and `bLa.c` for the current registry label. None of these
 steps calls the native destination placement function. The note editor has no
 verified target checkbox or compass action. The mode2 destination branch
@@ -146,8 +155,8 @@ context. `bLa` adds notes to its own PERSONAL_NOTE group, enables that group,
 and resolves their icon through `bKQ`. Missing icon definitions prevent a point
 from being added. Loading notes uses `bLa.lE` and the global `bUZ` store. No
 immediate cross-registry refresh from a newly saved world-map note to the
-minimap was established. This visibility boundary remains unverified; it must
-not be described as repaired.
+minimap was established. Hector now confirms the immediate refresh is missing
+and reconnect restores rendering; this must not be described as repaired.
 
 A second original relocation branch exists in bytecode: `cLa.onMapDrag` chooses mode4
 for an existing map point which is **not** a `bUY` personal note. Later drag-producer inspection proves this
@@ -161,11 +170,12 @@ Exact manual acceptance, when Hector is not concurrently using the UI:
 
 1. Outside combat, open the current map with `M`. Open **Marcadores** and drag
    a palette icon onto a reachable cell at least ten cells away. Release it,
-   enter a distinctive note description in the original editor and apply it.
+   verify that the icon appears on the big map. No text dialog is required;
+   do not classify absence of an editor as a rejected drag.
 2. Close the map. Check whether the matching note icon appears on the minimap;
    record visibility and the active personal-note filter. A compass is not
-   expected from this palette gesture. Reopen the map and verify the note text
-   and cell, then reconnect and verify its local persistence separately.
+   expected from the verified mode1 route. Reopen the map and verify the marker
+   cell, then reconnect and verify its local persistence separately.
 3. To test a genuine native creator, use **Mostrar** from the right-click
    menu of another visible character's name in chat. The installed action
    creates a target from that actor's actual coordinates. Use only owned
@@ -343,3 +353,65 @@ another visible owned character, using private communication only between
 characters of the same account. It must run outside active user combat or
 other concurrent input. Native note persistence and native target creation
 remain separate acceptance items.
+
+## Per-icon palette contract correction
+
+Native `bUS` always includes `bUT(34)` (downward arrow), then the character
+manager's unlocked icon values. Icon30 is the question mark on a silver base;
+icon111 is a distinct question mark on a gold base. Native `bUT.byh` resolves
+`miscellaneous/poi/<ID>.tga` through `pointsOfInterestIconPath`; a scratch contact
+sheet of all129 original assets confirms these identities. Every palette item
+uses the same cRI grid binding `wakfu.map:onLandMarkDrag`; there is no per-icon
+mode override. `cLa.onLandMarkDrag` stores that `bUT` and sets mode1. Dropcase1
+creates `bUY` with its exact icon ID and default localized description, updates
+the big-map registry and calls map presentation updates. It does not call mode2
+or `bLp` compass creation, and does not automatically open a text editor.
+
+The recorded three-item screenshot contains arrow34 followed by two visually
+identical silver-base question marks. The source explains how duplicates are
+possible: `fqK.cJ` ignores the Boolean result of set insertion and returns true;
+`bUS.cJ` consequently appends an unlocked icon on each call. A direct current
+manager-value snapshot would be required to certify all three current numeric
+IDs; no live UI or attach action was performed in this audit. A screenshot alone
+must not be used to relabel the third icon as a distinct destination mode.
+
+The original note editor is reached by clicking an editable existing map point
+through `cLa.onMapItemClick` and `dcH`; that is separate from initial palette
+placement. Text is optional at creation. This corrects the earlier interpretation
+of `eTQ` as an editor opener; its actual implementation calls only `bLc.eeE` and
+`eeA`. Private bytecode/asset evidence is under
+`.runtime/local/npc-protector-frontier/` (`cLa-marker.javap`,
+`cRI-map-ui.javap`, `palette-icon-definitions.javap`, `palette-unlocks.javap`,
+`palette-producers.javap`, `poi-contact-sheet.png`).
+
+## Hector manual acceptance: reconnect restores minimap notes
+
+Hector subsequently reports that leaving the game through character selection
+and returning preserves these markers on the big map and makes them appear on
+the minimap. The downward-arrow marker still produces no compass. This is
+positive evidence of local persistence and context-triggered minimap rehydration,
+and negative evidence for immediate minimap refresh after accepted placement.
+It supersedes earlier uncertainty about whether the drag created a note at all.
+
+The original bytecode separates the same stages: every `bKM` owns its own `bLa`;
+`bLa.aa -> bUZ.a` adds the note to local per-world storage, then `bLa.a(note)`
+updates only the creating registry. A world-context attachment executes
+`bKM.a(bLo) -> bLm.a -> bLa.c -> eeg -> lE -> bUZ.mr`, loading notes into that
+context's registry. Renderer attachment alone does not run that reload.
+`PERSONAL_NOTE` is category4; minimap initialization selects every filter.
+The successful reconnect rendering also rules out a permanently missing icon
+asset or a permanently excluded category for the reported markers.
+
+Arrow34 and question-mark30 palette placements both select native mode1; their
+shapes do not change the semantics to a compass destination. This route contains
+no `bLp` compass call and no outgoing coordinate request. A server-side repair
+would need an accredited incoming refresh that rehydrates the existing minimap
+registry after placement without resetting unrelated UI state. No such incoming
+refresh has yet been proved, and the server does not receive this local note's
+creation coordinates. Reconnect is a demonstrated workaround, not a deployed
+server-only fix. No client modification is proposed or performed.
+
+The rendering-free original `bUS` oracle ran with `java -Xmx128m` and returned
+`default=[34]`, `one_unlock=[34,30]`, `repeated_unlock=[34,30,30]`. It proves
+the duplicate-palette possibility without reading or changing the running
+client. Source: private `ProbePaletteIconKinds.java` in the evidence directory.

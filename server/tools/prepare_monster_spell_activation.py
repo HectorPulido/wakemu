@@ -179,18 +179,32 @@ def attach_summon_dependencies(npc, candidates, closure, maximum):
                 )
                 if not levels:
                     continue
-                book = source["spell_ids"]
+                book = source.get("spell_ids")
+                from monster_summon_book_source import qualified_empty_book
+
                 if (
-                    not reference.isdecimal()
+                    not isinstance(reference, str)
+                    or not reference.isdecimal()
                     or int(reference) <= 0
+                    or not isinstance(book, list)
                     or not book
-                    or len(set(book)) != len(book)
+                    and not qualified_empty_book(
+                        int(reference), source.get("native_empty_book_source")
+                    )
                     or any(type(value) is not int or value <= 0 for value in book)
+                    or len(set(book)) != len(book)
                 ):
                     raise ValueError("Invalid original registered summon book scope")
                 scope = scopes.setdefault(
                     reference, dict(descriptor_levels=[], spell_ids=sorted(book))
                 )
+                if not book:
+                    receipt = source["native_empty_book_source"]
+                    if scope.get("native_empty_book_source", receipt) != receipt:
+                        raise ValueError(
+                            "Conflicting original empty summon book source"
+                        )
+                    scope["native_empty_book_source"] = deepcopy(receipt)
                 if scope["spell_ids"] != sorted(book):
                     raise ValueError("Conflicting parent summon action book")
                 scope["descriptor_levels"] = sorted(
@@ -235,6 +249,11 @@ def main():
     )
     parser.add_argument("--coverage", type=Path, required=True)
     parser.add_argument("--bundle", type=Path, required=True)
+    parser.add_argument(
+        "--spell-supplement",
+        type=Path,
+        help="Verified append-only native source supplement directory",
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--dsn", required=True)
     parser.add_argument("--password-file", type=Path, required=True)
@@ -244,6 +263,16 @@ def main():
         "--resource-costs",
         type=Path,
         help="Required complete native cost export when absent from the active release",
+    )
+    parser.add_argument(
+        "--health-target-ordering",
+        type=Path,
+        help="Source-qualified native flag8 identities to append when absent; never replace shared data",
+    )
+    parser.add_argument(
+        "--spell-element-damage-pcs",
+        type=Path,
+        help="Source-qualified eYW spell element PCs to append when absent; never replace shared data",
     )
     args = parser.parse_args()
     output = args.output.resolve()
@@ -376,6 +405,20 @@ def main():
             raise ValueError(
                 "Existing shared resource-cost catalog must not be replaced"
             )
+        if args.health_target_ordering is not None:
+            from export_monster_health_target_ordering import package_document
+
+            additional_documents.update(
+                package_document(args.health_target_ordering, manifest, root=ROOT)
+            )
+        if args.spell_element_damage_pcs is not None:
+            from export_monster_spell_element_damage_pcs import (
+                package_document as package_element_pcs,
+            )
+
+            additional_documents.update(
+                package_element_pcs(args.spell_element_damage_pcs, manifest, root=ROOT)
+            )
         active_monsters = {
             int(key): row
             for key, row in connection.execute(
@@ -478,6 +521,11 @@ def main():
             output / "summon-export",
             seed_state_ids=seed_states,
             seed_actor_levels=source_levels,
+            **(
+                {"spell_supplement": args.spell_supplement}
+                if args.spell_supplement is not None
+                else {}
+            ),
         )
         for path, document in summon_documents.items():
             base[path] = summon_bases[path]

@@ -135,7 +135,8 @@ class NativeEffectResolver:
         context,
         cell_eligible=None,
         caster=None,
-        direct_target_policies=None
+        direct_target_policies=None,
+        health_operand=None,
     ):
         self.actors = actors
         self.native_context = native_context
@@ -143,6 +144,7 @@ class NativeEffectResolver:
         self.cell_eligible = cell_eligible
         self.caster = caster
         self.direct_target_policies = direct_target_policies
+        self.health_operand = health_operand
 
     def __call__(self, effect, invocation):
         if not isinstance(invocation, EffectInvocation):
@@ -254,7 +256,8 @@ class NativeEffectResolver:
                     and native_group_route(effect) == "actors"
                 )
                 or bool(
-                    selector["mask"] & (2 | 4 | 8 | 64 | 128 | 256 | 4096 | (1 << 43))
+                    selector["mask"]
+                    & (2 | 4 | 8 | 64 | 128 | 256 | 4096 | (1 << 43) | (1 << 42))
                 )
                 # QK is fighter-index eligibility, not a relationship selector.
                 # Preserve an explicit chosen PV only for a point AREA|QK leaf;
@@ -330,5 +333,7 @@ class NativeEffectResolver:
         )
         from .combat_target_ordering import order_native_targets
 
-        targets = order_native_targets(effect, invocation, targets)
+        targets = order_native_targets(
+            effect, invocation, targets, health_operand=self.health_operand
+        )
         return tuple(replace(invocation, target_id=target.id) for target in targets)

@@ -1,0 +1,46 @@
+{
+  "elements": {
+    "0": {
+      "native_element": 0,
+      "element_name": "PHYSICAL",
+      "damage_stat": null
+    },
+    "1": {
+      "native_element": 1,
+      "element_name": "FIRE",
+      "damage_stat": 21
+    },
+    "2": {
+      "native_element": 2,
+      "element_name": "WATER",
+      "damage_stat": 22
+    },
+    "3": {
+      "native_element": 3,
+      "element_name": "EARTH",
+      "damage_stat": 23
+    },
+    "4": {
+      "native_element": 4,
+      "element_name": "AIR",
+      "damage_stat": 24
+    },
+    "5": {
+      "native_element": 5,
+      "element_name": "STASIS",
+      "damage_stat": 90
+    },
+    "6": {
+      "native_element": 6,
+      "element_name": "LIGHT",
+      "damage_stat": 109
+    },
+    "9": {
+      "native_element": 9,
+      "element_name": "SUPPORT",
+      "damage_stat": null
+    }
+  },
+  "source": "eYW.fQG.fyG.gtZ.fyF.gtQ.eVg.fa.fLC.aKg.v1",
+  "null_pc_present": false
+}

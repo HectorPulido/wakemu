@@ -120,6 +120,9 @@ def prepare_scenario(fight, character, monsters, deck, *, caster_id=-200, recipe
     )
 
 
+from monster_target_cells import native_empty_target_predicate
+
+
 def bounded_empty_targets(
     fight,
     source,
@@ -149,8 +152,7 @@ def bounded_empty_targets(
         or type(prefer_diagonal) is not bool
     ):
         raise ValueError("Invalid bounded native empty-cell search")
-    occupied = {tuple(actor.position) for actor in fight.actors.values()}
-    obstacles = {tuple(cell) for cell in getattr(fight, "native_obstacle_cells", ())}
+    empty = native_empty_target_predicate(fight)
     caster = fight.actors[caster_id]
     hostiles = [
         tuple(actor.position)
@@ -164,9 +166,7 @@ def bounded_empty_targets(
     candidates = [
         tuple(cell)
         for cell in fight.walkable
-        if tuple(cell) not in occupied
-        and tuple(cell) not in obstacles
-        and minimum <= distance(source, cell) <= maximum
+        if empty(cell) and minimum <= distance(source, cell) <= maximum
     ]
     return sorted(
         set(candidates),

@@ -7,6 +7,7 @@
 !wakfu_server/**/*.py
 !wakfu_server/*.py
 !wakfu_server/admin_map_names.json
+!wakfu_server/maps/native_boat_contracts.json.gz
 !protocol/
 !protocol/**
 wakfu_server/__pycache__/
@@ -31,6 +32,8 @@ wakfu_server/__pycache__/
 !tools/import_native_catalogs.py
 !tools/equip_test_finisher.py
 !tools/performance_report.py
+!tools/prepare_geometry_artifacts.py
+!tools/prepare_los_artifacts.py
 !shop-service/
 !shop-service/Dockerfile
 !shop-service/service.py

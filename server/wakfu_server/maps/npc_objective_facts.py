@@ -47,6 +47,8 @@ def supported(criteria, known=None):
             continue
         if re.fullmatch(r"GetInstanceId\(\)\s*==\s*\d+", term):
             continue
+        if re.fullmatch(r'GetRealLevel\("caster"\)\s*>=\s*\d+', term):
+            continue
         return False
     return True
 
@@ -70,6 +72,13 @@ def evaluate(criteria, character, facts, known=None):
         match = re.fullmatch(r"GetInstanceId\(\)\s*==\s*(\d+)", term)
         if match:
             if character.get("map_id") != int(match[1]):
+                return False
+            continue
+        match = re.fullmatch(r'GetRealLevel\("caster"\)\s*>=\s*(\d+)', term)
+        if match:
+            # Owned character.level is progression drm, not selected build cmZ.
+            level = character.get("level")
+            if type(level) is not int or not 1 <= level <= 200 or level < int(match[1]):
                 return False
             continue
         return False

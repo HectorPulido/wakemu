@@ -67,7 +67,10 @@ class NativeLevelGroupHandler:
             raise ValueError("Wrong native level group family")
         if effect["native_effect_flags"]:
             validate_group_registration_flags(
-                effect["native_effect_flags"], active=self.active
+                effect["native_effect_flags"],
+                active=self.active,
+                effect=effect,
+                reference=invocation.reference,
             )
         native_definition_timing(effect, invocation.level)
         raw = effect["parameters"]
@@ -134,7 +137,12 @@ def runtime_group_level(
     # Event-level flags use the same audited contract as the parent group.
     # No implicit fight mode is supplied for stand-alone callers.
     if effect["native_effect_flags"]:
-        validate_group_registration_flags(effect["native_effect_flags"], active=active)
+        validate_group_registration_flags(
+            effect["native_effect_flags"],
+            active=active,
+            effect=effect,
+            reference=invocation.reference,
+        )
     native_definition_timing(effect, invocation.level)
     parameters = values["parameters"]
     mode = decode_group_mode(

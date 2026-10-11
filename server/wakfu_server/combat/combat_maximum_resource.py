@@ -27,7 +27,7 @@ from .combat_effects import _integer, _varint
 from .combat_effect_removal import running_effect_removal
 from .combat_observation_delivery import evaluated_application_from_observation
 
-FAMILIES = {20: (1, None), 31: (2, 16), 41: (3, 8), 191: (4, None)}
+FAMILIES = {20: (1, None), 31: (2, 16), 41: (3, 8), 191: (4, None), 991: (14, None)}
 
 
 def _int32(value):
@@ -73,6 +73,10 @@ def _snapshot(actor, stat):
 
     if stat == 1 and hp_raw_present(actor):
         hp_raw_current(actor)
+    elif stat == 14 and getattr(actor, "native_copy_pa_source", None) is not None:
+        from .combat_copied_pa import copied_raw_current
+
+        copied_raw_current(actor, stat)
     elif stat in actor.effect_frozen or (
         stat in (2, 3)
         and getattr(actor, "effect_resource_raw_currents", None) is not None
@@ -391,6 +395,13 @@ class NativeMaximumResourceHandler:
                 set_hp_raw_maximum(actor, updated_raw)
             if apply_current and effective_delta != 0:
                 shift_hp_raw_current(actor, effective_delta)
+        elif stat == 14 and getattr(actor, "native_copy_pa_source", None) is not None:
+            from .combat_copied_pa import set_copied_maximum, shift_copied_current
+
+            if raw != (1 << 31) - 1:
+                set_copied_maximum(self.fight, actor, stat, updated_raw)
+            if apply_current and effective_delta != 0:
+                shift_copied_current(self.fight, actor, stat, effective_delta)
         elif (
             stat in (2, 3)
             and getattr(actor, "effect_resource_raw_currents", None) is not None
@@ -508,6 +519,15 @@ def remove_maximum_resource(handler, uid):
             shift_hp_raw_current(actor, current_removal, subtract=True)
         if raw != (1 << 31) - 1:
             set_hp_raw_maximum(actor, updated_raw)
+    elif stat == 14 and getattr(actor, "native_copy_pa_source", None) is not None:
+        from .combat_copied_pa import set_copied_maximum, shift_copied_current
+
+        if entry["remove_current"]:
+            shift_copied_current(
+                handler.fight, actor, stat, current_removal, subtract=True
+            )
+        if raw != (1 << 31) - 1:
+            set_copied_maximum(handler.fight, actor, stat, updated_raw)
     elif (
         stat in (2, 3)
         and getattr(actor, "effect_resource_raw_currents", None) is not None

@@ -27,7 +27,10 @@ def area_damage_has_no_resources(fight, identity):
 
         constructor = verified_fake_fighter(row, definition)
         if constructor["characteristic_ids"]:
-            raise ValueError("Unproduced native faW damage resource authority")
+            from .combat_fake_fighter_resources import fake_fighter_hp_state
+
+            fake_fighter_hp_state(row, definition)
+            return False
         return True
     if contract in SUPPORTED_AREA_CONTRACTS:
         return True  # Plain faV.a(PC) is false; no invented HP/armor snapshot.

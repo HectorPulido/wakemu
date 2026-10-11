@@ -5,7 +5,16 @@ from wakfu_server import world_static
 from wakfu_server.haven_ranch import ACTIONS, destination
 
 
-def portal_target(character, bag, body, *, validate_lease, geometry, installed=None):
+def portal_target(
+    character,
+    bag,
+    body,
+    *,
+    validate_lease,
+    validate_entitlement,
+    geometry,
+    installed=None
+):
     """Resolve a native choice after current connection and scene authorization.
 
     The caller validates the live actor lease under its existing transaction.
@@ -35,10 +44,14 @@ def portal_target(character, bag, body, *, validate_lease, geometry, installed=N
         or abs(character["x"] - source["x"]) + abs(character["y"] - source["y"]) > 1
     ):
         raise ValueError("Ranch entrance is out of reach")
-    return destination(action, installed)
+    target = destination(action, installed)
+    validate_entitlement()
+    return target
 
 
-def biome_target(character, session, body, *, validate_lease, installed=None):
+def biome_target(
+    character, session, body, *, validate_lease, validate_entitlement, installed=None
+):
     """Native12380 may switch only an already authorized owned ranch scene."""
     if len(body) != 4 or session is None or not session.owns(character):
         raise ValueError("Ranch biome change requires an active owned ranch")
@@ -47,7 +60,9 @@ def biome_target(character, session, body, *, validate_lease, installed=None):
     actions = [action for action, candidate in ACTIONS.items() if candidate == biome]
     if len(actions) != 1:
         raise ValueError("Unknown installed ranch biome")
-    return destination(actions[0], installed)
+    target = destination(actions[0], installed)
+    validate_entitlement()
+    return target
 
 
 def validate_return(character, session, body, *, validate_lease):
@@ -55,3 +70,37 @@ def validate_return(character, session, body, *, validate_lease):
     if body != b"\x00" or session is None or not session.owns(character):
         raise ValueError("Invalid native ranch return")
     validate_lease()
+
+
+def require_owned_entitlement(store, account_id, generation, character):
+    """Check current selected inventory/role without replacing private position.
+
+    Native biome1 requires item32864 possession or ACCESS_ADMIN_DATA. The trusted
+    account administrator role supplies that permission; captured wire bits and
+    caller-provided inventory never authorize this check. This predicate consumes
+    nothing and must not guard returning from an already entered private scene.
+    """
+    from wakfu_server.environment_interactions import _guard
+    from wakfu_server.inventory_items import _lease
+    from wakfu_server.combat_inventory_date_conditions import owned_item_quantity
+    from wakfu_server.characters.exploration_secrets import account_quantity
+
+    if character.get("account_id") != account_id:
+        raise ValueError("Foreign Ranch entitlement owner")
+    with store.connection() as db:
+        _lease(store, db, account_id, generation, character["id"])
+        _guard(db, character["id"])
+        saved = store.character(account_id, character["id"], db)
+        if saved.get("id") != character["id"] or saved.get("account_id") != account_id:
+            raise ValueError("Invalid Ranch entitlement ownership")
+        administrator = saved.get("account_is_admin")
+        if type(administrator) is not bool:
+            raise ValueError("Missing trusted Ranch administrator authority")
+        if administrator:
+            return
+        quantity = owned_item_quantity(saved.get("inventory_items"), (32864,))
+        quantity = (
+            (quantity + account_quantity(saved, (32864,)) + 2**31) % 2**32
+        ) - 2**31
+        if quantity < 1:
+            raise ValueError("Ranch entry requires the owned Emerald Biome item")

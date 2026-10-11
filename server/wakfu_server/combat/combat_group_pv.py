@@ -50,6 +50,13 @@ def group_pa(fight, identity, characteristic):
             )
             if constructor["characteristic_ids"] == ():
                 return None
+            from .combat_fake_fighter_resources import fake_fighter_characteristics
+
+            values = fake_fighter_characteristics(
+                row, native_effect_areas()[str(row["reference"])]
+            )
+            pa = values.get(characteristic)
+            return None if pa is None else (pa["current"], pa["maximum"])
         raise ValueError("Missing native area PA presence authority")
     current, maximum = pv.effect_stats, pv.effect_maxima
     if (

@@ -26,6 +26,8 @@ def execute_runtime_transfer(dispatcher, effect, values, invocation, *, ancestor
     validate_group_registration_flags(
         effect["native_effect_flags"],
         active=dispatcher.group_retention.fight.phase == "active",
+        effect=effect,
+        reference=invocation.reference,
     )
     child_level, context = dispatcher.group_retention.child_level_context(
         effect, values, invocation, default_level=None, event_activation=True

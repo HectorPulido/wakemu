@@ -1,0 +1,845 @@
+{
+  "source": "Installed faW.aQc Java oracle, ProbeFakeFighterPA.java; HP-only branch",
+  "cases": [
+    {
+      "base": 8.0,
+      "per_level": 0.0,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 8,
+        "maximum": 8,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 8.0,
+      "per_level": 0.0,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 8,
+        "maximum": 8,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 8.0,
+      "per_level": 0.0,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 8,
+        "maximum": 8,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 8.0,
+      "per_level": 0.0,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 8,
+        "maximum": 8,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 8.0,
+      "per_level": 0.1,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 8,
+        "maximum": 8,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 8.0,
+      "per_level": 0.1,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 8,
+        "maximum": 8,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 8.0,
+      "per_level": 0.1,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 22,
+        "maximum": 22,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 8.0,
+      "per_level": 0.1,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 3284,
+        "maximum": 3284,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 8.0,
+      "per_level": 0.184,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 8,
+        "maximum": 8,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 8.0,
+      "per_level": 0.184,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 8,
+        "maximum": 8,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 8.0,
+      "per_level": 0.184,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 33,
+        "maximum": 33,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 8.0,
+      "per_level": 0.184,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 6037,
+        "maximum": 6037,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.0,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.0,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.0,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.0,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.1,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.1,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.1,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 14,
+        "maximum": 14,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.1,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 3276,
+        "maximum": 3276,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.184,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.184,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.184,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 25,
+        "maximum": 25,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 0.0,
+      "per_level": 0.184,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 6029,
+        "maximum": 6029,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.0,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.0,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.0,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.0,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.1,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.1,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.1,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 12,
+        "maximum": 12,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.1,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 3274,
+        "maximum": 3274,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.184,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.184,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 0,
+        "maximum": 0,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.184,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 23,
+        "maximum": 23,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": -2.0,
+      "per_level": 0.184,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 6027,
+        "maximum": 6027,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.0,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.0,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.0,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.0,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.1,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.1,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.1,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 114,
+        "maximum": 114,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.1,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 3376,
+        "maximum": 3376,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.184,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.184,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 100,
+        "maximum": 100,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.184,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 125,
+        "maximum": 125,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 100.0,
+      "per_level": 0.184,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 6129,
+        "maximum": 6129,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.0,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.0,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.0,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.0,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.1,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.1,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.1,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777230,
+        "maximum": 16777230,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.1,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 16780492,
+        "maximum": 16780492,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.184,
+      "level": 0,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.184,
+      "level": 1,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777216,
+        "maximum": 16777216,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.184,
+      "level": 141,
+      "hp_id": 1,
+      "hp": {
+        "current": 16777242,
+        "maximum": 16777242,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    },
+    {
+      "base": 16777216.0,
+      "per_level": 0.184,
+      "level": 32767,
+      "hp_id": 1,
+      "hp": {
+        "current": 16783246,
+        "maximum": 16783246,
+        "minimum": 0,
+        "absolute_minimum": 0,
+        "absolute_maximum": 2147483647
+      },
+      "damage_present": false
+    }
+  ]
+}

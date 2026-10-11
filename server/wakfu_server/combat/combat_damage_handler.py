@@ -53,9 +53,12 @@ def _snapshot(actor):
 
 
 def _wall_target(fight, identity):
-    """Resolve a registered fbd PV without inserting it into Fight.actors."""
+    """Resolve a registered HP-owning area without inserting it into actors."""
     row = getattr(fight, "native_effect_areas", {}).get(identity)
-    if not isinstance(row, dict) or row.get("native_area_contract") != "fbd":
+    if not isinstance(row, dict) or row.get("native_area_contract") not in (
+        "fbd",
+        "faW",
+    ):
         return None
     from .combat_area_authority import area_guards
     from .combat_effect_area import native_effect_areas
@@ -63,7 +66,18 @@ def _wall_target(fight, identity):
     from .combat_wall_area import verified_wall_constructor, wall_damage_snapshot
 
     definition = native_effect_areas().get(str(row.get("reference")))
-    constructor = verified_wall_constructor(row, definition)
+    fake = row["native_area_contract"] == "faW"
+    if fake:
+        from .combat_fake_fighter import verified_fake_fighter
+        from .combat_fake_fighter_resources import fake_fighter_damage_snapshot
+
+        constructor = verified_fake_fighter(row, definition)
+        if not constructor["characteristic_ids"]:
+            return None
+        snapshot = fake_fighter_damage_snapshot(row, definition)
+    else:
+        constructor = verified_wall_constructor(row, definition)
+        snapshot = wall_damage_snapshot(row, definition)
     guards = area_guards(fight, identity)
     if guards["baG"] is not False or guards["baK"] is not False:
         raise ValueError("Native fbd damage target is not an active Qq PV")
@@ -75,7 +89,7 @@ def _wall_target(fight, identity):
         constructor=constructor,
         definition=definition,
         target=target,
-        snapshot=wall_damage_snapshot(row, definition),
+        snapshot=snapshot,
     )
 
 
@@ -91,7 +105,12 @@ def _apply_wall_damage(fight, source_id, wall, amount):
     after = current - dealt
     if not callable(getattr(fight, "_event", None)):
         raise ValueError("Missing native fbd damage event ledger")
-    update_wall_hp(row, constructor, after)
+    if row["native_area_contract"] == "faW":
+        from .combat_fake_fighter_resources import update_fake_fighter_hp
+
+        update_fake_fighter_hp(row, wall["definition"], after)
+    else:
+        update_wall_hp(row, constructor, after)
     fight._event(
         "damage", source_id=source_id, target_id=row["uid"], amount=dealt, hp=after
     )

@@ -274,7 +274,9 @@ def create_placement(
 
     # This is the participant order serialized by placement_messages, hence
     # the actual fresh client fdt registration order rather than initiative.
-    initialize_global_pv_collections(fight, tuple(fight.actors))
+    initialize_global_pv_collections(
+        fight, tuple(fight.actors), controller_registration=True
+    )
     # QI.P reads the serialized terrain mask, so retain only a plain copy of
     # the actual mask rectangle. Missing arena fields stay unknown; partial
     # serialized QI authority is rejected instead of padded or reconstructed.

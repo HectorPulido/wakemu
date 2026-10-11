@@ -1069,6 +1069,8 @@ class NativeRetainedRuntime:
         constructor = detached_actor(self.fight, invocation.caster_id)
         validate_group_registration_flags(
             effect["native_effect_flags"],
+            effect=effect,
+            reference=invocation.reference,
             active=self.fight.phase == "active",
             constructor=(
                 constructor is not None

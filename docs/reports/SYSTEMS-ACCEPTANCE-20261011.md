@@ -43,9 +43,24 @@ Choose Stasis5 and competitive mode in the existing native entrance interface. R
 5. Start an ordinary room fight. At Stasis5, native dungeon type0 HP/damage percentages are360/200; types1/2 are400/210; types3/4 are310/200. The coordinator identifies the actual native type before choosing an expectation. Damage uses native conditional value branches, so a random attack ratio is not sufficient proof. Check the authoritative maximum HP and frozen scaling receipt; use the automatic combat oracle for exact conditional damage. Its constructor-to-real-attack gate passed2/2 with stable source hashes and demonstrated100%→5damage and200%→10damage; this evidence does not claim a deployed image.
 6. Finish the encounter. Competitive Stasis5 reward rate is400%; record the award and frozen encounter context. A random empty item roll is allowed; any awarded item must belong to the recipient once, or remain in temporary loot if full. Reconnect and confirm no duplicate XP, kamas or items. Ordinary XP/drop policy and rounding remain the project's documented reference policy.
 7. Between settled rooms lower difficulty to3 through the native selector. The current dungeon interface must update without a full reload; the next encounter uses competitive140%. The prior encounter remains frozen at400%. Changing difficulty during an active fight, increasing it, or changing competitive mode must be denied without partial changes.
-8. Leave normally, then repeat a shorter entry with surrender/exit and reconnect. Restore the original owned level/build/deck/equipment. Preserve wounds and death state through maximum-HP changes; no entry/exit healing or duplicated equipment. All owned heroes return and remain controllable.
+8. Leave normally, then repeat a shorter entry with surrender/exit and reconnect. Restore the original owned build/deck/equipment; actual levels raised by `!nivel` remain raised. Preserve wounds and death state through maximum-HP changes; no entry/exit healing or duplicated equipment. All owned heroes return and remain controllable.
 
 Stele loot is authorized only by the actual paid native selection and frozen item allowlist; unselected rows must not become globally eligible. The686 opaque criteria stay disabled. Run the [Stele journey](NATIVE-DUNGEON-STELES-20261011.md) and [score/rarity extension](LOCAL-DROP-RARITY-ALLOCATION-20261011.md) after their recorded deployment. These explicit local adaptations do not certify official whole-state parity. Numeric checks use durable receipts, not a separate random outside fight.
+
+For the score extension after migrations137/140 and its qualified image are
+deployed, use disposable A's restored ordinary build outside the dungeon in
+instance0. Run `!monster 5608 30 1`, then attack that adjacent actor. The active
+native catalog defines this level30 Jalató Real del Amor with1,000,000HP; the
+test is damage scoring rather than a requirement to kill him. Deal at least
+15,000 validated boss damage within three complete challenge rounds; armor
+absorption counts, damage to adds does not. Pass remaining legal turns to finish
+the round budget. The local encounter settles after round3; a legitimate earlier
+boss kill also qualifies, but forced victory with a living boss does not. Under
+the default policy, an eligible survivor's native score row awards one13717
+(Traje de Cubeedo), probability1.0, subject to configured rarity allocation;
+full bags may retain it in temporary loot. Reconnect and verify no duplicate
+award. Do not use `!winfight`, which bypasses the required timeline. The other
+three score profiles do not authorize enabling their unqualified monster species.
 
 ## 2. Classic rift: forty rounds,50× currency and six real characters
 
@@ -105,16 +120,22 @@ See [native contracts](NATION-CHAT-NATIVE-ELIGIBILITY-20261011.md).
 **No verified complete repair.** Hector clarified the original gesture:
 dragging an icon from **Marcadores**. Installed original bytecode routes that
 to a local personal note, with no compass action. Independent reachable-drag
-oracle passed; the reported minimap visibility of the actual note is still
-unverified. Exploratory screenshots do not establish acceptance. No client
+oracle passed. Hector confirms both question-mark and downward-arrow placements
+remain on the big map, while neither appears on the minimap or creates a compass.
+After leaving through character selection and returning, Hector confirms the
+markers do appear on the minimap; the arrow still creates no compass. Initial
+palette placement does not request text; previous editor instructions were
+incorrect. Reconnect is a verified workaround, not a server repair. Exploratory screenshots do not establish acceptance. No client
 files, preferences or assets were modified.
 
 1. Outside combat, open the current map with `M`, open **Marcadores**, and drag
-   a palette icon onto a reachable cell at least ten cells away. Release, enter
-   a distinctive note description and apply. Close the map and check the note
+   the question-mark icon onto a reachable cell at least ten cells away. Release
+   and verify its big-map cell. Repeat with the downward-arrow icon. No text
+   editor is required. Close the map and check each marker
    icon on the minimap with the personal-note filter enabled. No compass is
-   expected from this gesture. Reopen the map and check cell/text; reconnect
-   and verify local note persistence separately.
+   expected from this gesture. Reopen the map and check each marker cell; reconnect
+   and verify local note persistence and minimap rehydration separately. Record
+   immediate visibility and post-reconnect visibility as distinct results.
 2. For a genuine compass creator, right-click another visible owned character's
    name in native chat and choose **Mostrar**. Use a private message only
    between characters belonging to the same user; no public test message or
@@ -191,14 +212,30 @@ Timed light17397 uses ordinary template16. Toggle off/on, leave and return, reco
 
 Open `http://127.0.0.1:18084` and sign in with existing administrator credentials. Use only disposable player B for sanctions, never the only administrator. Keep A online as the unaffected control.
 
-1. In Accounts open B, enter a reason, set **Ban until** about two minutes ahead in local time and click **Ban account**. B's live native connection closes, including its active owned company; new login fails. Repeat a sanction while B is actively moving or performing a permitted inventory operation: the request must complete without hanging behind a lease/FK deadlock. A continues normally. Refresh: reason/operator/expiry persist.
+1. In Accounts open B, enter a reason, set **Ban until** about two minutes ahead in local time and click **Ban account**. B's live native connection closes, including its active owned company; new login fails. For this timed sanction, have B actively move or perform a permitted inventory operation when the administrator submits it: the request must complete without hanging behind a lease/FK deadlock. A continues normally. Refresh: reason/operator/expiry persist.
 2. After expiry, a fresh login succeeds automatically. Old revoked tokens remain invalid.
 3. Ban B again with empty expiry: permanent ban is shown and login fails. Enter an unban reason and choose **Unban account**. Fresh login succeeds; old tokens do not revive.
 4. Empty reasons and malformed expiry are refused without unintended sanctions. Ordinary players cannot enter the dashboard. Leave B unbanned at the end.
 
 Authenticated HTTP/domain and actual native socket closure were independently verified in the earlier release; rendered controls still require this graphical journey. Interface text must be English.
 
-## 8. NPC quarantine and existing world actors
+## 8. All accredited NPC positions first
+
+After migration144 and the complete current scene/replay hooks are confirmed in
+the published image, perform the [complete position-first journey](npc-dialogue/BULK-POSITION-RECOVERY-20261011.md#complete-position-first-manual-acceptance).
+It inventories all ten original noncombat NPC identities, provides nine
+source-qualified nearby walkable teleport commands, and marks Wuan Tazo's direct
+approach NOT RUN because no nearby native walkable cell was qualified. Do not
+invent a teleport height or count an unreachable probe as a placement failure.
+
+At each location verify original identity, appearance, coordinates, one actor
+only, and persistence after reconnect/map re-entry. The five position-only
+actors have unimplemented native collection actions disabled and must not be
+registered as combat monster groups. Existing dialogue actors must not be
+published twice. Private-instance exclusion remains authoritative. Placement
+acceptance comes before conversation acceptance; the remaining paragraphs are
+separate prepared dialogue/quarantine checks, not prerequisites for placement.
+
 
 After migrations126/132 and the additional NPC objective-facts migration139 are confirmed, follow the [complete native NPC acceptance](npc-dialogue/NATIVE-NPC-COMPLETE-COVERAGE-20261011.md), including Grugal, Huly, Kheperalia and Airyna at their accredited positions. After additive142 is deployed, also test Otomaï with `!tp 1385 20 17 1`: click his original dialogue action1244, expect root5772 with native protector424 attribution, then close and reopen. Verify the other four scenes still work and no quest progress/reward is invented. Dialogue availability must follow current native objective facts; no quest reward or progression is invented. To verify the original quarantine separately, use:
 
@@ -212,12 +249,19 @@ Captured original Guarda de Amakna at11,-13,0, Wuan Tazo at-17,9,-1 and Magnum D
 
 ## 9. Haven Bag portal and private return
 
+After coordinated deployment, prepare the original entitlement: an ordinary
+owner must hold Bioma Esmeralda32864. Outside combat with a free inventory slot,
+use `/l !item 32864 1` through the authorized development console if needed;
+expect the real item and no consumption during entry/return. A freshly logged-in
+actual administrator can instead use the truthful native ACCESS_ADMIN_DATA115
+permission. Public bag guest access alone does not grant Ranch entitlement.
+
 Follow the [seven-step portal journey](HAVEN-RANCH-PORTAL-20261011.md) as one
 round trip: native bag HUD → stairs → adjacent(-8,5,4) → “Entrar en el merkalugar”
 → map1440(28,6,4) → inventory/build refresh → native return → exact prior bag
 location → HUD exit → exact saved exterior. Verify wounds and inventory persist,
 hero switching is rejected responsively inside, and reconnect returns outside.
-Other five empty-model biome choices must reject without changing scene. This
+The five original developer/admin placeholder choices must reject without changing scene. An ordinary owner without item32864 must not enter; stale possession or revoked privilege must not authorize new entry or biome switching, while return remains possible after loss. This
 is the Ranch/Merkalugar portal, not an ordinary Zaap destination selector.
 
 ## 10. Combat signaling and random borders
@@ -332,6 +376,91 @@ The [complete build acceptance](MODULATION-PROFILE-ACCEPTANCE-20261011.md) also
 covers configured nonpermanent sheet capacity and delete/recreate conservation.
 Known graphical acceptance remains pending; automatic transaction/native
 consumer tests alone do not certify these visible transitions.
+
+## 14. Physical nation selection board
+
+After the board adapter is deployed, select a neutral character outside combat
+and use the ordinary local developer chat:
+
+```text
+!tp 527 90 1 4
+```
+
+This is the original walkable approach; the board cell(90,0,5) is not walkable.
+Right-click board20158 and choose its native read action. The four-nation
+chooser opens. Close and reopen: no citizenship, inventory or kamas change.
+Select a nation and reconnect: the existing enrollment flow must preserve it.
+An enrolled character, an actor in combat or an actor outside the approach
+range must not open enrollment. Nearby ordinary interactive actions remain
+unchanged. See [native board contract and evidence](NATIVE-NATION-BOARD-20261011.md).
+
+## 15. Native boats and return
+
+After the boat adapter is deployed, use an ordinary public-map character and
+follow the [complete original boat round trip](NATIVE-BOAT-AND-CANNON-20261011.md):
+
+```text
+!tp 504 4 3 9
+```
+
+Use boat18259 and choose its linked destination21678. Expect map794(-3,-4,6).
+Return through the original linked boat to map504(4,2,9). Reconnect and verify
+the saved destination. Inventory, wounds and build remain coherent. This
+contract has no native currency price; animation timing is not a payment.
+Unlinked endpoints, unsupported quest conditions, active occupations/combat,
+private scenes and nine unqualified arrivals must reject without movement.
+Repeat one existing Zaap/Drago trip to verify its normal branch remains intact.
+
+## 16. Ordinary doors, collision and observers
+
+After migration143 and the door integration are deployed, use two allied
+public-map characters and the original qualified approach:
+
+```text
+!tp 337 51 -246 4
+```
+
+Open/close Door15411 at(51,-245,4). Both accounts see the same state. The closed
+door rejects entry and diagonal corner crossing; the open door permits passage.
+Closing while a selected online actor occupies the doorway must reject. If an
+in-flight movement leaves an actor in a newly closed starting cell, departure
+remains possible. Reconnect and change away/back: the state persists and
+rehydrates for both accounts. Test a normal dungeon frontier afterward: its
+progression still controls its own gate. Locked, grouped-map and unqualified
+quest doors are outside this adapter. See [native door qualification](NATIVE-ORDINARY-DOORS-20261011.md).
+
+## 17. Mount UID identity, saved builds and publication
+
+Use a disposable unequipped build. Grant two separate fresh units and food:
+
+```text
+!item 18682 1
+!item 18682 1
+!item 18378 500
+```
+
+Inspect `pet_feeding_daily_limit_enabled` in dashboard Settings before feeding;
+a read-only live check on2026-10-11 returned false. If true, freshly granted
+mounts carry today's meal timestamp, so begin feeding on the next UTC day.
+Record the returned UIDs as A and B. Both start at level0. Equip A and save;
+feed A two units of18378 in one operation (100XP, level2). Only A becomes
+level2, with1mastery; B remains level0. Save B
+in another build, return to A's build and try to destroy B: reject without any
+item/food/level mutation. Remove B from its saved build, save, then destroy B:
+only B disappears. Reconnect and verify A's level, inventory and saved references.
+Inspect `pet_feeding_daily_limit_enabled` in dashboard Settings. If true, a
+second XP meal on the same UTC calendar day must reject without consumption;
+continue the level10 phase on the next UTC day. If false, wait more than10seconds
+to avoid the request replay window, then continue. Feed A eight units of18378
+in one operation (another400XP, total500XP/level10): mastery is8 after equip
+and on the character panel immediately, with no reconnect requirement. Zero
+mastery at levels0/1 is accepted native rounding, not a defect. No policy change
+is required by this test.
+
+See [current authoritative source/test scope](BUILD-STAT-SOURCE-AUDIT-20261011.md)
+and the [complete original two-UID acceptance](health/MOUNT-IDENTITY-REVIEW-20261009.md).
+The selected automated publication/scaling tests and bounded original-JAR
+registry replay do not replace full graphical acceptance of this journey.
 
 ## Final record
 

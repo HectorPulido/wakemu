@@ -197,6 +197,37 @@ class Fight:
         self.native_effect_uid_next = uid + 1
         return uid
 
+    def allocate_area_uid(self):
+        """Allocate a Qq PV identity without aliasing a fighter's Sn().
+
+        Running effects may share a numeric identity with a fighter. Areas
+        are PVs too, so their separate native PW.baj allocation cannot.
+        """
+        uid = self.native_effect_uid_next
+        if type(uid) is not int or not 0 < uid < (1 << 63) - 1:
+            raise ValueError("Native effect UID sequence is missing or exhausted")
+        pvs = (
+            set(self.actors)
+            | set(self.native_effect_areas)
+            | set(self.native_retired_area_managers)
+        )
+        pvs.update(
+            row["area_uid"]
+            for row in self.native_owned_area_effects.values()
+            if isinstance(row, dict) and type(row.get("area_uid")) is int
+        )
+        while uid in pvs:
+            uid += 1
+            if uid >= (1 << 63) - 1:
+                raise ValueError("Native area PV UID sequence is exhausted")
+        previous = self.native_effect_uid_next
+        self.native_effect_uid_next = uid
+        try:
+            return self.allocate_effect_uid()
+        except Exception:
+            self.native_effect_uid_next = previous
+            raise
+
     def _check_positions(self):
         positions = [a.position for a in self.actors.values() if a.hp > 0]
         if len(set(positions)) != len(positions) or any(

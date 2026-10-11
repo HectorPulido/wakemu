@@ -3,6 +3,7 @@ from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
 import struct
+from functools import lru_cache
 from pathlib import Path
 from protocol_codec import Reader
 
@@ -63,7 +64,7 @@ def default_deck(character):
     return encode_deck(active, (), -1)
 
 
-def validate_deck(blob, breed, level):
+def _validate_deck(blob, breed, level):
     """Check exact fzg.m bytes, ownership, unlock levels and slot capacities."""
     r = Reader(blob)
     result = {}
@@ -98,3 +99,25 @@ def validate_deck(blob, breed, level):
             if effective_level < thresholds[index]:
                 raise ValueError("Spell slot is locked at this level")
     return result
+
+
+@lru_cache(maxsize=512)
+def _validated_deck(blob, breed, level, catalog_identity):
+    """Cache immutable validation results for the process-pinned spell catalog."""
+    result = _validate_deck(blob, breed, level)
+    return tuple(result["active"]), tuple(result["passive"]), result["level_cap"]
+
+
+def validate_deck(blob, breed, level):
+    """Reuse static validation; return fresh lists for each transaction owner."""
+    if (
+        not isinstance(blob, (bytes, bytearray, memoryview))
+        or (blob.nbytes if isinstance(blob, memoryview) else len(blob)) > 84
+        or isinstance(blob, memoryview)
+        and (blob.ndim != 1 or blob.itemsize != 1)
+        or type(breed) is not int
+        or type(level) is not int
+    ):
+        return _validate_deck(blob, breed, level)
+    active, passive, cap = _validated_deck(bytes(blob), breed, level, id(SPELLS))
+    return {"active": list(active), "passive": list(passive), "level_cap": cap}

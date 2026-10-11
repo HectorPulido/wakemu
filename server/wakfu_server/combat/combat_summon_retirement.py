@@ -23,6 +23,7 @@ RELATION_SOURCE = "big.new_bje.fdt_initial_registration"
 ORDINARY_SYMBIOT_SOURCE = "eZl.new_eHD.pRO_false"
 CAPTURED_SYMBIOT_SOURCE = "eZr324.after_common_factory_and_fan.lE_true"
 COPIED_SYMBIOT_SOURCE = "eZw1002.new_eHI.pRO_false"
+TARGET_COPIED_SYMBIOT_SOURCE = "eZq994.new_eHI.pRO_false"
 
 
 def _registration(fight, actor_id):
@@ -56,10 +57,15 @@ def _registration(fight, actor_id):
         raise ValueError("Missing complete native summon retirement registration")
     symbiot = source.get("native_symbiot_source")
     captured = symbiot == CAPTURED_SYMBIOT_SOURCE
-    copied = symbiot == COPIED_SYMBIOT_SOURCE
+    copied = symbiot in (COPIED_SYMBIOT_SOURCE, TARGET_COPIED_SYMBIOT_SOURCE)
     if (
         symbiot
-        not in (ORDINARY_SYMBIOT_SOURCE, CAPTURED_SYMBIOT_SOURCE, COPIED_SYMBIOT_SOURCE)
+        not in (
+            ORDINARY_SYMBIOT_SOURCE,
+            CAPTURED_SYMBIOT_SOURCE,
+            COPIED_SYMBIOT_SOURCE,
+            TARGET_COPIED_SYMBIOT_SOURCE,
+        )
         or authority.get("native_summoned_from_symbiot") is not captured
     ):
         raise ValueError("Unknown native summon retirement origin")
@@ -76,11 +82,21 @@ def _registration(fight, actor_id):
         effect_reference = source.get("native_copy_effect_reference")
         runner_uid = source.get("native_copy_runner_uid")
         source_actor_id = source.get("native_copy_source_actor_id")
+        target_copy = symbiot == TARGET_COPIED_SYMBIOT_SOURCE
         if (
-            source.get("native_character_copy_source") != "eZw1002.faB.eHI.bPl"
+            source.get("native_character_copy_source")
+            != ("eZq994.faB.eHI.bPl" if target_copy else "eZw1002.faB.eHI.bPl")
             or source["ref"]
             != (copy_source.get("profile") if isinstance(copy_source, dict) else None)
-            or source_actor_id != source.get("caster_id")
+            or (not target_copy and source_actor_id != source.get("caster_id"))
+            or (
+                target_copy
+                and (
+                    source.get("ref") != 2349
+                    or type(source_actor_id) is not int
+                    or source_actor_id <= 0
+                )
+            )
             or type(effect_reference) is not int
             or effect_reference <= 0
             or type(runner_uid) is not int
@@ -90,6 +106,13 @@ def _registration(fight, actor_id):
             or copy_source.get("actor_id") != actor.id
             or copy_source.get("source_actor_id") != source_actor_id
             or copy_source.get("profile") != source["ref"]
+            or (
+                target_copy
+                and (
+                    type(copy_source.get("native_copy_family")) is not int
+                    or copy_source["native_copy_family"] != 994
+                )
+            )
             or copy_source.get("effect_reference") != effect_reference
         ):
             raise ValueError("Missing complete copied-summon retirement provenance")

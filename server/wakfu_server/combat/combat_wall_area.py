@@ -108,16 +108,22 @@ def wall_hp_state(row, constructor):
         type(maximum) is not int
         or maximum < 0
         or type(current) is not int
-        or not 0 <= current <= maximum
         or row.get("native_wall_hp_source") != "fbd.PA.sgC.aYS"
     ):
         raise ValueError("Missing native fbd current HP authority")
-    return {
-        "current": current,
-        "maximum": maximum,
-        "minimum": 0,
-        "source": "fbd.PA.sgC.aYS",
-    }
+    from .combat_area_hp_pa import area_hp_pa
+
+    return area_hp_pa(
+        row,
+        dict(
+            maximum=maximum,
+            minimum=0,
+            absolute_minimum=0,
+            absolute_maximum=(1 << 31) - 1,
+        ),
+        current,
+        "fbd",
+    )
 
 
 def wall_damage_snapshot(row, definition):
@@ -143,8 +149,8 @@ def wall_damage_snapshot(row, definition):
     return {
         "stats": stats,
         "maxima": {1: hp["maximum"]},
-        "minima": {1: 0},
-        "frozen": frozenset(),
+        "minima": {1: hp["minimum"]},
+        "frozen": frozenset((1,)) if hp["frozen"] else frozenset(),
         "current_hp": hp["current"],
         "maximum_hp": hp["maximum"],
         "characteristics_source": "fbd.aQc.rMK+ffw.sgC/eRF.aYY",
@@ -156,10 +162,10 @@ def wall_damage_snapshot(row, definition):
 
 def update_wall_hp(row, constructor, current):
     """Apply a caller-computed native PA current-value transition."""
-    if type(current) is not int or not 0 <= current <= constructor.get(
-        "hp_maximum", -1
-    ):
+    hp = wall_hp_state(row, constructor)
+    if type(current) is not int or not hp["minimum"] <= current <= hp["maximum"]:
         raise ValueError("Invalid native fbd current HP update")
-    row["native_wall_hp_current"] = current
-    row["native_wall_hp_source"] = "fbd.PA.sgC.aYS"
+    from .combat_area_hp_pa import set_area_hp_current
+
+    set_area_hp_current(row, hp, current, "native_wall_hp_current")
     return wall_hp_state(row, constructor)

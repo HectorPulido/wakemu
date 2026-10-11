@@ -124,11 +124,16 @@ class RanchDispatcherTests(unittest.TestCase):
             "mark_static_sync_pending": lambda: self.events.append("static-sync"),
             "record": lambda **event: self.events.append(("record", event["event"])),
             "validate_ranch_lease": lambda: self._validate_lease(),
+            "validate_ranch_entitlement": lambda: self._validate_entitlement(),
         }
 
     def _validate_lease(self):
         if not self.context["lease_valid"]:
             raise ValueError("Expired ranch actor lease")
+
+    def _validate_entitlement(self):
+        if not self.context.get("entitled", True):
+            raise ValueError("Missing current Ranch entitlement")
 
     def _dispatch(
         self,
@@ -213,6 +218,7 @@ class RanchDispatcherTests(unittest.TestCase):
 
             self.sent.clear()
             self.events.clear()
+            self.context["entitled"] = False
             state = self._dispatch(
                 13982,
                 b"\x00",
@@ -294,6 +300,67 @@ class RanchDispatcherTests(unittest.TestCase):
                 isinstance(event, tuple) and event[0] == "join" for event in self.events
             )
         )
+
+    def test_missing_current_entitlement_rejects_actual_entry_and_switch(self):
+        from wakfu_server.haven_ranch import RanchSession
+
+        self.context["entitled"] = False
+        source = dict(id=36028, type="RanchEntrance", map_id=9, x=-9, y=5, z=4)
+        with patch(
+            "wakfu_server.haven_ranch_authority.world_static.objects",
+            return_value=[source],
+        ):
+            state = self._dispatch(12870, struct.pack(">qHH", 36028, 35, 0))
+        self.assertEqual(state["character"], self.actor)
+        self.assertIsNone(state["ranch_session"])
+        self.assertNotIn("cancel", self.events)
+        self.assertFalse(
+            any(opcode in (13256, 13864, 13974) for opcode, _ in self.sent)
+        )
+        child = RanchSession(
+            self.bag,
+            self.actor,
+            dict(biome_id=1, map_id=1440, x=28, y=6, z=4),
+            lease=1,
+            now_ms=1000,
+        )
+        self.sent.clear()
+        self.events.clear()
+        state = self._dispatch(
+            12380, struct.pack(">i", 1), character=child.inside, ranch_session=child
+        )
+        self.assertEqual(state["character"], child.inside)
+        self.assertIs(state["ranch_session"], child)
+        self.assertNotIn("cancel", self.events)
+        self.assertFalse(
+            any(opcode in (13256, 13864, 13974) for opcode, _ in self.sent)
+        )
+
+    def test_actual_entitlement_supplier_uses_current_actor_and_generation(self):
+        function = next(
+            node
+            for node in ast.walk(_session_function())
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "validate_ranch_entitlement"
+        )
+        module = ast.Module(body=[deepcopy(function)], type_ignores=[])
+        context = dict(
+            STORE=object(),
+            account_id=2,
+            generation="new-generation",
+            character=dict(self.actor),
+        )
+        with patch(
+            "wakfu_server.haven_ranch_authority.require_owned_entitlement"
+        ) as check:
+            exec(
+                compile(ast.fix_missing_locations(module), str(SERVER_SOURCE), "exec"),
+                context,
+            )
+            context["validate_ranch_entitlement"]()
+            check.assert_called_once_with(
+                context["STORE"], 2, "new-generation", context["character"]
+            )
 
     def test_real_dispatch_guard_blocks_planting_and_actor_mutations_during_ranch(self):
         guard = _branch(

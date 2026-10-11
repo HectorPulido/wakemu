@@ -8,7 +8,7 @@ import struct
 
 from .npc_dialogue import DialogueSession, catalog
 from .npc_capture_contracts import authorized_identity
-from . import npc_objective_facts, npc_protectors
+from . import npc_objective_facts, npc_protectors, npc_observed_dialogue
 
 INTERACTION_REQUEST = 13222
 MIN_ID = -4503599627370495
@@ -147,7 +147,8 @@ def begin(
 ):
     """Bind a native initial conversation to current authoritative scene state.
 
-    Until full trees are mapped, valid unconditional initial choices only close.
+    Exact observed display transitions are imported without quest/reward writes.
+    Unobserved unconditional initial choices retain the local close behavior.
     This is explicit local behavior, not an inferred official quest transition.
     """
     native = catalog() if native is None else native
@@ -184,8 +185,15 @@ def begin(
         for choice in nodes[root]["choices"]
         if not choice.get("criteria")
     }
+    graph.update(npc_observed_dialogue.graph(row, nodes))
+    allowed_nodes = {root} | {
+        target for target in graph.values() if target is not None and target != 0
+    }
     session = DialogueSession(
-        nodes, graph, authorize_node=lambda node: available(node.get("criteria"))
+        nodes,
+        graph,
+        authorize_node=lambda node: available(node.get("criteria")),
+        authorize_choice=lambda choice: available(choice.get("criteria")),
     )
 
     speaker_type, speaker_identity = npc_protectors.speaker(row)
@@ -198,7 +206,7 @@ def begin(
             current is not None
             and current == row
             and speaker_id == speaker_identity
-            and node_id == root
+            and node_id in allowed_nodes
             and nearby(character_provider(), current)
             and available(action.get("criteria"))
             and available(nodes[root].get("criteria"))

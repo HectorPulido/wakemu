@@ -68,6 +68,10 @@ def extracted_session_finalizer(namespace):
                 value=ast.Constant(value=None),
             ),
             ast.Assign(
+                targets=[ast.Name(id="environment_seat", ctx=ast.Store())],
+                value=ast.Constant(value=None),
+            ),
+            ast.Assign(
                 targets=[ast.Name(id="combat_session", ctx=ast.Store())],
                 value=ast.Constant(value=None),
             ),

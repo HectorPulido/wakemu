@@ -17,3 +17,11 @@ Installed `eVl` names ID8 (`rwE`) SORT_TARGET_BY_PERCENT_HEALTH_ASC. Its sole co
 Current ordering only qualifies native distance14/26 and its exported identity metadata. Enabling8 requires actual PA-presence/current/max authority, exact float32 comparison and source-qualified metadata for those definitions. A simple HP/max fallback or registration allowlist entry would silently change target selection. Flag8 therefore remains rejected, including the existing original regression for unknown [8,26]. No guessed HP authority or test modification was introduced.
 
 Source bytecode artifacts: `.runtime/monster-blocker-recovery-20261011/subscribed304/{eVl,faK,eXt,eYE}.txt`; `faI` additionally inspected using installed javap.
+
+## Flag8 source integration follow-up
+
+The separate faI comparator/actual-PA factory audit now qualifies exact health ordering identities through `validate_native_target_ordering_identity`. Group registration accepts8 only when the caller supplies the actual effect/reference and its native export matches exact class, full flags, signed target cap and contract `faI.PV.a.sgC.PA.aYS.aYU.float32.asc.v1`. Flags-only callers still reject8; no Boolean bypass was added. The resolver's actual PA factory remains responsible for target characteristic presence/current/max and sorting.
+
+The four existing group-validation call sites now pass their existing effect/reference: retained registration, dynamic level groups, native999 level handler and native865 transfer runtime. Five NEW tests prove real exported group187193 acceptance, original phase restrictions and rejection of missing/mismatched native identity, flags, marker, signed cap and unrelated unknown flags. Combined with the prior ranged-group tests8/8 pass directly offline. All original tests remain unchanged.
+
+Native health ordering is a separate55-row offline export. No active catalog was supplemented or published; missing native-health-target-ordering catalog authority remains fail closed. Real monster5446/5451 replays remain pending until the coordinator supplies that source-qualified document to its offline candidate overlay.

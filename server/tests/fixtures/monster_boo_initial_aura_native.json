@@ -1,0 +1,65 @@
+{
+  "state_id": 5759,
+  "initial_state_triples": [
+    5759,
+    1,
+    1
+  ],
+  "child_reference": 270570,
+  "effect": {
+    "effect_class": 338,
+    "variant": 0,
+    "minimum_level": 0,
+    "maximum_level": 32767,
+    "criteria": "",
+    "parameters": [
+      1373.0,
+      0.0
+    ],
+    "children": [],
+    "parameter_count": 1,
+    "target_masks": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "native_target_selector": {
+      "class": "fcE",
+      "mask": 0
+    },
+    "native_hmi_actions": {
+      "rzc": [],
+      "rzd": [],
+      "rze": [],
+      "rzf": [],
+      "rzg": [],
+      "rzh": []
+    },
+    "native_effect_flags": [
+      17
+    ],
+    "native_execution_mode": 2,
+    "native_definition_class": "eVy",
+    "native_timing_definition": {
+      "clock_on_caster": false,
+      "clock_on_target": true,
+      "ryE": -1,
+      "ryF": 0.0,
+      "ryG": false,
+      "ryH": 0,
+      "ryI": 0.0,
+      "esr": false
+    },
+    "native_localization_enabled": false,
+    "application_flag": "NONE",
+    "removal_flag": "NONE",
+    "probability_base": 100.0,
+    "probability_per_level": 0.0,
+    "area_class": "anD",
+    "area_native": "point"
+  }
+}

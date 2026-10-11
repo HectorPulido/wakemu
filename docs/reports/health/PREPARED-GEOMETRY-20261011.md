@@ -96,3 +96,31 @@ checksummed and decoded the map527 artifact from the actual /data mount in
 492.489ms (26,900,684bytes). Counts matched65,285cells/226,614edges/261,140forced
 rows. This confirms mounted storage access, not gameplay deployment or total
 combat-entry timing. No running World state was modified.
+
+## Post-reboot safety audit
+
+Hector reported an OOM. The earlier duplicate builder briefly overlapped before
+root terminated its duplicate; this was a coordination error. Exact OOM cause
+is not established: the recorded host reboot stopped all containers and the
+recovered World does not report an individual Docker OOM kill.
+
+The builder now holds an exclusive output-directory flock, launches exactly one
+map subprocess at a time, waits for its exit before the next map, and watches
+worker RSS every100ms (default512MiB; exceeding it terminates that worker and
+stops the batch). This is a sampled RSS safeguard, not an operating-system hard
+memory reservation. Workers release their heap on exit; the builder also drops
+its graph/binary buffer before reload. A killed/failed worker cannot produce a
+successful batch receipt. No all-map rebuild was run for this review.
+
+All934 existing artifacts survived the reboot: revision, native source hashes,
+manifest sizes and full binary SHA256 verified sequentially using1MiB reads,
+without loading any map graphs. Receipt
+`.runtime/local/diagnostics/prepared-geometry-post-reboot-stream-audit.json`.
+The updated60-test gate passed with zero failures/errors/skips in2.434s,
+including real subprocess termination on the memory guard, failed-worker
+rejection, concurrent-build exclusion and serial dispatch order. Log:
+`.runtime/local/diagnostics/prepared-geometry-safe-regressions-20261011.log`.
+
+Geometry root ACKs inclusion in Systems combined completion publication;
+no independent restart or unqualified whole-source publication is performed.
+The new hooks remain pending deployment; recovered existing services are healthy.

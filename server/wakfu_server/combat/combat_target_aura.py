@@ -140,7 +140,7 @@ class NativeTargetAuraHandler:
         try:
             self._phase(effect, invocation, runner, 1)
             value = parameter_value(effect["parameters"], 0, invocation.level)
-            area_uid = self.area_handler.allocate_uid()  # C -> PW.baj.
+            area_uid = self.area_handler.allocate_area_uid()  # C -> PW.baj.
             runner.set_calculated(
                 apply_context_value(
                     value,

@@ -309,6 +309,20 @@ class NativeDisplacementHandler:
         qi = NativeQISnapshot(getattr(self.fight, "native_qi_snapshot", None))
         return native_qi_surfaces(map_id).i(qi, *cell)
 
+    def native_eligibility(self, effect, invocation):
+        # eZB/eZC/eZD inherit eZR.i. Reject an actual corpse before n/C
+        # computes teleport acceptance or emits the preparation lifecycle.
+        if effect["effect_class"] not in (302, 340):
+            return True
+        recipient = self.fight.actors.get(invocation.target_id)
+        if recipient is None:
+            return True
+        from .combat_runner_target_life import runner_target_life_eligible
+
+        return runner_target_life_eligible(
+            self.fight, recipient, effect, invocation=invocation
+        )
+
     def prepare(self, effect, values, invocation):
         if self.event_lifecycle is None:
             return invocation

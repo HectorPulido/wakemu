@@ -14,6 +14,9 @@ FLAG_SEMANTICS = {
     # eVl.rwN is BUFF_BYPASS_OUT_FIGHT_MAX (ID17, not ordinal15).
     # eXe.c/E only select/remove retained effects; neither reads PA maxima
     # or this buff-application flag. Generic Qe trigger flags stay separate.
+    # eVl.rwL ID15 is CAN_BE_EXECUTED_ON_KO. Generic eZR.bcd and the
+    # shared corpse eligibility gate own this permission, not eXe selection.
+    15: "generic_can_execute_on_ko",
     17: "out_of_fight_buff_cap_not_read_by_eXe",
     20: "guild_metadata_not_read_by_eXe",
     24: "damage_distance_tag_not_read_by_eXe",

@@ -1,0 +1,122 @@
+[
+  {
+    "maximum": 8,
+    "percentage": -50,
+    "amount": -4
+  },
+  {
+    "maximum": 8,
+    "percentage": 0,
+    "amount": 0
+  },
+  {
+    "maximum": 8,
+    "percentage": 15,
+    "amount": 1
+  },
+  {
+    "maximum": 8,
+    "percentage": 100,
+    "amount": 8
+  },
+  {
+    "maximum": 8,
+    "percentage": 500,
+    "amount": 40
+  },
+  {
+    "maximum": 8,
+    "percentage": 2147483647,
+    "amount": 0
+  },
+  {
+    "maximum": 100,
+    "percentage": -50,
+    "amount": -50
+  },
+  {
+    "maximum": 100,
+    "percentage": 0,
+    "amount": 0
+  },
+  {
+    "maximum": 100,
+    "percentage": 15,
+    "amount": 15
+  },
+  {
+    "maximum": 100,
+    "percentage": 100,
+    "amount": 100
+  },
+  {
+    "maximum": 100,
+    "percentage": 500,
+    "amount": 500
+  },
+  {
+    "maximum": 100,
+    "percentage": 2147483647,
+    "amount": -1
+  },
+  {
+    "maximum": 1000000000,
+    "percentage": -50,
+    "amount": 15396075
+  },
+  {
+    "maximum": 1000000000,
+    "percentage": 0,
+    "amount": 0
+  },
+  {
+    "maximum": 1000000000,
+    "percentage": 15,
+    "amount": 21150981
+  },
+  {
+    "maximum": 1000000000,
+    "percentage": 100,
+    "amount": 12157521
+  },
+  {
+    "maximum": 1000000000,
+    "percentage": 500,
+    "amount": 17837936
+  },
+  {
+    "maximum": 1000000000,
+    "percentage": 2147483647,
+    "amount": -10000000
+  },
+  {
+    "maximum": 2147483647,
+    "percentage": -50,
+    "amount": 0
+  },
+  {
+    "maximum": 2147483647,
+    "percentage": 0,
+    "amount": 0
+  },
+  {
+    "maximum": 2147483647,
+    "percentage": 15,
+    "amount": 21474836
+  },
+  {
+    "maximum": 2147483647,
+    "percentage": 100,
+    "amount": -1
+  },
+  {
+    "maximum": 2147483647,
+    "percentage": 500,
+    "amount": -5
+  },
+  {
+    "maximum": 2147483647,
+    "percentage": 2147483647,
+    "amount": 0
+  }
+]

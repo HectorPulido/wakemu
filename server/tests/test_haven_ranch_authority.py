@@ -22,9 +22,16 @@ class RanchAuthorityTests(unittest.TestCase):
         self.geometry = dict(map_id=9, cells=[[-8, 5, 4], [3, 3, 0]])
         self.source = dict(id=36028, map_id=9, type="RanchEntrance", x=-9, y=5, z=4)
         self.lease_calls = 0
+        self.entitled = True
+        self.entitlement_calls = 0
 
     def lease(self):
         self.lease_calls += 1
+
+    def entitlement(self):
+        self.entitlement_calls += 1
+        if not self.entitled:
+            raise ValueError("Missing current Ranch entitlement")
 
     def request(self, body=None, actor=None, geometry=None):
         with patch(
@@ -36,12 +43,14 @@ class RanchAuthorityTests(unittest.TestCase):
                 self.bag,
                 struct.pack(">qHH", 36028, 35, 0) if body is None else body,
                 validate_lease=self.lease,
+                validate_entitlement=self.entitlement,
                 geometry=geometry or self.geometry,
             )
 
     def test_installed_owner_choice_and_lease_before_destination(self):
         self.assertEqual(self.request(), dict(biome_id=1, map_id=1440, x=28, y=6, z=4))
         self.assertEqual(self.lease_calls, 1)
+        self.assertEqual(self.entitlement_calls, 1)
 
     def test_source_action_parameter_and_lengths_reject(self):
         for body in (
@@ -80,6 +89,7 @@ class RanchAuthorityTests(unittest.TestCase):
                     self.bag,
                     struct.pack(">qHH", 36028, 35, 0),
                     validate_lease=expired,
+                    validate_entitlement=self.entitlement,
                     geometry=self.geometry,
                 )
 
@@ -89,7 +99,11 @@ class RanchAuthorityTests(unittest.TestCase):
         inside = child.inside
         self.assertEqual(
             biome_target(
-                inside, child, struct.pack(">i", 1), validate_lease=self.lease
+                inside,
+                child,
+                struct.pack(">i", 1),
+                validate_lease=self.lease,
+                validate_entitlement=self.entitlement,
             ),
             target,
         )
@@ -99,8 +113,29 @@ class RanchAuthorityTests(unittest.TestCase):
                 validate_return(inside, child, body, validate_lease=self.lease)
         with self.assertRaises(ValueError):
             biome_target(
-                self.actor, child, struct.pack(">i", 1), validate_lease=self.lease
+                self.actor,
+                child,
+                struct.pack(">i", 1),
+                validate_lease=self.lease,
+                validate_entitlement=self.entitlement,
             )
         child.leave(inside)
         with self.assertRaises(ValueError):
             validate_return(inside, child, b"\x00", validate_lease=self.lease)
+
+    def test_both_entry_and_switch_recheck_entitlement_but_return_does_not(self):
+        target = self.request()
+        child = RanchSession(self.bag, self.actor, target, lease=1, now_ms=1000)
+        self.entitled = False
+        with self.assertRaisesRegex(ValueError, "Missing current Ranch entitlement"):
+            self.request()
+        with self.assertRaisesRegex(ValueError, "Missing current Ranch entitlement"):
+            biome_target(
+                child.inside,
+                child,
+                struct.pack(">i", 1),
+                validate_lease=self.lease,
+                validate_entitlement=self.entitlement,
+            )
+        validate_return(child.inside, child, b"\x00", validate_lease=self.lease)
+        self.assertTrue(child.owns(child.inside))

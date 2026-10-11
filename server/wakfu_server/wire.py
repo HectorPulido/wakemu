@@ -216,7 +216,24 @@ def owned_public_characteristics(character):
     )
     offset = 1 + 8 + struct.calcsize(">iihqBB") + struct.calcsize(">iBBBBbB")
     count = struct.unpack_from(">H", blob, offset)[0]
+    end = offset + 2 + count * struct.calcsize(">Biiii")
+    return complete_public_characteristics(blob[offset:end])
+
+
+def complete_public_characteristics(payload):
+    """Complete a sparse owned PC contribution snapshot with native defaults.
+
+    Resource/current rows already carry authoritative absolute values. Other
+    supplied rows are equipment/aptitude contributions to native baselines.
+    Missing rows must be explicit so the original partial native consumer clears
+    a contribution removed by a build change or outside-combat refresh.
+    """
+    if type(payload) is not bytes or len(payload) < 2:
+        raise ValueError("Invalid owned public characteristics payload")
+    count = struct.unpack_from(">H", payload)[0]
     row_size = struct.calcsize(">Biiii")
+    if len(payload) != 2 + count * row_size:
+        raise ValueError("Invalid owned public characteristics length")
     from wakfu_server.combat.combat_actor_snapshot import native_actor_catalog
 
     # A refresh can target an actor that previously received a richer capture
@@ -233,8 +250,12 @@ def owned_public_characteristics(character):
         )
         for identity, row in native_rows.items()
     }
+    seen = set()
     for index in range(count):
-        row = struct.unpack_from(">Biiii", blob, offset + 2 + index * row_size)
+        row = struct.unpack_from(">Biiii", payload, 2 + index * row_size)
+        if str(row[0]) not in native_rows or row[0] in seen:
+            raise ValueError("Unknown or duplicate owned public characteristic")
+        seen.add(row[0])
         if row[0] not in (1, 2, 3, 4, 35):
             # actor_stats serializes non-resource equipment contributions.
             # Apply them to ffh defaults with the same bounds as fresh combat

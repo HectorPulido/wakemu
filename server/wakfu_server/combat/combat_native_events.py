@@ -126,7 +126,9 @@ def subscription_selection(
     return "remove" if index == 2 else "activate"
 
 
-def validate_group_registration_flags(flags, *, active, constructor=False):
+def validate_group_registration_flags(
+    flags, *, active, constructor=False, effect=None, reference=None
+):
     """Flags1 affects eZX event selection only;17 is not read by eYg.
 
     Jar-wide reference audit finds eVl.rwy consumed only by eZX, outside
@@ -148,6 +150,9 @@ def validate_group_registration_flags(flags, *, active, constructor=False):
     Flag24 RANGED_EFFECT is consumed only by eXt.bbx (damage event2217)
     and eYE range classification. It does not change group registration;
     damage and range consumers retain their own native authority.
+    Flag8 is accepted only with the exact source-qualified faI ordering
+    definition. Target PA lookup and ordering remain the resolver's job;
+    flags-only callers cannot attest this additional native contract.
     """
     if (
         type(active) is not bool
@@ -156,6 +161,13 @@ def validate_group_registration_flags(flags, *, active, constructor=False):
     ):
         raise ValueError("Explicit native group flags/combat context required")
     unknown = set(flags) - {1, 3, 5, 9, 14, 15, 16, 17, 24, 26}
+    if 8 in unknown and effect is not None and reference is not None:
+        if set(effect.get("native_effect_flags", ())) != set(flags):
+            raise ValueError("Native group ordering flags differ from definition")
+        from .combat_target_ordering import validate_native_target_ordering_identity
+
+        validate_native_target_ordering_identity(effect, reference)
+        unknown.remove(8)
     if unknown:
         raise ValueError(f"Unaudited native group execution flags: {sorted(unknown)}")
     # eYg.bcd returns true unconditionally; no active-phase predicate is

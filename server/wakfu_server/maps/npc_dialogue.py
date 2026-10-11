@@ -98,6 +98,10 @@ class DialogueSession:
         if target is None:
             self.close()
             return None
+        if target == 0:
+            # Native captured terminal responses explicitly carry node zero.
+            self.close()
+            return NODE_RESPONSE, struct.pack(">i", 0)
         self._node(target)
         payload = struct.pack(">i", target)
         self.node_id = target

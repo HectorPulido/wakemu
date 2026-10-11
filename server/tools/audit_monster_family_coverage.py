@@ -102,12 +102,28 @@ def supported_families(registry, setters):
     return families
 
 
+def exclude_unqualified_families(supported, excluded):
+    """Conservatively omit in-progress handlers without adding any support."""
+    if any(type(value) is not int or value <= 0 for value in excluded):
+        raise ValueError("Invalid excluded effect family")
+    if len(set(excluded)) != len(excluded) or not set(excluded) <= set(supported):
+        raise ValueError("Duplicate or unregistered excluded effect family")
+    return set(supported) - set(excluded)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inventory", type=Path, required=True)
     parser.add_argument("--registry", type=Path, required=True)
     parser.add_argument("--setters", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--exclude-family",
+        type=int,
+        action="append",
+        default=[],
+        help="Conservatively omit an in-progress handler from this static estimate",
+    )
     parser.add_argument(
         "--max-level",
         type=int,
@@ -130,6 +146,7 @@ def main():
     registry = json.loads(args.registry.read_text())
     assert registry["client_jar_sha256"] == inventory["provenance"]["client_jar_sha256"]
     supported = supported_families(registry, json.loads(args.setters.read_text()))
+    supported = exclude_unqualified_families(supported, args.exclude_family)
     sources = {
         str(path.relative_to(ROOT))
         if path.is_relative_to(ROOT)
@@ -222,6 +239,7 @@ def main():
             newly_classified_references=len(rows) - reused,
         ),
         supported_families=sorted(supported),
+        excluded_registered_families=sorted(args.exclude_family),
         maximum_level_inclusive=None if args.all else args.max_level,
         intersects_level_range=summarize(rows),
         entirely_in_level_range=summarize(

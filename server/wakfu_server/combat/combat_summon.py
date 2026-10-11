@@ -322,7 +322,9 @@ class RegisteredSummonAuthority:
         if hasattr(preview, "native_global_pv_collections"):
             from .combat_global_pv_collections import register_global_fighter
 
-            register_global_fighter(preview, actor.id)
+            register_global_fighter(
+                preview, actor.id, controller_id=registration.controller_id
+            )
         preview.native_summon_registrations = {**records, actor.id: row}
         preview.order, preview.turn_index = list(new_order), new_turn_index
         if next_base is not None:
@@ -463,6 +465,9 @@ class RegisteredSummonAuthority:
         from .combat_ordinary_death import owned_fighter_guards
 
         life = owned_fighter_guards(preview, actor)
+        from .combat_controller_registry import current_controller_authority
+
+        metadata = current_controller_authority(preview, actor, metadata)
         return replace(
             metadata,
             targeting={**metadata.targeting, **life},

@@ -14,17 +14,44 @@ from .combat_effects import _integer, _varint
 from wakfu_server.wire import proto_fields
 
 
-def select_removal_area(fight, reference, target_id, cell):
+def movement_blocking_area(row):
+    """eXV.y consumes actual Qq.bcP, independently of removability bcF."""
+    contract = row.get("native_area_contract")
+    if contract in ("faW", "fbd"):
+        key = (
+            "native_faw_constructor" if contract == "faW" else "native_wall_constructor"
+        )
+        constructor = row.get(key)
+        value = (
+            constructor.get("movement_blocking")
+            if isinstance(constructor, dict)
+            else None
+        )
+        if type(value) is not bool:
+            raise ValueError("Missing native Qq.bcP constructor authority")
+        return value
+    if contract in ("faZ", "faY", "faN", "faX", "faU", "fbc", "faP"):
+        # First six inherit Qq.bcP=false. Registered faP is independently
+        # validated by _rows as the audited nonblocking border constructor.
+        return False
+    raise ValueError("Unknown native Qq.bcP contract")
+
+
+def select_removal_area(fight, reference, target_id, cell, *, eligible=None):
     rows = tuple(_rows(fight))
     explicit = next((row for row in rows if row["uid"] == target_id), None)
     if explicit is not None:
         return (
-            explicit if reference == -1 or explicit["reference"] == reference else None
+            explicit
+            if (reference == -1 or explicit["reference"] == reference)
+            and (eligible is None or eligible(explicit))
+            else None
         )
     candidates = tuple(
         row
         for row in rows
         if (reference == -1 or row["reference"] == reference)
+        and (eligible is None or eligible(row))
         and contains_area_cell(row, cell)
     )
     if len(candidates) > 1:
@@ -72,7 +99,7 @@ class NativeAreaRemovalHandler:
         from .combat_trigger_value_modifier import NativeRunnerAmount
         from .combat_value_transfer import apply_context_value
 
-        if effect["effect_class"] not in (843, 911):
+        if effect["effect_class"] not in (843, 909, 911, 1021):
             raise ValueError("Missing native eYc family")
         uid = invocation.native_running_uid or self.allocate_uid()
         invocation = replace(invocation, native_running_uid=uid)
@@ -95,7 +122,7 @@ class NativeAreaRemovalHandler:
         self.prepared.pop(invocation.native_running_uid, None)
 
     def __call__(self, effect, values, invocation):
-        if effect["effect_class"] not in (843, 911):
+        if effect["effect_class"] not in (843, 909, 911, 1021):
             raise ValueError("Native eXU definition required")
         context = self.context(effect, invocation)
         if (
@@ -123,7 +150,11 @@ class NativeAreaRemovalHandler:
         if context.retained:
             raise ValueError("Retained native eXU ownership is unaudited")
         row = select_removal_area(
-            self.fight, parameters[0], invocation.target_id, invocation.cell
+            self.fight,
+            parameters[0],
+            invocation.target_id,
+            invocation.cell,
+            eligible=movement_blocking_area if effect["effect_class"] == 1021 else None,
         )
         if row is None:
             return False  # eYc.fRS suppresses application notification.

@@ -803,14 +803,19 @@ def join_world(generation, connection, character, *, hydrate_heroes=True):
     send_planting_context(connection, character)
     for packet in PLANTINGS.snapshots(character["map_id"], character["instance_id"]):
         send(connection, "world", *packet)
-    from wakfu_server.maps import npc_world
+    from wakfu_server.maps import npc_world, npc_placements
 
     with STORE.connection() as db:
         dialogue_npcs = npc_world.load_scene(
             db, character["map_id"], character["instance_id"]
         )
+        positioned_npcs = npc_placements.load_scene(
+            db, character["map_id"], character["instance_id"]
+        )
     for npc in dialogue_npcs:
         send(connection, "world", *npc_world.spawn(npc))
+    for npc in positioned_npcs:
+        send(connection, "world", *npc_placements.spawn(npc))
     from wakfu_server.characters import heroes, hero_wire
 
     hero_roster = heroes.ensure_company_party(
@@ -999,7 +1004,10 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
             }
             registry_actor_ids = tuple(
                 row["actor_id"]
-                for row in db.execute("SELECT actor_id FROM world_dialogue_npcs")
+                for row in db.execute(
+                    "SELECT actor_id FROM world_dialogue_npcs "
+                    "UNION SELECT actor_id FROM world_native_npc_placements"
+                )
             )
 
     def owned_characters():
@@ -1307,6 +1315,11 @@ def session(raw, peer, service, context):
     def validate_ranch_lease():
         if not STORE.current_character_session(account_id, generation, character["id"]):
             raise ValueError("Expired ranch actor lease")
+
+    def validate_ranch_entitlement():
+        from wakfu_server.haven_ranch_authority import require_owned_entitlement
+
+        require_owned_entitlement(STORE, account_id, generation, character)
 
     def cancel_private_scene_activity():
         PLANTINGS.cancel(character["id"], generation)
@@ -1972,8 +1985,14 @@ def session(raw, peer, service, context):
         current = {}
         from wakfu_server.environment_seats import snapshots as seat_snapshots
 
-        for packet in snapshots(STORE, character["map_id"]) + seat_snapshots(
-            STORE, character["map_id"]
+        from wakfu_server.environment_doors import snapshots as door_snapshots
+
+        for packet in (
+            snapshots(STORE, character["map_id"])
+            + seat_snapshots(STORE, character["map_id"])
+            + door_snapshots(
+                STORE, character["map_id"], character.get("instance_id", 0), nearby
+            )
         ):
             object_id = struct.unpack_from(">q", packet[1])[0]
             if object_id not in nearby:
@@ -8958,12 +8977,31 @@ def session(raw, peer, service, context):
                         )
                 elif opcode == 13686 and loaded:
                     try:
-                        destination_route = native_transports.resolve(
-                            character,
-                            body,
-                            known_ids=known_transports(account_id),
-                            waive_criteria=ALL_ZAAPS,
-                        )
+                        from wakfu_server import native_boats
+
+                        if native_boats.source(character, body) is not None:
+                            from wakfu_server.combat_terrain import map_geometry
+
+                            destination_route = native_boats.resolve(
+                                character,
+                                body,
+                                source_allowed=lambda actor, origin: native_boats.admit_source(
+                                    STORE,
+                                    account_id,
+                                    generation,
+                                    actor,
+                                    origin,
+                                    blocked=environment_blocked(),
+                                ),
+                                geometry=map_geometry,
+                            )
+                        else:
+                            destination_route = native_transports.resolve(
+                                character,
+                                body,
+                                known_ids=known_transports(account_id),
+                                waive_criteria=ALL_ZAAPS,
+                            )
                         saved = STORE.transition_map(
                             account_id,
                             generation,
@@ -9879,6 +9917,7 @@ def session(raw, peer, service, context):
                                     bag_session,
                                     body,
                                     validate_lease=validate_ranch_lease,
+                                    validate_entitlement=validate_ranch_entitlement,
                                     geometry=map_geometry(9),
                                 )
                                 child = RanchSession(
@@ -9894,6 +9933,7 @@ def session(raw, peer, service, context):
                                     ranch_session,
                                     body,
                                     validate_lease=validate_ranch_lease,
+                                    validate_entitlement=validate_ranch_entitlement,
                                 )
                                 child = RanchSession(
                                     bag_session,
@@ -10277,6 +10317,46 @@ def session(raw, peer, service, context):
                                     reason=str(error),
                                 )
                             continue
+                    if opcode == 12870 and len(body) == 12:
+                        door_id = struct.unpack_from(">q", body)[0]
+                        door = next(
+                            (
+                                row
+                                for row in world_static.objects(character["map_id"])
+                                if row["id"] == door_id and row["type"] == "Door"
+                            ),
+                            None,
+                        )
+                        if door is not None and not is_dungeon_run(
+                            character.get("instance_id", 0)
+                        ):
+                            from wakfu_server import environment_doors
+
+                            if (
+                                environment_doors.definition(
+                                    STORE, character["map_id"], door_id
+                                )
+                                is not None
+                            ):
+                                try:
+                                    result = environment_doors.interact(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        body,
+                                        blocked=environment_blocked(),
+                                    )
+                                    send(connection, service, *result["packet"])
+                                    publish_environment_scene(force=True)
+                                except ValueError as error:
+                                    record(
+                                        event="ordinary_door_rejected",
+                                        actor_id=character["id"],
+                                        object_id=door_id,
+                                        reason=str(error),
+                                    )
+                                continue
                     if opcode == 12870 and character["map_id"] != 9:
                         try:
                             from wakfu_server import environment_interactions
@@ -10908,6 +10988,9 @@ def session(raw, peer, service, context):
                     end = movement["end_position"]
                     try:
                         approved = movement_state.validate(movement)
+                        from wakfu_server import environment_doors
+
+                        environment_doors.validate_movement(STORE, character, movement)
                         if DUNGEON_ROOM_RUNTIME_AVAILABLE and is_dungeon_run(
                             character.get("instance_id", 0)
                         ):

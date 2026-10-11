@@ -8,6 +8,26 @@ Finite clocks deliberately retain the existing unsupported-timeline rejection.
 from dataclasses import asdict, replace
 
 
+def native_fresh_ordinary_instance_authority(authority):
+    """Actual fresh eGj constructor, before any POSITION/fE publication.
+
+    eGj.aWs explicitly resets aJo to long zero; eKB reads that exact field
+    through arM. This constructor value is not a missing-map fallback.
+    Registered actors continue to use their independently published POSITION.
+    """
+    from .combat_runtime_adapter import NativeActorAuthority
+
+    if (
+        not isinstance(authority, NativeActorAuthority)
+        or authority.is_player is not False
+        or authority.native_in_play is not False
+        or authority.native_instance_id is not None
+        or authority.targeting.get("bcN") != -1
+    ):
+        raise ValueError("Missing fresh ordinary NPC constructor authority")
+    return replace(authority, native_instance_id=0)
+
+
 def initial_plans(fight, monsters):
     if not monsters:
         return {}
@@ -133,7 +153,9 @@ def initialize_ordinary_npcs(fight, monsters, plans):
             setattr(actor, "native_" + kind + "_properties", frozenset(counts))
         initialize_fresh_bje_death_status(actor)
         authority = replace(
-            native_fresh_summon_authority(actor, reference),
+            native_fresh_ordinary_instance_authority(
+                native_fresh_summon_authority(actor, reference)
+            ),
             is_summon=False,
             summon_root_id=actor.id,
             targeting=dict(

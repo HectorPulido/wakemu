@@ -52,7 +52,8 @@ class OrdinaryActorAuthority:
         excluded_decks,
         catalog=None,
         deck_caps=None,
-        deck_blobs=None
+        deck_blobs=None,
+        npc_spellbook=None,
     ):
         if (
             set(characters) & set(monsters)
@@ -61,6 +62,9 @@ class OrdinaryActorAuthority:
         ):
             raise ValueError("Exact owned player/NPC and deck sources required")
         self.characters, self.monsters = characters, monsters
+        if npc_spellbook is not None and not callable(npc_spellbook):
+            raise ValueError("Missing ordinary NPC spellbook provider")
+        self.npc_spellbook = npc_spellbook
         self.decks, self.excluded_decks = decks, excluded_decks
         self.catalog = _immutable_property_catalog() if catalog is None else catalog
         self.deck_caps = (
@@ -158,6 +162,15 @@ class OrdinaryActorAuthority:
 
         extra_spells = frozenset(granted_spells(preview, actor.id))
         spellbook = source.get("native_spellbook")
+        if spellbook is None and not player and self.npc_spellbook is not None:
+            spellbook = self.npc_spellbook(preview, actor, source)
+            from .combat_spell_level import NativeSpellBook
+
+            if (
+                not isinstance(spellbook, NativeSpellBook)
+                or spellbook.player_character is not False
+            ):
+                raise ValueError("Invalid ordinary NPC spellbook authority")
         if spellbook is None and player:
             from wakfu_server.spells import owned_spell_records
             from .combat_spell_level import NativeSpellBook, decoded_spell_levels
@@ -206,7 +219,7 @@ class OrdinaryActorAuthority:
         else:
             selected_cosmetics = active_cosmetics = None
 
-        return NativeActorAuthority(
+        metadata = NativeActorAuthority(
             context,
             player,
             frozenset(self.decks[actor.id]) | extra_spells if player else frozenset(),
@@ -250,6 +263,9 @@ class OrdinaryActorAuthority:
             native_selected_cosmetics=selected_cosmetics,
             native_active_cosmetics=active_cosmetics,
         )
+        from .combat_controller_registry import current_controller_authority
+
+        return current_controller_authority(preview, actor, metadata)
 
     def item_quantity(self, preview, actor, references):
         """eKE uses source actor inventory, not the current effect target."""

@@ -460,6 +460,16 @@ def outside_progression(character, *, wp=None, ap=None, mp=None):
         mp=resources["mp"],
         initiative=resources["initiative"],
     )
+    from wakfu_server.wire import complete_public_characteristics
+
+    characteristics_offset = 1 + 8 + 20 + struct.calcsize(">iBBBBbB")
+    count = struct.unpack_from(">H", blob, characteristics_offset)[0]
+    end = characteristics_offset + 2 + count * struct.calcsize(">Biiii")
+    blob = (
+        blob[:characteristics_offset]
+        + complete_public_characteristics(blob[characteristics_offset:end])
+        + blob[end:]
+    )
     offset = 1 + 8 + 20
     if struct.unpack_from(">i", blob, offset)[0] != 1:
         raise ValueError("Unexpected native fighter progression layout")

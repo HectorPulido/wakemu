@@ -103,6 +103,8 @@ def build_artifact(directory, *, map_id, revision, geometry_raw, forced_raw=None
             sort_keys=True,
         ).encode(),
     )
+    # Reload only after releasing the builder graph and serialization buffer.
+    del geometry, forced, payload, raw
     return load_artifact(
         directory,
         map_id=map_id,

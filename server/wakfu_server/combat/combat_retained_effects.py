@@ -148,6 +148,9 @@ class NativeRetainedEffectView:
                 row.get("state_uid"),
             )
         for uid, row in getattr(fight, "native_owned_area_effects", {}).items():
+            from .combat_private_target_aura import validate_private_target_aura
+
+            validate_private_target_aura(fight, row)
             fields = _identity_fields(bytes.fromhex(row["payload"]))
             entry = self.by_uid.get(uid)
             manager = row["caster_id"]
@@ -341,6 +344,9 @@ def register_owned_removals(
 
     def area_validate(entry):
         row = fight.native_owned_area_effects[entry.uid]
+        from .combat_private_target_aura import validate_private_target_aura
+
+        validate_private_target_aura(fight, row)
         from .combat_effect_area import remove_owned_hour_area
 
         area = getattr(fight, "native_effect_areas", {}).get(row["area_uid"])
@@ -369,7 +375,11 @@ def register_owned_removals(
     def area_remove(uid):
         row = fight.native_owned_area_effects[uid]
         payload = area_validate(removal.view.by_uid[uid])
-        if row["executed"] and not row["keep_after"]:
+        if (
+            row["executed"]
+            and not row["keep_after"]
+            and row.get("native_private_area") is None
+        ):
             from .combat_effect_area import remove_owned_hour_area
 
             row["removing"] = True

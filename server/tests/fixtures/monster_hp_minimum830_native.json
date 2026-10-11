@@ -1,0 +1,98 @@
+[
+  {
+    "minimum": 0,
+    "runner_value": 37,
+    "frozen": false,
+    "current": 17,
+    "after": 0,
+    "maximum": 100
+  },
+  {
+    "minimum": 0,
+    "runner_value": 37,
+    "frozen": true,
+    "current": 17,
+    "after": 17,
+    "maximum": 100
+  },
+  {
+    "minimum": 0,
+    "runner_value": 37,
+    "frozen": false,
+    "current": 80,
+    "after": 0,
+    "maximum": 100
+  },
+  {
+    "minimum": 0,
+    "runner_value": 37,
+    "frozen": true,
+    "current": 80,
+    "after": 80,
+    "maximum": 100
+  },
+  {
+    "minimum": 1,
+    "runner_value": 37,
+    "frozen": false,
+    "current": 17,
+    "after": 1,
+    "maximum": 100
+  },
+  {
+    "minimum": 1,
+    "runner_value": 37,
+    "frozen": true,
+    "current": 17,
+    "after": 17,
+    "maximum": 100
+  },
+  {
+    "minimum": 1,
+    "runner_value": 37,
+    "frozen": false,
+    "current": 80,
+    "after": 1,
+    "maximum": 100
+  },
+  {
+    "minimum": 1,
+    "runner_value": 37,
+    "frozen": true,
+    "current": 80,
+    "after": 80,
+    "maximum": 100
+  },
+  {
+    "minimum": 17,
+    "runner_value": 37,
+    "frozen": false,
+    "current": 17,
+    "after": 17,
+    "maximum": 100
+  },
+  {
+    "minimum": 17,
+    "runner_value": 37,
+    "frozen": true,
+    "current": 17,
+    "after": 17,
+    "maximum": 100
+  },
+  {
+    "minimum": 17,
+    "runner_value": 37,
+    "frozen": false,
+    "current": 80,
+    "after": 17,
+    "maximum": 100
+  },
+  {
+    "minimum": 17,
+    "runner_value": 37,
+    "frozen": true,
+    "current": 80,
+    "after": 80,
+    "maximum": 100
+  }
+]

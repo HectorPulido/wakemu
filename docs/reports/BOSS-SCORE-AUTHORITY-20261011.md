@@ -1,5 +1,37 @@
 # Boss score authority and implementation boundary
 
+## Current staged result
+
+All268 native score-conditioned drop rows now have explicit local encounter
+profiles. The final SQL140 extension gate passed18/18 against migrations1–141,
+including actual executor, timeline, checkpoint and dispatcher regressions.
+This is source qualification, not deployment or graphical acceptance. Earlier
+pending integration notes below describe intermediate work and are superseded
+by the final gates.
+
+Read-only inspection of the published catalog gives the following viability
+boundary. Threshold ranges are native drop conditions, not new reward formulas.
+
+| Boss reference | Native HP | Score rows | Native threshold range | Local round limit | Published monster enabled |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Ogrest4378 | 50,000,000 | 97 | 1,000,000–15,000,000 | 20 | No |
+| Rushu5306 | 60,000,000 | 72 | 3,000,000–10,000,000 | 20 | No |
+| Neoogrest5806 | 50,000,000 | 98 | 1,000,000–15,000,000 | 20 | No |
+| Jalató Real del Amor5608 | 1,000,000 | 1 | 15,000 | 3 | Yes |
+
+All thresholds fit within the corresponding native HP totals. This arithmetic
+does not certify boss mechanics: the first three species still require native
+execution qualification before activation. Minimum-HP states also require the
+validated pre-clamping score accounting described below. The Love profile
+permits legitimate early boss defeat; forced victory against a living boss
+does not qualify. The686 opaque-condition rows remain disabled.
+
+Primary query sources: published `native_catalog_records`, `monsters.json`
+collection `monsters`, and `monster-encyclopedia.json` collection `combat_drops`,
+catalog `bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1`.
+
+## Evidence and implementation history
+
 The current native drop catalog has268 score-conditioned rows: Ogrest4378
 (97), Rushu5306 (72), Neoogrest5806 (98), and Jalató Real del Amor5608
 (1, threshold15000). The first three references are level230, the last30.

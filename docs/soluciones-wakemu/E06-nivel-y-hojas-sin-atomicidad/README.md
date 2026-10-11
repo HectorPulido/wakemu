@@ -23,11 +23,13 @@ No se modifican codecs, catálogo ni motor de hechizos desde esta tarea. E06 con
 
 ## Current source review — 2026-10-11
 
-The immediate library-refresh gap remains reproducible from source: `!nivel`
-publishes only the format3 progression snapshot, which has no `SPELL_INVENTORY`.
-The command explicitly asks the player to select the character again. This
-explains why an updated visible level does not certify the spell library's
-refresh; it does not prove that reconnecting leaves the library broken.
+The earlier immediate library-refresh source gap is superseded. The current
+`!nivel` dispatcher publishes its committed progression packets, then calls
+`characters/level_publication.py::refresh` with the authoritative owned roster
+and format10 actor template. That helper emits15548 followed by23548. Therefore
+source no longer supports the earlier claim that only format3 is published or
+that reselection is required for this operation. Graphical49/50/51 acceptance
+still needs to verify the existing actor's spell library and build availability.
 `owned_spell_records` already derives ownership and spell levels from the real
 character level. Active build caps are resolved independently by the Store,
 equipment/health evaluation and shared combat adapter.
@@ -40,10 +42,18 @@ separately before declaring the broader issue closed.
 
 `characters/level_publication.py::refresh` now prepares an owned format10
 spellbook/deck refresh followed by the real-level character roster. The
-dispatcher must publish it after the existing `!nivel` progression packets.
+current dispatcher publishes it after the existing `!nivel` progression packets.
 Native `ciu` bytecode4335–4479 for15548 first resolves the existing local actor
 by ID (or its owned registry entry) and calls `biB.as(blob)` on that same object.
 It does not activate or spawn a second actor. The private reproducible dump is
 `.runtime/local/level-publication-ciu.javap.txt`, generated with
 `javap -classpath client/lib/wakfu-client.jar -c -p ciu`.
 This proves update identity handling, not live UI acceptance of spell unlocks.
+
+Current source and remaining acceptance are separated in the [bounded build/stat audit](../../reports/BUILD-STAT-SOURCE-AUDIT-20261011.md). Source inspection alone does not establish deployed image identity.
+
+
+Offline follow-up: the [original-JAR two-UID mount registry audit](../../reports/NATIVE-MOUNT-TWO-UID-REGISTRY-20261011.md)
+separates independent native UID state and refreshed authoritative snapshots
+from selected-panel GUI rebinding. It does not change accepted XP arithmetic or
+close the remaining graphical acceptance boundary.

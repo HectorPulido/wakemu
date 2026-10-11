@@ -99,6 +99,12 @@ class NativeAffiliationHandler:
         if type(old) is not int or not -128 <= old < 128:
             raise ValueError("Missing actual saved eYV bcM affiliation")
         actor.native_fight_affiliation = signed_affiliation(runner.value)
+        if hasattr(self.fight, "native_controller_registry"):
+            from .combat_controller_registry import set_native_current_team
+
+            set_native_current_team(
+                self.fight, actor.id, actor.native_fight_affiliation
+            )
 
         def payload_for(value):
             return owned_effect_payload(
@@ -170,5 +176,9 @@ def remove_affiliation(handler, uid):
         running_effect_payload=bytes.fromhex(row["payload"]),
     )
     actor.native_fight_affiliation = old
+    if hasattr(handler.fight, "native_controller_registry"):
+        from .combat_controller_registry import set_native_current_team
+
+        set_native_current_team(handler.fight, actor.id, old)
     del handler.fight.owned_stat_effects[uid]
     handler.packets.append((13560, packet))

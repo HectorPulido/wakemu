@@ -428,6 +428,10 @@ class NativeStatHandler:
             from .combat_kill import remove_kill
 
             return remove_kill(self, uid)
+        if entry.get("family") == "eXw":
+            from .combat_hp_minimum_set import remove_hp_minimum_set
+
+            return remove_hp_minimum_set(self, uid)
         if entry.get("family") == "eXO":
             from .combat_current_hp_restore import remove_current_hp_restore
 
@@ -526,6 +530,14 @@ class NativeStatHandler:
             from .combat_spell_grant import remove_spell_grant
 
             return remove_spell_grant(self, uid)
+        if entry.get("family") == "eWw":
+            from .combat_world_property_handler import remove_world_property
+
+            return remove_world_property(self, uid)
+        if entry.get("family") == "eZy":
+            from .combat_characteristic_swap_handler import remove_characteristic_swap
+
+            return remove_characteristic_swap(self, uid)
         if entry.get("family") == "eWV":
             from .combat_minimum_resource import remove_minimum_resource
 
@@ -538,6 +550,10 @@ class NativeStatHandler:
             from .combat_maximum_resource import remove_percentage_hp
 
             return remove_percentage_hp(self, uid)
+        if entry.get("family") == "eWO_HP":
+            from .combat_hp_maximum_reduction import remove_owned_hp_maximum_reduction
+
+            return remove_owned_hp_maximum_reduction(self, uid)
         if entry.get("family") == "eWO":
             from .combat_maximum_resource import remove_maximum_reduction
 
@@ -546,6 +562,10 @@ class NativeStatHandler:
             from .combat_characteristic_link import remove_characteristic_link
 
             return remove_characteristic_link(self, uid)
+        if entry.get("family") == "eWM":
+            from .combat_caster_hp_maximum import remove_caster_hp_maximum
+
+            return remove_caster_hp_maximum(self, uid)
         if entry.get("family") == "eWN":
             from .combat_maximum_resource import remove_maximum_resource
 

@@ -24,7 +24,7 @@ The authoritative item-to-code mapping is the accredited native `aLO.cpL` export
 
 Coverage check against private monster catalog SHA256 `4c1a90bbe1092a535f0a89d6fbc52d67fa6da7e1403da7738b103b4c6d005c9a`: all16,138 direct monster rows /6,278 distinct dropped item references have a native rarity mapping; zero missing. A subsequent read-only invocation of actual `native_drop_catalog()` against published release `bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1`, monster document SHA256 `db31e2b205370fc73771573d33f374085ab1a27d222ef0601199eedf90792d36`, confirms the same16,138 rows /6,278 distinct references with zero missing mappings. Unique drop references by native rarity:0=60,1=337,2=1,400,3=2,617,4=1,681,5=77,6=4,7=102,10=0. Evidence: `.runtime/local/drop-rarity-live-coverage-20261011.json`. The probe used a read-only database session and bypassed Redis caching.
 
-Dedicated validation covers quantity/draw preservation, cross-source caps, unlimited common rarities, independent item counters, invalid policies, unknown references, durable replay, atomic rollback and policy pinning across recipients. A deterministic two-connection regression additionally proves the second recipient waits on the actual PostgreSQL fight lock, then observes the committed shared cap; aggregate receipts accept exactly one bundle. Independent Luna PostgreSQL validation is pending. No client changes or service operations were performed by this worker.
+Dedicated validation covers quantity/draw preservation, cross-source caps, unlimited common rarities, independent item counters, invalid policies, unknown references, durable replay, atomic rollback and policy pinning across recipients. A deterministic two-connection regression additionally proves the second recipient waits on the actual PostgreSQL fight lock, then observes the committed shared cap; aggregate receipts accept exactly one bundle. Independent Luna PostgreSQL validation passed in the integrated61-case gate recorded below. Publication and graphical acceptance remain pending. No client changes or service operations were performed by this worker.
 
 ## Operator configuration and complete acceptance
 
@@ -49,7 +49,7 @@ WHERE name='combat_drop_allocation_policy';
 -- Enable the configured local caps again.
 UPDATE settings SET value=jsonb_set(value,'{enabled}','true'::jsonb)
 WHERE name='combat_drop_allocation_policy';
--- Inspect the explicit20-round configured boss profiles.
+-- Inspect configured boss windows, including the three-round Love profile.
 SELECT value FROM settings WHERE name='boss_score_policy';
 ```
 

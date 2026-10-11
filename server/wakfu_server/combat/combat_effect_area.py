@@ -109,11 +109,25 @@ class NativeEffectAreaHandler:
         area_affiliation=None,
         area_obstacle_register=None,
         actor_authority=None,
+        fake_fighter_hp_enabled=False,
+        fake_fighter_zero_copy_enabled=False,
+        allocate_area_uid=None,
     ):
         self.fight, self.packets = fight, packets
         self.action_id, self.allocate_uid = action_id, allocate_uid
+        if allocate_area_uid is not None and not callable(allocate_area_uid):
+            raise ValueError("Missing native area PV UID allocator")
+        self.allocate_area_uid = (
+            allocate_uid if allocate_area_uid is None else allocate_area_uid
+        )
         self.context, self.container = context, container
         self.actor_authority = actor_authority
+        if type(fake_fighter_hp_enabled) is not bool:
+            raise ValueError("Explicit native faW HP producer policy required")
+        self.fake_fighter_hp_enabled = fake_fighter_hp_enabled
+        if type(fake_fighter_zero_copy_enabled) is not bool:
+            raise ValueError("Explicit native faW zero-copy producer policy required")
+        self.fake_fighter_zero_copy_enabled = fake_fighter_zero_copy_enabled
         self.area_affiliation = area_affiliation
         self.area_obstacle_register = area_obstacle_register
         self.on_created = None
@@ -209,6 +223,61 @@ class NativeEffectAreaHandler:
         wall = None
         if target_aura and definition["type"] != "AURA":
             raise ValueError("Native eYJ requires actual faN prototype")
+        if target_aura and constructor_stat_context(self.fight, invocation):
+            # eYJ.c calls d and keeps rGE, but PN.baf()==null prevents Qs.a.
+            # eYQ.c has different ordering and is deliberately excluded.
+            from .combat_private_target_aura import SOURCE, validate_private_target_aura
+            from .combat_target_aura import target_aura_application
+
+            if not ctx.retained or not callable(self.target_aura_applied):
+                raise ValueError("Missing retained private native eYJ authority")
+            anchor = registered_or_detached_actor(self.fight, invocation.target_id)
+            if anchor is None or anchor.id in self.fight.actors:
+                raise ValueError("Private native eYJ requires actual detached anchor")
+            owner, owner_id = self.container(invocation)
+            packet = target_aura_application(
+                self.fight.id,
+                self.action_id,
+                invocation=invocation,
+                constructor=constructor,
+                value=ref,
+                timing_payload=ctx.timing_payload,
+                owner=owner,
+                owner_id=owner_id,
+            )
+            owned = getattr(self.fight, "native_owned_area_effects", None)
+            if owned is None:
+                owned = self.fight.native_owned_area_effects = {}
+            if constructor.runner_uid in owned:
+                raise ValueError("Duplicate private native eYJ runner")
+            record = dict(
+                uid=constructor.runner_uid,
+                area_uid=constructor.area_uid,
+                effect_class=338,
+                target_id=invocation.target_id,
+                caster_id=invocation.caster_id,
+                state_uid=invocation.state_uid,
+                payload=packet[1][18:].hex(),
+                keep_after=False,
+                executed=True,
+                timer=None if ctx.timer is None else dict(vars(ctx.timer)),
+                native_private_area=dict(
+                    uid=constructor.area_uid,
+                    source=SOURCE,
+                    reference=ref,
+                    level=invocation.level,
+                    native_area_contract="faN",
+                    anchor_id=anchor.id,
+                    owner_id=anchor.id,
+                    registered=False,
+                    creation_callbacks_executed=False,
+                ),
+            )
+            validate_private_target_aura(self.fight, record)
+            owned[constructor.runner_uid] = record
+            self.target_aura_applied(effect, invocation, constructor.runner_uid)
+            self.packets.append(packet)
+            return True
         level = (
             invocation.level
             if target_aura
@@ -221,7 +290,15 @@ class NativeEffectAreaHandler:
         if definition["type"] == "FAKE_FIGHTER":
             from .combat_fake_fighter import fake_fighter_constructor
 
-            faw = fake_fighter_constructor(definition)
+            faw = fake_fighter_constructor(
+                definition, level, allow_hp=self.fake_fighter_hp_enabled
+            )
+            if 20 in faw["characteristic_ids"] and (
+                not self.fake_fighter_zero_copy_enabled or row["runner"] != "eYQ"
+            ):
+                raise ValueError(
+                    "Native faW damage PC creation requires audited copy authority"
+                )
             if faw["obstacle"] and not callable(self.area_obstacle_register):
                 raise ValueError("Missing native faW QI registration provider")
             if faw["obstacle"]:
@@ -303,7 +380,7 @@ class NativeEffectAreaHandler:
             effective_direction,
             reference=geometry_reference,
         )
-        area_uid = constructor.area_uid if target_aura else self.allocate_uid()
+        area_uid = constructor.area_uid if target_aura else self.allocate_area_uid()
         uid = constructor.runner_uid if target_aura else self.allocate_uid()
         owner, owner_id = self.container(invocation)
         if target_aura:
@@ -395,6 +472,10 @@ class NativeEffectAreaHandler:
             areas[area_uid]["native_deposit_grade_source"] = "faU.fTu.Qr_bdh0"
         if faw is not None:
             areas[area_uid]["native_faw_constructor"] = faw
+            if faw["characteristic_ids"]:
+                from .combat_fake_fighter_resources import install_fake_fighter_hp
+
+                install_fake_fighter_hp(areas[area_uid], definition)
             if faw["obstacle"]:
                 slot = self.area_obstacle_register(self.fight, areas[area_uid], faw)
                 if type(slot) is not int or not 0 <= slot <= 126:
@@ -465,6 +546,7 @@ class NativeEffectAreaHandler:
             self.on_created(created_area)
         if row["runner"] == "eYW":
             from .combat_area_damage_snapshot import copy_area_damage_snapshot
+            from .combat_spell_element_pc import spell_element_pc
 
             # Native eYW.c calls super.c (including creation callbacks) first.
             copy_area_damage_snapshot(
@@ -472,6 +554,7 @@ class NativeEffectAreaHandler:
                 definition,
                 source_stats=getattr(caster, "effect_stats", None),
                 container_type=owner.get("container_type"),
+                spell_element_provider=lambda: spell_element_pc(owner, owner_id),
             )
         if row["runner"] == "eYU":
             from .combat_directional_area import directional_area_orientation

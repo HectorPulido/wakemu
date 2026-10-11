@@ -179,6 +179,11 @@ def install_copied_action_book(actor, copied, proof, *, effect_reference):
 def validated_copied_action_book(actor, source):
     from .combat_summon_spellbook import fresh_action_book
 
+    if source.get("native_character_copy_source") == "eZq994.faB.eHI.bPl":
+        from .combat_target_copy_runtime_book import validated_target_copied_action_book
+
+        return validated_target_copied_action_book(actor, source)
+
     proof = getattr(actor, "native_character_copy_book_source", None)
     expected_base = fresh_action_book(source.get("ref"), source.get("level"))
     if (

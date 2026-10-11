@@ -327,6 +327,8 @@ class NativeEffectRuntimeFactory:
                 None,
             )
 
+        from .combat_target_health_ordering import health_operand_for_pv
+
         native_resolver = NativeEffectResolver(
             actors=candidates,
             native_context=target_contexts,
@@ -334,6 +336,7 @@ class NativeEffectRuntimeFactory:
             cell_eligible=contextual("cell_eligible"),
             caster=source_pv,
             direct_target_policies=native_direct_target_policies(),
+            health_operand=lambda target: health_operand_for_pv(preview, target),
         )
 
         def resolver(effect, invocation):
@@ -430,7 +433,7 @@ class NativeEffectRuntimeFactory:
             context=contextual("stat"),
             rng=rng,
         )
-        handlers.update({kind: maximum for kind in (20, 31, 41, 191)})
+        handlers.update({kind: maximum for kind in (20, 31, 41, 191, 991)})
         from .combat_characteristic_link import (
             NativeCharacteristicLinkHandler,
             bind_characteristic_stats,
@@ -484,6 +487,29 @@ class NativeEffectRuntimeFactory:
             authority=self.displacement_authority,
         )
         handlers[28] = kill
+        from .combat_hp_minimum_set import NativeHPMinimumSetHandler
+
+        hp_minimum_set = NativeHPMinimumSetHandler(
+            preview,
+            packets,
+            action_id=self.action_id,
+            allocate_uid=allocate,
+            context=contextual("stat"),
+            rng=rng,
+            authority=self.displacement_authority,
+        )
+        handlers[830] = hp_minimum_set
+        from .combat_caster_hp_maximum import NativeCasterHPMaximumHandler
+
+        caster_hp_maximum = NativeCasterHPMaximumHandler(
+            preview,
+            packets,
+            action_id=self.action_id,
+            allocate_uid=allocate,
+            context=contextual("stat"),
+            rng=rng,
+        )
+        handlers[250] = caster_hp_maximum
         summon_recall = NativeSummonRecallHandler(
             preview,
             packets,
@@ -563,15 +589,53 @@ class NativeEffectRuntimeFactory:
             ),
         )
         handlers.update({kind: reduction for kind in (56, 57, 192)})
+        from .combat_hp_maximum_reduction import NativeHPMaximumReductionHandler
+
+        hp_maximum_reduction = NativeHPMaximumReductionHandler(
+            preview,
+            packets,
+            action_id=self.action_id,
+            allocate_uid=allocate,
+            context=contextual("stat"),
+            rng=rng,
+            probability=lambda chance, invocation: provider.probability(
+                preview, plan, chance, invocation
+            ),
+        )
+        handlers[21] = hp_maximum_reduction
         from .combat_minimum_resource import NativeMinimumResourceHandler
 
-        handlers[877] = NativeMinimumResourceHandler(
+        minimum_resource = NativeMinimumResourceHandler(
             preview,
             packets,
             action_id=self.action_id,
             allocate_uid=allocate,
             context=contextual("stat"),
         )
+        handlers.update({kind: minimum_resource for kind in (877, 1003)})
+        from .combat_characteristic_swap_handler import NativeCharacteristicSwapHandler
+
+        characteristic_swap = NativeCharacteristicSwapHandler(
+            preview,
+            packets,
+            action_id=self.action_id,
+            allocate_uid=allocate,
+            context=contextual("stat"),
+            rng=rng,
+        )
+        handlers[1049] = characteristic_swap
+        from .combat_world_property_handler import NativeWorldPropertyHandler
+
+        world_property = NativeWorldPropertyHandler(
+            preview,
+            packets,
+            action_id=self.action_id,
+            allocate_uid=allocate,
+            context=contextual("stat"),
+            authority=self.displacement_authority,
+            rng=rng,
+        )
+        handlers[449] = world_property
         from .combat_cell_null import NativeCellNullHandler
 
         if self.summon_authority is not None:
@@ -621,6 +685,22 @@ class NativeEffectRuntimeFactory:
                 casting_definitions=casting_catalog,
             )
             handlers[1002] = character_copy
+            from .combat_target_copy_handler import NativeTargetCopyHandler
+
+            target_copy = NativeTargetCopyHandler(
+                preview,
+                packets,
+                action_id=self.action_id,
+                allocate_uid=allocate,
+                context=contextual("stat"),
+                actor_authority=self.summon_authority,
+                container_level=retention.container_level,
+                container=retention.container,
+                rng=rng,
+                casting_definitions=casting_catalog,
+                source_effects=self.effects,
+            )
+            handlers[994] = target_copy
             from .combat_summon_initialization import summon_initializer
 
             summon.builder.initialize_states = summon_initializer(self, packets)
@@ -628,6 +708,7 @@ class NativeEffectRuntimeFactory:
                 self, packets
             )
             character_copy.builder.initialize_states = summon_initializer(self, packets)
+            target_copy.builder.initialize_states = summon_initializer(self, packets)
             from .combat_copied_equipment_execution import equipment_initializer
 
             summon.initialize_equipment = equipment_initializer(self)
@@ -658,6 +739,9 @@ class NativeEffectRuntimeFactory:
                 actor_authority=self.displacement_authority,
                 area_affiliation=self.contexts.area_affiliation,
                 area_obstacle_register=self.contexts.area_obstacle_register,
+                fake_fighter_hp_enabled=True,
+                fake_fighter_zero_copy_enabled=True,
+                allocate_area_uid=preview.allocate_area_uid,
             )
             handlers[314] = area_handler
             handlers[308] = area_handler
@@ -683,6 +767,8 @@ class NativeEffectRuntimeFactory:
             )
             handlers[843] = area_removal
             handlers[911] = area_removal
+            handlers[1021] = area_removal
+            handlers[909] = area_removal
             from .combat_area_remove_reference import NativeAreaReferenceRemovalHandler
 
             area_reference_removal = NativeAreaReferenceRemovalHandler(
@@ -1213,6 +1299,8 @@ class NativeEffectRuntimeFactory:
 
         from .combat_state_managers import selected_area_pv_scope
 
+        from .combat_team_repeat import native_team_repeat_count
+
         dispatcher = EffectDispatcher(
             self.effects,
             handlers,
@@ -1228,6 +1316,9 @@ class NativeEffectRuntimeFactory:
             group_random=rng,
             actor_position=target_position,
             group_retention=retention,
+            team_repeat_count=lambda invocation: native_team_repeat_count(
+                preview, invocation.caster_id
+            ),
             pt_preflight=native_pt_preflight,
             transfer_probability=transfer_probability,
             transfer_skip_second=transfer_skip_second,
@@ -1357,6 +1448,7 @@ class NativeEffectRuntimeFactory:
                     redirect_runner.event_lifecycle = healing.event_lifecycle
                     morph.event_lifecycle = healing.event_lifecycle
                     kill.event_lifecycle = healing.event_lifecycle
+                    hp_minimum_set.event_lifecycle = healing.event_lifecycle
                     summon_recall.event_lifecycle = healing.event_lifecycle
                     protected_kill.event_lifecycle = healing.event_lifecycle
                     current_hp_restore.event_lifecycle = healing.event_lifecycle
@@ -1370,6 +1462,7 @@ class NativeEffectRuntimeFactory:
                         summon.event_lifecycle = healing.event_lifecycle
                         captured_summon.event_lifecycle = healing.event_lifecycle
                         character_copy.event_lifecycle = healing.event_lifecycle
+                        target_copy.event_lifecycle = healing.event_lifecycle
                     dispatcher.native_clone_authority = (
                         healing.event_lifecycle.authority
                     )
@@ -1400,6 +1493,10 @@ class NativeEffectRuntimeFactory:
                     target_aura.event_lifecycle = healing.event_lifecycle
                     stat.event_lifecycle = healing.event_lifecycle
                     maximum.event_lifecycle = healing.event_lifecycle
+                    caster_hp_maximum.event_lifecycle = healing.event_lifecycle
+                    hp_maximum_reduction.event_lifecycle = healing.event_lifecycle
+                    characteristic_swap.event_lifecycle = healing.event_lifecycle
+                    world_property.event_lifecycle = healing.event_lifecycle
                     from .combat_ordinary_events import OrdinaryResourceLossEvents
 
                     loss.event_lifecycle = OrdinaryResourceLossEvents.from_healing(
@@ -1552,7 +1649,7 @@ class NativeEffectRuntimeFactory:
                     if effect["effect_class"] == 1030:
                         return affiliation.prepare(effect, values, invocation)
                     if (
-                        effect["effect_class"] in (843, 911)
+                        effect["effect_class"] in (843, 909, 911, 1021)
                         and effect["effect_class"] in handlers
                     ):
                         return handlers[effect["effect_class"]].prepare(
@@ -1560,6 +1657,10 @@ class NativeEffectRuntimeFactory:
                         )
                     if effect["effect_class"] == 28:
                         return kill.prepare(effect, values, invocation)
+                    if effect["effect_class"] == 250:
+                        return caster_hp_maximum.prepare(effect, values, invocation)
+                    if effect["effect_class"] == 830:
+                        return hp_minimum_set.prepare(effect, values, invocation)
                     if effect["effect_class"] == 332:
                         return protected_kill.prepare(effect, values, invocation)
                     if effect["effect_class"] == 196:
@@ -1584,7 +1685,13 @@ class NativeEffectRuntimeFactory:
                         return morph.prepare(effect, values, invocation)
                     if effect["effect_class"] == 1099:
                         return death_script.prepare(effect, values, invocation)
-                    if effect["effect_class"] in (20, 31, 41, 191):
+                    if effect["effect_class"] == 449:
+                        return world_property.prepare(effect, values, invocation)
+                    if effect["effect_class"] == 1049:
+                        return characteristic_swap.prepare(effect, values, invocation)
+                    if effect["effect_class"] == 21:
+                        return hp_maximum_reduction.prepare(effect, values, invocation)
+                    if effect["effect_class"] in (20, 31, 41, 191, 991):
                         return maximum.prepare(effect, values, invocation)
                     if (
                         self.summon_authority is not None
@@ -1601,6 +1708,11 @@ class NativeEffectRuntimeFactory:
                         and effect["effect_class"] == 1002
                     ):
                         return character_copy.prepare(effect, values, invocation)
+                    if (
+                        self.summon_authority is not None
+                        and effect["effect_class"] == 994
+                    ):
+                        return target_copy.prepare(effect, values, invocation)
                     if effect["effect_class"] == 304:
                         return state.prepare(effect, values, invocation)
                     if effect["effect_class"] == 321:

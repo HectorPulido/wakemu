@@ -2,6 +2,7 @@
 import argparse
 from collections import Counter
 import hashlib
+import gzip
 import json
 from pathlib import Path
 import shutil
@@ -9,6 +10,43 @@ import shutil
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load_passive_source_authorities(manifest, audit):
+    """Read the exact sealed native ownership and casting sources, without DB."""
+    path = Path(audit["native_monsters_path"])
+    provenance = manifest["native_source_provenance"]["bundle_documents"]
+    if (
+        digest(path) != audit["native_monsters_sha256"]
+        or digest(path) != provenance["monsters.json.gz"]
+    ):
+        raise ValueError("Passive qualification native ownership source changed")
+    casting_path = path.parent / "casting.json.gz"
+    if digest(casting_path) != provenance["casting.json.gz"]:
+        raise ValueError("Passive qualification native casting source changed")
+    with gzip.open(path, "rt") as stream:
+        monsters = {row["ref"]: row for row in json.load(stream)["monsters"]}
+    with gzip.open(casting_path, "rt") as stream:
+        casting = json.load(stream)["spells"]
+    return monsters, casting
+
+
+def final_passive_case_proven(case, reference, policy, npc, sources):
+    from monster_passive_initialization import passive_case_proven
+    from validate_monster_spell_activation import initialization_proven
+
+    if sources is None:
+        return False
+    monster = sources[0].get(reference)
+    if monster is None or any(
+        monster[key] != policy[key] for key in ("min_level", "max_level")
+    ):
+        return False
+    if [ability["spell_id"] for ability in monster["native_abilities"]] != policy[
+        "spell_ids"
+    ] or monster["initial_state_triples"] != policy.get("initial_state_triples"):
+        return False
+    return passive_case_proven(case, monster, npc, sources[1], initialization_proven)
 
 
 def finalize(candidate, validation, output):
@@ -90,6 +128,16 @@ def finalize(candidate, validation, output):
             raise ValueError(
                 "Inventory differs from the hashed native activation policy"
             )
+    passive_sources = None
+    if any(
+        case.get("status") == "passive_initialization_only"
+        for row in rows
+        for case in row["cases"]
+    ):
+        try:
+            passive_sources = load_passive_source_authorities(manifest, audit)
+        except (KeyError, OSError, ValueError, TypeError):
+            passive_sources = None
     passed = set()
     for monster in inventory["monsters"]:
         ref = monster["ref"]
@@ -106,6 +154,13 @@ def finalize(candidate, validation, output):
         from validate_monster_spell_activation import initialization_proven
 
         raw_triples = policy[str(ref)].get("initial_state_triples", [])
+        passive_cases = {
+            id(case): final_passive_case_proven(
+                case, ref, policy[str(ref)], npc, passive_sources
+            )
+            for case in row["cases"]
+            if case.get("status") == "passive_initialization_only"
+        }
         constructor_valid = not raw_triples or (
             initialization_proven(
                 ref,
@@ -114,7 +169,8 @@ def finalize(candidate, validation, output):
                 commit.get("native_initialization"),
             )
             and all(
-                any(
+                passive_cases.get(id(case), False)
+                or any(
                     target.get("effectful")
                     and initialization_proven(
                         ref,
@@ -137,8 +193,17 @@ def finalize(candidate, validation, output):
             and commit.get("serializer_failure_rolled_back") is True
             and len(row["cases"]) == len(expected)
             and observed == expected
-            and all(
+            and any(
                 case["status"] == "validated"
+                and any(
+                    target.get("effectful") is True
+                    for target in case.get("successful_targets", [])
+                )
+                for case in row["cases"]
+            )
+            and all(
+                passive_cases.get(id(case), False)
+                or case["status"] == "validated"
                 and any(
                     target.get("effectful")
                     for target in case.get("successful_targets", [])

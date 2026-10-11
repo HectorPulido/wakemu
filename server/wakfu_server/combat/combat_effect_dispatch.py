@@ -85,6 +85,7 @@ class EffectDispatcher:
         distance_group_runner=None,
         group_execution_scope=None,
         resolved_population_scope=None,
+        team_repeat_count=None,
     ):
         self.effects = effects
         self.handlers = handlers
@@ -95,6 +96,7 @@ class EffectDispatcher:
         self.actor_position = actor_position
         self.group_level = group_level
         self.group_retention = group_retention
+        self.team_repeat_count = team_repeat_count
         self.prepare_effect = prepare_effect
         self.relative_group_children = relative_group_children
         self.random_group_children = random_group_children
@@ -638,7 +640,7 @@ class EffectDispatcher:
                             )
                 self.group_retention.finish_group(pending_group, notify=False)
                 success = applied or success
-            elif effect["effect_class"] == 949:
+            elif effect["effect_class"] in (949, 1041):
                 from .combat_repeated_group import (
                     repeat_specification,
                     execute_repeated_group,
@@ -648,6 +650,19 @@ class EffectDispatcher:
                     raise UnsupportedEffectExecution(
                         "Native949 requires eZM context authority"
                     )
+                actor_repeat = effect["effect_class"] == 1041
+                if actor_repeat:
+                    from .combat_team_repeat import team_repeat_specification
+
+                    if self.team_repeat_count is None:
+                        raise UnsupportedEffectExecution(
+                            "Native1041 requires actual fdt team producer"
+                        )
+                    specification = team_repeat_specification(
+                        self.team_repeat_count(selected)
+                    )
+                else:
+                    specification = repeat_specification(effect, values)
                 pending_group = (
                     None
                     if activation is not None
@@ -667,10 +682,13 @@ class EffectDispatcher:
                             selected,
                             reference=reference,
                             level=child_level,
-                            target_id=None,
+                            target_id=selected.target_id if actor_repeat else None,
                             native_context_hex=child_context.hex(),
                             native_value_scope=None,
-                            native_explicit_target=False,
+                            native_explicit_target=actor_repeat,
+                            cell=self.actor_position(selected.target_id)
+                            if actor_repeat
+                            else selected.cell,
                             base_uid=None
                             if activation is not None
                             else selected.base_uid,
@@ -679,7 +697,7 @@ class EffectDispatcher:
                     )
 
                 applied, _ = execute_repeated_group(
-                    repeat_specification(effect, values),
+                    specification,
                     effect["children"],
                     execute_repeated_child,
                 )
@@ -832,7 +850,36 @@ class EffectDispatcher:
                             wakemu_fresh_child_selection=True,
                             wakemu_rebound_child_selection=(
                                 activation is None
-                                and mode.actor_rebind == 2
+                                and (
+                                    mode.actor_rebind in (1, 2)
+                                    or (
+                                        effect["effect_class"] in (330, 1047)
+                                        and selected.target_id != invocation.target_id
+                                        and isinstance(
+                                            effect.get("native_target_selector"), dict
+                                        )
+                                        and effect["native_target_selector"].get(
+                                            "class"
+                                        )
+                                        == "fcE"
+                                        and bool(
+                                            effect["native_target_selector"].get(
+                                                "mask", 0
+                                            )
+                                            & (
+                                                2
+                                                | 4
+                                                | 8
+                                                | 64
+                                                | 128
+                                                | 256
+                                                | 4096
+                                                | (1 << 42)
+                                                | (1 << 43)
+                                            )
+                                        )
+                                    )
+                                )
                                 and selected.target_id is not None
                                 and selected.caster_id is not None
                             ),

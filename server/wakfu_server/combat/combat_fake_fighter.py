@@ -16,7 +16,7 @@ def _int(value):
     return max(-(1 << 31), min((1 << 31) - 1, math.trunc(value)))
 
 
-def fake_fighter_constructor(definition):
+def fake_fighter_constructor(definition, level=None, *, allow_hp=False):
     if (
         definition.get("type") != "FAKE_FIGHTER"
         or definition.get("native_type_id") != 15
@@ -29,8 +29,17 @@ def fake_fighter_constructor(definition):
     p = tuple(_float32(value) for value in raw)
     # These branches create actual PA records, with defaults and owner-copy
     # flags. Until those producers exist, preserve their absence explicitly.
+    characteristic_ids = ()
     if p[1] != -1 or 0 <= p[9] <= 127 or len(p) >= 14:
-        raise ValueError("Native faW characteristic constructor authority unavailable")
+        if allow_hp is not True:
+            raise ValueError(
+                "Native faW characteristic constructor authority unavailable"
+            )
+        from .combat_fake_fighter_resources import _owned_resources_constructor
+
+        characteristic_ids = tuple(
+            _owned_resources_constructor(definition, level)["characteristics"]
+        )
     height = _int(p[8])
     return dict(
         kind=max(-(1 << 31), min((1 << 31) - 1, math.floor(p[0] + 0.5))),
@@ -42,14 +51,19 @@ def fake_fighter_constructor(definition):
         other_activation=p[7] == 1,
         height=((height + 128) % 256) - 128 if height > 0 else 6,
         # faW itself has no additional characteristic container on this path.
-        characteristic_ids=(),
+        characteristic_ids=characteristic_ids,
     )
 
 
 def verified_fake_fighter(row, definition):
-    expected = fake_fighter_constructor(definition)
+    has_hp = "native_faw_hp_constructor" in row
+    expected = fake_fighter_constructor(definition, row.get("level"), allow_hp=has_hp)
     if row.get("native_faw_constructor") != expected:
         raise ValueError("Missing native faW constructor snapshot")
+    if has_hp:
+        from .combat_fake_fighter_resources import fake_fighter_characteristics
+
+        fake_fighter_characteristics(row, definition)
     if expected["kind"] == 4:
         from .combat_microbot_network import SOURCE
 

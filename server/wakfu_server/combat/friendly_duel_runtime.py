@@ -168,7 +168,9 @@ def prepare_and_register(
         height=qi.height,
         cell_masks=list(qi.masks),
     )
-    initialize_global_pv_collections(fight, tuple(fight.actors))
+    initialize_global_pv_collections(
+        fight, tuple(fight.actors), controller_registration=True
+    )
     for actor in fight.actors.values():
         initialize_fresh_player_cosmetics(actor, characters[actor.id])
     provenance = arena.get("native_qi_surface_provenance")

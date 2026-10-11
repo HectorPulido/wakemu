@@ -39,3 +39,20 @@ The same active container remains healthy. The original35-file comparison above 
 | Native intergame transport | Not deployed |
 
 Native bag scene hydration helper is present, but the new dispatcher hook/session repair is not. Steles, tactical markers, Rift50× and transactional hero initialization still match their qualified implementations. File presence alone does not establish native graphical acceptance. No service changes were made for either comparison.
+
+## Post-reboot verification of prepared additions
+
+The user-authorized recovery restored the same published World image74d90f,
+with all nine services running. A fresh read-only comparison confirms new
+rarity allocation, native intergame transport, Ranch session, seat141 definitions,
+protector NPC142 and physical nation-board modules remain absent. The existing
+boss_score module differs from the completed shared implementation. Evidence:
+`.runtime/local/systems-completion-20261011/post-recovery-feature-check.json`.
+No new source/image publication occurred during recovery.
+
+Direct deployed wire.py comparison additionally confirms its format22 nation
+projection already matches the current corrected implementation. Its only
+current-source differences are the prepared ACCOUNT_INFORMATION administrative
+rights projection. The old passport visual failure predates this entry-packet
+correction; a new graphical result is required, not an assumption that it still
+fails. Deployed source copy: `.runtime/local/systems-completion-20261011/wire-deployed.py`.

@@ -2,6 +2,21 @@
 
 The installed client separates personal notes, map destination markers, and world-scene compass rendering. No server packet defect has been established by this audit.
 
+## Current manual evidence
+
+On2026-10-11 Hector placed both a question-mark marker and a downward-arrow
+marker. Neither requested text. Both remained on the full map, did not appear
+immediately on the minimap, and appeared there after returning from character
+selection. The arrow still did not activate the compass. This verifies local
+persistence and minimap reload for his probe; immediate note refresh remains
+unresolved under the no-client-change constraint.
+
+Original `bUS` always includes arrow icon34; the silver question mark is30.
+Both use the palette's mode1 note route, without a compass call. Text editing
+is optional. Their compass absence is consistent with that route and does not
+establish failure of a genuine compass destination. Native **Mostrar** and
+quest-objective producers remain separate acceptance paths.
+
 ## Reachable user actions
 
 The map palette calls `cLa.onLandMarkDrag`, which selects mode 1. Dropping creates a `bUY` personal note through `bLa.aa`; applying it writes the native local notes file through `bUZ.esc`. Coordinates are not published to the server by this path.
@@ -18,7 +33,7 @@ Each `bKM` owns a separate `bLa`. Creating/applying a note updates the full-map 
 
 `PERSONAL_NOTE` is category 4. The native preference key is `selectedLandMarksFiters`; its default includes 4. Full-map initialization loads saved selections. Minimap initialization `cZX.faf` calls `bLa.eel`, selecting every filter, so the default-false constructor state does not explain a normally initialized minimap. Persisted notes have `erZ=false`; the writer excludes `erZ=true` notes. The flag has not been proven to mean editability.
 
-The actual saved file was decoded read-only with `DecodeNativePersonalNotes`: version 1, three ordinary notes at `(63,-21,0)`, `(0,0,0)`, `(84,0,0)`, icons 30/34/34, all named `Nota personal`. The middle note is 9.85 cells from actor `(-9,-4)`. GUI disappearance and recovery after world reset require separate visual evidence.
+An earlier saved file was decoded read-only with `DecodeNativePersonalNotes`: version 1, three ordinary notes at `(63,-21,0)`, `(0,0,0)`, `(84,0,0)`, icons 30/34/34, all named `Nota personal`. The middle note was 9.85 cells from actor `(-9,-4)`. This historical file snapshot is distinct from Hector's later manual reload proof above.
 
 ## Scene bootstrap and limits
 

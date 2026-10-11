@@ -9,7 +9,9 @@ from .combat_global_event_iterator import native_global_event_iterator
 SOURCE = "fresh.fdt_saq.Qs_bhs.fbX_rRc.default_Trove"
 
 
-def initialize_global_pv_collections(fight, participant_order):
+def initialize_global_pv_collections(
+    fight, participant_order, *, controller_registration=False
+):
     if hasattr(fight, "native_global_pv_collections"):
         raise ValueError("Native global PV collections already initialized")
     if (
@@ -31,6 +33,20 @@ def initialize_global_pv_collections(fight, participant_order):
         retired_fighters=[],
         fighter_status={str(identity): "IN_PLAY" for identity in participant_order},
     )
+    from .combat_controller_registry import (
+        initialize_controller_registry,
+        register_native_controller,
+    )
+
+    if controller_registration is True:
+        initialize_controller_registry(fight)
+        for identity in participant_order:
+            register_native_controller(
+                fight,
+                identity,
+                team=fight.actors[identity].team,
+                controller_id=identity,
+            )
 
 
 def _collections(fight):
@@ -60,7 +76,7 @@ def set_global_pv_mode(fight, mode):
     _collections(fight)["mode"] = mode
 
 
-def register_global_fighter(fight, identity):
+def register_global_fighter(fight, identity, *, controller_id=None):
     state = _collections(fight)
     if identity not in fight.actors:
         raise ValueError("Actual newly registered fighter required")
@@ -69,6 +85,15 @@ def register_global_fighter(fight, identity):
     if identity in state["retired_fighters"]:
         state["retired_fighters"].remove(identity)
     state["fighter_status"][str(identity)] = "IN_PLAY"  # Actual fdy constructor.
+    from .combat_controller_registry import register_native_controller
+
+    if hasattr(fight, "native_controller_registry"):
+        register_native_controller(
+            fight,
+            identity,
+            team=fight.actors[identity].team,
+            controller_id=identity if controller_id is None else controller_id,
+        )
 
 
 def set_global_fighter_status(fight, identity, status):
@@ -135,6 +160,10 @@ def unregister_global_fighter(fight, identity):
         raise ValueError("Actual fdt fighter removal required")
     state["fighter_status"].pop(str(identity))
     state["retired_fighters"].append(identity)
+    if hasattr(fight, "native_controller_registry"):
+        from .combat_controller_registry import unregister_native_controller
+
+        unregister_native_controller(fight, identity)
 
 
 def register_global_area(fight, identity):
