@@ -129,6 +129,17 @@ class DynamicDurableRosterTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             persist_aborted_shared_fight(store, shared)
 
+    def test_abandon_keeps_same_account_heroes_and_rejects_unregistered_summons(self):
+        fight, _ = self.fixture()
+        hero = Actor(8, 0, (3, 0, 0), 100, 6, 3, 100, 200, owner_id=9, controlled=True)
+        fight.actors[hero.id] = hero
+        runtime = SimpleNamespace(fight=fight)
+        self.assertIs(_participant(9, {"id": 8}, runtime), hero)
+        self.assertIs(_participant(9, {"id": 6}, runtime), fight.actors[6])
+        fight.native_summon_registrations.clear()
+        with self.assertRaisesRegex(ValueError, "unregistered native summon"):
+            _participant(9, {"id": 8}, runtime)
+
     def test_settlement_keeps_beacon_and_monster_in_terminal_snapshot(self):
         fight, db = self.fixture()
         fight.phase, fight.winner = "finished", 0

@@ -205,7 +205,7 @@ class NativeUseGateConditionsTests(unittest.TestCase):
         actor = SimpleNamespace(ap=4, mp=3)
         costs = dict(ap=3, mp=0, wp=0)
         context = ConditionContext(
-            {},
+            {"caster": ConditionActor(actor_id=7, fight_properties=frozenset())},
             native_casting_query=lambda rule, spell, level: dict(
                 result="twD", aligned=True, target_id=8
             ),
@@ -221,7 +221,19 @@ class NativeUseGateConditionsTests(unittest.TestCase):
                 SimpleNamespace(walkable=set()),
                 1,
                 costs,
-                {},
+                dict(
+                    minimum=0,
+                    maximum=4,
+                    line_of_sight=False,
+                    linear=False,
+                    diagonal=False,
+                    linear_path=False,
+                    path_option=False,
+                    free_cell=False,
+                    range_modifiable=False,
+                    allow_self=False,
+                    forbid_QI_P=False,
+                ),
                 (12,),
                 20,
                 None,
@@ -247,9 +259,14 @@ class NativeUseGateConditionsTests(unittest.TestCase):
             1,
         )
         with self.assertRaisesRegex(ValueError, "producer"):
-            _validate_target(*args, ConditionContext({}))
+            _validate_target(
+                *args,
+                ConditionContext(
+                    {"caster": ConditionActor(actor_id=7, fight_properties=frozenset())}
+                )
+            )
         context = ConditionContext(
-            {},
+            {"caster": ConditionActor(actor_id=7, fight_properties=frozenset())},
             native_casting_query=lambda *args: dict(
                 result="twD", aligned=False, target_id=None
             ),

@@ -17,7 +17,8 @@ def serve_api(
     live_console=None,
     on_ready=None,
     test_tasks=None,
-    global_tasks=None
+    global_tasks=None,
+    ecology_bridge=None,
 ):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -64,7 +65,9 @@ def serve_api(
                 raise PermissionError("Esta API requiere un administrador")
             return token, access
 
-        def submit_command(self, token, access, character_id, command, request_id):
+        def submit_command(
+            self, token, access, character_id, command, request_id, *, administer=False
+        ):
             if access["kind"] == "scheduler":
                 raise PermissionError(
                     "El scheduler solo puede ejecutar tareas globales"
@@ -82,8 +85,18 @@ def serve_api(
                         "SELECT account_id FROM characters WHERE id=%s AND deleted_at IS NULL",
                         (character_id,),
                     ).fetchone()
-                if owner is None or owner["account_id"] != current["account_id"]:
+                if owner is None or (
+                    not administer and owner["account_id"] != current["account_id"]
+                ):
                     raise PermissionError("El personaje pertenece a otra cuenta")
+                if administer:
+                    # The panel can delegate only these two owned operations.
+                    fields = command.split() if isinstance(command, str) else []
+                    arity = {"!item": 3, "!tp": 5}.get(fields[0] if fields else "")
+                    if arity is None or len(fields) != arity:
+                        raise ValueError("Unsupported administration command")
+                    for value in fields[1:]:
+                        int(value)
                 authorize_command(store, current["account_id"], command)
 
             authorize()
@@ -93,9 +106,12 @@ def serve_api(
                 request_id=request_id,
                 requester_account_id=access["account_id"],
                 authorize=authorize,
+                delegated_by=access["account_id"] if administer else None,
             )
 
         def do_POST(self):
+            if self.path.startswith("/internal/ecology/"):
+                return self.ecology_request(post=True)
             try:
                 test = self.path.startswith("/test/")
                 token, access = self.test_access() if test else (None, None)
@@ -131,13 +147,17 @@ def serve_api(
                         202 if result["status"] in ("pending", "running") else 200,
                         result,
                     )
-                if self.path == "/test/command" and live_console is not None:
+                if (
+                    self.path in ("/test/command", "/test/admin-command")
+                    and live_console is not None
+                ):
                     result = self.submit_command(
                         token,
                         access,
                         body["character_id"],
                         body["command"],
                         body.get("request_id"),
+                        administer=self.path == "/test/admin-command",
                     )
                     return self.reply(
                         202 if result["status"] in ("pending", "running") else 200,
@@ -228,7 +248,10 @@ def serve_api(
                         )
                     ],
                 )
-            if self.path == "/test/sessions" and live_console is not None:
+            if (
+                self.path in ("/test/sessions", "/test/admin-sessions")
+                and live_console is not None
+            ):
                 if access["kind"] == "scheduler":
                     raise PermissionError("Scope no autorizado")
                 return self.reply(
@@ -236,7 +259,8 @@ def serve_api(
                     [
                         session
                         for session in live_console.list_sessions()
-                        if session["account_id"] == access["account_id"]
+                        if self.path == "/test/admin-sessions"
+                        or session["account_id"] == access["account_id"]
                     ],
                 )
             if self.path.startswith("/test/command/") and live_console is not None:
@@ -252,6 +276,8 @@ def serve_api(
             return self.reply(404, {"error": "Ruta desconocida."})
 
         def do_GET(self):
+            if self.path.startswith("/internal/ecology/"):
+                return self.ecology_request(post=False)
             if self.path.startswith("/test/"):
                 try:
                     _, access = self.test_access()
@@ -286,6 +312,32 @@ def serve_api(
                 self.reply(404, {"error": "Ruta desconocida."})
             except AuthenticationError:
                 self.reply(401, {"error": "Acceso inválido o caducado."})
+
+        def ecology_request(self, *, post):
+            from wakfu_server.ecology.protocol import MAX_BODY_BYTES, bounded_json
+            from wakfu_server.ecology.world_bridge import EcologyBusy
+
+            if ecology_bridge is None:
+                return self.reply(404, {"error": "Ecology bridge is disabled"})
+            if not ecology_bridge.authorized(self.headers.get("Authorization", "")):
+                return self.reply(401, {"error": "Invalid ecology credential"})
+            try:
+                if not post and self.path == "/internal/ecology/snapshot":
+                    return self.reply(200, ecology_bridge.snapshot())
+                if post and self.path == "/internal/ecology/apply":
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= MAX_BODY_BYTES:
+                        return self.reply(413, {"error": "Invalid ecology body length"})
+                    self.connection.settimeout(5)
+                    body = bounded_json(self.rfile.read(length))
+                    return self.reply(200, ecology_bridge.apply(body))
+                return self.reply(404, {"error": "Unknown ecology route"})
+            except (ValueError, TypeError, KeyError):
+                return self.reply(400, {"error": "Invalid ecology request"})
+            except EcologyBusy:
+                return self.reply(503, {"error": "Ecology bridge is busy"})
+            except Exception:
+                return self.reply(503, {"error": "Ecology bridge unavailable"})
 
     server = ThreadingHTTPServer((host, port), Handler)
     if on_ready is not None:

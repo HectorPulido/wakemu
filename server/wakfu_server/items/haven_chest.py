@@ -267,6 +267,50 @@ def _equipped(character):
     return result
 
 
+def persist_inventory(db, character_id, inventory, planned):
+    """Apply a planned custody change, preserving all supported item metadata."""
+    before = {entry["item"]["uid"]: entry for entry in inventory}
+    after = {entry["item"]["uid"]: entry for entry in planned}
+    for uid in before.keys() - after.keys():
+        db.execute(
+            "DELETE FROM inventory_items WHERE uid=%s AND character_id=%s",
+            (uid, character_id),
+        )
+    for uid, entry in after.items():
+        item = entry["item"]
+        if uid in before:
+            if item["quantity"] != before[uid]["item"]["quantity"]:
+                db.execute(
+                    "UPDATE inventory_items SET quantity=%s WHERE uid=%s AND character_id=%s",
+                    (item["quantity"], uid, character_id),
+                )
+            continue
+        db.execute(
+            "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) "
+            "VALUES(%s,%s,%s,%s,%s,%s)",
+            (
+                uid,
+                character_id,
+                item["reference"],
+                item["quantity"],
+                item["container"],
+                item["slot"],
+            ),
+        )
+        for table, row in entry["metadata"].items():
+            if table not in _METADATA:
+                raise ValueError("Unsupported stored chest metadata table")
+            # Column names derive only from original SELECT rows and our
+            # fixed metadata table whitelist, never from a client packet.
+            if any(not key.replace("_", "").isalnum() for key in row):
+                raise ValueError("Invalid stored chest metadata column")
+            columns = list(row)
+            db.execute(
+                f"INSERT INTO {table} ({','.join(columns)}) VALUES({','.join(['%s'] * len(columns))})",
+                tuple(row[key] for key in columns),
+            )
+
+
 def transfer(
     store,
     account_id,
@@ -360,46 +404,7 @@ def transfer(
             rules=STACKS,
             allocate=lambda: allocate(db),
         )
-        before = {entry["item"]["uid"]: entry for entry in inventory}
-        after = {entry["item"]["uid"]: entry for entry in planned}
-        for uid in before.keys() - after.keys():
-            db.execute(
-                "DELETE FROM inventory_items WHERE uid=%s AND character_id=%s",
-                (uid, character_id),
-            )
-        for uid, entry in after.items():
-            item = entry["item"]
-            if uid in before:
-                if item["quantity"] != before[uid]["item"]["quantity"]:
-                    db.execute(
-                        "UPDATE inventory_items SET quantity=%s WHERE uid=%s AND character_id=%s",
-                        (item["quantity"], uid, character_id),
-                    )
-                continue
-            db.execute(
-                "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) "
-                "VALUES(%s,%s,%s,%s,%s,%s)",
-                (
-                    uid,
-                    character_id,
-                    item["reference"],
-                    item["quantity"],
-                    item["container"],
-                    item["slot"],
-                ),
-            )
-            for table, row in entry["metadata"].items():
-                if table not in _METADATA:
-                    raise ValueError("Unsupported stored chest metadata table")
-                # Column names derive only from original SELECT rows and our
-                # fixed metadata table whitelist, never from a client packet.
-                if any(not key.replace("_", "").isalnum() for key in row):
-                    raise ValueError("Invalid stored chest metadata column")
-                columns = list(row)
-                db.execute(
-                    f"INSERT INTO {table} ({','.join(columns)}) VALUES({','.join(['%s'] * len(columns))})",
-                    tuple(row[key] for key in columns),
-                )
+        persist_inventory(db, character_id, inventory, planned)
         updated["revision"] += 1
         db.execute(
             "UPDATE account_haven_chests SET items=%s,revision=%s WHERE account_id=%s",

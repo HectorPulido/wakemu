@@ -39,6 +39,8 @@ class IdleHealthRegenerationTests(unittest.TestCase):
             "generation": "current",
             "renew": False,
             "loaded": True,
+            "fight": None,
+            "combat_session": None,
             "character": character,
             "last_health_tick": 0,
             "time": SimpleNamespace(monotonic=lambda: 2),

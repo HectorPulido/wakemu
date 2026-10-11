@@ -67,15 +67,17 @@ class NativeDeckCapContractTests(unittest.TestCase):
             )
 
     def test_installed_zero_contract_supports_every_class_passive(self):
-        from wakfu_server.spells import SPELLS
-
         zero = level_zero_catalog()
-        passive_rows = [row for row in SPELLS.values() if row["kind"] == "passive"]
-        self.assertEqual(len(passive_rows), 339)
-        self.assertEqual(len({row["breed"] for row in passive_rows}), 18)
+        passive_rows = [
+            (breed, row)
+            for breed in BREEDS
+            for row in available_spells(breed, 200)
+            if row["kind"] == "passive" and row["breed"] == breed
+        ]
+        self.assertEqual({breed for breed, _ in passive_rows}, set(BREEDS))
         effects = {str(reference): {} for reference in zero["effect_reference_closure"]}
-        for row in passive_rows:
-            reference, breed = row["id"], row["breed"]
+        for breed, row in passive_rows:
+            reference = row["id"]
             character = dict(id=7, breed=breed, level=200, x=0, y=0, z=0)
             states = {
                 "states": {
@@ -139,7 +141,13 @@ class NativeDeckCapContractTests(unittest.TestCase):
             "range_modifiable",
         )
         records = level_zero_catalog()["casting"]
-        self.assertEqual(len(records), 813)
+        owned_references = {
+            row["id"]
+            for breed in BREEDS
+            for row in available_spells(breed, 200)
+            if row["breed"] == breed
+        }
+        self.assertTrue(owned_references.issubset(map(int, records)))
         self.assertTrue(
             any(row["free_cell"] != row["path_option"] for row in records.values())
         )

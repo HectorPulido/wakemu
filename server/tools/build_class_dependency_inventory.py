@@ -99,7 +99,10 @@ def build(graph, ledger, innate, routes, profiles=None):
             pending += [("effect", value) for value in children]
             reference_kind = {
                 304: "state",
+                308: "area",  # eYW inherits eYQ prototype reference slot0.
+                314: "area",
                 315: "area",
+                339: "area",
                 649: "spell",
                 307: "summon",
             }.get(family)
@@ -254,7 +257,7 @@ def main():
             "functional_completion_percent": None,
         },
         "limitations": [
-            "Graph snapshot follows group children and 304/state,315/area,649/grant,307/summon references only.",
+            "Graph snapshot follows group children and 304/state,308+314+315+339/area,649/grant,307/summon references only.",
             "Includes all sampled branches; native false guards remain structural edges.",
             "Family registration may require configuration/authority and does not prove successful execution.",
             "Criteria names are dependencies, not implementation or correctness proofs.",

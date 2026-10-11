@@ -101,6 +101,20 @@ def run(output, *, level=200, spell=5182, mover="owner"):
             limit=CANDIDATE_LIMIT,
         )
         details["eligible_search"] = search
+        unresolved = [
+            row for row in search["rejected"] if row.get("authority_unresolved")
+        ]
+        if not search["eligible"] and unresolved:
+            details.update(
+                status="casting_authority_unresolved", authority_failures=unresolved
+            )
+            first = unresolved[0]
+            raise ValueError(
+                "Trap casting authority unresolved: "
+                + str(first.get("error"))
+                + ": "
+                + str(first.get("reason"))
+            )
         failures = []
         for candidate in search["eligible"]:
             center = tuple(candidate["target"])
@@ -312,7 +326,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--level", type=int, default=200)
-    parser.add_argument("--spell", type=int, choices=(5182, 5183), default=5182)
+    parser.add_argument("--spell", type=int, choices=(5182, 5183, 5184), default=5182)
     parser.add_argument("--mover", choices=("owner", "enemy"), default="owner")
     args = parser.parse_args()
     result = run(args.output, level=args.level, spell=args.spell, mover=args.mover)

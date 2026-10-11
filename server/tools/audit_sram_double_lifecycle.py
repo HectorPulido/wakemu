@@ -21,7 +21,7 @@ from wakfu_server.combat_spell_grant_book import grant_record
 from wakfu_server.combat_summon_retirement import retired_summon_ids
 from wakfu_server.fight_checkpoint_store import snapshot
 
-DECK = [4581, 4583, 4584, 4585, 4586, 4587, 4588, 4589, 4590, 4592, 4593, 4579]
+DECK = [4581, 4583, 4584, 4585, 4586, 4587, 4588, 4589, 4590, 4592, 4593, 8481]
 
 
 class DoubleLifecycle:
@@ -129,6 +129,40 @@ class DoubleLifecycle:
             if snapshot(branch.fight) != before:
                 raise AssertionError("Rejected occupied cast changed actual source")
             output["occupied_cell"]["source_preserved"] = True
+            # Jugarreta requires an actual living Double; the baseline without one
+            # correctly rejects its native HasSummonWithBreed criterion.
+            _, adapter = server_runtime(
+                character,
+                {monster["id"]: monster},
+                deck,
+                action_id=branch.action_id + 1,
+                critical=False,
+            )
+            swap_uid = (character["id"] << 32) | 8481
+            selection = eligible_cast_targets(
+                branch.fight,
+                character,
+                deck,
+                swap_uid,
+                adapter=adapter,
+                line_of_sight=los,
+                actor_id=character["id"],
+                limit=128,
+                maximum_eligible=1,
+            )
+            output["jugarreta_selection"] = selection
+            if not selection["eligible"]:
+                raise ValueError(
+                    "Actual living Double did not enable legal Jugarreta context"
+                )
+            with combat_diagnostic_scope(lambda **e: trace.append(e), limit=4096):
+                swap = prepare(swap_uid, tuple(selection["eligible"][0]["target"]))
+                output["jugarreta"] = dict(
+                    costs=swap.plan["costs"],
+                    packet_count=len(
+                        commit_spell_transaction(branch, swap, stats_serializer=stats)
+                    ),
+                )
             attempts = []
             for cycle in range(4):
                 if (

@@ -7,6 +7,8 @@ that group at combat start. Delivery before1003 is server policy: class setup
 precedes general start reactions, with separate native subscription masks.
 The server-only producer boundary (all participants installed, at the first
 turn boundary) is an explicit implementation inference; no client callsite proves it.
+The server establishes the validated first native timeline round before replay
+so first-round criteria observe that boundary even before wire13477 delivery.
 """
 from .combat_event_replay import NativeExternalEvent
 
@@ -33,7 +35,20 @@ def deliver_fight_start(dispatcher, *, initialized_actor_ids):
     installed = getattr(fight, "native_class_initializations", {})
     if any(a.controlled and a.id not in installed for a in fight.actors.values()):
         raise ValueError("Controlled native class roots are not initialized")
+    # Explicit Wakemu startup policy: the private preview is already in the
+    # first native SU cycle, while wire13477 is emitted later by RuntimeMessages.
+    # Publish that existing cycle to criteria before the once-only start replay.
+    native_round = getattr(fight, "native_timeline_round", None)
+    table_turn = getattr(fight, "native_table_turn", None)
+    if (
+        type(native_round) is not int
+        or native_round != 1
+        or type(table_turn) is not int
+        or table_turn not in (0, 1)
+    ):
+        raise ValueError("Fight-start event requires the native first-round counter")
     authority = dispatcher.native_clone_authority
+    fight.native_table_turn = native_round
     # Caller supplies the private transaction preview; any exception discards it.
     outcomes = []
     # Only installed controlled class managers have this class-setup boundary.

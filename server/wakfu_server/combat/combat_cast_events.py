@@ -20,6 +20,11 @@ def validate_cast_boundary_context(context):
         or type(context.get("caster_id")) is not int
         or type(context.get("distance")) is not int
         or type(context.get("spell_id")) is not int
+        or not isinstance(context.get("target_cell"), (tuple, list))
+        or len(context["target_cell"]) != 3
+        or any(type(value) is not int for value in context["target_cell"])
+        or "target_id" not in context
+        or (context["target_id"] is not None and type(context["target_id"]) is not int)
     ):
         raise ValueError("Invalid validated server cast boundary facts")
     return context
@@ -53,6 +58,8 @@ def cast_boundary_context(fight, plan):
             caster_id=caster.id,
             spell_id=plan["spell_id"],
             distance=distance,
+            target_cell=tuple(cell),
+            target_id=plan.get("target_id"),
         )
     )
 

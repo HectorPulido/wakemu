@@ -7,6 +7,14 @@ import time
 import unittest
 
 
+class IdentityProfiler:
+    """Avoid instrumenting the isolated checkpoint function under test."""
+
+    @staticmethod
+    def profile(_name):
+        return lambda function: function
+
+
 class CheckpointDeliveryOrderTests(unittest.TestCase):
     def invoke(self, *, terminal=False):
         tree = ast.parse(
@@ -38,6 +46,7 @@ class CheckpointDeliveryOrderTests(unittest.TestCase):
             return dict(sequence=1, terminal=False)
 
         namespace = dict(
+            PROFILER=IdentityProfiler(),
             fight=SimpleNamespace(id=53),
             account_id=1,
             generation="own",

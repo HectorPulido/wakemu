@@ -1,7 +1,7 @@
 """Explicit operator outcomes, settled by the ordinary combat lifecycle."""
 from copy import deepcopy
 
-from .combat_shared import Transition
+from wakfu_server.combat_shared import Transition
 
 
 def finish(fight, runtime, *, account_id, character_id, win):

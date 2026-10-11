@@ -391,6 +391,120 @@ class NativeSessionTests(unittest.TestCase):
             )
         self.assertEqual(self.runtime.fight.current.hp, 39)
 
+    def test_mutating_query_reports_only_changed_runtime_field_and_remains_fatal(self):
+        def mutate_then_reject(runtime, action):
+            runtime.fight.current.hp -= 1
+            raise ValueError("unsupported after source mutation")
+
+        self.oracle.preview = mutate_then_reject
+
+        with self.assertRaisesRegex(
+            ValueError,
+            r"Native oracle source changed during decision \[.*runtime_fields=fight\]",
+        ) as raised:
+            self.session.query(
+                {
+                    "id": "mutating-with-diagnostic",
+                    "operation": "preview",
+                    "state": self.session.root,
+                    "action": {"type": "move", "path": [[1, 0, 0]]},
+                }
+            )
+
+        self.assertEqual(self.runtime.fight.current.hp, 39)
+        self.assertNotIn("39", str(raised.exception))
+        self.assertNotIn("40", str(raised.exception))
+
+    def test_unchanged_source_guard_is_accepted_and_baseline_cost_is_measured(self):
+        self.assertIsNone(self.session.guard())
+        self.assertGreaterEqual(self.session.source_diagnostic_baseline_ms, 0)
+
+    def test_cross_component_alias_change_remains_fatal_when_fields_match(self):
+        shared = ["same-value"]
+        self.runtime.cross_component_payload = shared
+        self.oracle.authorities = lambda runtime=None: {"shared": shared}
+        session = NativeSession(
+            self.oracle,
+            self.transport,
+            self.exporter,
+            policy={},
+            policy_version="alias",
+            fight_instance_id="alias",
+        )
+
+        # The values and each component are unchanged, but the graph-wide alias
+        # relation between runtime and authority has been broken.
+        self.runtime.cross_component_payload = list(shared)
+        with self.assertRaisesRegex(
+            ValueError,
+            r"Native oracle source changed during decision \[unknown_alias_or_structure\]",
+        ):
+            session.guard()
+
+    def test_lazy_immutable_catalog_inside_fight_preserves_full_source_guard(self):
+        from wakfu_server.combat.combat_static_catalogs import ImmutableCatalog
+        from wakfu_ai.bridge.world_bridge import fingerprint
+
+        catalog = ImmutableCatalog({"native-property": {"enabled": True}})
+        self.runtime.fight.native_rail_movement_authority = SimpleNamespace(
+            ordinary=SimpleNamespace(catalog=catalog)
+        )
+        self.oracle.authorities = lambda runtime=None: {"stable": "authorities"}
+        session = NativeSession(
+            self.oracle,
+            self.transport,
+            self.exporter,
+            policy={},
+            policy_version="lazy-catalog",
+            fight_instance_id="lazy-catalog",
+        )
+        self.assertEqual(catalog._views, {})
+        original_source = session.source
+        original_fingerprint = fingerprint(
+            {
+                "runtime": self.runtime,
+                "authorities": self.oracle.authorities(),
+                "policy": session.policy,
+                "flags": self.oracle.flags,
+                "source": dict(
+                    catalog=session.catalog,
+                    fightInstanceId=session.fight_instance_id,
+                    policyVersion=session.policy_version,
+                ),
+            }
+        )
+
+        def query_with_first_catalog_read(operation, key, request):
+            first = catalog.get("native-property")
+            self.assertIs(first, catalog["native-property"])
+            return {"observed": True}
+
+        session._query = query_with_first_catalog_read
+        response = session.query(
+            {"id": "lazy-view", "operation": "state", "state": session.root}
+        )
+        self.assertTrue(response["supported"])
+        self.assertEqual(response["result"], {"observed": True})
+        self.assertIsNone(session.guard())
+        self.assertEqual(session.source, original_source)
+        self.assertEqual(catalog._views, {})
+        self.assertEqual(
+            fingerprint(
+                {
+                    "runtime": self.runtime,
+                    "authorities": self.oracle.authorities(),
+                    "policy": session.policy,
+                    "flags": self.oracle.flags,
+                    "source": dict(
+                        catalog=session.catalog,
+                        fightInstanceId=session.fight_instance_id,
+                        policyVersion=session.policy_version,
+                    ),
+                }
+            ),
+            original_fingerprint,
+        )
+
     def test_future_runtime_fields_and_alias_changes_invalidate_source(self):
         shared = ["complete"]
         self.runtime.future_aliases = {"left": shared, "right": shared}

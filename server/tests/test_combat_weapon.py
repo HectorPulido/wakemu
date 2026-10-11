@@ -13,6 +13,31 @@ from wakfu_server.spells import encode_deck
 import test_combat_spell_transaction as fixture
 
 
+def weapon_fixture(breed, level):
+    """Recreate placement with complete actor snapshots and owned flat QI."""
+    from wakfu_server.combat_state import Fight
+    from native_combat_fixture import initialize_fixture_qi
+
+    (
+        character,
+        monster,
+        previous,
+    ) = fixture.SpellTransactionTests().native_server_fixture(
+        breed, level, target_distance=1
+    )
+    fight = Fight(
+        previous.id,
+        list(previous.actors.values()),
+        previous.walkable,
+        previous.placement,
+    )
+    initialize_fixture_qi(fight)
+    fight.ready(3)
+    fight.native_effect_uid_next = 1
+    fight.native_obstacle_cells = frozenset()
+    return character, monster, fight
+
+
 def equipped(character, reference, uid=1000):
     character = dict(character)
     character["inventory_items"] = [
@@ -69,7 +94,7 @@ class WeaponTests(unittest.TestCase):
             character,
             monster,
             fight,
-        ) = fixture.SpellTransactionTests().native_server_fixture(11, 200)
+        ) = weapon_fixture(11, 200)
         character = equipped(character, 2027)
         fight.actors[-7].position = (1, 0, 0)
         before = snapshot(fight)
@@ -99,7 +124,7 @@ class WeaponTests(unittest.TestCase):
             character,
             monster,
             fight,
-        ) = fixture.SpellTransactionTests().native_server_fixture(11, 20)
+        ) = weapon_fixture(11, 20)
         character = equipped(character, 2027)
         before = snapshot(fight)
         for body in (
@@ -133,7 +158,7 @@ class WeaponTests(unittest.TestCase):
                         character,
                         monster,
                         fight,
-                    ) = fixture.SpellTransactionTests().native_server_fixture(11, 200)
+                    ) = weapon_fixture(11, 200)
                     character = equipped(character, reference)
                     fight.actors[-7].position = (1, 0, 0)
                     before = snapshot(fight)
@@ -211,7 +236,7 @@ class WeaponTests(unittest.TestCase):
                 character,
                 monster,
                 fight,
-            ) = fixture.SpellTransactionTests().native_server_fixture(11, 200)
+            ) = weapon_fixture(11, 200)
             character = equipped(character, 2869)
             character["inventory_items"][0].update(metadata)
             character = effective_character(character)
@@ -232,6 +257,7 @@ class WeaponTests(unittest.TestCase):
                 max_hp=character["max_hp"],
             )
             caster.direction = 0
+            caster.native_obstacle_id = fight.actors[7].native_obstacle_id
             fight.actors[7] = caster
             build_player_snapshot(
                 character, caster, wp_current=6, wp_maximum=6, running_effects=()

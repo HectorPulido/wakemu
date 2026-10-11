@@ -48,6 +48,7 @@ class RedisFixture(PostgresCase):
         super().setUp()
         self.now = 1000
         self.store.clock = lambda: self.now
+        self._use_catalog_free_character_loader(self.store)
         self.live = set()
         self.client = self.make_client()
         self.journal = Journal(
@@ -63,11 +64,49 @@ class RedisFixture(PostgresCase):
     def make_client(self):
         return MemoryRedis()
 
+    @staticmethod
+    def _use_catalog_free_character_loader(store):
+        # Position storage owns six scalar columns; avoid importing optional
+        # spell/cosmetic catalogs in tests focused only on its journal contract.
+        def load(account_id, character_id, db=None):
+            if db is not None:
+                row = db.execute(
+                    "SELECT * FROM characters WHERE account_id=%s AND id=%s",
+                    (account_id, character_id),
+                ).fetchone()
+                return dict(row) if row is not None else None
+            with store.connection() as connection:
+                row = connection.execute(
+                    "SELECT * FROM characters WHERE account_id=%s AND id=%s",
+                    (account_id, character_id),
+                ).fetchone()
+                return dict(row) if row is not None else None
+
+        store.character = load
+
+    def reopen(self):
+        store = super().reopen()
+        store.clock = lambda: self.now
+        self._use_catalog_free_character_loader(store)
+        return store
+
     def attach(self, name="Owner"):
         account = self.store.register(name, "local-password")["id"]
         generation = self.store.begin_session(account)
-        char = self.store.create_character(account, name)
-        char = self.store.select_character(account, generation, char["id"])
+        # These position journal cases do not exercise character creation or
+        # native breed assets. Insert only the state their storage contract uses.
+        with self.store.connection() as db:
+            character_id = db.execute(
+                "INSERT INTO characters(account_id,name,name_key,breed,sex,face,hair,colors,appearance,hp,max_hp) "
+                "VALUES(%s,%s,%s,1,false,0,0,'[]','{}',100,100) RETURNING id",
+                (account, name, name.casefold()),
+            ).fetchone()["id"]
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE sessions SET character_id=%s WHERE account_id=%s",
+                (character_id, account),
+            )
+        char = self.store.character(account, character_id)
         self.live.add((account, generation, char["id"]))
         self.buffer.attach(account, generation, char)
         return account, generation, char

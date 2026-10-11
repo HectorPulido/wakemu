@@ -27,10 +27,12 @@ def dispatcher_harness(*, character=None, fight=None, target_identity=None):
                 ast.arg(arg="character"),
                 ast.arg(arg="position"),
                 ast.arg(arg="movement_state"),
+                ast.arg(arg="fight"),
+                ast.arg(arg="fight_messages"),
             ],
             kwonlyargs=[],
             kw_defaults=[],
-            defaults=[ast.Constant(value=None) for _ in range(3)],
+            defaults=[ast.Constant(value=None) for _ in range(5)],
         ),
         body=[
             function,
@@ -52,6 +54,11 @@ def dispatcher_harness(*, character=None, fight=None, target_identity=None):
         def live_identity(*, name):
             return target_identity
 
+    class Profiler:
+        @staticmethod
+        def profile(_name):
+            return lambda function: function
+
     namespace = {
         "__name__": "_chat_command_routing_harness",
         "account_id": 700,
@@ -59,6 +66,7 @@ def dispatcher_harness(*, character=None, fight=None, target_identity=None):
         "connection": object(),
         "service": 1,
         "fight": fight,
+        "PROFILER": Profiler(),
         "bag_session": None,
         "STORE": object(),
         "COMBAT_GROUPS": None,
@@ -82,7 +90,9 @@ def dispatcher_harness(*, character=None, fight=None, target_identity=None):
     }
     exec(compile(module, str(SOURCE), "exec"), namespace)
     current = character or {"id": 41, "name": "Self", "map_id": 3, "instance_id": 0}
-    namespace["dispatcher"] = namespace["_make_dispatcher"](current, {}, None)
+    namespace["dispatcher"] = namespace["_make_dispatcher"](
+        current, {}, None, fight, None
+    )
     return namespace
 
 

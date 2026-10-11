@@ -10,6 +10,35 @@ import copy
 
 
 class NativeStateVariantTests(unittest.TestCase):
+    def test_multiple_structured_pairs_select_one_branch_and_preserve_mixed_all(self):
+        definitions = self.paired_roots()
+        first, second = [
+            copy.deepcopy(definitions[str(key)]) for key in (350694, 351908)
+        ]
+        first["effect_class"] = second["effect_class"] = 999
+        definitions.update({"1": first, "2": second})
+        state = SimpleNamespace(reference=7931, effect_ids=[1, 2, 350694, 351908])
+        self.assertTrue(paired_state_variants(state, definitions))
+        with patch(
+            "wakfu_server.combat_state_variants.resolve_state_container",
+            return_value=state,
+        ):
+            for critical in (False, True):
+                self.assertEqual(
+                    state_child_variant_mode(
+                        SimpleNamespace(),
+                        18,
+                        effect_definitions=definitions,
+                        causing_critical=critical,
+                    ),
+                    "CRITICALS_ONLY" if critical else "EFFECTS_ONLY",
+                )
+        definitions["2"]["criteria"] = "HasState(1)"
+        self.assertFalse(paired_state_variants(state, definitions))
+        definitions["2"]["criteria"] = definitions["1"]["criteria"]
+        state.effect_ids = [1, 2, 1, 2]
+        self.assertFalse(paired_state_variants(state, definitions))
+
     def paired_roots(self):
         evidence = (
             Path(__file__).resolve().parents[2]

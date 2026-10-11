@@ -58,6 +58,11 @@ def _bounds(actor, stat):
 
 
 def _write(fight, source_id, actor, stat, value):
+    if stat == 111:
+        from .combat_hupper_resource_binding import set_current
+
+        if set_current(actor, value):
+            return
     if getattr(actor, "native_copy_pa_source", None) is not None:
         from .combat_copied_pa import set_copied_current
 
@@ -162,9 +167,14 @@ class NativeStatHandler:
                 None,
             )
             target = area_target
+        from .combat_npc_initialization import constructor_stat_context
+
+        constructor = constructor_stat_context(self.fight, invocation)
         if (
-            self.fight.phase != "active"
-            or self.fight.current is None
+            (
+                not constructor
+                and (self.fight.phase != "active" or self.fight.current is None)
+            )
             or target is None
             or source is None
         ):

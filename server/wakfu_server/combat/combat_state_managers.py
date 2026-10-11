@@ -26,6 +26,30 @@ def removed_area_pv_scope(fight, row):
         _area_pv_scopes.reset(token)
 
 
+@contextmanager
+def selected_area_pv_scope(fight, identities):
+    """Hold actual selected PV pointers across ordered sibling unregistration."""
+    from .combat_native_actor_lookup import native_actor
+
+    rows = []
+    for identity in dict.fromkeys(identities):
+        if identity is None or native_actor(fight, identity) is not None:
+            continue
+        row = retained_area_pv_row(fight, identity)
+        if row is None:
+            raise ValueError("Unknown selected native area PV")
+        if row.get("uid") != identity:
+            raise ValueError("Selected native area PV identity mismatch")
+        # Validate the original native prototype and manager before retaining.
+        registered_area_pv(fight, identity)
+        rows.append((fight, row))
+    token = _area_pv_scopes.set(_area_pv_scopes.get() + tuple(rows))
+    try:
+        yield
+    finally:
+        _area_pv_scopes.reset(token)
+
+
 def retained_area_pv_row(fight, identity):
     row = getattr(fight, "native_effect_areas", {}).get(identity)
     if row is None:

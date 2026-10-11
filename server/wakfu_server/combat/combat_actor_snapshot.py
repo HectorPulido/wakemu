@@ -130,6 +130,9 @@ class ActorSnapshot:
         actor.effect_base_maxima = dict(self.base_maxima)
         # Resource native PA.bqF is explicitly initialized before live effects.
         actor.effect_base_minima = dict(self.minima)
+        from .combat_hupper_resource_binding import install as install_wp_binding
+
+        install_wp_binding(actor)
         if self.native_hp_on_operand is not None:
             from .combat_hp_raw import install_fresh_hp_operand
 
@@ -448,14 +451,35 @@ def initialize_fight_snapshots(
             identity: value.physical_radius for identity, value in prepared.items()
         },
     )
+    from .combat_npc_initialization import initial_plans, initialize_ordinary_npcs
+
+    plans = initial_plans(fight, monsters)
+    from .combat_npc_ai_initialization import initial_ai_actors
+
+    ai_actors = initial_ai_actors(fight, monsters)
+    original_fight = fight
+    if plans:
+        from copy import deepcopy
+
+        # Constructor children may reject. Never publish partial actor/state
+        # mutations or consume the live effect UID on that failure boundary.
+        fight = deepcopy(fight)
     # All builders above are read-only. Each installation below performs only
     # dataclass field assignments, after the entire roster has been validated.
     for identity, snapshot in prepared.items():
         snapshot.install(fight.actors[identity])
+        if identity in ai_actors:
+            # Establish the actual tactical server controller before initial
+            # effects run. Subsequent native control effects remain authoritative.
+            fight.actors[identity].native_controlled_by_ai = True
         if identity in characters:
             # Actual fresh biB WP observers are bkq/biB, UI refresh only.
             # No owned eWr/eXb link has run at this validated fresh boundary.
             fight.actors[identity].native_resource_numeric_observers = {4: ()}
+    fight.native_npc_ai_actors = ai_actors
+    if plans:
+        fight.native_effect_uid_next = initial_effect_uid
+        initialize_ordinary_npcs(fight, monsters, plans)
     install_fresh_actor_slots(fight, qi_registry)
     from .combat_pr_completion import fresh_pr_completion_authority
 
@@ -464,7 +488,16 @@ def initialize_fight_snapshots(
         # observer policy. Restored fights must restore their own provenance;
         # they do not inherit this constructor choice implicitly.
         fight.native_pr_completion_authority = fresh_pr_completion_authority()
-    fight.native_effect_uid_next = initial_effect_uid
+    if not plans:
+        fight.native_effect_uid_next = initial_effect_uid
+    if fight is not original_fight:
+        original_actors = original_fight.actors
+        for identity, actor in fight.actors.items():
+            original_actors[identity].__dict__.clear()
+            original_actors[identity].__dict__.update(actor.__dict__)
+        fight.actors = original_actors
+        original_fight.__dict__.clear()
+        original_fight.__dict__.update(fight.__dict__)
     if initialization_warnings is not None:
         initialization_warnings.extend(local_warnings)
     return prepared

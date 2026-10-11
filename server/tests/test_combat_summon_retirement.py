@@ -35,6 +35,7 @@ class SummonRetirementTests(unittest.TestCase):
 
         summon = Actor(901, 0, (1, 1, 0), 40, 4, 3, 0, 10, owner_id=1, controlled=True)
         summon.physical_radius = 0
+        summon.native_fight_property_counts = {}
         summon.native_controller_id = owner.id
         summon.native_master_id = owner.id
         summon.native_summoned_from_symbiot = False

@@ -42,6 +42,9 @@ def _write(actor, stat, current, raw, maximum):
     actor.effect_stats[stat] = current
     actor.effect_base_maxima[stat] = raw
     actor.effect_maxima[stat] = maximum
+    from .combat_hupper_resource_binding import maximum_changed
+
+    maximum_changed(actor, stat)
     if stat in (1, 2, 3):
         attr = {1: "hp", 2: "ap", 3: "mp"}[stat]
         setattr(actor, attr, current)

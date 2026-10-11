@@ -18,6 +18,8 @@ class BareXelorCastTests(unittest.TestCase):
         self.fight.ready(9)
         self.character = dict(id=7, account_id=9, breed=5, level=19, map_id=1134)
         self.monster = dict(id=-7, ref=5525, level=1, map_id=1134, wp=6)
+        self.pc.native_controlled_by_ai = False
+        self.npc.native_controlled_by_ai = True
         self.body = struct.pack(">qqiih", 7, (7 << 32) | 754, 2, 0, 0)
 
     def cast(self, **changes):

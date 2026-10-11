@@ -39,6 +39,41 @@ class FightStartEventsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             deliver_fight_start(dispatcher, initialized_actor_ids=(7, -7))
 
+    def test_all_initial_callbacks_observe_existing_native_first_round(self):
+        fight, dispatcher, delivered = self.fixture()
+        observed = []
+        original = dispatcher.replay_event
+
+        def observe(event, **kwargs):
+            observed.append((fight.native_table_turn, fight.native_timeline_round))
+            return original(event, **kwargs)
+
+        dispatcher.replay_event = observe
+        self.assertEqual(fight.native_table_turn, 0)
+        deliver_fight_start(dispatcher, initialized_actor_ids=(7, -7))
+        self.assertEqual(observed, [(1, 1)] * 9)
+
+    def test_invalid_native_round_rejects_without_counter_or_event_mutation(self):
+        for native_round, table_turn in (
+            (0, 0),
+            (2, 0),
+            (True, 0),
+            (1, -1),
+            (1, 2),
+            (1, 32768),
+            (1, True),
+            (1, None),
+        ):
+            with self.subTest(native_round=native_round, table_turn=table_turn):
+                fight, dispatcher, delivered = self.fixture()
+                fight.native_timeline_round = native_round
+                fight.native_table_turn = table_turn
+                with self.assertRaisesRegex(ValueError, "native first-round counter"):
+                    deliver_fight_start(dispatcher, initialized_actor_ids=(7, -7))
+                self.assertEqual(delivered, [])
+                self.assertIs(fight.native_table_turn, table_turn)
+                self.assertFalse(fight.native_start_event_delivered)
+
     def test_incomplete_install_rejected_before_delivery(self):
         fight, dispatcher, delivered = self.fixture()
         fight.native_class_initializations.clear()

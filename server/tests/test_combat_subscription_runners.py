@@ -20,6 +20,33 @@ def fields(data):
 
 
 class DeferredRunnerTests(unittest.TestCase):
+    def test_state_decurse_subscription_has_only_original_fresh_base_payload(self):
+        from wakfu_server.combat_subscription_runners import (
+            DEFERRED_RUNNERS,
+            SUBSCRIPTION_FAMILIES,
+        )
+
+        self.assertEqual(DEFERRED_RUNNERS.get(321), "eZi")
+        self.assertIn(321, SUBSCRIPTION_FAMILIES)
+        args = dict(
+            uid=91,
+            base_uid=90,
+            generic_effect=242089,
+            caster_id=7,
+            target_id=7,
+            cell=(1, 2, 0),
+            timing_payload=b"",
+            container_type=1,
+            container_id=842,
+        )
+        payload = deferred_payload(family=321, **args)
+        # eZi inherits eZR.b(iP); its private rHq/rHr are not wire fields.
+        self.assertEqual(payload, deferred_payload(family=421, **args))
+        parsed = fields(payload)
+        self.assertEqual(parsed[4], 0)
+        self.assertNotIn(8, parsed)
+        self.assertEqual((parsed[9], parsed[10]), (1, 842))
+
     def test_fresh_native_constructors_do_not_apply_or_calculate(self):
         clock = bytes.fromhex(
             "08001a0f080010ffffffffffffffffff01180020ffffffffffffffffff01"
@@ -72,7 +99,9 @@ class DeferredRunnerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             deferred_payload(family=421, **args)
 
-    def test_deferred_disappearance_and_copy_do_not_run_handlers_or_guards(self):
+    def test_deferred_decurse_disappearance_and_copy_do_not_run_handlers_or_guards(
+        self,
+    ):
         from types import SimpleNamespace
         from wakfu_server.combat_effect_dispatch import (
             EffectDispatcher,
@@ -93,7 +122,7 @@ class DeferredRunnerTests(unittest.TestCase):
                 criteria="UnsupportedCriterion()",
                 target_masks=[[1003], [], [], [], [], [], []],
             )
-            for kind in (421, 1001)
+            for kind in (321, 421, 1001)
         }
         retention = object.__new__(NativeRetainedRuntime)
         retention.definition = lambda effect, inv: dict(subscription=True)
@@ -108,7 +137,7 @@ class DeferredRunnerTests(unittest.TestCase):
 
         dispatcher = EffectDispatcher(
             effects,
-            {421: unexpected, 1001: unexpected},
+            {321: unexpected, 421: unexpected, 1001: unexpected},
             resolve=lambda effect, inv: (inv,),
             condition_context=unexpected,
             probability_accepts=unexpected,
@@ -116,8 +145,8 @@ class DeferredRunnerTests(unittest.TestCase):
             actor_position=unexpected,
             group_retention=retention,
         )
-        for kind in (421, 1001):
+        for kind in (321, 421, 1001):
             self.assertTrue(
                 dispatcher.execute(EffectInvocation(kind, 1, 1, 2, (0, 0, 0)))
             )
-        self.assertEqual(saved, [{"family": 421}, {"family": 1001}])
+        self.assertEqual(saved, [{"family": 321}, {"family": 421}, {"family": 1001}])

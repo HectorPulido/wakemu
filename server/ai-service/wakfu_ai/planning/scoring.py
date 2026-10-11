@@ -1,7 +1,24 @@
 """Utility of authoritative outcome deltas, independent of spell IDs/rules."""
 
+import math
 
-def evaluate(root, state, actor_id, weights, team, feature_weights=None):
+
+def evaluate(
+    root,
+    state,
+    actor_id,
+    weights,
+    team,
+    feature_weights=None,
+    *,
+    summon_value=1,
+):
+    if (
+        type(summon_value) not in (int, float)
+        or not math.isfinite(summon_value)
+        or not 0 <= summon_value <= 1
+    ):
+        raise ValueError("Invalid registered summon value")
     friendly = root["actors"][actor_id]["team"]
     values = dict.fromkeys(weights, 0.0)
     victims, healed, killed = [], [], []
@@ -11,24 +28,55 @@ def evaluate(root, state, actor_id, weights, team, feature_weights=None):
         if after is None:
             raise ValueError("Forecast omitted existing actor")
         ally = before["team"] == friendly
+        hostile_summon_value = (
+            summon_value if not ally and before.get("registeredSummon") is True else 1
+        )
         hp_delta = after["hp"] - before["hp"]
         if ally:
             values["healing"] += hp_delta
             if hp_delta > 0:
                 healed.append((hp_delta, identity))
         else:
-            values["damage"] -= hp_delta
+            values["damage"] -= hp_delta * hostile_summon_value
             if hp_delta < 0:
-                victims.append((-hp_delta, identity))
-        values["armor"] += (after["armor"] - before["armor"]) * (1 if ally else -1)
+                damage_value = -hp_delta * hostile_summon_value
+                if damage_value > 0:
+                    victims.append((damage_value, identity))
+        values["armor"] += (after["armor"] - before["armor"]) * (
+            1 if ally else -hostile_summon_value
+        )
         if before["hp"] > 0 and after["hp"] == 0:
-            values["kills"] += -1 if ally else 1
-            if not ally:
-                killed.append(identity)
+            if ally:
+                values["kills"] -= 1
+            else:
+                # The default value preserves historical kill utility. A
+                # discounted summon receives no separate finish bonus; its
+                # scaled damage already rewards the useful outcome.
+                kill_value = (
+                    0
+                    if before.get("registeredSummon") is True and summon_value < 1
+                    else 1
+                )
+                values["kills"] += kill_value
+                if kill_value > 0:
+                    killed.append((kill_value, identity))
         resource_delta = sum(after[k] - before[k] for k in ("ap", "mp", "wp"))
         values["resources" if ally else "control"] += resource_delta * (
-            1 if ally else -1
+            1 if ally else -hostile_summon_value
         )
+    # Only certified registrations create reinforcement utility. Resources of
+    # a new actor are not recovered caster resources, and existing summons
+    # must not earn their deployment value again on later turns.
+    if "reinforcements" in values:
+        for identity, actor in state["actors"].items():
+            if (
+                identity not in root["actors"]
+                and actor.get("registeredSummon") is True
+                and actor["hp"] > 0
+            ):
+                values["reinforcements"] += actor["hp"] * (
+                    1 if actor["team"] == friendly else -1
+                )
     values["threat"] = root["threat"] - state["threat"]
     values["position"] = state["position"] - root["position"]
     values["uncertainty"] = root["uncertainty"] - state["uncertainty"]
@@ -63,7 +111,7 @@ def evaluate(root, state, actor_id, weights, team, feature_weights=None):
         )
         components["feature:" + name] = round(delta * weight, 6)
     target = (
-        min(killed)
+        min(killed, key=lambda item: (-item[0], item[1]))[1]
         if killed
         else sorted(victims or healed, key=lambda p: (-p[0], p[1]))[0][1]
         if victims or healed
@@ -77,7 +125,7 @@ def evaluate(root, state, actor_id, weights, team, feature_weights=None):
         else "heal"
         if healed
         else "protect"
-        if values["armor"] > 0
+        if values["armor"] > 0 or values.get("reinforcements", 0) > 0
         else "control"
         if values["control"] > 0
         else "retreat"

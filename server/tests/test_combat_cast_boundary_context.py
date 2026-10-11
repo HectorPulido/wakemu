@@ -25,6 +25,8 @@ class CastBoundaryContextTests(unittest.TestCase):
                 ),
             )
             self.assertEqual(context["distance"], distance)
+            self.assertEqual(context["target_cell"], target.position)
+            self.assertEqual(context["target_id"], -7)
             event = NativeExternalEvent(7, (1024,), 61, cast_boundary_context=context)
             event.validate()
             self.assertIsNone(event.caster_id)
@@ -63,3 +65,29 @@ class CastBoundaryContextTests(unittest.TestCase):
         context = dict(policy=POLICY, caster_id=7, spell_id=123, distance=1)
         with self.assertRaises(ValueError):
             NativeExternalEvent(7, (1013,), 6, cast_boundary_context=context).validate()
+
+    def test_missing_or_forged_target_anchor_is_not_authoritative(self):
+        from wakfu_server.combat_cast_events import POLICY
+
+        base = dict(
+            policy=POLICY,
+            caster_id=7,
+            spell_id=123,
+            distance=1,
+            target_id=None,
+            target_cell=(1, 0, 0),
+        )
+        validate_cast_boundary_context(base)
+        for changes in (
+            {"target_cell": None},
+            {"target_cell": (1, 0)},
+            {"target_cell": (True, 0, 0)},
+            {"target_id": True},
+        ):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                validate_cast_boundary_context(dict(base, **changes))
+        for missing in ("target_cell", "target_id"):
+            incomplete = dict(base)
+            del incomplete[missing]
+            with self.subTest(missing=missing), self.assertRaises(ValueError):
+                validate_cast_boundary_context(incomplete)

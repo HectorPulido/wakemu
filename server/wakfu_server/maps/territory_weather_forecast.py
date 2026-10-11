@@ -410,15 +410,23 @@ def publish_pending(store, publish, *, limit=100):
     return sent
 
 
-def publish_to_world(store, world, event):
+def publish_to_world(store, world, event, *, prepared_payload=None):
     _validate_event(event)
-    payload = packet_for_territory(
-        store,
-        map_id=event["map_id"],
-        instance_id=event["instance_id"],
-        region_id=event["region_id"],
-        policy_version=event["policy_version"],
+    payload = (
+        prepared_payload
+        if prepared_payload is not None
+        else packet_for_territory(
+            store,
+            map_id=event["map_id"],
+            instance_id=event["instance_id"],
+            region_id=event["region_id"],
+            policy_version=event["policy_version"],
+        )
     )
+    if prepared_payload is not None:
+        if type(payload) is not bytes:
+            raise ValueError("Invalid prepared forecast payload")
+        decode_packet(payload)
     delivered = failed = 0
     for snapshot in world.snapshot():
         if (

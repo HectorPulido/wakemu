@@ -38,6 +38,18 @@ class CastDiagnosticsTests(unittest.TestCase):
             "wakfu_server.combat_native_spell_casting.catalog",
             return_value={"4813": self.record()},
         ), patch(
+            "wakfu_server.combat_spell_resource_costs.catalog",
+            return_value={
+                "4813": dict(
+                    maximum_level=1,
+                    baseline=dict(resources={"2": [2, 2]}),
+                    conditional=[
+                        dict(criteria=c, resources={"2": [2, 2]})
+                        for c in ("HasState(7792)", "HasState(7757)")
+                    ],
+                )
+            },
+        ), patch(
             "wakfu_server.combat_native_spell_casting.evaluate_condition",
             side_effect=[False, True],
         ) as evaluate:

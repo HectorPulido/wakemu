@@ -86,10 +86,25 @@ def prepare(
     authorize_cell,
     open_test_policy=False,
     location_context=None,
+    read_only=False,
 ):
     request = decode(body)
     with store.connection() as db:
-        _lease(store, db, account, generation, character["id"])
+        if read_only:
+            # Remote preparation must not hold session/character row locks while
+            # hydrating catalogs. World acceptance rechecks the locking lease.
+            if (
+                db.execute(
+                    "SELECT 1 FROM sessions s JOIN characters c ON c.id=s.character_id "
+                    "AND c.account_id=s.account_id WHERE s.account_id=%s AND s.generation=%s "
+                    "AND s.character_id=%s AND s.expires_at>%s AND c.deleted_at IS NULL",
+                    (account, generation, character["id"], store.now()),
+                ).fetchone()
+                is None
+            ):
+                raise ValueError("Invalid inventory session")
+        else:
+            _lease(store, db, account, generation, character["id"])
         current = store.character(account, character["id"], db)
         if location_context is not None:
             current = location_context(current)
@@ -113,10 +128,12 @@ def prepare(
         resource = RESOURCES.get(seed["resource_reference"])
         if resource is None:
             raise ValueError("Unknown native resource reference")
-        from .resource_domains import is_mineral
+        from .resource_domains import is_mineral, is_fish
 
         if is_mineral(seed["resource_reference"]):
             raise ValueError("Mining resources cannot be planted")
+        if is_fish(seed["resource_reference"]):
+            raise ValueError("Fishing resources cannot be planted")
         from .profession_store import stored_level
 
         learned = stored_level(db, account, seed["profession_id"])
@@ -245,6 +262,12 @@ def complete(
             cell,
         ).fetchone():
             raise ValueError("Planting surface is reserved for a mineral vein")
+        if db.execute(
+            "SELECT 1 FROM fishing_spot_slots "
+            "WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s AND enabled",
+            cell,
+        ).fetchone():
+            raise ValueError("Planting surface is reserved for a fishing spot")
         if db.execute(
             "SELECT 1 FROM planted_resources "
             "WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s",

@@ -246,6 +246,7 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         import threading
         from types import SimpleNamespace
 
+        from wakfu_server.characters import heroes
         from wakfu_server import profession_store
         from wakfu_server import monsters
         from wakfu_server.combat.combat_external_markers import ExternalFightMarkers
@@ -362,6 +363,7 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
             "HARVESTS": EmptySnapshots(),
             "EXTERNAL_FIGHT_MARKERS": markers,
             "monster_corpse_snapshot": lambda *_args, **_kwargs: (),
+            "refresh_guild": lambda *_args, **_kwargs: None,
             "refresh_party": lambda *_args, **_kwargs: None,
         }
         exec(
@@ -373,6 +375,10 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
             profession_store,
             "ensure_learned",
             return_value={"packets": ()},
+        ), patch.object(
+            heroes,
+            "ensure_company_party",
+            return_value={"heroes": []},
         ):
             namespace["join_world"](
                 "observer-generation",

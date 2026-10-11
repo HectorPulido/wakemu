@@ -7,6 +7,7 @@ condition snapshot. `resolve` writes one immutable, idempotent award batch in
 the caller's transaction so it can share the victory reward/lifecycle commit.
 """
 from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.reward_rates import MAX_REWARD_RATE_BP
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from functools import lru_cache
@@ -309,7 +310,7 @@ def plan_player_drops(
         ("challenge drop percent", challenge_drop_percent, -1000000, 1000000),
         ("star bonus percent", star_bonus_percent, -1000000, 1000000),
         ("conquest rate", conquest_rate_bp, 0, 1000000),
-        ("drop rate", drop_rate_bp, 0, 1000000),
+        ("drop rate", drop_rate_bp, 0, MAX_REWARD_RATE_BP),
         ("breach bonus", breach_bonus_bp, 0, 1000000),
     ):
         _integer(value, name, minimum, maximum)

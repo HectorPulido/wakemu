@@ -95,7 +95,18 @@ class ZobalRuntimeTests(unittest.TestCase):
                 },
             )
 
-        traced_references = {314359, 314360, 314361, 307720, 307721, 307722, 307723}
+        traced_references = {
+            307711,
+            307719,
+            314358,
+            314359,
+            314360,
+            314361,
+            307720,
+            307721,
+            307722,
+            307723,
+        }
         dispatch_trace = []
         original_execute = EffectDispatcher.execute
 
@@ -108,6 +119,13 @@ class ZobalRuntimeTests(unittest.TestCase):
                 "caster_id": invocation.caster_id,
                 "target_id": invocation.target_id,
                 "trigger_context": invocation.native_trigger_context,
+                "marker_owners_before": [
+                    {"uid": uid, "invocation": dict(record.get("invocation", {}))}
+                    for uid, record in dispatcher.group_retention.fight.native_owned_group_effects.items()
+                    if record.get("invocation", {}).get("reference") == 314358
+                ]
+                if hasattr(dispatcher.group_retention, "fight")
+                else "retention_has_no_fight",
             }
             try:
                 result = original_execute(dispatcher, invocation, **kwargs)

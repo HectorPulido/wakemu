@@ -243,13 +243,19 @@ def npc_spell_catalog():
     return protocol_catalog.load(DATA_ROOT / "native-npc-spell-effect-trees.json")
 
 
-@lru_cache(maxsize=1)
-def npc_runtime_catalog():
+@lru_cache(maxsize=2)
+def npc_runtime_catalog(*, imported=True):
     from .combat_server_spell import compiled_runtime_catalog
     from .combat_static_catalogs import CompiledEffects
     from .combat_effect_runtime import _merge_effects
 
     base = compiled_runtime_catalog()
+    document = npc_spell_catalog()
+    if not imported and document.get("activation_policy") is not None:
+        effects = document.get("baseline_effects")
+        if not isinstance(effects, dict):
+            raise ValueError("Missing preserved native NPC baseline effects")
+        document = {"effects": effects}
     return CompiledEffects(
-        _merge_effects(base.source_effects, npc_spell_catalog()), base.source_states
+        _merge_effects(base.source_effects, document), base.source_states
     )

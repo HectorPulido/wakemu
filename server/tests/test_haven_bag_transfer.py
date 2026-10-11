@@ -476,6 +476,8 @@ class HavenBagTransferTests(PostgresCase):
 class HavenBagTransferDispatchTests(unittest.TestCase):
     def test_dispatch_guard_requires_own_bag_and_no_fight(self):
         class BagSession:
+            is_owner = True
+
             def owns(self, character):
                 return (
                     character["id"] == 8
@@ -508,6 +510,7 @@ class HavenBagTransferDispatchTests(unittest.TestCase):
                 and isinstance(test.left, ast.Name)
                 and test.left.id == "opcode"
                 and isinstance(test.ops[0], ast.In)
+                and isinstance(test.comparators[0], (ast.Tuple, ast.List, ast.Set))
                 and {
                     value.value
                     for value in test.comparators[0].elts

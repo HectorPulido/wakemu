@@ -34,7 +34,8 @@ class PaidCostEventsTests(unittest.TestCase):
                 (-1, 7, 7),
             )
             self.assertEqual(
-                (kw["uid"], kw["value"], kw["_event_ids"]), (-1, 65539, (0, 55, 60))
+                (kw["uid"], kw["value"], kw["_event_ids"]),
+                (-1, 65539, (0, 55, 60, 2234, 2263)),
             )
 
     def test_invalid_costs_never_publish(self):
@@ -46,3 +47,12 @@ class PaidCostEventsTests(unittest.TestCase):
         ):
             with self.assertRaises(ValueError):
                 payment_event_ids(costs)
+
+    def test_special_paid_ability_masks_preserve_zero_and_ordinary_events(self):
+        self.assertEqual(
+            payment_event_ids({"ap": 0, "mp": 0, "wp": 0}, special=True), (0,)
+        )
+        self.assertEqual(
+            payment_event_ids({"ap": 2, "mp": 1, "wp": 1}, special=True),
+            (0, 55, 60, 65, 2188, 2234, 2263),
+        )

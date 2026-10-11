@@ -1,6 +1,8 @@
 # Reviewed local mining distribution plan
 
-`LOCAL-MINING-VEIN-PLAN.json` is a validated offline plan, **not applied**.
+`LOCAL-MINING-VEIN-PLAN.json` is the validated source distribution. A copy checked
+against the current gameplay catalog has now been installed; see
+[deployment and manual acceptance](DEPLOYED-VEINS-20261010.md).
 The distribution is an explicit local policy; it is not official mineral spawn
 information. Stable slots become durable gameplay identities only when installed.
 

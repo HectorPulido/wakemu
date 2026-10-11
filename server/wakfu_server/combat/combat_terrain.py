@@ -3,6 +3,8 @@ from wakfu_server import native_catalog as protocol_catalog
 import json
 import os
 import random
+import time
+from wakfu_server.performance_profiler import PROFILER
 from functools import lru_cache
 from dataclasses import dataclass
 from wakfu_server.paths import DATA_ROOT
@@ -66,7 +68,26 @@ def local_arena(
     compact=None,
     minimum_dimensions=None,
     prepared_terrain=None,
+    stage_callback=None,
 ):
+    stage_started, stage_cpu = time.monotonic(), time.thread_time()
+
+    def stage(name):
+        nonlocal stage_started, stage_cpu
+        now, cpu = time.monotonic(), time.thread_time()
+        wall, consumed = now - stage_started, cpu - stage_cpu
+        # Diagnostics must never reject an otherwise valid native arena.
+        try:
+            PROFILER.observe("combat.arena." + name, wall, consumed)
+        except Exception:
+            pass
+        if stage_callback is not None:
+            try:
+                stage_callback(name, round(wall * 1000, 3), round(consumed * 1000, 3))
+            except Exception:
+                pass
+        stage_started, stage_cpu = time.monotonic(), time.thread_time()
+
     if prepared_terrain is not None:
         if (
             not isinstance(prepared_terrain, PreparedTerrain)
@@ -81,6 +102,7 @@ def local_arena(
         geometry = published_geometry(map_id)
         surfaces = None
         provenance = None
+    stage("geometry")
     if compact is None:
         compact = relocate_monsters
     if type(compact) is not bool:
@@ -121,6 +143,7 @@ def local_arena(
             members,
             radius=configured_radius,
         )
+    stage("selection")
     perimeter = cardinal_border_cells(selected["cells"]) if compact else frozenset()
     placement = generate(
         selected["cells"],
@@ -134,10 +157,12 @@ def local_arena(
     # capacity. Preserve their collision rules, but never draw a combat border
     # beneath an actor seed or any selectable placement cell.
     borders = perimeter - placement[0] - placement[1]
-    indices = native_surface_indices(
-        native_qi_surfaces(map_id) if surfaces is None else surfaces,
-        selected["cells"],
-    )
+    stage("placement")
+    if surfaces is None:
+        surfaces = native_qi_surfaces(map_id)
+    stage("surface_catalog")
+    indices = native_surface_indices(surfaces, selected["cells"])
+    stage("surface_indices")
     result = arena(
         map_id,
         instance_id,
@@ -159,4 +184,5 @@ def local_arena(
         if compact
         else None,
     )
+    stage("wire")
     return result

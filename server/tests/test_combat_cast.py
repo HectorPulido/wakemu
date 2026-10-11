@@ -1,7 +1,15 @@
 import struct
 import unittest
 from types import SimpleNamespace
-from wakfu_server.combat_conditions import ConditionActor, ConditionContext
+from dataclasses import replace
+from wakfu_server.combat_state import Actor, Fight
+from native_combat_fixture import initialize_fixture_qi
+from wakfu_server.combat_qi_fight import move_registered_actor
+from wakfu_server.combat_conditions import (
+    ConditionActor,
+    ConditionCell,
+    ConditionContext,
+)
 from wakfu_server.combat_conditional_costs import ConditionalCostContext
 from wakfu_server.combat_cast import (
     decode_cast,
@@ -28,7 +36,140 @@ def cast_context(*, states=(), deck=(), range_value=0, carried=False, properties
 
 def cast_authority(*, states=(), deck=(), ap_modifiers=None):
     context = cast_context(states=states, deck=deck)
-    return lambda *args: ConditionalCostContext(context, ap_modifiers)
+    return lambda request, fight: native_cost_context(
+        context, ap_modifiers, request, fight
+    )
+
+
+def native_cost_context(context, modifiers, request, fight):
+    """Use the real eligibility producer over this owned synthetic population."""
+    from wakfu_server.combat_casting_context import NativeOwnedCastingContext
+
+    def metadata(state, actor):
+        return SimpleNamespace(
+            native_instance_id=999999,
+            targeting=dict(
+                is_eGj=True,
+                is_amO=True,
+                is_Qq=False,
+                is_eHH=True,
+                bEe=True,
+                UNTARGETTABLE_BY_OTHER=False,
+                buX=False,
+                dTE=False,
+                bcN=actor.native_obstacle_id,
+                baF=True,
+                fqx=False,
+                dpu_id=actor.id,
+                dpr_id=actor.id,
+            ),
+        )
+
+    metadata.properties = lambda state, actor: actor.native_fight_properties
+
+    def condition(state, plan, effect, invocation):
+        # Actual aBn cell alias and independently resolved QI target; this
+        # synthetic fixture explicitly owns empty states and no summons.
+        actors = dict(context.actors)
+        caster = state.actors[invocation.caster_id]
+        actors["caster"] = replace(
+            actors["caster"],
+            actor_id=caster.id,
+            in_fight=True,
+            summon_count=0,
+            is_native_fighter=True,
+            fight_affiliation=caster.team,
+            is_in_play=True,
+            is_dead=False,
+        )
+        target = state.actors.get(invocation.target_id)
+        if target is not None:
+            actors["target"] = replace(
+                actors["caster"]
+                if target.id == caster.id
+                else ConditionActor(
+                    state_ids=frozenset(),
+                    state_levels=(),
+                    state_sources=(),
+                    fight_properties=target.native_fight_properties,
+                    is_player=target.controlled,
+                    is_carried=False,
+                ),
+                actor_id=target.id,
+                in_fight=True,
+                is_native_fighter=True,
+                is_in_play=True,
+                is_dead=False,
+                fight_affiliation=target.team,
+            )
+        else:
+            actors.pop("target", None)
+        cell = invocation.cell
+        occupied = any(actor.position == cell for actor in state.actors.values())
+
+        def allies_range(minimum, maximum, selector, aligned, los, in_play=True):
+            from wakfu_server.combat_range_conditions import RangeFighter, range_count
+            from wakfu_server.combat_los import static_visible
+
+            selected = caster if selector.lower() == "caster" else target
+            center = selected.position if selected is not None else invocation.cell
+            return range_count(
+                tuple(
+                    RangeFighter(
+                        actor.position,
+                        actor.physical_radius,
+                        actor.team,
+                        True,
+                        False,
+                        False,
+                        114 in actor.native_fight_properties,
+                    )
+                    for actor in state.actors.values()
+                ),
+                affiliation=caster.team,
+                center=center,
+                minimum=minimum,
+                maximum=maximum,
+                aligned=aligned,
+                los=los,
+                relation="ally",
+                in_play=in_play,
+                visible=lambda a, b: static_visible(999999, a, b),
+            )
+
+        return replace(
+            context,
+            actors=actors,
+            allies_range_query=allies_range,
+            target_cell=ConditionCell(cell in state.walkable, occupied),
+            target_cell_is_explicit=True,
+            native_cell_target_fighter_resolved=True,
+            effect_target_absent=target is None,
+        )
+
+    adapter = SimpleNamespace(
+        _actor=metadata,
+        actor_authority=metadata,
+        condition=condition,
+    )
+
+    def query(rule, spell_id, level):
+        invocation = SimpleNamespace(
+            caster_id=request["actor_id"], cell=request["target"]
+        )
+        casting = NativeOwnedCastingContext(
+            adapter, fight, request, invocation, context, rule
+        )
+        casting.resolve_target_fighter()
+        return dict(
+            result=casting.eligibility(),
+            aligned=casting.alignment(),
+            target_id=None if casting.target is None else casting.target.id,
+        )
+
+    return ConditionalCostContext(
+        replace(context, native_casting_query=query), modifiers
+    )
 
 
 class CastValidationTests(unittest.TestCase):
@@ -87,7 +228,7 @@ class CastValidationTests(unittest.TestCase):
     ):
         from wakfu_server.combat_conditions import UnknownCondition
 
-        self.target.position = (3, 0, 0)
+        move_registered_actor(self.fight, self.target, (3, 0, 0))
         character = dict(self.character, breed=8, level=200)
         self.actor.effective_level = 200
         body = struct.pack(">qqiih", 7, (7 << 32) | 4785, 3, 0, 0)
@@ -110,7 +251,7 @@ class CastValidationTests(unittest.TestCase):
         def authority(request, fight):
             calls.append((request["spell_uid"], fight.current.ap))
             # Enrich the tested state authority with complete range inputs.
-            return ConditionalCostContext(context, {})
+            return native_cost_context(context, {}, request, fight)
 
         plan = prepare_spell_cast(
             body,
@@ -131,38 +272,75 @@ class CastValidationTests(unittest.TestCase):
                 self.fight,
                 3,
                 encode_deck([4785]),
-                conditional_context=lambda *a: ConditionalCostContext(context, None),
+                conditional_context=lambda request, fight: native_cost_context(
+                    context, None, request, fight
+                ),
                 **args
             )
 
     def setUp(self):
-        self.character = dict(id=7, breed=15, level=1)
-        self.actor = SimpleNamespace(
-            id=7,
-            owner_id=3,
-            controlled=True,
-            hp=60,
-            ap=6,
-            mp=3,
-            team=0,
-            effective_level=1,
-            position=(0, 0, 0),
-            turn_count=0,
-            physical_radius=0,
-            spell_ap_cost_modifiers={},
-            spell_range_modifiers={},
+        from unittest.mock import patch
+        from wakfu_server.combat_native_los_ray import static_ray, topology_columns
+        from wakfu_server.combat_actor_snapshot import native_actor_catalog
+
+        self.character = dict(id=7, breed=15, level=1, map_id=999999)
+        self.actor = Actor(7, 0, (0, 0, 0), 60, 6, 3, 10, 1, 3, True)
+        self.target = Actor(-7, 1, (2, 0, 0), 20, 6, 3, 0, 1)
+        # Native7551 requires another actual ally within two cells.
+        self.ally = Actor(8, 0, (-1, 0, 0), 60, 6, 3, 0, 1, 3, True)
+        self.fight = Fight(
+            77,
+            [self.actor, self.target, self.ally],
+            {(x, 0, 0) for x in range(-1, 4)},
+            {0: {self.actor.position, self.ally.position}, 1: {self.target.position}},
         )
-        self.target = SimpleNamespace(
-            id=-7, hp=20, team=1, position=(2, 0, 0), physical_radius=0
+        for actor in self.fight.actors.values():
+            actor.spell_ap_cost_modifiers = {}
+            actor.spell_range_modifiers = {}
+            actor.native_fight_properties = frozenset()
+            actor.effect_stats = {92: 0, 97: 0, 100: 0}
+            actor.effect_maxima = {92: 0}
+            actor.effect_frozen = frozenset()
+            actor.native_los_height = native_actor_catalog()["default_actor_los_height"]
+        initialize_fixture_qi(self.fight)
+        self.fight.ready(3)
+        static_ray.cache_clear()
+        self.addCleanup(static_ray.cache_clear)
+        terrain = patch(
+            "wakfu_server.combat_native_los_ray.topology_columns",
+            side_effect=lambda map_id: {(x, 0): ((0, 0, False),) for x in range(-1, 4)}
+            if map_id == 999999
+            else topology_columns(map_id),
         )
-        self.fight = SimpleNamespace(
-            id=77,
-            phase="active",
-            current=self.actor,
-            actors={7: self.actor, -7: self.target},
-            walkable={(0, 0, 0), (1, 0, 0), (2, 0, 0), (3, 0, 0)},
-            native_table_turn=0,
+        terrain.start()
+        self.addCleanup(terrain.stop)
+        from wakfu_server.combat_qi_surfaces import NativeQISurfaces
+        from wakfu_server.combat_qi_surface_catalog import native_qi_surfaces
+        import hashlib
+        import json
+
+        # Explicit flat test surfaces share the synthetic QI/LOS domain.
+        columns = [[x, 0, [[0, 0]]] for x in range(-1, 4)]
+        digest = hashlib.sha256(json.dumps(columns).encode()).hexdigest()
+        surfaces = NativeQISurfaces(
+            dict(
+                schema="native-QI-Vy-columns-v1",
+                map_id=999999,
+                source_sha256=digest,
+                chunks=[dict(x=-1, y=0, width=5, height=1, columns=columns)],
+            ),
+            map_id=999999,
+            source_sha256=digest,
         )
+        provider = patch(
+            "wakfu_server.combat_qi_surface_catalog.native_qi_surfaces",
+            side_effect=lambda map_id: surfaces
+            if map_id == 999999
+            else native_qi_surfaces(map_id),
+        )
+        provider.start()
+        self.addCleanup(provider.stop)
+
         self.body = struct.pack(">qqiih", 7, (7 << 32) | 6260, 2, 0, 0)
 
     def prepare(self, **options):
@@ -227,10 +405,14 @@ class CastValidationTests(unittest.TestCase):
     def test_reject_unknown_branch_los_and_resources(self):
         for opts in [
             dict(select_effect=lambda *a: None),
-            dict(line_of_sight=lambda *a: False),
         ]:
             with self.assertRaises(ValueError):
                 self.prepare(**opts)
+        # Native casting queries own LOS; the legacy callback is not its gate.
+        self.fight.native_qi_snapshot["cell_masks"][2] |= 256
+        with self.assertRaisesRegex(ValueError, "twG"):
+            self.prepare()
+        self.fight.native_qi_snapshot["cell_masks"][2] &= ~256
         self.actor.ap = 2
         with self.assertRaises(ValueError):
             self.prepare()
@@ -270,7 +452,7 @@ class CastValidationTests(unittest.TestCase):
                 self.fight,
             )
         )
-        self.target.position = (1, 0, 0)
+        move_registered_actor(self.fight, self.target, (1, 0, 0))
         self.body = struct.pack(">qqiih", 7, (7 << 32) | 6266, 1, 0, 0)
         plan = prepare_cast(
             self.body,

@@ -30,19 +30,21 @@ def owned_spells(fight, monsters):
 
 
 def prepare_npc_spell(
-    fight, action, character, monsters, deck_blob, *, action_id, rng=None
+    fight,
+    action,
+    character,
+    monsters,
+    deck_blob,
+    *,
+    action_id,
+    rng=None,
+    player_characters=None,
+    deck_blobs=None,
 ):
     from .combat_server_spell import server_runtime
     from .combat_npc_attack import npc_runtime_catalog
     from .combat_native_spell_casting import definition
     from .combat_cast import _validate_target
-    from .combat_spell_usage import consume_usage
-    from .combat_spell_transaction import SpellTransaction
-    from .combat_geometry_snapshot import source_snapshot
-    from .combat_effect_dispatch import EffectInvocation
-    from .combat_active_spell import active_spell_scope
-    from .combat_cast_facing import mirror_cast_facing
-    from .combat_spells import cast_animation, cast_notification
 
     if type(action_id) is not int or not 0 < action_id < 1 << 31:
         raise ValueError("Invalid NPC action sequence")
@@ -71,7 +73,17 @@ def prepare_npc_spell(
     request = dict(actor_id=actor.id, spell_uid=spell, target=tuple(target))
     from .combat_native_spell_casting import catalog as casting_catalog
 
-    compiled = npc_runtime_catalog()
+    from .combat_npc_activation import imports_enabled
+    from .combat_npc_attack import npc_spell_catalog
+
+    compiled = npc_runtime_catalog(
+        imported=imports_enabled(
+            npc_spell_catalog().get("activation_policy"),
+            monsters[actor.id]["ref"],
+            actor.effective_level,
+            spell,
+        )
+    )
     casting = casting_catalog().get(str(spell))
     if casting is None or not 1 <= spells[spell] <= len(casting["levels"]):
         raise ValueError("Missing native NPC casting table")
@@ -90,8 +102,23 @@ def prepare_npc_spell(
         critical=False,
         rng=random.Random() if rng is None else rng,
         compiled=compiled,
+        player_characters=player_characters,
+        deck_blobs=deck_blobs,
     )
-    context = adapter.cast_condition(fight, request)
+    from .combat_npc_area_preflight import npc_cast_condition
+
+    context = npc_cast_condition(
+        adapter,
+        fight,
+        request,
+        factory=factory,
+        enabled=imports_enabled(
+            npc_spell_catalog().get("activation_policy"),
+            monsters[actor.id]["ref"],
+            actor.effective_level,
+            spell,
+        ),
+    )
     rule = definition(spell, spells[spell], context, actor.spell_ap_cost_modifiers)
     from .combat_los import authoritative_visible
     from .combat_obstacle_condition import footprint
@@ -121,6 +148,28 @@ def prepare_npc_spell(
     )
     if action.get("targetId") != plan["target_id"]:
         raise ValueError("NPC target identity differs from native cell target")
+    return prepare_validated_npc_spell(
+        fight,
+        plan,
+        rule,
+        monsters[actor.id],
+        factory=factory,
+        action_id=action_id,
+    )
+
+
+def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, action_id):
+    """Execute an owned, validated NPC cast on a private transaction snapshot."""
+    from .combat_spell_usage import consume_usage
+    from .combat_spell_transaction import SpellTransaction
+    from .combat_geometry_snapshot import source_snapshot
+    from .combat_effect_dispatch import EffectInvocation
+    from .combat_active_spell import active_spell_scope
+    from .combat_cast_facing import mirror_cast_facing
+    from .combat_spells import cast_animation, cast_notification
+
+    actor = fight.current
+    spell, level = plan["spell_id"], plan["evaluation_level"]
     # Cheap native validation precedes deep copy/effect dispatch.
     source = source_snapshot(fight)
     preview = deepcopy(fight)
@@ -148,7 +197,7 @@ def prepare_npc_spell(
             dispatcher.execute(
                 EffectInvocation(
                     reference,
-                    spells[spell],
+                    level,
                     caster.id,
                     plan["target_id"],
                     plan["target"],
@@ -170,11 +219,11 @@ def prepare_npc_spell(
             encoder(
                 fight.id,
                 action_id,
-                monsters[actor.id],
+                descriptor,
                 spell,
                 plan["target"],
                 native_uid=spell,
-                native_level=spells[spell],
+                native_level=level,
                 critical=False,
             ),
         )

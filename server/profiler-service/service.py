@@ -28,11 +28,16 @@ def world_pid(proc_root=Path("/proc")):
             continue
         try:
             args = (entry / "cmdline").read_bytes().split(b"\0")
-            if any(
+            direct_world = any(
                 Path(os.fsdecode(arg)).name == "local_game_server.py"
                 for arg in args
                 if arg
-            ):
+            )
+            startup_world = any(
+                arg == b"-m" and args[index + 1] == b"wakfu_server.catalog_gc_bootstrap"
+                for index, arg in enumerate(args[:-1])
+            )
+            if direct_world or startup_world:
                 matches.append(int(entry.name))
         except (OSError, ValueError):
             continue

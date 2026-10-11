@@ -4,6 +4,7 @@ from pathlib import Path
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock
+from wakfu_server.combat_bootstrap import should_rebuild_placement
 
 
 class HeroPlacementDispatchTests(unittest.TestCase):
@@ -15,7 +16,8 @@ class HeroPlacementDispatchTests(unittest.TestCase):
             node
             for node in ast.walk(tree)
             if isinstance(node, ast.If)
-            and ast.unparse(node.test) == "hero_admission['actors']"
+            and ast.unparse(node.test)
+            == "should_rebuild_placement(candidate, hero_admission['actors'])"
         )
         cls.module = ast.Module(body=[cls.branch], type_ignores=[])
 
@@ -26,6 +28,8 @@ class HeroPlacementDispatchTests(unittest.TestCase):
             "hero_admission": {"actors": ()},
             "packets": original,
             "placement_messages": serializer,
+            "candidate": SimpleNamespace(),
+            "should_rebuild_placement": should_rebuild_placement,
         }
         exec(
             compile(self.module, "local_game_server.py:hero placement", "exec"),
@@ -68,6 +72,7 @@ class HeroPlacementDispatchTests(unittest.TestCase):
             "arena": object(),
             "terrain_instance_id": 44,
             "placement_duration": 30_000,
+            "should_rebuild_placement": should_rebuild_placement,
         }
         exec(
             compile(self.module, "local_game_server.py:hero placement", "exec"),

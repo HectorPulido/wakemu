@@ -27,7 +27,11 @@ class Authority:
         self.props = set(props)
 
     def __call__(self, f, a):
-        return SimpleNamespace(is_carried=False, native_instance_id=None)
+        return SimpleNamespace(
+            is_carried=False,
+            is_carrying=False,
+            native_instance_id=None,
+        )
 
     def properties(self, f, a):
         return self.props

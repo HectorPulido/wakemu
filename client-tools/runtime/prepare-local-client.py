@@ -36,6 +36,14 @@ for item in source.iterdir():
         link.symlink_to(item, target_is_directory=item.is_dir())
 config = (source / "config.properties").read_text()
 config = re.sub(r"https?://[^/\s]+", "http://127.0.0.1:18080", config)
+# The native storefront and its authenticated HAAPI calls share the local shop.
+# Keep telemetry and other unrelated HTTP endpoints on the existing stub.
+for key, value in {
+    "shopiUrl": "http://127.0.0.1:18083",
+    "haapiAnkamaUrl": "http://127.0.0.1:18083/json/Ankama/v5",
+    "haapiWakfuUrl": "http://127.0.0.1:18083/json/Wakfu/v3",
+}.items():
+    config = re.sub(rf"^{key}=.*$", f"{key}={value}", config, flags=re.M)
 config = re.sub(
     r"^dispatchAddresses=.*$", "dispatchAddresses=127.0.0.1:15558", config, flags=re.M
 )

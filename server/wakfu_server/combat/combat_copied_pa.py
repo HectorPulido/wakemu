@@ -98,6 +98,9 @@ def set_copied_maximum(fight, actor, stat, requested):
     actor.effect_characteristic_raw_currents[stat] = raw
     actor.effect_base_maxima[stat] = raw_maximum
     actor.effect_maxima[stat] = maximum
+    from .combat_hupper_resource_binding import maximum_changed
+
+    maximum_changed(actor, stat)
     actor.effect_stats[stat] = max(actor.effect_minima[stat], min(maximum, raw))
     if stat in (1, 2, 3):
         setattr(actor, {1: "hp", 2: "ap", 3: "mp"}[stat], actor.effect_stats[stat])

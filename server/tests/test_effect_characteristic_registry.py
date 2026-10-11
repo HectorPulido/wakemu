@@ -45,9 +45,13 @@ class NativeCharacteristicRegistryTests(unittest.TestCase):
         self.assertNotIn("1201", self.effects)  # eWS maximum family excluded
 
     def test_current_families_have_native_codec_fields_and_explicit_guards(self):
+        force_current = {
+            key for key, row in self.effects.items() if row["runner"] == "eYO"
+        }
+        self.assertEqual(force_current, {"16", "950", "951", "952"})
         for key, row in self.effects.items():
             self.assertEqual(int(key), row["effect_class"])
-            if row["runner"] == "eXE":
+            if row["runner"] in ("eXE", "eYO"):
                 continue
             self.assertIn(row["runner"], ("eWQ", "eWR"))
             self.assertEqual(row["additional_fields"], dict(stat_id=12, requested=25))

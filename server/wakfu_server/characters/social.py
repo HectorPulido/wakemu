@@ -27,7 +27,7 @@ def company(account_id, character):
         account_id,
         character["id"] if character else 0,
         0,
-        0,
+        (character.get("guild_native") or {}).get("guildId", 0) if character else 0,
         0,
         1,
         int(character is not None),

@@ -16,6 +16,15 @@ def _participant(account_id, character, runtime):
     from .combat_terminal_metadata import registered_summon_actor_ids
 
     summon_ids = registered_summon_actor_ids(fight)
+    if any(
+        member.id not in summon_ids
+        and (
+            getattr(member, "native_summon_source", None) is not None
+            or getattr(member, "is_summon", False) is True
+        )
+        for member in fight.actors.values()
+    ):
+        raise ValueError("Abandon roster contains an unregistered native summon")
     actor = fight.actors.get(character["id"])
     controlled = [
         a

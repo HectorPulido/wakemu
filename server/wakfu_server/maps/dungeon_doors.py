@@ -6,7 +6,15 @@ from wakfu_server import generic_transports, player_parties
 from wakfu_server import dungeon_criteria
 
 
-def resolve(character, body, *, source_allowed, room_for_position, criterion_allowed):
+def resolve(
+    character,
+    body,
+    *,
+    source_allowed,
+    room_for_position,
+    criterion_allowed,
+    topology=None,
+):
     """Resolve a native door using a server-owned topology mapper.
 
     ``room_for_position(map_id,x,y,z)`` must derive the room from verified native
@@ -21,6 +29,15 @@ def resolve(character, body, *, source_allowed, room_for_position, criterion_all
     if flag != 0 or mode != 2 or character.get("instance_id", 0) <= 0:
         raise ValueError("Invalid dungeon door request")
     source = generic_transports.source(character["map_id"], object_id)
+    if topology is not None:
+        from wakfu_server import dungeon_native_flow
+
+        if object_id in dungeon_native_flow.disabled_source_ids(
+            topology, generic_transports._CATALOG
+        ):
+            raise ValueError(
+                "Native source is explicitly excluded by the local dungeon policy"
+            )
     if source is None or source_allowed(character, source) is not True:
         raise ValueError("Dungeon door source is not authorized")
     destination = next(
@@ -50,13 +67,34 @@ def resolve(character, body, *, source_allowed, room_for_position, criterion_all
     destination_room = room_for_position(
         destination["map_id"], destination["x"], destination["y"], destination["z"]
     )
+    mixed_binding = None
+    if topology is not None and topology.get("policy") == "native_mixed_victory_policy":
+        from wakfu_server import dungeon_native_flow
+
+        matches = [
+            b
+            for b in topology["doors"]
+            if b["source_id"] == object_id and b["destination_id"] == destination_id
+        ]
+        if len(matches) != 1:
+            raise ValueError("Native mixed transport has no unique reviewed binding")
+        mixed_binding = matches[0]
+        source_room = dungeon_native_flow.object_room(topology, source)
+        if (
+            source_room != mixed_binding["source_room"]
+            or destination_room != mixed_binding["destination_room"]
+            or tuple(destination[k] for k in ("x", "y", "z"))
+            != tuple(mixed_binding["destination_position"])
+        ):
+            raise ValueError("Native mixed transport contradicts reviewed endpoints")
+        dungeon_native_flow.validate_transport_binding(topology, mixed_binding)
     if (
         type(source_room) is not int
         or type(destination_room) is not int
         or min(source_room, destination_room) <= 0
-        or abs(destination_room - source_room) != 1
+        or (abs(destination_room - source_room) != 1 and mixed_binding is None)
     ):
-        raise ValueError("Dungeon door topology does not identify adjacent rooms")
+        raise ValueError("Dungeon door topology does not identify reviewed rooms")
     return source_room, destination_room, dict(destination)
 
 
@@ -69,11 +107,20 @@ def advance(
     *,
     source_allowed,
     room_for_position,
-    in_fight
+    in_fight,
+    topology=None,
+    on_arrival=None,
 ):
-    """Move all active run members atomically after their current-room victory."""
+    """Move the active party atomically within its authorized room frontier.
+
+    Forward travel requires the destination's preceding committed victory.
+    Reviewed mixed-policy hub and intra-stage travel preserve progress and
+    use the same durable outbox.
+    """
     if not callable(in_fight):
         raise ValueError("Authoritative combat check is required")
+    if on_arrival is not None and not callable(on_arrival):
+        raise ValueError("Authoritative arrival callback is required")
     with store.connection() as db:
         initial = db.execute(
             "SELECT instance_id,party_id FROM dungeon_instance_members "
@@ -151,6 +198,7 @@ def advance(
             criterion_allowed=lambda criterion: dungeon_criteria.evaluate(
                 store, criterion
             ),
+            topology=topology,
         )
         if max(source_room, destination_room) > progress["current_room"]:
             raise ValueError("Dungeon next room has no committed victory authorization")
@@ -158,7 +206,7 @@ def advance(
             receipt = db.execute(
                 "SELECT result FROM dungeon_room_encounters WHERE instance_id=%s "
                 "AND room_order=%s AND status='victory' ORDER BY result_revision DESC LIMIT 1",
-                (run["instance_id"], source_room),
+                (run["instance_id"], destination_room - 1),
             ).fetchone()
             if (
                 receipt is None
@@ -168,6 +216,16 @@ def advance(
                 raise ValueError(
                     "Dungeon next room has no committed victory authorization"
                 )
+        if topology is not None and topology.get("branch_routes"):
+            from wakfu_server import dungeon_branches
+
+            if on_arrival is None:
+                raise ValueError(
+                    "Native branch travel requires atomic encounter initialization"
+                )
+            dungeon_branches.select(
+                db, run["instance_id"], topology, struct.unpack_from(">q", body)[0]
+            )
         revision = run["revision"] + 1
         db.execute(
             "UPDATE dungeon_instances SET revision=%s WHERE instance_id=%s",
@@ -212,6 +270,8 @@ def advance(
                     destination["z"],
                 ),
             )
+        if on_arrival is not None:
+            on_arrival(db, run["instance_id"])
         return dict(
             destination,
             instance_id=run["instance_id"],

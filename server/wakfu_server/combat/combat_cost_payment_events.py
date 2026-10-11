@@ -1,16 +1,33 @@
 """Synthetic eWf30 events reuse actual Qe local/global delivery machinery."""
 from contextvars import ContextVar
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from .combat_ordinary_events import OrdinaryHealingEvents
 
 _payment = ContextVar("native_cost_payment", default=None)
 
 
-def payment_event_ids(costs):
+@dataclass(frozen=True)
+class PaidAbilityPolicy:
+    """Wakemu caller policy; native mi setter exists, original caller unknown."""
+
+    payer_id: int
+
+    def descriptor(self, costs):
+        if type(self.payer_id) is not int:
+            raise ValueError("Missing actual paid-ability payer")
+        return {
+            "runner_class": "eWf",
+            "action_costs": dict(costs),
+            "spell_context": {"present": False},
+            "paid_ability_policy": {"payer_id": self.payer_id, "mi": True, "mh": False},
+        }
+
+
+def payment_event_ids(costs, *, special=False):
     """Fresh eWf.bbx: AP55, MP65, WP60; mh/mi default false.
 
-    The fourth native resource is absent from current spell plans. Do not
-    invent its event73, or special mh/mi events74/2188/2234/2263.
+    Trusted paid-ability policy enables native mi events2188/2234/2263.
+    Generic923 retains fresh defaults. The fourth byte and mh/event74 are absent.
     """
     if (
         not isinstance(costs, dict)
@@ -22,6 +39,12 @@ def payment_event_ids(costs):
     for key, event in (("ap", 55), ("mp", 65), ("wp", 60)):
         if costs[key] > 0:
             selected.add(event)
+    if type(special) is not bool:
+        raise ValueError("Invalid native payment switch")
+    if special:
+        for key, event in (("ap", 2234), ("mp", 2188), ("wp", 2263)):
+            if costs[key] > 0:
+                selected.add(event)
     return tuple(sorted(selected))
 
 
@@ -37,7 +60,7 @@ def replay_paid_spell_costs(dispatcher, plan):
         return  # Minimal focused dispatchers have no retained event system.
     events = factory()
     costs = {key: plan["costs"][key] for key in ("ap", "mp", "wp")}
-    identifiers = payment_event_ids(costs)
+    identifiers = payment_event_ids(costs, special=True)
     actor_id = plan["actor_id"]
     from .combat_effect_dispatch import EffectInvocation
 
@@ -49,7 +72,12 @@ def replay_paid_spell_costs(dispatcher, plan):
         (0, 0, 0),
         native_retained_container={"present": False},
     )
-    definition = dict(effect_class=30, native_effect_flags=[], native_costs=costs)
+    definition = dict(
+        effect_class=30,
+        native_effect_flags=[],
+        native_costs=costs,
+        native_paid_ability_policy=PaidAbilityPolicy(actor_id),
+    )
     packed = costs["ap"] | (costs["mp"] << 8) | (costs["wp"] << 16)
     for channel in (3, 4):
         events.phase(
@@ -68,17 +96,7 @@ class NativeCostPaymentEvents(OrdinaryHealingEvents):
             costs = _payment.get()
             if costs is None:
                 return replay(source, authority=authority)
-            return replay(
-                replace(
-                    source,
-                    cost_source={
-                        "runner_class": "eWf",
-                        "action_costs": dict(costs),
-                        "spell_context": {"present": False},
-                    },
-                ),
-                authority=authority,
-            )
+            return replay(replace(source, cost_source=dict(costs)), authority=authority)
 
         super().__init__(
             adapter=adapter,
@@ -136,13 +154,23 @@ class NativeCostPaymentEvents(OrdinaryHealingEvents):
             )
         ):
             raise ValueError("Unverified native eWf action costs")
-        token = _payment.set(costs)
+        policy = effect.get("native_paid_ability_policy")
+        descriptor = {
+            "runner_class": "eWf",
+            "action_costs": dict(costs),
+            "spell_context": {"present": False},
+        }
+        if policy is not None:
+            if (
+                not isinstance(policy, PaidAbilityPolicy)
+                or policy.payer_id != invocation.caster_id
+                or invocation.target_id != policy.payer_id
+            ):
+                raise ValueError("Conflicting actual paid-ability payer")
+            descriptor = policy.descriptor(costs)
+        token = _payment.set(descriptor)
         try:
-            kwargs["_cost_source"] = {
-                "runner_class": "eWf",
-                "action_costs": dict(costs),
-                "spell_context": {"present": False},
-            }
+            kwargs["_cost_source"] = descriptor
             kwargs["_execution_status"] = -1
             return super().phase(effect, invocation, **kwargs)
         finally:

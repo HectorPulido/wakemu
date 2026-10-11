@@ -68,33 +68,14 @@ class NativeHudThresholdTests(unittest.TestCase):
         from wakfu_server.spells import encode_deck
         from wakfu_server.fight_checkpoint_store import snapshot
 
-        character, monster, fight = SpellTransactionTests().native_server_fixture(8, 21)
-        from wakfu_server.combat_actor_snapshot import (
-            build_npc_snapshot,
-            native_npc_creation_values,
+        character, monster, fight = SpellTransactionTests().native_server_fixture(
+            8,
+            21,
+            native_qi=True,
+            target_ref=4085,
+            target_level=23,
         )
-        from wakfu_server.combat_state import Actor
-
-        monster.update(ref=4085, level=23)
-        values = native_npc_creation_values(4085, 23)
-        npc = Actor(
-            -7,
-            1,
-            (2, 0, 0),
-            values[1]["current"],
-            values[2]["current"],
-            values[3]["current"],
-            5,
-            23,
-            3,
-            False,
-            max_hp=values[1]["maximum"],
-        )
-        npc.direction = 3
-        fight.actors[-7] = npc
-        build_npc_snapshot(
-            monster, npc, wp_current=0, wp_maximum=0, running_effects=()
-        ).install(npc)
+        self.assertEqual((fight.actors[-7].effective_level, monster["ref"]), (23, 4085))
         deck = encode_deck([4779])
         ready, _ = prepare_server_initialization(
             character,

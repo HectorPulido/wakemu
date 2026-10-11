@@ -7,6 +7,18 @@ from wakfu_server.combat_displacement import NativeDisplacementHandler
 from wakfu_server.combat_effect_dispatch import EffectInvocation
 
 
+class DisplacementAuthority:
+    def __call__(self, fight, actor):
+        return SimpleNamespace(
+            is_carried=False,
+            is_carrying=False,
+            native_instance_id=None,
+        )
+
+    def properties(self, fight, actor):
+        return frozenset()
+
+
 class ForcedCollisionQITests(unittest.TestCase):
     def setUp(self):
         self.actor = SimpleNamespace(
@@ -56,9 +68,9 @@ class ForcedCollisionQITests(unittest.TestCase):
             self.packets,
             action_id=1,
             allocate_uid=lambda: 10,
-            authority=lambda fight, actor: SimpleNamespace(native_instance_id=None),
+            authority=DisplacementAuthority(),
         )
-        self.handler._ordinary = lambda actor: set()
+        self.handler._ordinary = lambda actor, **kwargs: set()
 
     def test_singleton_collider_is_actual_registered_actor(self):
         self.assertEqual(

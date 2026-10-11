@@ -1,6 +1,7 @@
 # Fixed mining veins: source implementation and acceptance
 
-Status: prepared and automatically validated; not deployed or installed.
+Status: installed and restarted; graphical acceptance pending. See
+[deployment and manual acceptance](DEPLOYED-VEINS-20261010.md).
 
 Minerals use fixed database slots, independently of flora ecology and reproduction.
 Successful collection atomically grants the native product and profession XP, removes
@@ -38,8 +39,9 @@ default mode only reads, and explicit staging never activates a release.
 `install_mining_veins.py` defaults to validation only. Its `--navigation-dir` permits
 offline evidence validation and cannot be combined with `--apply`. Runtime
 installation requires published navigation authority and a matching plan revision.
-No runtime migration, catalog activation, slot import, deployment or restart has been
-performed for this work.
+The original offline preparation performed no runtime changes. Installation and
+restart are now recorded in [the deployment report](DEPLOYED-VEINS-20261010.md);
+mining navigation is independently pinned without changing the global gameplay release.
 
 ## Automated verification
 
@@ -70,5 +72,5 @@ performed for this work.
 7. Harvest/grow an ordinary plant and verify unchanged behavior. Attempt planting
    on an exhausted reserved mineral position: reject without consuming seeds.
 
-Final plan coordinates are source preparation, not currently live veins. Graphical
-acceptance remains pending.
+The installed plan now provides live vein coordinates; see the deployment report
+for an exact level0 approach. Graphical acceptance remains pending.

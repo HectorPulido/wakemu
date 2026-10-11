@@ -15,6 +15,19 @@ from wakfu_server import native_catalog
 
 
 class CollisionResourceRuntimeTests(unittest.TestCase):
+    def install_synthetic_qi_topology(self):
+        """Capture the fresh registration order of this explicit test arena."""
+        from wakfu_server.combat_qi_registry import NativeQIRegistry
+
+        registry = NativeQIRegistry(
+            self.preview.native_qi_snapshot, self.preview.native_qi_slots
+        )
+        registry.capture_fresh_cell_topology(
+            [actor.native_obstacle_id for actor in self.preview.actors.values()]
+        )
+        self.preview.native_qi_touched_cells = registry.serialized_cells()
+        self.preview.native_qi_byte_topology = registry.serialized_byte_topology()
+
     @classmethod
     def setUpClass(cls):
         fixtures.NativeDisplacementTests.setUpClass()
@@ -140,6 +153,7 @@ class CollisionResourceRuntimeTests(unittest.TestCase):
         self.preview.native_qi_touched_cells = []
         self.preview.native_qi_movement_override = False
         self.preview.native_qi_ignored_slots = []
+        self.install_synthetic_qi_topology()
         seen = []
         original = type(self.dispatcher.replay_event).__call__
 
@@ -240,6 +254,7 @@ class CollisionResourceRuntimeTests(unittest.TestCase):
         self.preview.native_qi_touched_cells = []
         self.preview.native_qi_movement_override = False
         self.preview.native_qi_ignored_slots = []
+        self.install_synthetic_qi_topology()
         with patch.dict(os.environ, {"WAKFU_NATIVE_AREA_CALLBACKS": "1"}):
             self.build_runtime()
             # Original noncritical339 creates actual faW prototype1035.

@@ -1,5 +1,8 @@
 # Mining review — 2026-10-10
 
+Historical baseline before fixed-vein implementation and installation. For current
+runtime status, see [the deployment report](DEPLOYED-VEINS-20261010.md).
+
 Read-only review of the current server code, native PostgreSQL catalogs and
 runtime database. No client, sniffer, server behavior or database rows changed.
 

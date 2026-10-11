@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import struct
+import tempfile
 import unittest
 import uuid
 
@@ -43,15 +44,35 @@ class DungeonRuntimeConfigurationPostgresTests(PostgresCase):
         with self.store.connection() as db:
             active = dungeon_runtime_config.active_configuration(db, "jalato_normal")
             setting_count = db.execute(
-                "SELECT count(*) AS n FROM settings WHERE name=%s",
-                ("dungeon_runtime_config:jalato_normal:v1",),
+                "SELECT count(*) AS n FROM dungeon_runtime_configurations "
+                "WHERE route_key='jalato_normal' AND policy_version=1",
+            ).fetchone()["n"]
+            active_count = db.execute(
+                "SELECT count(*) AS n FROM dungeon_runtime_active_configurations "
+                "WHERE route_key='jalato_normal' AND policy_version=1"
             ).fetchone()["n"]
             context_count = db.execute(
                 "SELECT count(*) AS n FROM dungeon_context_policy_versions "
                 "WHERE route_key='jalato_normal' AND policy_version=1"
             ).fetchone()["n"]
         self.assertEqual(self.config, active)
-        self.assertEqual((1, 1), (setting_count, context_count))
+        self.assertEqual((1, 1, 1), (setting_count, active_count, context_count))
+        with self.store.connection() as db:
+            self.assertEqual(
+                0,
+                db.execute(
+                    "SELECT count(*) AS n FROM settings "
+                    "WHERE name LIKE 'dungeon_runtime_config:%' "
+                    "OR name LIKE 'dungeon_runtime_active:%'"
+                ).fetchone()["n"],
+            )
+            with self.assertRaises(Exception):
+                with db.transaction():
+                    db.execute(
+                        "UPDATE dungeon_runtime_configurations "
+                        "SET configuration=configuration || '{\"tampered\":true}'::jsonb "
+                        "WHERE route_key='jalato_normal' AND policy_version=1"
+                    )
 
     def test_conflicting_version_is_rejected_and_transaction_rolls_back(self):
         changed_plan = copy.deepcopy(self.config["compiled_plan"])
@@ -96,8 +117,8 @@ class DungeonRuntimeConfigurationPostgresTests(PostgresCase):
         with self.store.connection() as db:
             self.assertIsNone(
                 db.execute(
-                    "SELECT value FROM settings WHERE name=%s",
-                    ("dungeon_runtime_config:jalato_normal:v2",),
+                    "SELECT configuration FROM dungeon_runtime_configurations "
+                    "WHERE route_key='jalato_normal' AND policy_version=2",
                 ).fetchone()
             )
             self.assertEqual(
@@ -128,6 +149,100 @@ class DungeonRuntimeConfigurationPostgresTests(PostgresCase):
         self.assertEqual(1, run["context_policy_version"])
         self.assertEqual(1, pinned["version"])
         self.assertEqual(party_id, run["party_id"])
+
+    def test_114_migrates_legacy_versions_and_pointer_without_touching_pinned_run(self):
+        members, _party_id = self.party(2)
+        session = self.create(members[0])
+        self.assertEqual(1, session["context_policy_version"])
+        version_two = dungeon_runtime_config.prepare_configuration(
+            self.config["compiled_plan"],
+            self.config["topology"],
+            self.config["route"],
+            version=2,
+            provenance="pre-114 migration fixture version two",
+        )
+        with self.store.connection() as db:
+            dungeon_runtime_config.install_configuration(db, version_two)
+            db.execute(
+                "DROP TRIGGER dungeon_runtime_configuration_immutable "
+                "ON dungeon_runtime_configurations"
+            )
+            db.execute("DELETE FROM dungeon_runtime_active_configurations")
+            db.execute("DELETE FROM dungeon_runtime_configurations")
+            for config in (self.config, version_two):
+                db.execute(
+                    "INSERT INTO settings(name,value) VALUES(%s,%s::jsonb)",
+                    (
+                        f"dungeon_runtime_config:jalato_normal:v{config['version']}",
+                        json.dumps(config),
+                    ),
+                )
+            db.execute(
+                "INSERT INTO settings(name,value) VALUES(%s,%s::jsonb)",
+                (
+                    "dungeon_runtime_active:jalato_normal",
+                    json.dumps(
+                        {
+                            "version": 2,
+                            "key": "dungeon_runtime_config:jalato_normal:v2",
+                        }
+                    ),
+                ),
+            )
+            migration = (
+                Path(__file__).resolve().parents[1]
+                / "migrations/114_dungeon_runtime_configuration_tables.sql"
+            ).read_text(encoding="utf8")
+            db.execute(migration)
+
+        with self.store.connection() as db:
+            versions = db.execute(
+                "SELECT policy_version FROM dungeon_runtime_configurations "
+                "WHERE route_key='jalato_normal' ORDER BY policy_version"
+            ).fetchall()
+            selected = db.execute(
+                "SELECT policy_version FROM dungeon_runtime_active_configurations "
+                "WHERE route_key='jalato_normal'"
+            ).fetchone()
+            legacy_count = db.execute(
+                "SELECT count(*) AS n FROM settings "
+                "WHERE name LIKE 'dungeon_runtime_config:%' "
+                "OR name LIKE 'dungeon_runtime_active:%'"
+            ).fetchone()["n"]
+            run, pinned = dungeon_runtime.configuration_for_instance(
+                db, session["instance_id"]
+            )
+            active = dungeon_runtime_config.active_configuration(db, "jalato_normal")
+        self.assertEqual([1, 2], [row["policy_version"] for row in versions])
+        self.assertEqual(2, selected["policy_version"])
+        self.assertEqual(0, legacy_count)
+        self.assertEqual(1, run["context_policy_version"])
+        self.assertEqual(1, pinned["version"])
+        self.assertEqual(2, active["version"])
+
+    def test_114_malformed_legacy_rows_fail_without_deleting_source(self):
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO settings(name,value) VALUES(%s,%s::jsonb)",
+                ("dungeon_runtime_config:jalato_normal:v0", json.dumps(self.config)),
+            )
+        migration = (
+            Path(__file__).resolve().parents[1]
+            / "migrations/114_dungeon_runtime_configuration_tables.sql"
+        ).read_text(encoding="utf8")
+        with self.assertRaisesRegex(
+            Exception, "Malformed legacy dungeon configuration key"
+        ):
+            with self.store.connection() as db:
+                db.execute(migration)
+        with self.store.connection() as db:
+            malformed = db.execute(
+                "SELECT value FROM settings "
+                "WHERE name='dungeon_runtime_config:jalato_normal:v0'"
+            ).fetchone()
+            active = dungeon_runtime_config.active_configuration(db, "jalato_normal")
+        self.assertIsNotNone(malformed)
+        self.assertEqual(1, active["version"])
 
     def test_selected_config_initializes_first_group_inside_entry_transaction(self):
         members, _party_id = self.party(2)
@@ -285,3 +400,210 @@ class DungeonRuntimeConfigurationPostgresTests(PostgresCase):
             "jalato_normal",
             authorize_entry=lambda _character, _route: True,
         )
+
+
+class DungeonRuntimeConfigurationMigrationPostgresTests(PostgresCase):
+    """Apply migration 114 over an actual isolated schema stopped at 113."""
+
+    def setUp(self):
+        migration_source = Path(__file__).resolve().parents[1] / "migrations"
+        with tempfile.TemporaryDirectory(prefix="wakemu-migrations-113-") as directory:
+            migration_target = Path(directory)
+            for migration in migration_source.glob("*.sql"):
+                if migration.name[:3].isdigit() and int(migration.name[:3]) <= 113:
+                    (migration_target / migration.name).symlink_to(migration)
+            prior = os.environ.get("WAKFU_MIGRATIONS_TEST_DIR")
+            os.environ["WAKFU_MIGRATIONS_TEST_DIR"] = directory
+            try:
+                super().setUp()
+            finally:
+                if prior is None:
+                    os.environ.pop("WAKFU_MIGRATIONS_TEST_DIR", None)
+                else:
+                    os.environ["WAKFU_MIGRATIONS_TEST_DIR"] = prior
+        self.config = selected_configuration()
+        self.migration_sql = (
+            migration_source / "114_dungeon_runtime_configuration_tables.sql"
+        ).read_text(encoding="utf8")
+
+    def version(self, number):
+        return dungeon_runtime_config.prepare_configuration(
+            self.config["compiled_plan"],
+            self.config["topology"],
+            self.config["route"],
+            version=number,
+            provenance=f"pre-114 migration test configuration v{number}",
+        )
+
+    def test_114_copies_every_version_and_active_pointer_and_preserves_pinned_run(self):
+        from wakfu_server.maps import dungeon_instances
+
+        config_one = self.version(1)
+        config_two = self.version(2)
+        account = self.store.register("mig" + uuid.uuid4().hex[:10], "test-password")[
+            "id"
+        ]
+        suffix = "".join(
+            chr(ord("a") + int(value, 16)) for value in uuid.uuid4().hex[:9]
+        )
+        character = self.store.create_character(account, "Mig" + suffix)
+        generation = self.store.begin_session(account, ttl=10_000)
+        character = self.store.select_character(account, generation, character["id"])
+
+        with self.store.connection() as db:
+            self.assertIsNone(
+                db.execute(
+                    "SELECT to_regclass('dungeon_runtime_configurations') AS name"
+                ).fetchone()["name"]
+            )
+            context_rows = [config_one["context_policy"], config_two["context_policy"]]
+            for context in context_rows:
+                fields = tuple(context)
+                db.execute(
+                    "INSERT INTO dungeon_context_policy_versions("
+                    + ",".join(fields)
+                    + ") "
+                    "VALUES(" + ",".join(["%s"] * len(fields)) + ")",
+                    tuple(context[field] for field in fields),
+                )
+            db.execute(
+                "INSERT INTO dungeon_context_active_policies(route_key,policy_version) "
+                "VALUES(%s,2)",
+                (config_two["route"]["key"],),
+            )
+            for config in (config_one, config_two):
+                db.execute(
+                    "INSERT INTO settings(name,value) VALUES(%s,%s::jsonb)",
+                    (
+                        f"dungeon_runtime_config:{config['route']['key']}:v{config['version']}",
+                        json.dumps(config),
+                    ),
+                )
+            db.execute(
+                "INSERT INTO settings(name,value) VALUES(%s,%s::jsonb)",
+                (
+                    f"dungeon_runtime_active:{config_one['route']['key']}",
+                    json.dumps(
+                        {
+                            "version": 2,
+                            "key": f"dungeon_runtime_config:{config_one['route']['key']}:v2",
+                        }
+                    ),
+                ),
+            )
+            db.execute("SET CONSTRAINTS ALL DEFERRED")
+            party_id = db.execute(
+                "INSERT INTO player_parties(leader_id) VALUES(%s) RETURNING id",
+                (character["id"],),
+            ).fetchone()["id"]
+            db.execute(
+                "INSERT INTO player_party_members(character_id,party_id) VALUES(%s,%s)",
+                (character["id"], party_id),
+            )
+            route = config_one["route"]
+            instance_id = db.execute(
+                "INSERT INTO dungeon_instances(party_id,party_revision,created_by_character_id,"
+                "template_id,definition_id,entry_map_id,entry_object_id,entry_destination_id,"
+                "start_map_id,context_route_key,context_policy_version) "
+                "VALUES(%s,1,%s,%s,%s,%s,%s,%s,%s,%s,1) RETURNING instance_id",
+                (
+                    party_id,
+                    character["id"],
+                    route["template_id"],
+                    route["definition_id"],
+                    route["entry_map_id"],
+                    route["entry_object_id"],
+                    route["destination_id"],
+                    route["start_map_id"],
+                    route["key"],
+                ),
+            ).fetchone()["instance_id"]
+            db.execute(
+                "INSERT INTO dungeon_instance_members(instance_id,party_id,character_id,"
+                "session_generation,party_revision,role) VALUES(%s,%s,%s,%s,1,'leader')",
+                (instance_id, party_id, character["id"], generation),
+            )
+            db.execute(
+                "INSERT INTO dungeon_room_runs(instance_id,party_id,catalog_hash,rooms) "
+                "VALUES(%s,%s,%s,%s::jsonb)",
+                (
+                    instance_id,
+                    party_id,
+                    config_one["compiled_plan"]["document_sha256"],
+                    json.dumps(config_one["compiled_plan"]["rooms"]),
+                ),
+            )
+
+        with self.store.connection() as db:
+            db.execute(self.migration_sql)
+
+        with self.store.connection() as db:
+            versions = db.execute(
+                "SELECT policy_version,configuration FROM dungeon_runtime_configurations "
+                "WHERE route_key=%s ORDER BY policy_version",
+                (config_one["route"]["key"],),
+            ).fetchall()
+            active = db.execute(
+                "SELECT policy_version FROM dungeon_runtime_active_configurations "
+                "WHERE route_key=%s",
+                (config_one["route"]["key"],),
+            ).fetchone()
+            legacy_count = db.execute(
+                "SELECT count(*) AS n FROM settings "
+                "WHERE starts_with(name,'dungeon_runtime_config:') "
+                "OR starts_with(name,'dungeon_runtime_active:')"
+            ).fetchone()["n"]
+            instance = db.execute(
+                "SELECT context_route_key,context_policy_version,status "
+                "FROM dungeon_instances WHERE instance_id=%s",
+                (instance_id,),
+            ).fetchone()
+            run = db.execute(
+                "SELECT current_room,catalog_hash,status FROM dungeon_room_runs "
+                "WHERE instance_id=%s",
+                (instance_id,),
+            ).fetchone()
+            pinned = dungeon_runtime_config.pinned_configuration(
+                db, config_one["route"]["key"], instance["context_policy_version"]
+            )
+            selected = dungeon_runtime_config.active_configuration(
+                db, config_one["route"]["key"]
+            )
+
+        self.assertEqual([1, 2], [row["policy_version"] for row in versions])
+        self.assertEqual(
+            [config_one, config_two], [row["configuration"] for row in versions]
+        )
+        self.assertEqual(2, active["policy_version"])
+        self.assertEqual(0, legacy_count)
+        self.assertEqual(
+            (config_one["route"]["key"], 1, "active"), tuple(instance.values())
+        )
+        self.assertEqual(
+            (1, config_one["compiled_plan"]["document_sha256"], "active"),
+            tuple(run.values()),
+        )
+        self.assertEqual(1, pinned["version"])
+        self.assertEqual(2, selected["version"])
+
+    def test_malformed_legacy_key_rolls_back_migration_and_preserves_source(self):
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO settings(name,value) VALUES(%s,%s::jsonb)",
+                ("dungeon_runtime_config:bad:v0", "{}"),
+            )
+        with self.assertRaisesRegex(
+            Exception, "Malformed legacy dungeon configuration key"
+        ):
+            with self.store.connection() as db:
+                db.execute(self.migration_sql)
+        with self.store.connection() as db:
+            self.assertIsNone(
+                db.execute(
+                    "SELECT to_regclass('dungeon_runtime_configurations') AS name"
+                ).fetchone()["name"]
+            )
+            row = db.execute(
+                "SELECT value FROM settings WHERE name='dungeon_runtime_config:bad:v0'"
+            ).fetchone()
+        self.assertIsNotNone(row)

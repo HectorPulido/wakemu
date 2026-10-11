@@ -76,7 +76,7 @@ def validate(
         blocked = [
             g["position"]
             for g in topology.get("physical_doors", [])
-            if g["source_room"] >= order
+            if g["destination_room"] > order
         ]
         stage_entry = entry
         if topology.get("policy") == "native_teleport_victory_policy":
@@ -127,15 +127,27 @@ def validate(
             if valid_counts
             else 0
         )
-        # A reviewed encounter may legitimately contain several bosses. Generated
-        # encounters may not invent that quantity or introduce an early final boss.
+        # An explicitly identified boss group may contain one of each boss.
+        # Generated encounters cannot duplicate a boss or introduce it early.
         generated_room = original_fields.get(order, {}).get(
             "policy_applied", generated_policy
         )
         if generated_room and boss_count and order != len(rooms):
             findings.append("generated_final_boss_in_early_room")
         if generated_room and boss_count > 1:
-            findings.append("duplicate_generated_boss")
+            boss_rows = [
+                m
+                for m in monsters
+                if m.get("ref_id") in bosses or m.get("role") == "boss"
+            ]
+            distinct_identified = (
+                len(bosses) > 1
+                and len(boss_rows) == len(bosses)
+                and {m.get("ref_id") for m in boss_rows} == bosses
+                and all(m.get("count") == 1 for m in boss_rows)
+            )
+            if not distinct_identified:
+                findings.append("duplicate_generated_boss")
         placement = []
         if not findings:
             combat_cells = set(map(tuple, combat["cells"]))

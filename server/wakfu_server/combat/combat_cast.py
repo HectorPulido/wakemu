@@ -200,6 +200,11 @@ def _validate_target(
         error = ValueError("Insufficient authoritative spell resources")
         error.cast_validation_code = "insufficient_resources"
         raise error
+    from .combat_spell_resource_costs import extra_costs, validate_extra_resources
+
+    approved_extra_deltas = extra_costs(costs.get("extra_resource_values", {}), actor)
+    validate_extra_resources(actor, approved_extra_deltas)
+    costs["extra_resource_deltas"] = approved_extra_deltas
     target_cell = request["target"]
     query = getattr(context, "native_casting_query", None)
     if not callable(query):

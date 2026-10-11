@@ -6,6 +6,7 @@
 !wakfu_server/
 !wakfu_server/**/*.py
 !wakfu_server/*.py
+!wakfu_server/admin_map_names.json
 !protocol/
 !protocol/**
 wakfu_server/__pycache__/
@@ -15,6 +16,9 @@ wakfu_server/__pycache__/
 !cron-service/Dockerfile
 !cron-service/service.py
 !cron-service/config.json
+!ecology-service/
+!ecology-service/Dockerfile
+!ecology-service/service.py
 
 !migrations/
 !migrations/*.sql
@@ -27,3 +31,15 @@ wakfu_server/__pycache__/
 !tools/import_native_catalogs.py
 !tools/equip_test_finisher.py
 !tools/performance_report.py
+!shop-service/
+!shop-service/Dockerfile
+!shop-service/service.py
+!admin-service/
+!admin-service/Dockerfile
+!admin-service/service.py
+!admin-service/static/
+!admin-service/static/**
+
+!admin-control-service/
+!admin-control-service/Dockerfile
+!admin-control-service/service.py

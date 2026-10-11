@@ -61,7 +61,15 @@ class NativeHeartBloodTests(unittest.TestCase):
         after = tx.fight.actors[7]
         self.assertTrue(tx.outcomes[0])
         self.assertEqual(
-            tx.plan["costs"], {"ap": 1, "mp": 0, "wp": 1, "conditional_rules": 0}
+            tx.plan["costs"],
+            {
+                "ap": 1,
+                "mp": 0,
+                "wp": 1,
+                "conditional_rules": 0,
+                "extra_resource_values": {},
+                "extra_resource_deltas": {},
+            },
         )
         self.assertEqual((after.ap, after.effect_stats[4]), (5, 5))
         # Native eYs refs 416623/418364 select the missing/current HP
@@ -137,7 +145,14 @@ class NativeHeartBloodTests(unittest.TestCase):
         self.assertTrue(transaction.outcomes[0])
         self.assertEqual(
             transaction.plan["costs"],
-            {"ap": 1, "mp": 0, "wp": 1, "conditional_rules": 0},
+            {
+                "ap": 1,
+                "mp": 0,
+                "wp": 1,
+                "conditional_rules": 0,
+                "extra_resource_values": {},
+                "extra_resource_deltas": {},
+            },
         )
         prepared = transaction.fight.actors[7]
         self.assertEqual(

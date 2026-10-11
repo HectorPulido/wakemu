@@ -132,7 +132,7 @@ class NativeOracle:
         check()
         return checked
 
-    def factory(self, fight, action_id, rng, *, critical=False):
+    def factory(self, fight, action_id, rng, *, critical=False, compiled=None):
         from wakfu_server.spells import validate_deck
         from wakfu_server.combat_ordinary_authority import (
             OrdinaryActorAuthority,
@@ -187,7 +187,8 @@ class NativeOracle:
             contexts = replace(
                 contexts, damage=observe(contexts.damage, damage_observations)
             )
-        compiled = npc_runtime_catalog()
+        if compiled is None:
+            compiled = npc_runtime_catalog(imported=False)
         factory = NativeEffectRuntimeFactory(
             effects=compiled.source_effects,
             state_catalog=states,
@@ -229,10 +230,44 @@ class NativeOracle:
         return private
 
     def _rng(self, fight, action):
-        from wakfu_server.combat_tactical_ai import state_key
+        actor = fight.current
+        if (
+            action.get("type") == "cast"
+            and actor is not None
+            and actor.id not in self.characters
+        ):
+            # Compare NPC alternatives with common forecast randomness. Costs,
+            # facing and native buffs still affect execution, never the sample.
+            # Native usage counters are optional (only tracked for enabled
+            # limits); successful NPC cast events provide the universal ordinal.
+            target = action.get("targetId")
+            ordinal = sum(
+                event.get("kind") == "npc_cast"
+                and event.get("turn_id") == fight.turn_id
+                and event.get("actor_id") == actor.id
+                and event.get("spell_id") == action.get("spellId")
+                and event.get("target_id") == target
+                for event in fight.events
+            )
+            seed = dict(
+                schema="npc-cast-common-randomness-v1",
+                fight=fight.id,
+                turn=fight.turn_id,
+                caster=actor.id,
+                caster_turn=actor.turn_count,
+                spell=action.get("spellId"),
+                level=action.get("level"),
+                target=target,
+                ordinal=ordinal,
+            )
+            if target is None:
+                seed["cell"] = action.get("target")
+        else:
+            from wakfu_server.combat_tactical_ai import state_key
 
+            seed = dict(state=state_key(fight), action=action)
         encoded = json.dumps(
-            dict(state=state_key(fight), action=action),
+            seed,
             sort_keys=True,
             separators=(",", ":"),
             allow_nan=False,
@@ -582,19 +617,16 @@ class NativeOracle:
         return record
 
     def cast(self, runtime, action, *, forecast=True):
-        from wakfu_server.combat_spell_transaction import (
-            prepare_spell_transaction,
-            SpellTransaction,
-        )
-        from wakfu_server.combat_geometry_snapshot import source_snapshot
+        from wakfu_server.combat_spell_transaction import prepare_spell_transaction
         from wakfu_server.combat_cast import _validate_target
         from wakfu_server.combat_native_spell_casting import definition
         from wakfu_server.combat_spell_grant import granted_spells
-        from wakfu_server.combat_spell_usage import consume_usage
-        from wakfu_server.combat_effect_dispatch import EffectInvocation
-        from wakfu_server.combat_active_spell import active_spell_scope
-        from wakfu_server.combat_cast_facing import mirror_cast_facing
-        from wakfu_server.combat_spells import cast_animation, cast_notification
+        from wakfu_server.combat_npc_spell import prepare_validated_npc_spell
+        from wakfu_server.combat_npc_attack import (
+            npc_runtime_catalog,
+            npc_spell_catalog,
+        )
+        from wakfu_server.combat_npc_activation import imports_enabled
 
         fight, actor = runtime.fight, runtime.fight.current
         if fight.phase != "active" or actor is None or actor.hp <= 0:
@@ -622,7 +654,25 @@ class NativeOracle:
         ):
             raise ValueError("Native caster does not own requested spell/level/target")
         rng = self._rng(fight, action) if forecast else random.Random()
-        factory, adapter = self.factory(fight, runtime.action_id + 1, rng)
+        compiled = None
+        if actor.id not in self.characters:
+            descriptor = self.descriptor(fight, actor)
+            policy = npc_spell_catalog().get("activation_policy")
+            imported = imports_enabled(
+                policy, descriptor["ref"], actor.effective_level, spell
+            )
+            if not imported and actor.id in getattr(
+                fight, "native_summon_registrations", {}
+            ):
+                from .native_summon_dependencies import registered_dependency_enabled
+
+                imported = registered_dependency_enabled(
+                    fight, actor, self.monsters, policy, spell, level
+                )
+            compiled = npc_runtime_catalog(imported=imported)
+        factory, adapter = self.factory(
+            fight, runtime.action_id + 1, rng, compiled=compiled
+        )
         if actor.id in self.characters:
             char = self.characters[actor.id]
             grant = granted_spells(fight, actor.id).get(spell)
@@ -648,7 +698,15 @@ class NativeOracle:
                 )
             return tx
         request = dict(actor_id=actor.id, spell_uid=spell, target=tuple(target))
-        context = adapter.cast_condition(fight, request)
+        from wakfu_server.combat_npc_area_preflight import npc_cast_condition
+
+        context = npc_cast_condition(
+            adapter,
+            fight,
+            request,
+            factory=factory,
+            enabled=imported,
+        )
         rule = definition(spell, level, context, actor.spell_ap_cost_modifiers)
         plan = _validate_target(
             request,
@@ -667,58 +725,13 @@ class NativeOracle:
             raise ValueError(
                 "Native NPC cast target identity differs from requested cell"
             )
-        source = source_snapshot(fight)
-        private, start = deepcopy(fight), len(fight.events)
-        caster = private.current
-        caster.ap -= rule["costs"]["ap"]
-        caster.mp -= rule["costs"]["mp"]
-        caster.effect_stats[4] -= rule["costs"]["wp"]
-        private._sync_resources(caster)
-        mirror_cast_facing(caster, plan)
-        dispatcher, effects = factory(private, plan)
-        with active_spell_scope(private, spell), private.effect_resolution():
-            outcomes = tuple(
-                dispatcher.execute(
-                    EffectInvocation(
-                        root, level, caster.id, plan["target_id"], plan["target"]
-                    )
-                )
-                for root in rule["roots"]
-            )
-        consume_usage(private, plan)
-        private._event(
-            "npc_cast",
-            actor_id=caster.id,
-            spell_id=spell,
-            target_id=plan["target_id"],
-            turn_id=fight.turn_id,
-        )
-        descriptor = self.descriptor(private, caster)
-        packets = tuple(
-            (
-                opcode,
-                codec(
-                    fight.id,
-                    runtime.action_id + 1,
-                    descriptor,
-                    spell,
-                    plan["target"],
-                    native_uid=spell,
-                    native_level=level,
-                    critical=False,
-                ),
-            )
-            for opcode, codec in ((12588, cast_animation), (12678, cast_notification))
-        ) + tuple(effects)
-        return SpellTransaction(
-            private,
+        return prepare_validated_npc_spell(
+            fight,
             plan,
-            caster.effect_stats[4],
-            outcomes,
-            packets,
-            tuple(private.events[start:]),
-            source,
-            runtime.action_id + 1,
+            rule,
+            descriptor,
+            factory=factory,
+            action_id=runtime.action_id + 1,
         )
 
     def preview_with_evidence(self, runtime, action):
@@ -776,15 +789,75 @@ class NativeOracle:
             private.fight.native_rail_movement_authority = (
                 movement_factory.native_rail_movement_authority
             )
+            callbacks = []
+            step_callback = None
+            # Player movement retains its established transaction path. NPC
+            # previews and real commits share this stepwise resource delivery.
+            if not actor.controlled and self.flags.get("native_area_callbacks", False):
+                if forecast:
+                    movement_rng.setstate(self._rng(private.fight, action).getstate())
+                dispatcher, callbacks = movement_factory(
+                    private.fight, {"native_retained_container": {"present": False}}
+                )
+
+                def step_callback(fight, moving_actor, before, cell):
+                    moving_actor.direction = DIRECTIONS[
+                        (cell[0] - before[0], cell[1] - before[1])
+                    ]
+                    from wakfu_server.combat_voluntary_movement_events import (
+                        deliver_voluntary_movement,
+                    )
+
+                    deliver_voluntary_movement(
+                        dispatcher,
+                        actor_id=moving_actor.id,
+                        from_cell=before,
+                        to_cell=cell,
+                    )
+                    dispatcher.native_area_events.movement(
+                        moving_actor.id, from_cell=before, to_cell=cell
+                    )
+
             if actor.controlled:
-                private.fight.move(actor.owner_id, actor.id, path)
+                event = private.fight.move(actor.owner_id, actor.id, path)
             else:
-                private.fight.server_move(actor.id, path)
-            path = [tuple(cell) for cell in path]
-            previous = origin if len(path) == 1 else path[-2]
-            actor.direction = DIRECTIONS[
-                (path[-1][0] - previous[0], path[-1][1] - previous[1])
-            ]
+                with private.fight.effect_resolution():
+                    event = private.fight.server_move(
+                        actor.id, path, step_callback=step_callback
+                    )
+            if actor.controlled and self.flags.get("native_area_callbacks", False):
+                previous = origin if len(path) == 1 else path[-2]
+                actor.direction = DIRECTIONS[
+                    (path[-1][0] - previous[0], path[-1][1] - previous[1])
+                ]
+                # Preserve the established controlled-actor callback path.
+                if forecast:
+                    movement_rng.setstate(self._rng(private.fight, action).getstate())
+                dispatcher, callbacks = movement_factory(
+                    private.fight, {"native_retained_container": {"present": False}}
+                )
+                before = origin
+                with private.fight.effect_resolution():
+                    for cell in map(tuple, path):
+                        from wakfu_server.combat_qi_fight import move_registered_actor
+
+                        move_registered_actor(private.fight, actor, cell)
+                        dispatcher.native_area_events.movement(
+                            actor.id, from_cell=before, to_cell=cell
+                        )
+                        before = cell
+                        if private.fight.phase != "active" or actor.hp <= 0:
+                            break
+                if actor.position != tuple(path[-1]):
+                    raise ValueError(
+                        "Native movement interrupted before requested destination"
+                    )
+            path = [tuple(cell) for cell in event["path"]]
+            if not self.flags.get("native_area_callbacks", False):
+                previous = origin if len(path) == 1 else path[-2]
+                actor.direction = DIRECTIONS[
+                    (path[-1][0] - previous[0], path[-1][1] - previous[1])
+                ]
             private.action_id += 1
             packets = [
                 movement(
@@ -795,41 +868,9 @@ class NativeOracle:
                     actor.direction,
                 )
             ]
-            if self.flags.get("native_area_callbacks", False):
-                # Preserve the original post-movement forecast seed. Binding
-                # actor authority above consumes no execution RNG draws.
-                if forecast:
-                    movement_rng.setstate(self._rng(private.fight, action).getstate())
-                dispatcher, callbacks = movement_factory(
-                    private.fight, {"native_retained_container": {"present": False}}
-                )
-                before = origin
-                with private.fight.effect_resolution():
-                    for cell in path:
-                        from wakfu_server.combat_qi_fight import move_registered_actor
-
-                        # The full route already moved QI to its final cell.
-                        # Qs callbacks observe each actual intermediate QK,
-                        # including the shared native position operand.
-                        move_registered_actor(
-                            private.fight, private.fight.actors[actor.id], cell
-                        )
-                        dispatcher.native_area_events.movement(
-                            actor.id, from_cell=before, to_cell=cell
-                        )
-                        before = cell
-                        if (
-                            private.fight.phase != "active"
-                            or private.fight.actors[actor.id].hp <= 0
-                        ):
-                            break
-                if callbacks:
-                    private.action_id += 1
+            if callbacks:
+                private.action_id += 1
                 packets.extend(callbacks)
-            if private.fight.actors[actor.id].position != path[-1]:
-                raise ValueError(
-                    "Native movement interrupted before requested destination"
-                )
             return private, tuple(packets), None
         if kind == "end_turn":
             if set(action) != {"type"}:
@@ -920,6 +961,18 @@ class NativeOracle:
             candidate.fight, candidate.action_id = private.fight, private.action_id
         else:
             raise ValueError("Unsupported native commit action")
+        # AI actions use the same death presentation boundary as player casts.
+        # Damage/retirement alone releases geometry but leaves the client actor
+        # visible. Stage these packets on the private candidate so a failure
+        # cannot publish a partial action or mark a live death as delivered.
+        from wakfu_server.combat_death import newly_registered_death_messages
+
+        packets = list(packets)
+        packets.extend(
+            newly_registered_death_messages(
+                candidate, after_sequence=runtime.fight.sequence
+            )
+        )
         if fingerprint() != source:
             raise ValueError("Native source changed while staging action delivery")
         check()

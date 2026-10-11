@@ -126,6 +126,11 @@ def install(store, placements):
                 tuple(row[k] for k in ("map_id", "instance_id", "x", "y")),
             ).fetchone():
                 raise ValueError("Mining placement cell already contains a resource")
+            if db.execute(
+                "SELECT 1 FROM fishing_spot_slots WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s AND enabled",
+                tuple(row[k] for k in ("map_id", "instance_id", "x", "y")),
+            ).fetchone():
+                raise ValueError("Mining placement cell is reserved for a fishing spot")
             db.execute(
                 "INSERT INTO mining_vein_slots(resource_uid,map_id,instance_id,x,y,z,resource_reference,stage,respawn_seconds,provenance,available_at) "
                 "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
@@ -176,7 +181,7 @@ def deplete(db, resource, now):
     return True
 
 
-def refill(store, *, limit=100):
+def refill(store, *, limit=100, resource_uid=None, expected_available_at=None):
     """Restore due placements exactly once and queue full resource publication.
 
     Fixed slots preserve identity across deletion, restarts and concurrent ticks.
@@ -189,55 +194,25 @@ def refill(store, *, limit=100):
     with store.connection() as db:
         slots = db.execute(
             "SELECT * FROM mining_vein_slots WHERE enabled AND NOT active "
-            "AND available_at<=%s ORDER BY available_at,resource_uid "
-            "LIMIT %s FOR UPDATE SKIP LOCKED",
-            (now, limit),
+            "AND available_at<=%s "
+            + ("AND resource_uid=%s " if resource_uid is not None else "")
+            + ("AND available_at=%s " if expected_available_at is not None else "")
+            + "ORDER BY available_at,resource_uid LIMIT %s FOR UPDATE SKIP LOCKED",
+            (now,)
+            + (() if resource_uid is None else (resource_uid,))
+            + (() if expected_available_at is None else (expected_available_at,))
+            + (limit,),
         ).fetchall()
         for slot in slots:
             reference = slot["resource_reference"]
             _harvest_stage(reference, slot["stage"])
-            resource = {
-                k: slot[k]
-                for k in (
-                    "resource_uid",
-                    "map_id",
-                    "instance_id",
-                    "x",
-                    "y",
-                    "z",
-                    "resource_reference",
-                    "stage",
-                )
-            }
-            resource["creation_time"] = int(now.timestamp() * 1000)
-            inserted = db.execute(
-                "INSERT INTO planted_resources(resource_uid,map_id,instance_id,x,y,z,resource_reference,stage,creation_time) "
-                "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING RETURNING resource_uid",
-                tuple(
-                    resource[k]
-                    for k in (
-                        "resource_uid",
-                        "map_id",
-                        "instance_id",
-                        "x",
-                        "y",
-                        "z",
-                        "resource_reference",
-                        "stage",
-                        "creation_time",
-                    )
-                ),
-            ).fetchone()
-            if inserted is None:
+            from .fixed_resource_slots import restore_resource
+
+            if not restore_resource(db, slot, now, spawn_flag="mining_spawn"):
                 continue
             db.execute(
                 "UPDATE mining_vein_slots SET active=TRUE WHERE resource_uid=%s",
                 (slot["resource_uid"],),
-            )
-            db.execute(
-                "INSERT INTO planting_growth_outbox(resource_uid,resource,group_payload) VALUES(%s,%s,NULL) "
-                "ON CONFLICT(resource_uid) DO UPDATE SET resource=EXCLUDED.resource,group_payload=NULL,published=FALSE",
-                (slot["resource_uid"], Jsonb(dict(resource, mining_spawn=True))),
             )
             restored += 1
     return restored

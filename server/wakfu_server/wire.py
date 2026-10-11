@@ -58,8 +58,13 @@ def minimal_entity(body, character):
         # NATION_SYNCHRO (27 bytes), GUILD_LOCAL_INFO, NATION_PVP_MONEY.
         # This later snapshot otherwise restores the fixture's nation after
         # the primary owned entity has already established neutral identity.
-        if len(body) != 46:
-            raise ValueError("Invalid native global-to-local entity snapshot")
+        from wakfu_server.characters.guild_wire import replace_local_entity
+
+        body = replace_local_entity(
+            body,
+            character.get("guild_native"),
+            character.get("guild_moderation_factor", 0.0),
+        )
         return body[:1] + bytes(31) + body[32:]
     level_xp(character["level"])
     layout = ENTITY_LAYOUTS.get(body[0])
@@ -71,7 +76,31 @@ def minimal_entity(body, character):
         raise ValueError("Entity fixture does not match verified section boundaries")
     for section in reversed(layout["sections"]):
         replacement = None
-        if section["name"] == "APPEARANCE" and character.get("appearance"):
+        if (
+            section["name"] in ("GUILD_ID", "GUILD_BLAZON")
+            and "guild_native" in character
+        ):
+            guild = character["guild_native"]
+            key = "guildId" if section["name"] == "GUILD_ID" else "blazon"
+            replacement = struct.pack(">q", guild[key] if guild else 0)
+        elif section["name"] == "GUILD_REMOTE_INFO" and "guild_native" in character:
+            from wakfu_server.characters.guild_wire import remote_info
+
+            guild = character["guild_native"]
+            replacement = (
+                remote_info(
+                    guild["guildId"], guild["blazon"], guild["level"], guild["name"]
+                )
+                if guild
+                else remote_info(0, 0, 0, "")
+            )
+        elif section["name"] == "GUILD_NAME" and "guild_native" in character:
+            guild = character["guild_native"]
+            name = guild["name"].encode("utf-8") if guild else b""
+            if len(name) > 255:
+                raise ValueError("Guild name exceeds native qn byte length")
+            replacement = bytes((len(name),)) + name
+        elif section["name"] == "APPEARANCE" and character.get("appearance"):
             replacement = appearance_section(character["appearance"])
         elif section["name"] in ("NATION_ID", "CHARACTER_LIST_NATION_ID"):
             # Own characters have no nation until an authoritative local model exists.

@@ -10,9 +10,15 @@ from collections import deque
 from ..context.native_context import NativeGraph
 from ..context.native_graph_parts import load_graph
 from .scoring import evaluate
+from .turn_memory import attacked_this_turn, battleground_border_cells
 from .tactical import DEFAULT_WEIGHTS
 from .capability_evidence import observed
-from .topology_distance import directed_adjacencies, distance_field_from_reverse
+from .topology_distance import (
+    directed_adjacencies,
+    distance_field_from_reverse,
+    minimum_exposure,
+    exposure_field_from_reverse,
+)
 from .casting_prerequisites import (
     certified_unavailable_spell_keys,
     all_owned_spells_unavailable,
@@ -240,11 +246,52 @@ def candidates(
         roles = (capability_evidence or {}).get(
             (spell["spellId"], spell["level"]), set()
         )
+        ranges = prepared(lambda: _native_range_hints(spell))
+        hint = spell.get("advisoryCapabilities")
+        summon_hint = "summoning" in roles or (
+            isinstance(hint, dict)
+            and hint.get("spellId") == spell["spellId"]
+            and hint.get("level") == spell["level"]
+            and isinstance(hint.get("tags"), list)
+            and "summon" in hint["tags"]
+        )
 
-        def relevant(cell, roles=roles):
+        if summon_hint and ranges is None and isinstance(hint, dict):
+            # Capabilities are advisory even when newer casting metadata cannot
+            # be parsed here. They order probes without excluding any target.
+            minimum, maximum = hint.get("minimum"), hint.get("maximum")
+            if (
+                type(minimum) is int
+                and type(maximum) is int
+                and 0 <= minimum <= maximum
+            ):
+                ranges = ((minimum, maximum),)
+
+        def range_priority(cell, ranges=ranges):
+            distance = abs(cell[0] - origin[0]) + abs(cell[1] - origin[1])
+            return ranges is not None and not any(
+                lo <= distance <= hi for lo, hi in ranges
+            )
+
+        if summon_hint:
+            # Native advisory tags order exploration only. Every recipient
+            # remains eligible, including self and occupied cells, because
+            # conditional or multi-purpose summons still require a preview.
+            spell_targets = prepared(
+                lambda: sorted(
+                    spell_targets,
+                    key=lambda cell: (
+                        range_priority(cell),
+                        tuple(cell) in occupied,
+                        priority(cell),
+                    ),
+                )
+            )
+
+        def relevant(cell, roles=roles, summon_hint=summon_hint):
             target = actors.get(occupied.get(tuple(cell)))
             if target is None or target["hp"] <= 0:
-                return False
+                return summon_hint
             ally = target["team"] == actor["team"]
             return (
                 ally
@@ -267,19 +314,27 @@ def candidates(
                 else (spell_targets[0] if spell_targets else None)
             )
         )
-        ranges = prepared(lambda: _native_range_hints(spell))
         if first_target is None or ranges is None:
             move_before_first_cast = False
         elif _in_any_range(origin, first_target, ranges):
             move_before_first_cast = False
 
         def casts(
-            spell=spell, roles=roles, relevant=relevant, spell_targets=spell_targets
+            spell=spell,
+            roles=roles,
+            relevant=relevant,
+            spell_targets=spell_targets,
+            summon_hint=summon_hint,
+            range_priority=range_priority,
         ):
             # Observations order exploration only. A multi-purpose spell keeps
             # both sides eligible, including empty cells and future mechanics.
             def role_priority(cell):
-                return (not relevant(cell), priority(cell))
+                return (
+                    range_priority(cell) if summon_hint else False,
+                    not relevant(cell),
+                    priority(cell),
+                )
 
             ordered = (
                 prepared(lambda: sorted(spell_targets, key=role_priority))
@@ -422,7 +477,14 @@ def _movement_candidates(
     """Decode the complete movement graph only when its stream is explored."""
     decode = geometry or (lambda reference: _sequence(graph, reference))
     edges = [] if graph.resolve(edges_reference) is None else decode(edges_reference)
-    operation = lambda: _movement_orders(edges, cells, actors, actor_id)
+    operation = lambda: _movement_orders(
+        edges,
+        cells,
+        actors,
+        actor_id,
+        retreat=attacked_this_turn(graph, _fight(graph), actor_id),
+        hazard_cells=battleground_border_cells(graph, _fight(graph)),
+    )
     route_orders = operation() if prepare is None else prepare(operation)
 
     def movement_candidates():
@@ -444,7 +506,7 @@ def _movement_candidates(
     yield from movement_candidates()
 
 
-def _movement_orders(edges, cells, actors, actor_id):
+def _movement_orders(edges, cells, actors, actor_id, *, retreat=False, hazard_cells=()):
     """Prepare complete route orders; candidate exploration is timed separately.
 
     This fixed topology work still consumes the native turn and decision wall
@@ -474,6 +536,22 @@ def _movement_orders(edges, cells, actors, actor_id):
     approach = distance_field_from_reverse(
         reverse, enemy_cells, set(occupied) - enemy_cells - {origin}
     )
+    exposure_field = (
+        exposure_field_from_reverse(
+            reverse,
+            enemy_cells,
+            set(occupied) - enemy_cells - {origin},
+            hazard_cells,
+        )
+        if hazard_cells and not retreat
+        else {}
+    )
+
+    def route_exposure(route):
+        exposure = sum(cell in hazard_cells for cell in route)
+        if origin in exposure_field and route[-1] in exposure_field:
+            return max(0, exposure + exposure_field[route[-1]] - exposure_field[origin])
+        return exposure
 
     def route_priority(route):
         end = route[-1]
@@ -484,7 +562,10 @@ def _movement_orders(edges, cells, actors, actor_id):
             ),
             default=0,
         )
-        return approach.get(end, len(cells) + 1), distance, len(route), route
+        exposure = route_exposure(route)
+        if retreat:
+            return exposure, -min(distance, 6), len(route), route
+        return exposure, approach.get(end, len(cells) + 1), distance, len(route), route
 
     # Promote complete reachable routes without discarding their shorter
     # prefixes. Keep the ordinary nearest-threat order first, then interleave
@@ -493,7 +574,7 @@ def _movement_orders(edges, cells, actors, actor_id):
     # budget; it does not classify or exclude any actor, and the full route
     # stream remains available for native preview.
     route_orders = [iter(sorted(routes, key=route_priority))]
-    if routes:
+    if routes and not retreat:
         for enemy in sorted(enemies, key=lambda value: value["id"]):
             check()
             target = tuple(enemy["position"])
@@ -512,7 +593,12 @@ def _movement_orders(edges, cells, actors, actor_id):
                 # reachable representative. XY is only a shortlist tie-break;
                 # route legality and final ranking remain native-certified.
                 progress_rank = 0 if distance < origin_distance else 1
-                return progress_rank, distance, route_priority(route)
+                return (
+                    route_exposure(route),
+                    progress_rank,
+                    distance,
+                    route_priority(route),
+                )
 
             representative = min(routes, key=representative_priority)
             route_orders.append(iter((representative,)))
@@ -541,7 +627,7 @@ def _movement_orders(edges, cells, actors, actor_id):
     return route_orders
 
 
-def _metrics(raw, actor_id, *, unreachable_penalty=None):
+def _metrics(raw, actor_id, *, unreachable_penalty=None, retreat=False):
     features = validate_features(
         raw.get("outcomeFeatures", {}), "outcome features", 1e9
     )
@@ -568,8 +654,26 @@ def _metrics(raw, actor_id, *, unreachable_penalty=None):
     position_basis = "legacy_xy_heuristic"
     if "topologyDistances" in raw:
         topology = raw["topologyDistances"]
+        has_primary_topology = "primaryTopologyDistances" in raw
+        primary_topology = raw.get("primaryTopologyDistances")
+        using_primary_topology = False
+        if has_primary_topology:
+            if primary_topology is None:
+                topology = None
+                using_primary_topology = True
+            elif not isinstance(primary_topology, dict):
+                raise ValueError("Invalid native primary topology distances")
+            elif str(actor_id) in primary_topology:
+                topology = primary_topology
+                using_primary_topology = True
         position_basis = (
-            "unknown_topology" if topology is None else "directed_xyz_topology"
+            "unknown_primary_topology"
+            if using_primary_topology and topology is None
+            else "directed_xyz_primary_target_topology"
+            if using_primary_topology
+            else "unknown_topology"
+            if topology is None
+            else "directed_xyz_topology"
         )
         if topology is None:
             distance = 0  # Unknown topology supplies no positional advantage.
@@ -588,12 +692,30 @@ def _metrics(raw, actor_id, *, unreachable_penalty=None):
                 raise ValueError("Invalid native topology distance")
     return dict(
         actors=actors,
-        position=-distance * 0.25,
+        position=(min(distance, 6) if retreat else -distance) * 0.25,
         position_basis=position_basis,
         threat=0,
         uncertainty=0,
         features=features,
     )
+
+
+def _remaining_border_exposure(reverse, actors, actor_id, hazards):
+    actor = actors[actor_id]
+    enemies = [
+        other
+        for other in actors.values()
+        if other["hp"] > 0 and other["team"] != actor["team"]
+    ]
+    primary = [other for other in enemies if other.get("registeredSummon") is not True]
+    goals = {tuple(other["position"]) for other in primary or enemies}
+    origin = tuple(actor["position"])
+    blocked = (
+        {tuple(other["position"]) for other in actors.values() if other["hp"] > 0}
+        - goals
+        - {origin}
+    )
+    return minimum_exposure(reverse, goals, blocked, origin, hazards)
 
 
 def _team_context(envelope, policy, actors, actor_id):
@@ -759,10 +881,38 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
     ):
         raise ValueError("Invalid native search weights")
     weights.update(configured_weights)
+    registered_summon_value = policy.get("registeredSummonValue", 0.25)
+    if (
+        type(registered_summon_value) not in (int, float)
+        or not math.isfinite(registered_summon_value)
+        or not 0 <= registered_summon_value <= 1
+    ):
+        raise ValueError("Invalid registered summon value")
     feature_weights = validate_features(
         policy.get("featureWeights", {}), "feature weights", 1000
     )
-    root = _metrics(envelope["root"], actor_id)
+    memory_graph = root_graph or load_graph(store, envelope["root"]["nativeContext"])
+    retreat = attacked_this_turn(memory_graph, _fight(memory_graph), actor_id)
+    border_cells = battleground_border_cells(memory_graph, _fight(memory_graph))
+    root = _metrics(envelope["root"], actor_id, retreat=retreat)
+    border_reverse = None
+    unavoidable_border = None
+    if border_cells and not retreat:
+        fight_reference = _fight(memory_graph)
+        edges_reference = memory_graph.field(fight_reference, "edges")
+        if memory_graph.resolve(edges_reference) is not None:
+            cells = {
+                tuple(cell)
+                for cell in _sequence(
+                    memory_graph, memory_graph.field(fight_reference, "walkable")
+                )
+            }
+            _, border_reverse = directed_adjacencies(
+                _sequence(memory_graph, edges_reference), cells=cells
+            )
+            unavoidable_border = _remaining_border_exposure(
+                border_reverse, root["actors"], actor_id, border_cells
+            )
     if root["actors"][actor_id]["hp"] <= 0:
         raise ValueError("Native search requires a live source actor")
     root_movement_available = root["actors"][actor_id]["mp"] > 0
@@ -793,7 +943,15 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                 )
                 continue
             available_weights[name] = weight
-        return evaluate(root, metrics, actor_id, weights, team, available_weights)
+        return evaluate(
+            root,
+            metrics,
+            actor_id,
+            weights,
+            team,
+            available_weights,
+            summon_value=registered_summon_value,
+        )
 
     # Complete snapshot/repertoire loading is mandatory context preparation,
     # separate from exploration work. Count it under the real owner deadline,
@@ -815,7 +973,17 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         raise ValueError("Invalid native movement-only search budget")
     turn_deadline = None
     decision_deadline = None
+    search_decision_deadline = None
     decision_wall_budget = None
+    rival_search_reserve_ms = policy.get("rivalSearchReserveMs", 500)
+    if (
+        type(rival_search_reserve_ms) is not int
+        or not 0 <= rival_search_reserve_ms <= 10000
+    ):
+        raise ValueError("Invalid rival search reserve")
+    rival_reserved_ms = 0.0
+    rival_search_started = None
+    rival_search_used_ms = 0.0
     reserve = policy.get("commitReserveMs", 500)
     if type(reserve) is not int or not 0 <= reserve <= 10000:
         raise ValueError("Invalid native commit reserve")
@@ -828,7 +996,8 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         raise ValueError("Invalid native search time fraction")
 
     def update_turn_budget(message):
-        nonlocal turn_deadline, decision_deadline, decision_wall_budget
+        nonlocal turn_deadline, decision_deadline, search_decision_deadline
+        nonlocal decision_wall_budget, rival_reserved_ms
         if not isinstance(message, dict):
             raise ValueError("Invalid native query response")
         if "nativeBudgetMs" not in message:
@@ -846,6 +1015,13 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             # queries and preparation, and is never renewed by later hints.
             decision_wall_budget = max(0.0, value - reserve) * time_fraction
             decision_deadline = clock() + decision_wall_budget / 1000
+            if rival_search_reserve_ms and "project_turn" in envelope.get(
+                "operations", []
+            ):
+                rival_reserved_ms = min(
+                    float(rival_search_reserve_ms), decision_wall_budget * 0.25
+                )
+            search_decision_deadline = decision_deadline - rival_reserved_ms / 1000
 
     update_turn_budget(envelope)
     stop_reasons = []
@@ -870,8 +1046,8 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         # target on the full map. Otherwise a rejected cast must not starve a
         # later movement candidate.
         if (
-            decision_deadline is not None
-            and now >= decision_deadline
+            search_decision_deadline is not None
+            and now >= search_decision_deadline
             and (
                 root_action_certified
                 or (root_action_attempted and not root_movement_available)
@@ -1048,7 +1224,12 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                 continue
             if frame["depth"] == 0 and node["key"] == root_key:
                 root_action_certified = True
-            metrics = _metrics(state, actor_id, unreachable_penalty=unreachable_penalty)
+            metrics = _metrics(
+                state,
+                actor_id,
+                unreachable_penalty=unreachable_penalty,
+                retreat=retreat,
+            )
             if metrics["actors"][actor_id]["hp"] <= 0:
                 metrics["position"] = root["position"]
             if action["type"] == "cast":
@@ -1070,10 +1251,32 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                     dict(row, sourceState=node["key"], previewState=state["key"])
                     for row in state.get("damageContextEvidence", [])
                 ],
+                borderExposure=node.get("borderExposure", 0)
+                + (
+                    sum(tuple(cell) in border_cells for cell in action["path"])
+                    if action["type"] == "move"
+                    else 0
+                ),
                 visited=node["visited"] | {state_identity(state)},
             )
+            if option["borderExposure"]:
+                # Prefer avoiding the perimeter when a safer route exists.
+                # Required crossings must not deadlock a narrow native bridge;
+                # actual resource/damage loss remains in the native outcome.
+                avoidable_exposure = option["borderExposure"]
+                if unavoidable_border is not None:
+                    remaining = _remaining_border_exposure(
+                        border_reverse, metrics["actors"], actor_id, border_cells
+                    )
+                    if remaining is not None:
+                        avoidable_exposure = max(
+                            0, avoidable_exposure + remaining - unavoidable_border
+                        )
+                penalty = 2.0 * avoidable_exposure
+                option["score"] -= penalty
+                option["components"]["battleground_border_exposure"] = -penalty
             alternatives.append(option)
-            if score > best["score"]:
+            if option["score"] > best["score"]:
                 best = option
             if (
                 frame["depth"] + 1 < limits["depth"]
@@ -1179,7 +1382,11 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             risk_deadline = min(risk_deadline, turn_deadline - reserve / 1000)
         if decision_deadline is not None:
             risk_deadline = min(risk_deadline, decision_deadline)
-        if not root_action_certified or exhausted():
+        if not root_action_certified or (
+            risk_deadline <= clock()
+            or turn_deadline is not None
+            and clock() >= turn_deadline - reserve / 1000
+        ):
             # Rival forecasting is optional and can require several native
             # round trips. Do not let it consume the owner reserve or displace
             # the first own action when mandatory context was slow.
@@ -1187,6 +1394,8 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             unsupported.append("rival_forecast_skipped_after_root_action_budget")
         baseline_penalty = None
         evaluated = []
+        if not rival_forecast_skipped:
+            rival_search_started = clock()
         for option in [] if rival_forecast_skipped else shortlist:
             risk = (
                 dict(
@@ -1221,6 +1430,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             )
             assessed = dict(
                 option,
+                riskForecast=risk,
                 score=adjusted,
                 components=dict(
                     option["components"],
@@ -1238,7 +1448,21 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                     forecast=risk,
                 )
             )
+        if rival_search_started is not None:
+            rival_search_used_ms = max(0.0, clock() - rival_search_started) * 1000
         if evaluated:
+            from .risk_coverage import comparable_bounds
+
+            bounds = comparable_bounds([option["riskForecast"] for option in evaluated])
+            for option, bound, trace in zip(evaluated, bounds, risk_trace):
+                old_penalty = -option["components"]["rival_risk_lower_bound"]
+                penalty = bound * weights["threat"]
+                option["score"] += old_penalty - penalty
+                option["components"]["rival_risk_coverage_imputation"] = (
+                    old_penalty - penalty
+                )
+                trace["score"] = option["score"]
+                trace["coverageImputation"] = penalty - old_penalty
             best = min(
                 evaluated,
                 key=lambda option: (
@@ -1250,7 +1474,10 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
     else:
         unsupported.append("native_rival_projection_operation_unavailable")
     selected = _metrics(
-        best["state"], actor_id, unreachable_penalty=unreachable_penalty
+        best["state"],
+        actor_id,
+        unreachable_penalty=unreachable_penalty,
+        retreat=retreat,
     )
     if selected["actors"][actor_id]["hp"] <= 0:
         selected["position"] = root["position"]
@@ -1270,6 +1497,8 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             stopReasons=stop_reasons,
             searchWorkMsAtLastBudgetCheck=work_at_budget_check,
             decisionWallBudgetMs=decision_wall_budget,
+            rivalSearchReserveMs=rival_reserved_ms,
+            rivalSearchUsedMs=rival_search_used_ms,
             searchTimeFraction=time_fraction,
             movementOnly=movement_only,
             movementOnlyBudgetMs=movement_only_budget_ms if movement_only else None,

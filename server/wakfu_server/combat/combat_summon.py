@@ -531,6 +531,19 @@ class RegisteredSummonAuthority:
             return frozenset(live)
         self(preview, actor)
         records = getattr(preview, "native_summon_registrations", {})
+        if actor.id in records:
+            live = getattr(actor, "native_fight_properties", None)
+            counts = getattr(actor, "native_fight_property_counts", None)
+            if live is not None or counts is not None:
+                from .combat_property_stack import property_present
+
+                property_present(counts, 0)
+                current = frozenset(k for k, value in counts.items() if value != 0)
+                if live != current:
+                    raise ValueError("Inconsistent native summoned property snapshot")
+                # PB changes after construction, including retained eWt removal.
+                # The registration stores the original descriptor, not live PB.
+                return current
         return (
             records[actor.id]["fight_properties"]
             if actor.id in records

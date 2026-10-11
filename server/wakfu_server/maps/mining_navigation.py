@@ -6,6 +6,9 @@ Missing or malformed native evidence fails closed; no filesystem fallback exists
 from wakfu_server import native_catalog
 from .paths import DATA_ROOT
 from functools import lru_cache
+import hashlib
+import json
+import os
 
 PROFILE = "native_world_exploration_4_0_6"
 
@@ -80,9 +83,30 @@ def _incoming(document, map_id):
 @lru_cache(maxsize=32)
 def _map_index(revision, map_id):
     path = DATA_ROOT / "world-navigation" / f"{map_id}.json"
+    if os.environ.get("WAKFU_MINING_CATALOG_REVISION"):
+        if len(revision) != 64 or any(c not in "0123456789abcdef" for c in revision):
+            raise ValueError("Invalid pinned mining navigation revision")
+        with native_catalog._database().connection() as db:
+            row = db.execute(
+                "SELECT d.raw,d.sha256 FROM native_catalog_documents d "
+                "JOIN native_catalog_releases r USING(revision) "
+                "WHERE d.revision=%s AND d.path=%s AND r.complete",
+                (revision, f"world-navigation/{map_id}.json"),
+            ).fetchone()
+        if row is None:
+            raise ValueError("Published native world navigation is unavailable")
+        raw = bytes(row["raw"])
+        if hashlib.sha256(raw).hexdigest() != row["sha256"]:
+            raise ValueError("Native mining navigation checksum mismatch")
+        return _incoming(json.loads(raw), map_id)
     if not native_catalog.exists(path):
         raise ValueError("Published native world navigation is unavailable")
     return _incoming(native_catalog.load(path), map_id)
+
+
+def _revision():
+    """Pin mining geometry independently of the unchanged gameplay catalog."""
+    return os.environ.get("WAKFU_MINING_CATALOG_REVISION") or native_catalog.release()
 
 
 def approaches(map_id, position):
@@ -91,9 +115,7 @@ def approaches(map_id, position):
         raise ValueError("Invalid mining navigation map")
     position = _position(position)
     return (
-        _map_index(native_catalog.release(), map_id)
-        .get(position, {})
-        .get("approaches", frozenset())
+        _map_index(_revision(), map_id).get(position, {}).get("approaches", frozenset())
     )
 
 
@@ -102,7 +124,7 @@ def surface(map_id, x, y, z):
     if type(map_id) is not int or not 0 < map_id < 2**31:
         raise ValueError("Invalid mining navigation map")
     position = _position((x, y, z))
-    result = _map_index(native_catalog.release(), map_id).get(position)
+    result = _map_index(_revision(), map_id).get(position)
     if result is None:
         raise ValueError("Unknown native mining surface")
     return dict(result)

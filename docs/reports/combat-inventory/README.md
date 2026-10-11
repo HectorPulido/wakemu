@@ -1,15 +1,37 @@
 # Inventario de combate y seguimiento
 
-## Current provisional acceptance — 6/18
+## Current provisional acceptance — 12/18
 
-The user now records Cra, Iop, Sacrier, Aniripsa and Osamodas as provisionally
-accepted, together with Ouginak following the latest user confirmation: **6/18**. This records user acceptance; remaining manual coverage and
-shared combat resilience remain tracked separately. Historical counts below
-refer to earlier milestones.
+The user provisionally accepts Cra, Iop, Sacrier, Aniripsa, Osamodas, Ouginak,
+Zobal, Huppermage, Sram, Feca, Pandawa and Ecaflip. Manual validation is deferred until the end;
+this does not close documented conditional branches or shared combat risks.
+Current inventory-only refresh: **Enutrof, Steamer, Eliotrope, Sadida, Rogue and Xelor**. Historical counts
+below describe their original workstream milestones.
+
+## Pandawa and Ecaflip workstream — 2026-10-10
+
+The [coordinated workstream](pandawa-ecaflip-workstream-20261010.md) records shared
+corrections, regression gates and the distinction between deployed changes and
+new local changes. [Pandawa inventory and manual battery](pandawa-implementation-inventory-20261010.md)
+covers21 actives and17 passives. Ecaflip has a [current catalog inventory](ecaflip-catalog-audit-20261010.md),
+[runtime qualification](ecaflip-runtime-qualification-20261010.md),
+[twenty-passive semantic matrix](ecaflip-passive-semantic-matrix-20261010.md)
+and [complete manual battery](ecaflip-manual-acceptance-20261010.md).
+Neither catalog presence nor initialization alone raises the provisional class count.
+The [final technical and manual acceptance procedure](pandawa-ecaflip-final-acceptance-20261010.md)
+coordinates both complete batteries and the shared combat checks.
+Both classes are now technically ready for manual acceptance:182/182 tests passed
+on the active joint class/monster deployment, with no failures, errors or skips.
+The user subsequently accepted both provisionally, bringing the register to12/18.
+
+The [full regression review](validation/full-regression-20261010.md) records
+complete discovery results, fresh class/shared-combat follow-ups, outstanding
+failures and the validated but unactivated copied-book catalog correction.
+NPC failures are excluded from this workstream at the user's request.
 
 ## Remaining class inventory and implementation priority
 
-[Current implementation priority](next-class-priority-20261010.md) ranks the twelve remaining classes. This is a risk-based scheduling estimate, not functional certification.
+[Refreshed six-class inventory](remaining-six-refresh-20261010/README.md) records current estimates, per-class reports and remaining integration risks. [Current implementation priority](next-class-priority-20261010.md) ranks the six classes outside provisional acceptance. This is a risk-based scheduling estimate, not functional certification.
 
 [Complete review register](remaining-classes-20261010/README.md) preserves the thirteen-class baseline and links all thirteen
 class reviews and reproducible machine inventories: 521 primary active/passive
@@ -20,9 +42,18 @@ checks all class rosters and innates, extras and 29 unique fixed summon profiles
 Catalog presence and route registration are separate from functional acceptance;
 this inventory does not raise the playable class count or implement mechanics.
 
+## Huppermage, Sram and Feca workstream — 2026-10-10
+
+The [coordinated local workstream](hupper-sram-feca-workstream-20261010.md) covers
+Huppermage, Sram and Feca in parallel. Each class
+requires a refreshed PostgreSQL-backed inventory, evidence for missing routes,
+local runtime verification and a complete manual battery. Shared engine changes
+remain coordinated and prior-class regressions must pass. No restart or
+deployment is included; the user subsequently accepted these three provisionally in the **10/18** milestone.
+
 ## Zobal workstream — 2026-10-10
 
-[Current implementation and validation](zobal-implementation-20261010.md) records the shared initiative correction, complete copied-book metadata, staged catalog revision and bounded active/passive/mask/copy validation. The [complete manual battery](zobal-manual-acceptance-20261010.md) covers masks, all owned actives/passives, copy control and multiplayer cleanup. Zobal remains pending user acceptance; the project stays **6/18**. No deployment or restart by this workstream.
+[Current implementation and validation](zobal-implementation-20261010.md) records the shared initiative correction, complete copied-book metadata, staged catalog revision and bounded active/passive/mask/copy validation. The [complete manual battery](zobal-manual-acceptance-20261010.md) covers masks, all owned actives/passives, copy control and multiplayer cleanup. Zobal was subsequently accepted provisionally in the **10/18** milestone; deferred branches remain documented. No deployment or restart by this workstream.
 
 ## Osamodas incident fixes — 2026-10-10
 
@@ -609,3 +640,7 @@ The shared Iop context, Preparation and voluntary-movement repairs are delivered
 ## Iop level 60 manual acceptance
 
 [Complete level-60 test plan](manual-iop-level60-acceptance-20261009.md): decks, five combos, Preparation/environment regression, banner variants, available passives, movement, LOS and multiplayer/dungeon lifecycle. Higher-level abilities remain explicitly pending.
+
+## Aniripsa / Cunejo integration follow-up
+
+[Current review and remaining inventory (2026-10-10)](aniripsa-cunejo-integration-review-20261010.md) records the native explicit-recipient correction, fresh regression results and ordinary-monster activation boundaries.

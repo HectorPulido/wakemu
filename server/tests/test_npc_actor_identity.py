@@ -2,7 +2,9 @@
 
 import unittest
 from contextlib import nullcontext
+from types import SimpleNamespace
 from unittest.mock import patch
+from psycopg.pq import TransactionStatus
 
 from wakfu_server.maps.npc_actor_identity import (
     allocate_block,
@@ -20,12 +22,22 @@ class _Row:
     def fetchone(self):
         return self.row
 
+    def __iter__(self):
+        return iter(self.row or ())
+
+
+class _Updated:
+    rowcount = 1
+
 
 class _IdentityDB:
     def __init__(self, *, first=1 << 50, collisions=()):
         self.next_id = first
         self.collisions = iter(collisions)
         self.calls = []
+        self.info = SimpleNamespace(transaction_status=TransactionStatus.INTRANS)
+        self.group = None
+        self.aliases = {}
 
     def execute(self, query, params=()):
         self.calls.append((query, params))
@@ -33,6 +45,24 @@ class _IdentityDB:
             value = self.next_id
             self.next_id += 1
             return _Row({"id": value})
+        if "SELECT members,status FROM combat_groups" in query:
+            return _Row(self.group)
+        if "SELECT old_actor_id,new_actor_id FROM npc_actor_identity_aliases" in query:
+            return _Row(
+                [
+                    {"old_actor_id": old, "new_actor_id": new}
+                    for old, new in self.aliases.items()
+                ]
+            )
+        if "SELECT monster_id FROM combat_group_members" in query:
+            return _Row(
+                [{"monster_id": member["id"]} for member in self.group["members"]]
+            )
+        if "INSERT INTO npc_actor_identity_aliases" in query:
+            self.aliases[params[-2]] = params[-1]
+            return _Updated()
+        if "UPDATE combat_group_members" in query or "UPDATE combat_groups" in query:
+            return _Updated()
         if "FROM combat_group_members" in query:
             collision = next(self.collisions, None)
             return _Row({"id": 1} if collision else None)
@@ -86,6 +116,7 @@ class NpcActorIdentityTests(unittest.TestCase):
             },
         )
         with patch("psycopg.types.json.Jsonb", side_effect=lambda value: value):
+            db.group = {"members": list(old_members), "status": "available"}
             members = repair_available_dungeon_members(
                 db,
                 (1086, 9001, 73),

@@ -4,6 +4,7 @@ import random
 from unittest.mock import patch
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_melee import execute_unarmed, decode_request
+from native_combat_fixture import initialize_fixture_qi
 
 
 class UnarmedTests(unittest.TestCase):
@@ -16,7 +17,6 @@ class UnarmedTests(unittest.TestCase):
             {(0, 0, 0), (1, 0, 0)},
             {0: {(0, 0, 0)}, 1: {(1, 0, 0)}},
         )
-        self.fight.ready(9)
         self.character = dict(id=7, account_id=9, breed=15, level=1, map_id=1134)
         self.monster = dict(id=-7, ref=5525, level=1, map_id=1134, wp=6)
         from wakfu_server.combat_actor_snapshot import (
@@ -35,6 +35,8 @@ class UnarmedTests(unittest.TestCase):
         build_npc_snapshot(
             self.monster, self.npc, wp_current=6, wp_maximum=6, running_effects=()
         ).install(self.npc)
+        initialize_fixture_qi(self.fight)
+        self.fight.ready(9)
         self.fight.native_effect_uid_next = 1
         self.fight.native_obstacle_cells = frozenset()
         self.body = struct.pack(">qqbiih", 7, -1, 15, 1, 0, 0)
@@ -172,7 +174,9 @@ class UnarmedTests(unittest.TestCase):
 
         fixture = SpellTransactionTests()
         fixture.setUp()
-        character, monster, fight = fixture.native_server_fixture(8, 100)
+        character, monster, fight = fixture.native_server_fixture(
+            8, 100, native_qi=True, target_distance=1
+        )
         character["account_id"] = 3
         character["xp"] = level_xp(100)
         caster_cell, target_cell = (-8, -7, -1), (-7, -7, -1)

@@ -22,7 +22,7 @@ def completed_exit_witness(topology, bindings, transports):
     final = max(rooms)
     start = tuple(topology["rooms"][-1]["anchor"])
     queue = [(final, start, [])]
-    seen, witnesses = set(), []
+    seen, witnesses, entry_witnesses = set(), [], []
     while queue:
         room, position, steps = queue.pop(0)
         if (room, position) in seen:
@@ -34,12 +34,12 @@ def completed_exit_witness(topology, bindings, transports):
             if tuple(a) in rooms[room] and tuple(b) in rooms[room]
         ]
         for binding in bindings:
-            if binding["room_order"] != room or room == 1:
+            if binding["room_order"] != room:
                 continue
             for approach in binding["native_approach_cells"]:
                 path = shortest_path(edges, position, approach)
                 if path:
-                    witnesses.append(
+                    (entry_witnesses if room == 1 else witnesses).append(
                         dict(
                             source_id=binding["source_id"],
                             room_order=room,
@@ -121,6 +121,14 @@ def completed_exit_witness(topology, bindings, transports):
                         )
                     )
                     break
+    # Prefer a dedicated completed-run exit. A room-one cancellation exit is
+    # also a completion path only after a fully proved literal backward chain.
+    if not witnesses:
+        witnesses = [
+            w
+            for w in entry_witnesses
+            if any(step["kind"] == "backward_transport" for step in w["steps"])
+        ]
     if len({w["source_id"] for w in witnesses}) != 1:
         raise ValueError(
             "No unique directed native completed-run exit via backward transports"
@@ -128,7 +136,7 @@ def completed_exit_witness(topology, bindings, transports):
     return witnesses[0]
 
 
-def bind_exits(topology, route, transports):
+def bind_exits(topology, route, transports, *, allow_physical_return=False):
     """Require literal approach cells, free native destination and unique ends."""
     rooms = {r["order"]: set(map(tuple, r["cells"])) for r in topology["rooms"]}
     bindings = []
@@ -175,9 +183,43 @@ def bind_exits(topology, route, transports):
     if final_count > 1:
         raise ValueError(f"No unique free native exterior exit for room {len(rooms)}")
     if final_count == 0:
-        topology["completed_exit_witness"] = completed_exit_witness(
-            topology, bindings, transports
-        )
+        if (
+            allow_physical_return
+            and topology.get("policy") == "native_physical_door_victory_policy"
+        ):
+            from extract_native_door_flow import shortest_path
+
+            final_anchor = topology["rooms"][-1]["anchor"]
+            entrances = [b for b in bindings if b["room_order"] == 1]
+            paths = [
+                (
+                    b,
+                    shortest_path(
+                        topology["exploration_geometry"]["edges"],
+                        final_anchor,
+                        approach,
+                    ),
+                )
+                for b in entrances
+                for approach in b["native_approach_cells"]
+            ]
+            proved = [(b, path) for b, path in paths if path]
+            if not proved:
+                raise ValueError(
+                    "No directed native walking return from final stage to exterior exit"
+                )
+            binding, path = proved[0]
+            topology["completed_exit_witness"] = dict(
+                kind="physical_return_walk",
+                source_id=binding["source_id"],
+                room_order=1,
+                walking_path=path,
+                destination=binding["destination"],
+            )
+        else:
+            topology["completed_exit_witness"] = completed_exit_witness(
+                topology, bindings, transports
+            )
     return bindings
 
 

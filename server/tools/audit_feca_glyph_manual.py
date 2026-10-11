@@ -39,7 +39,13 @@ def path_to(fight, actor, destinations):
             continue
         seen.add(current)
         if path and current in destinations:
-            return path
+            from wakfu_server.combat_tackle_movement import movement_tackle_cost
+            from wakfu_server.combat_rail_movement import movement_cost
+
+            tackle_ap, tackle_mp = movement_tackle_cost(fight, actor, path)
+            base_mp, _ = movement_cost(fight, actor, path)
+            if tackle_ap <= actor.ap and base_mp + tackle_mp <= actor.mp:
+                return path
         if len(path) >= actor.mp:
             continue
         for cell in edges.get(current, ()):
@@ -216,16 +222,23 @@ def run(output, *, level=200):
 
             live = runtime.fight
             inside = {cell for cell in live.walkable if cell[:2] in cells}
-            first = path_to(live, live.actors[caster.id], inside)
             hp_before = {key: actor.hp for key, actor in live.actors.items()}
-            movement(first)
-            outside = {cell for cell in runtime.fight.walkable if cell[:2] not in cells}
-            second = path_to(runtime.fight, runtime.fight.actors[caster.id], outside)
-            movement(second)
+            try:
+                first = path_to(live, live.actors[caster.id], inside)
+                movement(first)
+                outside = {
+                    cell for cell in runtime.fight.walkable if cell[:2] not in cells
+                }
+                second = path_to(
+                    runtime.fight, runtime.fight.actors[caster.id], outside
+                )
+                movement(second)
+                details["movement"] = dict(enter=first, exit=second, no_activation=True)
+            except ValueError as error:
+                details["movement"] = dict(status="not_qualified", reason=str(error))
             assert {
                 key: actor.hp for key, actor in runtime.fight.actors.items()
             } == hp_before, "Movement activated glyph"
-            details["movement"] = dict(enter=first, exit=second, no_activation=True)
             turns = []
             enemy_hp_before = runtime.fight.actors[enemy.id].hp
             for _ in range(4):
@@ -269,8 +282,13 @@ def run(output, *, level=200):
             ), "Paired glyphs did not expire normally"
             assert runtime.fight.current.id == caster.id
             after_hp = {key: actor.hp for key, actor in runtime.fight.actors.items()}
-            old_entry = path_to(runtime.fight, runtime.fight.actors[caster.id], inside)
-            movement(old_entry)
+            try:
+                old_entry = path_to(
+                    runtime.fight, runtime.fight.actors[caster.id], inside
+                )
+                movement(old_entry)
+            except ValueError as error:
+                old_entry = dict(status="not_qualified", reason=str(error))
             assert {
                 key: actor.hp for key, actor in runtime.fight.actors.items()
             } == after_hp

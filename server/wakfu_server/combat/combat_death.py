@@ -2,6 +2,29 @@
 import struct
 
 
+def newly_registered_death_messages(runtime, *, after_sequence):
+    """Deliver settled deaths from one private action, once per actor identity."""
+    if type(after_sequence) is not int or after_sequence < 0:
+        raise ValueError("Actual pre-action death sequence required")
+    identities = []
+    reported = getattr(runtime, "_reported_deaths", set())
+    for event in runtime.fight.events:
+        if event["sequence"] <= after_sequence or event.get("kind") != "death":
+            continue
+        identity = event["actor_id"]
+        actor = runtime.fight.actors.get(identity)
+        # A reaction may legitimately resurrect the defeated actor before the
+        # outer action settles. Do not replay its stale death over the revival.
+        if actor is None:
+            raise ValueError("Registered death recipient is missing")
+        if actor.hp == 0 and identity not in reported and identity not in identities:
+            identities.append(identity)
+    packets = []
+    for identity in identities:
+        packets.extend(runtime.prepare_delivery(death_messages(runtime, identity)))
+    return packets
+
+
 def death_messages(runtime, actor_id):
     """NPC state0 removes the timeline member before state2/AnimMort.
 

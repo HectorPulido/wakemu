@@ -232,6 +232,45 @@ class NativeEventReplayTests(unittest.TestCase):
         self.assertEqual(calls[0].native_running_uid, 902)
         self.assertEqual(calls[0].base_uid, 901)
 
+    def test_trigger_clone_has_fresh_tree_for_distinct_caster_and_restores_scope(self):
+        reference = 359836
+        effect = deepcopy(self.effects[str(reference)])
+        effect["effect_class"] = 1001
+        self.dispatcher.effects[str(reference)] = effect
+        history = NativeTriggerHistory()
+        calls = []
+
+        def activate(caster):
+            key = history.enter(reference, caster, 7)
+            if key is None:
+                return False
+            try:
+                return self.dispatcher.execute_activation(
+                    EffectInvocation(
+                        reference, 40, caster, 7, (0, 0, 0), state_uid=77, base_uid=901
+                    ),
+                    source=self.source(),
+                    condition_context=lambda *args: self.conditions(),
+                    executable=True,
+                    allocate_uid=self.fight.allocate_effect_uid,
+                )
+            finally:
+                history.leave(key)
+
+        def execute(effect, values, invocation):
+            calls.append(invocation.caster_id)
+            self.assertFalse(activate(invocation.caster_id))
+            if invocation.caster_id == 7:
+                self.assertTrue(activate(-7))
+            return True
+
+        self.dispatcher.handlers[1001] = execute
+        self.assertTrue(activate(7))
+        self.assertEqual(calls, [7, -7])
+        self.assertEqual(history.active, set())
+        self.assertEqual(self.dispatcher._active_execution_keys, ())
+        self.assertEqual(self.dispatcher._active_ancestors, ())
+
     def test_real_feline_impact_400_clone_uses_one_uid_without_server_duplication(
         self,
     ):
@@ -357,9 +396,45 @@ class NativeEventReplayTests(unittest.TestCase):
         history = NativeTriggerHistory()
         key = history.enter(308265, 7, -7)
         self.assertIsNone(history.enter(308265, 7, -7))
-        self.assertIsNotNone(history.enter(308265, -7, 7))
+        other = history.enter(308265, -7, 7)
+        self.assertIsNotNone(other)
         history.leave(key)
-        self.assertIsNotNone(history.enter(308265, 7, -7))
+        again = history.enter(308265, 7, -7)
+        self.assertIsNotNone(again)
+        history.leave(again)
+        history.leave(other)
+
+    def test_native_qj_history_is_shared_across_nested_replay_instances(self):
+        first, nested = NativeTriggerHistory(), NativeTriggerHistory()
+        key = first.enter(359737, -7, -7)
+        try:
+            self.assertIsNone(nested.enter(359737, -7, -7))
+            other_target = nested.enter(359737, -7, 7)
+            other_effect = nested.enter(359738, -7, -7)
+            self.assertIsNotNone(other_target)
+            self.assertIsNotNone(other_effect)
+            nested.leave(other_effect)
+            nested.leave(other_target)
+        finally:
+            first.leave(key)
+        self.assertEqual(nested.active, set())
+        again = nested.enter(359737, -7, -7)
+        self.assertIsNotNone(again)
+        nested.leave(again)
+
+    def test_native_qj_nested_callback_failure_releases_shared_key(self):
+        outer, nested = NativeTriggerHistory(), NativeTriggerHistory()
+        with self.assertRaisesRegex(RuntimeError, "callback failed"):
+            key = outer.enter(359737, -7, -7)
+            try:
+                self.assertIsNone(nested.enter(359737, -7, -7))
+                raise RuntimeError("callback failed")
+            finally:
+                outer.leave(key)
+        self.assertEqual(nested.active, set())
+        key = nested.enter(359737, -7, -7)
+        self.assertIsNotNone(key)
+        nested.leave(key)
 
     def test_automatic_emitter_replays_real_source_with_applied_packet_identity(self):
         from wakfu_server.combat_event_replay import (

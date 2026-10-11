@@ -1,5 +1,6 @@
 """Directed XYZ topology measurements, never a movement legality verdict."""
 from collections import deque
+import math
 from functools import lru_cache
 from types import MappingProxyType
 
@@ -88,6 +89,43 @@ def distance_field_from_reverse(reverse, goals, blocked):
     return result
 
 
+def minimum_exposure(reverse, goals, blocked, origin, hazards):
+    """Count unavoidable hazardous entries on a directed, occupied graph.
+
+    This is a navigation preference only; native previews still decide
+    movement legality and apply the actual glyph effects.
+    """
+    return exposure_field_from_reverse(
+        reverse, goals, blocked, hazards, until=origin
+    ).get(origin)
+
+
+def exposure_field_from_reverse(reverse, goals, blocked, hazards, *, until=None):
+    """Minimum hazardous entries, retaining direction and occupied cells."""
+    distances = {cell: 0 for cell in goals}
+    pending = deque(sorted(goals))
+    visited = 0
+    while pending:
+        if visited % 1024 == 0:
+            check()
+        visited += 1
+        end = pending.popleft()
+        if end == until:
+            break
+        cost = int(end in hazards)
+        for start in reverse.get(end, ()):
+            if start in blocked:
+                continue
+            candidate = distances[end] + cost
+            if candidate < distances.get(start, math.inf):
+                distances[start] = candidate
+                if cost:
+                    pending.append(start)
+                else:
+                    pending.appendleft(start)
+    return distances
+
+
 def measure(cells, edges, actors, *, actor_id=None):
     live = [actor for actor in actors if actor["hp"] > 0]
     source = next((actor for actor in live if actor["id"] == actor_id), None)
@@ -116,6 +154,7 @@ def measure(cells, edges, actors, *, actor_id=None):
             reverse, goals, occupied - goals - {origin}, until=origin
         ).get(origin)
     result = {}
+    primary_result = {}
     for actor in live:
         origin = tuple(actor["position"])
         enemies = {
@@ -127,4 +166,18 @@ def measure(cells, edges, actors, *, actor_id=None):
         blocked = occupied - enemies - {origin}
         distances = _field(reverse, enemies, blocked, until=origin)
         result[str(actor["id"])] = distances.get(origin)
+        primary_enemies = {
+            tuple(other["position"])
+            for other in live
+            if other["team"] != actor["team"]
+            and other.get("registeredSummon") is not True
+        }
+        if primary_enemies and primary_enemies != enemies:
+            primary_blocked = occupied - primary_enemies - {origin}
+            primary_distances = _field(
+                reverse, primary_enemies, primary_blocked, until=origin
+            )
+            primary_result[str(actor["id"])] = primary_distances.get(origin)
+    if primary_result:
+        extra["primaryTopologyDistances"] = primary_result
     return dict(topologyDistances=result, topologyCellCount=len(cells), **extra)

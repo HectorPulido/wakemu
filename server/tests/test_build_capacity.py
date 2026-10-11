@@ -55,7 +55,9 @@ class BuildCapacityTests(PostgresCase):
     @staticmethod
     def deletion_handler_branch():
         """Compile and run the production 13169 branch without world bootstrap."""
-        source = Path("/app/local_game_server.py").read_text()
+        source = (
+            Path(__file__).resolve().parents[1] / "local_game_server.py"
+        ).read_text()
         tree = ast.parse(source)
         branches = [
             node
@@ -121,7 +123,9 @@ class BuildCapacityTests(PostgresCase):
     @staticmethod
     def activation_handler_branch():
         """Compile and run the production 13776 branch without server startup."""
-        source = Path("/app/local_game_server.py").read_text()
+        source = (
+            Path(__file__).resolve().parents[1] / "local_game_server.py"
+        ).read_text()
         tree = ast.parse(source)
         branches = [
             node

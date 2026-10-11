@@ -46,11 +46,19 @@ class NativeMicrobotPathProjection:
 
 def microbot_path_projection(fight):
     from .combat_qi_fight import current_registry
-    from .combat_qi_surface_catalog import native_qi_surfaces
+    from .combat_qi_surface_catalog import (
+        native_qi_surfaces,
+        native_qi_surface_provenance,
+    )
 
-    map_id = getattr(fight, "map_id", None)
+    provenance = getattr(fight, "native_qi_surface_provenance", None)
+    if not isinstance(provenance, dict):
+        raise ValueError("Missing native microbot map identity")
+    map_id = provenance.get("map_id")
     if type(map_id) is not int or map_id <= 0:
         raise ValueError("Missing native microbot map identity")
+    if provenance != native_qi_surface_provenance(map_id):
+        raise ValueError("Native microbot selected-surface provenance mismatch")
     return NativeMicrobotPathProjection(
         current_registry(fight).snapshot(),
         native_qi_surfaces(map_id),

@@ -1,0 +1,19 @@
+# Catalogue startup heap and generation-2 GC pause
+
+The current-world diagnostics recorded one generation-2 collection taking 22.8566 seconds wall and 22.833 seconds CPU alongside a roughly 23.219-second arena/start-fight CPU stall. This is direct evidence of a GC pause, unlike the earlier metadata-allocation hypothesis.
+
+CPython `gc.freeze()` is process-wide. Calling it from the existing `local_game_server.main()` prewarm would freeze already constructed Store, World, Harvests, Plantings and combat registries. That location is deliberately not used.
+
+The Docker entrypoint now runs `wakfu_server.catalog_gc_bootstrap` before importing the world module. It preloads combat source modules and pinned static catalogues, closes and clears temporary catalogue PostgreSQL/Redis singleton resources, performs a full startup collection, then freezes the startup heap. Only afterwards does it execute the unchanged world entry script. Subsequent gameplay objects remain GC-tracked and cyclic GC remains enabled. Existing main prewarm calls reuse the same loaded caches.
+
+Fail-closed guards reject a non-main thread, existing workers, disabled cyclic GC, an imported world module, known live game instances and a repeated invocation. Import inspection found no top-level combat thread/executor start or game registry construction in the preloaded combat modules; executable guards additionally inspect the actual heap and worker set after prewarming. A resource or prewarm error aborts before freeze/listeners.
+
+This is a startup heap seal, not selective object freezing: imported module metadata, functions, cache containers and long-lived infrastructure created by imports also enter the permanent generation. The pinned catalogue generation is intentionally retained for process lifetime. Catalogue hot reload/eviction is unsupported; use a restart for revision changes. Future cycles that include a permanent startup object require careful lifetime design; the regression specifically checks a future self-cyclic child temporarily attached to and removed from a frozen container is still collected.
+
+`WAKFU_CATALOG_GC_FREEZE=0` bypasses the startup seal. The entrypoint only enables prewarm/freeze when `WAKFU_ENABLE_COMBAT_TEST=1`. No GC disabling, runtime freeze or native spell change is included.
+
+Validation: five isolated subprocess tests passed locally and independently under Luna (`.runtime/local/diagnostics/catalog-gc-bootstrap-final.log`), and all five passed again after the final guard correction. They cover future cycle collection, early world rejection, live-fight rejection, cleanup on preload failure and duplicate invocation. The first actual catalogue prewarm safely aborted before freeze because an exotic heap type exposed a descriptor rather than a string in `__module__`; the guard now handles that case and the subprocess regression includes it.
+
+The corrected actual catalogue-only smoke passed (`.runtime/local/diagnostics/catalog-gc-prewarm-smoke-fixed.log`): 391 combat modules, 62,691 effect definitions, 23,747,918 frozen objects, 248,077 ms total startup warm/seal time, cyclic GC still enabled. This is startup cost, not a gameplay pause. It verifies that complete current catalogue loading, resource cleanup and all live-heap guards can complete together.
+
+The coordinating root agent deployed the complete current world image and reported a successful live startup seal: 23,747,997 frozen objects, 190,049 ms startup elapsed, followed by healthy service checks and verification of 747 shared source hashes. The deployed helper hash matched the current checkout. External profiler process detection was also updated by root for the module bootstrap command. Manual combat/lag acceptance remains pending; startup health and unit tests alone do not establish gameplay latency or absence of every future GC pause. No additional host probe or deployment is requested by this report.

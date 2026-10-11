@@ -196,7 +196,7 @@ class DiagnosticSnapshotTests(unittest.TestCase):
                 world_entry._run_npc_turn(
                     runtime,
                     store=None,
-                    viewer_character={"id": 1},
+                    viewer_character={"id": 1, "map_id": 1134},
                     monsters={},
                     stats_serializer=None,
                 )

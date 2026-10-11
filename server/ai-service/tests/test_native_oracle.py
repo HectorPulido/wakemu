@@ -19,6 +19,56 @@ from wakfu_server.combat_state import Actor, Fight
 
 
 class NativeOracleTests(unittest.TestCase):
+    def test_lethal_npc_commit_delivers_death_and_failed_delivery_is_atomic(self):
+        import struct
+        from wakfu_ai.context.native_context import encode
+        from wakfu_server.combat_hp_raw import set_hp_raw_current
+        from wakfu_server.spells import default_deck
+
+        def setup():
+            fixture = self.wonejo_fixture()
+            # A genuinely injured target; death is produced by native 7962.
+            set_hp_raw_current(fixture.pc, 1)
+            runtime = RuntimeMessages(fixture.fight)
+            oracle = self.oracle_for(
+                runtime,
+                fixture.character,
+                fixture.monster,
+                default_deck(fixture.character),
+            )
+            action = dict(
+                type="cast",
+                spellId=7962,
+                level=1,
+                targetId=fixture.pc.id,
+                target=list(fixture.pc.position),
+            )
+            return runtime, oracle, action, fixture.pc.id
+
+        runtime, oracle, action, target_id = setup()
+        with patch("wakfu_server.combat_los.authoritative_visible", return_value=True):
+            packets = oracle.commit(action, stats_serializer=lambda *args: b"")
+        deaths = [
+            struct.unpack(">iiiqB", body)[3:]
+            for opcode, body in packets
+            if opcode == 12727
+        ]
+        self.assertEqual(deaths, [(target_id, 2)])
+        self.assertEqual(runtime.fight.actors[target_id].hp, 0)
+        self.assertIn(target_id, runtime._reported_deaths)
+
+        runtime, oracle, action, _ = setup()
+        before = encode(runtime)
+        with patch(
+            "wakfu_server.combat_los.authoritative_visible", return_value=True
+        ), patch(
+            "wakfu_server.combat_death.death_messages",
+            side_effect=ValueError("fixture death serialization failure"),
+        ):
+            with self.assertRaisesRegex(ValueError, "death serialization failure"):
+                oracle.commit(action, stats_serializer=lambda *args: b"")
+        self.assertEqual(encode(runtime), before)
+
     def test_npc_casting_root_prerequisite_is_exact_and_fail_open(self):
         oracle = object.__new__(NativeOracle)
         actor_id = -77
@@ -118,7 +168,20 @@ class NativeOracleTests(unittest.TestCase):
 
         fixture = self.wonejo_fixture()
         fixture.pc.direction = 1
-        fixture.npc.mp = fixture.npc.effect_stats[2] = 4
+        # This isolated positioning fixture configures four MP in a complete PA
+        # snapshot. MP is characteristic3; characteristic2 is AP. Keep raw,
+        # effective and actor views coherent instead of corrupting AP.
+        fixture.npc.mp = fixture.npc.max_mp = 4
+        fixture.npc.effect_stats[3] = 4
+        fixture.npc.effect_resource_raw_currents[3] = 4
+        fixture.npc.effect_base_maxima[3] = 4
+        fixture.npc.effect_maxima[3] = 4
+        fixture.npc.effect_percentages[3] = 0
+        # Native ffh16 is rear mastery (equipment_damage.damage). At
+        # level1 the unmodified spell rounds SIDE and BACK to the same six
+        # damage, so spending two extra MP correctly favors SIDE. Give this
+        # isolated PA fixture explicit rear mastery to test a real BACK gain.
+        fixture.npc.effect_stats[16] = 100
         route = [
             (-7, -7, -1),
             (-7, -6, -1),
@@ -138,7 +201,7 @@ class NativeOracleTests(unittest.TestCase):
             oracle,
             transport,
             None,
-            policy=dict(limits=dict(depth=2, beam=4, nodes=256, budgetMs=10000)),
+            policy=dict(limits=dict(depth=2, beam=12, nodes=256, budgetMs=10000)),
             policy_version="native-flank-test",
             fight_instance_id="native-flank-test",
         )
@@ -169,7 +232,20 @@ class NativeOracleTests(unittest.TestCase):
                     decision = completed.value
                     break
         self.assertEqual(decision["plan"][0]["type"], "move")
-        self.assertEqual(decision["plan"][0]["path"][-1], [-9, -7, -1])
+        selected_path = [tuple(cell) for cell in decision["plan"][0]["path"]]
+        self.assertTrue(selected_path)
+        self.assertIn(selected_path[-1], route[1:])
+        self.assertLessEqual(len(selected_path), fixture.npc.mp)
+        movement = [fixture.npc.position, *selected_path]
+        self.assertTrue(
+            all(
+                origin == target or (origin, target) in fixture.fight.edges
+                for origin, target in zip(movement, movement[1:])
+            )
+        )
+        # Keep the complete corridor frontier available before casting.
+        # The objective is a native BACK cast with strictly greater actual
+        # damage, not a particular equally valid flank coordinate.
         self.assertEqual(decision["plan"][1]["type"], "cast")
         self.assertGreater(
             decision["components"]["damage"],
@@ -259,7 +335,16 @@ class NativeOracleTests(unittest.TestCase):
             z=-1,
             instance_id=0,
         )
-        terrain = local_arena(1134, 77, (-8, -7, -1), (-7, -7, -1))
+        # Preserve the adjacent casting fixture; the default live arena policy
+        # may spread opponents to a different native cell.
+        terrain = local_arena(
+            1134,
+            77,
+            (-8, -7, -1),
+            (-7, -7, -1),
+            relocate_monsters=False,
+            compact=False,
+        )
         fight, _ = create_placement(
             character,
             monster,
@@ -370,7 +455,7 @@ class NativeOracleTests(unittest.TestCase):
                 flags={},
             )
 
-    def test_registered_creature_ownership_wire_and_unsupported_lifecycle_are_explicit(
+    def test_registered_creature_ownership_wire_and_supported_lifecycle_are_explicit(
         self,
     ):
         import random
@@ -417,22 +502,25 @@ class NativeOracleTests(unittest.TestCase):
         before = encode(runtime)
         self.assertEqual(oracle.owned_spells(fight), {7988: 1})
         with patch("wakfu_server.combat_los.authoritative_visible", return_value=True):
-            with self.assertRaisesRegex(
-                ValueError, "Summoned-actor lifecycle propagation remains unaudited"
-            ):
-                oracle.preview(
-                    runtime,
-                    dict(
-                        type="cast",
-                        spellId=7988,
-                        level=1,
-                        targetId=fixture.pc.id,
-                        target=list(fixture.pc.position),
-                    ),
-                )
-        # Do not bypass the native event guard to produce presumed damage.
-        # Its packet codec and registered statistics identity are independently
-        # available, even while this particular lifecycle lacks native support.
+            private, packets, transaction = oracle.preview(
+                runtime,
+                dict(
+                    type="cast",
+                    spellId=7988,
+                    level=1,
+                    targetId=fixture.pc.id,
+                    target=list(fixture.pc.position),
+                ),
+            )
+        self.assertEqual(transaction.outcomes, (True,))
+        self.assertEqual(private.fight.actors[actor.id].ap, actor.ap - 3)
+        self.assertEqual(
+            private.fight.native_summon_registrations[actor.id],
+            fight.native_summon_registrations[actor.id],
+        )
+        self.assertTrue(packets)
+        # Registered ownership remains available to the wire serializer after
+        # the now-supported native lifecycle executes in a private preview.
         from wakfu_server.combat_spells import cast_animation
 
         wire = cast_animation(
@@ -451,6 +539,7 @@ class NativeOracleTests(unittest.TestCase):
             monsters=oracle.monsters,
             fight_id=fight.id,
             registrations=fight.native_summon_registrations,
+            map_id=fixture.character["map_id"],
         )
         self.assertEqual(
             struct.unpack_from(
@@ -459,6 +548,184 @@ class NativeOracleTests(unittest.TestCase):
             901,
         )
         self.assertEqual(encode(runtime), before)
+
+    def test_registered_creature_ownership_wire_and_state_lifecycle_are_explicit(
+        self,
+    ):
+        import random
+        import struct
+        from wakfu_ai.context.native_context import encode
+        from wakfu_ai.native.native_stats import NativeStats
+        from wakfu_server.spells import default_deck
+        from wakfu_server.combat_summon import SummonSpecification
+        from wakfu_server.combat_summon_creation import NativeSummonBuilder
+
+        fixture = self.wonejo_fixture()
+        fight = fixture.fight
+        summon_cell = next(
+            cell
+            for cell in sorted(fight.walkable)
+            if cell not in {fixture.pc.position, fixture.npc.position}
+            and abs(cell[0] - fixture.npc.position[0])
+            + abs(cell[1] - fixture.npc.position[1])
+            == 1
+        )
+        fight.order, fight.turn_index = [fixture.npc.id, fixture.pc.id], 0
+        runtime = RuntimeMessages(fight)
+        oracle = self.oracle_for(
+            runtime, fixture.character, fixture.monster, default_deck(fixture.character)
+        )
+        _, adapter = oracle.factory(fight, 1, random.Random(1))
+        authority = adapter.actor_authority
+        actor, registration = NativeSummonBuilder(authority)(
+            fight,
+            SummonSpecification(5528, 1, False, 3, 1, "caster", 1),
+            fixture.npc.id,
+            901,
+            summon_cell,
+        )
+        authority.register(
+            fight,
+            actor,
+            registration,
+            new_order=[fixture.npc.id, 901, fixture.pc.id],
+            new_turn_index=0,
+        )
+        fight.turn_index = 1
+        actor.turn_count = 1
+        before = encode(runtime)
+        self.assertEqual(oracle.owned_spells(fight), {7988: 1})
+        action = dict(
+            type="cast",
+            spellId=7988,
+            level=1,
+            targetId=fixture.pc.id,
+            target=list(fixture.pc.position),
+        )
+        before_ap = actor.ap
+        before_stat = fixture.pc.effect_stats.get(27, 0)
+        with patch("wakfu_server.combat_los.authoritative_visible", return_value=True):
+            private, packets, transaction = oracle.preview(runtime, action)
+        self.assertEqual(transaction.outcomes, (True,))
+        target = private.fight.actors[fixture.pc.id]
+        self.assertEqual(target.effect_stats[27], before_stat - 50)
+        self.assertTrue(
+            any(
+                entry.reference == 8030 and entry.level == 50 and entry.duration == 2
+                for entry in target.state_ledger.entries
+            )
+        )
+        caster = private.fight.actors[actor.id]
+        self.assertEqual(caster.ap, before_ap - 3)
+        self.assertEqual(caster.effect_resource_raw_currents[2], caster.ap)
+        self.assertEqual(caster.effect_stats[2], caster.ap)
+        self.assertEqual(
+            private.fight.native_summon_registrations[901],
+            fight.native_summon_registrations[901],
+        )
+        self.assertEqual([opcode for opcode, _ in packets[:2]], [12588, 12678])
+        self.assertTrue(
+            any(event["kind"] == "state_applied" for event in transaction.events)
+        )
+        self.assertEqual(encode(runtime), before)
+        # A failure after private spending and effect dispatch cannot leak state.
+        with patch(
+            "wakfu_server.combat_los.authoritative_visible", return_value=True
+        ), patch(
+            "wakfu_server.combat_spells.cast_animation",
+            side_effect=ValueError("codec failure"),
+        ):
+            with self.assertRaisesRegex(ValueError, "codec failure"):
+                oracle.preview(runtime, action)
+        self.assertEqual(encode(runtime), before)
+        from wakfu_server.combat_spells import cast_animation
+
+        wire = cast_animation(
+            fight.id,
+            1,
+            oracle.descriptor(fight, actor),
+            7988,
+            (0, 0, 0),
+            native_uid=7988,
+            native_level=1,
+        )
+        self.assertEqual(struct.unpack_from(">q", wire, 12)[0], 901)
+        self.assertEqual(struct.unpack_from(">qih", wire, 20), (7988, 7988, 1))
+        serializer = NativeStats(
+            characters=oracle.characters,
+            monsters=oracle.monsters,
+            fight_id=fight.id,
+            registrations=fight.native_summon_registrations,
+            map_id=fixture.character["map_id"],
+        )
+        self.assertEqual(
+            struct.unpack_from(
+                ">q", serializer(actor, fight), len(serializer(actor, fight)) - 20
+            )[0],
+            901,
+        )
+        self.assertEqual(encode(runtime), before)
+
+    def test_npc_oracle_selects_import_catalog_per_owned_actor_and_spell(self):
+        from wakfu_server.combat_npc_attack import (
+            npc_runtime_catalog,
+            npc_spell_catalog,
+        )
+        from wakfu_server.spells import default_deck
+
+        fixture = self.wonejo_fixture()
+        runtime = RuntimeMessages(fixture.fight)
+        oracle = self.oracle_for(
+            runtime, fixture.character, fixture.monster, default_deck(fixture.character)
+        )
+        original = npc_spell_catalog()
+        action = dict(
+            type="cast",
+            spellId=7962,
+            level=1,
+            targetId=fixture.pc.id,
+            target=list(fixture.pc.position),
+        )
+        for enabled in (False, True):
+            with self.subTest(enabled=enabled):
+                document = dict(
+                    original,
+                    baseline_effects=original["effects"],
+                    activation_policy={
+                        "schema": "native-npc-activation-v1",
+                        "legacy_spell_ids": [7962],
+                        "enabled_monsters": {
+                            "5525": {
+                                "min_level": 1,
+                                "max_level": 1,
+                                "spell_ids": [7962],
+                            }
+                        }
+                        if enabled
+                        else {},
+                    },
+                )
+                npc_runtime_catalog.cache_clear()
+                try:
+                    with patch(
+                        "wakfu_server.combat_npc_attack.npc_spell_catalog",
+                        return_value=document,
+                    ), patch(
+                        "wakfu_server.combat_npc_attack.npc_runtime_catalog",
+                        wraps=npc_runtime_catalog,
+                    ) as compiled, patch(
+                        "wakfu_server.combat_los.authoritative_visible",
+                        return_value=True,
+                    ):
+                        private, _, tx = oracle.preview(runtime, action)
+                    compiled.assert_called_once_with(imported=enabled)
+                    self.assertEqual(tx.outcomes, (True,))
+                    self.assertEqual(
+                        private.fight.actors[fixture.pc.id].hp, fixture.pc.hp - 5
+                    )
+                    self.assertIn(7962, oracle.owned_spells(runtime.fight))
+                finally:
+                    npc_runtime_catalog.cache_clear()
 
     def test_complete_state_retains_future_fields_and_aliases(self):
         from wakfu_server.spells import default_deck

@@ -13,7 +13,7 @@ def configuration_for_instance(db, instance_id):
     if run is None:
         raise ValueError("Dungeon instance is absent")
     progress = db.execute(
-        "SELECT catalog_hash FROM dungeon_room_runs WHERE instance_id=%s",
+        "SELECT catalog_hash,current_room FROM dungeon_room_runs WHERE instance_id=%s",
         (instance_id,),
     ).fetchone()
     config = dungeon_runtime_config.pinned_configuration(
@@ -22,6 +22,26 @@ def configuration_for_instance(db, instance_id):
         run["context_policy_version"],
         expected_plan_hash=None if progress is None else progress["catalog_hash"],
     )
+    if (
+        config["topology"].get("policy") == "native_shared_arena_sequential_policy"
+        and progress is not None
+    ):
+        config = dict(
+            config,
+            topology=dict(config["topology"], _current_room=progress["current_room"]),
+        )
+    if config["topology"].get("branch_routes"):
+        choice = db.execute(
+            "SELECT branch_key FROM dungeon_room_runs WHERE instance_id=%s",
+            (instance_id,),
+        ).fetchone()
+        config = dict(
+            config,
+            topology=dict(
+                config["topology"],
+                selected_branch=None if choice is None else choice["branch_key"],
+            ),
+        )
     return run, config
 
 
@@ -64,7 +84,11 @@ def ensure_current_room(db, groups, instance_id, geometry):
     ]
     if len(matches) != 1 or geometry["map_id"] != topology["asset_map_id"]:
         raise ValueError("Dungeon native room geometry differs from its configuration")
-    room = matches[0]
+    from wakfu_server import dungeon_branches
+
+    room = dungeon_branches.selected_room(topology, progress["current_room"])
+    if room is None:
+        return None
     cells = set(map(tuple, room["cells"]))
     if not cells.issubset(set(map(tuple, geometry["cells"]))):
         raise ValueError("Frozen room cells are absent from native terrain")
@@ -96,9 +120,21 @@ def initialize_instance(db, session, *, groups, geometry):
     return ensure_current_room(db, groups, run["instance_id"], geometry)
 
 
-def room_for_position(config, map_id, x, y, z):
+def room_for_position(config, map_id, x, y, z, *, current_room=None):
     if map_id != config["topology"]["asset_map_id"]:
         raise ValueError("Dungeon position uses another asset map")
+    if config["topology"].get("policy") == "native_shared_arena_sequential_policy":
+        from wakfu_server import dungeon_shared_arena
+
+        cells = dungeon_shared_arena.validate(config["topology"])
+        if (x, y, z) not in cells:
+            raise ValueError("Position leaves reviewed shared arena")
+        return dungeon_shared_arena.stage(
+            config["topology"],
+            current_room
+            if current_room is not None
+            else config["topology"].get("_current_room"),
+        )
     matches = [
         room["order"]
         for room in config["topology"]["rooms"]
@@ -108,7 +144,10 @@ def room_for_position(config, map_id, x, y, z):
         return matches[0]
     from wakfu_server import dungeon_native_flow, generic_transports
 
-    if config["topology"].get("policy") == dungeon_native_flow.TELEPORT_POLICY:
+    if config["topology"].get("policy") in (
+        dungeon_native_flow.TELEPORT_POLICY,
+        dungeon_native_flow.MIXED_POLICY,
+    ):
         sources = [
             source
             for source in generic_transports._CATALOG

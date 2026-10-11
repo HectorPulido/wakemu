@@ -1,5 +1,39 @@
 # E18 — Motor de IA táctica de enemigos
 
+## Automated native ranges 10–49 — deployed 2026-10-11
+
+The [current activation report](../../reports/monster-combat/ACTIVATION_LEVEL_10_49_20261010.md) supersedes historical counts below: **190 new references activated, 247 total**, preserving the previous 57. This represents 190/303 compatible references (62.71%) out of 371 references in the new range. All newly activated books pass native execution at every owned spell/level, real AI commit and transaction checks. The complete current world/AI build is healthy; **430 tests passed with zero failures, errors or skips**. Pending references remain disabled; existing tests were not edited by this activation pass. [One complete manual acceptance flow](../../reports/monster-combat/MANUAL_LEVEL_10_49_20261010.md) and [reusable automation](../../reports/monster-combat/AUTOMATION_COHORTS.md) are available.
+
+## Pending blocker generalization — offline validated 2026-10-10
+
+The [investigation and reusable fixes](../../reports/monster-combat/BLOCKER_GENERALIZATION_20261010.md) identify omitted native NPC spell-level clamping (330 references), class-only resistance metadata (1,797 references with relevant state dependencies), missing cell-group metadata (233 references) and missing effective summon ability profiles (156 references). Counts overlap and are not activation guarantees. Automatic resistance export and ordinary NPC clamping are implemented; 250 selected regressions pass. Rata de Astrub and Rol duende feliz additionally pass complete native preview/commit/rollback checks in an inactive candidate. The live release remains at 40 enabled references; these two additions are not deployed.
+
+
+## Automated pending-monster activation — deployed 2026-10-10
+
+The [reusable activation pipeline and final report](../../reports/monster-combat/AUTOMATED_UNDER_10_20261010.md) evaluated the 39 pending fully covered references below level 10: **10 newly enabled (25.64%), 29 still pending**. The covered cohort now has **40/69 enabled (57.97%)**. Final selected validation passes 461 tests without failures/errors/skips; existing assertions were preserved. Complete current world and AI images are deployed healthy on catalog `13c8122abba2…`. [Manual acceptance](../../reports/monster-combat/MANUAL_PENDING_COHORT.md) contains all ten spawn commands. Higher-level cohorts reuse the same pipeline with a different maximum level. Hector has confirmed that the preceding hit-and-run correction works; manual acceptance of these ten new references remains pending.
+
+
+## Scenario MP glyph and post-attack retreat — deployed 2026-10-10
+
+[Implementation, evidence and manual acceptance](../../reports/monster-combat/GLYPH_AND_RETREAT_20261010.md): NPC movement now interleaves paid steps with native area effects and emits only an executed prefix after interruption. The planner prioritizes routes outside the registered scenario perimeter and uses committed current-turn damage/cast evidence to retreat without returning to approach during replanning. Player movement retains its existing transaction. Final targeted validation: 199 AI tests, 41 original movement tests, and 202 native tests including 179 class/shared-combat regressions; zero failures/errors/skips. Production and the 60 executed/transitive test dependencies were stable. Complete images and all 49 live SDK sources were verified. World `af994a64bc39…` and AI `c0dea31cb5d3…` are deployed healthy. Hector's visual acceptance is pending.
+
+## Previous target-priority deployment — 2026-10-10
+
+The previous [acceptance follow-up](../../reports/monster-combat/MANUAL_ACCEPTANCE_20261010.md) records the user-confirmed MP-removal scenario glyph and the full-route payment/callback ordering limitation. New generic AI policy discounts registered summons, pursues primary opponents using native topology, retains lifecycle risk deltas and prevents unexplored alternatives from looking safer. Validation passes 186 isolated AI/contract/cache tests plus 179 native-opt-in class/shared-combat tests with stable complete source/test hashes. World `478d1163b1c5…` and AI `cd2d9821a4cb…` are deployed healthy, preserving mining and fishing. At that stage, hit-and-run and MP-border avoidance were still open; the correction above supersedes that status.
+
+## Manual acceptance corrections — 2026-10-10
+
+The [manual acceptance follow-up](../../reports/monster-combat/MANUAL_ACCEPTANCE_20261010.md) records Hector's five low-level monster observations and the actual source/preview graphs. NPC forecast random samples now remain comparable after an empty-cell cast; rival projection receives a bounded reserve inside the existing decision slice. Native regression checks preserve class assertions and real commit randomness. The first-turn source rejection was reproduced as a lazy static catalog cache mutation and corrected with an external weak cache; a factory-backed cold repertoire probe passes with the complete source unchanged. **After subsequent explicit authorization, the complete world image `f6d520684304…` was rebuilt, verified against 756 shipped files and deployed healthy; the cache correction is now live.** Glyph exposure, Tofu retreat and summon/owner preference remain tactical acceptance limitations. AI service is now healthy on image `227e18d56010…`; all 69 production files match the current checkout. Final validation passes 179 class/shared-combat tests with native opt-in enabled and stable complete runtime/test hashes, plus 73 + 98 isolated AI/cache tests (350 total scoped executions). Original assertions and budgets are unchanged; the retained cold Jalato deadline limitation is documented. World was subsequently restarted with authorization, retained mining changes and sealed its complete context with the healthy AI service.
+
+## Scoped monster spell activation and complete inventory — 2026-10-10
+
+The [under-level-10 activation work](../../reports/monster-combat/ACTIVATION_UNDER_10.md) reuses the class/native effect machinery and scopes expanded NPC execution to fully validated references while preserving native ownership. Its [full status inventory](../../reports/monster-combat/ACTIVATION_STATUS.json) and [CSV](../../reports/monster-combat/ACTIVATION_STATUS.csv) cover all 2,874 monster references, including high-level and epic/ultimate entries. Of 69 static candidates whose entire native level range is below 10, **30 are deployed and 39 remain disabled**. Final baseline and candidate each passed 179 class/shared-combat tests; all 30 also passed native commit/rollback checks and a probe inside the deployed AI container. World, AI and ecology were rebuilt and restarted with the current complete implementation. See [deployment evidence and limits](../../reports/monster-combat/DEPLOYMENT_20261010.md) and the [complete manual acceptance test](../../reports/monster-combat/MANUAL_ACCEPTANCE.md).
+
+## Offline monster spell source inventory — 2026-10-10
+
+The [monster combat extraction report](../../reports/monster-combat/README.md) documents a reusable installed-client export covering all 2,874 monster references and 3,091 owned spell references, with an initial Miaumiau/Tofu/Jalató review cohort. It retains casting, effects, states, native root selectors/collision geometry, actor curves, usage limits and separate level-zero evidence. This is source extraction and dependency review only: no runtime catalog release was published and no NPC gameplay completion is claimed. Validation and remaining reconstruction boundaries are linked from that report.
+
 ## Investigación activa — 2026-10-08
 
 **Aceptación básica confirmada por Hector (2026-10-08):** el movimiento
@@ -526,3 +560,11 @@ Los ataques aún no implementados por el motor común no se simulan desde AI.
 
 Prioridad 6 del índice general; dependencias: motor común de hechizos,
 rendimiento 0, combate compartido/instancias 14/15/29 y configuración E01.
+
+### Monster activation update — 2026-10-10
+
+The complete current world and AI images are deployed and healthy with catalog `548e1468d1c17a9542b34419c8a4f6c539696135fb4ffd4c03e8dae29c9f4edd`. Of the original 29 pending references, 17 are now enabled, seven trainer/racing actors are explicit exceptions, and five retain native encounter/lifecycle prerequisites. Total reviewed cohort: 57/69 active (82.61%). All 2,874 references remain inventoried.
+
+Verification passed 351 class/shared/activation tests and 38 additional SDK/movement tests, without failures, errors or skips. Every enabled reference passed native preview, real commit, immutable forecast and serializer-failure rollback. Class behavior assertions were not relaxed. Full source/image proof and startup health are recorded in the [deployment report](../../reports/monster-combat/REMAINING_ACTIVATION_20261010.md); follow the [complete manual acceptance](../../reports/monster-combat/MANUAL_REMAINING_COHORT_20261010.md).
+
+Subsequent inventory policy: the user excluded the 382 reviewed low-level actors without owned spellbooks and incomplete test actor 3118 from activation work. All remain inventoried; existing 57 enabled references and runtime behavior are unchanged. The explicit selection policy passed 17 tests. See [scope and actionable counts](../../reports/monster-combat/IGNORED_LOW_LEVEL_ACTORS_20261010.md).

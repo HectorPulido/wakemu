@@ -23,7 +23,10 @@ class AuditTurnRoutingTests(unittest.TestCase):
                 turn_count=4,
             )
             runtime = SimpleNamespace(
-                fight=SimpleNamespace(current=actor, turn_id=9), awaiting_ack=9
+                fight=SimpleNamespace(
+                    current=actor, turn_id=9, native_timeline_round=6
+                ),
+                awaiting_ack=9,
             )
 
             def end(*args):
@@ -46,7 +49,7 @@ class AuditTurnRoutingTests(unittest.TestCase):
             self.assertEqual(
                 calls,
                 [
-                    ("end", (3, 7, 4) if controlled else (-7, 9)),
+                    ("end", (3, 7, 6) if controlled else (-7, 9)),
                     ("ack", struct.pack(">i", 9)),
                 ],
             )

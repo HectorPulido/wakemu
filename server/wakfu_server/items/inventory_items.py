@@ -4,6 +4,7 @@ Rich item options, equipment eligibility and item effects require separate
 native rules; these operations fail before changing ownership or quantity.
 """
 import struct
+from contextlib import nullcontext
 
 
 def load(db, character_id):
@@ -57,7 +58,8 @@ def grant(
     quantity,
     container,
     slot,
-    allowed_references
+    allowed_references,
+    db=None,
 ):
     """Explicit local grant; callers must supply their verified item catalog."""
     if (
@@ -69,7 +71,7 @@ def grant(
         or slot < 0
     ):
         raise ValueError("Invalid owned item grant")
-    with store.connection() as db:
+    with store.connection() if db is None else nullcontext(db) as db:
         _lease(store, db, account_id, generation, character_id)
         mount_model = db.execute(
             "SELECT model_id FROM mount_models WHERE reference=%s", (reference,)

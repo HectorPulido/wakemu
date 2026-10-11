@@ -27,6 +27,15 @@ class NativeCastingCostOverflowTests(unittest.TestCase):
         with patch(
             "wakfu_server.combat_native_spell_casting.catalog",
             return_value={"1": record},
+        ), patch(
+            "wakfu_server.combat_spell_resource_costs.catalog",
+            return_value={
+                "1": dict(
+                    maximum_level=1,
+                    baseline=dict(resources={"2": [base, base]}),
+                    conditional=[],
+                )
+            },
         ):
             return definition(1, 1, None, modifiers)["costs"]["ap"]
 

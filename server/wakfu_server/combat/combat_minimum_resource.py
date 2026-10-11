@@ -33,11 +33,16 @@ class NativeMinimumResourceHandler:
     def __call__(self, effect, values, invocation):
         if effect["effect_class"] != 877 or len(effect["parameters"]) not in (2, 4):
             raise ValueError("Unsupported native eWV definition")
-        actor = self.fight.actors.get(invocation.target_id)
+        from .combat_summon_initialization import registered_or_detached_actor
+        from .combat_npc_initialization import constructor_stat_context
+
+        actor = registered_or_detached_actor(self.fight, invocation.target_id)
+        source = registered_or_detached_actor(self.fight, invocation.caster_id)
+        constructor = constructor_stat_context(self.fight, invocation)
         if (
             actor is None
-            or invocation.caster_id not in self.fight.actors
-            or self.fight.phase != "active"
+            or source is None
+            or (self.fight.phase != "active" and not constructor)
         ):
             raise ValueError("Invalid native eWV actors")
         ctx = self.context(effect, invocation)

@@ -22,8 +22,11 @@ services:
       retries: 30
       start_period: 180s
   world:
-    image: ${WAKFU_WORLD_IMAGE:-wakemu-world:performance-20261010-r73}
-    build: ./server
+    image: ${WAKFU_WORLD_IMAGE:-wakemu-world:fishing-20261010}
+    build:
+      context: ./server
+      args:
+        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d}
     init: true
     depends_on:
       postgres:
@@ -33,6 +36,9 @@ services:
       redis:
         condition: service_healthy
     environment:
+      WAKFU_FISHING_CATALOG_REVISION: 20f2731c921701c025af2d8416696e5b01c7346fc9393408b47533c092cab5fa
+      WAKFU_MINING_CATALOG_REVISION: 14b63a5b28014e455fd9910c99fe037e6d957ac9b40508335bfe130c2ee54518
+      WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d}
       WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
       # Listen on the container network; published host ports stay localhost.
       WAKFU_BIND_HOST: ${WAKFU_BIND_HOST:-0.0.0.0}
@@ -40,6 +46,8 @@ services:
       WAKFU_AI_URL: ${WAKFU_AI_URL:-http://ai:8090}
       WAKFU_REDIS_URL: ${WAKFU_REDIS_URL:-redis://redis:6379/0}
       WAKFU_EXTERNAL_SCHEDULER: '1'
+      WAKFU_ECOLOGY_MODE: ${WAKFU_ECOLOGY_MODE:-external}
+      WAKFU_ECOLOGY_TOKEN_FILE: /data/secrets/ecology-token
       #
       WAKFU_ALL_ZAAPS: ${WAKFU_ALL_ZAAPS:-1}
       WAKFU_ADVERTISE_HOST: ${WAKFU_ADVERTISE_HOST:-127.0.0.1}
@@ -79,6 +87,144 @@ services:
       timeout: 3s
       retries: 3
       start_period: 120s
+  shop:
+    build:
+      context: ./server
+      dockerfile: shop-service/Dockerfile
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
+      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
+      WAKFU_SHOP_PORT: '18083'
+      WAKFU_REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
+    ports:
+      - '127.0.0.1:18083:18083'
+    networks: [isolated, client-access]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18083/health',timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  admin:
+    build:
+      context: ./server
+      dockerfile: admin-service/Dockerfile
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
+      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
+      WAKFU_ADMIN_PORT: '18084'
+      WAKFU_ADMIN_CREDENTIALS_FILE: /data/admin-credentials.json
+      WAKFU_ADMIN_WORLD_TOKEN_FILE: /data/world-api-token
+      WAKFU_ADMIN_CONTROL_URL: http://admin-control:18085
+      WAKFU_ADMIN_CONTROL_TOKEN_FILE: /run/secrets/admin-control-token
+      WAKFU_ADMIN_PROFILER_URL: http://profiler:8092
+      WAKFU_ADMIN_PROFILER_REPORT: /metrics/performance-latest.json
+      WAKFU_REDIS_URL: redis://redis:6379/0
+      WAKFU_WORLD_URL: http://world:18081
+      WAKFU_SHOP_URL: http://shop:18083
+    volumes:
+      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./.runtime/local/admin:/data
+      - ./.runtime/local/secrets/admin-control-token:/run/secrets/admin-control-token:ro
+      - ./.runtime/local/logs/profiles:/metrics:ro
+    ports:
+      - '127.0.0.1:18084:18084'
+    networks: [isolated, client-access]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18084/health',timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  admin-control:
+    build:
+      context: ./server
+      dockerfile: admin-control-service/Dockerfile
+    init: true
+    environment:
+      HOST_PROJECT_ROOT: ${PWD}
+      WAKFU_COMPOSE_PROJECT: wakfu-local
+      WAKFU_ADMIN_CONTROL_TOKEN_FILE: /run/secrets/admin-control-token
+      WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
+      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
+      WAKFU_REDIS_URL: redis://redis:6379/0
+      WAKFU_POSTGRES_TEST_URL: host=postgres dbname=wakemu_migration_test user=wakemu
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./server:${PWD}/server:ro
+      - ./compose.yaml:${PWD}/compose.yaml:ro
+      - ./compose.profiler.yaml:${PWD}/compose.profiler.yaml:ro
+      - ./.runtime/local/admin-control:/data
+      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./.runtime/local/secrets/admin-control-token:/run/secrets/admin-control-token:ro
+    networks: [isolated]
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+      - /root/.docker:size=16m,mode=0700
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    pids_limit: 128
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request,pathlib; token=pathlib.Path('/run/secrets/admin-control-token').read_text().strip(); urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:18085/services',headers={'Authorization':'Bearer '+token}),timeout=10)"]
+      interval: 15s
+      timeout: 12s
+      retries: 3
+      start_period: 30s
+  ecology:
+    image: ${WAKFU_ECOLOGY_IMAGE:-wakemu-ecology:fishing-20261010}
+    build:
+      context: ./server
+      dockerfile: ecology-service/Dockerfile
+      args:
+        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d}
+    init: true
+    depends_on:
+      world:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      WAKFU_FISHING_CATALOG_REVISION: 20f2731c921701c025af2d8416696e5b01c7346fc9393408b47533c092cab5fa
+      WAKFU_MINING_CATALOG_REVISION: 14b63a5b28014e455fd9910c99fe037e6d957ac9b40508335bfe130c2ee54518
+      WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
+      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
+      WAKFU_REDIS_URL: redis://redis:6379/0
+      WAKFU_WORLD_URL: http://world:18081
+      WAKFU_ECOLOGY_TOKEN_FILE: /run/secrets/ecology-token
+      WAKFU_ECOLOGY_MAX_ATTEMPTS: ${WAKFU_ECOLOGY_MAX_ATTEMPTS:-5}
+      WAKFU_RUNTIME: /data
+      WAKFU_PLANT_GROWTH_SECONDS: ${WAKFU_PLANT_GROWTH_SECONDS:-30}
+    volumes:
+      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./.runtime/local/secrets/ecology-token:/run/secrets/ecology-token:ro
+    networks: [isolated]
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /data:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 64
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request,pathlib; token=pathlib.Path('/run/secrets/ecology-token').read_text().strip(); urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8093/health',headers={'Authorization':'Bearer '+token}),timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
   cron:
     build:
       context: ./server
@@ -102,8 +248,8 @@ services:
     build:
       context: ./server/ai-service
       args:
-        WORLD_IMAGE: ${WAKFU_WORLD_IMAGE:-wakemu-world:shared-aptitude-recovery-20261009-r54}
-        CATALOG_REVISION: b0ed79766ae57e6ef26aa9321d05642522cf4c3d9baf7a22a4ea9d3cefc6f219
+        WORLD_IMAGE: ${WAKFU_WORLD_IMAGE:-wakemu-world:fishing-20261010}
+        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d}
     init: true
     depends_on:
       postgres:

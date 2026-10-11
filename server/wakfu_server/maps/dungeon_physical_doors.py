@@ -16,16 +16,25 @@ def _frontier(topology, unlocked_room):
     return unlocked_room
 
 
-def blocked_cells(topology, unlocked_room):
+def blocked_cells(topology, unlocked_room, *, blocked_source_ids=()):
     _frontier(topology, unlocked_room)
     return frozenset(
         tuple(d["position"])
         for d in topology["physical_doors"]
         if d["destination_room"] > unlocked_room
+        or d.get("source_id") in blocked_source_ids
     )
 
 
-def packets(topology, *, map_id, instance_id, unlocked_room, completed=False):
+def packets(
+    topology,
+    *,
+    map_id,
+    instance_id,
+    unlocked_room,
+    completed=False,
+    blocked_source_ids=()
+):
     """Door native state 0 clears collision; state 1 closes it, independent of usable."""
     from wakfu_server.dungeon_object_states import state_payload
 
@@ -43,7 +52,10 @@ def packets(topology, *, map_id, instance_id, unlocked_room, completed=False):
         raise ValueError("Invalid physical dungeon completion state")
     output = []
     for door in topology["physical_doors"]:
-        opened = door["destination_room"] <= unlocked_room
+        opened = (
+            door["destination_room"] <= unlocked_room
+            and door["source_id"] not in blocked_source_ids
+        )
         # Native Door state alone can leave a closed sprite on loaded views.
         # Hide opened gates through the native view visibility update.
         payload = state_payload(
@@ -69,7 +81,7 @@ def packets(topology, *, map_id, instance_id, unlocked_room, completed=False):
     return tuple(output)
 
 
-def validate_movement(topology, request, *, unlocked_room):
+def validate_movement(topology, request, *, unlocked_room, blocked_source_ids=()):
     """Validate actual directed native exploration edges and locked gate cells.
 
     Called only for the pinned physical-door policy; no combat graph is changed.
@@ -77,7 +89,9 @@ def validate_movement(topology, request, *, unlocked_room):
     """
     if not enabled(topology):
         raise ValueError("Dungeon has no native physical walking policy")
-    blocked = blocked_cells(topology, unlocked_room)
+    blocked = blocked_cells(
+        topology, unlocked_room, blocked_source_ids=blocked_source_ids
+    )
     geometry = topology["exploration_geometry"]
     cells = set(map(tuple, geometry["cells"]))
     edges = {(tuple(a), tuple(b)) for a, b in geometry["edges"]}

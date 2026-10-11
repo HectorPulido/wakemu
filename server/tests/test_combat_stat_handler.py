@@ -116,6 +116,26 @@ class StatHandlerTests(unittest.TestCase):
             123, 1, 7, 7, (0, 0, 0), base_uid=90, state_uid=90
         )
 
+    def test_l3_callback_can_remove_notifying_retained_stat_without_recreation(self):
+        from types import SimpleNamespace
+
+        self.handler.rng = lambda: 0.5
+        channels = []
+
+        def phase(effect, invocation, *, channel, uid, **kwargs):
+            channels.append(channel)
+            if channel == 3:
+                self.assertIn(uid, self.fight.owned_stat_effects)
+                self.handler.remove(uid)
+
+        self.handler.event_lifecycle = SimpleNamespace(phase=phase)
+        effect = dict(effect_class=120, parameters=[10, 0], target_masks=[None] * 7)
+        invocation = self.handler.prepare(effect, {}, self.invocation)
+        self.assertTrue(self.handler(effect, {}, invocation))
+        self.assertEqual(self.fight.actors[7].effect_stats[20], 80)
+        self.assertNotIn(100, self.fight.owned_stat_effects)
+        self.assertEqual(channels, [1, 2, 3, 4])
+
     def test_live_runner_l2_percent_and_l3_retirement_preserve_original_request(self):
         from types import SimpleNamespace
         from unittest.mock import patch

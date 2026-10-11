@@ -128,6 +128,7 @@ def attempt(
     draw=None,
     choose=secrets.choice,
     configuration=None,
+    prepared=None,
 ):
     """Commit one pending cycle under the same group lock used by fight claims.
 
@@ -180,6 +181,11 @@ def attempt(
             or ticket["monster_id"] in excluded_ids
         ):
             return None
+        if (
+            prepared is not None
+            and list(group["members"]) != prepared["expected_members"]
+        ):
+            return None
         timer = db.execute(
             "SELECT * FROM monster_maturation_timers WHERE map_id=%s "
             "AND instance_id=%s AND monster_id=%s FOR UPDATE",
@@ -204,23 +210,28 @@ def attempt(
         ):
             return None
         sample = secrets.randbelow(1 << 53) / (1 << 53) if draw is None else draw
-        candidate = choose_next(
-            ticket["reference"], configuration, draw=sample, choose=choose
-        )
-        to_reference = None
-        if candidate is not None:
-            member = members[index]
-            grown = owned_instance(
-                candidate["reference"],
-                candidate["min_level"],
-                member["id"],
-                map_id=member["map_id"],
-                x=member["x"],
-                y=member["y"],
-                z=member["z"],
-                team=member["team"],
-                instance_id=ticket["instance_id"],
+        if prepared is None:
+            candidate = choose_next(
+                ticket["reference"], configuration, draw=sample, choose=choose
             )
+            grown = None
+            if candidate is not None:
+                member = members[index]
+                grown = owned_instance(
+                    candidate["reference"],
+                    candidate["min_level"],
+                    member["id"],
+                    map_id=member["map_id"],
+                    x=member["x"],
+                    y=member["y"],
+                    z=member["z"],
+                    team=member["team"],
+                    instance_id=ticket["instance_id"],
+                )
+        else:
+            grown = prepared["grown"]
+        to_reference = None
+        if grown is not None:
             members[index] = grown
             # Validate complete native roster before changing durable state.
             spawn_group(members, group_id=ticket["group_id"])

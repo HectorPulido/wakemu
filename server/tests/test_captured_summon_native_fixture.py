@@ -65,9 +65,13 @@ class ActualCapturedNativeFixtureTests(unittest.TestCase):
             phase="active",
             order=[42],
             turn_index=0,
+            native_timeline_round=1,
             current=caster,
             walkable={(3, 4, 0)},
         )
+        from wakfu_server.combat_timeline_snapshot import initialize
+
+        initialize(preview, preview.order)
         registered = RegisteredSummonAuthority(Authority())
         order = []
 

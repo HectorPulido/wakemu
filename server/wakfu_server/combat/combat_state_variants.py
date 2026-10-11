@@ -13,12 +13,14 @@ from .combat_effect_removal import _identity_fields
 
 
 def paired_state_variants(state, definitions):
-    """Recognize two equivalent eYg roots carrying native dd(1) alternatives."""
+    """Recognize unambiguous equivalent family330/999 normal/critical root pairs."""
     roots = getattr(state, "effect_ids", None)
     if (
         not isinstance(definitions, dict)
         or not isinstance(roots, (list, tuple))
-        or len(roots) != 2
+        or not roots
+        or len(roots) % 2
+        or len(set(roots)) != len(roots)
     ):
         return False
     rows = [definitions.get(str(reference)) for reference in roots]
@@ -52,17 +54,31 @@ def paired_state_variants(state, definitions):
     )
     if any(any(field not in row for field in fields) for row in rows):
         return False
-    # eYg selects one successful child from each ordered alternative. Matching
-    # root contracts distinguish this pair from independent cumulative effects.
+    # Matching complete contracts distinguish alternatives from independent
+    # cumulative roots. Multiple pairs may combine selection and cleanup.
+    # Family999 has an ordered calculation group followed by the same cleanup
+    # structure; it is not restricted to one eYg330 pair per state.
     if any(
-        row["effect_class"] != 330
+        row["effect_class"] not in (330, 999)
         or not isinstance(row.get("children"), (list, tuple))
         or not row["children"]
         or any(type(child) is not int or child <= 0 for child in row["children"])
         for row in rows
     ):
         return False
-    return all(rows[0][field] == rows[1][field] for field in fields)
+    remaining = list(rows)
+    while remaining:
+        row = remaining.pop(0)
+        matches = [
+            index
+            for index, candidate in enumerate(remaining)
+            if candidate["variant"] != row["variant"]
+            and all(row[field] == candidate[field] for field in fields)
+        ]
+        if len(matches) != 1:
+            return False
+        remaining.pop(matches[0])
+    return True
 
 
 def state_child_variant_mode(

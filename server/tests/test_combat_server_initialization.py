@@ -20,9 +20,17 @@ class ServerInitializationTests(unittest.TestCase):
         self.monsters = {monster["id"]: monster}
         self.deck = encode_deck((), [6936])
 
+    def use_native_qi_fight(self):
+        fixture = fixture_module.SpellTransactionTests()
+        self.character, monster, self.fight = fixture.native_server_fixture(
+            16, 60, native_qi=True
+        )
+        self.monsters = {monster["id"]: monster}
+
     def test_server_initialization_uses_relative_provider_and_never_double_installs(
         self,
     ):
+        self.use_native_qi_fight()
         before = snapshot(self.fight)
         seen = []
         original = RelativeGroupAuthority.__call__
@@ -59,6 +67,7 @@ class ServerInitializationTests(unittest.TestCase):
         self.assertEqual(snapshot(preview), stable)
 
     def test_unsupported_relative_child_rolls_back_earlier_innates(self):
+        self.use_native_qi_fight()
         before = snapshot(self.fight)
         with patch.object(
             RelativeGroupAuthority,
@@ -79,7 +88,9 @@ class ServerInitializationTests(unittest.TestCase):
 
     def test_real_sacro_start_passive_applies_state_3231_without_forcing_child(self):
         fixture = fixture_module.SpellTransactionTests()
-        character, monster, fight = fixture.native_server_fixture(11, 20)
+        character, monster, fight = fixture.native_server_fixture(
+            11, 20, native_qi=True
+        )
         deck = encode_deck((), [5051])
         before = snapshot(fight)
         installed, _ = prepare_server_initialization(
@@ -114,7 +125,7 @@ class ServerInitializationTests(unittest.TestCase):
 
     def test_real_iop_virility_passive_installs_state_3229(self):
         fixture = fixture_module.SpellTransactionTests()
-        character, monster, fight = fixture.native_server_fixture(8, 20)
+        character, monster, fight = fixture.native_server_fixture(8, 20, native_qi=True)
         deck = encode_deck((), [4795])
         before = snapshot(fight)
         installed, _ = prepare_server_initialization(
@@ -237,6 +248,7 @@ class ServerInitializationTests(unittest.TestCase):
         self.assertEqual(snapshot(fight), before)
 
     def test_start_failure_discards_initialization_and_uid_changes(self):
+        self.use_native_qi_fight()
         before = snapshot(self.fight)
         with patch(
             "wakfu_server.combat_start_events.deliver_fight_start",
@@ -372,6 +384,14 @@ class ServerInitializationTests(unittest.TestCase):
         fight._check_positions()
         fight.order = [8, 7, -7]
         fight.turn_index = 0
+        # The shared-roster test assembled its three actors after the original
+        # placement constructor. Start a fresh QI population for that complete
+        # roster before native initialization/serialization consumes it.
+        from native_combat_fixture import initialize_fixture_qi
+
+        fight.native_qi_fresh_actor_order = tuple(fight.actors)
+        fight.native_effect_uid_next = None
+        initialize_fixture_qi(fight)
         fight.native_effect_uid_next = 1
         freeze_terrain(fight)
 

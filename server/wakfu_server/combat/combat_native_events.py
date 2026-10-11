@@ -126,8 +126,8 @@ def subscription_selection(
     return "remove" if index == 2 else "activate"
 
 
-def validate_group_registration_flags(flags, *, active):
-    """Flags1 affects eZX event selection only;17 requires native fight mode.
+def validate_group_registration_flags(flags, *, active, constructor=False):
+    """Flags1 affects eZX event selection only;17 is not read by eYg.
 
     Jar-wide reference audit finds eVl.rwy consumed only by eZX, outside
     registration/execution arithmetic. Flags14/26 are handled by the native
@@ -146,10 +146,18 @@ def validate_group_registration_flags(flags, *, active):
     the third argument is true. It does not modify group registration,
     child execution or event subscription. Preserve it in retained metadata.
     """
-    if type(active) is not bool or any(type(x) is not int for x in flags):
+    if (
+        type(active) is not bool
+        or type(constructor) is not bool
+        or any(type(x) is not int for x in flags)
+    ):
         raise ValueError("Explicit native group flags/combat context required")
     unknown = set(flags) - {1, 3, 5, 9, 14, 15, 16, 17, 26}
     if unknown:
         raise ValueError(f"Unaudited native group execution flags: {sorted(unknown)}")
-    if not active:
+    # eYg.bcd returns true unconditionally; no active-phase predicate is
+    # introduced by group construction (native eYg bytecode). ID17/rwN
+    # is BUFF_BYPASS_OUT_FIGHT_MAX; neither eYg nor eZR reads it. Actual
+    # characteristic consumers retain their own cap/context requirements.
+    if not active and not constructor:
         raise ValueError("Native group execution requires active combat")

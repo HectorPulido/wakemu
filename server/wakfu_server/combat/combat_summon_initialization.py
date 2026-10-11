@@ -70,7 +70,9 @@ def detached_summon_scope(fight, actor, authority):
         _construction.reset(token)
 
 
-def install_initial_states(fight, actor, plan, *, runtime_factory):
+def install_initial_states(
+    fight, actor, plan, *, runtime_factory, application_results=None
+):
     """Execute direct eWu2226 with null PL, SELF caster and rBr resistance bypass.
 
     The factory must already be inside the source-qualified detached scope.
@@ -95,15 +97,17 @@ def install_initial_states(fight, actor, plan, *, runtime_factory):
     handler, retention = dispatcher.native_state_handler, dispatcher.native_retention
     if handler.fight is not fight or retention is None:
         raise ValueError("Missing detached summon state/Qf runtime")
+    if application_results is not None and not isinstance(application_results, list):
+        raise ValueError("Initial-state application results require an owned list")
     for item in plan:
         profile = state_profile(handler.catalog, item.state_id, item.level)
-        if profile["duration"] != -1 or profile["realtime_duration"] > 0:
+        if profile["duration"] > 0 or profile["realtime_duration"] > 0:
             raise ValueError("Initial summon state requires an audited finite timeline")
         invocation = EffectInvocation(
             2226, item.level, actor.id, actor.id, actor.position
         )
         context = StateCarrierContext(
-            -1,
+            profile["duration"],
             profile["realtime_duration"],
             False,
             None,
@@ -114,7 +118,7 @@ def install_initial_states(fight, actor, plan, *, runtime_factory):
             0,
             native_time_payload(realtime_remaining=profile["realtime_duration"]),
         )
-        retention.apply_state_reference(
+        applied = retention.apply_state_reference(
             handler,
             invocation,
             item.state_id,
@@ -122,6 +126,14 @@ def install_initial_states(fight, actor, plan, *, runtime_factory):
             carrier_context=context,
             protected=True if item.native_rBq else None,
         )
+        if application_results is not None:
+            application_results.append(
+                dict(
+                    state_id=item.state_id,
+                    level=item.level,
+                    applied=applied,
+                )
+            )
     return outbox
 
 

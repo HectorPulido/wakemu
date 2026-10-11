@@ -111,11 +111,32 @@ def cell_contains_type(fight, *, cell, area_type, source_id=None, owned=False):
 def own_specific_area(fight, *, reference, selector, caster_id, target_id, cell):
     """eOF: selected Qz area, or supplied target cell; compare PV owners."""
     rows = {row["uid"]: row for row in _rows(fight)}
-    source_owner = rows[caster_id]["owner_id"] if caster_id in rows else caster_id
-    target_owner = rows[target_id]["owner_id"] if target_id in rows else target_id
+    from .combat_state_managers import retained_area_pv_row, registered_area_pv
+
+    selected_rows = {}
+    for identity in (caster_id, target_id):
+        if identity is None or identity in fight.actors:
+            continue
+        row = retained_area_pv_row(fight, identity)
+        if row is not None:
+            registered_area_pv(fight, identity)
+            selected_rows[identity] = row
+    source_owner = (
+        selected_rows[caster_id]["owner_id"]
+        if caster_id in selected_rows
+        else caster_id
+    )
+    target_owner = (
+        selected_rows[target_id]["owner_id"]
+        if target_id in selected_rows
+        else target_id
+    )
     selected = caster_id if selector.lower() == "caster" else target_id
-    if selected in rows:
-        return rows[selected]["reference"] == reference and source_owner == target_owner
+    if selected in selected_rows:
+        return (
+            selected_rows[selected]["reference"] == reference
+            and source_owner == target_owner
+        )
     if selected is not None:
         return False
     if caster_id is None:

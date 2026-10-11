@@ -4,6 +4,7 @@ This module does not discover a fight roster or attach itself to combat. The
 caller supplies the authoritative terminal roster snapshot and leases the
 transaction that will also write the existing fight reward receipt.
 """
+from wakfu_server.reward_rates import MAX_REWARD_RATE_BP
 from dataclasses import dataclass
 from hashlib import sha256
 import json
@@ -118,12 +119,12 @@ def _trunc_div(numerator, denominator):
 
 
 def _xp_amount_with_status(
-    *, character_id, context, group_xp, xp_rate_bp, conquest_rate_bp
+    *, character_id, context, group_xp, xp_rate_bp, conquest_rate_bp, clamp_native=False
 ):
     """Port FormuleOfficiel math and report the local negative-XP clamp."""
     context = _normalize_context(context, character_id)
     group_xp = _integer(group_xp, "group XP")
-    xp_rate_bp = _integer(xp_rate_bp, "XP rate", 0, 1000000)
+    xp_rate_bp = _integer(xp_rate_bp, "XP rate", 0, MAX_REWARD_RATE_BP)
     conquest_rate_bp = _integer(conquest_rate_bp, "conquest rate", 0, 1000000)
     winners, losers = context["winners"], context["losers"]
     winner_level_sum = sum(row["level"] for row in winners)
@@ -190,6 +191,8 @@ def _xp_amount_with_status(
         # finish and make this explicit policy adjustment auditable in snapshot.
         return 0, True
     if value >= 2**63:
+        if clamp_native:
+            return 2**63 - 1, False
         raise ValueError("XP reward exceeds signed64 range")
     # Java's positive double->long cast truncates toward zero. All validated
     # factors are nonnegative, so int(value) is equivalent here.
@@ -207,11 +210,13 @@ def xp_amount(*, character_id, context, group_xp, xp_rate_bp, conquest_rate_bp):
     )[0]
 
 
-def kamas_amount(*, minimum, maximum, kamas_rate_bp, roll_index=None):
+def kamas_amount(
+    *, minimum, maximum, kamas_rate_bp, roll_index=None, clamp_native=False
+):
     """Use named inclusive bounds, correcting the reference caller's swapped args."""
     minimum = _integer(minimum, "minimum kamas", 0, 2**31 - 1)
     maximum = _integer(maximum, "maximum kamas", minimum, 2**31 - 1)
-    rate = _integer(kamas_rate_bp, "kamas rate", 0, 1000000)
+    rate = _integer(kamas_rate_bp, "kamas rate", 0, MAX_REWARD_RATE_BP)
     span = maximum - minimum + 1
     if roll_index is None:
         roll_index = secrets.randbelow(span)
@@ -220,6 +225,8 @@ def kamas_amount(*, minimum, maximum, kamas_rate_bp, roll_index=None):
     # Math.round for a nonnegative double is floor(x + 0.5).
     result = (amount * rate + 5000) // 10000
     if result >= 2**31:
+        if clamp_native:
+            return 2**31 - 1, roll_index
         raise ValueError("Fight report kamas exceed signed32 range")
     return result, roll_index
 
@@ -376,13 +383,27 @@ def resolve(
         group_xp=group_xp,
         xp_rate_bp=settings["xp_rate_bp"],
         conquest_rate_bp=settings["conquest_rate_bp"],
+        clamp_native=True,
     )
     kamas, roll = kamas_amount(
         minimum=minimum_kamas,
         maximum=maximum_kamas,
         kamas_rate_bp=settings["kamas_rate_bp"],
         roll_index=kamas_roll_index,
+        clamp_native=True,
     )
+    totals = db.execute(
+        "SELECT p.xp,w.kamas FROM character_progression p "
+        "JOIN characters c ON c.id=p.character_id "
+        "JOIN account_wallets w ON w.account_id=c.account_id "
+        "WHERE p.character_id=%s AND c.account_id=%s FOR UPDATE OF w,p",
+        (character_id, account_id),
+    ).fetchone()
+    if totals is None:
+        raise ValueError("Combat reward recipient totals are missing")
+    calculated_xp, calculated_kamas = xp, kamas
+    xp = min(xp, (2**63 - 1) - totals["xp"])
+    kamas = min(kamas, (2**63 - 1) - totals["kamas"])
     snapshot = {
         "algorithm": ALGORITHM,
         "policy_version": settings["version"],
@@ -398,6 +419,12 @@ def resolve(
         "kamas_roll_index": roll,
         "xp": xp,
         "negative_formula_clamped": negative_formula_clamped,
+        "native_limits": {
+            "xp_at_packet_limit": calculated_xp == 2**63 - 1,
+            "kamas_at_packet_limit": calculated_kamas == 2**31 - 1,
+            "xp_storage_capped": xp < calculated_xp,
+            "kamas_storage_capped": kamas < calculated_kamas,
+        },
         "kamas": kamas,
     }
     encoded = json.dumps(

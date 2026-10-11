@@ -434,6 +434,10 @@ def complete(store, ticket, body, *, location_context=None):
             from .mining_products import resolve
 
             item_reference = resolve(db, rule)
+        if rule["profession_id"] == 75:
+            from .fishing_products import resolve
+
+            item_reference = resolve(db, rule)
         packets = []
         product = None
         if item_reference:
@@ -462,6 +466,12 @@ def complete(store, ticket, body, *, location_context=None):
             "DELETE FROM planting_growth_outbox WHERE resource_uid=%s",
             (resource["resource_uid"],),
         )
+        from .resource_domains import is_fish
+
+        if is_fish(resource["resource_reference"]):
+            from .fishing_spots import deplete
+
+            deplete(db, resource, now)
         if stage == 0:
             from .resource_domains import is_mineral
 

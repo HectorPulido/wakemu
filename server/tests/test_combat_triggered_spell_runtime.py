@@ -70,7 +70,7 @@ class TriggeredSpellRuntimeTests(unittest.TestCase):
             target_id=-7,
             target=f.preview.actors[-7].position,
             effect_ids=(343655,),
-            costs=dict(ap=1, mp=0, wp=0),
+            costs=dict(ap=1, mp=0, wp=0, extra_resource_deltas={}),
         )
         from wakfu_server.combat_spell_usage import validate_usage
 
@@ -148,3 +148,45 @@ class TriggeredSpellRuntimeTests(unittest.TestCase):
         self.assertEqual(rng.getstate(), rng_before)
         self.assertTrue(parent_outboxes)
         self.assertEqual(parent_outboxes[0], [])
+
+    def test_nested_paid_receipt_and_ignored_cost_suppression(self):
+        from wakfu_server.combat_cost_payment_events import replay_paid_spell_costs
+
+        for paid in (False, True):
+            with self.subTest(paid=paid):
+                fight, factory, rng, plan = self.fixture()
+                # Exercise the typed nested-call boundary without mutating
+                # the original retained definition or its parameter authority.
+                from wakfu_server.combat_triggered_spell_handler import (
+                    NativeTriggeredSpellHandler,
+                )
+
+                original_prepare = NativeTriggeredSpellHandler.prepare
+                prepared_flags = []
+
+                def requested_policy(handler, effect, values, invocation):
+                    prepared = original_prepare(handler, effect, values, invocation)
+                    # Controlled input at the private C-result boundary, not
+                    # a mutation of the retained definition's parameters.
+                    handler.prepared[prepared.native_running_uid] = paid
+                    prepared_flags.append(handler.prepared[prepared.native_running_uid])
+                    return prepared
+
+                receipts = []
+
+                def observe(dispatcher, selected):
+                    if selected.get("native_triggered_spell_policy"):
+                        receipts.append(selected["actor_id"])
+                    return replay_paid_spell_costs(dispatcher, selected)
+
+                with patch(
+                    "wakfu_server.combat_cost_payment_events.replay_paid_spell_costs",
+                    observe,
+                ), patch(
+                    "wakfu_server.combat_triggered_spell_handler.NativeTriggeredSpellHandler.prepare",
+                    requested_policy,
+                ):
+                    transaction = self.execute(fight, factory, plan)
+                self.assertTrue(transaction.outcomes[0])
+                self.assertEqual(prepared_flags, [paid])
+                self.assertEqual(receipts, [7] if paid else [])

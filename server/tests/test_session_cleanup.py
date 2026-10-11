@@ -53,6 +53,20 @@ def extracted_session_finalizer(namespace):
                 targets=[ast.Name(id="active_request", ctx=ast.Store())],
                 value=ast.Name(id="active_request_arg", ctx=ast.Load()),
             ),
+            # The production session initializes this local before entering
+            # the extracted finally block.
+            ast.Assign(
+                targets=[ast.Name(id="guild_chest_session", ctx=ast.Store())],
+                value=ast.Constant(value=None),
+            ),
+            ast.Assign(
+                targets=[ast.Name(id="flora_ticket", ctx=ast.Store())],
+                value=ast.Constant(value=None),
+            ),
+            ast.Assign(
+                targets=[ast.Name(id="combat_session", ctx=ast.Store())],
+                value=ast.Constant(value=None),
+            ),
             *candidates[0].finalbody,
         ],
         decorator_list=[],
@@ -168,16 +182,26 @@ class SessionCleanupFinallyTests(unittest.TestCase):
             "CONNECTIONS": Connections(),
             "service": "world",
             "checkpoint_fight": checkpoint,
+            "CHECKPOINT_WRITER": SimpleNamespace(
+                flush_fight=lambda *_args, **_kwargs: True
+            ),
             "fight": None,
             "COMBAT_TEST": True,
             "group_lease": None,
             "account_id": 9001,
             "STORE": Store() if store is None else store,
             "record": record,
+            "exception_frames": lambda _error: (),
             "redact": str,
             "flush_positions": flush_positions,
             "POSITIONS": self.Calls(events, "positions"),
             "COMBAT_GROUPS": Groups(),
+            "COMBAT_SESSIONS": SimpleNamespace(
+                registry=SimpleNamespace(
+                    lease_generation_active=lambda _generation: True
+                )
+            ),
+            "HAVEN_BAG_EXTERIORS": SimpleNamespace(discard=lambda *_args: None),
             "release_groups": release_groups,
             "WORLD": World(),
             "LOCK": threading.RLock(),
@@ -197,6 +221,11 @@ class SessionCleanupFinallyTests(unittest.TestCase):
         events = []
         namespace, _ = self.namespace(events=events)
         namespace["fight"] = SimpleNamespace(id=77, phase="active")
+        # This retry scenario releases an obsolete generation. A still-active
+        # generation deliberately retains its combat group in production.
+        namespace[
+            "COMBAT_SESSIONS"
+        ].registry.lease_generation_active = lambda _generation: False
         checkpoint_calls = []
 
         def checkpoint(status):
@@ -373,6 +402,12 @@ class SessionCleanupLeasePostgresTests(PostgresCase):
             "WORLD": World(),
             "LOCK": threading.RLock(),
             "LIVE": {account: (new_generation, new_peer)},
+            "COMBAT_SESSIONS": SimpleNamespace(
+                registry=SimpleNamespace(
+                    lease_generation_active=lambda _generation: False
+                )
+            ),
+            "HAVEN_BAG_EXTERIORS": SimpleNamespace(discard=lambda *_args: None),
         }
 
         from wakfu_server import combat_health

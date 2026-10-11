@@ -123,6 +123,50 @@ class LocationBatchTests(unittest.TestCase):
         self.assertEqual(0, world.emit_location_batch(4, 5, ()))
         self.assertEqual(writes, [])
 
+    def test_strict_delivery_attempts_every_peer_then_raises_for_any_failure(self):
+        attempted = []
+
+        class Peer:
+            def __init__(self, name):
+                self.name = name
+
+            def shutdown(self, _how):
+                pass
+
+        def write(peer, packets):
+            attempted.append(peer.name)
+            if peer.name == "broken":
+                raise BrokenPipeError(32, "closed")
+
+        world = self.world(write)
+        self.attach(world, 1, "a", Peer("broken"))
+        self.attach(world, 2, "b", Peer("good"))
+        packets = ((12304, b"remove"), (12608, b"spawn"))
+        with self.assertRaisesRegex(OSError, "unpublished recipients"):
+            world.emit_location_batch(4, 5, packets, require_all=True)
+        self.assertEqual(attempted, ["broken", "good"])
+
+    def test_strict_zero_recipient_is_vacuously_delivered_and_default_remains_non_strict(
+        self,
+    ):
+        world = self.world(lambda *_: None)
+        self.assertEqual(
+            0, world.emit_location_batch(4, 5, ((12608, b"x"),), require_all=True)
+        )
+
+        class Broken:
+            def __call__(self, peer, packets):
+                raise BrokenPipeError(32, "closed")
+
+        non_strict = self.world(Broken())
+
+        class Peer:
+            def shutdown(self, _how):
+                pass
+
+        self.attach(non_strict, 1, "a", Peer())
+        self.assertEqual(0, non_strict.emit_location_batch(4, 5, ((12608, b"x"),)))
+
 
 if __name__ == "__main__":
     unittest.main()

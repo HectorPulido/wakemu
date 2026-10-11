@@ -296,6 +296,9 @@ def switch_main(store, account_id, generation, main_character_id, hero_id):
                 "revision=revision+1 WHERE id=%s",
                 (main_character_id, hero_id, membership["party_id"]),
             )
+        from wakfu_server.characters.guild_character import record_presence
+
+        record_presence(db, account_id, generation)
         db.execute(
             "UPDATE sessions SET character_id=%s WHERE account_id=%s AND generation=%s",
             (hero_id, account_id, generation),

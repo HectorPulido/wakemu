@@ -33,6 +33,15 @@ class AreaEventPhaseTests(unittest.TestCase):
         self.events.preview = self.preview
         self.events.adapter = SimpleNamespace(actor_authority=authority)
         self.events.retention = SimpleNamespace(
+            container=lambda invocation: (
+                dict(
+                    container_present=False,
+                    container_type=None,
+                    container_is_spell=None,
+                    spell_protected=None,
+                ),
+                None,
+            ),
             definition=lambda effect, invocation: dict(
                 event_suppresses_level_one=False
             ),
@@ -40,7 +49,11 @@ class AreaEventPhaseTests(unittest.TestCase):
         )
         self.events.authority = None
         self.events.replay = lambda source, **kwargs: self.sources.append(source)
-        self.effect = dict(effect_class=304, native_effect_flags=[])
+        self.effect = dict(
+            effect_class=304,
+            native_effect_flags=[],
+            target_masks=(None,) * 7,
+        )
         self.invocation = SimpleNamespace(
             reference=101,
             caster_id=7,

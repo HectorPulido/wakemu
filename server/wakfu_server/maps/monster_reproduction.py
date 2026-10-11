@@ -104,6 +104,7 @@ def attempt(
     group_draw=None,
     choose=secrets.choice,
     configuration=None,
+    prepared=None,
 ):
     """Resolve a due birth atomically; caller holds group and harvest locks.
 
@@ -153,6 +154,11 @@ def attempt(
             return dict(old, duplicate=True)
         if group is None or group["status"] != "available" or key[2] in excluded_ids:
             return None
+        if (
+            prepared is not None
+            and list(group["members"]) != prepared["expected_members"]
+        ):
+            return None
         parent = next((m for m in group["members"] if m["id"] == key[2]), None)
         stage = STAGES.get(ticket["reference"])
         if (
@@ -174,18 +180,33 @@ def attempt(
             or timer["reference"] != parent["ref"]
         ):
             return None
-        living_groups = db.execute(
-            "SELECT members FROM combat_groups WHERE map_id=%s "
-            "AND instance_id=%s AND status!='defeated'",
-            key[:2],
-        ).fetchall()
-        if (
-            sum(len(row["members"]) for row in living_groups)
-            >= configuration["max_zone_members"]
-        ):
+        if prepared is None:
+            living_groups = db.execute(
+                "SELECT members FROM combat_groups WHERE map_id=%s "
+                "AND instance_id=%s AND status!='defeated'",
+                key[:2],
+            ).fetchall()
+            population = sum(len(row["members"]) for row in living_groups)
+            group_count = len(living_groups)
+        else:
+            counts = db.execute(
+                "SELECT count(*) AS groups,COALESCE(sum(jsonb_array_length(members)),0) AS members "
+                "FROM combat_groups WHERE map_id=%s AND instance_id=%s AND status!='defeated'",
+                key[:2],
+            ).fetchone()
+            population, group_count = counts["members"], counts["groups"]
+            destination = tuple(prepared["destination"])
+            if db.execute(
+                "SELECT 1 FROM combat_groups g CROSS JOIN LATERAL jsonb_array_elements(g.members) m "
+                "WHERE g.map_id=%s AND g.instance_id=%s AND g.status!='defeated' "
+                "AND (m->>'x')::integer=%s AND (m->>'y')::integer=%s LIMIT 1",
+                (*key[:2], *destination[:2]),
+            ).fetchone():
+                return None
+        if population >= configuration["max_zone_members"]:
             return None
         can_append = len(group["members"]) < configuration["max_members"]
-        can_separate = len(living_groups) < configuration["max_zone_groups"]
+        can_separate = group_count < configuration["max_zone_groups"]
         if not can_append and not can_separate:
             return None
         blocked = {
@@ -193,23 +214,29 @@ def attempt(
             for p in players
             if (p["map_id"], p["instance_id"]) == key[:2]
         }
-        for row in living_groups:
-            blocked.update((m["x"], m["y"]) for m in row["members"])
-        blocked.update(
-            (r["x"], r["y"])
-            for r in db.execute(
-                "SELECT x,y FROM planted_resources WHERE map_id=%s AND instance_id=%s",
-                key[:2],
+        if prepared is None:
+            for row in living_groups:
+                blocked.update((m["x"], m["y"]) for m in row["members"])
+            blocked.update(
+                (r["x"], r["y"])
+                for r in db.execute(
+                    "SELECT x,y FROM planted_resources WHERE map_id=%s AND instance_id=%s",
+                    key[:2],
+                )
             )
-        )
-        candidates = [
-            p
-            for p in indexed[1].get(tuple(parent[k] for k in ("x", "y", "z")), ())
-            if p[:2] not in blocked
-        ]
-        if not candidates:
-            return None
-        destination = choose(candidates)
+        if prepared is None:
+            candidates = [
+                p
+                for p in indexed[1].get(tuple(parent[k] for k in ("x", "y", "z")), ())
+                if p[:2] not in blocked
+            ]
+            if not candidates:
+                return None
+            destination = choose(candidates)
+        else:
+            destination = tuple(prepared["destination"])
+            if destination[:2] in blocked:
+                return None
         cell = (*key[:2], *destination[:2])
         db.execute(
             "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
@@ -245,19 +272,25 @@ def attempt(
             separate = can_separate and (
                 not can_append or second < configuration["new_group_probability"]
             )
-            magnitude, child_id = allocate_identity(db)
-            seed = choose(stage[0]["tiers"][0]["candidates"])
-            child = owned_instance(
-                seed["reference"],
-                seed["min_level"],
-                child_id,
-                map_id=key[0],
-                x=destination[0],
-                y=destination[1],
-                z=destination[2],
-                team=parent["team"],
-                instance_id=key[1],
-            )
+            if prepared is None:
+                magnitude, child_id = allocate_identity(db)
+                seed = choose(stage[0]["tiers"][0]["candidates"])
+                child = owned_instance(
+                    seed["reference"],
+                    seed["min_level"],
+                    child_id,
+                    map_id=key[0],
+                    x=destination[0],
+                    y=destination[1],
+                    z=destination[2],
+                    team=parent["team"],
+                    instance_id=key[1],
+                )
+            else:
+                child = prepared["child"]
+                magnitude, child_id = -child["id"], child["id"]
+                if tuple(child[k] for k in ("x", "y", "z")) != destination:
+                    raise ValueError("Prepared birth position differs")
             child_group = magnitude if separate else ticket["group_id"]
             members = [child] if separate else [*group["members"], child]
             spawn_group(members, group_id=child_group)

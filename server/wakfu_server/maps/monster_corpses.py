@@ -221,3 +221,62 @@ def expire(db):
         )
         for scope, ids in scopes.items()
     }
+
+
+def due_expiries(db, *, limit=16):
+    """Read retryable expiry proposals without claiming publication."""
+    if type(limit) is not int or not 1 <= limit <= 256:
+        raise ValueError("Invalid corpse expiry batch limit")
+    return [
+        {
+            "actor_id": row["actor_id"],
+            "map_id": row["map_id"],
+            "instance_id": row["instance_id"],
+            "expires_at": row["expires_at"].isoformat(),
+            "consumed_at": None
+            if row["consumed_at"] is None
+            else row["consumed_at"].isoformat(),
+        }
+        for row in db.execute(
+            "SELECT actor_id,map_id,instance_id,expires_at,consumed_at FROM monster_corpses "
+            "WHERE NOT expiry_published AND "
+            "(expires_at<=CURRENT_TIMESTAMP OR consumed_at IS NOT NULL) "
+            "ORDER BY expires_at,actor_id LIMIT %s",
+            (limit,),
+        )
+    ]
+
+
+def publish_expiry(db, proposal, emit):
+    """Recheck under the harvest row fence, emit, then acknowledge publication.
+
+    Network delivery is at least once: a crash after emit but before commit may
+    repeat the idempotent removal. A failed emit never consumes the retry.
+    """
+    if db.info.transaction_status != TransactionStatus.INTRANS:
+        raise ValueError("Corpse expiry publication requires a transaction")
+    row = db.execute(
+        "SELECT actor_id,map_id,instance_id,expires_at,consumed_at,expiry_published,"
+        "(expires_at<=CURRENT_TIMESTAMP OR consumed_at IS NOT NULL) AS due "
+        "FROM monster_corpses WHERE actor_id=%s FOR UPDATE",
+        (proposal["actor_id"],),
+    ).fetchone()
+    if row is None or row["expiry_published"] or not row["due"]:
+        return "stale"
+    current = {
+        "actor_id": row["actor_id"],
+        "map_id": row["map_id"],
+        "instance_id": row["instance_id"],
+        "expires_at": row["expires_at"].isoformat(),
+        "consumed_at": None
+        if row["consumed_at"] is None
+        else row["consumed_at"].isoformat(),
+    }
+    if any(proposal.get(key) != value for key, value in current.items()):
+        return "stale"
+    emit(row["map_id"], row["instance_id"], remove_message((row["actor_id"],)))
+    db.execute(
+        "UPDATE monster_corpses SET expiry_published=true WHERE actor_id=%s",
+        (row["actor_id"],),
+    )
+    return "applied"

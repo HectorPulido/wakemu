@@ -94,14 +94,38 @@ def parse_local_criterion(source):
                     string=previous.string + token.string, end=token.end
                 )
             normalized.append(token)
-        tokens = [
-            str(int(t.string, 10))
-            if t.type == tokenize.NUMBER and t.string.isascii() and t.string.isdigit()
-            else _BOOLEAN_LITERALS.get(t.string, t.string)
-            if t.type == tokenize.NAME
-            else t.string
-            for t in normalized
-        ]
+        tokens = []
+        index = 0
+        while index < len(normalized):
+            token = normalized[index]
+            if (
+                token.type == tokenize.OP
+                and token.string in ("&", "|")
+                and index + 1 < len(normalized)
+                and normalized[index + 1].type == tokenize.OP
+                and normalized[index + 1].string == token.string
+                and token.end == normalized[index + 1].start
+                and token.end[0] == normalized[index + 1].start[0]
+            ):
+                # Wakfu's native criterion syntax uses && and ||. Python's
+                # tokenizer splits each into adjacent single-character tokens.
+                # Translate only physically adjacent pairs so bitwise-looking
+                # or spaced single operators remain invalid syntax.
+                tokens.append("and" if token.string == "&" else "or")
+                index += 2
+                continue
+            if token.type == tokenize.OP and token.string in ("&", "|"):
+                raise LocalCriterionSyntax("Invalid native boolean operator")
+            tokens.append(
+                str(int(token.string, 10))
+                if token.type == tokenize.NUMBER
+                and token.string.isascii()
+                and token.string.isdigit()
+                else _BOOLEAN_LITERALS.get(token.string, token.string)
+                if token.type == tokenize.NAME
+                else token.string
+            )
+            index += 1
         if _MARKER_CALL in tokens:
             raise LocalCriterionSyntax("Reserved native marker function")
         if len(tokens) > 4096:

@@ -418,8 +418,55 @@ class TacticalBridgeTests(unittest.TestCase):
         )
         self.assertNotEqual(provider.context_key, changed.context_key)
 
+    def test_native_provider_context_key_includes_all_player_decks(self):
+        from wakfu_server.combat_tactical_ai import NativeProvider
+
+        base = NativeProvider(
+            {"id": 7},
+            {},
+            b"main",
+            player_characters={7: {"id": 7}, 8: {"id": 8}},
+            deck_blobs={7: b"main", 8: b"ally"},
+        )
+        changed = NativeProvider(
+            {"id": 7},
+            {},
+            b"main",
+            player_characters={7: {"id": 7}, 8: {"id": 8}},
+            deck_blobs={7: b"main", 8: b"changed"},
+        )
+        self.assertNotEqual(base.context_key, changed.context_key)
+
 
 class NativeTacticalPreviewTests(unittest.TestCase):
+    class _MovementAuthority:
+        """Explicit ordinary actor facts for synthetic AI movement previews."""
+
+        def __call__(self, fight, actor):
+            from wakfu_server.combat_runtime_adapter import NativeActorAuthority
+
+            if fight.actors.get(actor.id) is not actor:
+                raise ValueError("Movement fixture actor is not in the current fight")
+            return NativeActorAuthority(
+                targeting=dict(
+                    baF=True,
+                    baG=False,
+                    baK=False,
+                    dpu_id=actor.id,
+                ),
+                is_player=actor.controlled,
+                deck_spell_ids=frozenset(),
+                excluded_deck_spell_ids=frozenset(),
+                is_carried=False,
+                breed_id=15 if actor.controlled else 0,
+                summon_count=0,
+                summon_counts_by_breed={},
+                occupant_blocks=True,
+            )
+
+        def properties(self, fight, actor):
+            return frozenset()
+
     @classmethod
     def setUpClass(cls):
         # The native compiled catalog is process cached and costly to build.
@@ -477,8 +524,10 @@ class NativeTacticalPreviewTests(unittest.TestCase):
         fixture.monster.update(ref=1, level=8)
         fixture.npc.effective_level = 8
         fixture.fight.walkable = {(x, 0, 0) for x in range(7)}
-        fixture.npc.position = (0, 0, 0)
-        fixture.pc.position = (6, 0, 0)
+        from wakfu_server.combat_qi_fight import move_registered_actor
+
+        move_registered_actor(fixture.fight, fixture.npc, (0, 0, 0))
+        move_registered_actor(fixture.fight, fixture.pc, (6, 0, 0))
         fixture.fight.placement = {
             0: set(fixture.fight.walkable),
             1: set(fixture.fight.walkable),
@@ -489,6 +538,7 @@ class NativeTacticalPreviewTests(unittest.TestCase):
             for b in fixture.fight.walkable
             if abs(a[0] - b[0]) == 1
         }
+        fixture.fight.native_rail_movement_authority = self._MovementAuthority()
         runtime = RuntimeMessages(fixture.fight)
         provider = NativeProvider(
             fixture.character,
@@ -831,14 +881,16 @@ class NativeTacticalPreviewTests(unittest.TestCase):
                 for b in fixture.fight.walkable
                 if abs(a[0] - b[0]) == 1
             }
-            fixture.pc.position = (6, 0, 0)
-            fixture.npc.position = (npc_x, 0, 0)
-            fixture.npc.mp = 6
-            fixture.npc.effect_stats[3] = 6
+            from wakfu_server.combat_qi_fight import move_registered_actor
+
+            player_x = 4 if label == "approach_then_cast" else 6
+            move_registered_actor(fixture.fight, fixture.pc, (player_x, 0, 0))
+            move_registered_actor(fixture.fight, fixture.npc, (npc_x, 0, 0))
             fixture.fight.placements = {
                 0: set(fixture.fight.walkable),
                 1: set(fixture.fight.walkable),
             }
+            fixture.fight.native_rail_movement_authority = self._MovementAuthority()
             runtime = RuntimeMessages(fixture.fight)
             provider = NativeProvider(
                 fixture.character,
@@ -850,8 +902,14 @@ class NativeTacticalPreviewTests(unittest.TestCase):
             provider.capabilities(runtime.fight)
             provider.outcome_features(runtime.fight)
             warm_fight = copy.deepcopy(runtime.fight)
-            warm_fight.actors[fixture.npc.id].position = (5, 0, 0)
-            warm_fight.actors[fixture.pc.id].position = (6, 0, 0)
+            from wakfu_server.combat_qi_fight import move_registered_actor
+
+            move_registered_actor(
+                warm_fight, warm_fight.actors[fixture.npc.id], (5, 0, 0)
+            )
+            move_registered_actor(
+                warm_fight, warm_fight.actors[fixture.pc.id], (6, 0, 0)
+            )
             warm_action = next(
                 action
                 for action in provider.actions(warm_fight)

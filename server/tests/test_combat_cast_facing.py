@@ -87,7 +87,7 @@ class CastFacingTest(unittest.TestCase):
             "actor_id": 7,
             "spell_id": 7318,
             "target": (-2, 0, 0),
-            "costs": {"ap": 2, "mp": 0, "wp": 0},
+            "costs": {"ap": 2, "mp": 0, "wp": 0, "extra_resource_deltas": {}},
         }
 
         def failing(preview, request):

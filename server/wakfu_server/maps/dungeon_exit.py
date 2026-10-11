@@ -5,7 +5,86 @@ import struct
 from wakfu_server import generic_transports, player_parties
 
 
-def resolve(character, body, *, entry_map_id, source_allowed):
+def validate_foreign_exterior(topology):
+    """Validate each explicitly pinned foreign exit against complete native data."""
+    policy = topology.get("native_foreign_exterior_policy")
+    if policy is None:
+        return {}
+    if (
+        topology.get("policy") != "native_mixed_victory_policy"
+        or not isinstance(policy, dict)
+        or set(policy) != {"reason", "bindings"}
+        or not isinstance(policy["reason"], str)
+        or not policy["reason"].strip()
+        or not isinstance(policy["bindings"], list)
+        or not policy["bindings"]
+    ):
+        raise ValueError(
+            "Foreign native exits require explicit reviewed mixed bindings"
+        )
+    from wakfu_server.dungeon_runtime_config import canonical_hash
+    from wakfu_server.combat_geometry import published_geometry
+
+    reviewed = {
+        row["source_id"]: row for row in topology.get("physical_exit_objects", ())
+    }
+    result = {}
+    for binding in policy["bindings"]:
+        if (
+            not isinstance(binding, dict)
+            or set(binding)
+            != {"source_id", "source_sha256", "destination_id", "destination"}
+            or type(binding["source_id"]) is not int
+            or type(binding["destination_id"]) is not int
+            or binding["source_id"] in result
+            or binding["source_id"] not in reviewed
+        ):
+            raise ValueError("Foreign native exit identity is invalid or duplicated")
+        identity = binding["source_id"]
+        source = generic_transports.source(topology["asset_map_id"], identity)
+        target = binding["destination"]
+        if (
+            not isinstance(target, dict)
+            or set(target) != {"map_id", "x", "y", "z"}
+            or any(type(value) is not int for value in target.values())
+            or source is None
+            or canonical_hash(source) != binding["source_sha256"]
+        ):
+            raise ValueError("Foreign native exit source hash or destination changed")
+        destinations = [
+            row
+            for row in source["destinations"]
+            if row["destination_id"] == binding["destination_id"]
+        ]
+        frozen = reviewed[identity]
+        if (
+            len(destinations) != 1
+            or frozen.get("destination_id") != binding["destination_id"]
+            or frozen.get("destination") != target
+        ):
+            raise ValueError(
+                "Foreign native exit contradicts its pinned exterior binding"
+            )
+        native = destinations[0]
+        if (
+            any(native[key] != target[key] for key in target)
+            or native["criterion"].strip()
+            or native["cyZ"] >= 0
+            or native["cyX"] != 0
+            or native["cyW"] > 0
+            and native["item_reference"] > 0
+            or native["native_altitude_walkable"] is not True
+            or tuple(target[key] for key in ("x", "y", "z"))
+            not in published_geometry(target["map_id"]).cells
+        ):
+            raise ValueError(
+                "Foreign native exit is not an exact free walkable endpoint"
+            )
+        result[identity] = binding
+    return result
+
+
+def resolve(character, body, *, entry_map_id, source_allowed, topology=None):
     if len(body) != 17 or not callable(source_allowed):
         raise ValueError("Invalid dungeon exit request")
     object_id, destination_id, flag, mode = struct.unpack(">qiBi", body)
@@ -22,9 +101,19 @@ def resolve(character, body, *, entry_map_id, source_allowed):
         ),
         None,
     )
+    foreign = {}
+    if destination is not None and destination["map_id"] != entry_map_id:
+        if topology is None or topology.get("asset_map_id") != character["map_id"]:
+            raise ValueError("Foreign native exit has no pinned current-map contract")
+        foreign = validate_foreign_exterior(topology).get(object_id, {})
     if (
         destination is None
         or destination["map_id"] != entry_map_id
+        and (
+            foreign.get("destination_id") != destination_id
+            or foreign.get("destination")
+            != {key: destination[key] for key in ("map_id", "x", "y", "z")}
+        )
         or destination["criterion"].strip()
         or destination["cyZ"] >= 0
         or destination["cyX"] != 0
@@ -43,18 +132,81 @@ def leave(
     Both callbacks must use worker-authoritative state. Exterior packet delivery
     remains durable even when the final departure closes the run.
     """
+
+    def destination_for(db, character, run):
+        from wakfu_server import dungeon_runtime
+
+        topology = None
+        pinned_config = db.execute(
+            "SELECT 1 FROM dungeon_runtime_configurations WHERE route_key=%s AND policy_version=%s",
+            (run["context_route_key"], run["context_policy_version"]),
+        ).fetchone()
+        if pinned_config is not None:
+            _, configuration = dungeon_runtime.configuration_for_instance(
+                db, run["instance_id"]
+            )
+            topology = configuration["topology"]
+        if (
+            topology is not None
+            and topology.get("policy") == "native_shared_arena_sequential_policy"
+        ):
+            progress = db.execute(
+                "SELECT status FROM dungeon_room_runs WHERE instance_id=%s",
+                (run["instance_id"],),
+            ).fetchone()
+            if progress is None or progress["status"] != "completed":
+                raise ValueError(
+                    "Shared arena exit is locked until the final encounter"
+                )
+            identity = struct.unpack(">q", body[:8])[0] if len(body) == 17 else None
+            if not any(
+                row["source_id"] == identity
+                for row in topology.get("physical_exit_objects", ())
+            ):
+                raise ValueError("Shared arena exit is not a reviewed native binding")
+        if len(body) == 17:
+            identity, target, _, _ = struct.unpack(">qiBi", body)
+            source = generic_transports.source(character["map_id"], identity)
+            if source is not None and any(
+                row["destination_id"] == target and row["map_id"] != run["entry_map_id"]
+                for row in source["destinations"]
+            ):
+                _, configuration = dungeon_runtime.configuration_for_instance(
+                    db, run["instance_id"]
+                )
+                topology = configuration["topology"]
+                binding = next(
+                    (
+                        row
+                        for row in topology.get("physical_exit_objects", ())
+                        if row["source_id"] == identity
+                    ),
+                    None,
+                )
+                progress = db.execute(
+                    "SELECT status FROM dungeon_room_runs WHERE instance_id=%s",
+                    (run["instance_id"],),
+                ).fetchone()
+                if binding is None or (
+                    binding["room_order"] != 1
+                    and (progress is None or progress["status"] != "completed")
+                ):
+                    raise ValueError("Foreign native dungeon exit is locked")
+        return resolve(
+            character,
+            body,
+            entry_map_id=run["entry_map_id"],
+            source_allowed=source_allowed,
+            topology=topology,
+        )
+
     return _leave(
         store,
         account_id,
         generation,
         character_id,
         in_fight=in_fight,
-        destination_for=lambda db, character, run: resolve(
-            character,
-            body,
-            entry_map_id=run["entry_map_id"],
-            source_allowed=source_allowed,
-        ),
+        destination_for=destination_for,
     )
 
 
@@ -78,10 +230,15 @@ def automatic_destination(character, run, configuration):
         )
         if source is None:
             raise ValueError("Dungeon exit command native source is absent")
+        foreign = validate_foreign_exterior(topology).get(source["id"])
         destinations = [
             row
             for row in source["destinations"]
             if row["map_id"] == run["entry_map_id"]
+            or foreign is not None
+            and row["destination_id"] == foreign["destination_id"]
+            and {key: row[key] for key in ("map_id", "x", "y", "z")}
+            == foreign["destination"]
         ]
         if len(destinations) != 1:
             raise ValueError("Dungeon exit command exterior route is ambiguous")
@@ -92,6 +249,7 @@ def automatic_destination(character, run, configuration):
             struct.pack(">qiBi", source["id"], destinations[0]["destination_id"], 0, 2),
             entry_map_id=run["entry_map_id"],
             source_allowed=lambda actor, candidate: candidate["id"] == source["id"],
+            topology=topology,
         )
         return {key: destination[key] for key in ("map_id", "x", "y", "z")}
     destination = topology.get("completion_destination")

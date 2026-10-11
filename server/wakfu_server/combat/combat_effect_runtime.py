@@ -1085,6 +1085,12 @@ class NativeEffectRuntimeFactory:
                 ), preview.effect_resolution(), cast_event_scope(
                     nested, nested_plan, origin="nested"
                 ):
+                    from .combat_breeze_payment_events import replay_paid_breeze_costs
+                    from .combat_cost_payment_events import replay_paid_spell_costs
+
+                    if request.native_rhe:
+                        replay_paid_spell_costs(nested, nested_plan)
+                    replay_paid_breeze_costs(nested, nested_plan)
                     for reference in nested_plan["effect_ids"]:
                         nested.execute(
                             EffectInvocation(
@@ -1203,6 +1209,8 @@ class NativeEffectRuntimeFactory:
         )
         handlers[1080] = distance_group
 
+        from .combat_state_managers import selected_area_pv_scope
+
         dispatcher = EffectDispatcher(
             self.effects,
             handlers,
@@ -1223,6 +1231,9 @@ class NativeEffectRuntimeFactory:
             transfer_skip_second=transfer_skip_second,
             random_child_level=lambda parameters: random_child_level(parameters, rng),
             distance_group_runner=distance_group,
+            group_execution_scope=lambda invocation: selected_area_pv_scope(
+                preview, (invocation.caster_id, invocation.target_id)
+            ),
             group_level=group_level,
             random_group_children=None
             if self.random_group_children is None
@@ -1317,6 +1328,13 @@ class NativeEffectRuntimeFactory:
                     )
                     dispatcher.native_cost_payment_events_factory = (
                         consume_resources.event_lifecycle_factory
+                    )
+                    from .combat_breeze_payment_events import NativeBreezePaymentEvents
+
+                    dispatcher.native_breeze_payment_events_factory = (
+                        lambda: NativeBreezePaymentEvents.from_healing(
+                            healing.event_lifecycle
+                        )
                     )
                     state.event_lifecycle = healing.event_lifecycle
                     property_clear.event_lifecycle = healing.event_lifecycle

@@ -142,6 +142,29 @@ class BackwardCompletedExitTests(unittest.TestCase):
         self.assertEqual(witness["source_id"], 30)
         self.assertEqual([s["source_id"] for s in witness["steps"]], [40, 30])
 
+    def test_completed_exit_can_return_to_entry_only_via_literal_backward_chain(self):
+        self.sources = [s for s in self.sources if s["id"] != 30]
+        source = copy.deepcopy(self.sources[-1])
+        source.update(id=41, x=2)
+        source["destinations"][0].update(destination_id=9, x=1)
+        self.sources.append(source)
+        self.topology["doors"].append(
+            dict(
+                source_id=41,
+                source_room=2,
+                destination_room=1,
+                destination_id=9,
+                source_position=[2, 0, 0],
+                native_approach_cells=[[2, 0, 0]],
+                destination_position=[1, 0, 0],
+            )
+        )
+        bindings = bind_exits(self.topology, self.route, self.sources)
+        self.assertEqual([b["room_order"] for b in bindings], [1])
+        witness = self.topology["completed_exit_witness"]
+        self.assertEqual(witness["room_order"], 1)
+        self.assertEqual([step["source_id"] for step in witness["steps"]], [40, 41, 20])
+
     def test_changed_arrival_cannot_be_used_as_a_guessed_return(self):
         self.sources[-1]["destinations"][0]["x"] = 1
         with self.assertRaises(ValueError):

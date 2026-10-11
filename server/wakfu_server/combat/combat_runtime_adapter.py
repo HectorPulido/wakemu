@@ -122,7 +122,8 @@ class NativeServerRuntimeAdapter:
             is_own_area,
         )
 
-        areas = getattr(preview, "native_effect_areas", {})
+        from .combat_state_managers import retained_area_pv_row, registered_area_pv
+
         identity = invocation.target_id
         if getattr(invocation, "native_target_cell_argument", False):
             identity = None
@@ -131,7 +132,8 @@ class NativeServerRuntimeAdapter:
             kind = "null" if invocation.cell is None else "cell"
         elif identity in preview.actors:
             kind = "actor"
-        elif isinstance(areas, dict) and identity in areas:
+        elif retained_area_pv_row(preview, identity) is not None:
+            registered_area_pv(preview, identity)
             kind = "area"
         else:
             raise ValueError("Unknown native area criterion target identity")
@@ -160,7 +162,7 @@ class NativeServerRuntimeAdapter:
                 if type(owner) is not int or owner not in preview.actors:
                     raise ValueError("Missing registered native dpu PV owner")
                 return owner  # eII.aT returns eGj.dpu directly, not recursively.
-            row = areas.get(identity) if isinstance(areas, dict) else None
+            row = retained_area_pv_row(preview, identity)
             if not isinstance(row, dict) or "owner_id" not in row:
                 raise ValueError("Missing native Qp.bch PV authority")
             return pv_owner(row["owner_id"], seen | {identity})
@@ -396,7 +398,20 @@ class NativeServerRuntimeAdapter:
             diagonal_target = None
         diagonal = native_diagonal(source.position, diagonal_target)
         alignment = native_alignment(source.position, diagonal_target)
-        obstacle = self.cast.cell_obstacle(preview, plan, effect, invocation)
+        from .combat_summon_initialization import detached_actor
+
+        constructor_without_qi = (
+            detached_actor(preview, invocation.caster_id) is source
+            and source is not None
+            and getattr(preview, "native_qi_slots", None) is None
+        )
+        # A missing constructor QI is unknown, not an empty cell. Criteria
+        # that actually consume eOV still reject the missing ConditionCell.
+        obstacle = (
+            None
+            if constructor_without_qi
+            else self.cast.cell_obstacle(preview, plan, effect, invocation)
+        )
         if obstacle is not None and type(obstacle) is not bool:
             raise ValueError("Invalid native cell obstacle")
         # eOV's cell branch reads Qs.bdm Qq occupants, then QI.V.
@@ -478,6 +493,21 @@ class NativeServerRuntimeAdapter:
             if same_caster:
                 distance = boundary["distance"]
             triggering["triggering_caster_is_same"] = same_caster
+
+        turn_boundary = getattr(invocation, "native_turn_boundary_context", None)
+        if turn_boundary is not None:
+            from .combat_turn_events import validate_turn_boundary_context
+
+            validate_turn_boundary_context(turn_boundary, fight=preview)
+            if trigger_source is not None or boundary is not None:
+                raise ValueError(
+                    "Owned turn facts cannot replace a native triggering runner"
+                )
+            # Explicit server policy qualifies whose turn this is. The native
+            # triggering Qe and its caster/target aliases remain null.
+            triggering["triggering_caster_is_same"] = (
+                turn_boundary["actor_id"] == invocation.caster_id
+            )
 
         def native_range_query(
             minimum,
@@ -569,9 +599,7 @@ class NativeServerRuntimeAdapter:
 
                     if type(metadata.native_in_play) is not bool:
                         raise ValueError("Missing native human-range membership")
-                    if not metadata.native_in_play or getattr(
-                        candidate, "native_fight_affiliation", candidate.team
-                    ) != getattr(source, "native_fight_affiliation", source.team):
+                    if not metadata.native_in_play:
                         continue
                     if not human_actor_type(metadata.native_actor_type):
                         continue
@@ -722,6 +750,19 @@ class NativeServerRuntimeAdapter:
 
         def enemy_range_query(minimum, maximum, selector, aligned, los):
             return native_range_query(minimum, maximum, selector, aligned, los)
+
+        def human_enemies_range_query(minimum, maximum, selector, aligned, los):
+            # eKe inherits eKn and selects in-play enemy aGJ types0/5.
+            return native_range_query(
+                minimum,
+                maximum,
+                selector,
+                aligned,
+                los,
+                relation="enemy",
+                in_play=True,
+                human_only=True,
+            )
 
         def human_allies_range_query(minimum, maximum, selector, aligned, los):
             return native_range_query(
@@ -1521,6 +1562,7 @@ class NativeServerRuntimeAdapter:
             line_of_sight_query=line_of_sight_query,
             fighters_breed_range_query=fighters_breed_range_query,
             human_allies_range_query=human_allies_range_query,
+            human_enemies_range_query=human_enemies_range_query,
             allies_count_query=allies_count_query,
             monsters_count_query=monsters_count_query,
             has_summon_breed_query=has_summon_breed_query,

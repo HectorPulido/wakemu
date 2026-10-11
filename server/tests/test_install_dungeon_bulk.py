@@ -114,13 +114,23 @@ class DungeonBulkInstallerPostgresTests(PostgresCase):
             ).fetchone()
         return None if row is None else row["value"]
 
+    def stored_configuration(self, route_key, version=1):
+        with self.store.connection() as db:
+            row = db.execute(
+                "SELECT configuration FROM dungeon_runtime_configurations "
+                "WHERE route_key=%s AND policy_version=%s",
+                (route_key, version),
+            ).fetchone()
+        return None if row is None else row["configuration"]
+
     def assert_uninstalled(self, *route_keys):
         with self.store.connection() as db:
             for key in route_keys:
                 self.assertIsNone(
                     db.execute(
-                        "SELECT value FROM settings WHERE name=%s",
-                        (f"dungeon_runtime_config:{key}:v1",),
+                        "SELECT 1 FROM dungeon_runtime_configurations "
+                        "WHERE route_key=%s AND policy_version=1",
+                        (key,),
                     ).fetchone()
                 )
                 self.assertIsNone(
@@ -137,8 +147,9 @@ class DungeonBulkInstallerPostgresTests(PostgresCase):
                 )
                 self.assertIsNone(
                     db.execute(
-                        "SELECT value FROM settings WHERE name=%s",
-                        (f"dungeon_runtime_active:{key}",),
+                        "SELECT 1 FROM dungeon_runtime_active_configurations "
+                        "WHERE route_key=%s",
+                        (key,),
                     ).fetchone()
                 )
             self.assertIsNone(
@@ -161,14 +172,15 @@ class DungeonBulkInstallerPostgresTests(PostgresCase):
         )
         with self.store.connection() as db:
             config_count = db.execute(
-                "SELECT count(*) AS n FROM settings WHERE name LIKE 'dungeon_runtime_config:%'"
+                "SELECT count(*) AS n FROM dungeon_runtime_configurations "
+                "WHERE route_key IN ('bulk_a','bulk_b')"
             ).fetchone()["n"]
             context_count = db.execute(
                 "SELECT count(*) AS n FROM dungeon_context_policy_versions "
                 "WHERE route_key IN ('bulk_a','bulk_b')"
             ).fetchone()["n"]
             active_count = db.execute(
-                "SELECT count(*) AS n FROM dungeon_context_active_policies "
+                "SELECT count(*) AS n FROM dungeon_runtime_active_configurations "
                 "WHERE route_key IN ('bulk_a','bulk_b')"
             ).fetchone()["n"]
         self.assertEqual((2, 2, 2), (config_count, context_count, active_count))
@@ -206,8 +218,8 @@ class DungeonBulkInstallerPostgresTests(PostgresCase):
                 install_bundle(db, bundle(changed_identity, new_route))
 
         self.assertEqual(before_registry, self.setting("dungeon_runtime_routes"))
-        self.assertIsNone(self.setting("dungeon_runtime_config:bulk_a_new:v1"))
-        self.assertIsNotNone(self.setting("dungeon_runtime_config:bulk_z_existing:v1"))
+        self.assertIsNone(self.stored_configuration("bulk_a_new"))
+        self.assertIsNotNone(self.stored_configuration("bulk_z_existing"))
         with self.store.connection() as db:
             self.assertIsNone(
                 db.execute(

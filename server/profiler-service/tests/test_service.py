@@ -92,6 +92,20 @@ class ProfilerTests(unittest.TestCase):
             (entry / "cmdline").write_bytes(b"\0".join(argv))
         self.assertEqual(service.world_pid(proc), 123)
 
+    def test_world_pid_finds_startup_module_without_matching_other_module_arguments(
+        self,
+    ):
+        proc = Path(self.temp.name) / "proc"
+        proc.mkdir()
+        for pid, arguments in (
+            (123, b"python3\0-m\0wakfu_server.catalog_gc_bootstrap\0"),
+            (124, b"python3\0-c\0wakfu_server.catalog_gc_bootstrap\0"),
+        ):
+            entry = proc / str(pid)
+            entry.mkdir()
+            (entry / "cmdline").write_bytes(arguments)
+        self.assertEqual(service.world_pid(proc), 123)
+
     def test_world_pid_rejects_zero_or_multiple_matches(self):
         proc = Path(self.temp.name) / "proc"
         proc.mkdir()

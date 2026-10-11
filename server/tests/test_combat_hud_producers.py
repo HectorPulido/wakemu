@@ -1,6 +1,7 @@
 """Native combat source regressions, with no resource inflation."""
 import struct
 import unittest
+from unittest.mock import patch
 from random import Random
 from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
 from wakfu_server.combat_global_pv_collections import initialize_global_pv_collections
@@ -427,7 +428,22 @@ class NativeHudProducerTests(unittest.TestCase):
         self.assertIn(bytes.fromhex(visual[visual_uid]["payload"]), effect_snapshot)
 
         ally_cell = (player_cell[0] + 1, player_cell[1], player_cell[2])
-        consumed = cast(c, monsters, form.fight, deck, 6288, ally_cell, 4)
+        from wakfu_server.combat_effect_dispatch import EffectDispatcher
+
+        activations = []
+        original_activation = EffectDispatcher.execute_activation
+
+        def observe_activation(dispatcher, invocation, *args, **kwargs):
+            activations.append(
+                (invocation.reference, invocation.caster_id, invocation.target_id)
+            )
+            return original_activation(dispatcher, invocation, *args, **kwargs)
+
+        with patch.object(EffectDispatcher, "execute_activation", observe_activation):
+            consumed = cast(c, monsters, form.fight, deck, 6288, ally_cell, 4)
+        self.assertIn(
+            339923, {reference for reference, _, _ in activations}, activations
+        )
         self.assertEqual(consumed.fight.actors[7].effect_stats[117], 0)
         self.assertFalse(
             any(
@@ -488,8 +504,12 @@ class NativeHudProducerTests(unittest.TestCase):
         self.assertIn(
             7647, {s.reference for s in toggle.fight.actors[7].state_ledger.entries}
         )
-        self.assertEqual(toggle.fight.actors[7].effect_stats[123], 3)
-        self.assertEqual(wire_value(toggle.fight.actors[7], 123, c), 3)
+        self.assertEqual(
+            toggle.plan["extra_resource_payment"],
+            (dict(stat_id=123, requested_delta=-1, actual_delta=-1),),
+        )
+        self.assertEqual(toggle.fight.actors[7].effect_stats[123], 2)
+        self.assertEqual(wire_value(toggle.fight.actors[7], 123, c), 2)
         self.assertTrue(toggle.packets)
 
         from wakfu_server.combat_runtime_messages import RuntimeMessages
@@ -508,13 +528,13 @@ class NativeHudProducerTests(unittest.TestCase):
             ),
         )
         runtime.turn_started()
-        for expected in (2, 0):
+        for expected, expected_wp in ((1, 4), (0, 5)):
             old_turn = runtime.fight.turn_id
             packets = runtime.end_turn(3, 7, runtime.fight.current.turn_count)
             self.assertEqual(runtime.fight.actors[7].effect_stats[123], expected)
             self.assertEqual(wire_value(runtime.fight.actors[7], 123, c), expected)
-            self.assertEqual(runtime.fight.actors[7].effect_stats[4], 3)
-            self.assertEqual(wire_value(runtime.fight.actors[7], 4, c), 3)
+            self.assertEqual(runtime.fight.actors[7].effect_stats[4], expected_wp)
+            self.assertEqual(wire_value(runtime.fight.actors[7], 4, c), expected_wp)
             self.assertTrue(packets)
             runtime.acknowledge_turn(struct.pack(">i", old_turn))
             if expected:

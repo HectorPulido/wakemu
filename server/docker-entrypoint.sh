@@ -10,4 +10,4 @@ fi
 openssl pkey -in "$WAKFU_RUNTIME/server.key" -pubout -outform DER -out "$WAKFU_RUNTIME/public-key.der"
 PYTHONPATH=/app python3 /app/tools/migrate_postgres.py
 PYTHONPATH=/app python3 -c 'from wakfu_server.native_catalog import release; print("Native catalog release:", release())'
-exec python3 /app/local_game_server.py
+exec python3 -m wakfu_server.catalog_gc_bootstrap

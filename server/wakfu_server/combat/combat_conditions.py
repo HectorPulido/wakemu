@@ -237,6 +237,7 @@ class ConditionContext:
     random_number_query: object = None  # eLb transaction-owned uniform index.
     fighters_breed_range_query: object = None  # eKt/eKn complete fUQ breed roster.
     human_allies_range_query: object = None  # eKz exact aGJ 0/5 filter.
+    human_enemies_range_query: object = None  # eKe exact aGJ 0/5 filter.
     allies_count_query: object = None  # eJo actual IN_PLAY same-affiliation roster.
     monsters_count_query: object = None  # eKK/fbX.e exact IN_PLAY aGJ1/2 roster.
     native_usage_context_query: object = (
@@ -548,6 +549,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             "GetEnnemyCountInRange",
             "GetAlliesCountInRange",
             "GetHumanAlliesCountInRange",
+            "GetEnemiesHumanCountInRange",
         ):
             if not 1 <= len(args) <= (6 if name == "GetAlliesCountInRange" else 5):
                 raise UnknownCondition("Unsupported native enemy range signature")
@@ -1038,9 +1040,12 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             "GetEnnemyCountInRange",
             "GetAlliesCountInRange",
             "GetHumanAlliesCountInRange",
+            "GetEnemiesHumanCountInRange",
         ):
             query = (
-                context.enemy_range_query
+                context.human_enemies_range_query
+                if name == "GetEnemiesHumanCountInRange"
+                else context.enemy_range_query
                 if name == "GetEnnemyCountInRange"
                 else (
                     context.human_allies_range_query

@@ -17,13 +17,13 @@ from wakfu_server.spells import encode_deck
 
 
 class AniripsaGrantSummonPipelineTests(unittest.TestCase):
-    def fixture(self, *, level=200, passives=()):
+    def fixture(self, *, level=200, passives=(), caster_aptitudes=()):
         (
             character,
             monster,
             fight,
         ) = fixture_module.SpellTransactionTests().native_server_fixture(
-            7, level, native_qi=True, target_hp=20000
+            7, level, native_qi=True, target_hp=20000, caster_aptitudes=caster_aptitudes
         )
         move_registered_actor(fight, fight.actors[-7], (-7, -7, -1))
         deck = encode_deck([630, 779, 645], list(passives))

@@ -7,12 +7,17 @@ keep an unsupported later effect from committing earlier damage or states.
 This does not claim that every native effect class has an implemented handler.
 """
 from copy import deepcopy
+from contextvars import ContextVar
+from contextlib import nullcontext
 from dataclasses import dataclass, replace
 from time import perf_counter
 from .combat_diagnostics import diagnostics_enabled, effect_step
 from .combat_conditions import evaluate_condition
 from .combat_definitions import effect_profile
 from .combat_effect_groups import decode_group_mode, execute_ordered_group
+
+
+_TRIGGER_DEPTH = ContextVar("native_trigger_clone_depth", default=0)
 
 
 class UnsupportedEffectExecution(ValueError):
@@ -35,6 +40,7 @@ class EffectInvocation:
     native_cast_boundary_context: dict | None = (
         None  # Explicit server cast policy; never a Qe.
     )
+    native_turn_boundary_context: dict | None = None  # Owned turn policy, never a Qe.
     native_running_uid: int | None = None
     native_value_scope: object | None = (
         None  # Ephemeral identity of the PS/eVt observer.
@@ -44,6 +50,9 @@ class EffectInvocation:
     )
     native_explicit_target: bool = False  # Native PK.a received a non-null PV argument.
     wakemu_fresh_child_selection: bool = False
+    wakemu_rebound_child_selection: bool = (
+        False  # Fresh server swap, never native replay.
+    )
     native_preselected_target: bool = False  # Qe.g(PV), bypassing area and aZX.
     native_target_cell_argument: bool = (
         False  # Criterion received raw aBn, not selected PV.
@@ -73,6 +82,7 @@ class EffectDispatcher:
         multiple_group_candidates=None,
         group_random=None,
         distance_group_runner=None,
+        group_execution_scope=None,
     ):
         self.effects = effects
         self.handlers = handlers
@@ -93,8 +103,10 @@ class EffectDispatcher:
         self.multiple_group_candidates = multiple_group_candidates
         self.group_random = group_random
         self.distance_group_runner = distance_group_runner
+        self.group_execution_scope = group_execution_scope
         self._active_pt = None
         self._active_ancestors = ()
+        self._active_execution_keys = ()
         self._active_activation = None
         self._prepared_scopes = []
 
@@ -106,12 +118,26 @@ class EffectDispatcher:
             raise ValueError("Explicit native clone execution guard required")
         if not executable:
             return False
+        depth = _TRIGGER_DEPTH.get()
+        if depth >= 128:
+            raise UnsupportedEffectExecution("Native trigger activation depth exceeded")
+        token = _TRIGGER_DEPTH.set(depth + 1)
         previous = self._active_activation
+        previous_ancestors = self._active_ancestors
+        previous_keys = self._active_execution_keys
         self._active_activation = (invocation, source, condition_context, allocate_uid)
+        # Qe.k creates a fresh runner tree after the shared Qj triple guard.
+        # A different resolved caster/target may legally activate the same PK;
+        # its children still enforce immediate-tree recursion independently.
+        self._active_ancestors = ()
+        self._active_execution_keys = ()
         try:
             return self.execute(invocation)
         finally:
             self._active_activation = previous
+            self._active_ancestors = previous_ancestors
+            self._active_execution_keys = previous_keys
+            _TRIGGER_DEPTH.reset(token)
 
     def execute(self, invocation, *, ancestors=None, _pt_report=None):
         if ancestors is None:
@@ -119,6 +145,11 @@ class EffectDispatcher:
         previous_pt = self._active_pt
         self._active_pt = _pt_report
         previous = self._active_ancestors
+        previous_keys = self._active_execution_keys
+        self._active_execution_keys = (
+            *previous_keys,
+            (invocation.reference, invocation.state_uid),
+        )
         self._active_ancestors = (*ancestors, invocation.reference)
         prepared = []
         self._prepared_scopes.append(prepared)
@@ -156,7 +187,18 @@ class EffectDispatcher:
             finally:
                 self._prepared_scopes.pop()
                 self._active_ancestors = previous
+                self._active_execution_keys = previous_keys
                 self._active_pt = previous_pt
+
+    def _recursive_identity(self, invocation, ancestors):
+        # eWu may replace an additive carrier before executing its children.
+        # Distinct eZk UIDs form distinct instances even when a child reference
+        # repeats. Native capped-state policy terminates bounded replacement;
+        # the global ancestor-depth limit still bounds an unending UID chain.
+        key = (invocation.reference, invocation.state_uid)
+        return key in self._active_execution_keys[:-1] or (
+            invocation.state_uid is None and invocation.reference in ancestors
+        )
 
     def register_subscription(self, invocation):
         """Register a fresh listener without treating it as recursive execution.
@@ -182,7 +224,11 @@ class EffectDispatcher:
 
         # PT calls deliberately bind their supplied PV. The server fresh-child
         # policy applies only to ordinary ordered-group child selection.
-        invocation = replace(invocation, wakemu_fresh_child_selection=False)
+        invocation = replace(
+            invocation,
+            wakemu_fresh_child_selection=False,
+            wakemu_rebound_child_selection=False,
+        )
 
         if not callable(self.pt_preflight):
             raise UnsupportedEffectExecution("Missing native PT allocation preflight")
@@ -250,7 +296,7 @@ class EffectDispatcher:
                 and self.group_retention is not None
                 and self.group_retention.is_subscription(effect, selected)
             ):
-                if invocation.reference in ancestors:
+                if self._recursive_identity(invocation, ancestors):
                     raise UnsupportedEffectExecution("Recursive immediate effect tree")
                 pending = self.group_retention.begin_group(effect, values, selected)
                 if pending is None:
@@ -302,7 +348,7 @@ class EffectDispatcher:
             # terminating no-op, not an executable cycle. Keep the cycle guard
             # after native eligibility/criteria and before probability or any
             # handler execution; unconditional recursive trees still fail.
-            if invocation.reference in ancestors:
+            if self._recursive_identity(invocation, ancestors):
                 raise UnsupportedEffectExecution("Recursive immediate effect tree")
             accepted = (
                 True
@@ -745,6 +791,12 @@ class EffectDispatcher:
                                 mode.on_target and mode.transmit_target
                             ),
                             wakemu_fresh_child_selection=True,
+                            wakemu_rebound_child_selection=(
+                                activation is None
+                                and mode.actor_rebind == 2
+                                and selected.target_id is not None
+                                and selected.caster_id is not None
+                            ),
                             base_uid=None
                             if activation is not None
                             else selected.base_uid,
@@ -754,26 +806,32 @@ class EffectDispatcher:
                     child_success.append(result)
                     return result
 
-                execute_ordered_group(
-                    mode,
-                    children,
-                    caster_id=selected.caster_id,
-                    target_id=selected.target_id,
-                    # eYg.a actor branch passes bfs.bcz/bcA/bcB, not the
-                    # original cast anchor. Cell branch preserves its anchor.
-                    target_cell=(
-                        self.actor_position(selected.target_id)
-                        if mode.on_target and selected.target_id is not None
-                        else selected.cell
-                    ),
-                    execute_child=execute_child,
-                    cell_targets=None
-                    if mode.on_target
-                    else symmetry_cells
-                    if symmetry_cells is not None
-                    else self.group_cells(effect, selected),
-                    caster_cell=self.actor_position(selected.caster_id),
+                scope = (
+                    self.group_execution_scope(selected)
+                    if self.group_execution_scope is not None
+                    else nullcontext()
                 )
+                with scope:
+                    execute_ordered_group(
+                        mode,
+                        children,
+                        caster_id=selected.caster_id,
+                        target_id=selected.target_id,
+                        # eYg.a actor branch passes bfs.bcz/bcA/bcB, not the
+                        # original cast anchor. Cell branch preserves its anchor.
+                        target_cell=(
+                            self.actor_position(selected.target_id)
+                            if mode.on_target and selected.target_id is not None
+                            else selected.cell
+                        ),
+                        execute_child=execute_child,
+                        cell_targets=None
+                        if mode.on_target
+                        else symmetry_cells
+                        if symmetry_cells is not None
+                        else self.group_cells(effect, selected),
+                        caster_cell=self.actor_position(selected.caster_id),
+                    )
                 if self.group_retention is not None:
                     self.group_retention.finish_group(pending_group)
                 success = any(child_success) or success

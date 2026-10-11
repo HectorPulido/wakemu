@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import json
 import struct
 import unittest
+from unittest.mock import patch
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.spell_audit import catalog, states_catalog
@@ -229,7 +230,7 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
             target_id=-7,
             spell_id=6266,
             evaluation_level=1,
-            costs=rule["costs"],
+            costs=dict(rule["costs"], extra_resource_deltas={}),
             effect_ids=tuple(rule["roots"]),
             native_usage=validate_usage(
                 self.fight, self.fight.actors[7], 6266, 1, (1, 0, 0), context
@@ -615,7 +616,26 @@ class NativeRuntimeFactoryTests(unittest.TestCase):
             "900002": definition(304, [3442, 0, 20, 0, -1, 0], selector=2),
         }
         preview = deepcopy(self.fight)
-        dispatcher, packets = self.factory(effects=effects, states=states)(preview, {})
-        with self.assertRaisesRegex(UnsupportedEffectExecution, "Recursive"):
+        # Synthetic cycle nodes need their declared native direct-target policy.
+        from wakfu_server.combat_direct_target import native_direct_target_policies
+
+        policies = dict(native_direct_target_policies())
+        policies.update(
+            {
+                "900001": [330, False, False],
+                "900002": [304, False, False],
+                "150327": [330, False, False],
+            }
+        )
+        with patch(
+            "wakfu_server.combat_direct_target.native_direct_target_policies",
+            return_value=policies,
+        ):
+            dispatcher, packets = self.factory(effects=effects, states=states)(
+                preview, {}
+            )
+        with self.assertRaisesRegex(
+            UnsupportedEffectExecution, "Effect recursion limit exceeded"
+        ):
             dispatcher.execute(EffectInvocation(900001, 1, 7, 7, (0, 0, 0)))
         self.assertEqual(dispatcher._active_ancestors, ())

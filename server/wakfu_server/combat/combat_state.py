@@ -349,16 +349,16 @@ class Fight:
             actor.mp -= mp
         self._sync_resources(actor)
 
-    def move(self, owner_id, actor_id, path):
+    def move(self, owner_id, actor_id, path, *, step_callback=None):
         actor = self._current_owned(owner_id, actor_id)
         path = [tuple(cell) for cell in path]
         if any(
             len(cell) != 3 or any(type(n) is not int for n in cell) for cell in path
         ):
             raise ValueError("Invalid path coordinates")
-        return self._move_actor(actor, path)
+        return self._move_actor(actor, path, step_callback=step_callback)
 
-    def server_move(self, actor_id, path):
+    def server_move(self, actor_id, path, *, step_callback=None):
         actor = self.current
         if (
             actor is None
@@ -372,9 +372,9 @@ class Fight:
             len(cell) != 3 or any(type(n) is not int for n in cell) for cell in path
         ):
             raise ValueError("Invalid path coordinates")
-        return self._move_actor(actor, path)
+        return self._move_actor(actor, path, step_callback=step_callback)
 
-    def _move_actor(self, actor, path):
+    def _move_actor(self, actor, path, *, step_callback=None):
         actor_id = actor.id
         origin = actor.position
         cost = 0
@@ -406,6 +406,12 @@ class Fight:
         cost += tackle_mp
         if not path or cost > actor.mp or tackle_ap > actor.ap:
             raise ValueError("Empty path or insufficient AP/MP for combat movement")
+        if step_callback is not None:
+            from .combat_sequential_movement import execute_steps
+
+            return execute_steps(
+                self, actor, path, on_rails=on_rails, callback=step_callback
+            )
         if getattr(actor, "effect_resource_raw_currents", None) is not None:
             from .combat_resource_pa_notifications import (
                 shift_resource_current,
@@ -664,8 +670,15 @@ class Fight:
 
         source = state_manager(self, source_id)
         target = state_manager(self, target_id)
+        from .combat_summon_initialization import detached_actor
+
+        constructor = (
+            source_id == target_id
+            and detached_actor(self, source_id) is source
+            and source is not None
+        )
         if (
-            self.phase != "active"
+            (self.phase != "active" and not constructor)
             or source is None
             or target is None
             or (

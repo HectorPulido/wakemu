@@ -23,7 +23,7 @@
       "body": {}
     },
     "territory_weather_tick": {
-      "enabled": true,
+      "enabled": false,
       "interval": 5,
       "lease_seconds": 15,
       "retry_seconds": 2,

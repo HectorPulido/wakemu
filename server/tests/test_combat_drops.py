@@ -192,6 +192,49 @@ class CombatDropMathTests(unittest.TestCase):
         self.assertEqual(result.effective_probability, Decimal(1))
         self.assertTrue(result.success)
 
+    def test_drop_multiplier_above_100x_and_at_max_stays_decimal_and_bounded(self):
+        above_100x = plan_player_drops(
+            monsters=[{"actor_id": -11, "reference": 1}],
+            character_id=7,
+            prospecting_bonus=0,
+            can_loot=True,
+            fight_context={},
+            drop_rate_bp=1_000_001,
+            catalog=catalog_for(drop_row("0.01")),
+            rng=Draws(0, 0),
+        )[0]
+        self.assertEqual(above_100x.raw_probability, Decimal("1.01000101"))
+        self.assertEqual(above_100x.effective_probability, Decimal(1))
+        self.assertTrue(above_100x.success)
+
+        maximum_rate = 99_999_999_999
+        draws = Draws(DRAW_DENOMINATOR - 1, 0)
+        at_maximum = plan_player_drops(
+            monsters=[{"actor_id": -11, "reference": 1}],
+            character_id=7,
+            prospecting_bonus=0,
+            can_loot=True,
+            fight_context={},
+            drop_rate_bp=maximum_rate,
+            catalog=catalog_for(drop_row("0.5")),
+            rng=draws,
+        )[0]
+        self.assertEqual(at_maximum.raw_probability, Decimal("5049999.9999495"))
+        self.assertEqual(at_maximum.effective_probability, Decimal(1))
+        self.assertTrue(at_maximum.success)
+        self.assertEqual(draws.bounds, [DRAW_DENOMINATOR, 1])
+        with self.assertRaisesRegex(ValueError, "Invalid drop rate"):
+            plan_player_drops(
+                monsters=[{"actor_id": -11, "reference": 1}],
+                character_id=7,
+                prospecting_bonus=0,
+                can_loot=True,
+                fight_context={},
+                drop_rate_bp=maximum_rate + 1,
+                catalog=catalog_for(drop_row("0.5")),
+                rng=Draws(0, 0),
+            )
+
     def test_conditions_fail_closed_and_supported_context_is_evaluated(self):
         row = drop_row(
             "0.008",

@@ -30,8 +30,7 @@ class SpellTransactionTests(unittest.TestCase):
             {0: {pc.position}, 1: {npc.position}},
         )
         for slot, actor in enumerate(self.fight.actors.values()):
-            # This compact fixture owns a two-actor native QI population. The
-            # actual actor height comes from each fresh snapshot builder.
+            # This compact fixture owns a two-actor native QI population.
             actor.native_obstacle_id = slot
             actor.native_fight_properties = frozenset()
             actor.spell_ap_cost_modifiers = (
@@ -78,6 +77,18 @@ class SpellTransactionTests(unittest.TestCase):
         )
         terrain.start()
         self.addCleanup(terrain.stop)
+
+        # Use the native player default and NPC ref1740 profile heights for
+        # these synthetic map actors.
+        from wakfu_server.combat_actor_snapshot import native_actor_catalog
+
+        actor_catalog = native_actor_catalog()
+        self.fight.actors[7].native_los_height = actor_catalog[
+            "default_actor_los_height"
+        ]
+        self.fight.actors[-7].native_los_height = actor_catalog["npc_profiles"]["1740"][
+            "native_los_height"
+        ]
 
     def cast_authority(self, deck=(6266,)):
         # This focused fixture has no range modifiers; install that explicit
@@ -370,7 +381,11 @@ class SpellTransactionTests(unittest.TestCase):
         level,
         *,
         target_hp=200,
+        full_health=False,
+        caster_aptitudes=(),
         native_qi=False,
+        target_ref=5525,
+        target_level=1,
         owned_cosmetics=None,
         target_distance=2,
         variation_seed=None,
@@ -378,9 +393,14 @@ class SpellTransactionTests(unittest.TestCase):
         from wakfu_server.combat_actor_snapshot import (
             build_player_snapshot,
             build_npc_snapshot,
+            native_npc_creation_values,
         )
         from wakfu_server.equipment_stats import effective_character
         from wakfu_server.health import maximum
+
+        from test_aptitude_catalog_coverage import aptitude_sheet
+        from wakfu_server.wire import proto_field
+        from wakfu_server.equipment_stats import combat_resources
 
         character = effective_character(
             dict(
@@ -389,19 +409,54 @@ class SpellTransactionTests(unittest.TestCase):
                 map_id=1134,  # Explicit native POSITION rE.Vp property.
                 breed=breed,
                 level=level,
-                hp=60,
+                hp=maximum(breed, level) if full_health else 60,
                 max_hp=maximum(breed, level),
-                builds={},
+                builds={
+                    0: {
+                        "sheet": proto_field(24, 0xFFFFFFFF).hex(),
+                        "aptitudes": aptitude_sheet(caster_aptitudes).hex(),
+                    }
+                }
+                if caster_aptitudes
+                else {},
                 inventory_items=[],
             )
         )
         if owned_cosmetics is not None:
             character["account_id"] = owned_cosmetics.account_id
             character["owned_cosmetics"] = owned_cosmetics.to_record()
-        caster = Actor(
-            7, 0, (0, 0, 0), 60, 6, 3, 10, level, 3, True, max_hp=character["max_hp"]
+        resources = combat_resources(
+            character, base_ap=6, base_mp=3, base_initiative=10
         )
-        target = Actor(-7, 1, (target_distance, 0, 0), target_hp, 6, 3, 5, 1)
+        caster = Actor(
+            7,
+            0,
+            (0, 0, 0),
+            character["hp"],
+            resources["ap"],
+            resources["mp"],
+            resources["initiative"],
+            level,
+            3,
+            True,
+            max_hp=character["max_hp"],
+        )
+        monster = dict(id=-7, ref=target_ref, map_id=1134)
+        if (target_ref, target_level) == (5525, 1):
+            target = Actor(-7, 1, (target_distance, 0, 0), target_hp, 6, 3, 5, 1)
+        else:
+            values = native_npc_creation_values(target_ref, target_level)
+            target = Actor(
+                -7,
+                1,
+                (target_distance, 0, 0),
+                values[1]["current"],
+                values[2]["current"],
+                values[3]["current"],
+                5,
+                target_level,
+                max_hp=values[1]["maximum"],
+            )
         terrain = None
         if native_qi:
             from wakfu_server.combat_terrain import local_arena
@@ -414,6 +469,15 @@ class SpellTransactionTests(unittest.TestCase):
                 caster.position,
                 target.position,
                 variation_seed=variation_seed,
+            )
+        caster_snapshot = npc_snapshot = None
+        if native_qi:
+            # QI needs the actors' actual native footprint radii at creation.
+            caster_snapshot = build_player_snapshot(
+                character, caster, wp_current=6, wp_maximum=6, running_effects=()
+            )
+            npc_snapshot = build_npc_snapshot(
+                monster, target, wp_current=0, wp_maximum=0, running_effects=()
             )
         fight = Fight(
             78,
@@ -446,22 +510,57 @@ class SpellTransactionTests(unittest.TestCase):
             )
             freeze_terrain(fight)
             initialize_global_pv_collections(fight, (7, -7))
-            registry = prepare_fresh_actor_slots(fight, physical_radii={7: 0, -7: 0})
+            registry = prepare_fresh_actor_slots(
+                fight,
+                physical_radii={
+                    7: caster_snapshot.physical_radius,
+                    -7: npc_snapshot.physical_radius,
+                },
+            )
             install_fresh_actor_slots(fight, registry)
         fight.ready(3)
         caster.direction = 0
         target.direction = 3
-        build_player_snapshot(
-            character, caster, wp_current=6, wp_maximum=6, running_effects=()
-        ).install(caster)
-        monster = dict(id=-7, ref=5525, map_id=1134)
-        build_npc_snapshot(
-            monster, target, wp_current=0, wp_maximum=0, running_effects=()
-        ).install(target)
+        if native_qi:
+            caster_snapshot.install(caster)
+            npc_snapshot.install(target)
+        else:
+            build_player_snapshot(
+                character, caster, wp_current=6, wp_maximum=6, running_effects=()
+            ).install(caster)
+            build_npc_snapshot(
+                monster, target, wp_current=0, wp_maximum=0, running_effects=()
+            ).install(target)
         fight.native_effect_uid_next = 1
         # This fixture emits an explicitly empty QL obstacle table, as bootstrap does.
         fight.native_obstacle_cells = frozenset()
         return character, monster, fight
+
+    def test_native_server_fixture_defaults_preserve_legacy_actor_and_map(self):
+        _character, monster, fight = self.native_server_fixture(8, 21)
+
+        self.assertEqual(monster, dict(id=-7, ref=5525, map_id=1134))
+        self.assertEqual(fight.actors[-7].position, (2, 0, 0))
+        self.assertIsNone(fight.native_qi_slots)
+
+    def test_native_server_fixture_registers_opt_in_profile_before_qi(self):
+        from wakfu_server.combat_qi_fight import current_registry
+
+        _character, monster, fight = self.native_server_fixture(
+            8, 21, native_qi=True, target_ref=4085, target_level=23
+        )
+        actor = fight.actors[-7]
+        registry = current_registry(fight)
+        row = next(
+            slot
+            for slot in registry.slots
+            if slot is not None and slot["identity"] == ["actor", -7]
+        )
+
+        self.assertEqual((monster["ref"], actor.effective_level), (4085, 23))
+        self.assertEqual(tuple(row["position"]), actor.position[:2])
+        self.assertEqual(row["radius"], actor.physical_radius)
+        self.assertEqual(row["identity"], ["actor", actor.id])
 
     def test_server_entry_conditional_spell_damage_and_displacement_share_transaction(
         self,

@@ -96,16 +96,32 @@ def owned_instance(ref, level, actor_id, *, map_id, x, y, z, team=1, instance_id
 
 
 def native_abilities(ref, level):
-    """Native csd ownership and bPD effective levels; CSR is exclusively loot."""
+    """Native csd/bPD ownership and bPO maximum-level clamp; CSR is loot."""
     record = reference(ref)
     statistics(ref, level)  # Validate requested actor level against this reference.
+    from wakfu_server.combat_native_spell_casting import catalog
+
+    casting = catalog()
+
+    def spell_level(ability):
+        definition = casting.get(str(ability["spell_id"]))
+        if definition is None:
+            raise ValueError("Missing native NPC spell definition")
+        maximum = definition.get("maximum_level")
+        if type(maximum) is not int or not 1 <= maximum <= 32767:
+            raise ValueError("Missing native NPC spell maximum level")
+        requested = (
+            level if ability["level_parameter"] == -1 else ability["level_parameter"]
+        )
+        # bPD.a resolves -1 first; bPO(bPK,short,long,eGj) then applies
+        # (short)Math.min(requested,bPK.Fq()). Zero/negative values are not raised.
+        return min(requested, maximum)
+
     return [
         dict(
             spell_id=ability["spell_id"],
             level_parameter=ability["level_parameter"],
-            spell_level=level
-            if ability["level_parameter"] == -1
-            else ability["level_parameter"],
+            spell_level=spell_level(ability),
         )
         for ability in record["native_abilities"]
     ]

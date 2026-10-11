@@ -109,6 +109,37 @@ class AniripsaSummonPassivePipelineTests(unittest.TestCase):
                         )
                     )
 
+    def test_upgraded_cunejo_protected_expiry_does_not_publish_a_death_area(self):
+        helper = grant_fixture.AniripsaGrantSummonPipelineTests()
+        fixture = helper.fixture(passives=(5455, 7991))
+        fixture = helper.adopt(fixture, helper.cast(fixture, 7978, (-8, -6, -1)).fight)
+        fight = fixture[2]
+        summon = next(
+            actor
+            for actor in fight.actors.values()
+            if actor.hp > 0
+            and (getattr(actor, "native_summon_source", None) or {}).get("caster_id")
+            == 7
+        )
+        # Native371814 listens to end1002 and invokes protected withdrawal332.
+        # Let the real owned summon turn expire without dealing lethal damage.
+        helper.next_player_turn(fight, fixture)
+        self.assertEqual(fight.actors[summon.id].hp, 0)
+        self.assertTrue(
+            any(
+                event.get("kind") == "protected_kill_resources"
+                and event.get("target_id") == summon.id
+                for event in fight.events
+            )
+        )
+        self.assertFalse(
+            any(
+                row.get("actor_id") == summon.id
+                for row in getattr(fight, "native_death_event_deliveries", {}).values()
+            )
+        )
+        self.assertFalse(getattr(fight, "native_effect_areas", {}))
+
     def test_naturaleza_muerta_cost_and_actual_death_area_for_four_profiles(self):
         from wakfu_server.combat_server_spell import prepare_server_spell
         from wakfu_server.combat_summon_retirement import retired_summon_ids
@@ -124,7 +155,13 @@ class AniripsaSummonPassivePipelineTests(unittest.TestCase):
         ):
             with self.subTest(dark=dark, upgraded=upgraded, nature=nature):
                 passives = ((5455,) if nature else ()) + ((7991,) if upgraded else ())
-                fixture = helper.fixture(passives=passives)
+                # Kill the upgraded normal profile before its native protected
+                # end-turn withdrawal, using a lawful fresh selected build.
+                aptitudes = ((26, 40), (23, 10), (13, 49), (2, 1))
+                fixture = helper.fixture(
+                    passives=passives,
+                    caster_aptitudes=aptitudes if upgraded and not dark else (),
+                )
                 if dark:
                     fixture = helper.adopt(fixture, helper.cast(fixture, 7977).fight)
                 summon_tx = helper.cast(fixture, 7978, (-8, -6, -1))
@@ -136,8 +173,37 @@ class AniripsaSummonPassivePipelineTests(unittest.TestCase):
                     if getattr(a, "native_summon_source", None) and a.hp > 0
                 )
                 self.assertFalse(getattr(fixture[2], "native_effect_areas", {}))
+
+                def actual_death(fight, actor):
+                    return actor.hp == 0 and any(
+                        row.get("actor_id") == actor.id
+                        and row.get("event_id") == 1013
+                        and row.get("ko_event_id") == 1010
+                        for row in getattr(
+                            fight, "native_death_event_deliveries", {}
+                        ).values()
+                    )
+
                 for _ in range(35):
                     character, monster, fight, deck, rng = fixture
+                    summon = fight.actors[summon.id]
+                    if actual_death(fight, summon):
+                        break
+                    if summon.hp == 0:
+                        # Native turn listeners may withdraw/recreate Cunejo.
+                        # An old UID reaching HP0 is not itself a KO notification.
+                        replacements = [
+                            actor
+                            for actor in fight.actors.values()
+                            if actor.hp > 0
+                            and fight._in_play(actor)
+                            and (
+                                getattr(actor, "native_summon_source", None) or {}
+                            ).get("caster_id")
+                            == 7
+                        ]
+                        self.assertEqual(len(replacements), 1)
+                        summon = replacements[0]
                     original = snapshot(fight)
                     try:
                         transaction = prepare_server_spell(
@@ -162,7 +228,7 @@ class AniripsaSummonPassivePipelineTests(unittest.TestCase):
                         continue
                     fixture = helper.adopt(fixture, transaction.fight)
                     summon = transaction.fight.actors[summon.id]
-                    if summon.hp == 0:
+                    if actual_death(transaction.fight, summon):
                         break
                 else:
                     self.fail("Actual Cunejo death did not occur within legal turns")

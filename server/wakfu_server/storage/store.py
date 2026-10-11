@@ -224,6 +224,9 @@ class Store:
 
     def end_session(self, account_id, generation):
         with self.connection() as db:
+            from wakfu_server.characters.guild_character import record_presence
+
+            record_presence(db, account_id, generation)
             db.execute(
                 "DELETE FROM sessions WHERE account_id=%s AND generation=%s",
                 (account_id, generation),
@@ -384,6 +387,9 @@ class Store:
         if row is None:
             raise ValueError("Personaje no encontrado.")
         result = dict(row)
+        from wakfu_server.characters.guild_character import load as load_guild
+
+        load_guild(db, self, result)
         from wakfu_server.characters.captured_roster_store import (
             load as load_captured_roster,
         )
@@ -628,6 +634,9 @@ class Store:
 
     def clear_character(self, account_id, generation):
         with self.connection() as db:
+            from wakfu_server.characters.guild_character import record_presence
+
+            record_presence(db, account_id, generation)
             result = db.execute(
                 "UPDATE sessions SET character_id=NULL WHERE account_id=%s AND generation=%s AND expires_at>%s",
                 (account_id, generation, self.now()),
@@ -662,6 +671,8 @@ class Store:
             self.lock_character(
                 db, account_id, generation, character_id, selected=False
             )
+            from wakfu_server.characters.guild_character import record_presence
+
             character = self.character(account_id, character_id, db)
             from wakfu_server.characters.cosmetic_store import load as load_cosmetics
             from psycopg.types.json import Jsonb
@@ -679,6 +690,7 @@ class Store:
                     (account_id, Jsonb(cosmetics.to_record())),
                 )
                 character = self.character(account_id, character_id, db)
+            record_presence(db, account_id, generation)
             db.execute(
                 "UPDATE sessions SET character_id=%s WHERE account_id=%s AND generation=%s",
                 (character_id, account_id, generation),

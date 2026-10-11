@@ -105,6 +105,7 @@ class MiningVeinPostgresTests(PostgresCase):
             and row["z"] == 3
             and 37 in row["eligible_resource_references"]
         )
+        self.reviewed_candidate = candidate
         placement = {
             "resource_uid": uid,
             "map_id": candidate["map_id"],
@@ -123,6 +124,32 @@ class MiningVeinPostgresTests(PostgresCase):
             },
         }
         return {**placement, **changes}
+
+    def _install_reviewed(self, placements):
+        """Use report-backed terrain for DB lifecycle tests, not live catalog state."""
+        candidate = self.reviewed_candidate
+
+        def reviewed_surface(map_id, x, y, z):
+            if (map_id, x, y, z) != (
+                candidate["map_id"],
+                candidate["x"],
+                candidate["y"],
+                candidate["z"],
+            ):
+                raise AssertionError(
+                    "Unexpected placement outside the reviewed fixture"
+                )
+            return {
+                "ground_id": candidate["ground_id"],
+                "eligible_refs": frozenset(candidate["eligible_resource_references"]),
+                # Native adjacency is covered independently by test_mining_navigation.
+                "approaches": frozenset({(x + 1, y, z)}),
+            }
+
+        with patch(
+            "wakfu_server.mining_navigation.surface", side_effect=reviewed_surface
+        ):
+            return install(self.store, placements)
 
     def _slot(self):
         with self.store.connection() as db:
@@ -309,8 +336,8 @@ class MiningVeinPostgresTests(PostgresCase):
 
     def test_install_is_idempotent_and_preserves_an_exhausted_slot_deadline(self):
         placement = self._reviewed_placement()
-        self.assertEqual(1, install(self.store, [placement]))
-        self.assertEqual(0, install(self.store, [placement]))
+        self.assertEqual(1, self._install_reviewed([placement]))
+        self.assertEqual(0, self._install_reviewed([placement]))
         due = self.store.now() + timedelta(seconds=75)
         with self.store.connection() as db:
             db.execute(
@@ -318,7 +345,7 @@ class MiningVeinPostgresTests(PostgresCase):
                 "WHERE resource_uid=%s",
                 (due, placement["resource_uid"]),
             )
-        self.assertEqual(0, install(self.store, [placement]))
+        self.assertEqual(0, self._install_reviewed([placement]))
         with self.store.connection() as db:
             slot = db.execute(
                 "SELECT * FROM mining_vein_slots WHERE resource_uid=%s",
@@ -332,16 +359,15 @@ class MiningVeinPostgresTests(PostgresCase):
         placement = self._reviewed_placement()
         duplicate = {**placement, "resource_uid": placement["resource_uid"] + 1}
         with self.assertRaisesRegex(ValueError, "Duplicate"):
-            install(self.store, [placement, duplicate])
+            self._install_reviewed([placement, duplicate])
         with self.assertRaisesRegex(ValueError, "incompatible with native terrain"):
-            install(
-                self.store,
-                [self._reviewed_placement(uid=781_002, resource_reference=242)],
+            self._install_reviewed(
+                [self._reviewed_placement(uid=781_002, resource_reference=242)]
             )
         with self.assertRaisesRegex(
             ValueError, "no supported terminal mineral harvest"
         ):
-            install(self.store, [self._reviewed_placement(uid=781_003, stage=16)])
+            self._install_reviewed([self._reviewed_placement(uid=781_003, stage=16)])
         with self.store.connection() as db:
             db.execute(
                 "INSERT INTO planted_resources(resource_uid,map_id,instance_id,x,y,z,"
@@ -349,7 +375,7 @@ class MiningVeinPostgresTests(PostgresCase):
                 (placement["map_id"], placement["x"], placement["y"], placement["z"]),
             )
         with self.assertRaisesRegex(ValueError, "already contains a resource"):
-            install(self.store, [placement])
+            self._install_reviewed([placement])
         with self.store.connection() as db:
             self.assertEqual(
                 0,

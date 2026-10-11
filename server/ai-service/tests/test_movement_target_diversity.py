@@ -1,7 +1,7 @@
 import unittest
-from types import SimpleNamespace
 from unittest.mock import patch
 
+from wakfu_ai.context.native_context import NativeGraph, encode
 from wakfu_ai.planning import query_search
 
 
@@ -68,9 +68,23 @@ class MovementTargetDiversityTests(unittest.TestCase):
         original_routes = {representatives[0], *orders[0]}
         self.assertEqual(original_routes, {(self.left,), (self.up,)})
 
+        graph = NativeGraph(
+            encode(
+                {
+                    "runtime": {
+                        "fight": {
+                            "turn_id": 0,
+                            "events": [],
+                            "native_border_cells": [],
+                        }
+                    },
+                    "edges": list(self.edges),
+                }
+            )
+        )
         stream = query_search._movement_candidates(
-            SimpleNamespace(resolve=lambda _: True),
-            "native-edges",
+            graph,
+            graph.field(graph.data["root"], "edges"),
             self.cells,
             self.actors,
             1,

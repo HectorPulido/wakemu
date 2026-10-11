@@ -43,6 +43,7 @@ class NativeStatsTests(unittest.TestCase):
             owner_id=19,
             turn_count=2,
             native_summon_source=source,
+            native_fight_property_counts={},
             effect_stats={4: 3},
             effect_maxima={4: 6},
         )

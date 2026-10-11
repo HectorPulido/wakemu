@@ -208,6 +208,30 @@ class NativeEffectResolver:
         )
         if type(invocation.wakemu_fresh_child_selection) is not bool:
             raise UnknownEffectResolution("Invalid server fresh-child selection policy")
+        if type(invocation.wakemu_rebound_child_selection) is not bool:
+            raise UnknownEffectResolution("Invalid fresh rebound selection policy")
+        # Explicit Wakemu reconstruction: after a fresh actor swap, a criterion
+        # group without its own rebind selects candidates in the new source
+        # context. Native chosen-PV replay and swap-owning groups stay bound.
+        from .combat_parameters import parameter_value
+
+        own_rebind = (
+            parameter_value(effect["parameters"], 5, invocation.level)
+            if invocation.wakemu_rebound_child_selection
+            and effect.get("effect_class") == 330
+            and effect.get("parameter_count", 0) >= 6
+            else 0
+        )
+        own_rebind = ((own_rebind + 128) % 256) - 128
+        rebound_selection = (
+            invocation.wakemu_rebound_child_selection
+            and invocation.wakemu_fresh_child_selection
+            and invocation.native_trigger_context is None
+            and effect.get("effect_class") == 330
+            and own_rebind == 0
+            and bool(effect.get("criteria", "").strip())
+            and native_group_route(effect) == "actors"
+        )
         # Client aZX defaults false and describes replay of an already chosen
         # PV. Server-created children with an explicit relationship selector
         # select that relationship first. Non-point areas also enumerate their
@@ -225,10 +249,13 @@ class NativeEffectResolver:
             and (
                 (
                     selector["mask"] == 0
+                    and (not invocation.native_explicit_target or rebound_selection)
                     and invocation.native_trigger_context is None
                     and native_group_route(effect) == "actors"
                 )
-                or bool(selector["mask"] & (2 | 4 | 8 | 64 | 128 | 256))
+                or bool(
+                    selector["mask"] & (2 | 4 | 8 | 64 | 128 | 256 | 4096 | (1 << 43))
+                )
                 or (
                     bool(selector["mask"] & 1)
                     and effect.get("area_class") not in (None, "anA", "anD")

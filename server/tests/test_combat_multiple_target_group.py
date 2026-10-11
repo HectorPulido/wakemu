@@ -100,6 +100,19 @@ class MultipleTargetGroupTests(unittest.TestCase):
         runtime = object.__new__(NativeRetainedRuntime)
         runtime.fight = SimpleNamespace(native_owned_group_effects={})
         runtime.packets = []
+        runtime.metadata = {
+            "effects": {
+                "90": {
+                    "effect_class": 345,
+                    "variant": 0,
+                    "minimum_level": 1,
+                    "maximum_level": 1,
+                    "parameters": [],
+                    "definition_type": 2,
+                    "subscription": False,
+                }
+            }
+        }
         registered = []
         runtime.record = registered.append
         record = object()
@@ -107,7 +120,22 @@ class MultipleTargetGroupTests(unittest.TestCase):
             {
                 "uid": 901,
                 "record": record,
-                "_delivery_effect": {"effect_class": 345},
+                "invocation": {
+                    "reference": self.inv.reference,
+                    "level": self.inv.level,
+                    "caster_id": self.inv.caster_id,
+                    "target_id": self.inv.target_id,
+                    "state_uid": self.inv.state_uid,
+                },
+                "_delivery_effect": {
+                    "effect_class": 345,
+                    "variant": 0,
+                    "minimum_level": 1,
+                    "maximum_level": 1,
+                    "parameters": [],
+                    "native_execution_mode": 2,
+                    "native_timing_definition": {},
+                },
                 "_delivery_invocation": self.inv,
             },
             notify=False,

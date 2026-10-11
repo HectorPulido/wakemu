@@ -41,7 +41,14 @@ class HeroSwitchDispatchTests(unittest.TestCase):
         requested_id=42,
     ):
         events = []
-        character = {"id": character_id, "x": 4, "y": 5, "z": 0}
+        character = {
+            "id": character_id,
+            "account_id": 7,
+            "level": 60,
+            "x": 4,
+            "y": 5,
+            "z": 0,
+        }
 
         class Positions:
             @contextmanager
@@ -136,7 +143,15 @@ class HeroSwitchDispatchTests(unittest.TestCase):
                     heroes,
                     "switch_main",
                     return_value={
-                        "leader": {"id": requested_id, "x": 9, "y": 8, "z": 0}
+                        "leader": {
+                            "id": requested_id,
+                            "x": 9,
+                            "y": 8,
+                            "z": 0,
+                            "level": 60,
+                            "breed": 1,
+                            "account_id": 7,
+                        }
                     },
                 ):
                     exec(compile(module, "local_game_server.py", "exec"), namespace)

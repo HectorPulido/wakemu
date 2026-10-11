@@ -1,6 +1,6 @@
 # Remaining 13 classes: complete inventory register
 
-Historical inventory-only baseline: this review originally covered thirteen classes at **5/18**. Current user acceptance is **6/18**, including Ouginak; twelve remain. The baseline data below is preserved for reproducibility and does not describe subsequent implementation progress. See the [current priority register](../next-class-priority-20261010.md). No combat changes, database writes, deployments or restarts were performed by this inventory review.
+Historical inventory-only baseline: this review originally covered thirteen classes at **5/18**. Current user-provisional acceptance is **12/18**; Enutrof, Steamer, Eliotrope, Sadida, Rogue and Xelor remain. The baseline data below is preserved for reproducibility and does not describe subsequent implementation progress. See the [current priority register](../next-class-priority-20261010.md). No combat changes, database writes, deployments or restarts were performed by this inventory review.
 
 ## Class reports and machine inventories
 
@@ -49,3 +49,5 @@ This inventory is exhaustive for the declared catalog rosters and preserved type
 The next implementation phase should use these exact IDs and risks to verify complete systems, with the five accepted classes as regression controls. It requires a separate authorization/request; this task remains inventory only.
 
 [Inventory consistency validation](validation.md) checks every class roster, typed membership, outgoing edge, profile book, requirement mapping and artifact hash. The preserved graph has no external edge targets for these class memberships; unclassified reference producers are explicitly listed as coverage follow-up, not hidden or counted as functionality.
+
+Current six-class estimates and refreshed evidence: [remaining six refresh](../remaining-six-refresh-20261010/README.md). Historical denominators below retain their original scope.

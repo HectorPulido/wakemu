@@ -205,10 +205,16 @@ class OwnedNativeBootstrapTests(unittest.TestCase):
             native_transports,
         )
         from wakfu_server.maps import dungeon_context, dungeon_physical_doors
+        from wakfu_server import dungeon_native_flow
 
         db = _Database({"current_room": 2, "status": "active"})
         store = _Store(db)
-        topology = {"policy": dungeon_physical_doors.POLICY}
+        topology = {
+            "policy": dungeon_physical_doors.POLICY,
+            "asset_map_id": self.character["map_id"],
+            "rooms": [{"order": 1, "cells": []}, {"order": 2, "cells": []}],
+            "physical_doors": [],
+        }
         with patch.object(
             native_transports, "bootstrap", return_value=((13974, b"native"),)
         ), patch.object(dungeon_context, "for_instance", return_value={}), patch.object(
@@ -216,7 +222,9 @@ class OwnedNativeBootstrapTests(unittest.TestCase):
             "pinned_configuration",
             return_value={"topology": topology},
         ), patch.object(
-            dungeon_physical_doors, "packets", return_value=((12344, b"gate"),)
+            dungeon_native_flow.dungeon_physical_doors,
+            "packets",
+            return_value=((12344, b"gate"),),
         ) as gates, patch.object(
             dungeon_object_states, "packets"
         ) as teleport_doors:

@@ -415,6 +415,25 @@ class RuntimeMessages:
         packets.extend(self.turn_started())
         return packets
 
+    def _synchronize_pre_end_death(self, actor_id, previous_turn):
+        """End callbacks may already settle the current actor and advance once."""
+        current = self.fight.current
+        if (
+            current is not None
+            and current.id == actor_id
+            and self.fight.turn_id == previous_turn
+        ):
+            return None
+        actor = self.fight.actors.get(actor_id)
+        if (
+            actor is None
+            or actor.hp != 0
+            or self.fight._in_play(actor)
+            or self.fight.turn_id != previous_turn + 1
+        ):
+            raise ValueError("Unsupported turn transition during end callbacks")
+        return self.synchronize_defeated_turn(actor_id, previous_turn)
+
     @native_delivery_boundary
     @atomic_area_turn
     def end_turn(self, owner_id, actor_id, actor_turn):
@@ -426,11 +445,14 @@ class RuntimeMessages:
 
         if actor_turn != current_wire_turn(self.fight):
             raise ValueError("Stale turn identifier")
+        previous = self.fight.turn_id
         expiry = self._end_owned(actor)
         if self.fight.phase != "active":
             self.turn_deadline = self.deadline_turn = None
             return expiry
-        previous = self.fight.turn_id
+        synchronized = self._synchronize_pre_end_death(actor_id, previous)
+        if synchronized is not None:
+            return expiry + synchronized
         self.fight.end_turn(owner_id, actor_id, actor.turn_count)
         packets = expiry + [
             (12502, self._prefix() + struct.pack(">qii", actor_id, -1, 0)),
@@ -482,10 +504,14 @@ class RuntimeMessages:
             or global_turn != self.fight.turn_id
         ):
             raise ValueError("Invalid server controlled turn")
+        previous = self.fight.turn_id
         expiry = self._end_owned(actor)
         if self.fight.phase != "active":
             self.turn_deadline = self.deadline_turn = None
             return expiry
+        synchronized = self._synchronize_pre_end_death(actor_id, previous)
+        if synchronized is not None:
+            return expiry + synchronized
         self.fight.end_server_turn(actor_id, global_turn)
         packets = expiry + [
             (12502, self._prefix() + struct.pack(">qii", actor_id, -1, 0)),

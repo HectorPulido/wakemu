@@ -30,6 +30,7 @@ class AptitudeHealingRuntimeTests(unittest.TestCase):
         enemy_position=(-5, -7, -1),
         third_player_position=(-8, -6, -1),
         compact_arena=True,
+        initialization_seed=0,
     ):
         from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
         from wakfu_server.combat_global_pv_collections import (
@@ -169,7 +170,7 @@ class AptitudeHealingRuntimeTests(unittest.TestCase):
                     characters[identity]["account_id"],
                     decks[identity],
                     action_id=action_id,
-                    rng=random.Random(0),
+                    rng=random.Random(initialization_seed),
                     fight_start=(identity == 9),
                     player_characters=characters,
                     deck_blobs=decks,

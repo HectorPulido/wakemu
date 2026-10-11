@@ -16,6 +16,7 @@ class SramTrapAuditPreflightTests(unittest.TestCase):
         self.assertEqual(CANDIDATE_LIMIT, 256)
         validate_configuration(level=200, spell=5182)
         validate_configuration(level=1, spell=5183)
+        validate_configuration(level=200, spell=5184, mover="enemy")
         validate_configuration(level=200, spell=5182, mover="enemy")
 
     def test_invalid_harness_arguments_reject_without_ready(self):

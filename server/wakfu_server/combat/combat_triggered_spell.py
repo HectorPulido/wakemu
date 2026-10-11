@@ -146,6 +146,12 @@ def triggered_spell_plan(
             raise ValueError("Triggered-spell resource snapshot mismatch")
     if actor.ap < costs["ap"] or actor.mp < costs["mp"] or stats[4] < costs["wp"]:
         raise ValueError("Insufficient triggered-spell resources")
+    from .combat_spell_resource_costs import extra_costs, validate_extra_resources
+
+    costs["extra_resource_deltas"] = extra_costs(
+        costs.get("extra_resource_values", {}), actor
+    )
+    validate_extra_resources(actor, costs["extra_resource_deltas"])
     return dict(
         actor_id=actor.id,
         spell_id=request.spell_id,
@@ -159,6 +165,11 @@ def triggered_spell_plan(
 
 
 def consume_triggered_costs(actor, plan, *, fight=None):
+    from .combat_spell_resource_costs import pay_extra_resources
+
+    plan["extra_resource_payment"] = pay_extra_resources(
+        actor, plan["costs"]["extra_resource_deltas"], fight=fight
+    )
     if getattr(actor, "effect_resource_raw_currents", None) is not None:
         if fight is None or fight.actors.get(actor.id) is not actor:
             raise ValueError("Missing actual triggered PA cost fight")

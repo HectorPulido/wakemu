@@ -123,6 +123,60 @@ class Preview:
     spell: object = None
 
 
+def _validate_added_summons(source, transaction, map_id):
+    """Admit only registered creations with their actual native delivery/stats.
+
+    The shared spell commit still serializes every actor on its private
+    candidate before adoption. Forecasting only proves the new actor has the
+    same registration and wire authority required by that commit path.
+    """
+    import struct
+    from .combat_summon_stats import registered_summon_stats
+
+    original = set(source.actors)
+    current = set(transaction.fight.actors)
+    if original - current:
+        raise ValueError("NPC spell cannot remove existing native actors")
+    for identity in sorted(current - original):
+        actor = transaction.fight.actors[identity]
+        # This verifies roster identity, actual registration, controller,
+        # descriptor reference/level, QI obstacle and snapshot authority.
+        registered_summon_stats(actor, transaction.fight, map_id)
+        source_row = actor.native_summon_source
+        if source_row.get("caster_id") not in transaction.fight.actors:
+            raise ValueError("Missing registered summon caster")
+        evidence = getattr(
+            transaction.fight, "native_summon_creation_deliveries", {}
+        ).get(identity)
+        if (
+            not isinstance(evidence, dict)
+            or type(evidence.get("opcode")) is not int
+            or not isinstance(evidence.get("payload_hex"), str)
+        ):
+            raise ValueError("Missing native NPC summon creation delivery")
+        try:
+            packet = evidence["opcode"], bytes.fromhex(evidence["payload_hex"])
+        except ValueError as error:
+            raise ValueError("Malformed native NPC summon creation delivery") from error
+        if (
+            packet not in transaction.packets
+            or packet[0] != 12613
+            or len(packet[1]) < 19
+        ):
+            raise ValueError("Missing native NPC summon creation delivery")
+        fight_id, action_id, event_id, applied, family, size = struct.unpack_from(
+            ">iiiBih", packet[1]
+        )
+        if (
+            (fight_id, action_id, event_id, applied)
+            != (source.id, transaction.action_id, -1, 1)
+            or family not in (307, 324, 1002)
+            or not 0 < size <= 32767
+            or len(packet[1]) != 19 + size
+        ):
+            raise ValueError("Invalid native NPC summon creation delivery")
+
+
 class NativeProvider:
     def __init__(
         self,
@@ -131,12 +185,16 @@ class NativeProvider:
         deck_blob,
         *,
         area_provider=None,
+        player_characters=None,
+        deck_blobs=None,
         policy=None,
         forecast_limits=None,
         policy_version=None
     ):
         self.character, self.monsters, self.deck = character, monsters, deck_blob
         self.area_provider = area_provider
+        self.player_characters = player_characters
+        self.deck_blobs = deck_blobs
         self.policy = deepcopy(policy or {})
         self.forecast_limits = deepcopy(forecast_limits or {})
         self.policy_version = policy_version
@@ -148,6 +206,12 @@ class NativeProvider:
                 character=self.character,
                 monsters=self.monsters,
                 deck=self.deck.hex(),
+                player_characters=self.player_characters,
+                deck_blobs=None
+                if self.deck_blobs is None
+                else {
+                    identity: blob.hex() for identity, blob in self.deck_blobs.items()
+                },
                 policy=self.policy,
                 forecast_limits=self.forecast_limits,
                 policy_version=self.policy_version,
@@ -405,11 +469,10 @@ class NativeProvider:
                 self.deck,
                 action_id=action_id,
                 rng=random.Random(seed) if forecast else None,
+                player_characters=self.player_characters,
+                deck_blobs=self.deck_blobs,
             )
-            if set(transaction.fight.actors) != set(fight.actors):
-                raise ValueError(
-                    "New summon actors require native stat serialization authority"
-                )
+            _validate_added_summons(fight, transaction, self.character.get("map_id"))
             return Preview(transaction.fight, transaction.packets, transaction)
         if action["type"] != "move":
             raise ValueError("Unsupported native AI action")

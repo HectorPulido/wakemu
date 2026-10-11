@@ -41,6 +41,7 @@ class ReadyAreaConditionTests(unittest.TestCase):
                 reference=1546,
                 cell=(0, 0, 0),
                 owner_id=7,
+                direction=0,
                 native_hour_contract=True,
             ),
             902: dict(
@@ -48,6 +49,7 @@ class ReadyAreaConditionTests(unittest.TestCase):
                 reference=1546,
                 cell=(2, 0, 0),
                 owner_id=-7,
+                direction=0,
                 native_hour_contract=True,
             ),
         }

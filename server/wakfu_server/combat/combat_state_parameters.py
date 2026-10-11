@@ -17,7 +17,11 @@ def native_float_parameter(parameters, index, level):
 
 
 def interpret_state_parameters(
-    parameters, *, owned_spell_level=None, level_factor=None
+    parameters,
+    *,
+    owned_spell_level=None,
+    level_factor=None,
+    allow_signed_calculation=False
 ):
     if (len(parameters) not in (3, 4, 5) and len(parameters) < 6) or any(
         type(v) is not int for v in parameters
@@ -28,7 +32,7 @@ def interpret_state_parameters(
     level = _short(requested_level)
     if reference <= 0:
         raise ValueError("Unsupported native state reference")
-    if level < 0 and len(parameters) not in (4, 5):
+    if level < 0 and len(parameters) not in (4, 5) and not allow_signed_calculation:
         raise ValueError("Unsupported native state level")
     if len(parameters) not in (4, 5):
         if owned_spell_level is not None or level_factor is not None:
@@ -53,7 +57,7 @@ def interpret_state_parameters(
                 )
         elif len(parameters) == 5 and level_factor is not None:
             raise ValueError("State multiplier requires an owned spell level")
-    if level < 0:
+    if level < 0 and not allow_signed_calculation:
         raise ValueError("Unsupported native negative state level")
     return dict(
         reference=reference,

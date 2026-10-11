@@ -50,6 +50,15 @@ class CastingEligibilityMetadataTests(unittest.TestCase):
         with patch(
             "wakfu_server.combat_native_spell_casting.catalog",
             return_value={"1": record},
+        ), patch(
+            "wakfu_server.combat_spell_resource_costs.catalog",
+            return_value={
+                "1": dict(
+                    maximum_level=1,
+                    baseline=dict(resources={"2": [2, 2]}),
+                    conditional=[],
+                )
+            },
         ):
             selected = definition(1, 1, None, {})
         for field in (

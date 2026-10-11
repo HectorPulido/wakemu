@@ -93,7 +93,13 @@ class OwnedTurnEndTests(unittest.TestCase):
         )
 
         d = object.__new__(EffectDispatcher)
-        d.effects = {"343079": {"effect_class": 330}}
+        d.effects = {
+            "343079": {
+                "effect_class": 330,
+                "minimum_level": 0,
+                "maximum_level": 32767,
+            }
+        }
         d.group_retention = SimpleNamespace(
             is_subscription=lambda effect, inv: inv.reference == 343079
         )
@@ -104,8 +110,16 @@ class OwnedTurnEndTests(unittest.TestCase):
         self.assertEqual(calls, [(inv, {"ancestors": ()})])
         with self.assertRaises(UnsupportedEffectExecution):
             d.register_subscription(EffectInvocation(1, 1, 7, 7, (0, 0, 0)))
-        with self.assertRaisesRegex(UnsupportedEffectExecution, "Recursive immediate"):
-            EffectDispatcher._execute(d, inv, ancestors=(343079,))
+        # Registration is tested above; full execution is covered by the
+        # dispatcher pipeline tests. Keep this synthetic fixture scoped to
+        # the recursion identity contract rather than bypassing construction.
+        d._active_execution_keys = ((343079, 4), (343079, 4))
+        self.assertTrue(d._recursive_identity(inv, (343079,)))
+        no_state = EffectInvocation(343079, 1, 7, 7, (0, 0, 0))
+        d._active_execution_keys = ((343079, None), (343079, None))
+        self.assertTrue(d._recursive_identity(no_state, (343079,)))
+        d._active_execution_keys = ((343079, 3), (343079, 4))
+        self.assertFalse(d._recursive_identity(inv, (343079,)))
 
     def test_failed_start_reaction_rolls_back_expiration_and_runtime_marker(self):
         f, d, seen = self.fixture()

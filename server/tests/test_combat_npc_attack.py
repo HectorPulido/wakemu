@@ -14,7 +14,6 @@ class NativeNpcAttackTests(unittest.TestCase):
             {(0, 0, 0), (1, 0, 0)},
             {0: {(0, 0, 0)}, 1: {(1, 0, 0)}},
         )
-        self.fight.ready(9)
         self.monster = dict(id=-200, ref=5525, level=1, map_id=1134, wp=6)
         self.character = dict(id=7, account_id=9, breed=15, level=1, map_id=1134)
         from wakfu_server.combat_actor_snapshot import (
@@ -33,6 +32,30 @@ class NativeNpcAttackTests(unittest.TestCase):
         build_npc_snapshot(
             self.monster, self.npc, wp_current=6, wp_maximum=6, running_effects=()
         ).install(self.npc)
+        from wakfu_server.combat_qi_fight import (
+            install_fresh_actor_slots,
+            prepare_fresh_actor_slots,
+        )
+
+        # Explicit serialized QI arena matching this two-cell unit fixture.
+        self.fight.native_qi_snapshot = dict(
+            x=0, y=0, width=7, height=1, cell_masks=[0] * 7
+        )
+        install_fresh_actor_slots(
+            self.fight,
+            prepare_fresh_actor_slots(
+                self.fight,
+                physical_radii={
+                    actor.id: actor.physical_radius for actor in (self.pc, self.npc)
+                },
+            ),
+        )
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+        )
+
+        initialize_global_pv_collections(self.fight, tuple(self.fight.actors))
+        self.fight.ready(9)
         self.fight.native_effect_uid_next = 1
         self.fight.native_obstacle_cells = frozenset()
 

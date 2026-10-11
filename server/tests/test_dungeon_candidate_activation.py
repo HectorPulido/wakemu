@@ -102,3 +102,31 @@ class DungeonCandidateActivationTests(unittest.TestCase):
                     self.assertTrue(
                         (Path(directory) / (policy + ".backup.json")).exists()
                     )
+                    backup = json.loads(
+                        (Path(directory) / (policy + ".backup.json")).read_text()
+                    )
+                    self.assertIn("runtime_configurations", backup)
+                    self.assertIn("runtime_active_configurations", backup)
+                    self.assertNotIn("settings", backup)
+                    queries = [call.args[0] for call in db.execute.call_args_list]
+                    self.assertTrue(
+                        any(
+                            "FROM dungeon_runtime_configurations WHERE route_key=%s"
+                            in query
+                            for query in queries
+                        )
+                    )
+                    self.assertTrue(
+                        any(
+                            "FROM dungeon_runtime_active_configurations WHERE route_key=%s"
+                            in query
+                            for query in queries
+                        )
+                    )
+                    self.assertFalse(
+                        any(
+                            "dungeon_runtime_active:" in query
+                            or "dungeon_runtime_config:" in query
+                            for query in queries
+                        )
+                    )

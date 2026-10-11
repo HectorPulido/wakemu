@@ -76,6 +76,24 @@ def validate(config, flow, placement):
         for e in topology["physical_exit_objects"]
         if e["room_order"] == len(observations)
     ]
+    if (
+        not exits
+        and topology.get("completed_exit_witness", {}).get("kind")
+        == "physical_return_walk"
+    ):
+        witness = topology["completed_exit_witness"]
+        exits = [
+            e
+            for e in topology["physical_exit_objects"]
+            if e["source_id"] == witness["source_id"] and e["room_order"] == 1
+        ]
+        gates.validate_movement(
+            topology, movement(witness["walking_path"]), unlocked_room=len(observations)
+        )
+        if tuple(witness["walking_path"][0]) != tuple(topology["rooms"][-1]["anchor"]):
+            raise ValueError(
+                "Physical walking return does not start at the final stage"
+            )
     if len(exits) != 1:
         raise ValueError("No unique final exterior exit")
     witness = None

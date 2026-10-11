@@ -77,6 +77,15 @@ class NativeHealingHandler:
             or effect["effect_class"] not in HEAL_ELEMENTS
         ):
             raise ValueError("Invalid native healing actors or effect")
+        from .combat_runner_target_life import runner_target_life_eligible
+
+        if not runner_target_life_eligible(
+            self.fight, target, effect, invocation=invocation
+        ):
+            # Qe.bbJ rejects a proven corpse guard with aX(false), before L2.
+            # A dead target does not need healing arithmetic descriptors. In
+            # prepared execution L1 already ran; __call__ clears its caches.
+            return None, None
         source_stats, target_stats = _snapshot(source), _snapshot(target)
         context = self.context(effect, invocation)
         if (
@@ -97,9 +106,6 @@ class NativeHealingHandler:
             raise ValueError("Unknown native healing flags")
         if not context.executable:
             return (context, None)
-        from .combat_runner_target_life import verify_runner_target_life
-
-        verify_runner_target_life(self.fight, target, effect, invocation=invocation)
         if type(target_stats.get(32)) is not int:
             raise ValueError("Missing authoritative healing resistance")
         flags = effect.get("native_effect_flags")

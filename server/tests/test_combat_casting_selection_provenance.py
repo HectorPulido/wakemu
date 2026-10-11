@@ -48,12 +48,26 @@ class CastingSelectionProvenanceTests(unittest.TestCase):
             dict(flags, criteria=str(index), levels=[[cost, 0, 0]], ranges=[[1, 5]])
             for index, cost in enumerate(costs)
         ]
+        resource_record = dict(
+            maximum_level=1,
+            baseline=dict(resources={"2": [4, 4]}),
+            conditional=[
+                dict(criteria=str(index), resources={"2": [cost, cost]})
+                for index, cost in enumerate(costs)
+            ],
+        )
         with patch(
             "wakfu_server.combat_native_spell_casting.catalog",
             return_value={"1": record},
         ), patch(
             "wakfu_server.combat_native_spell_casting.evaluate_condition",
             side_effect=results,
+        ), patch(
+            "wakfu_server.combat_spell_resource_costs.catalog",
+            return_value={"1": resource_record},
+        ), patch(
+            "wakfu_server.combat_spell_resource_costs.evaluate_condition",
+            side_effect=list(results),
         ):
             return definition(1, 1, None, {})
 

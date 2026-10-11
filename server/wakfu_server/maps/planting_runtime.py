@@ -39,23 +39,29 @@ class Plantings:
         if type(growth_seconds) not in (int, float) or growth_seconds <= 0:
             raise ValueError("Invalid local planting growth delay")
 
-    def begin(self, account, generation, character, body, authorize_cell):
+    def begin(
+        self, account, generation, character, body, authorize_cell, *, _prepared=None
+    ):
         with self.lock:
-            prepared = planting.prepare(
-                self.store,
-                account,
-                generation,
-                character,
-                body,
-                authorize_cell=authorize_cell,
-                open_test_policy=self.open_test_policy,
-                location_context=self.location_context,
+            prepared = (
+                _prepared
+                if _prepared is not None
+                else planting.prepare(
+                    self.store,
+                    account,
+                    generation,
+                    character,
+                    body,
+                    authorize_cell=authorize_cell,
+                    open_test_policy=self.open_test_policy,
+                    location_context=self.location_context,
+                )
             )
             current = prepared["character"]
             cid = current["id"]
             old = self.pending.get(cid)
             if old and old["generation"] != generation:
-                self.cancel(cid, old["generation"])
+                self.cancel(cid, old["generation"], _skip_intents=_prepared is not None)
             request = prepared["request"]
             key = (
                 current["map_id"],
@@ -94,7 +100,14 @@ class Plantings:
             # Freeze the server-owned context before accepting the occupation.
             # The client result never supplies a probability or a random draw.
             probability = None
-            if self.probability_context is not None:
+            if _prepared is not None:
+                from .planting_probability import succeeds
+
+                probability = _prepared["probability"]
+                succeeds(probability, 0.0)
+                if duration != _prepared["duration_ms"]:
+                    raise ValueError("Planting duration changed during preparation")
+            elif self.probability_context is not None:
                 from .planting_probability import succeeds
 
                 probability = self.probability_context(prepared)
@@ -124,7 +137,58 @@ class Plantings:
                 y=request["y"],
             )
 
-    def cancel(self, character_id, generation=None):
+    def begin_prepared(
+        self, account, generation, character, body, prepared, authorize_cell, *, db=None
+    ):
+        """Accept service computation only after fresh world ownership checks."""
+        from contextlib import nullcontext
+        from .profession_store import stored_level
+
+        request = planting.decode(body)
+        if not isinstance(prepared, dict) or request != prepared.get("request"):
+            raise ValueError("Planting prepared request differs")
+        origin = prepared.get("character", {})
+        if any(
+            origin.get(key) != character.get(key)
+            for key in ("id", "account_id", "map_id", "instance_id", "x", "y", "z")
+        ):
+            raise ValueError("Planting origin changed during preparation")
+        seed = planting.SEEDS.get(prepared.get("seed", {}).get("item_reference"))
+        if seed is None or seed != prepared["seed"]:
+            raise ValueError("Planting prepared seed differs from native catalog")
+        definition = planting.RESOURCES.get(seed["resource_reference"])
+        if definition is None or definition != prepared.get("definition"):
+            raise ValueError("Planting prepared resource differs from native catalog")
+        with self.lock, (
+            self.store.connection() if db is None else nullcontext(db)
+        ) as current_db:
+            _lease(self.store, current_db, account, generation, character["id"])
+            item = current_db.execute(
+                "SELECT reference,quantity FROM inventory_items WHERE uid=%s AND character_id=%s",
+                (request["item_uid"], character["id"]),
+            ).fetchone()
+            if (
+                item is None
+                or item["reference"] != seed["item_reference"]
+                or item["quantity"] < 1
+            ):
+                raise ValueError("Seed no longer owned")
+            level = stored_level(current_db, account, seed["profession_id"])
+            if level is None or (
+                not self.open_test_policy and level < seed["minimum_level"]
+            ):
+                raise ValueError("Profession unlearned or below seed requirement")
+            z = authorize_cell(character, request, seed, definition)
+            if type(z) is not int or z != prepared.get("z"):
+                raise ValueError("Planting prepared surface changed")
+            return self.begin(
+                account, generation, character, body, authorize_cell, _prepared=prepared
+            )
+
+    def cancel(self, character_id, generation=None, *, _skip_intents=False):
+        intents = getattr(self, "ecology_intents", None)
+        if intents is not None and not _skip_intents:
+            intents.cancel(character_id, generation)
         with self.lock:
             ticket = self.pending.get(character_id)
             if ticket is None or (
@@ -202,6 +266,9 @@ class Plantings:
         # Their queued full appearances share only the durable delivery outbox.
         with self.publisher_lock:
             refill(self.store)
+            from .fishing_spots import refill as refill_fishing
+
+            refill_fishing(self.store)
         due = int((self.store.clock() - self.growth_seconds) * 1000)
         now_ms = int(self.store.clock() * 1000)
         monster_references = [
@@ -235,6 +302,10 @@ class Plantings:
                 continue
             candidates.append((resource, definition, None))
         for row in flora:
+            from .resource_domains import is_fixed_resource
+
+            if is_fixed_resource(row["resource_reference"]):
+                continue
             resource = {
                 key: value
                 for key, value in row.items()
@@ -250,8 +321,23 @@ class Plantings:
                     "Growth transition is absent from native flora definition"
                 )
             candidates.append((resource, definition, transition))
+        self.apply_growth_candidates(candidates, random_draw=random_draw)
+        return self.publish_growth(groups, publish=publish)
+
+    def apply_growth_candidates(
+        self,
+        candidates,
+        *,
+        prepared_members=None,
+        random_draw=lambda: secrets.randbelow(1 << 53) / (1 << 53),
+    ):
+        """Apply bounded prepared candidates after authoritative row comparison."""
         with self.growth_lock, self.store.connection() as db:
             for resource, definition, transition in candidates:
+                from .resource_domains import is_fixed_resource
+
+                if is_fixed_resource(resource["resource_reference"]):
+                    continue
                 current = db.execute(
                     "SELECT * FROM planted_resources WHERE resource_uid=%s FOR UPDATE",
                     (resource["resource_uid"],),
@@ -265,7 +351,9 @@ class Plantings:
                 ).fetchone():
                     continue
                 if definition["monster_resource"]:
-                    member = monster_growth_member(resource, definition)
+                    member = (prepared_members or {}).get(resource["resource_uid"])
+                    if member is None:
+                        member = monster_growth_member(resource, definition)
                     from .npc_actor_identity import allocate_block
 
                     member = dict(member, id=-allocate_block(db, 1))
@@ -339,9 +427,8 @@ class Plantings:
                             ),
                         ),
                     )
-        return self.publish_growth(groups, publish=publish)
 
-    def publish_growth(self, groups, *, publish):
+    def publish_growth(self, groups, *, publish, resource_uid=None, limit=None):
         from .combat_monster_world import spawn_group
 
         published = []
@@ -350,7 +437,12 @@ class Plantings:
                 rows = [
                     dict(row)
                     for row in db.execute(
-                        "SELECT * FROM planting_growth_outbox WHERE published=FALSE ORDER BY resource_uid"
+                        "SELECT * FROM planting_growth_outbox WHERE published=FALSE "
+                        + ("AND resource_uid=%s " if resource_uid is not None else "")
+                        + "ORDER BY resource_uid"
+                        + (" LIMIT %s" if limit is not None else ""),
+                        (() if resource_uid is None else (resource_uid,))
+                        + (() if limit is None else (limit,)),
                     )
                 ]
             for row in rows:
@@ -375,7 +467,7 @@ class Plantings:
                 else:
                     packets = [
                         planting.resource_packet(resource)
-                        if resource.get("mining_spawn")
+                        if resource.get("mining_spawn") or resource.get("fishing_spawn")
                         else state_packet(resource, resource["stage"])
                     ]
                 delivery = dict(

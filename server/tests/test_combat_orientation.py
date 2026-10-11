@@ -241,6 +241,9 @@ class OrientationTests(unittest.TestCase):
             {(0, 0, 0), (1, 0, 0)},
             {0: {(0, 0, 0)}, 1: {(1, 0, 0)}},
         )
+        from native_combat_fixture import initialize_fixture_qi
+
+        initialize_fixture_qi(fight)
         fight.native_effect_uid_next = 1
         runtime = RuntimeMessages(fight)
         sent = []
@@ -289,7 +292,9 @@ class OrientationTests(unittest.TestCase):
         cast_packets = commit_spell_transaction(
             ready_runtime, transaction, stats_serializer=lambda *_args: b"stats"
         )
-        turn_packets = ready_runtime.end_turn(9, 7, candidate.actors[7].turn_count)
+        from wakfu_server.combat_timeline_snapshot import current_wire_turn
+
+        turn_packets = ready_runtime.end_turn(9, 7, current_wire_turn(candidate))
         ack_packets = ready_runtime.acknowledge_turn(
             struct.pack(">i", ready_runtime.awaiting_ack)
         )

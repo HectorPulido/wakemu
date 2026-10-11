@@ -47,7 +47,7 @@ class NativeWorldEntryTests(unittest.TestCase):
                 world_entry._run_npc_turn(
                     runtime,
                     store=None,
-                    viewer_character={"id": 1},
+                    viewer_character={"id": 1, "map_id": 1134},
                     monsters={},
                     stats_serializer=None,
                 )
@@ -88,7 +88,7 @@ class NativeWorldEntryTests(unittest.TestCase):
                     world_entry.run_npc_turn(
                         runtime,
                         store=None,
-                        viewer_character={"id": 1},
+                        viewer_character={"id": 1, "map_id": 1134},
                         monsters={},
                         stats_serializer=None,
                     )
@@ -165,7 +165,7 @@ class NativeWorldEntryTests(unittest.TestCase):
                 world_entry.run_npc_turn(
                     runtime,
                     store=object(),
-                    viewer_character={"id": 1},
+                    viewer_character={"id": 1, "map_id": 1134},
                     monsters=monsters,
                     stats_serializer="serializer",
                 )
@@ -228,7 +228,7 @@ class NativeWorldEntryTests(unittest.TestCase):
                     world_entry.run_npc_turn(
                         runtime,
                         store=object(),
-                        viewer_character={"id": 1},
+                        viewer_character={"id": 1, "map_id": 1134},
                         monsters={},
                         stats_serializer=None,
                     )
@@ -262,7 +262,7 @@ class NativeWorldEntryTests(unittest.TestCase):
                 world_entry.run_npc_turn(
                     runtime,
                     store=object(),
-                    viewer_character={"id": 1},
+                    viewer_character={"id": 1, "map_id": 1134},
                     monsters={},
                     stats_serializer=None,
                 )

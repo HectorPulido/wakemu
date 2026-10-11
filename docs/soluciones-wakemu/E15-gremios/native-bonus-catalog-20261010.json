@@ -1,0 +1,708 @@
+{
+  "source": "Installed wakfu-client.jar eHu.fwP/fgS; offline enum inspection only",
+  "duration_sentinel": -1,
+  "bonuses": [
+    {
+      "id": 1,
+      "learning_duration_ms": 7200000,
+      "activation_duration_ms": -1,
+      "cost": 200,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93608)"
+    },
+    {
+      "id": 2,
+      "learning_duration_ms": 7200000,
+      "activation_duration_ms": -1,
+      "cost": 400,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93960)"
+    },
+    {
+      "id": 3,
+      "learning_duration_ms": 14400000,
+      "activation_duration_ms": -1,
+      "cost": 500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93962)"
+    },
+    {
+      "id": 4,
+      "learning_duration_ms": 14400000,
+      "activation_duration_ms": -1,
+      "cost": 500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93963)"
+    },
+    {
+      "id": 5,
+      "learning_duration_ms": 36000000,
+      "activation_duration_ms": -1,
+      "cost": 1000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93967)"
+    },
+    {
+      "id": 6,
+      "learning_duration_ms": 36000000,
+      "activation_duration_ms": -1,
+      "cost": 1000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93966)"
+    },
+    {
+      "id": 7,
+      "learning_duration_ms": 36000000,
+      "activation_duration_ms": -1,
+      "cost": 1000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93964)"
+    },
+    {
+      "id": 8,
+      "learning_duration_ms": 36000000,
+      "activation_duration_ms": -1,
+      "cost": 1000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93965)"
+    },
+    {
+      "id": 9,
+      "learning_duration_ms": 21600000,
+      "activation_duration_ms": -1,
+      "cost": 800,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93968)"
+    },
+    {
+      "id": 10,
+      "learning_duration_ms": 43200000,
+      "activation_duration_ms": -1,
+      "cost": 1500,
+      "scope": "CRITERION_BONUS",
+      "effect_kind": "CRITERION_BONUS",
+      "effect_description": "Criterion"
+    },
+    {
+      "id": 11,
+      "learning_duration_ms": 57600000,
+      "activation_duration_ms": -1,
+      "cost": 3000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "STORAGE_COMPARTMENT",
+      "effect_description": "Unlock guild compartment GUILD_1"
+    },
+    {
+      "id": 12,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 6000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93589)"
+    },
+    {
+      "id": 15,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 6000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93970)"
+    },
+    {
+      "id": 16,
+      "learning_duration_ms": 14400000,
+      "activation_duration_ms": -1,
+      "cost": 800,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93971)"
+    },
+    {
+      "id": 17,
+      "learning_duration_ms": 21600000,
+      "activation_duration_ms": -1,
+      "cost": 1000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93972)"
+    },
+    {
+      "id": 18,
+      "learning_duration_ms": 54000000,
+      "activation_duration_ms": -1,
+      "cost": 1500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93976)"
+    },
+    {
+      "id": 19,
+      "learning_duration_ms": 54000000,
+      "activation_duration_ms": -1,
+      "cost": 1500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93975)"
+    },
+    {
+      "id": 20,
+      "learning_duration_ms": 54000000,
+      "activation_duration_ms": -1,
+      "cost": 1500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93973)"
+    },
+    {
+      "id": 21,
+      "learning_duration_ms": 54000000,
+      "activation_duration_ms": -1,
+      "cost": 1500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93974)"
+    },
+    {
+      "id": 22,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 5000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93610)"
+    },
+    {
+      "id": 23,
+      "learning_duration_ms": 43200000,
+      "activation_duration_ms": -1,
+      "cost": 2000,
+      "scope": "CRITERION_BONUS",
+      "effect_kind": "CRITERION_BONUS",
+      "effect_description": "Criterion"
+    },
+    {
+      "id": 24,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 1500,
+      "scope": "CRITERION_BONUS",
+      "effect_kind": "CRITERION_BONUS",
+      "effect_description": "Criterion"
+    },
+    {
+      "id": 25,
+      "learning_duration_ms": 259200000,
+      "activation_duration_ms": -1,
+      "cost": 14000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "SET_POINTS_EARNED_FACTOR",
+      "effect_description": "Points x 1.1"
+    },
+    {
+      "id": 27,
+      "learning_duration_ms": 129600000,
+      "activation_duration_ms": -1,
+      "cost": 12000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93978)"
+    },
+    {
+      "id": 28,
+      "learning_duration_ms": 129600000,
+      "activation_duration_ms": -1,
+      "cost": 12000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93979)"
+    },
+    {
+      "id": 30,
+      "learning_duration_ms": 28800000,
+      "activation_duration_ms": -1,
+      "cost": 1500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93981)"
+    },
+    {
+      "id": 31,
+      "learning_duration_ms": 28800000,
+      "activation_duration_ms": -1,
+      "cost": 1500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93982)"
+    },
+    {
+      "id": 32,
+      "learning_duration_ms": 115200000,
+      "activation_duration_ms": -1,
+      "cost": 7500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93983)"
+    },
+    {
+      "id": 33,
+      "learning_duration_ms": 172800000,
+      "activation_duration_ms": -1,
+      "cost": 5000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "STORAGE_COMPARTMENT",
+      "effect_description": "Unlock guild compartment GUILD_2"
+    },
+    {
+      "id": 34,
+      "learning_duration_ms": 345600000,
+      "activation_duration_ms": -1,
+      "cost": 20000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "REDUCE_LEARNING_DURATION",
+      "effect_description": "Increase learn speed"
+    },
+    {
+      "id": 35,
+      "learning_duration_ms": 43200000,
+      "activation_duration_ms": -1,
+      "cost": 1500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93984)"
+    },
+    {
+      "id": 36,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 3000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93988)"
+    },
+    {
+      "id": 37,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 3000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93987)"
+    },
+    {
+      "id": 38,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 3000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93985)"
+    },
+    {
+      "id": 39,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 3000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93986)"
+    },
+    {
+      "id": 40,
+      "learning_duration_ms": 172800000,
+      "activation_duration_ms": -1,
+      "cost": 3000,
+      "scope": "CRITERION_BONUS",
+      "effect_kind": "CRITERION_BONUS",
+      "effect_description": "Criterion"
+    },
+    {
+      "id": 41,
+      "learning_duration_ms": 259200000,
+      "activation_duration_ms": -1,
+      "cost": 15000,
+      "scope": "CRITERION_BONUS",
+      "effect_kind": "CRITERION_BONUS",
+      "effect_description": "Criterion"
+    },
+    {
+      "id": 42,
+      "learning_duration_ms": 345600000,
+      "activation_duration_ms": -1,
+      "cost": 20000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "SET_WEEKLY_POINTS_LIMIT",
+      "effect_description": "+ 1500 weekly points"
+    },
+    {
+      "id": 43,
+      "learning_duration_ms": 64800000,
+      "activation_duration_ms": -1,
+      "cost": 2000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93990)"
+    },
+    {
+      "id": 44,
+      "learning_duration_ms": 64800000,
+      "activation_duration_ms": -1,
+      "cost": 2000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93991)"
+    },
+    {
+      "id": 45,
+      "learning_duration_ms": 64800000,
+      "activation_duration_ms": -1,
+      "cost": 2000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93993)"
+    },
+    {
+      "id": 46,
+      "learning_duration_ms": 230400000,
+      "activation_duration_ms": -1,
+      "cost": 18000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93997)"
+    },
+    {
+      "id": 48,
+      "learning_duration_ms": 230400000,
+      "activation_duration_ms": -1,
+      "cost": 18000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (93999)"
+    },
+    {
+      "id": 50,
+      "learning_duration_ms": 345600000,
+      "activation_duration_ms": -1,
+      "cost": 10000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "STORAGE_COMPARTMENT",
+      "effect_description": "Unlock guild compartment GUILD_3"
+    },
+    {
+      "id": 51,
+      "learning_duration_ms": 345600000,
+      "activation_duration_ms": -1,
+      "cost": 20000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "INCREASE_MAX_AUTHORIZED_EVOLUTION",
+      "effect_description": "+1 Parallel learning"
+    },
+    {
+      "id": 52,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 2500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94005)"
+    },
+    {
+      "id": 53,
+      "learning_duration_ms": 172800000,
+      "activation_duration_ms": -1,
+      "cost": 4500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94004)"
+    },
+    {
+      "id": 54,
+      "learning_duration_ms": 172800000,
+      "activation_duration_ms": -1,
+      "cost": 4500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94003)"
+    },
+    {
+      "id": 55,
+      "learning_duration_ms": 172800000,
+      "activation_duration_ms": -1,
+      "cost": 4500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94001)"
+    },
+    {
+      "id": 56,
+      "learning_duration_ms": 172800000,
+      "activation_duration_ms": -1,
+      "cost": 4500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94002)"
+    },
+    {
+      "id": 57,
+      "learning_duration_ms": 345600000,
+      "activation_duration_ms": -1,
+      "cost": 10000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94007)"
+    },
+    {
+      "id": 58,
+      "learning_duration_ms": 345600000,
+      "activation_duration_ms": -1,
+      "cost": 10000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94006)"
+    },
+    {
+      "id": 59,
+      "learning_duration_ms": 345600000,
+      "activation_duration_ms": -1,
+      "cost": 7500,
+      "scope": "CRITERION_BONUS",
+      "effect_kind": "CRITERION_BONUS",
+      "effect_description": "Criterion"
+    },
+    {
+      "id": 60,
+      "learning_duration_ms": 115200000,
+      "activation_duration_ms": -1,
+      "cost": 4000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94008)"
+    },
+    {
+      "id": 62,
+      "learning_duration_ms": 518400000,
+      "activation_duration_ms": -1,
+      "cost": 24000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94010)"
+    },
+    {
+      "id": 64,
+      "learning_duration_ms": 518400000,
+      "activation_duration_ms": -1,
+      "cost": 24000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94012)"
+    },
+    {
+      "id": 65,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 4000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94013)"
+    },
+    {
+      "id": 66,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 4000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (94014)"
+    },
+    {
+      "id": 67,
+      "learning_duration_ms": 604800000,
+      "activation_duration_ms": -1,
+      "cost": 20000,
+      "scope": "CRITERION_BONUS",
+      "effect_kind": "CRITERION_BONUS",
+      "effect_description": "Criterion"
+    },
+    {
+      "id": 68,
+      "learning_duration_ms": 604800000,
+      "activation_duration_ms": -1,
+      "cost": 20000,
+      "scope": "CRITERION_BONUS",
+      "effect_kind": "CRITERION_BONUS",
+      "effect_description": "Criterion"
+    },
+    {
+      "id": 69,
+      "learning_duration_ms": 604800000,
+      "activation_duration_ms": -1,
+      "cost": 20000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "STORAGE_COMPARTMENT",
+      "effect_description": "Unlock guild compartment GUILD_4"
+    },
+    {
+      "id": 70,
+      "learning_duration_ms": 43200000,
+      "activation_duration_ms": -1,
+      "cost": 3000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (95924)"
+    },
+    {
+      "id": 71,
+      "learning_duration_ms": 115200000,
+      "activation_duration_ms": -1,
+      "cost": 5000,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (95925)"
+    },
+    {
+      "id": 72,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": 21600000,
+      "cost": 4500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (95926)"
+    },
+    {
+      "id": 73,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": 21600000,
+      "cost": 4500,
+      "scope": "MEMBER_BONUS",
+      "effect_kind": "MEMBER_EFFECT",
+      "effect_description": "Member effect (95927)"
+    },
+    {
+      "id": 74,
+      "learning_duration_ms": 1800000,
+      "activation_duration_ms": -1,
+      "cost": 200,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "UNLOCK_LEVEL",
+      "effect_description": "Set guild level to 1"
+    },
+    {
+      "id": 75,
+      "learning_duration_ms": 7200000,
+      "activation_duration_ms": -1,
+      "cost": 400,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "UNLOCK_LEVEL",
+      "effect_description": "Set guild level to 2"
+    },
+    {
+      "id": 76,
+      "learning_duration_ms": 14400000,
+      "activation_duration_ms": -1,
+      "cost": 700,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "UNLOCK_LEVEL",
+      "effect_description": "Set guild level to 3"
+    },
+    {
+      "id": 77,
+      "learning_duration_ms": 28800000,
+      "activation_duration_ms": -1,
+      "cost": 1000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "UNLOCK_LEVEL",
+      "effect_description": "Set guild level to 4"
+    },
+    {
+      "id": 78,
+      "learning_duration_ms": 57600000,
+      "activation_duration_ms": -1,
+      "cost": 1500,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "UNLOCK_LEVEL",
+      "effect_description": "Set guild level to 5"
+    },
+    {
+      "id": 79,
+      "learning_duration_ms": 86400000,
+      "activation_duration_ms": -1,
+      "cost": 4000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "UNLOCK_LEVEL",
+      "effect_description": "Set guild level to 6"
+    },
+    {
+      "id": 80,
+      "learning_duration_ms": 172800000,
+      "activation_duration_ms": -1,
+      "cost": 7500,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "UNLOCK_LEVEL",
+      "effect_description": "Set guild level to 7"
+    },
+    {
+      "id": 81,
+      "learning_duration_ms": 259200000,
+      "activation_duration_ms": -1,
+      "cost": 10000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "UNLOCK_LEVEL",
+      "effect_description": "Set guild level to 8"
+    },
+    {
+      "id": 82,
+      "learning_duration_ms": 345600000,
+      "activation_duration_ms": -1,
+      "cost": 15000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "UNLOCK_LEVEL",
+      "effect_description": "Set guild level to 9"
+    },
+    {
+      "id": 83,
+      "learning_duration_ms": 604800000,
+      "activation_duration_ms": -1,
+      "cost": 20000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "UNLOCK_LEVEL",
+      "effect_description": "Set guild level to 10"
+    },
+    {
+      "id": 84,
+      "learning_duration_ms": -1,
+      "activation_duration_ms": -1,
+      "cost": 100000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "UNLOCK_HAVEN_WORLD",
+      "effect_description": "Unlock Haven World"
+    },
+    {
+      "id": 85,
+      "learning_duration_ms": 345600000,
+      "activation_duration_ms": -1,
+      "cost": 10000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "INCREASE_MEMBERS_SIZE",
+      "effect_description": "+ 50 max members"
+    },
+    {
+      "id": 86,
+      "learning_duration_ms": 864000000,
+      "activation_duration_ms": -1,
+      "cost": 30000,
+      "scope": "GUILD_BONUS",
+      "effect_kind": "INCREASE_MEMBERS_SIZE",
+      "effect_description": "+ 50 max members"
+    }
+  ]
+}

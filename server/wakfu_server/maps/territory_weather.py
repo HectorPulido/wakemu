@@ -436,11 +436,14 @@ def acknowledge_publication(store, event):
         raise ValueError("Inconsistent weather publication event")
     with store.connection() as db:
         row = db.execute(
-            "UPDATE territory_weather_outbox SET published_at=clock_timestamp() "
-            "WHERE map_id=%s AND instance_id=%s AND region_id=%s AND revision=%s "
-            "AND weather=%s AND native_payload=%s AND published_at IS NULL "
-            "AND superseded_at IS NULL "
-            "RETURNING revision",
+            "UPDATE territory_weather_outbox o SET published_at=clock_timestamp() "
+            "FROM territory_weather w "
+            "WHERE o.map_id=%s AND o.instance_id=%s AND o.region_id=%s AND o.revision=%s "
+            "AND o.weather=%s AND o.native_payload=%s AND o.published_at IS NULL "
+            "AND o.superseded_at IS NULL AND w.map_id=o.map_id "
+            "AND w.instance_id=o.instance_id AND w.region_id=o.region_id "
+            "AND w.revision=o.revision AND w.weather=o.weather "
+            "AND w.native_payload=o.native_payload RETURNING o.revision",
             (
                 event["map_id"],
                 event["instance_id"],

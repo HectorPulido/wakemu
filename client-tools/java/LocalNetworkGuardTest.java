@@ -5,6 +5,7 @@ import java.net.Socket;
 public final class LocalNetworkGuardTest {
     public static void main(String[] args) throws Exception {
         if (System.getSecurityManager() == null) throw new AssertionError("Missing guard");
+        System.getSecurityManager().checkConnect("127.0.0.1", 18083);
         for (String host : new String[]{"haapi.ankama.com", "wakfu-dispatcher.ankama-games.com", "192.0.2.1"}) {
             if (!host.equals("192.0.2.1")) {
                 try { InetAddress.getByName(host); throw new AssertionError("External DNS allowed"); }

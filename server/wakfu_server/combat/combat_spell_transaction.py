@@ -95,6 +95,11 @@ def prepare_spell_transaction(
         caster.mp -= plan["costs"]["mp"]
         if caster.effect_stats is not None and 3 in caster.effect_stats:
             caster.effect_stats[3] = caster.mp
+    from .combat_spell_resource_costs import pay_extra_resources
+
+    plan["extra_resource_payment"] = pay_extra_resources(
+        caster, plan["costs"]["extra_resource_deltas"], fight=preview
+    )
     mirror_cast_facing(caster, plan, fight=preview)
     dispatcher, effect_packets = runtime_factory(preview, plan)
     if not isinstance(dispatcher, EffectDispatcher) or not isinstance(
@@ -110,6 +115,9 @@ def prepare_spell_transaction(
         from .combat_cost_payment_events import replay_paid_spell_costs
 
         replay_paid_spell_costs(dispatcher, plan)
+        from .combat_breeze_payment_events import replay_paid_breeze_costs
+
+        replay_paid_breeze_costs(dispatcher, plan)
         outcomes = tuple(
             dispatcher.execute(
                 EffectInvocation(

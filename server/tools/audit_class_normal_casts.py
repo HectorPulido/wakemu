@@ -390,7 +390,7 @@ class NormalCastAudit:
 
         def los(origin, target, current):
             return authoritative_visible(
-                current.map_id,
+                character["map_id"],
                 origin,
                 target,
                 current,

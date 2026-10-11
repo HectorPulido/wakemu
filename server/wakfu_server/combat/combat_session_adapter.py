@@ -470,7 +470,9 @@ class CombatSessionAdapter:
 
             effects = active_actor_effects(fight, actor.id)
         else:
-            effects = actor_effects()
+            from wakfu_server.combat_remote_effects import initial_npc_actor_effects
+
+            effects = initial_npc_actor_effects(fight, actor.id)
         return stats, effects
 
     @staticmethod

@@ -58,6 +58,16 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
     room exit becomes available after the final victory. Other exterior exits
     are unsupported rather than silently opened.
     """
+    if topology.get("policy") == "native_shared_arena_sequential_policy":
+        from wakfu_server import dungeon_shared_arena
+
+        return dungeon_shared_arena.packets(
+            topology,
+            map_id=map_id,
+            instance_id=instance_id,
+            unlocked_room=unlocked_room,
+            completed=completed,
+        )
     if type(completed) is not bool:
         raise ValueError("Invalid dungeon completion state")
     if topology.get("asset_map_id", map_id) != map_id:
@@ -99,7 +109,10 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
             )
             for identity in sorted(owned)
         )
-    availability = {}
+    from wakfu_server import dungeon_native_flow
+
+    disabled = dungeon_native_flow.disabled_source_ids(topology, sources)
+    availability = {identity: False for identity in disabled}
     for door in topology["doors"]:
         source = owned.get(door["source_id"])
         if source is None:
@@ -107,8 +120,7 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
         start, end = door["source_room"], door["destination_room"]
         _integer(start, 1, count)
         _integer(end, 1, count)
-        if abs(start - end) != 1:
-            raise ValueError("Dungeon door does not connect adjacent reviewed rooms")
+        dungeon_native_flow.validate_transport_binding(topology, door)
         position = tuple(source[axis] for axis in ("x", "y", "z"))
         from wakfu_server import dungeon_native_flow
 
@@ -131,6 +143,20 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
         if source["id"] in availability and availability[source["id"]] != enabled:
             raise ValueError("Native object has conflicting door states")
         availability[source["id"]] = enabled
+    if topology.get("branch_routes"):
+        from wakfu_server import dungeon_branches
+
+        branches = dungeon_branches.validate(topology)
+        selected = topology.get("selected_branch")
+        if selected is not None:
+            if selected not in branches:
+                raise ValueError(
+                    "Native interactive state has an unknown selected branch"
+                )
+            for key, branch in branches.items():
+                if key != selected:
+                    for identity in branch["source_ids"]:
+                        availability[identity] = False
     for source in owned.values():
         # The reviewed internal topology already selected its allowed route.
         # A native object may also advertise a mutually exclusive Neo-server

@@ -108,7 +108,7 @@ class SummonTests(unittest.TestCase):
         from wakfu_server.combat_summon_creation import NativeSummonBuilder
         from wakfu_server.combat_summon_codec import summon_application
 
-        f, _, _ = self.fixture()
+        f, _, _ = self.fixture(native_qi=True)
         authority = RegisteredSummonAuthority(Ordinary())
         spec = self.spec([3791, 20, 0, 3, 0])
         timing = bytes.fromhex(
@@ -169,7 +169,7 @@ class SummonTests(unittest.TestCase):
                 self(fight, actor)
                 return frozenset({47})
 
-        f, _, _ = self.fixture()
+        f, _, _ = self.fixture(native_qi=True)
         actor, record = NativeSummonBuilder(WorldCaster())(
             f, self.spec([3791, 20, 0, 3, 0]), 7, 901, (1, 0, 0)
         )
@@ -234,14 +234,21 @@ class SummonTests(unittest.TestCase):
         # Native positive mode is narrowed with i2s before descriptor creation.
         self.assertEqual(self.spec([3251, 65536]).level, 0)
 
-    def fixture(self):
+    def fixture(self, *, native_qi=False):
         cells = {(0, 0, 0), (1, 0, 0), (2, 0, 0)}
         a = Actor(7, 0, (0, 0, 0), 60, 6, 3, 0, 6, owner_id=3, controlled=True)
         b = Actor(-7, 1, (2, 0, 0), 60, 6, 3, 0, 6)
         f = Fight(1, [a, b], cells, {0: {a.position}, 1: {b.position}})
-        f.phase = "active"
-        f.order = [7, -7]
-        f.turn_index = 0
+        from native_combat_fixture import initialize_fixture_qi
+
+        if native_qi:
+            initialize_fixture_qi(f)
+        else:
+            # Structural registration tests own the native actor-only fallback.
+            # Builder tests below use the full QI creation producer instead.
+            for slot, actor in enumerate(f.actors.values()):
+                actor.native_obstacle_id = slot
+        f.ready(3)
         c = Actor(901, 0, (1, 0, 0), 60, 6, 3, 0, 6, owner_id=3, controlled=True)
         c.effect_stats = {1: 60, 2: 6, 3: 3}
         c.effect_maxima = dict(c.effect_stats)
@@ -284,6 +291,42 @@ class SummonTests(unittest.TestCase):
         f.actors[999] = Actor(999, 0, (3, 0, 0), 60, 6, 3, 0, 6)
         with self.assertRaises(ValueError):
             authority(f, f.actors[7])
+
+    def test_registered_properties_follow_live_pb_overlap_removal_and_preview(self):
+        from copy import deepcopy
+        from wakfu_server.combat_property_stack import add_property, remove_property
+
+        fight, actor, registration = self.fixture()
+        authority = RegisteredSummonAuthority(Ordinary())
+        authority.register(
+            fight, actor, registration, new_order=[7, 901, -7], new_turn_index=0
+        )
+        actor.native_fight_property_counts = {3: 1}
+        actor.native_fight_properties = frozenset({3})
+        preview = deepcopy(fight)
+        changed = preview.actors[actor.id]
+        for property_id in (54, 11):
+            add_property(changed.native_fight_property_counts, property_id)
+            add_property(changed.native_fight_property_counts, property_id)
+            changed.native_fight_properties = frozenset(
+                changed.native_fight_property_counts
+            )
+            self.assertIn(property_id, authority.properties(preview, changed))
+            remove_property(changed.native_fight_property_counts, property_id)
+            self.assertIn(property_id, authority.properties(preview, changed))
+            remove_property(changed.native_fight_property_counts, property_id)
+            changed.native_fight_properties = frozenset(
+                changed.native_fight_property_counts
+            )
+            self.assertNotIn(property_id, authority.properties(preview, changed))
+        self.assertEqual(authority.properties(fight, actor), frozenset({3}))
+        self.assertEqual(
+            preview.native_summon_registrations[actor.id]["fight_properties"],
+            frozenset({3}),
+        )
+        changed.native_fight_properties = frozenset({54})
+        with self.assertRaisesRegex(ValueError, "Inconsistent native summoned"):
+            authority.properties(preview, changed)
 
     def test_native_registration_accepts_controller_cell_before_carry(self):
         # Original creation groups may allow distance0 and carry the new QK
@@ -481,13 +524,21 @@ class SummonTests(unittest.TestCase):
             prepare_summon(f, spec, **args, encode_application=lambda *args: ())
         self.assertEqual(set(f.actors), {7, -7})
 
+    def test_ready_rejects_stale_initial_turn_request(self):
+        fight, _, _ = self.fixture()
+        self.assertEqual(fight.current.id, 7)
+        self.assertGreater(fight.current.turn_count, 0)
+        with self.assertRaisesRegex(ValueError, "Stale turn identifier"):
+            fight.end_turn(3, 7, 0)
+        self.assertEqual(fight.current.id, 7)
+
     def test_registered_caster_controlled_summon_uses_owned_turn_permissions(self):
         f, c, r = self.fixture()
         authority = RegisteredSummonAuthority(Ordinary())
         spec = self.spec([3251, 6, 0, 3, 0])
         order, index = fresh_summon_insertion(f, spec, caster_id=7, actor_id=901)
         authority.register(f, c, r, new_order=order, new_turn_index=index)
-        f.end_turn(3, 7, 0)
+        f.end_turn(3, 7, f.actors[7].turn_count)
         self.assertEqual(f.current.id, 901)
         with self.assertRaises(ValueError):
             f.spend(99, 901, ap=1)

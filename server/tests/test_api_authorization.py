@@ -11,6 +11,16 @@ from wakfu_server.live_console import LiveConsole
 from wakfu_server.global_tasks import GlobalTasks
 
 
+def insert_character(store, account_id, name):
+    """Keep API authorization fixtures independent from the optional native catalog."""
+    with store.connection() as db:
+        return db.execute(
+            "INSERT INTO characters(account_id,name,name_key,breed,sex,face,hair,colors,appearance,hp,max_hp) "
+            "VALUES(%s,%s,%s,1,false,0,0,'[]','{}',100,100) RETURNING id",
+            (account_id, name, name.casefold()),
+        ).fetchone()["id"]
+
+
 class ApiAuthorizationTests(PostgresCase):
     def setUp(self):
         super().setUp()
@@ -19,8 +29,8 @@ class ApiAuthorizationTests(PostgresCase):
         self.player = self.store.register("ordinary", "password")["id"]
         for account in (self.admin, self.other):
             set_admin(self.store, account, True, operator="test", reason="fixture")
-        self.character = self.store.create_character(self.admin, "Admin Player")["id"]
-        self.foreign = self.store.create_character(self.other, "Other Player")["id"]
+        self.character = insert_character(self.store, self.admin, "Admin Player")
+        self.foreign = insert_character(self.store, self.other, "Other Player")
         self.tokens = {
             account: self.store.issue_token(account, "api")
             for account in (self.admin, self.other, self.player)
@@ -80,6 +90,11 @@ class ApiAuthorizationTests(PostgresCase):
         self,
     ):
         cases = [
+            ("/test/admin-sessions", None),
+            (
+                "/test/admin-command",
+                {"character_id": self.foreign, "command": "!item 2021 1"},
+            ),
             ("/test/sessions", None),
             ("/test/tasks", None),
             ("/test/command/fake", None),
@@ -103,9 +118,99 @@ class ApiAuthorizationTests(PostgresCase):
         self.assertEqual(
             self.console.drain(self.character, "lease", self.calls.append), 0
         )
+        with self.store.connection() as db:
+            items = db.execute(
+                "SELECT uid FROM inventory_items WHERE character_id=%s",
+                (self.character,),
+            ).fetchall()
+        self.assertEqual([], items)
+
+    def test_panel_commands_delegate_cross_owner_with_idempotent_real_receipt(self):
+        token = self.tokens[self.admin]
+        sessions = self.request("/test/admin-sessions", token=token)
+        self.assertEqual(sessions[0], 200)
         self.assertEqual(
-            self.store.character(self.admin, self.character)["inventory_items"], []
+            {row["character_id"] for row in sessions[1]}, {self.character, self.foreign}
         )
+        body = dict(
+            character_id=self.foreign,
+            command="!item 2021 1",
+            request_id="panel-delivery",
+        )
+        status, receipt = self.request("/test/admin-command", body, token)
+        self.assertEqual(status, 202)
+        self.assertEqual(receipt["status"], "pending")
+        self.assertEqual(
+            self.request("/test/admin-command", body, token)[1]["handle"],
+            receipt["handle"],
+        )
+        calls = []
+        self.console.drain(
+            self.foreign,
+            "foreign",
+            lambda command, *, authorized_by: calls.append((command, authorized_by)),
+        )
+        self.assertEqual(calls, [("!item 2021 1", self.admin)])
+        self.assertEqual(
+            self.request("/test/command/" + receipt["handle"], token=token)[1][
+                "status"
+            ],
+            "completed",
+        )
+        self.assertEqual(
+            self.request(
+                "/test/command/" + receipt["handle"], token=self.tokens[self.other]
+            )[0],
+            403,
+        )
+
+    def test_panel_commands_allowlist_scheduler_and_revocation(self):
+        token = self.tokens[self.admin]
+        for command in (
+            "!pos",
+            "!kamas 100",
+            "!item 2021 1 Other",
+            "!tp 1 2 3",
+            "!item a 1",
+        ):
+            with self.subTest(command=command):
+                self.assertEqual(
+                    self.request(
+                        "/test/admin-command",
+                        dict(character_id=self.foreign, command=command),
+                        token,
+                    )[0],
+                    400,
+                )
+        self.assertEqual(
+            self.request("/test/admin-sessions", token=self.scheduler_token)[0], 403
+        )
+        self.assertEqual(
+            self.request(
+                "/test/admin-command",
+                dict(character_id=self.foreign, command="!item 2021 1"),
+                self.scheduler_token,
+            )[0],
+            403,
+        )
+        receipt = self.request(
+            "/test/admin-command",
+            dict(character_id=self.foreign, command="!tp 1 2 3 4"),
+            token,
+        )[1]
+        set_admin(
+            self.store,
+            self.admin,
+            False,
+            operator="test",
+            reason="revoke queued panel action",
+        )
+        calls = []
+        self.console.drain(
+            self.foreign, "foreign", lambda command, **kwargs: calls.append(command)
+        )
+        self.assertEqual(calls, [])
+        self.assertEqual(self.console.poll(receipt["handle"])["status"], "failed")
 
     def test_owner_results_cross_account_and_role_revocation_before_execution(self):
         token = self.tokens[self.admin]

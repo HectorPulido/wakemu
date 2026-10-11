@@ -1341,6 +1341,105 @@ class QuerySearchTests(unittest.TestCase):
         self.assertNotIn("project_turn", operations)
         self.assertEqual(operations.count("preview"), 1)
 
+    def test_rival_forecast_uses_reserved_part_of_decision_slice(self):
+        session = fixture([dict(spellId=710, level=1)])
+        session.envelope["nativeBudgetMs"] = 4000
+        session.envelope["operations"] = ["project_turn"]
+        session.envelope["policy"]["searchTimeFraction"] = 0.25
+        session.envelope["policy"]["limits"].update(depth=1, nodes=32)
+        session.envelope["policy"]["rivalLimits"] = dict(
+            nodes=1, depth=1, beam=1, alternatives=6, budgetMs=500
+        )
+        now = [0.0]
+        original = session.request
+        operations = []
+
+        def timed_native_request(query):
+            operations.append(query["operation"])
+            if query["operation"] == "project_turn":
+                now[0] += 0.01
+                return {
+                    "id": query["id"],
+                    "supported": False,
+                    "unknownDependencies": ["synthetic_projection_unavailable"],
+                }
+            response = original(query)
+            if query["operation"] == "preview":
+                # Root candidate enumeration crosses its earlier search cutoff
+                # while leaving time for the separately reserved risk slice.
+                now[0] += 0.12
+            return response
+
+        session.request = timed_native_request
+        result = run_search(session, clock=lambda: now[0])
+
+        evidence = result["searchBudgetEvidence"]
+        self.assertEqual(operations[0], "repertoire")
+        self.assertIn("project_turn", operations)
+        self.assertTrue(evidence["rootActionCertified"])
+        self.assertFalse(evidence["rivalForecastSkipped"])
+        self.assertEqual(evidence["decisionWallBudgetMs"], 875.0)
+        self.assertEqual(evidence["rivalSearchReserveMs"], 218.75)
+        self.assertGreater(evidence["rivalSearchUsedMs"], 0)
+        self.assertLessEqual(
+            evidence["rivalSearchUsedMs"], evidence["rivalSearchReserveMs"]
+        )
+        self.assertLess(now[0], 0.875)
+
+    def test_zero_rival_reserve_keeps_legacy_shared_slice(self):
+        session = fixture([dict(spellId=710, level=1)])
+        session.envelope["nativeBudgetMs"] = 4000
+        session.envelope["operations"] = ["project_turn"]
+        session.envelope["policy"]["searchTimeFraction"] = 0.25
+        session.envelope["policy"]["rivalSearchReserveMs"] = 0
+        session.envelope["policy"]["limits"].update(depth=1, nodes=32)
+        session.envelope["policy"]["rivalLimits"] = dict(
+            nodes=1, depth=1, beam=1, alternatives=6, budgetMs=500
+        )
+        now = [0.0]
+        original = session.request
+        operations = []
+
+        # Expand the synthetic terrain so the own-action stream is larger than
+        # the candidate list in the default fixture, while retaining no routes.
+        session.cells = [[x, 0, 0] for x in range(10)] + [[0, 0, 1]]
+        session.edges = []
+        session.root_graph = make_graph(session.cells, session.edges)
+        graph_key = session.store.put_json(session.root_graph)
+        session.root_state["nativeContext"] = graph_key
+
+        def timed_native_request(query):
+            operations.append(query["operation"])
+            if query["operation"] == "project_turn":
+                now[0] += 0.01
+                return {
+                    "id": query["id"],
+                    "supported": False,
+                    "unknownDependencies": ["synthetic_projection_unavailable"],
+                }
+            response = original(query)
+            if query["operation"] == "preview":
+                now[0] += 0.05
+            return response
+
+        session.request = timed_native_request
+        result = run_search(session, clock=lambda: now[0])
+
+        evidence = result["searchBudgetEvidence"]
+        self.assertEqual(evidence["rivalSearchReserveMs"], 0)
+        self.assertEqual(evidence["decisionWallBudgetMs"], 875.0)
+        self.assertIn("project_turn", operations)
+        self.assertFalse(evidence["rivalForecastSkipped"])
+        self.assertLess(now[0], 0.875)
+
+    def test_rival_search_reserve_rejects_non_integer_or_out_of_range_values(self):
+        for invalid in (True, -1, 10001):
+            with self.subTest(value=invalid):
+                session = fixture([])
+                session.envelope["policy"]["rivalSearchReserveMs"] = invalid
+                with self.assertRaisesRegex(ValueError, "Invalid rival search reserve"):
+                    run_search(session)
+
     def test_owner_reserve_exhausted_during_repertoire_does_not_invent_move(self):
         session = fixture([])
         session.envelope["nativeBudgetMs"] = 1500

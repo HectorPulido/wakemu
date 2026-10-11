@@ -44,6 +44,11 @@ El servidor usa PostgreSQL en el servicio `postgres`, base `wakemu_runtime`, con
 
 ## Organización del servidor
 
+The local [administration panel](docs/reports/admin-panel/README.md) is available
+at <http://127.0.0.1:18084> for accounts, map inspection, server sessions, and shop
+catalogue management. Its private credentials are generated separately from
+game accounts. The linked guide includes access instructions and acceptance steps.
+
 `server/local_game_server.py` conecta el protocolo con los servicios. Los módulos están en `server/wakfu_server/`:
 
 - `combat/`: turnos, movimiento, ataques, IA, muerte y recompensas.

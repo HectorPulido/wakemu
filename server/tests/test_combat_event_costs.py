@@ -55,6 +55,50 @@ class EventCostTests(unittest.TestCase):
         self.assertEqual(self.authority(dict(effect_class=912), self.inv, paid), paid)
         self.assertEqual(self.context_calls, [])
 
+    def test_retained_spell_descriptor_uses_exact_pl_in_lifecycle_plan(self):
+        from dataclasses import replace
+
+        retained = dict(
+            present=True,
+            type=11,
+            is_spell=True,
+            protected=False,
+            id=(7009 << 16) | 200,
+            spell_id=7009,
+            level=200,
+        )
+        retention = SimpleNamespace(
+            plan={"spell_id": 6260, "evaluation_level": 1},
+            container=lambda inv: (
+                dict(
+                    container_present=True,
+                    container_type=11,
+                    container_id=retained["id"],
+                ),
+                retained["id"],
+            ),
+        )
+        inv = replace(self.inv, native_retained_container=retained)
+        result = source_cost_descriptor(retention, inv)
+        self.assertEqual(
+            result["spell_context"],
+            dict(present=True, container_type=11, spell_id=7009, level=200),
+        )
+        retention.plan = {}
+        self.assertEqual(source_cost_descriptor(retention, inv), result)
+        for overrides in (
+            {"level": 201},
+            {"spell_id": 7052},
+            {"is_spell": False},
+            {"protected": True},
+        ):
+            with self.subTest(overrides=overrides):
+                invalid = replace(
+                    inv, native_retained_container=dict(retained, **overrides)
+                )
+                with self.assertRaisesRegex(ValueError, "Invalid retained native fyG"):
+                    source_cost_descriptor(retention, invalid)
+
     def test_state_container_is_not_a_source_spell_and_unknown_is_not_absence(self):
         for kind in (1, 3):  # fyW state and faV area, respectively.
             with self.subTest(container_type=kind):

@@ -10,6 +10,26 @@ from wakfu_server.combat_results import finish_messages
 
 
 class DeathTests(unittest.TestCase):
+    def test_action_death_delivery_is_unique_and_excludes_old_or_revived_deaths(self):
+        from wakfu_server.combat_death import newly_registered_death_messages
+
+        fight, runtime, _ = test_combat_results.FightResultTests().state()
+        fight.events = [
+            dict(sequence=1, kind="death", actor_id=100),
+            dict(sequence=2, kind="death", actor_id=-200),
+            dict(sequence=3, kind="death", actor_id=-200),
+            dict(sequence=4, kind="death", actor_id=100),
+        ]
+        packets = newly_registered_death_messages(runtime, after_sequence=1)
+        deaths = [
+            struct.unpack(">iiiqB", body)[3:] for op, body in packets if op == 12727
+        ]
+        self.assertEqual(deaths, [(-200, 0), (-200, 2)])
+        self.assertEqual(newly_registered_death_messages(runtime, after_sequence=1), [])
+        for invalid in (-1, True, None):
+            with self.assertRaises(ValueError):
+                newly_registered_death_messages(runtime, after_sequence=invalid)
+
     def test_group_removal_is_independent_of_registry_finish_and_validates_all(self):
         f, runtime, metadata = test_combat_results.FightResultTests().state()
         self.assertEqual(dead_world_removals(f, [-200]), [despawn_monster(f, -200)])

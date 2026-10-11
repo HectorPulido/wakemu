@@ -1,0 +1,60 @@
+# Sadida semantic qualification — 2026-10-10
+
+This supplement to [`sadida.md`](sadida.md) records actual native-cast/event evidence for poison, healing, armor, and passive behavior. The focused tests are in [`test_sadida_semantic_qualification.py`](../../../../server/tests/test_sadida_semantic_qualification.py). No gameplay implementation, catalog row, service, or database row was changed in this review. All integration execution was delegated to Luna.
+
+## Published source authority
+
+The active PostgreSQL catalog revision read directly for the class audit was `548e1468d1c17a9542b34419c8a4f6c539696135fb4ffd4c03e8dae29c9f4edd`. The reviewed document checksums were:
+
+| Published document | SHA-256 |
+|---|---|
+| `spell-effect-trees.json` | `a188b3681c79ad455d296b303491370419cbe23da130501a8b86b51bd9a518ba` |
+| `native-class-spell-level-zero.json` | `223231c3f22b6fdeea99f4257facfb789d74fc99a60c183caf1455dc4b05f619` |
+| `combat-state-definitions.json` | `845f211b808b9ce20a14b25f3e3068480094243c507e4aaa8f9da5fad5bca7b9` |
+| `native-class-casting-roots.json` | `773f2c0a2b690faae554a9eaa97e897327e1ea900e0ba93130a993e3a4576` |
+| `native-current-stat-events.json` | `9f7901659c3d6ff408326bf2483d0194e1ae09691ad3fa2b4cd4806c1eed5178` |
+
+The class graph closure is preserved in [`sadida.json`](sadida.json). Tests use actual breed-10 level-200 initialization, native QI, production spell preparation, and source-snapshot rollback checks. The revised Árbol probe changes the player's HP only through the raw-HP authority helper as a fixture precondition before native self-cell healing.
+
+## Actual cast/event observations
+
+| Case | Native contract and observation | Qualification status |
+|---|---|---|
+| Toxinas 914 | Hostile roots 378146/378148 apply poison state3617 through child58701 and carrier state8210 through child378145/378150. The separate allied/self branch 378144/378151 applies state3640. | Passed: actual hostile cast completed 378146, 58701, 378145 and target carried states3617/8210; HP did not change immediately, consistent with delayed poison tick. |
+| Viento Envenenado 919 | Roots156042/156043 apply state3590. Roots380037/380038 have authored literal-False criteria and must remain dormant. The corrected actual cast at distance3 completes and applies state3590. | Passed at distance3 against the explicit enemy cell: state3590 and positive roots156042/156043 were observed. The literal-False roots remained uncompleted. Trace statuses included `skipped_condition` plus duplicate `no_effect` rows, so the test assertion was relaxed to require a skipped condition and prohibit completion/error rather than assuming a fixed row count. |
+| Árbol 915 | Healing root156921 is class25 and requires `GetTotalHpInPercent("target") < 100`. The attempted allied Superpoderosa cell was rejected by the native cast gate (`twI`). | The original summon-target fixture was invalid. The self-cell rerun exposed a second test-fixture error: manually changed HP mirrors did not provide raw HP authority, and the supposed full-HP actor was at 60/470. The final module uses `set_hp_raw_current` to prepare coherent low/full-HP player states; both actual cast controls passed. |
+| Zarza 925 | Roots377830/377828 route armor effects including class1013; native child criteria include `not IsCarried("target")`. | Passed with an actual owned allied Voodoll. `.runtime/remaining-six-refresh-20261010/sadida-zarza-outcomes.json` records completed300634 and Voodoll armor0→972. The enemy negative control has no class1013 child and no armor delta. |
+| Venenoso 5234 | Root379592 subscribes to event79, requires positive triggering value and opposing teams, and has level1 poison path379593→379594→379595 applying state3617. Higher branch379596 requires level6; state effect379604 is separate. | Positive level1 branch proved. Diagnostic artifact `.runtime/remaining-six-refresh-20261010/sadida-venenoso-observation.json` shows baseline spell927 enemy MP3→2; with5234, the native listener and children379593/379594/379595 complete, state3617 is applied, and MP remains3. The poison behavior is qualified. The difference in source-loss persistence is separately exposed for root's shared eVZ/event-order review; this report does not label it as a Sadida data or listener gap. The earlier spell928 probe was invalid because it did not emit subscribed event79. |
+| Cadena de la Naturaleza 8158 | Root379547 subscribes to positive event79 and child379548 is native class48 with requested amount2. | Actual spell927 event completes refs379547/379548. Captured invocation proves class48 caster=target=Sadida actor7, while enemy-7 MP stays2. With passive, Sadida MP is2 versus baseline3, and class48 child targets self; this is the positive numerical effect. Artifact `.runtime/remaining-six-refresh-20261010/sadida-8158-observation.json`. The test now asserts both invocation identity and the caster MP delta. |
+
+The initial full run before the 8158 probe used test-module SHA `2b589d3dce4f09ebba73442a94a340e9494312e3e60073250036aec2e048317c`: **7 tests, 0 failures, 0 errors, 0 skips** (`.runtime/remaining-six-refresh-20261010/sadida-semantic-final2.log`). It proved actual Toxinas poison/carrier state, Viento state3590 with literal-False roots uncompleted, Árbol low-HP heal and full-HP no-heal control, Venenoso event79 level-1 state3617 follow-up, Zarza allied-Voodoll armor delta and enemy negative control, plus 20 complete passive Ready/turn/ACK smoke cycles. The first eight-test run at SHA `2faed4cb54ff772676fe1e1639fcb3705af9e1f5f27978eec5ea9d1a29298043` exposed a wrong target assumption in its 8158 assertion. The captured invocation showed class48 targets the listener owner (Sadida actor7), not enemy-7; with the passive actor7 MP is2 versus baseline3. The focused observer captured the invocation and the final focused test at SHA `41046fc01c697299790a06d34850ae0d9ff3d9ec047a74e9592070cf8b90e038` passed **1/1**, asserting caster/target identity and the numerical delta. This does not semantically qualify every passive-specific event branch: the separate table below records enabled branches that still lack their own positive numeric/state control.
+
+## Twenty passives
+
+The current passive set is **912, 913, 916, 917, 933, 4959, 5055, 5058, 5234, 7053, 8149, 8150, 8151, 8152, 8153, 8154, 8155, 8156, 8157, 8158**. The delegated `audit_passive_activation` run installed all20 and completed each Ready/turn/ACK cycle with stable source snapshots and no incomplete traces (`.runtime/remaining-six-refresh-20261010/sadida-passives-semantic.json`). Each level-zero class400 root is seen executing at Ready as a listener registration; the follow-on event branches were not triggered by the generic NPC attack/cast cycle (`activation_observed=0`). Registration is lifecycle evidence, not numerical qualification.
+
+Explicit contextual branches identified in the published graph remain gated and are not counted as missing implementation:
+
+| Passive | Required source context | Evidence gap |
+|---:|---|---|
+| 913 | Actual tree profile5577 has state8217. That state selects area1836 by effect380014 unless passive7053 is in deck, when380015 selects1850. Area1836/1850 definitions then run380036/380035 respectively; each checks passive913 and applies state8258, while the no-passive sibling effects378645/379712 apply8226. | The Voodoll spawn and the different 8137→925 Sacrificada path did not reach the tree context. The exact 8137→8137 profile5577/state8217 path is proven independently by `test_sadida_tree_pipeline.py`; my focused observer now checks the emitted areas and 913 callback on that tree path. Its run is pending, so positive area behavior remains unqualified. |
+| 5055 | State8226 or8258 on area1836/1850 drives effects380008/380031; criteria require5055 in deck, an enemy target, and absence of marker8257. Children apply poison3617, class321 follow-up and marker8257. | Actual spell914 plus a player/enemy turn cycle and the different 8137→925 Sacrificada path failed to reach these refs. The focused observer uses the exact 5577 tree producer with an eligible target cell selected from native1836/1850 geometry so the real enemy occupies the generated field; its Luna run is pending. No positive area-entry result is claimed yet. |
+| 4959 | Poison on area1836 or1850; root379630→379631 | Generic cycle does not place either area. |
+| 5234 | Positive opposing-team event79 | Level1 poison branch now has a real positive; higher level6 path remains untested. |
+| 8150 | Own summon profile5577 and state/count/area gates | Parallel Sadida summon audit owns the actual doll context; this passive-specific follow-up is unqualified. |
+| 8152 | Own summon state8200; authored criterion ends in literal `False` | Deliberately disabled by source. Preserve the disabled behavior; do not force its children. |
+| 8155 | Native owned-summon5577/death or area branch | Generic cycle does not create the triggering context. |
+| 8156 | `HasStateFromUser(8200, "target")` | Generic cycle does not establish the Voodoll state-source relationship. |
+| 8158 | Triggering value≥1 before class48 effect379548 (amount2) | Real positive event79 completes listener+child, captured target is the listener-owning Sadida, and the owner's MP delta is proved (3→2 versus baseline3). |
+| 8149 | On actual owned Voodoll creation, root379606 runs class41 child379607. | Passed: baseline skipped379606 and summon stat3 stayed3; with8149 the child completed on the spawned Voodoll and stat3 rose3→6, while HP remained411 and state ledger stayed [3616,8200]. Artifact `.runtime/remaining-six-refresh-20261010/sadida-8149-observation.json`; actual target was native summoned actor110. |
+| Other passive branches | Remaining passive branches, including level-zero class400 registrations; 933's death/explosion branch is also covered by the parallel doll lifecycle work | Actual Ready registration is observed, but passive-specific numeric/state controls remain branch-by-branch. |
+
+The strengthened 8149 comparison passed on module SHA `360a1bb867daf377b35f3adc09fa72507d449e9264601db776f9f725fe2a025a` (focused Luna run 1/1, `.runtime/remaining-six-refresh-20261010/sadida-8149-final6.log`). It asserts the child absence/presence as well as the 3→6 native stat delta and unchanged HP, so this row is semantic qualification rather than trace-only evidence.
+
+The native seed→925 observer passed on SHA `c2e26c3030be41750ea4a69a3189db729d35ac9b81696803d7d5a20012892e55` (`.runtime/remaining-six-refresh-20261010/sadida-seed-transformation-final3.log`) as a diagnostic: all three actual casts completed, but none created 1836/1850 or ran the corresponding area effects. They produced the Sacrificada path, not the tree producer, so this does not qualify either area-gated passive. The parallel [`test_sadida_tree_pipeline.py`](../../../../server/tests/test_sadida_tree_pipeline.py) proves the actual profile5577/state8217 producer is a second 8137 cast on the same 1835 cell. A focused observer now follows that exact producer and places the real enemy within the native 1836/1850 footprint; it is awaiting Luna execution. No positive 913/5055 area result is claimed before that run.
+
+The generic auditor recorded explicit unmet prerequisites for 4959's area1836/1850 requirement, 8150's owned summon5577/count, 8152's literal-False condition, and 8156's state8200 source. No missing runtime route is inferred from those unfulfilled prerequisites. Full passive semantic qualification remains open for the branches listed above; the 20-cycle smoke does not qualify the class by itself.
+
+## Next evidence gate
+
+The focused cast/heal/armor checks are green. Review Venenoso's source-loss timing with the shared combat owner, then build passive-specific positive and negative fixtures for each enabled event branch, using actual owned dolls/areas and native turn lifecycle rather than injecting states. Keep the source-authored literal-False 8152 branch disabled. Any confirmed general runtime discrepancy should be handed to root with the captured event trace before editing shared combat code.

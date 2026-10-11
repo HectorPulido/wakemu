@@ -107,6 +107,10 @@ from wakfu_server.planting_probability import resolver as planting_probability_r
 from wakfu_server.planting_bonus import current as current_planting_bonus
 from wakfu_server.haven_bag_garden import active_character as active_garden_character
 
+ECOLOGY_MODE = os.environ.get("WAKFU_ECOLOGY_MODE", "inline")
+if ECOLOGY_MODE not in ("inline", "external", "disabled"):
+    raise ValueError("Invalid ecology execution mode")
+ECOLOGY_BRIDGE = None
 OPEN_PLANTING = os.environ.get("WAKFU_OPEN_PLANTING", "1") == "1"
 PLANTINGS = Plantings(
     STORE,
@@ -565,6 +569,54 @@ PARTIES = Parties(STORE, WORLD)
 CHANNELS = Channels(STORE, WORLD)
 EXCHANGES = Exchanges(STORE, WORLD)
 
+from wakfu_server.characters.guild_dispatch import (
+    Guilds,
+    REQUEST_OPCODES as GUILD_REQUEST_OPCODES,
+)
+
+
+def guild_local_entity():
+    captured = fixture(15548)
+    if (
+        len(captured) < 11
+        or len(captured) != 10 + struct.unpack_from(">H", captured, 8)[0]
+    ):
+        raise ValueError("Invalid native guild synchronization fixture")
+    return wire.minimal_entity(captured[10:], {"level": 1})
+
+
+def guild_company_packet(character, model):
+    from wakfu_server.characters.hero_wire import company
+
+    return company(
+        character["account_id"],
+        character["id"],
+        guild_id=model["guildId"] if model else 0,
+    )
+
+
+GUILDS = Guilds(
+    STORE,
+    WORLD,
+    guild_local_entity,
+    remote_publish=lambda character, packet: WORLD.emit_location_batch(
+        character["map_id"], character["instance_id"], (packet,)
+    ),
+    company_packet=guild_company_packet,
+)
+
+
+def refresh_guild(generation, character):
+    from psycopg import Error as DatabaseError
+    from psycopg_pool import PoolTimeout
+
+    try:
+        GUILDS.refresh(character["account_id"], generation, character["id"])
+    except (ValueError, DatabaseError, PoolTimeout) as error:
+        record(
+            event="guild_refresh_failed", actor_id=character["id"], reason=str(error)
+        )
+
 
 def refresh_party(generation, character):
     """Social publication failures must not disconnect a playable character."""
@@ -698,10 +750,15 @@ def join_world(generation, connection, character, *, hydrate_heroes=True):
     send(
         connection,
         "world",
-        *hero_wire.company(character["account_id"], character["id"]),
+        *hero_wire.company(
+            character["account_id"],
+            character["id"],
+            guild_id=(character.get("guild_native") or {}).get("guildId", 0),
+        ),
     )
     if not COMBAT_TEST:
         WORLD.join(generation, connection, character)
+        refresh_guild(generation, character)
         refresh_party(generation, character)
         return
     from wakfu_server.combat_monster_world import spawn_group
@@ -733,6 +790,8 @@ def join_world(generation, connection, character, *, hydrate_heroes=True):
     ):
         send(connection, "world", *packet)
     refresh_party(generation, character)
+
+    refresh_guild(generation, character)
 
 
 def release_groups(generation):
@@ -898,6 +957,9 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
                         send(connection, "world", message_id, payload)
                 continue
             original = base64.b64decode(frame["body_base64"])
+            if frame["opcode"] == 22995:
+                # Never replay an official account's HTTP shop credentials.
+                continue
             if frame["opcode"] == 630 and generation is not None:
                 for social_packet in SOCIAL_ACTIONS.bootstrap(account_id, generation):
                     send(connection, "world", *social_packet)
@@ -1102,6 +1164,7 @@ def session(raw, peer, service, context):
     hero_switch_pending = None
     bag_session = None
     chest_opening = None
+    guild_chest_session = None
     fight = None
     combat_session = None
     spectator_session = None
@@ -1123,6 +1186,7 @@ def session(raw, peer, service, context):
     connected_at = time.monotonic()
     last_chat = 0
     last_health_tick = 0
+    last_shop_refresh = 0
     last_session_renewal = 0
     last_dungeon_transition_poll = 0.0
     last_dungeon_transition_report = None
@@ -1406,7 +1470,13 @@ def session(raw, peer, service, context):
             send(connection, service, *hero_wire.activate(OWNED_HERO_TEMPLATE, hero))
             send(connection, service, *hero_wire.statistics(hero))
         send(
-            connection, service, *hero_wire.company(account_id, roster["leader"]["id"])
+            connection,
+            service,
+            *hero_wire.company(
+                account_id,
+                roster["leader"]["id"],
+                guild_id=(roster["leader"].get("guild_native") or {}).get("guildId", 0),
+            ),
         )
         refresh_party(generation, roster["leader"])
 
@@ -3330,6 +3400,9 @@ def session(raw, peer, service, context):
         nonlocal last_health_tick, last_session_renewal, console_session
         nonlocal spectator_session, spectator_fight_id
         nonlocal spectator_terminal_pending
+        nonlocal character, last_shop_refresh
+        if character is not None:
+            character.update(WORLD.guild_projection(character["id"], generation))
         if account_id is not None:
             now = time.monotonic()
             renew = now - last_session_renewal >= 10
@@ -3535,6 +3608,38 @@ def session(raw, peer, service, context):
                 and character is not None
                 and fight is None
                 and combat_session is None
+                and time.monotonic() - last_shop_refresh >= 1
+            ):
+                from psycopg import Error as DatabaseError
+                from psycopg_pool import PoolTimeout
+                from wakfu_server import shop_refresh
+
+                last_shop_refresh = time.monotonic()
+                try:
+                    purchase = shop_refresh.pending(STORE, account_id, character)
+                    if purchase is not None:
+                        for message_id, payload in purchase["packets"]:
+                            send(connection, service, message_id, payload)
+                        character = purchase["character"]
+                        shop_refresh.acknowledge(
+                            STORE, account_id, character["id"], purchase["order_ids"]
+                        )
+                        record(
+                            event="shop_purchase_delivered",
+                            actor_id=character["id"],
+                            order_ids=purchase["order_ids"],
+                        )
+                except (ValueError, DatabaseError, PoolTimeout) as error:
+                    record(
+                        event="shop_purchase_delivery_retry",
+                        actor_id=character["id"],
+                        reason=type(error).__name__,
+                    )
+            if (
+                loaded
+                and character is not None
+                and fight is None
+                and combat_session is None
                 and time.monotonic() - last_health_tick >= 1
             ):
                 last_health_tick = time.monotonic()
@@ -3659,6 +3764,16 @@ def session(raw, peer, service, context):
                 if loaded:
                     deliver_rift_transition()
                     deliver_dungeon_transitions(before_action=True)
+                if guild_chest_session is not None and (
+                    fight is not None
+                    or spectator_session is not None
+                    or bag_session is not None
+                    or character is None
+                    or character["id"] != guild_chest_session.character_id
+                    or opcode == 13331
+                ):
+                    guild_chest_session.close(clear=True)
+                    guild_chest_session = None
                 if chest_opening is not None and (
                     fight is not None
                     or spectator_session is not None
@@ -3959,7 +4074,17 @@ def session(raw, peer, service, context):
                     elif opcode == 402:
                         if account_id is None:
                             raise ValueError("Authentication required")
-                        send(connection, service, 453, REALMS)
+                        from wakfu_server.server_identity import (
+                            configured_server_name,
+                            rename_realm,
+                        )
+
+                        send(
+                            connection,
+                            service,
+                            453,
+                            rename_realm(REALMS, configured_server_name(STORE)),
+                        )
                     elif opcode == 575:
                         request = decode_body("out", opcode, body)
                         if request["server_id"] != 10:
@@ -3987,6 +4112,26 @@ def session(raw, peer, service, context):
                         13873,
                         wire.account_kamas(STORE.account_kamas(account_id)),
                     )
+                    shop_key = STORE.issue_token(
+                        account_id, "api", ttl=86400, generation=generation
+                    )
+                    send(
+                        connection,
+                        service,
+                        22995,
+                        pack_text(shop_key)
+                        + struct.pack(">q", int((STORE.clock() + 86400) * 1000)),
+                    )
+                elif opcode == 22954:
+                    if account_id is None or not STORE.current_session(
+                        account_id, generation
+                    ):
+                        raise ValueError(
+                            "Shop authentication requires a current game session"
+                        )
+                    # cDT sends the initialized Shopi token back to world. Local
+                    # HTTP authority already validates its account/session lease.
+                    record(event="shop_session_initialized", account_id=account_id)
                 elif opcode == 13488:
                     if account_id is None or body != b"\x00":
                         raise ValueError("Invalid character selection request")
@@ -4708,10 +4853,17 @@ def session(raw, peer, service, context):
                         cancel_flora()
 
                         def reachable_flora(current, resource):
-                            from wakfu_server.resource_domains import is_mineral
+                            from wakfu_server.resource_domains import (
+                                is_mineral,
+                                is_fish,
+                            )
 
                             if is_mineral(resource["resource_reference"]):
                                 from wakfu_server.mining_navigation import reachable
+
+                                return reachable(current, resource)
+                            if is_fish(resource["resource_reference"]):
+                                from wakfu_server.fishing_navigation import reachable
 
                                 return reachable(current, resource)
                             if current["map_id"] == 9:
@@ -4897,12 +5049,25 @@ def session(raw, peer, service, context):
                             ),
                         )
                 elif opcode == 13220 and loaded:
-                    from wakfu_server.planting_cells import authorize
-                    from wakfu_server.combat_terrain import map_geometry
-
                     try:
                         if fight is not None:
                             raise ValueError("Sal del combate para plantar")
+
+                        if ECOLOGY_MODE == "external":
+                            HARVESTS.cancel(character["id"], generation=generation)
+                            PLANTINGS.cancel(character["id"], generation)
+                            intent_id = PLANTINGS.ecology_intents.enqueue(
+                                account_id, generation, character, body
+                            )
+                            record(
+                                event="planting_preparation_enqueued",
+                                actor_id=character["id"],
+                                intent_id=intent_id,
+                            )
+                            continue
+
+                        from wakfu_server.planting_cells import authorize
+                        from wakfu_server.combat_terrain import map_geometry
 
                         def authorize_planting(current, request, seed, resource):
                             if current["map_id"] == 9:
@@ -5618,6 +5783,13 @@ def session(raw, peer, service, context):
                             character["id"],
                             (character["x"], character["y"], character["z"]),
                             [(m["x"], m["y"], m["z"]) for m in TEST_MONSTERS],
+                            stage_callback=lambda stage, elapsed_ms, thread_cpu_ms: record(
+                                event="combat_arena_stage",
+                                stage=stage,
+                                map_id=character["map_id"],
+                                elapsed_ms=round(elapsed_ms, 3),
+                                thread_cpu_ms=round(thread_cpu_ms, 3),
+                            ),
                         )
                         entry_stage("arena_selected")
                         from wakfu_server import territory_bonuses
@@ -5826,7 +5998,13 @@ def session(raw, peer, service, context):
                                 (12608, wire.spawn_player(PLAYER_TEMPLATE, source))
                                 for source in hero_admission["characters"].values()
                             )
-                            if hero_admission["actors"]:
+                            from wakfu_server.combat_bootstrap import (
+                                should_rebuild_placement,
+                            )
+
+                            if should_rebuild_placement(
+                                candidate, hero_admission["actors"]
+                            ):
                                 sources = {
                                     character["id"]: character,
                                     **hero_admission["characters"],
@@ -5861,6 +6039,30 @@ def session(raw, peer, service, context):
                                             direction=3,
                                             obstacle_id=placement_actor.native_obstacle_id,
                                         )
+                                        if placement_actor.id in getattr(
+                                            candidate,
+                                            "native_npc_initialization_receipts",
+                                            {},
+                                        ) or placement_actor.id in getattr(
+                                            candidate,
+                                            "native_npc_ai_actors",
+                                            frozenset(),
+                                        ):
+                                            from wakfu_server.combat_actor import (
+                                                actual_monster_actor_stats,
+                                            )
+                                            from wakfu_server.breed_resources import (
+                                                live_wp,
+                                            )
+
+                                            wp = live_wp(candidate, placement_actor.id)
+                                            stats = actual_monster_actor_stats(
+                                                source,
+                                                placement_actor,
+                                                candidate.id,
+                                                wp_current=wp[0],
+                                                wp_maximum=wp[1],
+                                            )
                                         actor_payloads[placement_actor.id] = (
                                             stats,
                                             actor_effects(),
@@ -8272,6 +8474,18 @@ def session(raw, peer, service, context):
                                     raise ValueError(
                                         "Dungeon teleporter destination is absent"
                                     )
+                                from wakfu_server import dungeon_native_flow
+
+                                if (
+                                    source_id
+                                    in dungeon_native_flow.disabled_source_ids(
+                                        dungeon_config["topology"],
+                                        generic_transports._CATALOG,
+                                    )
+                                ):
+                                    raise ValueError(
+                                        "Native source is explicitly excluded by the local dungeon policy"
+                                    )
                                 approach = teleporter_approach.callback(
                                     movement_state,
                                     map_id=character["map_id"],
@@ -8309,9 +8523,11 @@ def session(raw, peer, service, context):
                                                 "SELECT status FROM dungeon_room_runs WHERE instance_id=%s",
                                                 (character["instance_id"],),
                                             ).fetchone()
-                                        if physical_exit is None or (
-                                            physical_exit["room_order"] != 1
-                                            and exit_progress["status"] != "completed"
+                                        if not dungeon_native_flow.exit_available(
+                                            dungeon_config["topology"],
+                                            physical_exit,
+                                            completed=exit_progress["status"]
+                                            == "completed",
                                         ):
                                             raise ValueError(
                                                 "Native dungeon exit is locked"
@@ -8334,6 +8550,19 @@ def session(raw, peer, service, context):
                                         body,
                                         source_allowed=approach,
                                         in_fight=dungeon_member_in_fight,
+                                        topology=dungeon_config["topology"],
+                                        on_arrival=(
+                                            lambda db, instance_id: dungeon_runtime.ensure_current_room(
+                                                db,
+                                                COMBAT_GROUPS,
+                                                instance_id,
+                                                map_geometry(character["map_id"]),
+                                            )
+                                        )
+                                        if dungeon_config["topology"].get(
+                                            "branch_routes"
+                                        )
+                                        else None,
                                         room_for_position=lambda map_id, x, y, z: dungeon_runtime.room_for_position(
                                             dungeon_config, map_id, x, y, z
                                         ),
@@ -8747,6 +8976,66 @@ def session(raw, peer, service, context):
                         actor_id=character["id"],
                         position=position,
                     )
+                elif opcode in (12844, 12004, 14616, 12531) and loaded:
+                    from wakfu_server.ecology_feedback import information
+                    from psycopg import Error as DatabaseError
+                    from psycopg_pool import PoolTimeout
+
+                    try:
+                        if guild_chest_session is None:
+                            raise ValueError("No active guild chest")
+                        result, packets = guild_chest_session.handle(
+                            opcode,
+                            body,
+                            character,
+                            world_static.objects(character["map_id"]),
+                            blocked=fight is not None
+                            or spectator_session is not None
+                            or bag_session is not None,
+                        )
+                        if "character" in result:
+                            updated = result["character"]
+                            for key in (
+                                "inventory_items",
+                                "inventory_containers",
+                                "kamas",
+                            ):
+                                if key in updated:
+                                    character[key] = updated[key]
+                            from wakfu_server.inventory_move import synchronization
+
+                            send(connection, service, *synchronization(updated))
+                            send(connection, service, *rich_inventory_packet(updated))
+                            send(
+                                connection,
+                                service,
+                                12753,
+                                wire.account_kamas_update(updated["kamas"]),
+                            )
+                        for packet in packets:
+                            send(connection, service, *packet)
+                        record(
+                            event="guild_chest_request",
+                            actor_id=character["id"],
+                            opcode=opcode,
+                            applied=result.get("applied", False),
+                        )
+                    except (ValueError, DatabaseError, PoolTimeout) as error:
+                        if guild_chest_session is not None:
+                            guild_chest_session.close(clear=True)
+                        guild_chest_session = None
+                        text = (
+                            str(error)
+                            if isinstance(error, ValueError)
+                            else "Guild chest is temporarily unavailable."
+                        )
+                        send(connection, service, *information(text))
+                        record(
+                            event="guild_chest_rejected",
+                            actor_id=character["id"],
+                            opcode=opcode,
+                            reason=type(error).__name__,
+                        )
                 elif opcode in (12038, 12551) and loaded:
                     from wakfu_server.haven_chest import transfer as transfer_chest
                     from wakfu_server.haven_chest_wire import (
@@ -8883,6 +9172,73 @@ def session(raw, peer, service, context):
                                     dict(character, name="Consola local"), str(error)
                                 ),
                             )
+                            continue
+                    if opcode == 12870 and len(body) == 12:
+                        target_id, target_action, _ = struct.unpack(">qHH", body)
+                        target = next(
+                            (
+                                row
+                                for row in world_static.objects(character["map_id"])
+                                if row["id"] == target_id
+                                and row["type"] == "GuildStorageBox"
+                            ),
+                            None,
+                        )
+                        if target is not None and target_action in (12, 13):
+                            if guild_chest_session is not None:
+                                guild_chest_session.close()
+                            guild_chest_session = None
+                            if target_action == 12:
+                                from wakfu_server.characters.guild_chest_dispatch import (
+                                    GuildChestSession,
+                                )
+                                from wakfu_server.ecology_feedback import information
+                                from psycopg import Error as DatabaseError
+                                from psycopg_pool import PoolTimeout
+
+                                try:
+                                    guild_chest_session = GuildChestSession(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        body,
+                                        world_static.objects(character["map_id"]),
+                                        blocked=fight is not None
+                                        or spectator_session is not None
+                                        or bag_session is not None,
+                                        world=WORLD,
+                                        objects_for=world_static.objects,
+                                        blocked_now=lambda: fight is not None
+                                        or spectator_session is not None
+                                        or bag_session is not None,
+                                    )
+                                    cancel_crafting()
+                                    for packet in guild_chest_session.publish_current():
+                                        send(connection, service, *packet)
+                                    record(
+                                        event="guild_chest_opened",
+                                        actor_id=character["id"],
+                                        object_id=target_id,
+                                        guild_id=guild_chest_session.guild_id,
+                                    )
+                                except (
+                                    ValueError,
+                                    DatabaseError,
+                                    PoolTimeout,
+                                ) as error:
+                                    guild_chest_session = None
+                                    text = (
+                                        str(error)
+                                        if isinstance(error, ValueError)
+                                        else "Guild chest is temporarily unavailable."
+                                    )
+                                    send(connection, service, *information(text))
+                                    record(
+                                        event="guild_chest_open_rejected",
+                                        actor_id=character["id"],
+                                        reason=type(error).__name__,
+                                    )
                             continue
                     if (
                         opcode == 12870
@@ -9679,6 +10035,60 @@ def session(raw, peer, service, context):
                         ),
                         **movement_timings,
                     )
+                elif opcode in GUILD_REQUEST_OPCODES and loaded:
+                    from psycopg import Error as DatabaseError
+                    from psycopg_pool import PoolTimeout
+                    from wakfu_server.ecology_feedback import information
+
+                    try:
+                        GUILDS.handle(
+                            opcode, body, account_id, generation, character["id"]
+                        )
+                        GUILDS.drain_pending()
+                        live = WORLD.live_identity(character_id=character["id"])
+                        if live is not None and live[0] == generation:
+                            for key in ("guild_native", "guild_moderation_factor"):
+                                if key in live[1]:
+                                    character[key] = live[1][key]
+                        if opcode in (13757, 12937, 12575):
+                            updated = STORE.character(account_id, character["id"])
+                            for key in (
+                                "inventory_items",
+                                "inventory_containers",
+                                "guild_native",
+                                "guild_moderation_factor",
+                            ):
+                                if key in updated:
+                                    character[key] = updated[key]
+                            send(connection, service, *rich_inventory_packet(updated))
+                            from wakfu_server.inventory_move import synchronization
+
+                            send(connection, service, *synchronization(updated))
+                            send(
+                                connection,
+                                service,
+                                13021,
+                                struct.pack(">q", STORE.account_kamas(account_id)),
+                            )
+                    except (
+                        ValueError,
+                        UnicodeError,
+                        DatabaseError,
+                        PoolTimeout,
+                        NotImplementedError,
+                    ) as error:
+                        text = (
+                            str(error)
+                            if isinstance(error, (ValueError, NotImplementedError))
+                            else "Guild service is temporarily unavailable."
+                        )
+                        send(connection, service, *information(text))
+                        record(
+                            event="guild_request_rejected",
+                            actor_id=character["id"],
+                            opcode=opcode,
+                            reason=type(error).__name__,
+                        )
                 elif opcode in (13074, 13224, 13188, 13831) and loaded:
                     from psycopg import Error as DatabaseError
                     from psycopg_pool import PoolTimeout
@@ -10078,6 +10488,9 @@ def session(raw, peer, service, context):
             active_request.finish(status="unexpected_error")
             active_request = None
     finally:
+        if guild_chest_session is not None:
+            guild_chest_session.close()
+            guild_chest_session = None
         if active_request is not None:
             active_request.finish(status="interrupted")
             active_request = None
@@ -10672,6 +11085,35 @@ def wander_monsters():
 
 
 def main():
+    global ECOLOGY_BRIDGE
+    if ECOLOGY_MODE == "external":
+        from wakfu_server.ecology.world_bridge import EcologyWorldBridge
+        from wakfu_server.ecology.runtime import configure_domains
+        from wakfu_server.ecology.client import EcologyClient
+
+        token = Path(os.environ["WAKFU_ECOLOGY_TOKEN_FILE"]).read_text().strip()
+        ECOLOGY_BRIDGE = configure_domains(
+            EcologyWorldBridge(
+                store=STORE,
+                world=WORLD,
+                groups=COMBAT_GROUPS,
+                harvests=HARVESTS,
+                plantings=PLANTINGS,
+                token=token,
+                mode=ECOLOGY_MODE,
+                record=record,
+                combat_sessions=COMBAT_SESSIONS if COMBAT_TEST else None,
+                ecology_client=EcologyClient(
+                    os.environ.get("WAKFU_ECOLOGY_URL", "http://ecology:8093"),
+                    token,
+                    timeout=2.0,
+                ),
+            )
+        )
+        from wakfu_server.ecology_planting_intents import EcologyPlantingIntents
+
+        PLANTINGS.ecology_intents = EcologyPlantingIntents(STORE, ECOLOGY_BRIDGE.epoch)
+        record(event="ecology_external_ready", world_epoch=ECOLOGY_BRIDGE.epoch)
     if COMBAT_TEST:
         from wakfu_server.combat_module_loading import preload_combat_modules
         from wakfu_server.combat_server_spell import prewarm_runtime_catalogs
@@ -10747,7 +11189,7 @@ def main():
 
     weather_baselines = initialize_local_baselines(STORE)
     record(event="territory_weather_baselines_initialized", **weather_baselines)
-    if COMBAT_TEST:
+    if COMBAT_TEST and ECOLOGY_MODE == "inline":
         from wakfu_server.monster_initial_population import seed_configured
 
         seed_configured(STORE, COMBAT_GROUPS, report=record)
@@ -10762,10 +11204,9 @@ def main():
 
         return tick_weather(STORE, WORLD)
 
-    callbacks = {
-        "positions_flush": flush_positions,
-        "territory_weather_tick": tick_territory_weather,
-    }
+    callbacks = {"positions_flush": flush_positions}
+    if ECOLOGY_MODE == "inline":
+        callbacks["territory_weather_tick"] = tick_territory_weather
     global_tasks = GlobalTasks(callbacks, observer=SlowSaveAnnouncements(WORLD))
     threading.Thread(
         target=refresh_player_parties, name="wakfu-player-parties", daemon=True
@@ -10777,14 +11218,18 @@ def main():
         threading.Thread(
             target=flush_position_batches, name="wakfu-position-flusher", daemon=True
         ).start()
-    if COMBAT_TEST:
+    if COMBAT_TEST and ECOLOGY_MODE == "inline":
         threading.Thread(
             target=expire_monster_corpses, name="wakfu-monster-corpses", daemon=True
         ).start()
         threading.Thread(
             target=grow_planted_resources, name="wakfu-plant-growth", daemon=True
         ).start()
-    if COMBAT_TEST and hasattr(COMBAT_GROUPS, "move_members"):
+    if (
+        COMBAT_TEST
+        and ECOLOGY_MODE == "inline"
+        and hasattr(COMBAT_GROUPS, "move_members")
+    ):
         threading.Thread(
             target=reproduce_monsters, name="wakfu-monster-reproduction", daemon=True
         ).start()
@@ -10804,6 +11249,7 @@ def main():
             if os.environ.get("WAKFU_TEST_CONSOLE", "1") == "1"
             else None,
             "global_tasks": global_tasks,
+            "ecology_bridge": ECOLOGY_BRIDGE,
         },
         daemon=True,
     ).start()

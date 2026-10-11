@@ -5,6 +5,7 @@ from wakfu_server.maps.dungeon_runtime_config import (
     plan_from_configuration,
     level_selector,
     pinned_configuration,
+    canonical_hash,
 )
 
 
@@ -91,6 +92,22 @@ class RuntimeConfigTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.configuration()
 
+    def test_configuration_normalizes_json_keys_before_hashing_and_copies_inputs(self):
+        self.topology["progression_metadata"] = {2: "second", 10: "tenth"}
+        config = self.configuration()
+        expected = copy.deepcopy(config)
+        self.plan["rooms"][0]["monsters"][0]["count"] = 7
+        self.route["key"] = "mutated-after-freeze"
+        self.topology["progression_metadata"][2] = "mutated-after-freeze"
+        self.assertEqual(config, expected)
+        self.assertEqual(
+            {"2": "second", "10": "tenth"}, config["topology"]["progression_metadata"]
+        )
+        self.assertEqual(
+            config["evidence_hashes"]["topology"],
+            canonical_hash(config["topology"]),
+        )
+
     def test_reconnect_loads_pinned_version_without_active_pointer(self):
         config = self.configuration()
 
@@ -100,7 +117,7 @@ class RuntimeConfigTests(unittest.TestCase):
 
         class Database:
             def execute(self, sql, values):
-                if values != ("dungeon_runtime_config:test:v1",):
+                if values != ("test", 1):
                     raise AssertionError(
                         "Reconnect queried global active configuration"
                     )

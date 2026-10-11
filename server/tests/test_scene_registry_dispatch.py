@@ -7,6 +7,14 @@ from test_static_map_sync_dispatch import _session_function, SERVER_SOURCE
 from wakfu_server.maps.world_scene_sync import refresh_snapshots, snapshot_ids
 
 
+class IdentityProfiler:
+    """Avoid instrumenting the extracted scene-sync function."""
+
+    @staticmethod
+    def profile(_name):
+        return lambda function: function
+
+
 class SceneRegistryDispatchTests(unittest.TestCase):
     def test_registry_moves_before_state_is_applied_after_walking_back(self):
         body = struct.pack(">hqH", 1, 26865, 19) + bytes.fromhex(
@@ -15,6 +23,7 @@ class SceneRegistryDispatchTests(unittest.TestCase):
         sent = []
         character = {"id": 6, "map_id": 527, "instance_id": 0, "x": -217, "y": -39}
         namespace = {
+            "PROFILER": IdentityProfiler(),
             "loaded": True,
             "character": character,
             "fight": None,

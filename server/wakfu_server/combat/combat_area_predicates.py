@@ -14,10 +14,13 @@ def _target_rows(fight, target_kind, target_id):
     if target_kind == "area":
         if target_id is None:  # Qz.bda() explicitly null.
             return ()
-        selected = tuple(row for row in rows if row["uid"] == target_id)
-        if not selected:
+        from .combat_state_managers import retained_area_pv_row, registered_area_pv
+
+        row = retained_area_pv_row(fight, target_id)
+        if row is None:
             raise ValueError("Missing native selected Qz area authority")
-        return selected
+        registered_area_pv(fight, target_id)
+        return (row,)
     return rows
 
 

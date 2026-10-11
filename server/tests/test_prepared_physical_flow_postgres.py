@@ -29,7 +29,14 @@ from wakfu_server.maps import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-REPORT = ROOT / "docs/reports/dungeons/AUTOMATIC-COMPLETE-CANDIDATES.json"
+REPORT = Path(
+    os.environ.get(
+        "WAKFU_PHYSICAL_CANDIDATE_REPORT",
+        "docs/reports/dungeons/AUTOMATIC-COMPLETE-CANDIDATES.json",
+    )
+)
+if not REPORT.is_absolute():
+    REPORT = ROOT / REPORT
 
 
 class PreparedPhysicalFlowPostgresTests(PostgresCase):
@@ -37,6 +44,35 @@ class PreparedPhysicalFlowPostgresTests(PostgresCase):
 
     player = Fixture.player
     party = Fixture.party
+
+    @staticmethod
+    def _branch_gate_crossing(topology, door):
+        """Build a literal native walk from the source-stage cell across a gate."""
+        edges = {
+            (tuple(a), tuple(b)) for a, b in topology["exploration_geometry"]["edges"]
+        }
+        source_cells = {
+            tuple(cell) for cell in topology["rooms"][door["source_room"] - 1]["cells"]
+        }
+        destination_cells = {
+            tuple(cell)
+            for cell in topology["rooms"][door["destination_room"] - 1]["cells"]
+        }
+        gate = tuple(int(value) for value in door["position"])
+        starts = sorted(a for a, b in edges if b == gate and a in source_cells)
+        ends = sorted(b for a, b in edges if a == gate and b in destination_cells)
+        if not starts or not ends:
+            raise AssertionError("Native branch gate lacks a source/destination walk")
+        start, end = starts[0], ends[0]
+        points = (start, gate, end)
+        return dict(
+            start_position=dict(zip(("x", "y", "z"), start)),
+            end_position=dict(zip(("x", "y", "z"), end)),
+            steps=[
+                {"dx": b[0] - a[0], "dy": b[1] - a[1], "dz": b[2] - a[2]}
+                for a, b in zip(points, points[1:])
+            ],
+        )
 
     def test_all_prepared_candidates_party_entry_victories_exit_and_reentry(self):
         if not REPORT.exists():
@@ -66,6 +102,9 @@ class PreparedPhysicalFlowPostgresTests(PostgresCase):
         self.store.clock = lambda: 2_000_000_000.0
         audit = []
         groups = combat_group_store.PersistentGroups(self.store)
+        player_count = int(os.environ.get("WAKFU_DUNGEON_TEST_PARTY_SIZE", "3"))
+        if not 1 <= player_count <= 6:
+            raise ValueError("Dungeon PostgreSQL party size must be 1–6")
         for candidate in candidates:
             with self.subTest(route=candidate["route"]):
                 config = json.loads((ROOT / candidate["path"]).read_text())
@@ -81,7 +120,7 @@ class PreparedPhysicalFlowPostgresTests(PostgresCase):
                 geometry = map_geometry(route["start_map_id"])
                 with self.store.connection() as db:
                     dungeon_runtime_config.install_configuration(db, config)
-                members, party_id = self.party(3)
+                members, party_id = self.party(player_count)
                 with self.store.connection() as db:
                     for member in members:
                         db.execute(
@@ -113,7 +152,7 @@ class PreparedPhysicalFlowPostgresTests(PostgresCase):
 
                 run = enter(members[0])
                 instance = run["instance_id"]
-                self.assertEqual(len(run["transition"]["members"]), 3)
+                self.assertEqual(len(run["transition"]["members"]), player_count)
 
                 def deliver(member):
                     identity = member["character"]["id"]
@@ -180,6 +219,30 @@ class PreparedPhysicalFlowPostgresTests(PostgresCase):
                 )
                 room_count = len(config["topology"]["rooms"])
                 for order in range(1, room_count + 1):
+                    branch_gates = [
+                        door
+                        for door in config["topology"].get("physical_doors", ())
+                        if door["source_room"] == order
+                        and door["destination_room"] == order + 1
+                    ]
+                    branch_requests = []
+                    if branch_gates and not config["topology"].get("doors"):
+                        branch_requests = [
+                            (door, self._branch_gate_crossing(config["topology"], door))
+                            for door in branch_gates
+                        ]
+                        for door, request in branch_requests:
+                            with self.subTest(
+                                route=candidate["route"],
+                                gate=door["source_id"],
+                                state="locked",
+                            ):
+                                with self.assertRaisesRegex(
+                                    ValueError, "crosses a locked room gate"
+                                ):
+                                    dungeon_physical_doors.validate_movement(
+                                        config["topology"], request, unlocked_room=order
+                                    )
                     with self.store.connection() as db:
                         spawned = dungeon_runtime.ensure_current_room(
                             db, groups, instance, geometry
@@ -308,7 +371,7 @@ class PreparedPhysicalFlowPostgresTests(PostgresCase):
                                 "SELECT count(*) AS n FROM fight_rewards WHERE fight_id=%s",
                                 (fight,),
                             ).fetchone()["n"],
-                            3,
+                            player_count,
                         )
                         self.assertTrue(result["victory"])
                         self.assertFalse(result["replay"])
@@ -319,6 +382,24 @@ class PreparedPhysicalFlowPostgresTests(PostgresCase):
                             )["replay"]
                         )
                         current = result["current_room"]
+                        for door, request in branch_requests:
+                            with self.subTest(
+                                route=candidate["route"],
+                                gate=door["source_id"],
+                                state="unlocked",
+                            ):
+                                self.assertEqual(current, order + 1)
+                                self.assertEqual(
+                                    dungeon_physical_doors.validate_movement(
+                                        config["topology"],
+                                        request,
+                                        unlocked_room=current,
+                                    ),
+                                    tuple(
+                                        request["end_position"][key]
+                                        for key in ("x", "y", "z")
+                                    ),
+                                )
                         packets = dungeon_physical_doors.packets(
                             config["topology"],
                             map_id=route["start_map_id"],
@@ -342,12 +423,53 @@ class PreparedPhysicalFlowPostgresTests(PostgresCase):
                             self.assertEqual(next_spawn["room_order"], order + 1)
                         else:
                             self.assertIsNone(next_spawn)
-                final_exit = next(
+                final_exits = [
                     e
                     for e in config["topology"]["physical_exit_objects"]
                     if e["room_order"] == room_count
-                )
-                approach = final_exit["native_approach_cells"][0]
+                ]
+                return_walk = config["topology"].get("completed_exit_witness")
+                if final_exits:
+                    final_exit = final_exits[0]
+                    approach = final_exit["native_approach_cells"][0]
+                    return_walk_verified = False
+                else:
+                    self.assertIsInstance(return_walk, dict)
+                    self.assertEqual(return_walk.get("kind"), "physical_return_walk")
+                    final_exit = next(
+                        e
+                        for e in config["topology"]["physical_exit_objects"]
+                        if e["source_id"] == return_walk["source_id"]
+                        and e["room_order"] == return_walk["room_order"]
+                    )
+                    path = [tuple(p) for p in return_walk["walking_path"]]
+                    self.assertGreater(len(path), 1)
+                    self.assertEqual(
+                        path[0], tuple(config["topology"]["rooms"][-1]["anchor"])
+                    )
+                    self.assertIn(list(path[-1]), final_exit["native_approach_cells"])
+                    walk_request = dict(
+                        start_position=dict(zip(("x", "y", "z"), path[0])),
+                        end_position=dict(zip(("x", "y", "z"), path[-1])),
+                        steps=[
+                            {
+                                "dx": b[0] - a[0],
+                                "dy": b[1] - a[1],
+                                "dz": b[2] - a[2],
+                            }
+                            for a, b in zip(path, path[1:])
+                        ],
+                    )
+                    self.assertEqual(
+                        dungeon_physical_doors.validate_movement(
+                            config["topology"],
+                            walk_request,
+                            unlocked_room=room_count,
+                        ),
+                        path[-1],
+                    )
+                    approach = list(path[-1])
+                    return_walk_verified = True
                 for member in members:
                     with self.store.connection() as db:
                         db.execute(
@@ -398,18 +520,22 @@ class PreparedPhysicalFlowPostgresTests(PostgresCase):
                         "SELECT count(*) AS receipt_count,sum(r.xp) AS awarded_xp,sum(r.kamas) AS awarded_kamas FROM fight_rewards r JOIN dungeon_room_encounters e ON e.fight_id=r.fight_id WHERE e.instance_id=%s",
                         (instance,),
                     ).fetchone()
-                self.assertEqual(economy["receipt_count"], 3 * room_count)
+                self.assertEqual(economy["receipt_count"], player_count * room_count)
                 audit.append(
                     dict(
                         route=route["key"],
                         name=candidate["name"],
                         status="isolated_postgres_lifecycle_and_economy_passed",
-                        player_count=3,
+                        player_count=player_count,
                         room_count=room_count,
                         economy={k: int(v) for k, v in economy.items()},
                         atomic_reward_progression_rollback_verified=True,
                         receipt_replay_verified=True,
                         native_exit_and_party_reentry_verified=True,
+                        completed_physical_return_walk_verified=return_walk_verified,
+                        completed_physical_return_exit_source_id=(
+                            final_exit["source_id"] if return_walk_verified else None
+                        ),
                     )
                 )
         self.assertEqual(len(audit), len(candidates))
@@ -417,12 +543,39 @@ class PreparedPhysicalFlowPostgresTests(PostgresCase):
             path = Path(os.environ["WAKFU_DUNGEON_LIFECYCLE_AUDIT"])
             sources = [
                 "server/tests/test_prepared_physical_flow_postgres.py",
+                "server/local_game_server.py",
+                "server/wakfu_server/maps/dungeon_branches.py",
+                "server/wakfu_server/maps/dungeon_doors.py",
+                "server/wakfu_server/maps/dungeon_native_flow.py",
+                "server/wakfu_server/maps/dungeon_object_states.py",
+                "server/wakfu_server/maps/dungeon_physical_doors.py",
+                "server/wakfu_server/maps/dungeon_runtime.py",
+                "server/wakfu_server/maps/dungeon_runtime_config.py",
+                "server/wakfu_server/maps/dungeon_instances.py",
+                "server/wakfu_server/maps/dungeon_transport.py",
+                "server/wakfu_server/maps/dungeon_progression.py",
+                "server/wakfu_server/maps/dungeon_room_spawns.py",
+                "server/wakfu_server/maps/dungeon_exit.py",
                 "server/wakfu_server/storage/reward_policy.py",
                 "server/migrations/099_native_npc_reward_levels.sql",
+                "server/migrations/112_dungeon_branch_selection.sql",
             ]
             source_hashes = {
                 p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in sources
             }
+            report_key = "candidate_report:" + str(REPORT.relative_to(ROOT))
+            source_hashes[report_key] = hashlib.sha256(REPORT.read_bytes()).hexdigest()
+            lineage_report = os.environ.get("WAKFU_DUNGEON_SOURCE_REPORT")
+            if lineage_report:
+                lineage_path = Path(lineage_report)
+                if not lineage_path.is_absolute():
+                    lineage_path = ROOT / lineage_path
+                lineage_key = "candidate_source_report:" + str(
+                    lineage_path.relative_to(ROOT)
+                )
+                source_hashes[lineage_key] = hashlib.sha256(
+                    lineage_path.read_bytes()
+                ).hexdigest()
             source_hashes.update(candidate_config_hashes)
             report = dict(
                 scope="Actual isolated PostgreSQL service lifecycle and native-roster reward policy; authoritative terminal fight fixtures, no boss AI or spells simulated",

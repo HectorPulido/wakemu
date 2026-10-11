@@ -250,6 +250,57 @@ class RewardPolicyMathTests(PostgresCase):
         with self.assertRaises(ValueError):
             kamas_amount(minimum=1, maximum=2, kamas_rate_bp=10000, roll_index=True)
 
+    def test_high_reward_rates_support_above_100x_and_keep_native_integer_guards(self):
+        high = xp_amount(
+            character_id=7,
+            context=context(7),
+            group_xp=1000,
+            xp_rate_bp=1_000_001,
+            conquest_rate_bp=10000,
+        )
+        self.assertEqual(high, 110550)
+
+        maximum_rate = 99_999_999_999
+        maximum_xp = xp_amount(
+            character_id=7,
+            context=context(7),
+            group_xp=1000,
+            xp_rate_bp=maximum_rate,
+            conquest_rate_bp=10000,
+        )
+        self.assertEqual(maximum_xp, int(1105.5 * (maximum_rate / 10000)))
+        with self.assertRaisesRegex(ValueError, "signed64 range"):
+            xp_amount(
+                character_id=7,
+                context=context(7),
+                group_xp=(1 << 63) - 1,
+                xp_rate_bp=maximum_rate,
+                conquest_rate_bp=10000,
+            )
+
+        high_kamas, _ = kamas_amount(
+            minimum=20000,
+            maximum=20000,
+            kamas_rate_bp=1_000_001,
+            roll_index=0,
+        )
+        self.assertEqual(high_kamas, 2_000_002)
+        max_safe_kamas, _ = kamas_amount(
+            minimum=214,
+            maximum=214,
+            kamas_rate_bp=maximum_rate,
+            roll_index=0,
+        )
+        self.assertEqual(max_safe_kamas, 2_140_000_000)
+        self.assertLess(max_safe_kamas, 2**31)
+        with self.assertRaisesRegex(ValueError, "signed32 range"):
+            kamas_amount(
+                minimum=215,
+                maximum=215,
+                kamas_rate_bp=maximum_rate,
+                roll_index=0,
+            )
+
 
 class RewardPolicyPostgresTests(PostgresCase):
     def setUp(self):
@@ -580,6 +631,70 @@ class RewardPolicyPostgresTests(PostgresCase):
         self.assertEqual(next_decision.version, 2)
         self.assertEqual(
             (next_decision.policy.xp, next_decision.policy.kamas), (2211, 0)
+        )
+
+    def test_maximum_policy_rates_clamp_packet_and_available_storage_headroom(self):
+        maximum_rate = 99_999_999_999
+        max_xp_total = (1 << 63) - 1
+        max_kamas_total = (1 << 63) - 1
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_reward_monster_levels SET base_xp=%s,min_kamas=1000,max_kamas=1000 "
+                "WHERE monster_reference=500 AND monster_level=1",
+                (1_000_000_000_000,),
+            )
+            db.execute(
+                "INSERT INTO combat_reward_policy_versions"
+                "(version,xp_rate_bp,kamas_rate_bp,conquest_rate_bp) VALUES(2,%s,%s,10000)",
+                (maximum_rate, maximum_rate),
+            )
+            db.execute(
+                "UPDATE combat_reward_policy_active SET version=2 WHERE singleton=true"
+            )
+            db.execute(
+                "UPDATE character_progression SET xp=%s WHERE character_id=%s",
+                (max_xp_total - 1234, self.character["id"]),
+            )
+            db.execute(
+                "UPDATE account_wallets SET kamas=%s WHERE account_id=%s",
+                (max_kamas_total - 100, self.account_id),
+            )
+
+        with self.store.connection() as db:
+            decision = resolve(
+                self.store,
+                db,
+                account_id=self.account_id,
+                generation=self.generation,
+                character_id=self.character["id"],
+                fight_id=self.fight_id,
+                context=self.ctx,
+                kamas_roll_index=0,
+            )
+
+        self.assertEqual(decision.version, 2)
+        self.assertEqual(decision.policy.xp, 1234)
+        self.assertEqual(decision.policy.kamas, 100)
+        self.assertEqual(decision.snapshot["rates_bp"]["xp"], maximum_rate)
+        self.assertEqual(decision.snapshot["rates_bp"]["kamas"], maximum_rate)
+        self.assertEqual(
+            decision.snapshot["native_limits"],
+            {
+                "xp_at_packet_limit": True,
+                "kamas_at_packet_limit": True,
+                "xp_storage_capped": True,
+                "kamas_storage_capped": True,
+            },
+        )
+        with self.store.connection() as db:
+            receipt = db.execute(
+                "SELECT xp,kamas,snapshot FROM fight_reward_policy_receipts "
+                "WHERE fight_id=%s AND character_id=%s",
+                (self.fight_id, self.character["id"]),
+            ).fetchone()
+        self.assertEqual((receipt["xp"], receipt["kamas"]), (1234, 100))
+        self.assertEqual(
+            receipt["snapshot"]["native_limits"], decision.snapshot["native_limits"]
         )
 
     def test_stale_lease_and_nonfinished_or_nonwinning_participant_rejected(self):

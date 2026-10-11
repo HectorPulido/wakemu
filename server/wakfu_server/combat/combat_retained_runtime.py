@@ -1064,8 +1064,20 @@ class NativeRetainedRuntime:
         # must provide a separate suppression context before reuse.
         from .combat_native_events import validate_group_registration_flags
 
+        from .combat_summon_initialization import detached_actor
+
+        constructor = detached_actor(self.fight, invocation.caster_id)
         validate_group_registration_flags(
-            effect["native_effect_flags"], active=self.fight.phase == "active"
+            effect["native_effect_flags"],
+            active=self.fight.phase == "active",
+            constructor=(
+                constructor is not None
+                and invocation.target_id
+                in (
+                    None,
+                    constructor.id,
+                )
+            ),
         )
         if not native["retained"]:
             return None

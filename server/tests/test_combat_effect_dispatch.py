@@ -56,6 +56,74 @@ class EffectDispatchTests(unittest.TestCase):
         with self.assertRaisesRegex(UnsupportedEffectExecution, "Recursive immediate"):
             dispatcher.execute(EffectInvocation(90, 20, 7, 8, (0, 0, 0)))
 
+    def test_repeated_reference_in_distinct_finite_state_instances(self):
+        from dataclasses import replace
+
+        seen = []
+        dispatcher = None
+
+        def handler(definition, values, invocation):
+            seen.append(invocation.state_uid)
+            if invocation.state_uid < 3:
+                dispatcher.execute(
+                    replace(invocation, state_uid=invocation.state_uid + 1)
+                )
+            return True
+
+        dispatcher = EffectDispatcher(
+            {"90": effect(400)},
+            {400: handler},
+            resolve=lambda definition, invocation: (invocation,),
+            condition_context=lambda invocation: ConditionContext({}),
+            probability_accepts=lambda *args: True,
+            group_cells=lambda *args: (),
+            actor_position=lambda identity: (identity, 1, 2),
+        )
+        self.assertTrue(
+            dispatcher.execute(EffectInvocation(90, 20, 7, 8, (0, 0, 0), state_uid=1))
+        )
+        self.assertEqual(seen, [1, 2, 3])
+
+    def test_same_state_instance_cycle_still_rejects(self):
+        dispatcher = None
+
+        def handler(definition, values, invocation):
+            return dispatcher.execute(invocation)
+
+        dispatcher = EffectDispatcher(
+            {"90": effect(400)},
+            {400: handler},
+            resolve=lambda definition, invocation: (invocation,),
+            condition_context=lambda invocation: ConditionContext({}),
+            probability_accepts=lambda *args: True,
+            group_cells=lambda *args: (),
+            actor_position=lambda identity: (identity, 1, 2),
+        )
+        with self.assertRaisesRegex(UnsupportedEffectExecution, "Recursive immediate"):
+            dispatcher.execute(EffectInvocation(90, 20, 7, 8, (0, 0, 0), state_uid=1))
+
+    def test_unbounded_distinct_state_instances_keep_global_depth_limit(self):
+        from dataclasses import replace
+
+        dispatcher = None
+
+        def handler(definition, values, invocation):
+            return dispatcher.execute(
+                replace(invocation, state_uid=invocation.state_uid + 1)
+            )
+
+        dispatcher = EffectDispatcher(
+            {"90": effect(400)},
+            {400: handler},
+            resolve=lambda definition, invocation: (invocation,),
+            condition_context=lambda invocation: ConditionContext({}),
+            probability_accepts=lambda *args: True,
+            group_cells=lambda *args: (),
+            actor_position=lambda identity: (identity, 1, 2),
+        )
+        with self.assertRaisesRegex(UnsupportedEffectExecution, "recursion limit"):
+            dispatcher.execute(EffectInvocation(90, 20, 7, 8, (0, 0, 0), state_uid=1))
+
     def test_native_null_target_group_dispatches_no_children(self):
         effects = {"90": effect(330, children=(91,)), "91": effect(400)}
         dispatcher = EffectDispatcher(

@@ -1,5 +1,7 @@
 # Expanded native dungeon activation — 2026-10-10
 
+Historical first-pass snapshot; superseded by [47-route activation and current blockers](MAXIMUM-ACTIVATION-20261010.md).
+
 Eighteen additional configurations were activated in `wakemu_runtime`: ten native teleport flows and eight physical flows. Eight existing physical configurations, including manually accepted Tofullero, were preserved. Readback verifies all **26 routes**, their immutable version 3 configuration and matching context-policy pointers: **16 physical, 10 teleport, 67 rooms**.
 
 No world restart, client modification or combat/spell deployment was required. Six deployed dungeon core module hashes match the tested shared checkout. Existing runs keep their pinned configuration; exit an old run before starting acceptance. Other pre-existing generic dungeon configurations are not counted as these 26 validated native flows and were not removed.

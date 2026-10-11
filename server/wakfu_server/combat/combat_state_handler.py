@@ -67,7 +67,9 @@ class NativeStateHandler:
         self.prepared_parameters = {}
         self.prepared_rejections = set()
 
-    def _parameters(self, effect, values, invocation):
+    def _parameters(
+        self, effect, values, invocation, *, allow_signed_calculation=False
+    ):
         raw = values["parameters"]
         if not isinstance(raw, (list, tuple)) or (
             len(raw) not in (3, 4, 5) and len(raw) < 6
@@ -92,7 +94,10 @@ class NativeStateHandler:
                     effect["parameters"], 4, invocation.level
                 )
         return interpret_state_parameters(
-            raw, owned_spell_level=owned_level, level_factor=level_factor
+            raw,
+            owned_spell_level=owned_level,
+            level_factor=level_factor,
+            allow_signed_calculation=allow_signed_calculation,
         )
 
     def _application_chance(self, effect, values, invocation, parameters):
@@ -231,7 +236,11 @@ class NativeStateHandler:
         if self._area_target_blocked(effect, invocation):
             self.prepared_rejections.add(id(invocation))
             return invocation
-        parameters = self._parameters(effect, values, invocation)
+        # Native eWu.C computes a signed short before Qe evaluates criteria.
+        # Application retains its strict level validation in __call__.
+        parameters = self._parameters(
+            effect, values, invocation, allow_signed_calculation=True
+        )
         if not self._application_chance(effect, values, invocation, parameters):
             self.prepared_rejections.add(id(invocation))
             return invocation
@@ -518,10 +527,9 @@ class NativeStateHandler:
                     )
                 # Removal-only masks (index2) still execute at installation.
                 if any(masks[index] for index in (0, 1, 3, 4, 5)):
-                    if not entry.retained:
-                        raise UnsupportedEffectExecution(
-                            "Instant state cannot retain event subscriptions"
-                        )
+                    # eZk.c constructs subscribed children with its actual fyW
+                    # PL even when the state carrier's own Ty() is false.
+                    # Each child independently proves its native Qf retention.
                     if self.register_subscription is not None:
                         if child["effect_class"] not in SUBSCRIPTION_FAMILIES:
                             error = UnsupportedEffectExecution(

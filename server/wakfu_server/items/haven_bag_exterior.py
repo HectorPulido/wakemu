@@ -26,7 +26,13 @@ def spawn(character):
     owner = (
         struct.pack(">qqB", character["account_id"], character["id"], len(name)) + name
     )
-    owner += struct.pack(">qiBB", 0, config.get("appearance_id", 408), 0, 0)
+    owner += struct.pack(
+        ">qiBB",
+        (character.get("guild_native") or {}).get("guildId", 0),
+        config.get("appearance_id", 408),
+        0,
+        0,
+    )
     common = bytes.fromhex("02000301010000000000000000")
     specific = (
         b"\x03" + struct.pack(">qiihBB", character["map_id"], x, y, z, 0, 0) + owner

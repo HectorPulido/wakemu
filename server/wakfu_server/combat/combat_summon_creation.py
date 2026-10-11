@@ -107,7 +107,19 @@ def register_fresh_summon_obstacle(preview, actor):
             or row.get("native_obstacle_id") != -1
         ):
             raise ValueError("Missing shared native QI summon/area slot authority")
-    assign_obstacle_ids([*preview.actors.values(), actor])
+    # Fresh native QK constructors use -1 before QI.f assigns a slot. The
+    # actor-only allocator uses None for that same unassigned boundary; never
+    # reinterpret a registered actor's invalid slot as a fresh allocation.
+    if actor.id in preview.actors:
+        raise ValueError("Fresh summon is already in the fighter roster")
+    previous_slot = actor.native_obstacle_id
+    if previous_slot == -1:
+        actor.native_obstacle_id = None
+    try:
+        assign_obstacle_ids([*preview.actors.values(), actor])
+    except BaseException:
+        actor.native_obstacle_id = previous_slot
+        raise
 
 
 class NativeSummonBuilder:

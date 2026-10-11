@@ -342,8 +342,10 @@ class NativeWallConstructorTests(unittest.TestCase):
             )
         event_target = native_damage_target(fight, wall_id)
         self.assertIsNot(event_target, actor)
-        self.assertEqual(native_facing(actor, event_target), "BACK")
-        self.assertIn(29, phase.call_args.kwargs["_event_ids"])
+        # Native Qq.baB is null even for a wall with a PA snapshot. Its
+        # orientation does not produce an actor Sl.o back-facing notification.
+        self.assertEqual(native_facing(actor, event_target), "FRONT")
+        self.assertNotIn(29, phase.call_args.kwargs["_event_ids"])
 
         authority = ordinary_cast_authority(
             actors=lambda preview, source: None,

@@ -23,8 +23,31 @@ def source_cost_descriptor(retention, invocation):
     if spell["present"]:
         spell["container_type"] = descriptor["container_type"]
         if spell["container_type"] == 11:
-            spell["spell_id"] = retention.plan.get("spell_id")
-            spell["level"] = retention.plan.get("evaluation_level")
+            retained = invocation.native_retained_container
+            if retained is None:
+                retained = retention.plan.get("native_retained_container")
+            if retained is not None:
+                # Event clones run under a lifecycle plan, while their actual
+                # fyG was captured and validated when the listener was bound.
+                # Preserve that PL identity instead of borrowing a child level.
+                identity, level = retained.get("spell_id"), retained.get("level")
+                if (
+                    retained.get("present") is not True
+                    or retained.get("type") != 11
+                    or retained.get("is_spell") is not True
+                    or retained.get("protected") is not False
+                    or type(identity) is not int
+                    or identity <= 0
+                    or type(level) is not int
+                    or not 0 <= level <= 32767
+                    or retained.get("id") != (identity << 16) | (level & 0xFF)
+                    or descriptor.get("container_id") != retained.get("id")
+                ):
+                    raise ValueError("Invalid retained native fyG spell descriptor")
+                spell["spell_id"], spell["level"] = identity, level
+            else:
+                spell["spell_id"] = retention.plan.get("spell_id")
+                spell["level"] = retention.plan.get("evaluation_level")
             if type(spell["spell_id"]) is not int or type(spell["level"]) is not int:
                 raise ValueError("Missing native fyG spell descriptor")
     return dict(runner_class="other", spell_context=spell)

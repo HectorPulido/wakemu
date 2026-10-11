@@ -2,6 +2,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 import test_combat_qi_fight
+from wakfu_server.combat_conditions import ConditionActor, ConditionContext
 from wakfu_server.combat_cast import _validate_target
 from wakfu_server.combat_casting_context import NativeOwnedCastingContext
 from wakfu_server.combat_native_los_ray import static_ray
@@ -24,6 +25,7 @@ class NativeSelfCastLosTests(unittest.TestCase):
             linear_path=False,
             path_option=False,
             line_of_sight=True,
+            range_modifiable=False,
             free_cell=False,
             forbid_QI_P=False,
             allow_self=False,
@@ -78,7 +80,14 @@ class NativeSelfCastLosTests(unittest.TestCase):
             20,
             lambda *args: self.legacy_calls.append(args) or False,
             1415,
-            SimpleNamespace(native_casting_query=query),
+            ConditionContext(
+                {
+                    "caster": ConditionActor(
+                        fight_properties=self.actor.native_fight_properties
+                    )
+                },
+                native_casting_query=query,
+            ),
         )
 
     def test_native_same_xyz_uses_shared_geometry_without_legacy_callback(self):

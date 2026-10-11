@@ -16,7 +16,12 @@ class AttackPreparationScopeTests(unittest.TestCase):
     def setUp(self):
         self.fight = SimpleNamespace()
         self.lifecycle = SimpleNamespace(preview=self.fight, plan={"spell_id": 8402})
-        self.invocation = SimpleNamespace(caster_id=7, target_id=-7, state_uid=None)
+        self.invocation = SimpleNamespace(
+            caster_id=7,
+            target_id=-7,
+            state_uid=None,
+            native_trigger_context=None,
+        )
         self.effect = {"effect_class": 2}
         self.calls = []
 
@@ -77,7 +82,12 @@ class AttackPreparationScopeTests(unittest.TestCase):
     def test_foreign_fight_actor_and_non_damage_container_do_not_consume_scope(self):
         other_fight = SimpleNamespace()
         other_lifecycle = SimpleNamespace(preview=other_fight, plan={"spell_id": 8402})
-        other_actor = SimpleNamespace(caster_id=8, target_id=-7, state_uid=None)
+        other_actor = SimpleNamespace(
+            caster_id=8,
+            target_id=-7,
+            state_uid=None,
+            native_trigger_context=None,
+        )
         with attack_preparation_scope(self.fight, 7):
             self.assertFalse(
                 deliver_attack_preparation(

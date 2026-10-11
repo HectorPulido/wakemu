@@ -6,8 +6,10 @@ def advance_actual_turn(runtime):
     actor = runtime.fight.current
     if actor is None:
         raise ValueError("Audit turn requires actual current actor")
+    from wakfu_server.combat_timeline_snapshot import current_wire_turn
+
     packets = (
-        runtime.end_turn(actor.owner_id, actor.id, actor.turn_count)
+        runtime.end_turn(actor.owner_id, actor.id, current_wire_turn(runtime.fight))
         if actor.controlled
         else runtime.end_server_turn(actor.id, runtime.fight.turn_id)
     )

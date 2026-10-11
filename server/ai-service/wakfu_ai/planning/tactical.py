@@ -13,6 +13,7 @@ DEFAULT_WEIGHTS = {
     "damage": 1.0,
     "healing": 1.0,
     "armor": 0.25,
+    "reinforcements": 0.25,
     "kills": 25.0,
     "control": 0.5,
     "resources": 0.1,

@@ -80,7 +80,7 @@ class NativeResolverTests(unittest.TestCase):
             self.resolver(self.effect, replace(invocation, target_id=99)), ()
         )
 
-    def test_fresh_zero_mask_enumerates_candidates_but_replay_keeps_explicit_pv(self):
+    def test_fresh_zero_mask_and_replay_keep_transmitted_explicit_pv(self):
         self.effect.update(
             effect_class=330, parameter_count=0, area_class="anD", area_native="point"
         )
@@ -94,7 +94,53 @@ class NativeResolverTests(unittest.TestCase):
         selected = self.resolver(
             self.effect, replace(invocation, wakemu_fresh_child_selection=True)
         )
-        self.assertEqual([row.target_id for row in selected], [1, 2, 3])
+        # Qe.a(non-null PV, aZX=false) calls Qe.g(singleton PV), including
+        # eYg fresh children. See ANIRIPSA_5459_TRIAGE.md for bytecode evidence.
+        self.assertEqual([row.target_id for row in selected], [3])
+
+    def test_zero_mask_fresh_group_preserves_transmitted_pv_but_null_pv_selects(self):
+        self.effect.update(
+            effect_class=330, parameter_count=0, area_class="anD", area_native="point"
+        )
+        self.effect["native_target_selector"] = {"class": "fcE", "mask": 0}
+        self.resolver.direct_target_policies = {"50": [330, False, False]}
+        explicit = replace(
+            self.invocation,
+            target_id=3,
+            native_explicit_target=True,
+            wakemu_fresh_child_selection=True,
+        )
+        self.assertEqual(
+            [row.target_id for row in self.resolver(self.effect, explicit)], [3]
+        )
+        absent = replace(explicit, target_id=None, native_explicit_target=False)
+        self.assertEqual(
+            [row.target_id for row in self.resolver(self.effect, absent)], [1, 2, 3]
+        )
+
+    def test_fresh_zero_mask_recalculation_and_missing_explicit_recipient(self):
+        self.effect.update(
+            effect_class=330, parameter_count=0, area_class="anD", area_native="point"
+        )
+        self.effect["native_target_selector"] = {"class": "fcE", "mask": 0}
+        explicit = replace(
+            self.invocation,
+            target_id=3,
+            native_explicit_target=True,
+            wakemu_fresh_child_selection=True,
+        )
+        self.resolver.direct_target_policies = {"50": [330, True, False]}
+        self.assertEqual(
+            [row.target_id for row in self.resolver(self.effect, explicit)], [1, 2, 3]
+        )
+        self.resolver.direct_target_policies = {"50": [330, False, False]}
+        self.assertEqual(
+            self.resolver(self.effect, replace(explicit, target_id=99)), ()
+        )
+        self.resolver.direct_target_policies = {"50": [330, False, True]}
+        self.assertEqual(
+            [row.target_id for row in self.resolver(self.effect, explicit)], [1]
+        )
 
     def test_zero_mask_event_group_preserves_its_trigger_recipient(self):
         self.effect.update(
@@ -128,6 +174,38 @@ class NativeResolverTests(unittest.TestCase):
         )
         self.assertEqual(
             [row.target_id for row in self.resolver(self.effect, invocation)], [3]
+        )
+
+    def test_fresh_owned_area_selector_reselects_qq_but_replay_keeps_pv(self):
+        self.effect.update(effect_class=843, area_class="anD", area_native="point")
+        self.effect["native_target_selector"] = {
+            "class": "fcE",
+            "mask": 1 | (1 << 43) | (1 << 51),
+        }
+        self.resolver.direct_target_policies = {"50": [843, False, False]}
+        for index, owner in ((2, 1), (3, 3)):
+            self.actors[index - 1].position = (0, 0, 0)
+            self.native[index].update(
+                is_eGj=False, is_Qq=True, q_owner_id=owner, bcR=True
+            )
+        invocation = replace(
+            self.invocation,
+            target_id=1,
+            native_explicit_target=True,
+            wakemu_fresh_child_selection=True,
+        )
+        # fcE bit43 selects only a Qq whose actual owner is the caster.
+        self.assertEqual(
+            [row.target_id for row in self.resolver(self.effect, invocation)], [2]
+        )
+        self.assertEqual(
+            [
+                row.target_id
+                for row in self.resolver(
+                    self.effect, replace(invocation, wakemu_fresh_child_selection=False)
+                )
+            ],
+            [1],
         )
 
     def test_removal_only_mask_does_not_defer_initial_application(self):

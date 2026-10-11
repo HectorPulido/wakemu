@@ -402,7 +402,9 @@ def decode_body(direction, opcode, body):
             fields = {"request_help": bool(r.number("B"))}
         elif opcode == 12523:
             fields = {"ready": bool(r.number("B"))}
-        elif opcode in (12366, 13074, 13744, 13702):
+        elif opcode == 13744:
+            fields = {"guild_id": r.number("q"), "text": r.text("H")}
+        elif opcode in (12366, 13074, 13702):
             fields = {"text": r.text("H")}
         elif opcode in (13188, 13831):
             fields = {"language_id": r.number("B"), "text": r.text("H")}

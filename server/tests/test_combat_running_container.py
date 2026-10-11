@@ -51,7 +51,7 @@ class CommonInitializationContainerTests(unittest.TestCase):
         from test_combat_spell_transaction import SpellTransactionTests
 
         character, monster, fight = SpellTransactionTests().native_server_fixture(
-            11, 20
+            11, 20, native_qi=True
         )
         before = snapshot(fight)
         preview, packets = prepare_server_initialization(
@@ -92,36 +92,14 @@ class CommonInitializationContainerTests(unittest.TestCase):
             prepare_server_initialization,
             prepare_server_spell,
         )
-        from wakfu_server.combat_actor_snapshot import (
-            build_npc_snapshot,
-            native_npc_creation_values,
-        )
-        from wakfu_server.combat_state import Actor
         from wakfu_server.fight_checkpoint_store import snapshot
         from wakfu_server.spells import encode_deck
         from test_combat_spell_transaction import SpellTransactionTests
 
-        character, monster, fight = SpellTransactionTests().native_server_fixture(8, 20)
-        monster.update(ref=4085, level=23)
-        values = native_npc_creation_values(4085, 23)
-        target = Actor(
-            -7,
-            1,
-            (2, 0, 0),
-            values[1]["current"],
-            values[2]["current"],
-            values[3]["current"],
-            5,
-            23,
-            3,
-            False,
-            max_hp=values[1]["maximum"],
+        character, monster, fight = SpellTransactionTests().native_server_fixture(
+            8, 20, native_qi=True, target_ref=4085, target_level=23
         )
-        target.direction = 3
-        fight.actors[-7] = target
-        build_npc_snapshot(
-            monster, target, wp_current=0, wp_maximum=0, running_effects=()
-        ).install(target)
+        self.assertEqual((fight.actors[-7].effective_level, monster["ref"]), (23, 4085))
         deck = encode_deck([4780])
         ready, _ = prepare_server_initialization(
             character,
@@ -135,7 +113,7 @@ class CommonInitializationContainerTests(unittest.TestCase):
         )
         before = snapshot(ready)
         result = prepare_server_spell(
-            struct.pack(">qqiih", 7, (7 << 32) | 4780, 2, 0, 0),
+            struct.pack(">qqiih", 7, (7 << 32) | 4780, *fight.actors[-7].position),
             character,
             {-7: monster},
             ready,

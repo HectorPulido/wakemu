@@ -39,7 +39,8 @@ def activate(store, candidates, evidence, backup_path, *, apply=False):
         backup = dict(
             created_at=datetime.now(timezone.utc).isoformat(),
             scope="Restore active configuration/context pointers; immutable versions retained",
-            settings=[],
+            runtime_configurations=[],
+            runtime_active_configurations=[],
             context_active=[],
             context_versions=[],
         )
@@ -53,12 +54,13 @@ def activate(store, candidates, evidence, backup_path, *, apply=False):
                     "Candidate route does not match active native registry: " + key
                 )
             current = configs.active_configuration(db, key)
-            backup["settings"] += db.execute(
-                "SELECT name,value FROM settings WHERE name=%s OR name LIKE %s",
-                (
-                    "dungeon_runtime_active:" + key,
-                    "dungeon_runtime_config:" + key + ":v%",
-                ),
+            backup["runtime_configurations"] += db.execute(
+                "SELECT route_key,policy_version,configuration FROM dungeon_runtime_configurations WHERE route_key=%s",
+                (key,),
+            ).fetchall()
+            backup["runtime_active_configurations"] += db.execute(
+                "SELECT route_key,policy_version FROM dungeon_runtime_active_configurations WHERE route_key=%s",
+                (key,),
             ).fetchall()
             backup["context_active"] += db.execute(
                 "SELECT * FROM dungeon_context_active_policies WHERE route_key=%s",
@@ -80,8 +82,11 @@ def activate(store, candidates, evidence, backup_path, *, apply=False):
                 continue
             maximum = (
                 db.execute(
-                    "SELECT max(policy_version) AS version FROM dungeon_context_policy_versions WHERE route_key=%s",
-                    (key,),
+                    "SELECT max(policy_version) AS version FROM ("
+                    "SELECT policy_version FROM dungeon_context_policy_versions WHERE route_key=%s "
+                    "UNION ALL SELECT policy_version FROM dungeon_runtime_configurations WHERE route_key=%s"
+                    ") AS versions",
+                    (key, key),
                 ).fetchone()["version"]
                 or 0
             )

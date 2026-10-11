@@ -13,7 +13,9 @@ class FecaStartTests(unittest.TestCase):
             character,
             monster,
             fight,
-        ) = fixtures.SpellTransactionTests().native_server_fixture(1, 25)
+        ) = fixtures.SpellTransactionTests().native_server_fixture(
+            1, 25, native_qi=True, variation_seed=17
+        )
         deck = encode_deck((), [6992])
         before = snapshot(fight)
         started, packets = prepare_server_initialization(
@@ -27,7 +29,7 @@ class FecaStartTests(unittest.TestCase):
             fight_start=True,
         )
         self.assertTrue(started.native_start_event_delivered)
-        self.assertEqual(started.native_table_turn, 0)
+        self.assertEqual(started.native_table_turn, 1)
         self.assertIn(
             9315, {entry.reference for entry in started.actors[7].state_ledger.entries}
         )

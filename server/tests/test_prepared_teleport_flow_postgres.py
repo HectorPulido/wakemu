@@ -374,11 +374,65 @@ class PreparedTeleportFlowPostgresTests(PostgresCase):
                                 [actor[k] for k in ("x", "y", "z")],
                                 door["destination_position"],
                             )
-                final_exit = next(
-                    e
-                    for e in config["topology"]["physical_exit_objects"]
-                    if e["room_order"] == room_count
-                )
+                backward_exit = config["topology"].get("completed_exit_witness")
+                if backward_exit:
+                    backward = backward_exit["steps"][0]
+                    self.assertEqual(backward["kind"], "backward_transport")
+                    backward_door = next(
+                        d
+                        for d in config["topology"]["doors"]
+                        if d["source_id"] == backward["source_id"]
+                        and d["destination_id"] == backward["destination_id"]
+                    )
+                    backward_approach = backward_door["native_approach_cells"][0]
+                    with self.store.connection() as db:
+                        db.execute(
+                            "UPDATE characters SET x=%s,y=%s,z=%s WHERE id=%s",
+                            (*backward_approach, members[0]["character"]["id"]),
+                        )
+                    moved = dungeon_doors.advance(
+                        self.store,
+                        members[0]["account"],
+                        members[0]["generation"],
+                        members[0]["character"]["id"],
+                        struct.pack(
+                            ">qiBi",
+                            backward_door["source_id"],
+                            backward_door["destination_id"],
+                            0,
+                            2,
+                        ),
+                        source_allowed=lambda actor, source: source["id"]
+                        == backward_door["source_id"]
+                        and [actor[k] for k in ("x", "y", "z")]
+                        in backward_door["native_approach_cells"],
+                        room_for_position=lambda map_id, x, y, z: dungeon_runtime.room_for_position(
+                            config, map_id, x, y, z
+                        ),
+                        in_fight=lambda _: False,
+                    )
+                    self.assertEqual(moved["transition_kind"], "door")
+                    for member in members:
+                        deliver(member)
+                    for member in members:
+                        actor = self.store.character(
+                            member["account"], member["character"]["id"]
+                        )
+                        self.assertEqual(
+                            [actor[k] for k in ("x", "y", "z")],
+                            backward_door["destination_position"],
+                        )
+                    final_exit = next(
+                        e
+                        for e in config["topology"]["physical_exit_objects"]
+                        if e["source_id"] == backward_exit["source_id"]
+                    )
+                else:
+                    final_exit = next(
+                        e
+                        for e in config["topology"]["physical_exit_objects"]
+                        if e["room_order"] == room_count
+                    )
                 approach = final_exit["native_approach_cells"][0]
                 for member in members:
                     with self.store.connection() as db:
@@ -442,6 +496,20 @@ class PreparedTeleportFlowPostgresTests(PostgresCase):
                         atomic_reward_progression_rollback_verified=True,
                         receipt_replay_verified=True,
                         native_exit_and_party_reentry_verified=True,
+                        backward_native_transport=(
+                            dict(
+                                source_id=backward_exit["steps"][0]["source_id"],
+                                destination_id=backward_exit["steps"][0][
+                                    "destination_id"
+                                ],
+                                destination_room=backward_exit["steps"][0][
+                                    "destination_room"
+                                ],
+                                exterior_exit_source_id=backward_exit["source_id"],
+                            )
+                            if backward_exit
+                            else None
+                        ),
                     )
                 )
         self.assertEqual(len(audit), len(candidates))
@@ -455,6 +523,19 @@ class PreparedTeleportFlowPostgresTests(PostgresCase):
             source_hashes = {
                 p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in sources
             }
+            report_key = "candidate_report:" + str(REPORT.relative_to(ROOT))
+            source_hashes[report_key] = hashlib.sha256(REPORT.read_bytes()).hexdigest()
+            lineage_report = os.environ.get("WAKFU_DUNGEON_SOURCE_REPORT")
+            if lineage_report:
+                lineage_path = Path(lineage_report)
+                if not lineage_path.is_absolute():
+                    lineage_path = ROOT / lineage_path
+                lineage_key = "candidate_source_report:" + str(
+                    lineage_path.relative_to(ROOT)
+                )
+                source_hashes[lineage_key] = hashlib.sha256(
+                    lineage_path.read_bytes()
+                ).hexdigest()
             source_hashes.update(candidate_config_hashes)
             report = dict(
                 scope="Actual isolated PostgreSQL service lifecycle and native-roster reward policy; authoritative terminal fight fixtures, no boss AI or spells simulated",

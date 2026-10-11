@@ -28,9 +28,14 @@ def _context(handler, effect, invocation):
         from .combat_state_managers import registered_area_pv
 
         source = registered_area_pv(handler.fight, invocation.caster_id)
+    from .combat_npc_initialization import constructor_stat_context
+
+    constructor = constructor_stat_context(handler.fight, invocation)
     if (
-        handler.fight.phase != "active"
-        or handler.fight.current is None
+        (
+            not constructor
+            and (handler.fight.phase != "active" or handler.fight.current is None)
+        )
         or target is None
         or source is None
     ):
@@ -307,8 +312,11 @@ def apply_current_stat_runner(handler, effect, values, invocation):
             )
     final = actual if runner is None else runner.value
     if context.retained:
-        entry = handler.fight.owned_stat_effects[uid]
-        entry["actual"], entry["payload"] = final, payload_for(final).hex()
+        # L3/L4 listeners may remove this source Qe while it is notifying them.
+        # Complete the live callback without recreating its released Qf entry.
+        entry = handler.fight.owned_stat_effects.get(uid)
+        if entry is not None:
+            entry["actual"], entry["payload"] = final, payload_for(final).hex()
     from .combat_runner_callbacks import notify_runner_value
 
     notify_runner_value(invocation, final)

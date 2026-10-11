@@ -55,6 +55,7 @@ def prewarm_runtime_catalogs():
     from .combat_native_pt import null_exclusion_references
     from .combat_spell_grant import native_spell_references
     from .combat_native_spell_casting import catalog as native_casting_catalog
+    from .combat_spell_resource_costs import catalog as native_resource_cost_catalog
 
     from .combat_native_los_ray import ray_program, topology_columns
 
@@ -66,6 +67,7 @@ def prewarm_runtime_catalogs():
 
     weapon_runtime_catalog()
     for loader in (
+        native_resource_cost_catalog,
         native_limits,
         native_direct_target_policies,
         zone_trigger_policies,

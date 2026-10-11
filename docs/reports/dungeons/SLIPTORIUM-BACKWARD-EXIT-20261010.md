@@ -23,7 +23,7 @@ A complete current-checkout image build and deployment is required before activa
 
 ## Validation and content limits
 
-`test_physical_candidate_exits` and `test_dungeon_object_states`: **15/15 pass**. Regressions cover the literal backward proof, changed arrivals, criterion-gated travel, invented approaches, unreachable source, completed-only intermediate exit visibility, and missing/mismatched witness rejection. PostgreSQL lifecycle validation is requested separately.
+`test_physical_candidate_exits` and `test_dungeon_object_states`: **15/15 pass**. Regressions cover the literal backward proof, changed arrivals, criterion-gated travel, invented approaches, unreachable source, completed-only intermediate exit visibility, and missing/mismatched witness rejection. A dedicated isolated PostgreSQL lifecycle test passed (1/1): real native room transitions, completed-only visibility of exit 14012, actual backward transport 16126/900, and exterior return 14012/692 to map 323. [Audit](SLIPTORIUM-PG-LIFECYCLE-ECONOMY-20261010.json) binds test/source/config hashes and records `runtime_activated=false`; this is source validation, not live activation.
 
 The guide has two encounters while the native topology has three regions. The candidate explicitly retains a nonofficial local three-encounter adaptation and exactly one Nonne (reference 1786) in the final encounter. Boss mechanics remain unverified.
 

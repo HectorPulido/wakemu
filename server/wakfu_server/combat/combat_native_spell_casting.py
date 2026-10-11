@@ -147,6 +147,18 @@ def definition(reference, level, context, modifiers, *, calculate_costs=True):
             wp=max(0, selected[2]),
             conditional_rules=0,
         )
+        from .combat_spell_resource_costs import resolve as resolve_full_costs
+
+        full_costs = resolve_full_costs(
+            reference, level, context, selection=selection_metadata(selected)
+        )
+        if tuple(full_costs.get(stat, 0) for stat in (2, 3, 4)) != selected[:3]:
+            raise UnknownCondition(
+                "Native full resource costs disagree with casting table"
+            )
+        costs["extra_resource_values"] = {
+            stat: value for stat, value in full_costs.items() if stat not in (2, 3, 4)
+        }
     return dict(
         native_casting_selection=selection_metadata(selected),
         costs=costs,

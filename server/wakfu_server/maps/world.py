@@ -33,6 +33,15 @@ class World:
         with self.lock:
             return [deepcopy(character) for _, _, character in self.players.values()]
 
+    def ecology_snapshot(self):
+        """Copy only scalar occupancy authority, without inventory/build graphs."""
+        keys = ("id", "account_id", "map_id", "instance_id", "x", "y", "z")
+        with self.lock:
+            return [
+                {key: character[key] for key in keys}
+                for _, _, character in self.players.values()
+            ]
+
     def _send(self, peer, opcode, body):
         try:
             self.deliver(peer, opcode, body)
@@ -90,6 +99,33 @@ class World:
                 )
             )
             return None if entry is None else (entry[0], deepcopy(entry[2]))
+
+    def set_guild_projection(self, character_id, generation, model, factor):
+        """Update social fields for future spawns without replacing combat data."""
+        from copy import deepcopy
+
+        with self.lock:
+            entry = self.players.get(character_id)
+            if entry is None or entry[0] != generation:
+                return False
+            character = dict(entry[2])
+            character["guild_native"] = deepcopy(model)
+            character["guild_moderation_factor"] = factor
+            self.players[character_id] = (entry[0], entry[1], character)
+            return True
+
+    def guild_projection(self, character_id, generation):
+        from copy import deepcopy
+
+        with self.lock:
+            entry = self.players.get(character_id)
+            if entry is None or entry[0] != generation:
+                return {}
+            return {
+                key: deepcopy(entry[2][key])
+                for key in ("guild_native", "guild_moderation_factor")
+                if key in entry[2]
+            }
 
     def send_to(self, character_id, generation, opcode, body):
         """Send across maps to a captured lease; never redirect to its replacement.
@@ -359,12 +395,15 @@ class World:
         *,
         exclude_generation=None,
         exclude_sessions=(),
+        require_all=False,
     ):
         """Capture location peers, then deliver each ordered batch in one write.
 
         Identity/generation exclusions have the same meaning as emit_location.
         Captured sockets are never redirected to replacement leases. A failed
         peer cannot prevent delivery to the other captured recipients.
+        Strict outbox callers raise after all sends if any recipient failed;
+        they retain their durable publication retry rather than acknowledging it.
         """
         packets = tuple(packets)
         if not packets:
@@ -378,4 +417,7 @@ class World:
                 and (character["id"], generation) not in exclude_sessions
                 and self.location(character) == (map_id, instance_id)
             )
-        return sum(self._send_batch(peer, packets) for peer in peers)
+        delivered = sum(self._send_batch(peer, packets) for peer in peers)
+        if require_all and delivered != len(peers):
+            raise OSError("World location batch has unpublished recipients")
+        return delivered

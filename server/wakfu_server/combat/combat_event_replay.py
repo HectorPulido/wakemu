@@ -4,6 +4,7 @@ Event production and clone guards/criteria are supplied by the authority for
 an actual source running effect. This module never invents an event ID.
 """
 from dataclasses import dataclass, asdict, replace
+from contextvars import ContextVar
 from .combat_effect_dispatch import EffectInvocation
 from .combat_native_events import (
     subscription_selection,
@@ -56,6 +57,12 @@ class NativeEventSource:
             and isinstance(self.cost_source, dict)
             and self.cost_source.get("runner_class") == "eWf"
             and self.cost_source.get("spell_context") == {"present": False}
+            and (
+                self.cost_source.get("paid_ability_policy") is None
+                or self.cost_source["paid_ability_policy"]
+                == {"payer_id": self.caster_id, "mi": True, "mh": False}
+                and self.caster_id == self.target_id
+            )
             and isinstance(self.cost_source.get("action_costs"), dict)
             and set(self.cost_source["action_costs"]) == {"ap", "mp", "wp"}
             and all(
@@ -63,10 +70,25 @@ class NativeEventSource:
                 for v in self.cost_source["action_costs"].values()
             )
         )
+        from .combat_breeze_payment_events import valid_fad_source
+
+        synthetic_breeze = (
+            self.uid == -1
+            and self.generic_effect == -1
+            and self.native_definition_present is False
+            and self.native_container == {"present": False}
+            and self.effect_action_id is None
+            and self.effect_flags is None
+            and self.native_execution_status == -1
+            and valid_fad_source(self.cost_source)
+            and self.caster_id == self.target_id == self.cost_source["payer_id"]
+            and self.value == self.cost_source["requested_delta"]
+            and tuple(self.event_ids) == (0, 2246)
+        )
         if (
             self.native_events_verified is not True
             or type(self.uid) is not int
-            or not (0 < self.uid < (1 << 63) or synthetic_payment)
+            or not (0 < self.uid < (1 << 63) or synthetic_payment or synthetic_breeze)
         ):
             raise ValueError("Verified native running-effect event source required")
         if (
@@ -138,8 +160,17 @@ class NativeExternalEvent:
     suppresses_all: bool = False
     suppressed: bool = False
     cast_boundary_context: dict | None = None
+    turn_boundary_context: dict | None = None
 
     def validate(self):
+        if self.turn_boundary_context is not None:
+            from .combat_turn_events import validate_turn_boundary_context
+
+            validate_turn_boundary_context(self.turn_boundary_context)
+            if self.event_ids != (self.turn_boundary_context["event_id"],):
+                raise ValueError("Turn boundary facts require matching external event")
+            if self.cast_boundary_context is not None:
+                raise ValueError("External event cannot combine cast and turn facts")
         if self.cast_boundary_context is not None:
             from .combat_cast_events import validate_cast_boundary_context
 
@@ -169,11 +200,17 @@ class NativeCloneAuthority:
     condition_context: object  # (effect, invocation, source) -> current native criterion context
 
 
+_ACTIVE_TRIGGER_KEYS = ContextVar("native_qj_active_trigger_keys", default=frozenset())
+
+
 class NativeTriggerHistory:
     """Qj.b/a/bcm tracks active (generic,caster,target) triples, not all past executions."""
 
-    def __init__(self):
-        self.active = set()
+    @property
+    def active(self):
+        # Qj is thread-local, shared by nested runtime/replay instances.
+        # Immutable values also isolate copied asynchronous contexts.
+        return set(_ACTIVE_TRIGGER_KEYS.get())
 
     def enter(self, generic, caster, target):
         key = (
@@ -183,11 +220,14 @@ class NativeTriggerHistory:
         )
         if key in self.active:
             return None
-        self.active.add(key)
+        _ACTIVE_TRIGGER_KEYS.set(_ACTIVE_TRIGGER_KEYS.get() | {key})
         return key
 
     def leave(self, key):
-        self.active.remove(key)
+        active = _ACTIVE_TRIGGER_KEYS.get()
+        if key not in active:
+            raise ValueError("Native trigger history scope is not active")
+        _ACTIVE_TRIGGER_KEYS.set(active - {key})
 
 
 class NativeEventReplay:
@@ -330,6 +370,18 @@ class NativeEventReplay:
                     else original.cell
                 )
             )
+            if (
+                target is None
+                and isinstance(source, NativeExternalEvent)
+                and source.cast_boundary_context is not None
+            ):
+                # Wakemu cast policy supplies the validated cast anchor for
+                # null-PV cell groups. It does not fabricate a native Qe source
+                # or replace an explicitly selected actor recipient.
+                from .combat_cast_events import validate_cast_boundary_context
+
+                context = validate_cast_boundary_context(source.cast_boundary_context)
+                cell = tuple(context["target_cell"])
             source_context = (
                 asdict(replace(source, final_modifier=None, runner_modifier=None))
                 if isinstance(source, NativeEventSource)
@@ -355,6 +407,11 @@ class NativeEventReplay:
                 base_uid=entry.uid,
                 wakemu_fresh_child_selection=False,
                 native_trigger_context=(source_context),
+                native_turn_boundary_context=(
+                    source.turn_boundary_context
+                    if isinstance(source, NativeExternalEvent)
+                    else None
+                ),
                 native_cast_boundary_context=(
                     source.cast_boundary_context
                     if isinstance(source, NativeExternalEvent)

@@ -128,12 +128,13 @@ DECLARE config jsonb := $configuration$"""
         + """$configuration$::jsonb;
 route text := config->'route'->>'key';
 version integer := (config->>'version')::integer;
-config_key text := 'dungeon_runtime_config:' || route || ':v' || version;
 BEGIN
-    IF EXISTS(SELECT 1 FROM settings WHERE name=config_key AND value<>config) THEN
+    IF EXISTS(SELECT 1 FROM dungeon_runtime_configurations
+        WHERE route_key=route AND policy_version=version AND configuration<>config) THEN
         RAISE EXCEPTION 'Immutable dungeon configuration version conflicts';
     END IF;
-    INSERT INTO settings(name,value) VALUES(config_key,config) ON CONFLICT(name) DO NOTHING;
+    INSERT INTO dungeon_runtime_configurations(route_key,policy_version,configuration)
+    VALUES(route,version,config) ON CONFLICT(route_key,policy_version) DO NOTHING;
     INSERT INTO dungeon_context_policy_versions(route_key,policy_version,template_id,definition_id,
         max_level,min_level,difficulty_level,is_difficulty_available,can_increase_difficulty,
         is_competitive_cancelled,allowed_ids,provenance)
@@ -142,9 +143,9 @@ BEGIN
     ON CONFLICT(route_key,policy_version) DO NOTHING;
     INSERT INTO dungeon_context_active_policies(route_key,policy_version) VALUES(route,version)
     ON CONFLICT(route_key) DO UPDATE SET policy_version=EXCLUDED.policy_version;
-    INSERT INTO settings(name,value) VALUES('dungeon_runtime_active:'||route,
-        jsonb_build_object('version',version,'key',config_key))
-    ON CONFLICT(name) DO UPDATE SET value=EXCLUDED.value;
+    INSERT INTO dungeon_runtime_active_configurations(route_key,policy_version)
+    VALUES(route,version)
+    ON CONFLICT(route_key) DO UPDATE SET policy_version=EXCLUDED.policy_version;
 END $migration$;
 """
     )

@@ -78,10 +78,11 @@ class OriginalControllerAreaTests(unittest.TestCase):
                     self.assertEqual(affiliations, [8])
                     self.assertEqual(created, [area])
                     self.assertEqual(allocated, [901, 902])
-                    self.assertEqual(
-                        struct.unpack_from(">i", packets[0][1], 12)[0], 1008
-                    )
-                    fields = dict(proto_fields(packets[0][1][18:]))
+                    opcode, payload = packets[0]
+                    self.assertIn(opcode, (12613, 13497))
+                    offset = 13 if opcode == 12613 else 12
+                    self.assertEqual(struct.unpack_from(">i", payload, offset)[0], 1008)
+                    fields = dict(proto_fields(payload[offset + 6 :]))
                     self.assertEqual(
                         fields[48], 7
                     )  # Original bfr wire caster, not redirected area creator.

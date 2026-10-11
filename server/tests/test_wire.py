@@ -6,9 +6,7 @@ from wakfu_server import wire
 
 class WireTests(unittest.TestCase):
     def test_global_to_local_snapshot_does_not_restore_fixture_nation(self):
-        entity = (
-            bytes([22]) + struct.pack(">i", 30) + bytes([7]) * 27 + bytes(range(14))
-        )
+        entity = bytes([22]) + struct.pack(">i", 30) + bytes([7]) * 27 + bytes(14)
         original = struct.pack(">qH", wire.TEMPLATE_CHARACTER, len(entity)) + entity
         actual = wire.adapt(15548, original, 5, {"id": 4, "level": 60})
         self.assertEqual(actual[:10], struct.pack(">qH", 4, 46))

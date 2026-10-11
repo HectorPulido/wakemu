@@ -36,6 +36,16 @@ def _json_bytes(value):
     return json.dumps(value, separators=(",", ":"), allow_nan=False).encode()
 
 
+def _advisory_spell_capabilities(spell, level):
+    """Missing advisory effect metadata must not remove an owned ability."""
+    from wakfu_server.combat_ai_capabilities import describe_spell
+
+    try:
+        return describe_spell(spell, level)
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def _file_hash(path):
     checksum = hashlib.sha256()
     with path.open("rb") as source:
@@ -954,7 +964,20 @@ class NativeSession:
         self.request_id = uuid.uuid4().hex
         self.states = {}
         self.state_identities = {}
-        self.source = self._measure_preparation("source_hash", self._source_hash)
+
+        def capture_source_baseline():
+            components = self._source_components()
+            source = fingerprint(components)
+            baseline_started = time.monotonic()
+            self._source_diagnostic_baseline = self._fingerprint_source_diagnostics(
+                components
+            )
+            self.source_diagnostic_baseline_ms = max(
+                0.0, (time.monotonic() - baseline_started) * 1000
+            )
+            return source
+
+        self.source = self._measure_preparation("source_hash", capture_source_baseline)
         self.root = self._measure_preparation(
             "root_register", lambda: self.register(oracle.runtime)
         )
@@ -969,25 +992,72 @@ class NativeSession:
                 + (time.monotonic() - started) * 1000
             )
 
-    def _source_hash(self):
-        return fingerprint(
-            dict(
-                runtime=self.oracle.runtime,
-                authorities=self.oracle.authorities(),
-                policy=self.policy,
-                flags=self.oracle.flags,
-                source=dict(
-                    catalog=self.catalog,
-                    fightInstanceId=self.fight_instance_id,
-                    policyVersion=self.policy_version,
-                ),
-            )
+    def _source_components(self):
+        return dict(
+            runtime=self.oracle.runtime,
+            authorities=self.oracle.authorities(),
+            policy=self.policy,
+            flags=self.oracle.flags,
+            source=dict(
+                catalog=self.catalog,
+                fightInstanceId=self.fight_instance_id,
+                policyVersion=self.policy_version,
+            ),
         )
+
+    @staticmethod
+    def _fingerprint_source_diagnostics(components):
+        """Store value-free fingerprints used only to explain fatal mismatches."""
+        runtime = components["runtime"]
+        fields = vars(runtime) if hasattr(runtime, "__dict__") else {}
+        return dict(
+            components={name: fingerprint(value) for name, value in components.items()},
+            runtime_fields={name: fingerprint(value) for name, value in fields.items()},
+        )
+
+    @staticmethod
+    def _source_change_labels(components, baseline):
+        current = NativeSession._fingerprint_source_diagnostics(components)
+        changed_components = sorted(
+            name
+            for name, digest in baseline["components"].items()
+            if current["components"].get(name) != digest
+        )
+        changed_components.extend(
+            sorted(set(current["components"]) - set(baseline["components"]))
+        )
+        fields = current["runtime_fields"]
+        old_fields = baseline["runtime_fields"]
+        changed_fields = sorted(
+            name
+            for name in set(fields) | set(old_fields)
+            if fields.get(name) != old_fields.get(name)
+        )
+        # The aggregate source fingerprint also covers aliases across component
+        # boundaries. If those change while every component hash remains equal,
+        # keep the rejection fatal and label the cause as opaque aliasing.
+        if not changed_components:
+            changed_components = ["unknown_alias_or_structure"]
+        return changed_components, changed_fields
 
     def guard(self):
         check()
-        if self.source != self._measure_native_query("source_guard", self._source_hash):
-            raise ValueError("Native oracle source changed during decision")
+
+        def current_source():
+            components = self._source_components()
+            return components, fingerprint(components)
+
+        components, current = self._measure_native_query("source_guard", current_source)
+        if self.source != current:
+            changed_components, changed_fields = self._source_change_labels(
+                components, self._source_diagnostic_baseline
+            )
+            detail = ", ".join(changed_components)
+            if changed_fields:
+                detail += "; runtime_fields=" + ",".join(changed_fields)
+            raise ValueError(
+                "Native oracle source changed during decision [" + detail + "]"
+            )
 
     def register(self, runtime, *, transition=None):
         check()
@@ -1325,6 +1395,7 @@ class NativeSession:
                         casting=native_casting().get(str(spell)),
                         classDefinition=native_effects()["spells"].get(str(spell)),
                         classInventory=SPELLS.get(spell),
+                        advisoryCapabilities=_advisory_spell_capabilities(spell, level),
                     )
                     for spell, level in sorted(owned.items())
                 ],

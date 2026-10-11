@@ -15,6 +15,9 @@ def canonical_hash(value):
 
 
 def prepare_configuration(plan, topology, route, *, version, provenance):
+    # Freeze JSON-owned values before hashing. Integer metadata keys become
+    # strings on persistence and must not change canonical ordering on reload.
+    plan, topology, route = json.loads(json.dumps([plan, topology, route]))
     if (
         type(version) is not int
         or version <= 0
@@ -64,12 +67,18 @@ def prepare_configuration(plan, topology, route, *, version, provenance):
         if tuple(anchor) not in set(map(tuple, room["cells"])):
             raise ValueError("Native room anchor is not walkable")
     for door in topology["doors"]:
-        if (
-            door["source_room"] not in orders
-            or door["destination_room"] not in orders
-            or abs(door["source_room"] - door["destination_room"]) != 1
-        ):
-            raise ValueError("Native door skips or leaves reviewed rooms")
+        from wakfu_server import dungeon_native_flow
+
+        dungeon_native_flow.validate_transport_binding(topology, door)
+    from wakfu_server import dungeon_shared_arena
+
+    dungeon_shared_arena.validate(topology)
+    from wakfu_server import dungeon_branches
+
+    dungeon_branches.validate(topology)
+    from wakfu_server import dungeon_exit
+
+    dungeon_exit.validate_foreign_exterior(topology)
     context = dict(
         route_key=route["key"],
         policy_version=version,
@@ -160,16 +169,18 @@ def install_configuration(db, config):
     )
     if config != expected:
         raise ValueError("Configuration content differs from validated local policy")
-    key = f'dungeon_runtime_config:{route["key"]}:v{version}'
     current = db.execute(
-        "SELECT value FROM settings WHERE name=%s FOR UPDATE", (key,)
+        "SELECT configuration AS value FROM dungeon_runtime_configurations "
+        "WHERE route_key=%s AND policy_version=%s FOR UPDATE",
+        (route["key"], version),
     ).fetchone()
     if current is not None and current["value"] != config:
         raise ValueError("Existing configuration version is immutable")
     if current is None:
         db.execute(
-            "INSERT INTO settings(name,value) VALUES(%s,%s::jsonb)",
-            (key, json.dumps(config)),
+            "INSERT INTO dungeon_runtime_configurations(route_key,policy_version,configuration) "
+            "VALUES(%s,%s,%s::jsonb)",
+            (route["key"], version, json.dumps(config)),
         )
     context = config["context_policy"]
     existing = db.execute(
@@ -196,30 +207,29 @@ def install_configuration(db, config):
         (route["key"], version),
     )
     db.execute(
-        "INSERT INTO settings(name,value) VALUES(%s,%s::jsonb) ON CONFLICT(name) DO UPDATE SET value=EXCLUDED.value",
-        (
-            f'dungeon_runtime_active:{route["key"]}',
-            json.dumps({"version": version, "key": key}),
-        ),
+        "INSERT INTO dungeon_runtime_active_configurations(route_key,policy_version) VALUES(%s,%s) "
+        "ON CONFLICT(route_key) DO UPDATE SET policy_version=EXCLUDED.policy_version",
+        (route["key"], version),
     )
 
 
 def active_configuration(db, route_key):
     selected = db.execute(
-        "SELECT value FROM settings WHERE name=%s",
-        (f"dungeon_runtime_active:{route_key}",),
+        "SELECT policy_version FROM dungeon_runtime_active_configurations WHERE route_key=%s",
+        (route_key,),
     ).fetchone()
     if selected is None:
         raise ValueError("Dungeon runtime configuration is not installed")
-    return pinned_configuration(db, route_key, selected["value"]["version"])
+    return pinned_configuration(db, route_key, selected["policy_version"])
 
 
 def pinned_configuration(db, route_key, version, *, expected_plan_hash=None):
     if type(version) is not int or version <= 0:
         raise ValueError("Invalid pinned dungeon configuration version")
     row = db.execute(
-        "SELECT value FROM settings WHERE name=%s",
-        (f"dungeon_runtime_config:{route_key}:v{version}",),
+        "SELECT configuration AS value FROM dungeon_runtime_configurations "
+        "WHERE route_key=%s AND policy_version=%s",
+        (route_key, version),
     ).fetchone()
     if row is None:
         raise ValueError("Selected dungeon runtime configuration is missing")

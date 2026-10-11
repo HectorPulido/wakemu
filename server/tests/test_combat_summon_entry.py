@@ -41,7 +41,17 @@ class NativeSummonEntryTests(unittest.TestCase):
             y=enemy_cell[1],
             z=enemy_cell[2],
         )
-        terrain = local_arena(1134, 0, origin, enemy_cell)
+        # Reserve sufficient native terrain for all twelve clock offsets;
+        # the automatic5–7-cell minimum can legitimately clip some hours.
+        terrain = local_arena(
+            1134,
+            0,
+            origin,
+            enemy_cell,
+            compact=True,
+            minimum_dimensions=(15, 15),
+            variation_seed=0,
+        )
         fight, _ = create_placement(
             character,
             monster,
@@ -135,7 +145,47 @@ class NativeSummonEntryTests(unittest.TestCase):
                 f"caster_cell={fight.actors[7].position!r}; target_cell={summon_cell!r}"
             )
         self.assertEqual(snapshot(fight), before)
-        # The compact battleground has an faP border and a faY environmental
+        # Fresh creation installs the twelve hours. Center1558 is a separate
+        # native reaction:313306 requires an actual owned area1557 recipient,
+        # not an actor positioned on an hour or an unconditional thirteenth area.
+        self.assertEqual(len(cast.fight.native_effect_areas), 14)
+        self.assertEqual(
+            {
+                row["reference"]
+                for row in cast.fight.native_effect_areas.values()
+                if row.get("native_area_contract") not in ("faP", "faY")
+            },
+            set(range(1546, 1558)),
+        )
+        import copy
+        from dataclasses import replace
+
+        clock_preview = copy.deepcopy(cast.fight)
+        clock_factory, _ = server_runtime(
+            character,
+            {-7: monster},
+            deck,
+            action_id=3,
+            critical=False,
+            rng=random.Random(1),
+        )
+        clock_dispatcher, clock_packets = clock_factory(
+            clock_preview, {"native_retained_container": {"present": False}}
+        )
+        hour = next(
+            row
+            for row in clock_preview.native_effect_areas.values()
+            if row["reference"] == 1557
+        )
+        clock_dispatcher.execute(
+            EffectInvocation(
+                352198, 1, 7, hour["uid"], hour["cell"], native_explicit_target=True
+            )
+        )
+        cast = replace(
+            cast, fight=clock_preview, packets=cast.packets + tuple(clock_packets)
+        )
+        # The native battleground has an faP border and a faY environmental
         # glyph alongside the thirteen class-owned areas.
         self.assertEqual(len(cast.fight.native_effect_areas), 15)
         border_rows = [

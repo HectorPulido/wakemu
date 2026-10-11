@@ -16,6 +16,14 @@ class FakeClock:
         return self.now
 
 
+class IdentityProfiler:
+    """Keep AST-extracted behavior independent of profiling instrumentation."""
+
+    @staticmethod
+    def profile(_name):
+        return lambda function: function
+
+
 def _session_function(name):
     module = ast.parse(SERVER_SOURCE.read_text())
     session = next(
@@ -48,6 +56,7 @@ class StaticMapSyncDispatchTests(unittest.TestCase):
         self.store = SimpleNamespace(current_session=lambda account, generation: True)
         self.namespace = {
             "time": self.clock,
+            "PROFILER": IdentityProfiler(),
             "SimpleNamespace": SimpleNamespace,
             "STORE": self.store,
             "world_static": self.world_static,
@@ -234,6 +243,7 @@ def build_world_sync():
             body,
             {
                 "time": self.clock,
+                "PROFILER": IdentityProfiler(),
                 "SimpleNamespace": SimpleNamespace,
                 "record": lambda **row: self.records.append(row),
             },
@@ -634,6 +644,7 @@ def build_idle():
     account_id = 9
     generation = 17
     last_health_tick = 0
+    last_shop_refresh = 0.0
     last_session_renewal = time.monotonic()
     console_session = None
     character = None
@@ -648,6 +659,7 @@ def build_idle():
         calls = []
         namespace = {
             "time": self.clock,
+            "PROFILER": IdentityProfiler(),
             "SimpleNamespace": SimpleNamespace,
             "STOPPING": SimpleNamespace(is_set=lambda: False),
             "STORE": SimpleNamespace(

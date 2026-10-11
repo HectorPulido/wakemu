@@ -30,9 +30,15 @@ def forecast(
     source = {actor["id"]: actor for actor in state["actors"]}
     friendly = source[actor_id]["team"]
     rivals = sorted(
-        actor["id"]
-        for actor in source.values()
-        if actor["team"] != friendly and actor["hp"] > 0
+        (
+            actor["id"]
+            for actor in source.values()
+            if actor["team"] != friendly and actor["hp"] > 0
+        ),
+        key=lambda identity: (
+            source[identity].get("registeredSummon") is True,
+            identity,
+        ),
     )
     forecasts, details, sequence = [], [], 0
 
@@ -89,7 +95,10 @@ def forecast(
         unknown.update(projected.get("unknownDependencies", []))
         # Lifecycle deltas remain part of the response relative to the source.
         frontier = [(projected, [], frozenset({state_identity(projected)}))]
-        outcomes, expanded = [], 0
+        projected_actors = {actor["id"]: actor for actor in projected["actors"]}
+        if not set(source) <= set(projected_actors):
+            raise ValueError("Native rival projection omitted existing actor")
+        outcomes, expanded = [("project_turn", projected_actors)], 0
         ended = None
         if deadline is None or clock() < deadline:
             query = request("preview", projected["key"], action={"type": "end_turn"})

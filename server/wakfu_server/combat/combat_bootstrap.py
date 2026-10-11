@@ -10,6 +10,15 @@ from .combat_actor import actor_stats, actor_effects
 from .combat_orientation import INITIAL_PLAYER_DIRECTION
 
 
+def should_rebuild_placement(fight, admitted_actors):
+    """Refresh constructor snapshots even when no hero joined the initial fight."""
+    return bool(
+        admitted_actors
+        or getattr(fight, "native_npc_initialization_receipts", {})
+        or getattr(fight, "native_npc_ai_actors", frozenset())
+    )
+
+
 def placement_positions(fight, immediate=True):
     actors = list(fight.actors.values())
     if len(actors) > 32767:
@@ -72,6 +81,10 @@ def placement_messages(
     participants = []
     for actor in actors:
         stats, effects = actor_payloads[actor.id]
+        if actor.id in getattr(fight, "native_npc_initialization_receipts", {}):
+            from .combat_remote_effects import initial_npc_actor_effects
+
+            effects = initial_npc_actor_effects(fight, actor.id)
         participants.append(
             dict(
                 actor_id=actor.id,

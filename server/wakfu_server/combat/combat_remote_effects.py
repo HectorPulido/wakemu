@@ -106,6 +106,43 @@ def active_actor_effects(fight, actor_id, *, now_milliseconds=None):
     """
     if fight.phase != "active" or actor_id not in fight.actors:
         raise ValueError("Native active effect snapshot requires a live actor")
+    return _live_actor_effects(fight, actor_id, now_milliseconds=now_milliseconds)
+
+
+def initial_npc_actor_effects(fight, actor_id):
+    """Exact constructor Qf for placement; no second cle replay on the client.
+
+    Native big.a -> dq -> eZV.a clears the old world manager before restoring
+    myF. Empty effects would erase the descriptor's retained initial states.
+    """
+    from .combat_actor import actor_effects
+
+    if fight.phase != "placement" or actor_id not in fight.actors:
+        raise ValueError("Native initial effect snapshot requires placement actor")
+    receipt = getattr(fight, "native_npc_initialization_receipts", {}).get(actor_id)
+    if receipt is None:
+        return actor_effects()
+    actor = fight.actors[actor_id]
+    if actor.controlled or receipt.get("initialized") is not True:
+        raise ValueError("Missing ordinary native constructor proof")
+    from .combat_summon_initial_states import initial_state_plan
+    from dataclasses import asdict
+
+    plan = initial_state_plan(
+        receipt.get("raw_triples"), receipt.get("descriptor_level")
+    )
+    expected = [dict(state_id=p.state_id, level=p.level, applied=True) for p in plan]
+    if (
+        not plan
+        or receipt.get("descriptor_level") != actor.effective_level
+        or receipt.get("resolved_states") != [asdict(p) for p in plan]
+        or receipt.get("applications") != expected
+    ):
+        raise ValueError("Incomplete ordinary native initial-state applications")
+    return _live_actor_effects(fight, actor_id)
+
+
+def _live_actor_effects(fight, actor_id, *, now_milliseconds=None):
     from .combat_pending_state import pending_state_uids
     from .combat_retained_runtime import native_retained_condition_effects
     from .combat_effect_removal import _identity_fields
