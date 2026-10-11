@@ -254,16 +254,36 @@ class NativeServerRuntimeAdapter:
                 area = registered_area_pv(preview, identity)
                 if area is None:
                     raise ValueError("Unregistered non-null native criterion recipient")
+                retained_ids = frozenset()
+                retained_actions = frozenset()
+                if area.native_running_effect_manager:
+                    from .combat_retained_runtime import (
+                        native_retained_condition_effects,
+                    )
+
+                    try:
+                        retained_rows = native_retained_condition_effects(
+                            preview, identity
+                        )
+                    except ValueError:
+                        retained_ids = None
+                        retained_actions = None
+                    else:
+                        retained_ids = frozenset(row[0] for row in retained_rows)
+                        retained_actions = frozenset(row[1] for row in retained_rows)
                 typed = dict(
                     is_native_fighter=False,
+                    is_native_ehg=True,
                     is_character=False,
                     is_carried=False,
                     is_carrying=False,
+                    retained_effect_ids=retained_ids,
+                    retained_action_ids=retained_actions,
+                    fight_properties=area.native_fight_properties,
                 )
                 if area.state_ledger is not None:
                     aliases[name] = area.state_ledger.condition_actor(**typed)
                 else:
-                    # faV.rb returns null when bax is null; no ledger is invented.
                     aliases[name] = ConditionActor(
                         actor_id=identity,
                         state_ids=frozenset(),
@@ -1073,11 +1093,9 @@ class NativeServerRuntimeAdapter:
         def team_area_range_query(selector, kind, minimum, maximum):
             from .combat_effect_area_queries import team_area_count
 
-            center = (
-                (invocation.cell if target is None else target.position)
-                if selector.lower() == "target"
-                else (None if source is None else source.position)
-            )
+            from .combat_team_area_center import team_area_center
+
+            center = team_area_center(preview, invocation, selector)
             return team_area_count(
                 preview,
                 source_id=invocation.caster_id,
@@ -1250,6 +1268,7 @@ class NativeServerRuntimeAdapter:
 
         def actor_specific_area_query(selector, reference, owned):
             from .combat_effect_area_queries import actor_on_specific_area
+            from .combat_state_managers import verified_native_owner_root
 
             ownership = (
                 ("own" if owned else "all")
@@ -1262,11 +1281,24 @@ class NativeServerRuntimeAdapter:
                     else "all"
                 )
             )
+            selected_id = selected_relationship_id(selector)
+            selected_actor = native_actor(preview, selected_id)
+            controller_id = None
+            if selected_actor is not None:
+                controller_id = self._actor(
+                    preview, selected_actor
+                ).native_controller_id
+                if type(controller_id) is not int:
+                    raise ValueError("Missing verified native selected controller")
             return actor_on_specific_area(
                 preview,
-                actor_id=selected_relationship_id(selector),
+                actor_id=selected_id,
                 reference=reference,
                 ownership=ownership,
+                selected_controller_id=controller_id,
+                owner_root_query=lambda identity: verified_native_owner_root(
+                    preview, identity, lambda actor: self._actor(preview, actor)
+                ),
             )
 
         def own_summon_actor_query(selector):
@@ -1353,6 +1385,25 @@ class NativeServerRuntimeAdapter:
                 raise ValueError(f"Missing native team actor authority: {key}")
             if key in ("triggeringcaster", "triggeringtarget"):
                 if trigger_source is None:
+                    if key == "triggeringtarget":
+                        from .combat_external_turn_recipient import (
+                            qualified_boundary_actor,
+                        )
+
+                        boundary_actor = qualified_boundary_actor(
+                            preview,
+                            turn_context=turn_boundary,
+                            movement_context=getattr(
+                                invocation, "native_movement_boundary_context", None
+                            ),
+                        )
+                        if boundary_actor is not None:
+                            self._actor(preview, boundary_actor)
+                            return getattr(
+                                boundary_actor,
+                                "native_fight_affiliation",
+                                boundary_actor.team,
+                            )
                     return -1
                 role = "caster_id" if key == "triggeringcaster" else "target_id"
                 if role not in trigger_source:
@@ -1404,6 +1455,48 @@ class NativeServerRuntimeAdapter:
                 first_obstacle=first_obstacle,
             )
 
+        def free_surrounding_cell_query(strict_terrain, target_selected):
+            from .combat_free_surrounding_condition import native_free_surrounding_cell
+            from .combat_qi_fight import current_registry
+
+            # eMp requires the original caster argument to be eGj.
+            caster = native_actor(preview, invocation.caster_id)
+            if caster is None:
+                return False
+            caster_kind = self._actor(preview, caster).targeting.get("is_eGj")
+            if caster_kind is False:
+                return False
+            if caster_kind is not True:
+                raise ValueError("Missing native free-surrounding caster fighter type")
+            registry = current_registry(preview)
+            identity = invocation.target_id if target_selected else invocation.caster_id
+            if target_selected and (native_cell_argument or identity is None):
+                # eII.b converts an aBn target through the first QI eGj.
+                if invocation.cell is None:
+                    return False
+                identity = None
+                for slot in registry.ordered_U(*invocation.cell[:2]):
+                    row = registry.slots[slot]
+                    if row is not None and row["identity"][0] == "actor":
+                        identity = row["identity"][1]
+                        break
+            actor = native_actor(preview, identity)
+            if actor is None:
+                if identity in getattr(preview, "native_effect_areas", {}):
+                    raise ValueError(
+                        "Native free-surrounding selected actor has no eGj position"
+                    )
+                return False
+            snapshot = registry.snapshot()
+            return native_free_surrounding_cell(
+                actor.position,
+                terrain_free=snapshot.R if strict_terrain else snapshot.Q,
+                first_obstacle=lambda x, y: bool(
+                    (order := registry.ordered_U(x, y))
+                    and registry.slots[order[0]] is not None
+                ),
+            )
+
         def controlled_by_ai_query(selector):
             # eNH's one string selects target only for case-insensitive target.
             target_selected = selector.lower() == "target"
@@ -1425,6 +1518,34 @@ class NativeServerRuntimeAdapter:
             if type(value) is not bool:
                 raise ValueError("Missing native eGj.fqL authority")
             return value
+
+        def glyph_count_query(selector):
+            from .combat_effect_area_queries import _rows
+            from .combat_glyph_count import native_glyph_count
+
+            if selector is None:
+                return native_glyph_count(_rows(preview))
+            selector = selector.lower()
+            if selector == "target" and native_cell_argument:
+                raise ValueError("Missing native NbGlyphs cell-to-eGj resolution")
+            selected = aliases.get(selector)
+            if selected is None:
+                if (
+                    selector in ("triggeringcaster", "triggeringtarget")
+                    and triggering_effect is None
+                ):
+                    return native_glyph_count(_rows(preview), filter_owner=True)
+                raise ValueError("Missing native NbGlyphs actor authority")
+            if selected.is_native_fighter is False:
+                return native_glyph_count(_rows(preview), filter_owner=True)
+            if (
+                selected.is_native_fighter is not True
+                or type(selected.actor_id) is not int
+            ):
+                raise ValueError("Missing native NbGlyphs eHg identity")
+            return native_glyph_count(
+                _rows(preview), actor_id=selected.actor_id, filter_owner=True
+            )
 
         def gate_count_query(selector, mode):
             from .combat_effect_area_queries import _rows
@@ -1585,7 +1706,9 @@ class NativeServerRuntimeAdapter:
             surrounding_own_summon_query=surrounding_own_summon_query,
             controlled_by_ai_query=controlled_by_ai_query,
             free_cell_query=free_cell_query,
+            free_surrounding_cell_query=free_surrounding_cell_query,
             gate_count_query=gate_count_query,
+            glyph_count_query=glyph_count_query,
             own_specific_area_query=own_specific_area_query,
             area_identity_query=lambda name, value: self._area_identity_query(
                 preview, invocation, name, value

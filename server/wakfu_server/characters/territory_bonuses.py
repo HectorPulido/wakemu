@@ -197,3 +197,58 @@ def attach_character(db, character: dict) -> dict:
     result = dict(character)
     result["territory_stat_bonuses"] = stat_bonuses(current_region(db, character))
     return result
+
+
+def refresh_world(store, character: dict) -> list[tuple[int, bytes]]:
+    """Publish authoritative regional characteristics on an exploration actor.
+
+    Derived bonuses never enter persistent character storage. Recompute even
+    inside one region because harvesting, planting and population changes can
+    change protector satisfaction without a map transition. The publication
+    marker is separate from the actor input: combat can attach fresh bonuses
+    without having published an exploration refresh to the owning client.
+    """
+    with store.connection() as db:
+        attached = attach_character(db, character)
+    bonuses = attached["territory_stat_bonuses"]
+    previous = character.get("_published_territory_stat_bonuses")
+    if previous == bonuses:
+        character["territory_stat_bonuses"] = bonuses
+        return []
+    # Serialize before changing live state so failed serialization is retried.
+    # The native exploration codec uses fightID=-1 and preserves owned HP,
+    # equipment, aptitudes and the selected build rather than template stats.
+    packet = world_packet(attached)
+    character["territory_stat_bonuses"] = bonuses
+    character["_published_territory_stat_bonuses"] = dict(bonuses)
+    return [packet]
+
+
+def world_packet(character: dict) -> tuple[int, bytes]:
+    """Use owned public characteristic defaults to explicitly remove bonuses.
+
+    The ordinary progression serializer omits zero stats. That is unsuitable
+    for removing a regional modifier from an already installed client actor.
+    """
+    import struct
+
+    from wakfu_server import wire
+    from wakfu_server.combat_actor import actor_stats
+    from wakfu_server.combat_world_refresh import actor_refresh
+    from wakfu_server.equipment_stats import combat_resources, effective_character
+
+    owned = effective_character(character)
+    resources = combat_resources(owned)
+    blob = actor_stats(
+        owned,
+        1,
+        wp=resources["wp"],
+        ap=resources["ap"],
+        mp=resources["mp"],
+        initiative=resources["initiative"],
+        direction=character.get("direction", 0),
+        characteristics_payload=wire.owned_public_characteristics(character),
+    )
+    offset = 1 + 8 + struct.calcsize(">iihqBB")
+    blob = blob[:offset] + struct.pack(">i", -1) + blob[offset + 4 :]
+    return actor_refresh(character["id"], blob)

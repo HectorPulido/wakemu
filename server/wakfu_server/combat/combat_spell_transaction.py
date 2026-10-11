@@ -118,6 +118,22 @@ def prepare_spell_transaction(
         from .combat_breeze_payment_events import replay_paid_breeze_costs
 
         replay_paid_breeze_costs(dispatcher, plan)
+        from .combat_direct_target import native_direct_target_policies
+
+        root_direct_policies = native_direct_target_policies()
+
+        def _native_explicit_point_root_target(reference):
+            """Preserve a validated native point-root target when policy allows."""
+            return (
+                plan["target_id"] != caster.id
+                and plan["target_id"] in preview.actors
+                and preview.actors[plan["target_id"]].position == tuple(plan["target"])
+                and dispatcher.effects[str(reference)].get("area_class") == "anD"
+                and dispatcher.effects[str(reference)].get("native_target_selector")
+                == {"class": "fcE", "mask": 3}
+                and root_direct_policies.get(str(reference), (None, None))[1] is False
+            )
+
         outcomes = tuple(
             dispatcher.execute(
                 EffectInvocation(
@@ -126,6 +142,9 @@ def prepare_spell_transaction(
                     caster.id,
                     plan["target_id"],
                     plan["target"],
+                    native_explicit_target=_native_explicit_point_root_target(
+                        reference
+                    ),
                     native_context_hex=normal_root_context(
                         execution_origin,
                         caster_id=caster.id,

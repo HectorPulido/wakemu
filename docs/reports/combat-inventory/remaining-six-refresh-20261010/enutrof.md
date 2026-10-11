@@ -119,3 +119,38 @@ This is automated implementation evidence, not a completed client acceptance or 
 ### Fresh own-area selector correction — verification pending
 
 The8277 protection branch applied its native buff but failed to consume the owned deposit: effect386100 (family843) received actor7 at the deposit cell instead of the registered owned Qq. Its fcE mask contains bit43 (own Qq) and bit51. The existing native selector already checks actual Qq identity and owner equality, but the server fresh-child relationship routing omitted bit43 and preserved the transmitted actor. The narrow correction includes bit43 in that routing; explicit already-selected/replayed PVs retain their existing path. A generic regression covers selection of an owned area, exclusion of a foreign area at the same cell, and preservation of an explicit replay recipient. The focused generic owned-Qq resolver and actual8277 deposit removal now pass in `enutrof-qq-rootfocused.log`; the final protection-state timing assertion remains under source qualification, so a complete8277 PASS is not yet claimed. This is not a deployment receipt. The group live-coordinate implementation was already present and was not changed for this fix.
+
+### Final technical gate
+
+The frozen Enutrof runtime, companion lifecycle and deferred-subscription aggregate passed21/21 on active548e1468… (`enutrof-final-coherent.log`). Independent8277 callback validation passes: actual386098 grants100 resistance, the matching858x protection is level1 during application and0 after native end expiration, and the owned deposit is consumed; passive-off/no-deposit controls remain negative. Both8280 contextual companion-death and owner-to-companion treasure receipt cases pass. These results support provisional technical readiness, with the complete manual battery still pending. Independent5075 evidence remains limited to its observed end-boundary branch; the separately unrecovered74mh caller is not silently certified.
+
+
+### Current release and multiplayer follow-up — 2026-10-11
+
+The current authority is677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d;
+the548e inventory and older gates above are historical. Current selected
+aggregate27/27 passes (`enutrof-coherent-active677-final.log`). An additional
+actual multiplayer8277 test passes1/1: real owner7 deposits are consumed with
+386098/+100 resistance, while another actual player8's deposit survives with
+no386098. See [current contextual evidence](../enutrof-passive-branches-20261011.md).
+This closes that ownership branch, not every enabled native path.
+
+The full18-class diagnostic subsequently exposed2010 push-then-damage recipient
+loss: fresh QK selection used the old point after384976 moved its selected
+recipient, so241977 selected nobody. A generic staged point-leaf recipient
+correction outside the frozen server passes11 focused methods, preserving
+actor-group fresh selection, Xelor7189 and Eliotrope7206. Until that candidate
+is applied and the coordinated gate passes, the old all14-elemental claim is
+not a current unmodified-server pass. No class-specific exception was added.
+
+
+Current additional receipts: actual multiplayer8277 ownership control1/1,
+all six previously book-only controlled companion actions plus6337 numeric
+control2/2, and fourteen normal/critical pairs plus bounded checkpoint/new-fight
+serialization2/2 are green on actual677. The last2/2 uses the staged generic
+resolver candidate and clear-LOS fixture, so the integrated current-server
+gate remains required. Full evidence and numeric pairs are in the current
+contextual report. Profiles1381–1384 have identical current books/initial-state
+data to1380; lawful cosmetic acquisition is a manual appearance prerequisite,
+not a proven gameplay-route failure. The5075/event74 producer remains unknown,
+and actual client reconnect is not certified by JSON serialization.

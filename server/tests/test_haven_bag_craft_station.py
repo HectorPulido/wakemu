@@ -56,6 +56,16 @@ class HavenBagCraftStationTests(unittest.TestCase):
         self.character["instance_id"] = 41
         self.assertEqual(self.resolve()["instance_id"], 41)
 
+    def test_guest_uses_visited_station_without_becoming_layout_owner(self):
+        self.character["haven_bag"]["owner_id"] = 77
+        self.character.update(instance_id=77, haven_bag_visitor=True)
+        station = self.resolve()
+        self.assertEqual(station["instance_id"], 77)
+        self.assertEqual(self.character["id"], 42)
+        self.assertEqual(
+            _station(self.catalog, self.character, 3661, station)["profession_id"], 73
+        )
+
     def test_portable_station_works_in_any_installed_room_type(self):
         for gem in (4262, 4263, 4264, 4266):
             self.character["haven_bag"]["rooms"][0]["primary_ref"] = gem

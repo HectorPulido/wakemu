@@ -1,69 +1,133 @@
 # Sadida runtime qualification — 2026-10-11
 
-Work in progress. PostgreSQL published catalog is authoritative. No independent restart, deployment or catalog activation is performed by this class workstream. Shared-engine edits require root coordination. Literal native `False` gates stay disabled.
+PostgreSQL published data is authoritative. This class workstream does not independently restart, deploy, or activate catalogs. Literal native `False` branches remain disabled. Actual casts below qualify their specified contexts; they do not establish every branch, every passive, or manual acceptance.
 
-## Confirmed results
+## Current active execution matrix
 
-- Actual native Ready plus all20 optional passive initialization subcases:2/2 methods passed. This is ownership/initialization evidence, not twenty semantic passive passes.
-- Actual Semilla8137 selects a genuinely unoccupied legal cell and creates owned seed area1835.
-- Actual La Vudul926 targets a character and creates profile3745 with book8140 and complete owned QI registration. Its construction cell is selected by the native constructor; the cast target is not that cell.
-- Actual seed8137 followed by elemental925/921/918/932/930 creates profiles3747/3748/3749/3750/3751 with exact authoritative books and fresh owned summon slots. All five transformations passed.
-- Actual seed→925 doll→next owner turn→911 creates profile3746 and its exact seven-action book. Native911 requires an existing owned doll excluding Voodoll; a fresh empty arena correctly rejects it.
-- Actual seed8137→8137 recast at its cell creates tree5577 with state8217 and an authoritatively empty action book. An empty book is intentional, not a missing definition.
-- Normal active audit:21/21 direct IDs inventoried;17 prepared and committed;32 individual preparations/commits; zero transaction rejections. Separate actual-context tests now qualify920/935/5057/8139; see integration results below. Three Ready grants are excluded from the21-active denominator.
+All 21 direct active IDs have an actual successful cast context. The initial normal matrix qualified 17 directly (32 preparation/commit attempts, zero transaction rejections); the four prerequisite-dependent rows were qualified separately through actual native producers. Three Ready-acquired abilities are outside this denominator.
 
-Logs: `.runtime/remaining-six-refresh-20261010/sadida-final.log`, `sadida-grant-doll-death-final.log`, `sadida-doll-death-final2.log`; normal matrix `sadida-normal-matrix.json`.
+| ID | Native name | Current evidence |
+|---|---|---|
+| 914 | Toxinas | Prepared and committed actual normal-cast context |
+| 915 | Árbol | Prepared and committed actual normal-cast context |
+| 918 | Lágrima de Sadida | Prepared and committed actual normal-cast context |
+| 919 | Viento Envenenado | Prepared and committed actual normal-cast context |
+| 920 | Sacrificio Muñequero | Actual owned doll; owner-targeted range-zero sacrifice retires doll/QI |
+| 921 | Vaporizar | Prepared and committed actual normal-cast context |
+| 922 | Drenaje | Prepared and committed actual normal-cast context |
+| 925 | Zarza | Prepared and committed actual normal-cast context |
+| 927 | Hierbas Locas | Prepared and committed actual normal-cast context |
+| 928 | Resfriado | Prepared and committed actual normal-cast context |
+| 929 | Abono | Prepared and committed actual normal-cast context |
+| 930 | Arcilla | Prepared and committed actual normal-cast context |
+| 931 | Herrumbre | Prepared and committed actual normal-cast context |
+| 932 | Hedor Boscoso | Prepared and committed actual normal-cast context |
+| 934 | Komhir | Prepared and committed actual normal-cast context |
+| 935 | Terremoto | Actual owned doll prerequisite; committed native Terremoto |
+| 937 | Zarzas Múltiples | Prepared and committed actual normal-cast context |
+| 938 | Borrasca | Prepared and committed actual normal-cast context |
+| 5057 | Despertar Silvestre | Actual NPC knockout of allied character; resurrection restores HP/QI and state6505 with multiplayer authority |
+| 7054 | Fertilizante | Prepared and committed actual normal-cast context |
+| 8139 | Fuerza de la Naturaleza | Actual925 armor producer; native8139 installs8224 |
 
-## Source-corrected fixtures
+Evidence: `.runtime/remaining-six-refresh-20261010/sadida-normal-matrix.json`, `sadida-actions-death-remaining-final.log`, `sadida-actions-death-remaining-final2.log`. These earlier outcomes require the final coherent aggregate gate before release; they are not represented as newly rerun under677.
 
-Initial Semilla helper chose the first legal target, including occupied self. That is a legal recycling/no-op context, while effect378184 requires a free cell or the authored seed/passive8150 branch. Initial seed creation now selects an actual unoccupied cell. No runtime eligibility guard was weakened.
+## Acquired abilities, profiles, and actions
 
-The first Superpoderosa fixture had no existing owned doll; native criterion requires one. The corrected acquisition sequence builds that prerequisite through actual casts and a real turn boundary.
+| Acquired ability/profile | Actual acquisition and verified behavior |
+|---|---|
+|8137 Semilla|Legal unoccupied cell creates owned1835 seed; a real second8137 at that seed produces tree5577/8217|
+|926 La Vudul /3745|Actual character-targeted cast creates owned Voodoll with8140 book and fresh QI slot; placement follows the native constructor|
+|911 Superpoderosa /3746|Actual seed→925 doll→next owner turn→911; exact seven-action book; actual5153 damages enemy|
+|3747 Sacrificada|8137→925; exact5024/8138 book;5024 self-targeted explosion damages adjacent enemy and retires self/QI|
+|3748 Ghulotona|8137→921; exact5023/8138 book; actual5023 damages enemy|
+|3749 Hinchable|8137→918; exact5021/8138 book; actual5021 heals injured owner|
+|3750 Loca|8137→932; exact5026/8138 book;5026 creates3617 Toxinas,3309 MP-loss,8259 marker; duration-zero8199 correctly does not remain|
+|3751 Bloqueadora / Enganchadora|8137→930 baseline or→934 Enganchadora8190 variant; exact5025/5356/8138 book;5025 pulls enemy; source-required934 variant allows5356, creating target3681/doll3682|
+|5577 tree|8137→8137;8217 and intentionally empty native book, not missing actions|
+|8138 return action|Controller equips912 before Ready; actual self-retirement releases QI; no fabricated prerequisite|
+|8140 owned-doll branch|Actual926→next owner turn→8137→925→Voodoll turn8140 exchanges Voodoll/doll positions|
+|8140 tree branch|Actual926 first→next owner turn→8137→8137 tree→Voodoll turn8140 produces friendly armor without enemy armor|
 
-The seed transformation fixture initially asserted that every native area count equals1. Some deck contexts legitimately create another innate area. It now identifies the actual1835 seed by reference and retains other areas unchanged.
+The seven doll-action semantic subcases passed in `sadida-doll-semantics-final.log`, test hash `6cb3cfa1…`. Actual Superpoderosa attack and independent second-fight book/QI isolation passed in `sadida-final-scope-actions-final.log`. Native NPC movement followed by7962 kills the actual Voodoll and releases its QI slot while preserving its living owner; see `sadida-actions-death-remaining-final2.log`. This death case does not claim passive933 semantics.
 
-Action8138 requires Sadida Solitario912 on the original controller. Its positive scenario now equips that passive before Ready. Actions5025/5356 require real recipients; an empty legal casting cell can produce no enabled effect. Their fixture now places a real enemy in an unobstructed native range, rather than accepting a no-op receipt.
+Latest catalog677 qualification: `pv-scope-vudul-677.log` is6/6 PASS (five generic selected-PV scope tests plus actual8140 swap), start/end revision equal. `sadida-8140-tree-677-order.log` is1/1 PASS, start/end677 equal. Frozen hashes: dispatcher `8e620db9…`, runtime wiring `1ed6389c…`, scope test `3dced20b…`, Super/Voodoll test `020811f2…`, tree test `2d2bb93b…`.
 
-The Voodoll KO test first confused the926 character target with a summon placement target and then assumed its naturally selected cell was adjacent to the NPC. The current probe advances the actual NPC turn and performs certified native movement before the real7962 attack. It does not teleport a registered actor or inject death notifications.
+## General corrections and preserved contracts
 
-## Pending terminal scenarios
+Signed state preparation previously rejected8138's effect378022 intermediate parameters `[3624,-1,-1]` before its native false criterion could skip application. Native eWu calculation stores a signed short before evaluating criteria. `allow_signed_calculation` is enabled only in preparation; application still rejects a qualifying negative level atomically. No dispatcher reordering or general negative-level application was introduced. Three signed-calculation tests, four state-runner tests, two null-area-Qf tests, and actual8138 passed.
 
-Remaining actual doll action dependencies8138/5356; Superpoderosa5153 and Voodoll8140; multiowner isolation, cap/replacement, secondary state/area lifecycle, second-fight/reconnect and complete passive semantic controls. Completed KO/revival/armor/920/935 paths are recorded below.
+Native resolved PV populations hold selected objects for their complete traversal. In the reproduced Voodoll/seed sequence, selection contained seed65/reference1835 and Voodoll area70/reference1855. The first runner unregisters both; the next must evaluate its area1835 predicate false on the still-held area70 object. The dispatcher now resolves once and scopes validated selected area identities across that traversal. Direct identity predicates can use the held object; spatial scans enumerate active registrations only. Normal/exception cleanup, unknown identity rejection, and no spatial resurrection are covered by generic tests. No race, breed, spell, map, or area-reference special case was added.
 
-No full provisional-ready claim is made yet.
+Native evidence is stored locally in `.runtime/local/current-eWu.txt` lines865–915 (`C(Qe)`→`eq(short)`→`rBo:S`) and `.runtime/local/native-area-eYg.txt` lines385–460 (iterator retains `bfs:PV`, uses its coordinates, and passes it to transmitted children). These justify signed preparation and execution-local object lifetime, not negative application or permanent retired-area membership.
 
-## Additional actual integration results (2026-10-11)
+## Remaining qualification boundaries
 
-The frozen five-method run in `.runtime/remaining-six-refresh-20261010/sadida-actions-death-remaining-final.log` confirms three additional integration paths:
+All20 optional passives have initialization/ownership smoke coverage; that is not20 semantic passes. Their actual positive/negative controls are tracked separately in `sadida-selected-passive-qualification-20261011.md` and parallel qualification modules. Multiowner, reconnect, cap/replacement, rollback, secondary lifecycle, and full aggregate regression must be reported with their terminal evidence rather than inferred from registration. No provisional-ready or manual-passed claim is made by this document.
 
-- Voodoll death through an actual NPC spell releases its native QI slot while leaving its owner alive. The NPC uses its certified movement path before attacking; the fixture does not teleport actors or manufacture a retirement event.
-- Zarza cast on the Sadida produces real armor, which satisfies Fuerza de la Naturaleza's armor prerequisite and installs state 8224.
-- Despertar Silvestre (5057) restores an allied character after an actual NPC knockout, with full multiplayer authority supplied to the transaction.
+Fixture corrections preserved native restrictions:8137 must choose a genuinely free seed cell;911 requires an existing non-Voodoll doll;5356 requires934's8190 variant rather than930;5024 targets self at range zero;926 targets a character and independently chooses its birth cell. Tree-first then926 produced no Voodoll in the tested context; the successful8140 tree test acquires Voodoll first and does not classify the other order as a proven engine defect.
 
-The remaining doll-action investigations concern 5356 target prerequisites and action 8138. For 8138, a native eligible candidate reaches `Unsupported native state level`; root 378019 is family 844 and references state 8209 (native maximum level 5). This is an integration failure under investigation, not a missing definition claim. The focused rerun now exposes its complete exception stack instead of conflating it with rejected search candidates.
+The stable677 rerun of the seven real doll-action semantic subcases also passed (`sadida-doll-action-semantics-677.log`, hash `6cb3cfa1…`).
 
-A separate test module, `test_sadida_super_voodoll_actions_pipeline.py`, adds semantic assertions for Superpoderosa 5153 enemy damage and Voodoll 8140 swapping with an owned doll. These assertions are pending execution and must not be counted as qualified behavior.
+## Additional selected-eHg geometry correction pending integration
 
-The subsequent frozen run `sadida-actions-death-remaining-final2.log` also passes Sacrificio Muñequero (920) and Terremoto (935), using an actual owned doll prerequisite. Sacrificio's native range-zero cast targets its owner and retires the owned doll; targeting the doll was an invalid fixture assumption. Together with the 17 direct baseline contexts, the four previously unresolved active contexts (920, 935, 5057, 8139) now have successful actual native casts. This qualifies cast execution, not every branch of all 21 actives.
+Preserving a real seed across an actual1002 boundary exposed another general type distinction: native eOv accepts selected eHg/Qq objects, while `actor_on_specific_area` previously required a fighter in `fight.actors`. Native eOv selects eHg, applies ownership/team filters, and tests its actual PV position against active Qs geometry. Native Qq implements Qp/PV, its `bcL()` returns zero, and eII.aT follows Qp.bch to the owner PV. The correction provides a validated selected-area geometry entity with actual position, zero radius, owner and affiliation; it does not invent HP or a Qf. The spatial population remains active-only, and unknown non-null identities reject. Two generic unit methods passed locally, including own/foreign NPC ownership, team selection, null/unknown identities, and absence of invented fighter authority. The real preserved-seed1002 integration and shared regressions remain queued; no passing claim is made for that new correction yet.
 
-The same run isolates 5356 more precisely: the adjacent owner cell passes range and LOS, then rejects its native `HasState(8190)` prerequisite. State 8190 has actual transformation producers 378061 and 378069. Its absence after the tested Bloqueadora creation remains a lifecycle investigation; no guard is bypassed.
+`selected-area-and-8151-677-final.log` now records the seven generic geometry/scope methods passing under stable677. The real preserved-seed scenario proceeds past the previous selected-area-actor exception, but8151's expected8205 state is still absent because a later native criterion skips its branch. That semantic context remains assigned to the passive qualification workstream; passing generic geometry is not substituted for8151 acceptance.
 
-`test_sadida_super_voodoll_actions_pipeline` is not green: Superpoderosa's selected enemy cell rejects LOS (`twU`). Its Voodoll scenario fails earlier than 8140, during a subsequent Zarza seed transformation after Voodoll creation, with `Unregistered non-null native criterion recipient`. Consequently neither new action is claimed as qualified. `probe_sadida_dependency_failures.py` instruments the unchanged native failure path to identify the exact effect and recipient; it does not supply synthetic authority or skip criteria.
+The eOv own-area relation for selected fighters now receives the existing verified `NativeActorAuthority.native_controller_id` from the runtime adapter, matching native eII.aT(eGj)→dpu(). This covers a doll or NPC summon standing in its controller's area, rather than incorrectly comparing the area owner to the summon UID. Ordinary PC/NPC authority explicitly records self as controller; missing runtime controller authority rejects. Generic tests include player-owned dolls, NPC-owned summons, foreign controllers, ordinary self ownership, and selected-area ownership. Three geometry methods passed locally; the updated shared/native gate is pending.
 
-## Narrow shared correction under validation
+The8151 leaf diagnostic does not establish a geometry defect: native1836 is an anF square ring with parameters[1,1], excluding its center. Its tree center was(-7,-7), while the retained seed was(-9,-7), outside the ring. A doll inside the footprint does not satisfy a criterion applied to the selected seed PV. The semantic fixture now places the actual retained seed on a legal ring cell before the required transform. Separately,8153's refund child379610 requires child level≥1; its parent378135 reads actual target8209. Enabled8209 producers include378017 on upgrade state8205, so a plain unupgraded doll with8209=0 is a legitimate negative refund control.
 
-The dependency probe identifies the 8138 exception precisely: effect 378022 computes state parameters `[3624, -1, -1]` at container level zero, while its native criterion requires container level at least two. Native eWu calculation stores a signed short before criteria evaluation; rejecting that intermediate calculation prematurely aborted the cast. The correction allows signed levels **only during preparation**. Application retains the existing negative-level rejection, and dispatcher order is unchanged. The focused regression module tests signed calculation, false-criterion skipping, and atomic rejection when a negative application actually qualifies. Actual 8138 and shared state regressions are pending terminal validation.
+The recursive owner contract is now explicit and reusable: `verified_native_owner_root` follows validated Qp area owners and actual actor-controller authority, rejects malformed/unknown/cyclic chains, and normalizes both sides of eOv's own-area comparison. This matters when an area is created by an NPC summon rather than directly by its controller. Four generic geometry methods passed locally, including an NPC-owned summon-created area, own/foreign/self comparisons, and malformed/cycle rejection. Frozen final source hashes: state managers `ed0ccb21…`, area queries `c1b2afe1…`, runtime adapter `96cbe1a5…`; geometry tests `1156c905…`. Final shared/native aggregate execution is queued.
 
-5356 was a source-context mismatch rather than a proven missing state route: native spell 930's roots do not reach the Enganchadora state 8190, while spell 934's roots 378057/378065 do reach producers 378061/378069. Both variants use profile 3751. The action fixture now creates its actual 934 variant and preserves the state prerequisite. This corrected scenario is pending execution.
+## Coherent current Sadida aggregate
 
-The Voodoll/seed sequence fails at effect 377823, caster 7, target 70 (the selected seed-area identity), before the intended 8140 action. Investigation concerns the lifetime of an actual selected area PV across ordered siblings after Qs unregistration. Unknown recipients must continue to reject; no permanent fake area or null-recipient fallback is authorized by this finding.
+The complete current19-module Sadida aggregate passed43/43 methods, zero failures, errors or skips: `.runtime/remaining-six-refresh-20261010/sadida-owned-aggregate-active677.log`. Catalog start/end are identical at `677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d`. Collection filters each test class/method by its defining module/class namespace, preventing imported fixture TestCases from inflating the count. Test-module hashes are identical before/after (`sadida-pre-aggregate-hashes.txt`, `sadida-post-aggregate-hashes.txt`). This is coherent automated scoped evidence; the passive coverage matrix still distinguishes exact asserted branches from outstanding semantic interpretation, and client manual acceptance remains separate.
 
-## Actual selected PV lifetime correction under validation
+8151's final runtime-only observer positively resolves the area-ledger contract: actual379581 applies3624 level3, retained UID148, to seed-area PV25 at(-7,-8), then the authored area stage changes1855→1853. The handler returns true. Matched baseline377931 applies level2 and later stacks to level4. The observer records29 class304 calls/33 receipts on unchanged677. Absence from the player's ledger is therefore expected: the state belongs to the selected area PV. The passive matrix now records the actual state/stage delta, superseding the earlier unresolved owner-ledger interpretation.
 
-An ordered native group holds its selected PV object while its children execute. Unregistering that area's Qs membership does not turn the already selected object into an unknown recipient for later siblings. The shared correction now scopes the validated selected caster/target area rows to ordered-group execution, releasing them on both normal completion and exceptions. It does not restore spatial membership or persist a new retired-area entry.
+8150 now has measurable matched-control evidence beyond effect receipts. Runtime-only `probe_sadida_8150_numeric.py` makes the same three actual8137 casts on7053-only and8150+7053 fixtures. Baseline has zero trees and seed/stage-area counts1→2→3. With8150, actual tree and1850-field counts are1→2→2; the third cast respects the authored two-tree cap and instead leaves a genuine1835/1855 seed. The first actual tree has HP411 and8217L1; AP/MP remain6/3 in both branches. The unchanged677 artifact is `sadida-8150-numeric-observation.json`. These observations are promoted into `test_sadida_wild_push_semantics.py`, including native QI ownership, empty tree action book, full positive HP, owner isolation, exact counts, and matched resource preservation; its independent permanent-test rerun is queued.
 
-Direct identity predicates (`IsSpecificArea`, `IsAreaType`, and owned-area identity) can resolve that actual selected object inside the scope. Cell scans and spatial predicates still enumerate only registered active areas. Unknown identities continue to reject. This distinction is covered by focused scope tests; real Voodoll/seed and shared regression gates remain pending.
 
-The corrected native action matrix, including actual 8138 and spell-934-derived 5356, passed in `sadida-actions-signed-final.log`. The initially added signed-calculation unit fixture used the wrong fight owner; its owner field was corrected before the final rerun. That earlier fixture error is not a production failure.
+The permanent8150 numeric/count regression now passes in the updated44-method aggregate run (`test_sadida_wild_push_semantics.py`, frozen hash `ee5732f8…`). Its matched seed/tree/area counts, two-tree cap fallback, owned QI slots,8217L1, HP, empty books and resource assertions are qualified. This focused PASS does not convert the updated full aggregate into a clean result: the8151 collector needed a separate no-manager stage-area correction, and concurrent source writers caused a checksum-drift gate error. A coherent frozen aggregate rerun remains required; the previous43/43 stable aggregate above remains the last fully clean aggregate recorded here.
 
-The post-correction focused batch `sadida-final-scope-actions-final.log` ran 17 methods: 16 passed and one failed. Passed: four selected-PV scope tests, three signed-calculation tests, four state-runner tests, two null-area-Qf tests, the full actual doll-action matrix (including 8138/5356), Superpoderosa 5153's actual enemy damage, and independent second-fight book/QI isolation. The remaining Voodoll→seed→Zarza integration still reports an unregistered non-null criterion recipient; the scope correction is therefore not represented as closing that scenario. A fresh bounded diagnostic is queued after the shared regression gate to identify the remaining reference.
+
+## Actual Superpoderosa3746 role-action completion
+
+The runtime-only staged module
+`.runtime/sadida-fullscope-20261011/test_sadida_super_actions_candidates.py`
+(SHA2566c12ee04438507eca7505b1fdff988be906a08ebaaecefca42d98280cfa2c19b)
+passes its single method with all six semantic subcases. It is included in the
+7/7 passing combined run
+`.runtime/steamer-review-20261011/extensions-corrected-current.log`, with
+unchanged catalog start/end677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d.
+The count7 refers to combined methods, not seven new Superpoderosa scenarios.
+
+Every case uses actual8137 seed placement, its source elemental transformation,
+a real next-player turn, then owned911 acquisition of profile3746 with the
+required role state. No role/state/event is injected. Actual authoritative LOS
+remains enabled. The player first moves on the verified edge(-8,-7)→(-8,-8),
+then casts911 linearly at(-7,-8), beside the original role doll(-7,-7). This
+avoids the original doll-blocked straight ray without weakening911's native
+linear/free-cell/LOS/range1..2 restrictions.
+
+|Action|Role source|Actual asserted semantic result|
+|---:|---:|---|
+|5023|921|Hostile HP decreases after a real Superpoderosa move to a legal aligned firing cell.|
+|5021|918|Actual allied recipient HP increases.|
+|5026|932|Hostile receives native states3617,3309,8259.|
+|5024|925|Self-explosion kills the Superpoderosa, retires its QI slot to−1, and damages the actual nearby hostile.|
+|5025|930|Actual hostile position changes after ordinary Superpoderosa movement.|
+|5356|934|Actual protected ally receives3681 and the Superpoderosa receives3682.|
+
+Three initial failures were source-invalid contexts, not proven engine gaps:
+5023 is native linear and needs alignment;5356 has exact range1 and must remain
+adjacent to the already-moved player;5024's damage children use native anw
+`cross-h1b1-g1d1`, so a hostile at distance3 is outside its explosion. The final
+fixture uses ordinary paid movements and retains every original positive
+damage/healing/state/displacement/death assertion. Source metadata for5024 is
+`.runtime/sadida-fullscope-20261011/super-5024-source.json`. This supplements the
+earlier actual5153 attack and source-owned action-book evidence; it does not
+replace the final integrated gate or client reconnect acceptance. No frozen
+server paths or services were changed for this correction.

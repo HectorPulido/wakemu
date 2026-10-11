@@ -173,6 +173,8 @@ def _normalize_fight_context(context):
         "stele_loot_enabled",
         "stasis_level",
         "score",
+        "dungeon_drop_rate_bp",
+        "selected_stele_item_references",
     }
     if set(context) - allowed:
         raise ValueError("Fight drop context has unknown fields")
@@ -185,8 +187,25 @@ def _normalize_fight_context(context):
     for key in ("stasis_level", "score"):
         if key in context:
             normalized[key] = _integer(
-                context[key], f"fight drop {key}", 0, 2**31 - 1
+                context[key],
+                f"fight drop {key}",
+                0,
+                (2**63 - 1 if key == "score" else 2**31 - 1),
             )
+    if "selected_stele_item_references" in context:
+        references = context["selected_stele_item_references"]
+        if not isinstance(references, (list, tuple)) or len(references) > 10000:
+            raise ValueError("Invalid selected Stele item references")
+        selected = [
+            _integer(ref, "selected Stele item", 1, 2**31 - 1) for ref in references
+        ]
+        if len(selected) != len(set(selected)):
+            raise ValueError("Duplicate selected Stele item reference")
+        normalized["selected_stele_item_references"] = sorted(selected)
+    if "dungeon_drop_rate_bp" in context:
+        normalized["dungeon_drop_rate_bp"] = _integer(
+            context["dungeon_drop_rate_bp"], "dungeon drop rate", 1, 71000
+        )
     return normalized
 
 
@@ -200,8 +219,15 @@ def _row_is_eligible(row, *, fight_context, effective_prospection):
     if row.get("complex_criteria") is not False:
         return False
     conditions = row.get("conditions")
+    # A selected reward subset authorizes only its actual native item rows.
+    # The legacy Boolean cannot unlock every Stele-capable monster row.
+    row_context = dict(
+        fight_context,
+        stele_loot_enabled=row.get("reference_id")
+        in fight_context.get("selected_stele_item_references", ()),
+    )
     if not isinstance(conditions, list) or not all(
-        _condition_matches(condition, fight_context) for condition in conditions
+        _condition_matches(condition, row_context) for condition in conditions
     ):
         return False
     minimum_prospection = row.get("native_csF")
@@ -323,6 +349,9 @@ def plan_player_drops(
         conquest_rate_bp=conquest_rate_bp,
         drop_rate_bp=drop_rate_bp,
         breach_bonus_bp=breach_bonus_bp,
+    )
+    modifiers *= Decimal(fight_context.get("dungeon_drop_rate_bp", 10000)) / Decimal(
+        10000
     )
     if not can_loot:
         return ()
@@ -527,8 +556,12 @@ def resolve(
         rng=rng,
         catalog=catalog,
     )
+    from .drop_allocation import allocate
+
+    decisions, allocation = allocate(db, fight_id, character_id, decisions)
     snapshot = {
         "algorithm": ALGORITHM,
+        "allocation": allocation,
         "policy_version": settings["version"],
         "source_catalog_sha256": catalog["source_sha256"],
         "account_id": account_id,

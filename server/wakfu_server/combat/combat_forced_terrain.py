@@ -29,8 +29,19 @@ class HeightPolicy(Mapping):
 
 @lru_cache(maxsize=4)
 def compact_index(map_id, radius, jump):
+    if (radius, jump) == (0, 4):
+        from wakfu_server.prepared_geometry import published_artifact
+
+        prepared = published_artifact(map_id)
+        if prepared is not None and prepared.forced_index is not None:
+            return prepared.forced_index
     path = DATA_ROOT / "forced-transitions" / f"{map_id}.json"
     data = protocol_catalog.load(path)
+    return prepare_compact_index(data, map_id, radius, jump)
+
+
+def prepare_compact_index(data, map_id, radius, jump):
+    """Validate the complete native export for runtime or offline preparation."""
     if (
         data.get("schema_version"),
         data.get("map_id"),

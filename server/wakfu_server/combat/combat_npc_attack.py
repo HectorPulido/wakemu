@@ -256,6 +256,9 @@ def npc_runtime_catalog(*, imported=True):
         if not isinstance(effects, dict):
             raise ValueError("Missing preserved native NPC baseline effects")
         document = {"effects": effects}
+    from wakfu_server.maps import dungeon_scaling_catalog
+
     return CompiledEffects(
-        _merge_effects(base.source_effects, document), base.source_states
+        dungeon_scaling_catalog.merge(_merge_effects(base.source_effects, document)),
+        base.source_states,
     )

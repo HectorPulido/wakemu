@@ -424,6 +424,14 @@ class AdminSettings:
             _range(value["request_dedupe_ms"], 0, 60000, "request_dedupe_ms")
             if value["refund_on_decrease"] is not False:
                 raise ValueError("Socket bonus refunds are not implemented")
+        if name == "planting_level_bonus":
+            from wakfu_server.planting_level_policy import validate
+
+            validate(value)
+        if name == "weather_simulation":
+            from wakfu_server.territory_weather_simulation import validate_policy
+
+            validate_policy(value)
         if name == "weather_local_baseline":
             from wakfu_server.territory_weather import _validated_baseline
 

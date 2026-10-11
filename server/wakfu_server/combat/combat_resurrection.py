@@ -71,6 +71,10 @@ def complete_resurrection(fight, target, prepared, *, action_id, packets):
             fight.native_base_turn_order = tuple(base)
     set_global_fighter_status(fight, target.id, "IN_PLAY")
     apply_native_fighter_state_transition(target, 1)
+    # Explicit server scheduling policy: a revived fighter has not completed
+    # a turn that could replenish its spent AP/MP. Restore its budget here,
+    # before subsequent effects can impose losses; never refill at turn start.
+    fight._refill_turn_resources(target)
     fight._event("resurrection", actor_id=target.id, hp=target.hp)
     packets.append(
         (12727, struct.pack(">iiiqB", fight.id, action_id, -1, target.id, 1))

@@ -312,6 +312,19 @@ def make_server(service, host="127.0.0.1", port=0, credentials=None, static_dir=
                         result = service.create_account(data, operator)
                     elif (
                         resource == "accounts"
+                        and self.command == "POST"
+                        and identity is not None
+                        and len(parts) == 3
+                        and parts[2] in ("ban", "unban")
+                    ):
+                        method = (
+                            service.ban_account
+                            if parts[2] == "ban"
+                            else service.unban_account
+                        )
+                        result = method(identity, data, operator)
+                    elif (
+                        resource == "accounts"
                         and self.command == "PATCH"
                         and identity is not None
                     ):

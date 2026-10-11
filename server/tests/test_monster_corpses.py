@@ -81,14 +81,20 @@ class MonsterCorpsesTests(unittest.TestCase):
                         {"d": 81, "clT": 'not IsDead("target")'},
                     ],
                 },
-                {"ref": 999, "collect_actions": [{"d": 92, "clT": ""}]},
+                {
+                    "ref": 999,
+                    "collect_actions": [
+                        {"d": 92, "clT": ""},
+                        {"d": 93, "clT": "Unsupported()"},
+                    ],
+                },
             ]
         }
         combat_monster_world.corpse_collect_actions.cache_clear()
         self.addCleanup(combat_monster_world.corpse_collect_actions.cache_clear)
         with patch("wakfu_server.native_catalog.load", return_value=catalog):
             self.assertEqual(combat_monster_world.corpse_collect_actions(5525), ())
-            self.assertEqual(combat_monster_world.corpse_collect_actions(999), (92,))
+            self.assertEqual(combat_monster_world.corpse_collect_actions(999), (93,))
         npc = member()
         with patch.object(
             combat_monster_world,
@@ -123,6 +129,13 @@ class MonsterCorpsesTests(unittest.TestCase):
         disabled = combat_monster_world.corpse_collect_actions(1)
         self.assertNotIn(3723, disabled)  # No fake "collected recently" state.
         self.assertNotIn(3722, disabled)
+        self.assertNotIn(3724, disabled)
+        corpse_seed = action(1, 3724)
+        self.assertEqual(
+            (7361, ""), (corpse_seed["item_ref"], corpse_seed["condition"])
+        )
+        validate_action(corpse_seed, dead, profession_level=0)
+        validate_action(corpse_seed, living, profession_level=0)
 
     def fight(self, roster, dead=(), controlled=()):
         actors = {

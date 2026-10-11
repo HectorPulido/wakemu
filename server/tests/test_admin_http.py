@@ -28,6 +28,14 @@ class FakeAdminService:
     def dashboard(self):
         return {"counts": {"accounts": 1}, "online": []}
 
+    def ban_account(self, account_id, data, operator):
+        self.calls.append(("ban", account_id, data, operator))
+        return {"id": account_id, "banned": True}
+
+    def unban_account(self, account_id, data, operator):
+        self.calls.append(("unban", account_id, data, operator))
+        return {"id": account_id, "banned": False}
+
     def create_account(self, data, operator):
         return {"username": data["username"], "operator": operator}
 
@@ -138,6 +146,26 @@ class AdminHttpTests(unittest.TestCase):
         self.assertIn("HttpOnly", cookie)
         self.assertIn("SameSite=Strict", cookie)
         return payload
+
+    def test_account_ban_routes_require_session_and_csrf_and_record_operator(self):
+        for action in ("ban", "unban"):
+            status, _, _ = self.request(
+                "POST", "/api/accounts/42/" + action, {"reason": "Fixture"}
+            )
+            self.assertEqual(status, 401)
+        self.login()
+        for action in ("ban", "unban"):
+            path = "/api/accounts/42/" + action
+            status, _, _ = self.request("POST", path, {"reason": "Fixture"})
+            self.assertEqual(status, 403)
+            status, payload, _ = self.request(
+                "POST", path, {"reason": "Fixture"}, csrf=self.csrf
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(payload["banned"], action == "ban")
+            self.assertEqual(
+                self.service.calls[-1], (action, 42, {"reason": "Fixture"}, "operator")
+            )
 
     def test_api_requires_session_and_mutations_require_csrf_then_allow_logout(self):
         status, _payload, _headers = self.request("GET", "/api/accounts")

@@ -813,6 +813,7 @@ class NativeOracle:
                         actor_id=moving_actor.id,
                         from_cell=before,
                         to_cell=cell,
+                        action_id=private.action_id + 1,
                     )
                     dispatcher.native_area_events.movement(
                         moving_actor.id, from_cell=before, to_cell=cell

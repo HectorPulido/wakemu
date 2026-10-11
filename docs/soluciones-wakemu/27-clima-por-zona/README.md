@@ -1,5 +1,10 @@
 # 27. Clima por territorio
 
+> Closed by Hector on2026-10-11: "Clima ok". The deployed regional weather/forecast implementation and109-test native verification are accepted. Earlier pending-acceptance wording below is historical.
+
+> Current release2026-10-11: complete shared World/AI/ecology/admin deployed and automatically verified. Migration123; stable window released08:07 UTC. [Deployment evidence](../../reports/SYSTEMS-DEPLOYMENT-20261011.md). Graphical acceptance remains pending; any earlier prepared/not-deployed wording below is historical. Native planting bonus stays disabled pending its separate native-display acceptance.
+
+
 El servidor mantiene clima compartido por territorio, conserva el estado al reconectar y aplica transiciones explícitas desde PostgreSQL. La cobertura general activa usa la política local `ABSENT`; no copia el único snapshot nativo a otras regiones ni se presenta como clima upstream.
 
 ## Estado actual
@@ -30,3 +35,22 @@ La ruta de fuente envía el payload configurado o un paquete vacío de limpieza 
 ### Despliegue integrado verificado
 
 Imagen `e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742` desplegada en world; Docker healthy y `/health` PostgreSQL correcto. Migraciones057–059 aplicadas;388 patrones de sublimación en SQL. Gate de la imagen198/198 aprobado y TLS de combate individual/compartido, sublimaciones y clima acreditados. Respaldo previo privado `.runtime/backups/pre-integrated-20261007.dump`, archivo CUSTOM con793 entradas TOC. Aceptación visual pendiente; no implica cierre completo del issue.
+
+## Regional simulation follow-up — 11 October
+
+Source now includes migration118 and a configurable deterministic regional
+weather model, with coherent five-day forecasts, seasons, instance-scoped
+publication, atomic state/forecast updates, restart catch-up and first-entry
+bootstrap. Operator snapshots, explicit transitions and separately configured
+forecasts retain precedence. These are documented emulator rules; no official
+weather probabilities or unverified physical calibration are claimed. Native
+consumer review maps all 13948 temperature/wind fields, and the automatic encoder
+now derives them from the same model as the forecast. Seasonal forecast clamp
+bounds match the modeled range. Explicit operator snapshots are preserved.
+
+Luna's combined planting/weather gate passed 109/109 without skips, and the
+installed native weather consumer oracle passed. Source is READY as of
+2026-10-11 07:20:14 UTC. Complete world/ecology deployment and graphical
+weather-panel acceptance remain pending. See the
+[implementation and complete acceptance](../../reports/REGIONAL-WEATHER-20261011.md).
+Historical statements above describe earlier versions.

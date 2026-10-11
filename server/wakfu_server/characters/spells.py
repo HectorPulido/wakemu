@@ -57,7 +57,8 @@ def encode_deck(active=(), passive=(), level_cap=-1):
 
 
 def default_deck(character):
-    spells = available_spells(character["breed"], character["level"])
+    level = character.get("effective_level", character["level"])
+    spells = available_spells(character["breed"], level)
     active = [s["id"] for s in spells if s["kind"] == "active"][:6]
     return encode_deck(active, (), -1)
 

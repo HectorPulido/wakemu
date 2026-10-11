@@ -8,7 +8,9 @@ import time
 import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
+
+from wakfu_server.shop_assets import item_icon_url, serve_item_icon
 
 LOG = logging.getLogger(__name__)
 
@@ -19,6 +21,7 @@ def collection(values):
 
 def article(row):
     ident = str(row["id"])
+    icon = item_icon_url(row.get("item_ref", row.get("item_id")))
     price = {
         "amount": row["price_kamas"],
         "original_amount": row["price_kamas"],
@@ -32,7 +35,14 @@ def article(row):
         "short_description": row.get("description", ""),
         "subtitle": "Wakemu · 1 ogrine = 1 kama",
         "type": "CLASSIC",
-        "media": [],
+        "media": [
+            {
+                "discriminator": "MediaImage",
+                "media_image": {"image": {"uri": icon}, "key": "main", "type": "image"},
+            }
+        ]
+        if icon
+        else [],
         "single_references": [
             {
                 "line_number": 1,
@@ -43,7 +53,7 @@ def article(row):
                         "id": ident,
                         "name": row["name"],
                         "description": row.get("description", ""),
-                        "images": [],
+                        "images": [{"uri": icon, "key": "main"}] if icon else [],
                         "stock_status": "IN_STOCK",
                         "definition": {
                             "id": ident,
@@ -90,6 +100,13 @@ class ShopAdapter:
         self.lock = threading.RLock()
 
     def dispatch(self, method, path, body, token, api_key=""):
+        if urlsplit(path).path == "/json/Ankama/v5/Account/CreateToken":
+            parameters = parse_qs(urlsplit(path).query)
+            if method != "GET" or parameters.get("game") != ["99"]:
+                raise ValueError("Unsupported intergame token request")
+            from wakfu_server.intergame_domain import Intergame
+
+            return Intergame(self.domain.store).issue_token(api_key)
         if path.split("?")[0] == "/json/Ankama/v5/Shop/GetAccessTokenFromAnkamaApiKey":
             self.domain.authenticate(api_key)
             return {"token": api_key}
@@ -108,8 +125,17 @@ class ShopAdapter:
         if len(parts) < 4 or parts[1] != "shops" or parts[2].upper() != "WAKFU_INGAME":
             raise LookupError("Unknown shop endpoint")
         route = "/".join(parts[3:])
-        rows = self.domain.catalog()
-        articles = [article(row) for row in rows]
+        if hasattr(self.domain, "public_catalog"):
+            snapshot = self.domain.public_catalog()
+            rows, category_rows = snapshot["articles"], snapshot["categories"]
+        else:
+            rows, category_rows = self.domain.catalog(), self.domain.categories()
+        category_icons = {}
+        for row in rows:
+            if row["category"] not in category_icons:
+                category_icons[row["category"]] = item_icon_url(
+                    row.get("item_ref", row.get("item_id"))
+                )
         categories = [
             {
                 "id": str(row["id"]),
@@ -119,9 +145,13 @@ class ShopAdapter:
                 "parent_category_id": "0",
                 "level": 0,
                 "has_children": False,
-                "image": {"uri": "http://127.0.0.1:18083/shop-icon.png"},
+                "image": {
+                    "uri": category_icons.get(
+                        row["key"], "http://127.0.0.1:18083/shop-icon.png"
+                    )
+                },
             }
-            for row in self.domain.categories()
+            for row in category_rows
         ]
 
         def find_category(ident):
@@ -130,9 +160,20 @@ class ShopAdapter:
                 or self.missing()
             )
 
-        def scoped_articles(ident):
+        def scoped_rows(ident):
             selected = find_category(ident)
-            return [article(row) for row in rows if row["category"] == selected["key"]]
+            return [row for row in rows if row["category"] == selected["key"]]
+
+        def page_of(selected_rows, default_limit=20):
+            limit = max(1, min(100, int(body.get("limit", default_limit))))
+            page = max(1, int(body.get("page", 1)))
+            return {
+                "count": len(selected_rows),
+                "values": [
+                    article(row)
+                    for row in selected_rows[(page - 1) * limit : page * limit]
+                ],
+            }
 
         if method == "GET" and route == "categories":
             return collection(categories)
@@ -164,11 +205,21 @@ class ShopAdapter:
                 ]
             )
         if route.endswith("promoteGroup"):
-            targets = (
-                scoped_articles(route.split("/")[1])
-                if route.startswith("categories/")
-                else articles
-            )
+            if route.startswith("categories/"):
+                featured_rows = scoped_rows(route.split("/")[1])[:24]
+            else:
+                # A small representative home section; the full catalog stays paginated.
+                buckets = {value["key"]: [] for value in categories}
+                for row in rows:
+                    if row["category"] in buckets and len(buckets[row["category"]]) < 3:
+                        buckets[row["category"]].append(row)
+                featured_rows = [
+                    bucket[index]
+                    for index in range(3)
+                    for bucket in buckets.values()
+                    if len(bucket) > index
+                ][:24]
+            targets = [article(row) for row in featured_rows]
             return {
                 "id": "wakemu-home",
                 "promote_sections": [
@@ -185,16 +236,9 @@ class ShopAdapter:
             }
         if route == "catalog-pages:get" and method == "POST":
             category_id = body.get("category_id")
-            selected_articles = (
-                articles if category_id is None else scoped_articles(category_id)
-            )
-            limit = max(1, min(100, int(body.get("limit", 20))))
-            page = max(1, int(body.get("page", 1)))
+            selected_rows = rows if category_id is None else scoped_rows(category_id)
             return {
-                "articles": {
-                    "count": len(selected_articles),
-                    "values": selected_articles[(page - 1) * limit : page * limit],
-                },
+                "articles": page_of(selected_rows),
                 "possible_sorts": [],
                 "current_sort": {
                     "discriminator": "VirtualPriceSort",
@@ -203,15 +247,15 @@ class ShopAdapter:
             }
         if route == "articles:search" and method == "POST":
             query = str(body.get("text", "")).casefold()
-            return collection(
-                [value for value in articles if query in value["name"].casefold()]
+            return page_of(
+                [row for row in rows if query in row["name"].casefold()], 100
             )
         if route == "articles" and method == "GET":
-            return collection(articles)
+            return page_of(rows, 100)
         if route == "articles:get-by-key" and method == "POST":
             return (
                 next(
-                    (value for value in articles if value["key"] == body.get("key")),
+                    (article(row) for row in rows if row["key"] == body.get("key")),
                     None,
                 )
                 or self.missing()
@@ -219,7 +263,11 @@ class ShopAdapter:
         if route.startswith("articles/") and method == "GET":
             return (
                 next(
-                    (value for value in articles if value["id"] == route.split("/")[1]),
+                    (
+                        article(row)
+                        for row in rows
+                        if str(row["id"]) == route.split("/")[1]
+                    ),
                     None,
                 )
                 or self.missing()
@@ -373,6 +421,8 @@ def make_server(domain, host="0.0.0.0", port=18083):
             LOG.info("shop %s %s", self.command, urlsplit(self.path).path)
 
         def handle_request(self):
+            if serve_item_icon(self):
+                return
             if urlsplit(self.path).path == "/shop-icon.png":
                 data = base64.b64decode(
                     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
@@ -432,6 +482,6 @@ def make_server(domain, host="0.0.0.0", port=18083):
             self.end_headers()
             self.wfile.write(data)
 
-        do_GET = do_POST = do_PUT = do_DELETE = handle_request
+        do_GET = do_POST = do_PUT = do_DELETE = do_HEAD = handle_request
 
     return ThreadingHTTPServer((host, port), Handler)

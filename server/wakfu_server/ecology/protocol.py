@@ -7,7 +7,7 @@ MAX_BODY_BYTES = 256 * 1024
 MAX_RESPONSE_BYTES = 1024 * 1024
 MAX_PROPOSALS = 16
 MAX_SCOPES = 64
-DOMAINS = frozenset(("plants", "mobs", "weather", "population"))
+DOMAINS = frozenset(("plants", "mobs", "weather", "population", "bonuses"))
 TERMINAL_STATUSES = frozenset(("applied", "duplicate", "stale"))
 
 

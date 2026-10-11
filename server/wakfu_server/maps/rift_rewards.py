@@ -8,6 +8,7 @@ from decimal import Decimal
 from hashlib import sha256
 import json
 import secrets
+from copy import deepcopy
 
 from psycopg.types.json import Jsonb
 from psycopg.pq import TransactionStatus
@@ -46,7 +47,7 @@ def validate_policy(policy):
         raise ValueError("Unsupported rift losses or reward pools")
     names = set()
     for pool in policy["pools"]:
-        if not isinstance(pool, dict) or set(pool) != {
+        if not isinstance(pool, dict) or set(pool) - {"source"} != {
             "name",
             "category",
             "references",
@@ -65,8 +66,18 @@ def validate_policy(policy):
         names.add(pool["name"])
         if pool["category"] not in ("item", "appearance", "enchantment"):
             raise ValueError("Invalid rift reward category")
+        source = pool.get("source", "allowlist")
+        if source not in ("allowlist", "native_rift_monsters"):
+            raise ValueError("Invalid rift reward source")
+        if source == "native_rift_monsters" and pool["category"] != "item":
+            raise ValueError("Native monster source requires ordinary item category")
         refs = pool["references"]
-        if not isinstance(refs, list) or not refs or len(refs) > 1024:
+        if (
+            not isinstance(refs, list)
+            or len(refs) > 32768
+            or source == "allowlist"
+            and not refs
+        ):
             raise ValueError("Invalid rift reward allowlist")
         for ref in refs:
             _int(ref, "reference", 1, 2147483647)
@@ -98,6 +109,8 @@ def plan(policy, result, *, rng=secrets.randbelow):
         return _int(rng(limit), "random draw", 0, limit - 1)
 
     for index, pool in enumerate(policy["pools"]):
+        if not pool["references"]:
+            raise ValueError("Rift native reward pool must be resolved before drawing")
         for attempt in range(
             min(policy["max_rolls_per_pool"], waves // pool["every_waves"])
         ):
@@ -119,14 +132,96 @@ def plan(policy, result, *, rng=secrets.randbelow):
     return draws
 
 
+def resolve_native_pools(db, policy, species_refs, *, catalog=None):
+    """Freeze physically deliverable native monster loot into local item pools.
+
+    Native identities and criteria are authoritative; pool frequency/chance remain
+    the configured local balance. No monster drop probability is reinterpreted as
+    a rift probability. Complex criteria, external tables, prospecting-gated items
+    and context-dependent rows without proven authority are excluded.
+    """
+    from wakfu_server import combat_drops
+    from wakfu_server.inventory_move import STACKS
+    from wakfu_server.combat_drop_delivery import _template_binding
+
+    validate_policy(policy)
+    frozen = deepcopy(policy)
+    native = [p for p in frozen["pools"] if p.get("source") == "native_rift_monsters"]
+    if not native:
+        return frozen
+    if (
+        not isinstance(species_refs, (tuple, list))
+        or not species_refs
+        or any(type(ref) is not int or ref <= 0 for ref in species_refs)
+    ):
+        raise ValueError("Native reward pool requires verified rift species")
+    catalog = combat_drops.native_drop_catalog() if catalog is None else catalog
+    candidates = set()
+    for species in species_refs:
+        rows = catalog["monsters"].get(species)
+        if rows is None:
+            raise ValueError("Rift species has no native loot catalog")
+        for row in rows:
+            if (
+                combat_drops._row_is_eligible(
+                    row,
+                    fight_context=dict(in_dungeon=False, in_infinite_waves=True),
+                    effective_prospection=0,
+                )
+                and combat_drops._decimal(
+                    row.get("probability"),
+                    "native drop probability",
+                    Decimal(0),
+                    Decimal(1),
+                )
+                > 0
+            ):
+                ref = row.get("reference_id")
+                if type(ref) is int and ref in STACKS:
+                    candidates.add(ref)
+    # Ordinary pools cannot bypass cosmetic learning or mount authority.
+    excluded = {
+        r["reference"]
+        for r in db.execute(
+            "SELECT reference FROM mount_models WHERE reference=ANY(%s)",
+            (sorted(candidates),),
+        ).fetchall()
+    }
+    excluded.update(
+        r["item_ref"]
+        for r in db.execute(
+            "SELECT item_ref FROM native_cosmetic_learning_actions WHERE item_ref=ANY(%s)",
+            (sorted(candidates),),
+        ).fetchall()
+    )
+    references = []
+    for ref in sorted(candidates - excluded):
+        try:
+            enum, _, _ = _template_binding(ref)
+        except ValueError:
+            continue
+        if enum in (
+            "NOT_BOUND",
+            "BOUND_ON_PICKUP_TO_ACCOUNT",
+            "BOUND_ON_PICKUP_TO_CHARACTER",
+        ):
+            references.append(ref)
+    if not references:
+        raise ValueError("Rift native reward pool has no supported eligible items")
+    for pool in native:
+        pool["references"] = list(references)
+    validate_policy(frozen)
+    return frozen
+
+
 def _validate_native(db, policy):
     from wakfu_server.inventory_move import STACKS
     from wakfu_server.combat_drop_delivery import _template_binding
     from wakfu_server.socket_enchantment import (
         SHARD_MATERIAL_REFERENCE,
         _bonus_catalog,
-        _native_sublimation_pattern,
     )
+    from wakfu_server.items.sublimation_eligibility import pattern
 
     for pool in policy["pools"]:
         for ref in pool["references"]:
@@ -157,12 +252,15 @@ def _validate_native(db, policy):
                 )
             if cosmetic is not None and pool["category"] != "appearance":
                 raise ValueError("Learnable item requires appearance reward category")
-            if (
-                pool["category"] == "enchantment"
-                and ref != SHARD_MATERIAL_REFERENCE
-                and _native_sublimation_pattern(db, ref) is None
-            ):
-                raise ValueError("Unverified physical enchantment material")
+            if pool["category"] == "enchantment" and ref != SHARD_MATERIAL_REFERENCE:
+                try:
+                    attachment = pattern(db, ref)
+                except ValueError as error:
+                    raise ValueError(
+                        "Unverified physical enchantment material"
+                    ) from error
+                if attachment["kind"] != "BASIC":
+                    raise ValueError("Unverified physical enchantment material")
 
 
 def apply(db, run, result, *, store, eligible_character_ids, rng=secrets.randbelow):
@@ -201,7 +299,9 @@ def apply(db, run, result, *, store, eligible_character_ids, rng=secrets.randbel
     ).fetchone()
     if configured is None:
         raise ValueError("Missing rift reward policy")
-    policy = validate_policy(configured["value"])
+    policy = resolve_native_pools(
+        db, configured["value"], canonical["catalog"]["species_refs"]
+    )
     _validate_native(db, policy)
     if result["outcome"] != "won":
         return ()

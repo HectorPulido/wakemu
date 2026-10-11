@@ -25,7 +25,7 @@ Turret HP starts from its actual fresh1HP. Native1047 computes float32 maximum-H
 |6937|PASS: actual turret upgrades stop at2 with passive and exceed2 without; alternate-target branches pending|346150/345881 stop adding7649 at level2 with passive; actual upgrade targets required|
 |6940|PASS: SP-sensitive Microbot execution after natural7677 threshold; enemy-on-Microbot turn branch pending|3439961005/1037→343998 requires area385/978 at target;343859 additionally requires7677|
 |6942|Actual Ambush specialization scaling versus baseline|1083 growth0.5 versus1 without form7647; new special-passive test queued|
-|6943|Real incoming direct damage reduction with negative control|344028 damage2→3440291093−30, excluding indirect effect and6500|
+|6943|PASS: outgoing direct damage tradeoff versus no-passive control|344028 damage2→3440291093−30, excluding indirect effect and6500|
 
 No pending row above is certified complete. In particular, a matched Microbot conditional table does not by itself qualify6940's numeric/event consumers, and a registered turret does not qualify its upgrade or damage-to-heal behavior.
 
@@ -40,3 +40,9 @@ The six-method special/incoming batch completed with6931,6940 SP context and6937
 -6943 actual NPC7962 dealt5 damage with and without the passive;344029 was absent. A diagnostic run captures the actual registered344028 subscription and damage phase metadata. This remains an unresolved execution result, not a certified source bug or a permitted numeric expectation change.
 
 Latest terminal log: `.runtime/remaining-six-refresh-20261010/steamer-special-incoming-final.log`. Corrected execution is queued serially with the catalog validator.
+
+### Advanced Mechanics correction
+
+Current PostgreSQL exact metadata for344028 establishes `event_reverse_subscription=true`, caster code2 and target code5.6943 (Advanced Mechanics / Mecánica Avanzada) is an outgoing direct-damage tradeoff, not an incoming damage reduction. The earlier NPC incoming attack was therefore a wrong positive fixture. The corrected actual owned6902 cast executes344029 and deals less damage with the passive, versus the same native cast without the passive. Delegated method `test_advanced_mechanics_reduces_actual_owned_direct_damage` passed1/1, zero skips/errors, source SHA67bd5e8937f762aafa52e5a63ca7df30e739daa498d288055176c5a4160a660c. Log: `.runtime/remaining-six-refresh-20261010/steamer-advanced-mechanics-final.log`.
+
+The Ambush7726 scaling consumer is dominated by343443 criterion`False`; an enabled positive must instead use native state7671 from water-turret7699, whose roots are343505/345058. No disabled Ambush damage branch is being activated to make a test pass.

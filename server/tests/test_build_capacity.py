@@ -889,6 +889,63 @@ class BuildCapacityTests(PostgresCase):
         reopened = self.reopen().character(account, char["id"])
         self.assertEqual((reopened["active_build_index"], reopened["hp"]), (1, 7))
 
+    def test_combat_selected_deck_survives_reopen_and_inactive_edit(self):
+        from wakfu_server.combat_session_adapter import CombatSessionAdapter
+        from wakfu_server.combat_state import Actor, Fight
+        from wakfu_server.spells import encode_deck
+
+        account = self.store.register("selected-deck-owner", "test-password")["id"]
+        character = self.store.create_character(account, "Selected Deck", breed=8)
+        identity = character["id"]
+        generation = self.store.begin_session(account)
+        self.store.select_character(account, generation, identity)
+        decks = {0: encode_deck([4778]), 1: encode_deck([4780])}
+        for index, deck in decks.items():
+            self.store.save_build(
+                account, generation, identity, index, dict(real_blobs(index), deck=deck)
+            )
+        with self.store.connection() as db:
+            health_policy.apply(db, self.store.character(account, identity, db), 7)
+        self.store.activate_build(account, generation, identity, 1, in_fight=False)
+        reopened_store = self.reopen()
+        reopened = reopened_store.character(account, identity)
+        before = (
+            reopened["hp"],
+            reopened["max_hp"],
+            reopened["build_selection_revision"],
+        )
+        # Editing build0 must not replace build1's deck or heal the active actor.
+        reopened_store.save_build(
+            account,
+            generation,
+            identity,
+            0,
+            dict(real_blobs(0), deck=encode_deck([4785])),
+        )
+        fight = Fight(
+            902,
+            [
+                Actor(identity, 0, (0, 0, 0), 7, 6, 3, 100, 1, account, True),
+                Actor(-200, 1, (3, 0, 0), 20, 4, 2, 1, 1),
+            ],
+            {(x, 0, 0) for x in range(4)},
+            {0: {(0, 0, 0)}, 1: {(3, 0, 0)}},
+        )
+        adapter = CombatSessionAdapter(self.reopen())
+        characters, selected_decks = adapter.player_sources(fight)
+        current = characters[identity]
+        self.assertEqual(current["active_build_index"], 1)
+        self.assertEqual(selected_decks[identity], decks[1])
+        self.assertEqual(
+            (current["hp"], current["max_hp"], current["build_selection_revision"]),
+            before,
+        )
+        reopened_store.activate_build(account, generation, identity, 0, in_fight=False)
+        characters, selected_decks = adapter.player_sources(fight)
+        self.assertEqual(characters[identity]["active_build_index"], 0)
+        self.assertEqual(selected_decks[identity], encode_deck([4785]))
+        self.assertEqual(characters[identity]["hp"], 7)
+
     def test_activation_wire_and_authoritative_selection(self):
         import struct
         from wakfu_server import builds

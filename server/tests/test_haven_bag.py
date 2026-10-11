@@ -10,6 +10,24 @@ from wakfu_server.haven_bag import (
 
 
 class HavenBagTests(unittest.TestCase):
+    def test_effective_public_room_policy_preserves_stored_management_data(self):
+        from wakfu_server.haven_bag import visit_permission_payload, decode_permissions
+
+        config = {
+            "locked": True,
+            "access": {
+                "groups": [{"group": 0, "rights": 1}],
+                "characters": [{"id": 12, "name": "Visitor", "rights": 0}],
+            },
+        }
+        body = visit_permission_payload(config)
+        self.assertEqual(
+            decode_permissions(struct.pack(">I", len(body)) + body),
+            (False, {"groups": [{"group": 0, "rights": 255}], "characters": []}),
+        )
+        self.assertTrue(config["locked"])
+        self.assertEqual(config["access"]["characters"][0]["rights"], 0)
+
     def test_occupied_optional_rooms_do_not_acquire_native_fixed_primary_flag(self):
         from wakfu_server.haven_bag_store import initial_layout
 
@@ -91,7 +109,7 @@ class HavenBagTests(unittest.TestCase):
         self.assertEqual(r.number("i"), 408)
         self.assertEqual((r.number("B"), r.number("B"), r.number("H")), (0, 0, 1))
         self.assertEqual(
-            (r.number("B"), r.number("B"), r.number("H"), r.number("B")), (0, 1, 0, 0)
+            (r.number("B"), r.number("B"), r.number("H"), r.number("B")), (0, 255, 0, 0)
         )
         r.finish()
 

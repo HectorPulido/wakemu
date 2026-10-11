@@ -1,6 +1,6 @@
 """Private garden admission and authoritative interior isolation."""
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from wakfu_server.haven_bag_garden import (
     active_character,
@@ -42,6 +42,56 @@ class HavenBagGardenTests(unittest.TestCase):
     def test_foreign_interior_rejected(self):
         with self.assertRaises(ValueError):
             active_character(self.character, [dict(self.character, instance_id=77)])
+
+    def test_guest_uses_visited_layout_but_retains_own_items_and_identity(self):
+        stored = dict(self.character, map_id=1134, instance_id=0)
+        visited = dict(self.character["haven_bag"], owner_id=77)
+        live = dict(
+            self.character,
+            instance_id=77,
+            haven_bag=visited,
+            haven_bag_visitor=True,
+            inventory_items=[{"uid": 999}],
+        )
+        current = active_character(stored, [live])
+        self.assertEqual((current["id"], current["account_id"]), (12, 4))
+        self.assertEqual(current["inventory_items"], [{"uid": 9}])
+        self.assertEqual(current["instance_id"], 77)
+        self.assertEqual(room_at(current, 7, 7)["index"], 4)
+        self.assertEqual(
+            authorize(
+                self.store, current, self.request, {}, {"monster_resource": False}
+            ),
+            0,
+        )
+        db = self.store.connection.return_value.__enter__.return_value
+        self.assertEqual(db.execute.call_args.args[1], (9, 77, 7, 7))
+
+    def test_guest_cannot_substitute_another_accounts_live_identity(self):
+        live = dict(self.character, account_id=999)
+        with self.assertRaisesRegex(ValueError, "account"):
+            active_character(self.character, [live])
+
+    def test_scalar_ecology_guest_resolves_visited_layout_from_instance(self):
+        live = {
+            key: self.character[key]
+            for key in ("id", "account_id", "map_id", "instance_id", "x", "y", "z")
+        }
+        live["instance_id"] = 77
+        layout = dict(self.character["haven_bag"], owner_id=77)
+        with patch("wakfu_server.haven_bag_store.load", return_value=layout) as load:
+            current = active_character(self.character, [live], store=self.store)
+        self.assertEqual(load.call_args.args[1], 77)
+        self.assertEqual(current["inventory_items"], self.character["inventory_items"])
+        self.assertEqual(room_at(current, 7, 7)["index"], 4)
+
+    def test_scalar_owner_snapshot_uses_durable_own_layout(self):
+        live = {
+            key: self.character[key]
+            for key in ("id", "account_id", "map_id", "instance_id", "x", "y", "z")
+        }
+        current = active_character(self.character, [live])
+        self.assertEqual(room_at(current, 7, 7)["index"], 4)
 
     def test_leaving_interior_restores_durable_location(self):
         stored = dict(self.character, map_id=1134, instance_id=0)

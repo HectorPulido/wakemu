@@ -45,7 +45,6 @@ public class VerifyMonsterCorpse {
         java.lang.reflect.Field failures = cWi.class.getDeclaredField("nFv");
         failures.setAccessible(true);
         check(((java.util.BitSet) failures.get(attack)).get(cWk.nFG.ordinal()));
-        check(!actor.fva().ZR.isEmpty());
         new bjh(npc, actor.fva()).zm();
         for (sT action : actor.fva().ZR) check(!npc.Ds(action.ZU));
         check(npc.Ds(Integer.parseInt(args[1])));

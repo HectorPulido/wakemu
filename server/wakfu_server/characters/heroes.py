@@ -303,6 +303,13 @@ def switch_main(store, account_id, generation, main_character_id, hero_id):
             "UPDATE sessions SET character_id=%s WHERE account_id=%s AND generation=%s",
             (hero_id, account_id, generation),
         )
+        from wakfu_server import health_store
+
+        # Switching the selected actor starts its idle health lifecycle, even
+        # when this hero has never been selected through the login screen.
+        health_store.initialize(
+            store, account_id, generation, hero_id, coefficient=1, db=db
+        )
         return dict(load_roster(db, store, account_id, hero_id), applied=True)
 
 

@@ -16,6 +16,7 @@ def should_rebuild_placement(fight, admitted_actors):
         admitted_actors
         or getattr(fight, "native_npc_initialization_receipts", {})
         or getattr(fight, "native_npc_ai_actors", frozenset())
+        or getattr(fight, "native_dungeon_scaling_receipt", None)
     )
 
 
@@ -81,7 +82,11 @@ def placement_messages(
     participants = []
     for actor in actors:
         stats, effects = actor_payloads[actor.id]
-        if actor.id in getattr(fight, "native_npc_initialization_receipts", {}):
+        if actor.id in getattr(
+            fight, "native_npc_initialization_receipts", {}
+        ) or actor.id in getattr(fight, "native_dungeon_scaling_receipt", {}).get(
+            "actor_ids", ()
+        ):
             from .combat_remote_effects import initial_npc_actor_effects
 
             effects = initial_npc_actor_effects(fight, actor.id)

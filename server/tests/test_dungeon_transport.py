@@ -17,6 +17,22 @@ class DungeonTransportResolutionTests(unittest.TestCase):
         )
         self.assertNotIn("instance_id", resolved["destination"])
 
+    def test_native_stasis_and_auto_downscale_are_preserved_for_configured_dungeon(
+        self,
+    ):
+        selected = dungeon_transport.resolve_request(
+            527, struct.pack(">qiBi", 26842, 2504, 1, 5)
+        )
+        self.assertEqual(
+            selected["difficulty_selection"], dict(stasis_level=5, competitive=True)
+        )
+        selected = dungeon_transport.resolve_request(
+            527, struct.pack(">qiBi", 26842, 2504, 0, 1)
+        )
+        self.assertEqual(
+            selected["difficulty_selection"], dict(stasis_level=1, competitive=False)
+        )
+
     def test_neo_alternative_and_nonconfigured_choice_are_not_intercepted(self):
         neo_body = struct.pack(">qiBi", 26842, 4759, 0, 2)
         other_teleporter = struct.pack(">qiBi", 26842, 2504, 0, 2)
@@ -43,11 +59,11 @@ class DungeonTransportResolutionTests(unittest.TestCase):
             dungeon_transport.resolve_request(527, b"short")
         with self.assertRaisesRegex(ValueError, "teleporter mode"):
             dungeon_transport.resolve_request(
-                527, struct.pack(">qiBi", 26842, 2504, 1, 2)
+                527, struct.pack(">qiBi", 26842, 2504, 2, 2)
             )
         with self.assertRaisesRegex(ValueError, "teleporter mode"):
             dungeon_transport.resolve_request(
-                527, struct.pack(">qiBi", 26842, 2504, 0, 1)
+                527, struct.pack(">qiBi", 26842, 2504, 0, 11)
             )
 
 

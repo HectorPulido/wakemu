@@ -159,7 +159,7 @@ def for_instance(store, instance_id, *, fight_in_progress):
         raise ValueError("Authoritative dungeon fight state is required")
     with store.connection() as db:
         row = db.execute(
-            "SELECT i.context_route_key,i.context_policy_version "
+            "SELECT i.context_route_key,i.context_policy_version,i.definition_id "
             "FROM dungeon_instances i WHERE i.instance_id=%s AND i.status='active'",
             (instance_id,),
         ).fetchone()
@@ -167,4 +167,39 @@ def for_instance(store, instance_id, *, fight_in_progress):
             raise ValueError("Dungeon instance has no pinned ProtoDungeon policy")
         configured = dungeon_instances.route(row["context_route_key"])
         policy = policy_version(db, configured, row["context_policy_version"])
-    return policy.proto_context(fight_in_progress=fight_in_progress)
+        from wakfu_server import dungeon_difficulty
+
+        chosen = dungeon_difficulty.selection(db, instance_id)
+        try:
+            native = dungeon_difficulty.definition(db, row["definition_id"])
+            available = native.get("difficulty_available", False)
+        except ValueError:
+            available = False
+        admitted = (
+            db.execute(
+                "SELECT 1 FROM dungeon_room_encounters WHERE instance_id=%s LIMIT 1",
+                (instance_id,),
+            ).fetchone()
+            is not None
+        )
+        context = policy.proto_context(fight_in_progress=fight_in_progress)
+        context.update(
+            difficulty_level=chosen["stasis_level"],
+            max_level=chosen["competitive_max_level"],
+            is_difficulty_available=available,
+            can_increase_difficulty=available
+            and not admitted
+            and not fight_in_progress,
+        )
+    return context
+
+
+def update_packet(store, instance_id, *, fight_in_progress):
+    """Installed cuC13339/ciZ replaces the instance's ProtoDungeon only."""
+    import struct
+    from .proto_dungeon import encode
+
+    context = encode(
+        for_instance(store, instance_id, fight_in_progress=fight_in_progress)
+    )
+    return 13339, struct.pack(">qi", instance_id, len(context)) + context

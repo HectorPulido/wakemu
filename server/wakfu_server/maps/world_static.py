@@ -54,8 +54,16 @@ def objects(map_id):
     return tuple(dict(row) for row in _MAPS.get(map_id, {}).values())
 
 
-def snapshots(map_id):
+def snapshots(map_id, *, position=None):
     """Hydrate evidenced installed objects on every map load and replay."""
+    if position is not None:
+        from wakfu_server.world_scene_sync import chunk, neighborhood, dynamic_snapshots
+
+        # Native cdE/bEC only register the interactive loader's 3x3 neighborhood.
+        # Far-map definitions cannot accept 13984 and otherwise log failed spawn
+        # errors. Keep all nearby states and the existing delayed replay policy;
+        # successful socket delivery does not acknowledge client attachment.
+        return dynamic_snapshots(map_id, neighborhood(chunk(position)))
     from wakfu_server.dungeon_instances import entry_object_ids
 
     rows = objects(map_id)

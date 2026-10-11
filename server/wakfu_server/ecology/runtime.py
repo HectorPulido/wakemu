@@ -1,7 +1,11 @@
 """Wire external proposals to short authoritative live-world operations."""
 
 
-def configure_domains(bridge):
+def configure_domains(bridge, *, regional_bonuses=None):
+    if regional_bonuses is None:
+        from wakfu_server.territory_bonus_updates import RegionalBonusUpdates
+
+        regional_bonuses = RegionalBonusUpdates(bridge.store, bridge.world)
     from wakfu_server import ecology_plants, ecology_mobs, ecology_weather
     from wakfu_server import ecology_population
 
@@ -177,6 +181,12 @@ def configure_domains(bridge):
         return {"status": result} if isinstance(result, str) else result
 
     bridge.handlers.update(
-        plants=plants, mobs=mobs, weather=weather, population=population
+        plants=plants,
+        mobs=mobs,
+        weather=weather,
+        population=population,
+        bonuses=lambda proposal: regional_bonuses.apply(
+            proposal, world_epoch=bridge.epoch
+        ),
     )
     return bridge

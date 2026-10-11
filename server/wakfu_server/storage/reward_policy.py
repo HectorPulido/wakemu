@@ -42,7 +42,7 @@ def _record(raw, *, name):
 
 def _normalize_context(context, character_id):
     context = _record(context, name="combat reward context")
-    if set(context) != {
+    if set(context) - {"dungeon_rate_bp"} != {
         "winner_team",
         "winners",
         "losers",
@@ -102,13 +102,18 @@ def _normalize_context(context, character_id):
         if ref is not None:
             ref = _integer(ref, "monster reference", 1, 2**31 - 1)
         losers.append({"level": level, "monster_reference": ref})
-    return {
+    normalized = {
         "winner_team": winner_team,
         "winners": winners,
         "losers": losers,
         "challenge_percent": challenge,
         "star_percent": star,
     }
+    if "dungeon_rate_bp" in context:
+        normalized["dungeon_rate_bp"] = _integer(
+            context["dungeon_rate_bp"], "dungeon reward rate", 1, 71000
+        )
+    return normalized
 
 
 def _trunc_div(numerator, denominator):
@@ -185,6 +190,7 @@ def _xp_amount_with_status(
         * divided_group_xp
         * (xp_rate_bp / 10000)
         * (conquest_rate_bp / 10000)
+        * (context.get("dungeon_rate_bp", 10000) / 10000)
     )
     if value < 0:
         # Wakemu reward receipts are nonnegative. Preserve a successful fight

@@ -50,11 +50,16 @@ class StaticMapSyncDispatchTests(unittest.TestCase):
         self.clock = FakeClock()
         self.sent = []
         self.records = []
-        self.world_static = SimpleNamespace(
-            snapshots=lambda map_id: (f"map:{map_id}".encode(),)
-        )
+        self.snapshot_calls = []
+
+        def snapshots(map_id, *, position=None):
+            self.snapshot_calls.append((map_id, position))
+            return (f"map:{map_id}".encode(),)
+
+        self.world_static = SimpleNamespace(snapshots=snapshots)
         self.store = SimpleNamespace(current_session=lambda account, generation: True)
         self.namespace = {
+            "publish_environment_scene": lambda **kwargs: None,
             "time": self.clock,
             "PROFILER": IdentityProfiler(),
             "SimpleNamespace": SimpleNamespace,
@@ -84,13 +89,25 @@ class StaticMapSyncDispatchTests(unittest.TestCase):
             for node in ast.parse(SERVER_SOURCE.read_text()).body
             if isinstance(node, ast.FunctionDef) and node.name == "session"
         )
-        joins = [
+        all_joins = [
             node
             for node in ast.walk(session)
             if isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)
             and node.func.id == "join_world"
         ]
+
+        def retains_hero_scene(call):
+            return any(
+                keyword.arg == "hydrate_heroes"
+                and isinstance(keyword.value, ast.Constant)
+                and keyword.value.value is False
+                for keyword in call.keywords
+            )
+
+        retained_joins = [call for call in all_joins if retains_hero_scene(call)]
+        self.assertEqual(len(retained_joins), 1)
+        joins = [call for call in all_joins if not retains_hero_scene(call)]
         marks = [
             node
             for node in ast.walk(session)
@@ -113,6 +130,8 @@ class StaticMapSyncDispatchTests(unittest.TestCase):
                         and statement.value.func.id == "join_world"
                     ):
                         continue
+                    if retains_hero_scene(statement.value):
+                        continue
                     following = statements[index + 1 :]
                     while following:
                         first = following[0]
@@ -133,6 +152,30 @@ class StaticMapSyncDispatchTests(unittest.TestCase):
                             and isinstance(first.value, ast.Constant)
                             and first.value.value is True
                         ):
+                            following = following[1:]
+                            continue
+                        if (
+                            isinstance(first, ast.For)
+                            and isinstance(first.iter, ast.Call)
+                            and isinstance(first.iter.func, ast.Name)
+                            and first.iter.func.id == "bag_furniture_packets"
+                        ):
+                            # The private bag publishes its furniture after
+                            # joining; this does not replace the required rearm.
+                            self.assertEqual(len(first.body), 1)
+                            self.assertIsInstance(first.body[0], ast.Expr)
+                            self.assertIsInstance(first.body[0].value, ast.Call)
+                            self.assertEqual(
+                                ast.unparse(first.body[0].value.func), "send"
+                            )
+                            following = following[1:]
+                            continue
+                        if (
+                            isinstance(first, ast.If)
+                            and ast.unparse(first.test) == "ranch_session is None"
+                        ):
+                            # Returning from a Ranch child restores the parent
+                            # Haven Bag model and furniture after the map join.
                             following = following[1:]
                             continue
                         break
@@ -176,6 +219,21 @@ class StaticMapSyncDispatchTests(unittest.TestCase):
         self.assertIsNone(keywords.get("force"))
         self.assertIsNone(keywords.get("validated"))
 
+    def test_static_hydration_uses_current_owned_position_on_every_retry(self):
+        self.character.update(x=-18, y=-134, z=50)
+        self.mark_pending()
+        self.sync(force=True)
+        self.assertEqual(self.snapshot_calls[-1][0], 1134)
+        self.assertIs(self.snapshot_calls[-1][1], self.character)
+        self.character.update(x=-7, y=-108, z=30)
+        self.clock.now = 0.75
+        self.sync()
+        self.assertEqual(len(self.snapshot_calls), 2)
+        self.assertIs(self.snapshot_calls[-1][1], self.character)
+        self.assertEqual(self.snapshot_calls[-1][1]["x"], -7)
+        self.assertEqual(self.snapshot_calls[-1][1]["y"], -108)
+        self.assertEqual(self.state()[:2], (True, 1))
+
     def _make_sync(self):
         body = ast.parse(
             """
@@ -185,6 +243,8 @@ def build_sync():
     generation = 17
     loaded = True
     fight = None
+    ranch_session = None
+    bag_session = None
     combat_session = None
     connection = object()
     service = "world"
@@ -561,7 +621,7 @@ def build_world_sync():
         movement_calls = {
             call.lineno: call
             for branch in branches
-            for call in ast.walk(branch)
+            for call in ast.walk(ast.Module(body=branch.body, type_ignores=[]))
             if isinstance(call, ast.Call)
             and isinstance(call.func, ast.Name)
             and call.func.id == "sync_static_world"
@@ -575,7 +635,7 @@ def build_world_sync():
                 isinstance(call, ast.Call)
                 and isinstance(call.func, ast.Attribute)
                 and call.func.attr == "arm"
-                for call in ast.walk(node)
+                for call in ast.walk(ast.Module(body=node.body, type_ignores=[]))
             )
         )
         self.assertFalse(
@@ -583,7 +643,7 @@ def build_world_sync():
                 isinstance(node, ast.Call)
                 and isinstance(node.func, ast.Name)
                 and node.func.id == "sync_static_world"
-                for node in ast.walk(movement)
+                for node in ast.walk(ast.Module(body=movement.body, type_ignores=[]))
             )
         )
         self.assertTrue(
@@ -593,7 +653,7 @@ def build_world_sync():
                 and isinstance(node.func.value, ast.Name)
                 and node.func.value.id == "scene_sync"
                 and node.func.attr == "arm"
-                for node in ast.walk(movement)
+                for node in ast.walk(ast.Module(body=movement.body, type_ignores=[]))
             )
         )
         for call in movement_calls.values():

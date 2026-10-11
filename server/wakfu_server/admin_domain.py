@@ -4,11 +4,12 @@ import secrets
 from psycopg.types.json import Jsonb
 from . import admin_map_catalog, admin_profiler
 from wakfu_server.admin_actions import AdminActions
+from wakfu_server.account_bans import AccountBans
 from wakfu_server.admin_settings import AdminSettings
 from wakfu_server.admin_operations import AdminOperations
 
 
-class AdminService(AdminActions, AdminSettings, AdminOperations):
+class AdminService(AdminActions, AdminSettings, AdminOperations, AccountBans):
     def __init__(self, store):
         self.store = store
 
@@ -82,7 +83,7 @@ class AdminService(AdminActions, AdminSettings, AdminOperations):
             presence_note="Active character session leases; disconnected sessions are removed normally. A server crash can leave leases visible until expiry (up to 300 seconds).",
         )
 
-    ACCOUNT_SQL = "SELECT a.id,a.username,a.is_admin,a.created_at,coalesce(w.kamas,0) kamas,(SELECT count(*) FROM characters c WHERE c.account_id=a.id) character_count,EXISTS(SELECT 1 FROM sessions s WHERE s.account_id=a.id AND s.expires_at>now()) online FROM accounts a LEFT JOIN account_wallets w ON w.account_id=a.id"
+    ACCOUNT_SQL = "SELECT a.id,a.username,a.is_admin,a.created_at,EXISTS(SELECT 1 FROM account_bans b WHERE b.account_id=a.id AND (b.expires_at IS NULL OR b.expires_at>now())) banned,coalesce(w.kamas,0) kamas,(SELECT count(*) FROM characters c WHERE c.account_id=a.id) character_count,EXISTS(SELECT 1 FROM sessions s WHERE s.account_id=a.id AND s.expires_at>now()) online FROM accounts a LEFT JOIN account_wallets w ON w.account_id=a.id"
 
     def accounts(self, q="", limit=50, offset=0):
         with self.store.connection() as db:
@@ -102,6 +103,11 @@ class AdminService(AdminActions, AdminSettings, AdminOperations):
             if row is None:
                 raise LookupError("Account not found")
             result = dict(row)
+            ban = db.execute(
+                "SELECT reason,operator,banned_at,expires_at FROM account_bans WHERE account_id=%s",
+                (account_id,),
+            ).fetchone()
+            result["ban"] = dict(ban) if ban else None
             result["characters"] = [
                 dict(r)
                 for r in db.execute(

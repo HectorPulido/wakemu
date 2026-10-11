@@ -5,6 +5,7 @@ supply native iteration order and attest the full retained-effect population;
 this module never infers completeness from the currently implemented families.
 """
 from .combat_state_managers import state_manager, state_managers
+from .combat_summon_initialization import registered_or_detached_actor
 from dataclasses import dataclass
 from .combat_effect_removal import _identity_fields, running_effect_removal
 from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
@@ -136,7 +137,7 @@ class NativeRetainedEffectView:
                     entry is None
                     or row["effect_class"] not in GROUP_SUBSCRIPTION_FAMILIES
                     or 7 in fields
-                    or caster not in fight.actors
+                    or registered_or_detached_actor(fight, caster) is None
                     or entry.manager_id != caster
                 ):
                     raise ValueError("Unverified native cell group manager")

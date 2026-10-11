@@ -1,0 +1,47 @@
+# Regenerating resource turn-boundary audit
+
+## Confirmed cause and native distinctions
+
+The user reproduced Cra Flecha Azotadora reducing MP immediately, followed by the victim receiving full MP at its upcoming turn. Spell4816's cached published closure has default leaf350037 family48 requesting3MP and charged leaf350035 requesting5MP. Both are native eVZ current-resource loss, with flag17 and zero duration/subscription metadata. The charged condition requires caster7757 and7792 level at least45. Neither leaf reduces maximum MP. Exact loss depends on native willpower, bounds and stochastic rounding; do not equate requested3/5 with actual loss.
+
+Native `eWR.d(PA)` calls `PA.oo(actual)`; `eWR.fNM` reverses a retained loss through `PA.nG(actual)`. `eVZ.d` additionally creates state5227 at actual loss multiplied by10, unless flag19 suppresses that secondary state. That multiplication applies to the willpower state, not MP/AP loss. `eVl` proves flag17 is `BUFF_BYPASS_OUT_FIGHT_MAX`; it does not request a delayed turn or permanent maximum penalty. Cached bytecode: `/tmp/eVZ.javap`, `/tmp/eWR-iop-events.javap`, `/tmp/wakemu-fff-pa.javap`, and `.runtime/native-pc-death-audit-20261011/eVl-resource-loss-flags.txt`.
+
+`NativeResourceLossHandler` handles48→MP3 and55→AP2, applies the native PA/raw-current setter, emits loss events and secondary5227, and only stores a reversible running stat effect when its execution context is retained. `Fight._begin_turn`, however, always replaces AP/MP with maxima, using native raw setters when present. Therefore an instantaneous out-of-turn current loss is overwritten before the target can spend its affected budget. No missing long-duration effect or maximum modifier is required to explain this trace.
+
+Family56/57/192 maximum reductions use `NativeMaximumReductionHandler` and require separate retention/expiry controls. They must not be conflated with48/55 current-resource loss. HP1 and WP4 are not restored by `Fight._begin_turn`; their native healing/regeneration/effect producers remain independent.
+
+## Historical v1 boundary candidate, not recovered native server behavior
+
+Native client bytecode establishes current-resource application, reversal, flags and snapshots. Searches of aUM/end-turn handling and the relevant PA/actor classes did not establish the original server's AP/MP refill producer or ordering. Consequently, moving refill is an explicit Wakemu policy hypothesis to validate against real gameplay, not an asserted recovered native rule. Reapplying every retained loss, modifying maxima, inventing per-spell debt, or deriving a persistent penalty from5227 is unsupported.
+
+The separately staged candidate `.runtime/resource-turn-boundary-20261011/end-refill-candidate/combat_state.py` moves the existing AP/MP refill block to `_refill_completed_turn_resources`, called by `_advance` on the actor completing its turn. Native setters and AP-before-MP order remain. `_begin_turn` keeps resource synchronization and counters but does not refill. Source prehash13309108a45421802130cd4ea17c7f83a744d4f13b764e9228a312346f47b74a; candidate9c58383d220ac644bf9f72724e47cf78c2def480b92cff5c308259469ba1cb26. This v1 is historical; the qualified v2 integration status below supersedes it.
+
+This policy lets instantaneous signed current-resource changes arriving between an actor's turns survive its first upcoming turn. Completing that turn refills the next budget, so ordinary spending and self-inflicted current loss do not persist indefinitely. No new ledger, resource maximum change, breed check or spell reference is added.
+
+## Ordering and required evidence
+
+- Runtime end handlers dispatch1002 then1037 and native end expiry before `Fight.end_turn`/`end_server_turn` reaches `_advance`. Transfer/cost/reaction listeners consume the spent budget before refill.
+- End-clock maximum expiry settles before refill, using the resulting actual maximum. Start-clock expiry still runs at the next actor start and restores its native delta atop current resources.
+- Dead-current settlement selects a successor through `_settle_deaths`, bypassing `_advance`; the candidate does not refill a corpse. Explicit withdrawal follows its separately certified departure path.
+- Fresh players and summons start from their native constructor snapshots. Removing start refill must preserve those exact currents, including legitimate constructor/passive penalties.
+- Owned, NPC and timeout turn completion should use the same boundary. Skip/suppression, disconnect/reconnect, extra turns and interrupted end callbacks need explicit tests rather than inferred coverage.
+- eWq/eWr notifications still come from actual PA setters. AP refill may update MP binding before the MP setter reads the resulting maximum; test this exact callback order and rollback.
+- `RuntimeMessages.turn_started` publishes actor12873 after start expiry/callbacks using authoritative current resources, so the lower victim budget must be visible on the wire as well as in state.
+
+The test owner is preparing actual paid4816 and775 casts, observed actual AP/MP loss, real owner/NPC end→ACK→start, subsequent refill/expiry, unchanged maxima, actual5227 and HP/WP controls. Natural first-turn controls include Xelor756 MP reduction and Enutrof8279 Drheller constructor MP reduction. Baseline and isolated candidate runs remain serial validation work; this report claims no passing candidate or deployment.
+
+## Expanded validation controls
+
+`test_combat_resource_boundary_controls.ResourceBoundaryControlTests` is a separate, syntax-checked module pending serial execution (SHA a82fc2bfd20880479cb6b21076b26eeb11d50a6436fc0268fe098a19288f2871). It covers actual paid Xelor775 followed by the real controlled idle-timeout, provider end/start/expiry callbacks, one-shot expiration, and the victim's affected first turn. Its end callback records the spent caster AP before refill. Separate primitive controls exercise native447/feq property37 extra-turn scheduling and source-proved PA/eWr notifications during real Fight spending/completion. These primitive controls are not evidence that the current Xelor spell catalog grants an extra turn: the cached Xelor447 leaves contain properties11/54, not37.
+
+The initial baseline real attack regressions reproduce target MP3 instead of2 and target AP6 instead of5. The isolated candidate passed those first-target-turn assertions and initialization controls, but the Xelor test then encountered its incorrect constant-WP expectation. Current innate6755 contains313109 (family913, channel5 event1037), selecting313110 (family193) without passive5351. At innate level1 its native computed parameter is3WP; the5351 alternative349654 gains1WP. Therefore paid WP12→11 followed by regeneration to cap12 is source-supported effect behavior, not evidence that moving the AP/MP refill restores WP. A separate baseline/candidate diagnostic is required to prove the actual boundary and dispatch receipts before correcting that assertion.
+
+Out-of-turn positive resource gains remain a distinct qualification item. Actual Enutrof8280/2039 effects386213/386214 provide an existing companion AP/MP maximum-transfer fixture; checking its current budget through its first true turn can extend this control without inventing states. No completed outcome is claimed for the new controls here.
+
+## V2 integration: applied to checkout, not deployed
+
+The original resurrection budget control passed on baseline and failed on v1: a fighter that died with spent AP/MP returned with `(0, 0)` rather than `(6, 3)`. V2 reuses `Fight._refill_turn_resources` at completed-turn settlement and successful resurrection after IN_PLAY/state1 restoration. It does not refill at turn start, change resource maxima, or directly restore HP/WP. This remains an explicit Wakemu scheduling policy; no original native refill callsite is claimed.
+
+Root applied the two qualified runtime files with manifest `.runtime/resource-turn-boundary-20261011/end-refill-v2/applied-integration.json`: state SHA `d02bc33c3705e13d3cff297bbc622d72c3963208281cd71e56698782baa58923`, resurrection SHA `4c936fd42198aef5b12e478a4556d6c9e71b63fffd9bd4cc8da8da1327177245`. The canonical-package candidate qualification passed18 resurrection/death tests; initial mixed flat/nested module harness errors were setup failures, not accepted runtime evidence. The separate resource candidate gate passed9 tests. Fresh combined actual-checkout qualification is pending; these historical receipts do not establish deployment.
+
+Permanent controls are now `server/tests/test_resurrection_first_turn_budget.py` and `server/tests/test_resurrection_later_loss.py`, installed only after confirming both destinations absent. The former exercises owned payment, native damage, actual resurrection and first-returned-turn paid Jabs4785. The latter uses authoritative native resource setters to impose AP/MP loss after resurrection and verifies that first-turn scheduling preserves it. That second control isolates mutation scheduling; it does not claim a real775 casting producer. Both preserve HP/WP and preview isolation assertions. The lethal damage helper deliberately dispatches an owned NPC effect off-turn to isolate depleted-budget resurrection; it is not evidence that NPC AI may issue an unsolicited off-turn action. Their module-only fixture import prevents duplicate imported-TestCase discovery. Integration manifest: `.runtime/resource-turn-boundary-20261011/permanent-tests/applied-integration.json`.

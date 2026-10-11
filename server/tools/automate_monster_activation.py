@@ -55,11 +55,16 @@ def pipeline_commands(args):
         "--native-monsters",
         str(args.bundle / "monsters.json.gz"),
     ]
+    recovery_options = (
+        ["--recovery-search"] if getattr(args, "recovery_search", False) else []
+    )
     return [
         ("prepare", prepare),
         (
             "previews",
-            validator + ["--output", str(work / "previews.json"), "--skip-class-tests"],
+            validator
+            + recovery_options
+            + ["--output", str(work / "previews.json"), "--skip-class-tests"],
         ),
         (
             "commit_and_classes",
@@ -114,6 +119,11 @@ def main():
     )
     parser.add_argument("--max-level", type=int, default=9)
     parser.add_argument("--only-ref", type=int, action="append")
+    parser.add_argument(
+        "--recovery-search",
+        action="store_true",
+        help="Search bounded native prerequisites and nonoverlapping target witnesses",
+    )
     parser.add_argument(
         "--stage",
         action="store_true",

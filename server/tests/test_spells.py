@@ -36,6 +36,17 @@ class SpellsTests(unittest.TestCase):
             [0, 4778],
         )
 
+    def test_modulated_default_deck_uses_effective_level_but_ownership_uses_real_level(
+        self,
+    ):
+        character = {"id": 3, "breed": 8, "level": 100, "effective_level": 1}
+        deck = spells.default_deck(character)
+        parsed = spells.validate_deck(deck, 8, 1)
+        self.assertEqual(parsed["active"], [4778, 4780, 4785])
+        self.assertGreater(
+            len(spells.owned_spell_records(character)), len(parsed["active"])
+        )
+
     def test_locked_wrong_breed_duplicate_and_wrong_kind_are_rejected(self):
         wrongs = [
             spells.encode_deck([7307]),

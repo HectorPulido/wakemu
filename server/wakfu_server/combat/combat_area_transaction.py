@@ -125,7 +125,11 @@ def prepare_area_movement(
             from .combat_voluntary_movement_events import deliver_voluntary_movement
 
             deliver_voluntary_movement(
-                dispatcher, actor_id=actor_id, from_cell=previous, to_cell=cell
+                dispatcher,
+                actor_id=actor_id,
+                from_cell=previous,
+                to_cell=cell,
+                action_id=action_id,
             )
             dispatcher.native_area_events.movement(
                 actor_id, from_cell=previous, to_cell=cell

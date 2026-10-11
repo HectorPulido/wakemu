@@ -321,7 +321,13 @@ class NativeStateHandler:
         )
 
     def _area_target_blocked(self, effect, invocation):
-        if invocation.target_id is None or invocation.target_id in self.fight.actors:
+        from .combat_summon_initialization import registered_or_detached_actor
+
+        if (
+            invocation.target_id is None
+            or registered_or_detached_actor(self.fight, invocation.target_id)
+            is not None
+        ):
             return False
         from .combat_area_authority import area_guards
         from .combat_ordinary_death import corpse_gate_bypassed

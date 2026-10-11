@@ -102,7 +102,7 @@ class GuildService:
         guild["members"] = [
             dict(r)
             for r in db.execute(
-                "SELECT m.character_id,m.rank_id,m.points,COALESCE(cp.xp,0) AS xp,c.account_id,c.name,c.breed,c.sex,COALESCE(cp.xp,0) AS character_xp,EXISTS(SELECT 1 FROM sessions s WHERE s.account_id=c.account_id AND s.character_id=c.id AND s.expires_at>CURRENT_TIMESTAMP) AS connected,(EXTRACT(EPOCH FROM m.last_seen)*1000)::bigint AS save_date FROM guild_members m JOIN characters c ON c.id=m.character_id LEFT JOIN character_progression cp ON cp.character_id=c.id WHERE m.guild_id=%s ORDER BY m.character_id",
+                "SELECT m.character_id,m.rank_id,m.points,COALESCE(cp.xp,0) AS xp,c.account_id,c.name,c.breed,c.sex,COALESCE(n.nation_id,0) AS nation_id,COALESCE(cp.xp,0) AS character_xp,EXISTS(SELECT 1 FROM sessions s WHERE s.account_id=c.account_id AND s.character_id=c.id AND s.expires_at>CURRENT_TIMESTAMP) AS connected,(EXTRACT(EPOCH FROM m.last_seen)*1000)::bigint AS save_date FROM guild_members m JOIN characters c ON c.id=m.character_id LEFT JOIN character_progression cp ON cp.character_id=c.id LEFT JOIN character_chat_nations n ON n.character_id=c.id WHERE m.guild_id=%s ORDER BY m.character_id",
                 (guild_id,),
             ).fetchall()
         ]

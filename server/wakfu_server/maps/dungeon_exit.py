@@ -396,6 +396,13 @@ def _leave(store, account_id, generation, character_id, *, in_fight, destination
                 "WHERE character_id=%s AND status='pending'",
                 (store.now(), hero_id),
             )
+        from wakfu_server.characters.dungeon_modulation_health import reconcile
+
+        reconcile(
+            store,
+            db,
+            [character_id, *(owned["character_id"] for owned in owned_heroes)],
+        )
         remaining = db.execute(
             "SELECT 1 FROM dungeon_instance_members WHERE instance_id=%s AND status='active' LIMIT 1",
             (run["instance_id"],),

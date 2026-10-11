@@ -55,12 +55,24 @@ class EffectResolutionTests(unittest.TestCase):
     def test_resource_snapshot_tracks_spending_movement_healing_and_turn_reset(self):
         fight = self.fight()
         actor = fight.actors[1]
-        actor.effect_stats = {1: 100, 2: 6, 3: 3}
+        from test_combat_tackle_movement import Authority
+
+        fight.native_rail_movement_authority = Authority()
+        for participant in fight.actors.values():
+            participant.physical_radius = 0
+            # This resource-sync fixture has no PC7 tackler characteristic.
+            participant.effect_stats = {}
+        actor.effect_stats = {1: 100, 2: 6, 3: 3, 8: 0}
         fight.spend(1, 1, ap=2)
         fight.walkable.add((0, 1, 0))
         fight.move(1, 1, [(0, 1, 0)])
         fight.apply_effect_damage(2, 1, 30)
         fight.apply_effect_healing(1, 1, 10)
-        self.assertEqual(actor.effect_stats, {1: 80, 2: 4, 3: 2})
+        self.assertEqual(actor.effect_stats, {1: 80, 2: 4, 3: 2, 8: 0})
+        # Starting a turn synchronizes the affected budget; it does not erase
+        # out-of-turn resource changes. Completion refills the next budget.
         fight._begin_turn()
-        self.assertEqual(actor.effect_stats, {1: 80, 2: 6, 3: 3})
+        self.assertEqual(actor.effect_stats, {1: 80, 2: 4, 3: 2, 8: 0})
+        fight.end_turn(actor.owner_id, actor.id, actor.turn_count)
+        self.assertEqual(fight.current.id, 2)
+        self.assertEqual(actor.effect_stats, {1: 80, 2: 6, 3: 3, 8: 0})

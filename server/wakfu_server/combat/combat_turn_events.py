@@ -69,15 +69,18 @@ def _deliver(dispatcher, *, actor_id, phase, event_id, suppression_phase=None):
     recipients += [(identity, 61) for identity in tuple(fight.actors)]
     if suppressed:
         recipients = []  # fbX.A/z returns before native QP/QO phase delivery.
-    for identity, channel in recipients:
-        outcomes.extend(
-            dispatcher.replay_event(
-                NativeExternalEvent(
-                    identity, (event_id,), channel, turn_boundary_context=context
-                ),
-                authority=authority,
+    from .combat_external_turn_recipient import owned_turn_recipient_scope
+
+    with owned_turn_recipient_scope(fight, context):
+        for identity, channel in recipients:
+            outcomes.extend(
+                dispatcher.replay_event(
+                    NativeExternalEvent(
+                        identity, (event_id,), channel, turn_boundary_context=context
+                    ),
+                    authority=authority,
+                )
             )
-        )
     # Caller operates on an unpublished preview: exception discards all effects.
     deliveries = dict(deliveries)
     deliveries[key] = {

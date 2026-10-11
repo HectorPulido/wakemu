@@ -119,8 +119,13 @@ def initial_npc_actor_effects(fight, actor_id):
 
     if fight.phase != "placement" or actor_id not in fight.actors:
         raise ValueError("Native initial effect snapshot requires placement actor")
+    from wakfu_server.maps.dungeon_combat_scaling import validates_constructor_receipt
+
+    scaling_constructor = validates_constructor_receipt(fight, actor_id)
     receipt = getattr(fight, "native_npc_initialization_receipts", {}).get(actor_id)
     if receipt is None:
+        if scaling_constructor:
+            return _live_actor_effects(fight, actor_id)
         return actor_effects()
     actor = fight.actors[actor_id]
     if actor.controlled or receipt.get("initialized") is not True:

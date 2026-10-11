@@ -227,6 +227,7 @@ class CombatSessionAdapter:
         previous_native_action_id=0,
         fight_start=True,
         area_callbacks=False,
+        encounter_initializer=None,
     ):
         """Prepare one shared placement-ready transition for every owner.
 
@@ -279,6 +280,11 @@ class CombatSessionAdapter:
 
         def initialize(preview, action_id):
             packets = []
+            if encounter_initializer is not None:
+                preview, encounter_packets = encounter_initializer(
+                    preview, action_id, characters, decks
+                )
+                packets.extend(encounter_packets)
             for index, actor_id in enumerate(actor_order):
                 actor = preview.actors[actor_id]
                 source = characters[actor_id]

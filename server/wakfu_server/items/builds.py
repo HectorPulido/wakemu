@@ -187,7 +187,9 @@ def response(character, index, status=0):
         defaults = {
             "sheet": b"",
             "equipment": EMPTY_EQUIPMENT,
-            "deck": default_deck(character),
+            "deck": default_deck(
+                dict(character, effective_level=effective_sheet_level(character, index))
+            ),
             "aptitudes": EMPTY_APTITUDES,
         }
         for key in KEYS:
@@ -300,7 +302,9 @@ def deck_collection(character):
         (
             index,
             bytes.fromhex(saved.get(index, {}).get("deck", ""))
-            or default_deck(character),
+            or default_deck(
+                dict(character, effective_level=effective_sheet_level(character, index))
+            ),
         )
         for index in catalog_indices(character)
     ]

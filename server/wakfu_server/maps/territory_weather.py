@@ -27,6 +27,35 @@ def decode(payload):
         native_byte=values[1],
         native_values=values[2:8],
         weather=WEATHER[values[-1]],
+        current_temperature=values[1] + values[5],
+        current_wind=values[2],
+        minimum_temperature=values[3] + values[5],
+        maximum_temperature=values[4] + values[5],
+    )
+
+
+def encode_modeled_state(native_identity, state):
+    """Encode verified ctm→chl→bRW temperature/wind fields from one model day.
+
+    The signed byte is current base temperature; floats are current wind,
+    daily base minimum/maximum, temperature modifier, base wind and wind
+    modifier. The installed consumer adds the modifiers before presentation.
+    Temperature is in the native degree display scale; wind is a 0..1 ratio.
+    """
+    low, high = state["temperature_sample_a"], state["temperature_sample_b"]
+    base_temperature = (low + high) // 2
+    wind = state["wind_strength_u16"] / 65535.0
+    return struct.pack(
+        ">qb6fi",
+        native_identity,
+        base_temperature,
+        wind,
+        low,
+        high,
+        state["temperature_adjustment_sample"],
+        wind,
+        state["signed_weather_modifier_i16"] / 32767.0,
+        WEATHER.index(state["weather"]),
     )
 
 
@@ -60,6 +89,9 @@ def save(store, *, map_id, instance_id, region_id, payload):
                 row["native_payload"],
             ),
         )
+        from .territory_weather_simulation import explicit_override
+
+        explicit_override(db, map_id, instance_id, region_id)
         return row
 
 
@@ -85,9 +117,30 @@ def context(store, character, *, x, y, z):
             instance_id=character["instance_id"],
             region_id=region_id,
         )
+    from .territory_weather_simulation import (
+        advance as advance_simulation,
+        _TransactionStore,
+    )
+    from .territory_weather_forecast import packet_for_territory
+
+    advance_simulation(
+        store, scope=(character["map_id"], character["instance_id"], region_id), limit=1
+    )
+    with store.connection() as db:
+        row = db.execute(
+            "SELECT weather,native_payload,revision FROM territory_weather "
+            "WHERE map_id=%s AND instance_id=%s AND region_id=%s FOR SHARE",
+            (character["map_id"], character["instance_id"], region_id),
+        ).fetchone()
+        forecast_payload = packet_for_territory(
+            _TransactionStore(db),
+            map_id=character["map_id"],
+            instance_id=character["instance_id"],
+            region_id=region_id,
+        )
     if decode(row["native_payload"])["weather"] != row["weather"]:
         raise ValueError("Inconsistent authoritative territory weather")
-    return dict(row, region_id=region_id)
+    return dict(row, region_id=region_id, forecast_payload=forecast_payload)
 
 
 def initialize_local_baselines(
@@ -298,6 +351,9 @@ def schedule_transition(
             (map_id, instance_id, region_id, transition_at, target_weather),
         ).fetchone()
         if inserted is not None:
+            from .territory_weather_simulation import explicit_override
+
+            explicit_override(db, map_id, instance_id, region_id)
             return True
         existing = db.execute(
             "SELECT target_weather FROM territory_weather_transitions "
@@ -326,7 +382,9 @@ def advance_due(store, *, now=None, limit=100):
         "transition_at <= clock_timestamp()" if when is None else "transition_at <= %s"
     )
     params = () if when is None else (when,)
-    changed = []
+    from .territory_weather_simulation import advance as advance_simulation
+
+    changed = advance_simulation(store, now=now, limit=limit)
     with store.connection() as db:
         rows = db.execute(
             "SELECT t.map_id,t.instance_id,t.region_id,t.transition_at,t.target_weather "

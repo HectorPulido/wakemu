@@ -95,14 +95,21 @@ class SocketEnchantmentTests(PostgresCase):
                 "WHERE name='socket_bonus_installation_policy'"
             )
         request = struct.pack(">qBBii", self.target["uid"], 1, 0, 27097, 1)
-        with patch(
+        for serializer in (
             "wakfu_server.socket_enchantment_wire.bonus_installation_packets",
-            side_effect=ValueError("native response rejected"),
+            "wakfu_server.inventory_items.equipment_inventory",
         ):
-            with self.assertRaisesRegex(ValueError, "native response rejected"):
-                install_bonus(
-                    self.store, self.account, self.generation, self.char["id"], request
-                )
+            with self.subTest(serializer=serializer), patch(
+                serializer, side_effect=ValueError("native response rejected")
+            ):
+                with self.assertRaisesRegex(ValueError, "native response rejected"):
+                    install_bonus(
+                        self.store,
+                        self.account,
+                        self.generation,
+                        self.char["id"],
+                        request,
+                    )
         with self.store.connection() as db:
             self.assertEqual(
                 db.execute(
@@ -133,6 +140,124 @@ class SocketEnchantmentTests(PostgresCase):
                     "inventory_socket_bonus_installation_receipts"
                 ).fetchone()["n"],
                 0,
+            )
+
+    def test_target_cannot_be_consumed_as_its_own_sacrifice(self):
+        body = struct.pack(">qBq", self.target["uid"], 0, self.target["uid"])
+        with self.assertRaisesRegex(
+            ValueError, "Invalid native socket sacrifice request"
+        ):
+            mutate(
+                self.store,
+                self.account,
+                self.generation,
+                self.char["id"],
+                12365,
+                body,
+            )
+        with self.store.connection() as db:
+            self.assertIsNotNone(
+                db.execute(
+                    "SELECT uid FROM inventory_items WHERE uid=%s",
+                    (self.target["uid"],),
+                ).fetchone()
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM inventory_socket_enchantment_receipts"
+                ).fetchone()["n"],
+                0,
+            )
+
+    def test_equipment_registry_failure_rolls_back_sacrifice_and_state(self):
+        from unittest.mock import patch
+
+        body = struct.pack(">qBq", self.target["uid"], 0, self.sacrifice["uid"])
+        with patch(
+            "wakfu_server.inventory_items.equipment_inventory",
+            side_effect=ValueError("equipment registry rejected"),
+        ):
+            with self.assertRaisesRegex(ValueError, "equipment registry rejected"):
+                mutate(
+                    self.store,
+                    self.account,
+                    self.generation,
+                    self.char["id"],
+                    12365,
+                    body,
+                )
+        with self.store.connection() as db:
+            self.assertIsNotNone(
+                db.execute(
+                    "SELECT uid FROM inventory_items WHERE uid=%s",
+                    (self.sacrifice["uid"],),
+                ).fetchone()
+            )
+            self.assertEqual(
+                bytes(
+                    db.execute(
+                        "SELECT shard_state FROM inventory_item_shards WHERE uid=%s",
+                        (self.target["uid"],),
+                    ).fetchone()["shard_state"]
+                ),
+                socket_blob(),
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM inventory_socket_enchantment_receipts"
+                ).fetchone()["n"],
+                0,
+            )
+
+    def test_reference_scroll_request_skips_protected_first_copy(self):
+        from unittest.mock import patch
+
+        available = grant(
+            self.store,
+            self.account,
+            self.generation,
+            self.char["id"],
+            reference=27111,
+            quantity=1,
+            container=self.bag,
+            slot=3,
+            allowed_references={27111},
+        )
+        state = b"".join(
+            proto_field(10, proto_field(80, position) + proto_field(96, 1))
+            for position in range(3)
+        )
+        with self.store.connection() as db:
+            save(db, self.target["uid"], state)
+        # The ownership guard can protect a UID independently of native item
+        # eligibility. The reference-only request must choose an eligible copy.
+        with patch(
+            "wakfu_server.socket_enchantment._equipped",
+            side_effect=lambda store, db, account, character, uid: uid
+            == self.sublimation["uid"],
+        ):
+            result = mutate(
+                self.store,
+                self.account,
+                self.generation,
+                self.char["id"],
+                12221,
+                struct.pack(">qi", self.target["uid"], 27111),
+            )
+        self.assertTrue(result["applied"])
+        self.assertEqual(result["consumed_uid"], available["uid"])
+        with self.store.connection() as db:
+            self.assertIsNotNone(
+                db.execute(
+                    "SELECT uid FROM inventory_items WHERE uid=%s",
+                    (self.sublimation["uid"],),
+                ).fetchone()
+            )
+            self.assertIsNone(
+                db.execute(
+                    "SELECT uid FROM inventory_items WHERE uid=%s",
+                    (available["uid"],),
+                ).fetchone()
             )
 
     def test_sacrifice_adds_one_local_charge_and_consumes_only_one_uid(self):
@@ -577,7 +702,7 @@ class SocketEnchantmentTests(PostgresCase):
             )
             self.assertEqual(
                 db.execute(
-                    "SELECT count(*) AS n FROM native_sublimation_patterns"
+                    "SELECT count(*) AS n FROM native_sublimation_patterns WHERE pattern_type='BASIC'"
                 ).fetchone()["n"],
                 388,
             )

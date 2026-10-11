@@ -270,27 +270,56 @@ def areas_with_base_id(fight, *, reference, owner_id=None, all_owners=False):
     )
 
 
-def actor_on_specific_area(fight, *, actor_id, reference, ownership="all"):
+def actor_on_specific_area(
+    fight,
+    *,
+    actor_id,
+    reference,
+    ownership="all",
+    selected_controller_id=None,
+    owner_root_query=None
+):
     """eOv: exact prototype and selected eHg geometry, own/team filter."""
     if ownership not in ("all", "own", "team") or type(reference) is not int:
         raise ValueError("Invalid native specific actor-area predicate")
     if actor_id is None:
         return False
     actor = fight.actors.get(actor_id)
+    if selected_controller_id is not None and type(selected_controller_id) is not int:
+        raise ValueError("Invalid verified native selected controller")
+    selected_owner = (
+        actor_id if selected_controller_id is None else selected_controller_id
+    )
+    selected_affiliation = None
     if actor is None:
-        raise ValueError("Missing native selected area actor")
+        from .combat_state_managers import selected_native_area_entity
+
+        actor = selected_native_area_entity(fight, actor_id)
+        if actor is None:
+            raise ValueError("Missing native selected area actor")
+        selected_owner = actor.owner_id
+        selected_affiliation = actor.native_fight_affiliation
+    else:
+        selected_affiliation = getattr(actor, "native_fight_affiliation", actor.team)
+    if owner_root_query is not None and not callable(owner_root_query):
+        raise ValueError("Invalid native owner root authority")
+    if ownership == "own" and owner_root_query is not None:
+        selected_owner = owner_root_query(selected_owner)
     rows = _rows(fight)
     for row in rows:
         if row["reference"] != reference:
             continue
-        if ownership == "own" and row.get("owner_id") != actor_id:
+        area_owner = row.get("owner_id")
+        if ownership == "own" and owner_root_query is not None:
+            area_owner = owner_root_query(area_owner)
+        if ownership == "own" and area_owner != selected_owner:
             continue
         if ownership == "team":
             owner = fight.actors.get(row.get("owner_id"))
             if owner is None:
                 raise ValueError("Missing native area affiliation")
             if getattr(owner, "native_fight_affiliation", owner.team) != getattr(
-                actor, "native_fight_affiliation", actor.team
+                actor, "native_fight_affiliation", selected_affiliation
             ):
                 continue
         radius = actor.physical_radius

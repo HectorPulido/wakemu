@@ -690,6 +690,7 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
             variant_mode = state_child_variant_mode(
                 p,
                 i.state_uid,
+                effect_reference=i.reference,
                 effect_definitions=timing.catalog["effects"],
                 causing_critical=causing_state_critical(i, current_critical=critical),
             )

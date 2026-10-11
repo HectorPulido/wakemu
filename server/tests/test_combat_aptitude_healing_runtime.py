@@ -29,6 +29,7 @@ class AptitudeHealingRuntimeTests(unittest.TestCase):
         caster_aptitudes=((27, 2),),
         enemy_position=(-5, -7, -1),
         third_player_position=(-8, -6, -1),
+        second_player_position=(-7, -7, -1),
         compact_arena=True,
         initialization_seed=0,
     ):
@@ -49,7 +50,7 @@ class AptitudeHealingRuntimeTests(unittest.TestCase):
 
         positions = {
             7: (-8, -7, -1),
-            8: (-7, -7, -1),
+            8: tuple(second_player_position),
             9: tuple(third_player_position),
             -7: enemy_position,
         }

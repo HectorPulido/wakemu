@@ -28,10 +28,21 @@ class DungeonFightBindingTests(TestCase):
         ) as reconcile, patch(
             "wakfu_server.maps.dungeon_fight_binding.bind_encounter",
             return_value={"fight_id": 2},
-        ) as bind:
+        ) as bind, patch(
+            "wakfu_server.dungeon_stele.freeze_encounter"
+        ) as freeze:
             self.assertEqual(bind_room_group(db, (1086, 88, 5), 1, 2), {"fight_id": 2})
             reconcile.assert_called_once_with(db, instance_id=88)
-            bind.assert_called_once_with(db, 88, 9, 1, 2, player_team=0)
+            bind.assert_called_once_with(
+                db,
+                88,
+                9,
+                1,
+                2,
+                player_team=0,
+                expected_selection_revision=None,
+            )
+            freeze.assert_called_once_with(db, 88, 2)
 
     def test_incidental_or_previous_room_group_is_rejected(self):
         for receipt in (

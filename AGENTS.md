@@ -71,6 +71,10 @@ Trabajar sobre un único contenedor `world`: modificarlo y reiniciarlo con la au
 
 Before restarting world, build and validate the complete current server checkout. Do not deploy an overlay on an older image that drops concurrent agents' spell or combat changes. Verify that the deployed image contains the current shared implementation and preserve changes owned by other agents.
 
+### Shared agent coordination
+
+Read and follow `WORLD_COORDINATION.md` before shared server image builds, service restarts or repository-wide formatting. Register your state and coordinate stable-file windows with the other agents there. Acquire the atomic deployment lock before deploying; release it and the window immediately after verification. Existing user authorization persists: this is agent-to-agent coordination, not a new user approval requirement.
+
 ### Idioma
 Codigo y comentarios en ingles, Documentacion en ingles, conversacion con Hector en español
 Aunque lo que ya este en español, puede estar en español, no traduzcas un archivo existente a menos que te lo indiquen

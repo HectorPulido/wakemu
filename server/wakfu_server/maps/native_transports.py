@@ -78,7 +78,7 @@ def resolve(character, body, *, known_ids, waive_criteria=False):
     }
 
 
-def bootstrap(character, *, direction=None, dungeon_context=None):
+def bootstrap(character, *, direction=None, dungeon_context=None, protector_records=()):
     if direction is None:
         direction = character.get("direction", 3)
     if type(direction) is not int or not 0 <= direction <= 7:
@@ -111,9 +111,24 @@ def bootstrap(character, *, direction=None, dungeon_context=None):
         from .proto_dungeon import encode as encode_proto_dungeon
 
         context = encode_proto_dungeon(dungeon_context)
+    if (
+        not isinstance(protector_records, (tuple, list))
+        or len(protector_records) > 32767
+    ):
+        raise ValueError("Invalid native protector records")
+    if any(
+        not isinstance(record, bytes) or not 0 < len(record) <= 32767
+        for record in protector_records
+    ):
+        raise ValueError("Invalid native protector record")
+    if 2 + sum(2 + len(record) for record in protector_records) > 65535:
+        raise ValueError("Native protector block exceeds frame capacity")
+    protectors = struct.pack(">H", len(protector_records)) + b"".join(
+        struct.pack(">H", len(record)) + record for record in protector_records
+    )
     body = b"".join(
         struct.pack(">H", len(block)) + block
-        for block in (entity, b"\0\0", b"\0\0", context)
+        for block in (entity, protectors, b"\0\0", context)
     )
     return [
         (13256, b""),

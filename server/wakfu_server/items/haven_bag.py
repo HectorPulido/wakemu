@@ -23,7 +23,7 @@ def own_bag(character):
         "appearance_id": 408,
         "rooms": initial_layout(owner),
         "locked": False,
-        "access": {"groups": [{"group": 0, "rights": 1}], "characters": []},
+        "access": public_access(),
     }
     from wakfu_server.haven_bag_furniture import encode_vf
 
@@ -63,7 +63,7 @@ def own_bag(character):
         )
     tail = (
         struct.pack(">iB", config["appearance_id"], 0)
-        + permission_payload(config)
+        + visit_permission_payload(config)
         + b"\x00"
     )
     return header + room_data + tail
@@ -202,6 +202,16 @@ class HavenBagSession:
             **({"haven_bag": self.owner["haven_bag"]} if not self.is_owner else {}),
         }
         return dict(self.inside)
+
+
+def public_access():
+    """Native room-type bits allow public visits, never item management."""
+    return {"groups": [{"group": 0, "rights": 255}], "characters": []}
+
+
+def visit_permission_payload(config):
+    """Publish the effective public room policy without rewriting owner data."""
+    return permission_payload({**config, "locked": False, "access": public_access()})
 
 
 def permission_payload(config):

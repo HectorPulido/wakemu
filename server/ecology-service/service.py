@@ -300,6 +300,7 @@ class Worker:
         self.last_success = None
         self.last_error = None
         self.domain_errors = {}
+        self.domain_planning_ticks = {}
         self.last_snapshot = None
         self.snapshot_at = None
         self.enabled = True
@@ -401,8 +402,12 @@ class Worker:
                 break
             visited += 1
             try:
+                domain_tick = self.domain_planning_ticks.get(name, 0)
+                self.domain_planning_ticks[name] = domain_tick + 1
                 prepared = prepare(
-                    self.repository.store, snapshot, limit=available - len(rows)
+                    self.repository.store,
+                    dict(snapshot, domain_planning_tick=domain_tick),
+                    limit=available - len(rows),
                 )
                 if not isinstance(prepared, list) or len(prepared) > available - len(
                     rows
@@ -610,6 +615,7 @@ def main():
         "mobs": "wakfu_server.ecology_mobs",
         "weather": "wakfu_server.ecology_weather",
         "population": "wakfu_server.ecology_population",
+        "bonuses": "wakfu_server.territory_bonus_updates",
     }
     modules.update(json.loads(os.environ.get("WAKFU_ECOLOGY_DOMAIN_MODULES", "{}")))
     domains = {

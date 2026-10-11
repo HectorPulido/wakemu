@@ -1,8 +1,10 @@
 """Shopi protocol adapter tests without a database or network server."""
 
 import unittest
+from unittest.mock import patch
 
 from wakfu_server.shop_http import ShopAdapter
+from wakfu_server.shop_http import article as serialize_article
 
 
 class FakeShopDomain:
@@ -127,6 +129,34 @@ class ShopHttpTests(unittest.TestCase):
             {"amount": 1000, "original_amount": 1000, "currency": "OGR"},
             payment["price"],
         )
+
+    def test_native_media_and_reference_images_share_the_item_icon(self):
+        value = self.adapter.dispatch("GET", self.base + "articles/7", {}, "")
+        media = value["media"][0]
+        self.assertEqual("MediaImage", media["discriminator"])
+        url = media["media_image"]["image"]["uri"]
+        self.assertTrue(url.endswith("/item-icons/2027.jpg"))
+        reference = value["single_references"][0]["reference"]["game_action_reference"]
+        self.assertEqual(url, reference["images"][0]["uri"])
+
+    def test_large_catalog_promotions_search_and_pages_have_bounded_payloads(self):
+        self.domain.rows = [
+            dict(self.domain.rows[0], id=index, key=f"item-{index}")
+            for index in range(12000)
+        ]
+        with patch("wakfu_server.shop_http.article", wraps=serialize_article) as encode:
+            page = self.adapter.dispatch(
+                "POST", self.base + "catalog-pages:get", {"page": 2, "limit": 20}, ""
+            )
+            self.assertEqual(12000, page["articles"]["count"])
+            self.assertEqual(20, encode.call_count)
+            self.assertEqual("20", page["articles"]["values"][0]["id"])
+        home = self.adapter.dispatch("GET", self.base + "promoteGroup", {}, "")
+        targets = home["promote_sections"][0]["promote_section_article"]["targets"]
+        self.assertLessEqual(len(targets), 24)
+        search = self.adapter.dispatch("POST", self.base + "articles:search", {}, "")
+        self.assertEqual(12000, search["count"])
+        self.assertEqual(100, len(search["values"]))
 
     def test_category_list_catalog_membership_and_disabled_scope_do_not_leak_articles(
         self,

@@ -145,6 +145,9 @@ def validate_group_registration_flags(flags, *, active, constructor=False):
     boolean,boolean) during manager cleanup: it skips unapplication when
     the third argument is true. It does not modify group registration,
     child execution or event subscription. Preserve it in retained metadata.
+    Flag24 RANGED_EFFECT is consumed only by eXt.bbx (damage event2217)
+    and eYE range classification. It does not change group registration;
+    damage and range consumers retain their own native authority.
     """
     if (
         type(active) is not bool
@@ -152,7 +155,7 @@ def validate_group_registration_flags(flags, *, active, constructor=False):
         or any(type(x) is not int for x in flags)
     ):
         raise ValueError("Explicit native group flags/combat context required")
-    unknown = set(flags) - {1, 3, 5, 9, 14, 15, 16, 17, 26}
+    unknown = set(flags) - {1, 3, 5, 9, 14, 15, 16, 17, 24, 26}
     if unknown:
         raise ValueError(f"Unaudited native group execution flags: {sorted(unknown)}")
     # eYg.bcd returns true unconditionally; no active-phase predicate is

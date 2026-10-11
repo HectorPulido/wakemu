@@ -211,3 +211,28 @@ Imagen `e839fd35a2c123b8c83006528cfabc8f7bb5c8e5c3d0973f347ffcadc5321742` desple
 ## Contexto oficial — 8 de octubre de 2026
 
 El usuario anunció una identificación de objeto en el oficial para aportar referencia. La captura acumulada incluye ese intervalo; hay que localizar solicitud, propiedades por UID y respuesta antes de afirmar que el flujo quedó reproducido. No confundir apertura de interfaz con identificación completada. Referencia privada: `.runtime/official-dungeon-capture/`, con manifiestos y contratos de versión registrados. No se declara aceptación ni cambio desplegado por esta captura.
+
+## EPIC/RELIC follow-up — 11 October 2026
+
+Migration124 and native rarity-based special attachment eligibility are prepared,
+with 63 combined automated checks passing. Native replies, ProtoItem and BAGS
+retain independent BASIC/special attachment slots, including a fresh special
+target without sockets or elemental selection. Coordinated deployment and
+graphical acceptance remain pending; general sublimation combat execution is
+not covered. See [source review](SOURCE-REVIEW-20261011.md) for the exact native
+contract, evidence and manual item commands.
+
+## Complete combat-effect inventory — 11 October 2026
+
+The [exhaustive inventory](../../reports/sublimation-combat-inventory/README.md)
+covers all 467 native sublimations:388 BASIC,32 EPIC and47 RELIC. Their
+transitive closure contains 2,036 effects,289 states and88 effect classes.
+Every class has a dispatch route, but all 467 item roots are absent from the
+compiled runtime and the owned equipment planner has no production caller.
+
+Concrete remaining work includes owned lifecycle/catalog integration, binding
+attachment authority, the missing `HasWeaponType` evaluator (18 BASIC scrolls),
+13 subscription producer contracts requiring investigation (35 scrolls), and
+semantic/transactional qualification plus graphical acceptance. Complete
+per-reference mappings and implementation dependencies are provided in that
+report; this inventory makes no combat implementation or deployment claim.

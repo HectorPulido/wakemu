@@ -19,6 +19,31 @@ class Peer:
 
 
 class ChatChannelTests(PostgresCase):
+    def test_native_political_and_pvp_requests_use_durable_nation_and_byte_limits(self):
+        sender = self.player("sender")
+        same = self.player("same", map_id=527)
+        foreign = self.player("foreign")
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO character_chat_nations(character_id,nation_id) VALUES(%s,30)",
+                (foreign["character"]["id"],),
+            )
+        for opcode, request, response in (
+            (12387, {"text": "hola", "public": False}, 758),
+            (13702, {"text": "hola"}, 632),
+        ):
+            self.sent.clear()
+            self.assertEqual(self.send(sender, opcode, request), 2)
+            self.assertEqual(
+                {(peer, code) for peer, code, _ in self.sent},
+                {(p["peer"].name, response) for p in (sender, same)},
+            )
+        self.sent.clear()
+        opcode, request = 13702, {"text": "ñ" * 2048}
+        with self.assertRaisesRegex(ValueError, "too long"):
+            self.send(sender, opcode, request)
+        self.assertEqual(self.sent, [])
+
     def setUp(self):
         super().setUp()
         self.store.clock = lambda: 2_000_000_000.0
@@ -154,6 +179,114 @@ class ChatChannelTests(PostgresCase):
         self.preference(sender, mask=0b0001, community=4)
         with self.assertRaisesRegex(ValueError, "idioma"):
             self.send(sender, 13831, {"language_id": 1, "text": "fuera de cuenta"})
+
+    def test_admin_channel_requires_admin_and_reaches_only_current_admins(self):
+        sender, receiver, outsider = (
+            self.player("sender"),
+            self.player("receiver", map_id=527),
+            self.player("outsider"),
+        )
+        request = {"text": "administration"}
+        with self.assertRaisesRegex(ValueError, "administradora"):
+            self.send(sender, 12116, request)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE accounts SET is_admin=true WHERE id=ANY(%s)",
+                ([sender["account"], receiver["account"]],),
+            )
+        self.sent.clear()
+        self.assertEqual(self.send(sender, 12116, request), 2)
+        self.assertEqual(
+            {peer for peer, _, _ in self.sent},
+            {sender["peer"].name, receiver["peer"].name},
+        )
+        for _, opcode, body in self.sent:
+            self.assertEqual(opcode, 762)
+            self.assertEqual(body[:4], struct.pack(">i", 0))
+            self.assertEqual(
+                body[5 : 5 + body[4]].decode(), sender["character"]["name"]
+            )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE accounts SET is_admin=false WHERE id=%s", (receiver["account"],)
+            )
+        self.sent.clear()
+        self.assertEqual(self.send(sender, 12116, request), 1)
+        self.assertEqual(self.sent[0][0], sender["peer"].name)
+
+    def test_pvp_channel_uses_database_nation_across_maps_and_isolates_neutral(self):
+        sender, same, other, neutral, second_neutral = (
+            self.player("sender"),
+            self.player("same", map_id=527, instance_id=8),
+            self.player("other"),
+            self.player("neutral"),
+            self.player("neutral", map_id=777),
+        )
+        with self.store.connection() as db:
+            for player, nation in ((sender, 30), (same, 30), (other, 31)):
+                db.execute(
+                    "INSERT INTO character_chat_nations(character_id,nation_id) VALUES(%s,%s)",
+                    (player["character"]["id"], nation),
+                )
+        # Neither stale world metadata nor a forged request may choose the nation.
+        request = {"text": "nation chat", "nation_id": 31}
+        sender["character"]["nation_id"] = 31
+        self.sent.clear()
+        self.assertEqual(self.send(sender, 13702, request), 2)
+        self.assertEqual(
+            {(peer, opcode) for peer, opcode, _ in self.sent},
+            {(p["peer"].name, 632) for p in (sender, same)},
+        )
+        self.sent.clear()
+        self.assertEqual(self.send(neutral, 13702, request), 2)
+        self.assertEqual(
+            {peer for peer, _, _ in self.sent},
+            {p["peer"].name for p in (neutral, second_neutral)},
+        )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE character_chat_nations SET nation_id=31 WHERE character_id=%s",
+                (same["character"]["id"],),
+            )
+        self.assertEqual(self.send(sender, 13702, request), 1)
+
+    def test_political_channel_uses_database_nation_across_maps_and_isolates_neutral(
+        self,
+    ):
+        sender, same, other, neutral, second_neutral = (
+            self.player("sender"),
+            self.player("same", map_id=527, instance_id=8),
+            self.player("other"),
+            self.player("neutral"),
+            self.player("neutral", map_id=777),
+        )
+        with self.store.connection() as db:
+            for player, nation in ((sender, 30), (same, 30), (other, 31)):
+                db.execute(
+                    "INSERT INTO character_chat_nations(character_id,nation_id) VALUES(%s,%s)",
+                    (player["character"]["id"], nation),
+                )
+        # Neither stale world metadata nor a forged request may choose the nation.
+        request = {"text": "nation chat", "nation_id": 31, "public": False}
+        sender["character"]["nation_id"] = 31
+        self.sent.clear()
+        self.assertEqual(self.send(sender, 12387, request), 2)
+        self.assertEqual(
+            {(peer, opcode) for peer, opcode, _ in self.sent},
+            {(p["peer"].name, 758) for p in (sender, same)},
+        )
+        self.sent.clear()
+        self.assertEqual(self.send(neutral, 12387, request), 2)
+        self.assertEqual(
+            {peer for peer, _, _ in self.sent},
+            {p["peer"].name for p in (neutral, second_neutral)},
+        )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE character_chat_nations SET nation_id=31 WHERE character_id=%s",
+                (same["character"]["id"],),
+            )
+        self.assertEqual(self.send(sender, 12387, request), 1)
 
     def test_party_channel_is_private_to_members_even_across_maps(self):
         leader = self.player("leader", map_id=1134)

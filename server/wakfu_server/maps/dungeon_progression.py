@@ -46,7 +46,16 @@ def initialize_run(db, instance_id, party_id, plan):
     return row
 
 
-def bind_encounter(db, instance_id, party_id, character_id, fight_id, *, player_team):
+def bind_encounter(
+    db,
+    instance_id,
+    party_id,
+    character_id,
+    fight_id,
+    *,
+    player_team,
+    expected_selection_revision=None
+):
     if type(player_team) is not int or player_team not in (0, 1):
         raise ValueError("Invalid player team")
     run = db.execute(
@@ -80,6 +89,14 @@ def bind_encounter(db, instance_id, party_id, character_id, fight_id, *, player_
     db.execute(
         "INSERT INTO dungeon_room_encounters(fight_id,instance_id,room_order,player_team) VALUES(%s,%s,%s,%s)",
         (fight_id, instance_id, run["current_room"], player_team),
+    )
+    from wakfu_server import dungeon_difficulty
+
+    dungeon_difficulty.freeze_encounter(
+        db,
+        instance_id,
+        fight_id,
+        expected_selection_revision=expected_selection_revision,
     )
     return db.execute(
         "SELECT * FROM dungeon_room_encounters WHERE fight_id=%s", (fight_id,)

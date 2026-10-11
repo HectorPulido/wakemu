@@ -85,6 +85,89 @@ class SelectedAreaPvScopeTests(unittest.TestCase):
                 )
             )
 
+    def test_resolved_population_holds_later_false_recipient_after_removal(self):
+        from dataclasses import replace
+        import test_combat_effect_dispatch as dispatch_tests
+        from wakfu_server.combat_effect_dispatch import (
+            EffectDispatcher,
+            EffectInvocation,
+        )
+        from wakfu_server.combat_conditions import ConditionContext
+        from wakfu_server.combat_effect_area_queries import own_specific_area
+
+        for fail in (False, True):
+            with self.subTest(child_exception=fail):
+                fight, row = self.fixture()
+                fight.actors[7] = SimpleNamespace(id=7)
+                second = dict(
+                    uid=92, reference=1855, owner_id=7, native_area_contract="faY"
+                )
+                fight.native_effect_areas[92] = second
+                resolved, visited = [], []
+
+                def resolve(definition, invocation):
+                    resolved.append(invocation.reference)
+                    return tuple(replace(invocation, target_id=uid) for uid in (91, 92))
+
+                def condition(invocation):
+                    # The second identity must remain known, but its native
+                    # area1835 predicate is false after the first runner.
+                    self.assertIsNotNone(
+                        retained_area_pv_row(fight, invocation.target_id)
+                    )
+                    visited.append(invocation.target_id)
+                    matched = own_specific_area(
+                        fight,
+                        reference=1835,
+                        selector="target",
+                        caster_id=7,
+                        target_id=invocation.target_id,
+                        cell=(2, 3, 0),
+                    )
+                    return ConditionContext(
+                        {}, own_specific_area_query=lambda *args: matched
+                    )
+
+                def handler(*args):
+                    fight.native_effect_areas.clear()
+                    if fail:
+                        raise RuntimeError("child failure")
+                    return True
+
+                dispatcher = EffectDispatcher(
+                    {
+                        "90": dispatch_tests.effect(
+                            400, criteria="IsOwnSpecificArea(1835)"
+                        )
+                    },
+                    {400: handler},
+                    resolve=resolve,
+                    condition_context=condition,
+                    probability_accepts=lambda *args: True,
+                    group_cells=lambda *args: (),
+                    actor_position=lambda uid: (2, 3, 0),
+                    resolved_population_scope=lambda population: self.scope(
+                        fight, tuple(item.target_id for item in population)
+                    ),
+                )
+                with patch("wakfu_server.combat_state_managers.registered_area_pv"):
+                    if fail:
+                        with self.assertRaisesRegex(RuntimeError, "child failure"):
+                            dispatcher.execute(
+                                EffectInvocation(90, 20, 7, None, (2, 3, 0))
+                            )
+                    else:
+                        self.assertTrue(
+                            dispatcher.execute(
+                                EffectInvocation(90, 20, 7, None, (2, 3, 0))
+                            )
+                        )
+                        self.assertEqual(visited, [91, 92])
+                self.assertEqual(resolved, [90])
+                self.assertEqual(fight.native_effect_areas, {})
+                self.assertIsNone(retained_area_pv_row(fight, 91))
+                self.assertIsNone(retained_area_pv_row(fight, 92))
+
     def test_scope_cleans_up_on_child_exception(self):
         fight, row = self.fixture()
         with patch("wakfu_server.combat_state_managers.registered_area_pv"):

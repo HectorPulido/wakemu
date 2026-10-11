@@ -1,11 +1,15 @@
 # Enutrof contextual passive qualification — 2026-10-11
 
-This review owns six passives:5059,5071,5075,8276,8277,8280. Source is published
-PostgreSQL revision548e1468d1c17a9542b34419c8a4f6c539696135fb4ffd4c03e8dae29c9f4edd.
-Current result: all six assigned passives have passing actual positive and
-negative branch tests. The general OWN_Qq selector fix resolved8277. Separate
-5075 special74 caller and a multiplayer foreign-deposit manual probe remain
-explicitly unqualified; this is not complete manual acceptance.
+This review owns six passives:5059,5071,5075,8276,8277,8280. Current authority is
+PostgreSQL revision677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d;
+the historical548e investigation below is retained as a chronology, not the
+current release gate. The current coherent aggregate passes27 tests for its
+selected paths. Each assigned passive has an exercised positive and negative
+branch, but this does not qualify every branch:5075 special74 caller remains
+unqualified. The actual multiplayer foreign-deposit control now passes as
+recorded in the final follow-up below. The general
+OWN_Qq selector fix resolved the exercised8277 context. This report is not
+complete technical or manual acceptance.
 
 Full effect trees come from the scoped read-only published-records export;
 metadata-only records sharing an ID are not allowed to replace actual trees.
@@ -140,3 +144,235 @@ turn with treasure: the actual companion gains+1AP/+1MP. End the companion's
 turn near an enemy(within2): it dies via its1037 branch; repeat far away and
 without8280 to check it survives. Check actual turn ownership, cleanup and
 no ghostQI after companion death.
+
+## Current authority and event74 caller audit — 2026-10-11
+
+The historical548e introduction records the original investigation. Current
+coherent validation is PostgreSQL revision
+`677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d`:
+`.runtime/remaining-six-refresh-20261010/enutrof-coherent-active677-final.log`
+reports27/27 passing, zero failures/errors/skips, and identical start/end
+catalog revision. This aggregate includes generic subscription-runner tests;
+it does not mean27 independently tested Enutrof spells or complete multiplayer
+manual acceptance. A subsequent actual multiplayer foreign-deposit control
+now passes; its separate receipt below supplements this earlier aggregate.
+
+A fresh bytecode audit confirms `eWf.bbx` offsets56–66 publishes74 only when
+`rAA` is true. `mh(boolean)` writes that field; constructor and pooled reset
+`aWr` clear it. `mi(boolean)` controls a different field and the2188/2234/2263
+resource-payment notifications. Thus paying AP/MP/WP does not intrinsically
+prove that74 occurred. Current `PaidAbilityPolicy` explicitly choosesmi=true
+andmh=false; enabling74 for all paid casts would introduce a new server policy,
+not recover an observed native caller contract.
+
+The new scan resolves exact JVM Methodref/InterfaceMethodref owner, name and
+signature across all classes in `client/lib/*.jar`. Eight class files contain
+an `eWf` UTF8 constant; **zero** contain a method reference to
+`eWf.mh(Z)V` or `eWf.mi(Z)V`. This is stronger than the historical string
+co-occurrence scan (which counted the setter declaration itself). Artifacts:
+`.runtime/local/enutrof-eWf-exact-callers-20261011.json` and
+`.runtime/local/enutrof-eWf-caller-audit-20261011.txt`.
+
+This establishes the runner's switch contract and the absence of a direct
+caller in the available client jars. It does not establish absence from the
+unavailable original server, reflection, or separately supplied classes.
+State8590/effect386125's5075-dependent74 consumer therefore remains an enabled
+but producer-unqualified branch. No fabricated event, switch change, gameplay
+code, catalog write, or service action was introduced by this audit. Recovering
+an authentic external caller or explicitly defining a reviewed server caller
+policy is required before claiming that branch as actual end-to-end coverage.
+
+### Global catalog and inherited-caller reconciliation
+
+A further read-only revision677 audit searched every indexed effect source,
+including spell, granted-spell, state, captured closure and retained metadata.
+It found84 distinct channel3/event74 subscribers; subscriptions are consumers,
+not evidence that their event is produced. The state8590 application producers
+are386129 and386131 (each also duplicated in retained metadata). These install
+the consumer state; neither changes `eWf.rAA` or publishes74. The fresh
+`native-current-stat-events.json` index contains no74/eWf producer descriptor.
+Private evidence is `enutrof-global-event74-8590-20261011.json` and
+`enutrof-current-stat-event74-20261011.json` under `.runtime/local/`.
+
+To close an inherited-method-reference loophole in the original scan, the
+class-file audit now parses57,242 class identities and superclass links from
+all available `client/lib/*.jar`. It searches every Methodref/InterfaceMethodref
+named `mh` or `mi` with signature`(Z)V`, then resolves whether its declaring
+owner is eWf or any subclass. **No eWf subclasses and no direct or inherited
+setter call references were found.** Evidence:
+`.runtime/local/enutrof-eWf-inherited-callers-20261011.json`; its reproducible
+read-only scanner is `.runtime/local/audit-ewf-inherited-callers.py`.
+
+This wider inventory does not recover an authentic event74 caller. The exact
+remaining boundary is an enabled5075-dependent consumer with a known native
+runner switch, but an unavailable original server switch-setting caller.
+Installing8590, paying ordinary costs, or finding other74 subscribers cannot
+replace that missing caller evidence. No `mh=true` policy or synthetic74
+notification was introduced. The27-test coherent aggregate remains valid for
+its exercised paths and does not certify this separate producer context.
+
+
+## Actual multiplayer deposit ownership — 2026-10-11
+
+The runtime-only staged test
+`.runtime/full-regression-20261011/probe_enu8277_multiplayer.py` passed1/1 on
+actual published revision677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d.
+Evidence: `.runtime/full-regression-20261011/enu8277-multiplayer-current.log`.
+Three ordinary player records and all three decks are supplied before Ready;
+players7 and8 are actual Enutrofs. Real player8 turns create its deposits;
+player7 then reaches a selected deposit with ordinary movement and runs its
+actual1002 boundary. No area ownership, state, resource or event is fabricated.
+
+With8277, an owned player7 deposit triggers386098 and an observed+100
+resistance delta, then consumes that deposit. On a distinct player8 deposit,
+386098 never completes and the exact foreign deposit UID remains registered.
+Both controls use the same full multiplayer turn authority. This closes the
+previously unconstructed foreign-player branch; it does not qualify5075's
+unknown event74 producer or client reconnect behavior. The permanent test is
+staged outside the frozen server tree until the coordinated source freeze ends.
+
+
+## Remaining enabled-route coverage audit
+
+The27-test aggregate is a selected integration gate, not an exhaustive native
+branch denominator. Source review of the current Enutrof test modules establishes
+the following remaining limits; no missing implementation is inferred merely
+from absent tests.
+
+| Scope | Existing proof | Still unqualified |
+|---|---|---|
+|21 owned actives|14 ordinary elemental casts;2026 conversion;2037 cross;2064 companion support;6324 mobility;8240 ore consumption;8242 target state;6337 legal form cast/cost|6337 target resource effect is not asserted. Alternate conditions and critical outcomes across the elemental tree are not exhaustively paired.|
+|Four Ready grants|2027/2038/2063/6405 acquisition; duplicate rejection; actual form, mining and debt; actual companion KO/reinvocation|Complete grant cleanup/reconnect/second-fight action-bar behavior is not class-qualified.|
+|Seven companion book entries|All seven are serialized;3541 actually executes deposit creation/8279 teleport|2058,2077,3542,8257,8258,8259 have no actual ability-cast assertion in the Enutrof modules. Presence is not execution.|
+|Five companion profiles1380–1384|Owned constructor/profile range and companion lifecycle are exercised|Each profile's own ability/initial-property/retirement combination is not individually demonstrated.|
+|Critical selection|Native machinery exists|The Enutrof cast helper explicitly supplies critical=False; no class-specific normal/critical numeric matrix is demonstrated.|
+|Deposits|Actual creation, movement, mining, conversion, grade provenance, ownership consumption and multiplayer8277 control|External10006 delivery remains source-unqualified; all four visual types and every upgrade/order combination are not exhaustively exercised.|
+|5075|Actual1002 Bestiality branch|Separate8590/event74 consumer has no recovered legitimate current publisher. Ordinary paid AP/MP/WP must not be used as invented74 evidence.|
+|2010|Source-isolated displacement-recipient defect and private generic candidate11/11|Current unmodified server fails the exposed push-then-damage case; candidate must be applied after freeze and gated before claiming closure.|
+
+Evidence scope was checked directly against `server/tests/test_enutrof_runtime.py`,
+`test_enutrof_companion_lifecycle.py`, `test_enutrof_passive_branches.py`,
+`test_enutrof_passive_contexts.py`, and `test_enutrof_inheritance_receipt.py`.
+Their snapshot imports support transaction rollback assertions; they are not
+checkpoint restore/reconnect tests. This audit does not claim to have regenerated
+the historical980-effect closure from all current root types. A fresh current
+closure reconciliation remains necessary before describing every enabled native
+conditional route as complete.
+
+
+### Source-valid companion profile prerequisites
+
+Current2027 roots255225/37144/156906 include a first-success family341 selector.
+Its actual307 children37093/255226/255227/255228/255229 select profiles1380/1381/1382/1383/1384
+by the caster's cosmetic states6242–6246. With no cosmetic state, the first
+child selects1380. Changing character level or RNG seed is not a legitimate
+way to select another profile. The exact native criteria exclude the other
+four cosmetic states for each branch.
+
+Published retained metadata contains304 producers295543/295549/295555/295561/295567
+for those cosmetic states, but the current indexed effect-tree roots do not
+contain those producers. Read-only item-action and equipment-effect records
+also provide no matching producer. Consequently all-five profile acceptance
+requires the actual lawful cosmetic acquisition/application route; injecting
+the states would only test an artificial constructor prerequisite. The
+default1380 lifecycle is exercised, while the other four lawful constructor
+contexts remain explicit source-authority boundaries. Raw current metadata is
+in `.runtime/full-regression-20261011/enu-remaining-ability-metadata.json` and
+`enu-remaining-effect-closure.json`.
+
+
+### Additional event74 producer check
+
+A current read-only all-effect-record query finds zero authored emit masks
+`target_masks[6]` containing74; see
+`.runtime/full-regression-20261011/enu-global-authored-emit74.json`. This is
+distinct from the enabled channel3 subscription consumers. The57,242-class
+bytecode scan contains zero `mh/mi(Z)V` method references across any owner.
+`eWf.rAA` is private; its setter is the only true-write path in the inspected
+class, while constructor/reset clear it. These additional checks recover no
+legitimate producer and do not authorize inventing one. Original server-only,
+reflective or unavailable-source contracts remain outside the available proof.
+
+All five current Drheller profiles have identical published seven-action book
+payloads and identical initial-state/property payloads; this source equivalence
+is recorded in `enu-profile-authority-compare.json`. It supports shared
+implementation reuse, while actual cosmetic-state-dependent births remain a
+separate acceptance boundary.
+
+
+### Six controlled companion abilities and Torpeza — terminal qualification
+
+The corrected actual-action probe passes2/2 at unchanged PostgreSQL677; log
+`.runtime/full-regression-20261011/enu-remaining-actions-corrected.log`, probe
+SHA8f9304eb… . Together with the prior3541 test, all seven default-profile
+companion abilities now execute through owned native action dispatch.
+
+- 2058: ordinary companion movement first establishes native linear range2..3;
+the real enemy is pulled from[-5,-7] to[-6,-7], with positive bounded distance
+reduction and AP payment. Empty eligible cells are not used as pull evidence.
+- 2077: selected deposit disappears, its selected-cell marker781 belongs to the
+actual companion, and the source-authored conversion children complete.
+- 3542: actual protection child386173 raises companion armor0→205.
+- 8257/8258/8259: after lawful8240 consumption of the existing requested deposit,
+the actual companion creates204/205/202 respectively at its selected cast cell
+with controller7 ownership, plus companion-owned781.
+- 6337: both ordinary and actual Perfórserker forms reduce actual hostile MP3→2;
+self-target rejection leaves the complete snapshot unchanged. No AP reduction
+is invented.
+
+The permanent equivalent is staged outside the frozen server tree as
+`test_enutrof_remaining_actions_candidate.py`. These cases retain the existing
+explicitly clear-LOS fixture and do not certify blocked native LOS. They qualify
+the default1380 action book, not the unavailable lawful cosmetic prerequisites
+for other profiles. The earlier coverage-audit rows describing these abilities
+and6337 as unqualified are superseded by this terminal receipt.
+
+
+### Paired critical attacks and bounded checkpoint/new-fight gate
+
+The runtime-only candidate probe
+`.runtime/full-regression-20261011/probe_enu_critical_checkpoint.py` passes2/2
+at actual unchanged PostgreSQL677; evidence
+`.runtime/full-regression-20261011/enu-critical-checkpoint-current.log`. It
+injects only the staged generic QK point-leaf resolver candidate in-process;
+therefore this is candidate evidence, not an unmodified-server or deployment
+receipt. The existing clear-LOS fixture remains an explicit scope limit.
+
+|Spell|Normal damage|Critical damage|AP|WP|
+|---:|---:|---:|---:|---:|
+|2008|59|73|2|0|
+|2010|82|102|3|0|
+|2011|110|137|3|1|
+|2012|110|137|4|0|
+|2013|152|189|5|1|
+|2014|95|118|3|1|
+|2015|50|62|2|0|
+|2016|110|137|4|0|
+|2017|192|239|5|2|
+|2018|101|126|3|1|
+|2019|76|94|2|1|
+|2021|76|94|3|0|
+|2022|152|189|5|1|
+|2032|76|94|3|0|
+
+All28 actual casts preserve the source fight snapshot, deal positive damage,
+use identical AP/WP payment in each pair, and have a strictly greater critical
+result. Values describe this deterministic level200 fixture, not universal
+damage independent of equipment/target resistances.
+
+The second case serializes the actual companion checkpoint through JSON and
+preserves account owner3, controller7 and all seven native book entries. After
+a real8240 consumes an owned deposit, an independently constructed fresh fight
+has exactly one owned companion, its original book, four grants, original AP
+and original deposits; the prior source snapshot remains unchanged. This
+qualifies serialization and absence of shared/global fight-state leakage.
+`fight_checkpoint_store` deliberately aborts interrupted fights and does not
+restore client timelines; no resume API, actual client reconnect or complete
+live battle-exit/reentry contract is claimed.
+
+Profiles1381–1384 share identical published action books and initial-state
+payloads with1380. Their lawful cosmetic marker prerequisites remain a manual
+appearance prerequisite, not a proven missing gameplay handler. The remaining
+5075/event74 legitimate producer boundary remains open. Provisional status
+requires the coordinated integrated gate after applying the staged generic
+fix; these focused passes are not a100% claim.

@@ -1,5 +1,9 @@
 # E18 — Motor de IA táctica de enemigos
 
+## Tofona manual follow-up — deployed 2026-10-11
+
+The [manual corrections report](../../reports/monster-combat/TOFONA_MANUAL_FIXES_20261011.md) records native move-and-summon commit, required-bridge glyph routing and the canonical Transition fix for `!winfight`. Both services are healthy on complete current images. Isolated class/shared-combat validation passes 366 + 121 tests; AI passes 611/612, with only the reproduced previous Wonejo AP assertion. Existing tests were not rewritten by this fix. Concurrent formatter changes were checked as identical runtime ASTs and included in the final rebuild. Activation scope remains 247 references. The shared-file coordination window has ended.
+
 ## Automated native ranges 10–49 — deployed 2026-10-11
 
 The [current activation report](../../reports/monster-combat/ACTIVATION_LEVEL_10_49_20261010.md) supersedes historical counts below: **190 new references activated, 247 total**, preserving the previous 57. This represents 190/303 compatible references (62.71%) out of 371 references in the new range. All newly activated books pass native execution at every owned spell/level, real AI commit and transaction checks. The complete current world/AI build is healthy; **430 tests passed with zero failures, errors or skips**. Pending references remain disabled; existing tests were not edited by this activation pass. [One complete manual acceptance flow](../../reports/monster-combat/MANUAL_LEVEL_10_49_20261010.md) and [reusable automation](../../reports/monster-combat/AUTOMATION_COHORTS.md) are available.

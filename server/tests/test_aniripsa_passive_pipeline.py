@@ -175,8 +175,12 @@ class AniripsaPassivePipelineTests(unittest.TestCase):
                 if passives == (5463,):
                     self.assertGreater(result.fight.actors[7].hp, own_hp)
                 if passives == (7995,):
+                    # Native371906 selects3886 on odd tables;371907 selects3907
+                    # on even tables. Ready now publishes the actual first round.
+                    odd_table = healed.native_table_turn % 2 == 1
+                    expected_branch = 371906 if odd_table else 371907
                     self.assertIn(
-                        3907,
+                        3886 if odd_table else 3907,
                         [
                             s.reference
                             for s in result.fight.actors[-7].state_ledger.entries

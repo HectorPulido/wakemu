@@ -1,6 +1,6 @@
 # Sadida complete manual acceptance — 2026-10-11
 
-Prepared acceptance procedure; not a claim of manual completion. Perform after the coordinated complete world/AI build and automatic gates. Use one Sadida and one previously accepted Cra/Iop in the same party, then a second Sadida for ownership controls. Keep the server logs correlated with the fight ID and character IDs.
+Prepared acceptance procedure; not a claim of manual completion. PostgreSQL and deployed World/AI/Ecology currently use catalog `bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1`; the Sadida 44/44 aggregate remains historical on release677, not a bd79 rerun. The class inventory contains21 owned actives and20 class passives; use [Sadida inventory](remaining-six-refresh-20261010/sadida.md), [semantic qualification](remaining-six-refresh-20261010/sadida-semantic-qualification.md), and [passive coverage matrix](sadida-passive-coverage-matrix-20261011.md) alongside this procedure. Eight shared breed−2 passive rows in the machine export are not additional Sadida-owned choices. Run the corrected full18 gate before manual acceptance. Use one Sadida and one previously accepted Cra/Iop in the same party, then a second Sadida for ownership controls. Keep server logs correlated with the fight and character IDs.
 
 ## Preparation
 
@@ -13,7 +13,7 @@ Prepared acceptance procedure; not a claim of manual completion. Perform after t
 ## Complete doll/seed/tree cycle
 
 1. Cast Semilla8137 on an empty legal cell. One owned seed appears there; a rejected wall/out-of-range placement spends no partial resources and leaves no invisible blocker.
-2. In separate fresh contexts, cast Zarza925, Vaporizar921, Lágrima918, Hedor932 and Arcilla930 on a real seed. Expected native profiles/books respectively:3747→5024/8138;3748→5023/8138;3749→5021/8138;3750→5026/8138;3751→5025/5356/8138. Verify the actual client names and available actions; do not infer behavior merely from an icon.
+2. In separate fresh contexts, cast Zarza925, Vaporizar921, Lágrima918, Hedor932 and Arcilla930 on a real seed. Expected native profiles/books respectively:3747→5024/8138;3748→5023/8138;3749→5021/8138;3750→5026/8138;3751→5025/5356/8138. For5356, transform another real seed with Komhir934: the Enganchadora variant has the required8190 state; Arcilla930 alone does not supply it. Verify the actual client names and available actions; do not infer behavior merely from an icon.
 3. Let each doll receive its actual turn. Check original-controller authority, legal movement and each available action, enemy versus injured-ally targeting, action cost and no cross-character action bar replacement.8138 is conditional on controller passive912; verify its absence/rejection without that prerequisite.
 4. With an actual owned doll present, cast Superpoderosa911. Profile3746 has exactly5153/5023/5021/5026/5024/5025/5356. It must obey the native cap and prerequisites; a fresh arena with no qualifying doll is a negative control.
 5. Recast Semilla8137 on its owned seed to create tree5577/state8217. Its native book is empty. Verify native tree reactions over real turns, owner/foreign-owner selection and count limits; do not add attacks to this profile.
@@ -26,7 +26,7 @@ Prepared acceptance procedure; not a claim of manual completion. Perform after t
 2. Use Zarza925 on the owned allied Voodoll. The automatically qualified level200 branch grants armor through300634; compare with an enemy-target control. Observe actual armor absorption and loss rather than assuming armor from a tooltip.
 3. Exercise direct, area, critical and poison damage against the Voodoll and its bound target. Record both HP/armor deltas and ensure exactly one authored reaction per recipient. Check healing and owner/target death, dismissal, recast and foreign Sadida isolation.
 4. Preserve disabled native branches: affiliation root164943 and lethal/armor root378558 contain literalFalse. No invented team switching or dormant transfer behavior is expected from those branches.
-5. Use8140 under its legal authored seed/tree/doll context and confirm the actual displacement/reaction. Test occupied destinations and protected targets without stale positions or partial AP loss.
+5. Use8140 on an actual owned doll and confirm that the Voodoll and doll exchange positions. In a separate context acquire Voodoll first, then create a tree by8137→8137; use8140 on that tree and check friendly armor without enemy armor. Test occupied destinations and protected targets without stale positions or partial AP loss.
 
 ## All active spell outcomes
 
@@ -56,14 +56,14 @@ Equip each passive before Ready and compare a matched no-passive encounter. Do n
 |5234 Venenoso|Genuine poison/application and later event, compared with direct damage and no passive.|
 |7053 Terreno de Entendimiento|Owned-area/actor reaction and foreign-area negative control.|
 |8149 Bendición Vudul|Native Voodoll target restriction and allied/enemy controls.|
-|8150 Empuje Silvestre|Seed/tree/free-cell selection, QI footprint and native count limits.|
-|8151 Terreno Fértil|Actual field/fertility trigger, timing and removal.|
+|8150 Empuje Silvestre|Compare with7053 alone: first8137 creates a tree directly with8150; two legal casts create two trees, and the next creates a seed. Check actual QI footprints and count limits.|
+|8151 Terreno Fértil|Keep an owned1835 seed inside the1836 tree ring (not its excluded center). On the genuine trigger, the seed receives3624 level3 and changes stage1855→1853. The recipient is the seed, not a persistent state on the owner.|
 |8152 Crecimiento Acelerado|Preserve literalFalse379549; do not expect disabled form conversion. Test enabled sibling mechanics only.|
 |8153 Devoción Muñequil|Actual doll event, native resource payment/refund and cap.|
 |8154 Mala Semilla|Actual seed/death/replacement context and no duplicate reaction.|
 |8155 Ciclo Silvestre|Actual owned doll/tree turn cycle and cleanup.|
 |8156 Comunicación Vegetal|Actual authored communication/state8230, distance/team controls and expiry.|
-|8157 Conocimiento Sadida|Actual doll form levels and conditional5025 range, not inherited owner level alone.|
+|8157 Conocimiento Sadida|Ghulotona profile3748 action5023 changes legal range3→5 when the original controller equips this passive; compare matched no-passive and foreign-controller cases.|
 |8158 Cadena de la Naturaleza|Genuine chain progression, native caps and no foreign-owner propagation.|
 
 Exact numerical expectations must follow the final automatic semantic evidence, not invented tooltip interpretations. Any remaining unqualified branch must be recorded before acceptance.

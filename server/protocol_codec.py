@@ -404,12 +404,14 @@ def decode_body(direction, opcode, body):
             fields = {"ready": bool(r.number("B"))}
         elif opcode == 13744:
             fields = {"guild_id": r.number("q"), "text": r.text("H")}
-        elif opcode in (12366, 13074, 13702):
+        elif opcode in (12366, 13074, 13702, 12116):
             fields = {"text": r.text("H")}
         elif opcode in (13188, 13831):
             fields = {"language_id": r.number("B"), "text": r.text("H")}
         elif opcode == 13224:
             fields = {"group_id": r.number("q"), "text": r.text("H")}
+        elif opcode == 12387:
+            fields = {"public": bool(r.number("B")), "text": r.text("H")}
         elif opcode == 13917:
             fields = {"recipient": r.text("B"), "text": r.text("H")}
     else:

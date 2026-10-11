@@ -24,14 +24,15 @@ def resolve_request(entry_map_id, body):
     ):
         raise ValueError("Invalid native teleporter request length")
     object_id, destination_id, flag, mode = _REQUEST.unpack(body)
-    if flag != 0 or mode != 2:
-        raise ValueError("Unsupported native teleporter mode")
-
     configured = dungeon_instances.route_for_entry(
         entry_map_id, object_id, destination_id
     )
     if configured is None:
         return None
+    # cpJ12296: source long, destination int, flF.geE auto-downscale byte,
+    # flF.GN selected Stasis int. Other transports keep their own guards.
+    if flag not in (0, 1) or not 1 <= mode <= 10:
+        raise ValueError("Unsupported native teleporter mode")
 
     source = generic_transports.source(entry_map_id, object_id)
     if source is None:
@@ -65,6 +66,9 @@ def resolve_request(entry_map_id, body):
     return {
         "route": configured,
         "source": source,
+        "difficulty_selection": None
+        if (flag, mode) == (0, 2)
+        else dict(stasis_level=mode, competitive=bool(flag)),
         "native_destination": destination,
         "destination": {
             "map_id": destination["map_id"],
@@ -115,6 +119,20 @@ def enter(
             and criterion_allowed(character, route.criterion) is True
         )
 
+    difficulty_selection = resolved["difficulty_selection"]
+    if difficulty_selection is None:
+        from wakfu_server import dungeon_difficulty
+
+        with store.connection() as db:
+            try:
+                native = dungeon_difficulty.definition(db, route.definition_id)
+            except ValueError:
+                native = None
+        if native is not None and native.get("difficulty_available", False):
+            difficulty_selection = dict(
+                stasis_level=max(2, native["minimum_stasis"]), competitive=False
+            )
+
     session = dungeon_instances.create_or_reuse(
         store,
         account_id,
@@ -122,6 +140,7 @@ def enter(
         character_id,
         route.key,
         authorize_entry=authorize,
+        difficulty_selection=difficulty_selection,
         initialize_instance=initialize_instance,
         resolve_destination=resolve_destination,
         transition_destination={

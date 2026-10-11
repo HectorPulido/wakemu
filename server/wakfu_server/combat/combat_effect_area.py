@@ -6,6 +6,8 @@ from functools import lru_cache
 from wakfu_server.paths import DATA_ROOT
 from .combat_effect_area_codec import area_application
 from .combat_stat_handler import StatExecutionContext
+from .combat_summon_initialization import registered_or_detached_actor
+from .combat_npc_initialization import constructor_stat_context
 from .combat_area_removal_masks import area_removal_masks
 from .combat_area_contracts import AREA_CONTRACTS, SUPPORTED_AREA_CONTRACTS
 
@@ -139,6 +141,7 @@ class NativeEffectAreaHandler:
         if (
             invocation.target_id is not None
             and invocation.target_id not in self.fight.actors
+            and not constructor_stat_context(self.fight, invocation)
         ):
             from .combat_state_managers import registered_area_pv
 
@@ -278,7 +281,7 @@ class NativeEffectAreaHandler:
         direction = (
             None if target_aura else (p[3] if len(p) > 3 and 0 <= p[3] <= 7 else None)
         )
-        caster = self.fight.actors.get(invocation.caster_id)
+        caster = registered_or_detached_actor(self.fight, invocation.caster_id)
         orientation_owner = self.fight.actors[creator_id] if target_aura else caster
         effective_direction = (
             direction

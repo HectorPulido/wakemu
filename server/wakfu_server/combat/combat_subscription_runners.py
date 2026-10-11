@@ -21,7 +21,15 @@ GROUP_SUBSCRIPTION_FAMILIES = (
     1080,
     1103,
 )
-DEFERRED_RUNNERS = {321: "eZi", 400: "eXE", 421: "eXe", 1001: "eWZ", 1093: "eZJ"}
+DEFERRED_RUNNERS = {
+    304: "eWu",
+    321: "eZi",
+    400: "eXE",
+    421: "eXe",
+    430: "eZL",
+    1001: "eWZ",
+    1093: "eZJ",
+}
 SUBSCRIPTION_FAMILIES = GROUP_SUBSCRIPTION_FAMILIES + tuple(DEFERRED_RUNNERS)
 
 
@@ -59,6 +67,9 @@ def deferred_payload(
         return _varint(field << 3 | 2) + _varint(len(data)) + data
 
     payload += blob(5, b"".join(_integer(k, v) for k, v in enumerate(cell, 1)))
+    if family == 304:
+        # Fresh eWu, before C(): kFB=0 and rBo=-1; b(iP) writes el/en.
+        payload += blob(8, _integer(11, 0) + _integer(14, -1))
     if family == 1001:
         # eWZ constructor pJt=-1, ddL=0; b(iP) writes em/ek (12/10).
         payload += blob(8, _integer(12, -1) + _integer(10, 0))

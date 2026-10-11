@@ -101,7 +101,13 @@ def install_initial_states(
         raise ValueError("Initial-state application results require an owned list")
     for item in plan:
         profile = state_profile(handler.catalog, item.state_id, item.level)
-        if profile["duration"] > 0 or profile["realtime_duration"] > 0:
+        # eWu.D passes its eZQ/PO PN into eZk.a. The state-specific
+        # eZk.bbT returns before fyW.guG when PN.bac() is null, retaining
+        # Ts.biM even for a positive turn duration. Only the actual scoped
+        # constructor attests that absent SU; a detached lookup alone cannot.
+        if profile["realtime_duration"] > 0 or (
+            profile["duration"] > 0 and detached_actor_authority(fight, actor) is None
+        ):
             raise ValueError("Initial summon state requires an audited finite timeline")
         invocation = EffectInvocation(
             2226, item.level, actor.id, actor.id, actor.position

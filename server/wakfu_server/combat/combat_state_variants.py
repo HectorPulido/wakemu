@@ -82,9 +82,17 @@ def paired_state_variants(state, definitions):
 
 
 def state_child_variant_mode(
-    fight, state_uid, *, effect_definitions=None, causing_critical=None
+    fight,
+    state_uid,
+    *,
+    effect_definitions=None,
+    causing_critical=None,
+    effect_reference=None
 ):
     state = resolve_state_container(fight, state_uid)
+    # Variant selection belongs to the state root iterator, not group descendants.
+    if effect_reference is not None and effect_reference not in state.effect_ids:
+        return "ALL"
     if state.reference not in RULES["selective_child_states"]:
         if not paired_state_variants(state, effect_definitions):
             return "ALL"

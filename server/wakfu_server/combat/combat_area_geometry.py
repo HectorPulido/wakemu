@@ -13,6 +13,23 @@ DIRECTIONS = ((1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -
 
 def native_area_shape(effect):
     kind, text = effect.get("area_class"), effect.get("area_native") or ""
+    if kind == "anz" and (
+        match := re.fullmatch(r"Directed rectangle-(\d+)x(\d+)", text)
+    ):
+        width, length = map(int, match.groups())
+        # anz.bEm prints 2*aNn+1, not the constructor's half-width.
+        # anz.bEx preserves Y-major order; anc owns all orientation.
+        if width < 1 or width % 2 != 1 or length < 1 or max(width, length) >= (1 << 31):
+            raise ValueError("Invalid native directed rectangle dimensions")
+        half_width = width // 2
+        return (
+            tuple(
+                (x, y)
+                for y in range(-half_width, half_width + 1)
+                for x in range(length)
+            ),
+            False,
+        )
     if kind in ("anE", "anJ") and "native_area_points" in effect:
         points = effect["native_area_points"]
         if not isinstance(points, (list, tuple)) or any(

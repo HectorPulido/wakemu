@@ -2,7 +2,7 @@ import unittest
 from contextlib import contextmanager
 from unittest.mock import Mock, patch
 
-from wakfu_server import dungeon_instances
+from wakfu_server import dungeon_instances, dungeon_difficulty
 from wakfu_server.maps import dungeon_context
 
 
@@ -14,6 +14,7 @@ class _ContextStore:
                 return {
                     "context_route_key": "dynamic_dungeon_route",
                     "context_policy_version": 7,
+                    "definition_id": 90,
                 }
 
         class Connection:
@@ -88,6 +89,16 @@ class DungeonContextPolicyTests(unittest.TestCase):
         with (
             patch.object(dungeon_instances, "route", return_value=route) as resolve,
             patch.object(
+                dungeon_difficulty,
+                "selection",
+                return_value={"stasis_level": 5, "competitive_max_level": 20},
+            ),
+            patch.object(
+                dungeon_difficulty,
+                "definition",
+                return_value={"difficulty_available": True},
+            ),
+            patch.object(
                 dungeon_context, "policy_version", return_value=policy
             ) as version,
         ):
@@ -97,7 +108,16 @@ class DungeonContextPolicyTests(unittest.TestCase):
         self.assertIs(dungeon_context.dungeon_instances, dungeon_instances)
         resolve.assert_called_once_with("dynamic_dungeon_route")
         version.assert_called_once_with(unittest.mock.ANY, route, 7)
-        self.assertEqual(result, {"is_fight_in_progress": True})
+        self.assertEqual(
+            result,
+            {
+                "is_fight_in_progress": True,
+                "difficulty_level": 5,
+                "max_level": 20,
+                "is_difficulty_available": True,
+                "can_increase_difficulty": False,
+            },
+        )
 
 
 if __name__ == "__main__":

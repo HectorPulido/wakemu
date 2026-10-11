@@ -1,6 +1,8 @@
 # Enutrof complete manual acceptance — 2026-10-10
 
-Native breed3. This is the client acceptance plan, not a report of a completed manual pass. Automated qualification is tracked separately in `enutrof-passive-qualification-20261010.json` and `test_enutrof_runtime.py`; pending technical failures must be resolved before marking the class provisionally ready.
+Native breed3. This is the client acceptance plan, not a report of a completed manual pass. PostgreSQL and deployed World/AI/Ecology currently use catalog `bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1`. Automated Enutrof evidence is historical and is not a bd79 rerun. Keep the source-qualified `5075` / event74 producer boundary and other class-specific gaps explicit; deployment health does not close them. See the [current six-class gate](remaining-six-refresh-20261010/current-closure-20261011.md).
+
+The published owned roster is21 active spells and17 passives, with four granted actions and seven Drheller-book actions. See the [typed class inventory](remaining-six-refresh-20261010/enutrof.md), [passive branch report](enutrof-passive-branches-20261011.md) and [qualification receipt](enutrof-passive-qualification-20261010.json). These reports retain their stated historical pins; event74 remains an explicit unqualified producer boundary.
 
 ## Preparation
 
@@ -28,3 +30,41 @@ At Ready inspect automatic extra actions Excavation2063, Debt6405, Companion2027
 8. In a two-owner fight, reconnect while a companion and deposits exist. Both clients must retain actor identities, private bars, current resources, states and current turn without duplicated callbacks. Test surrender and a new fight: no old deposits, companion, grants or stale registration may leak.
 
 Perform a short Cra beacon/Desbalizaje and Iop combo check after shared-engine changes. Report the exact action and turn when an expectation fails; a native prerequisite rejection is distinct from a runtime exception, resource loss on rejection, wrong recipient or a disconnected session.
+
+
+## Additional current ownership and companion checks — 2026-10-11
+
+These steps supplement the earlier sequence after the coordinated integrated
+build passes. Automated evidence uses release677 and a staged generic resolver
+correction; it is not a deployment receipt.
+
+1. With a second actual Enutrof in the same friendly challenge, allow both
+players a real turn so each produces its own deposits. Equip Protección
+Mineral8277 on the test character. End its turn on its own deposit: expect
++100 resistance during the native protection callback and consumption of the
+owned deposit. In another turn, end on the other player's distinct deposit:
+expect no protection reward from8277 and no consumption of that foreign deposit.
+2. During the actual companion turn, use2058 on an aligned enemy at distance2
+or3. Expect a pull toward the companion, stopping before an occupied companion
+cell; AP is paid once. Use3542 in its highlighted legal context and expect
+positive armor. Use2077 on an actual deposit and expect its source conversion,
+with the original deposit consumed. For8257/8258/8259, first remove the
+controller's existing requested deposit through8240; the companion action
+creates204/205/202 respectively at the selected cell. Existing3541 produces203.
+The deposit belongs to the controller, while781 belongs to the companion.
+3. Use Torpeza6337 on an eligible hostile in ordinary form and repeat in
+Perfórserker form. Expect native target MP loss (the deterministic automated
+fixture observes3→2), with the correct form cost. Reject self-targeting and
+then perform a legal cast: rejection must not consume resources.
+4. Compare ordinary and critical elemental attacks against an equivalent
+target and unchanged build. Critical damage should follow the native critical
+branch while the corresponding AP/WP payment remains unchanged. Do not compare
+raw damage against a different target resistance or equipment build.
+
+Companion appearances1381–1384 require their lawful cosmetic marker source;
+do not use state-grant commands to manufacture it. Their published books and
+initial-state payloads are identical to default1380. Appearance acquisition is
+a separate manual prerequisite. The legitimate event74 producer needed by the
+separate5075 route remains unrecovered; ordinary paid attacks are not evidence
+of that event. Actual reconnect remains a client acceptance step even though
+checkpoint JSON serialization and fresh-fight isolation pass automatically.

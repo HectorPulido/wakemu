@@ -135,7 +135,7 @@ def execute(store, groups, account, generation, character, text, *, authorized_b
         result.update(
             character=updated,
             packets=[packet],
-            message=f"Nivel {level} guardado; vuelve a seleccionar el personaje para actualizar sus hechizos y puntos",
+            message=f"Nivel {level} guardado; biblioteca y lista de personajes actualizadas",
         )
     elif command == "!kamas":
         from .wire import account_kamas_update

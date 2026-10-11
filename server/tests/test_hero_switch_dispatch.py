@@ -139,20 +139,22 @@ class HeroSwitchDispatchTests(unittest.TestCase):
                 from wakfu_server.characters import heroes
 
                 namespace["STORE"] = object()
+                switched_leader = {
+                    "id": requested_id,
+                    "x": 9,
+                    "y": 8,
+                    "z": 0,
+                    "map_id": 9,
+                    "instance_id": 0,
+                    "level": 60,
+                    "breed": 1,
+                    "account_id": 7,
+                }
+                namespace["_switched_leader"] = switched_leader
                 with patch.object(
                     heroes,
                     "switch_main",
-                    return_value={
-                        "leader": {
-                            "id": requested_id,
-                            "x": 9,
-                            "y": 8,
-                            "z": 0,
-                            "level": 60,
-                            "breed": 1,
-                            "account_id": 7,
-                        }
-                    },
+                    return_value={"leader": switched_leader},
                 ):
                     exec(compile(module, "local_game_server.py", "exec"), namespace)
             else:
@@ -163,7 +165,12 @@ class HeroSwitchDispatchTests(unittest.TestCase):
         namespace, events = self.run_branch(12006, requested_id=84)
         packets = [event[2] for event in events if event[0] == "send"]
         self.assertEqual(
-            [(13046, b"refresh"), (13440, struct.pack(">Bq", 0, 84))], packets
+            [
+                (13046, b"refresh"),
+                hero_wire.statistics(namespace["_switched_leader"]),
+                (13440, struct.pack(">Bq", 0, 84)),
+            ],
+            packets,
         )
         self.assertEqual(84, namespace["hero_switch_pending"])
         self.assertFalse(any(event[0] == "join_world" for event in events))

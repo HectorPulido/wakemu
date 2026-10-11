@@ -31,7 +31,7 @@ def added_success():
     return 12587, b"\x01"
 
 
-def company(account_id, main_character_id, *, guild_id=0):
+def company(account_id, main_character_id, *, guild_id=0, nation_id=0):
     """eSJ COMPANY identifies the real main and activates the owned company."""
     if any(
         type(value) is not int or value <= 0
@@ -40,8 +40,11 @@ def company(account_id, main_character_id, *, guild_id=0):
         raise ValueError("Invalid native company owner or chief")
     if type(guild_id) is not int or not 0 <= guild_id < 2**63:
         raise ValueError("Invalid native company guild")
+    from .nation_state import nation_id as validated_nation_id
+
+    nation_id = validated_nation_id({"nation_id": nation_id})
     return 13873, struct.pack(
-        ">IIqqiqIiB", 1, 1, account_id, main_character_id, 0, guild_id, 0, 1, 1
+        ">IIqqiqIiB", 1, 1, account_id, main_character_id, nation_id, guild_id, 0, 1, 1
     )
 
 

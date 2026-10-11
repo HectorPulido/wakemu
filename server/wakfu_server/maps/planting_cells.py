@@ -7,7 +7,7 @@ from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
 from .paths import DATA_ROOT
-from .planting_context import region, bootstrap
+from .planting_context import region, bootstrap, display_families
 
 GROUNDS = {
     r["ground_id"]: r
@@ -77,11 +77,8 @@ def region_context(
 ):
     """Encode a known native region independently of planting-cell availability."""
     definition = region(character["map_id"], region_id)
-    extra = set(test_monster_families)
-    if open_test_policy:
-        extra.update(open_families(character["map_id"], region_id))
-    allowed_monsters = {r["family_id"] for r in definition["monster_families"]} | extra
-    allowed_plants = {r["family_id"] for r in definition["plant_families"]}
+    allowed_monsters = set(display_families(definition, "monster"))
+    allowed_plants = set(display_families(definition, "plant"))
     return bootstrap(
         character["map_id"],
         region_id,
@@ -91,7 +88,7 @@ def region_context(
         plant_counts={
             k: v for k, v in (plant_counts or {}).items() if k in allowed_plants
         },
-        test_monster_families=sorted(extra),
+        test_monster_families=test_monster_families,
     )
 
 
@@ -132,20 +129,6 @@ def authorize(store, character, request, seed, resource, *, open_test_policy=Fal
         ).fetchone():
             raise ValueError("Planting surface is occupied")
     return cell["z"]
-
-
-@lru_cache(maxsize=64)
-def open_families(map_id, region_id):
-    """Explicit open-test policy: every installed monster seed family."""
-    from .planting import RESOURCES, SEEDS
-
-    references = {seed["resource_reference"] for seed in SEEDS.values()}
-    return frozenset(
-        family
-        for ref, resource in RESOURCES.items()
-        if ref in references and resource["monster_resource"]
-        for family in resource["monster_family_ids"]
-    )
 
 
 def reachable_surfaces(character, request, candidates):

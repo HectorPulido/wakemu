@@ -10,7 +10,7 @@ from wakfu_server.monsters import owned_instance, reference
 
 @lru_cache(maxsize=None)
 def corpse_collect_actions(monster_ref):
-    """Let native life-state criteria explain exclusions; disable unknown ones."""
+    """Keep native unrestricted/dead actions enabled; disable unknown criteria."""
     from wakfu_server import native_catalog
     from wakfu_server.paths import DATA_ROOT
 
@@ -23,7 +23,7 @@ def corpse_collect_actions(monster_ref):
                         action["d"]
                         for action in row["collect_actions"]
                         if action["clT"].strip()
-                        not in ('IsDead("target")', 'not IsDead("target")')
+                        not in ("", 'IsDead("target")', 'not IsDead("target")')
                     }
                 )
             )

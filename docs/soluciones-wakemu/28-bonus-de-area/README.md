@@ -1,5 +1,8 @@
 # 28. Bonus de área
 
+> Current release2026-10-11: complete shared World/AI/ecology/admin deployed and automatically verified. Migration123; stable window released08:07 UTC. [Deployment evidence](../../reports/SYSTEMS-DEPLOYMENT-20261011.md). Graphical acceptance remains pending; any earlier prepared/not-deployed wording below is historical. Native planting bonus stays disabled pending its separate native-display acceptance.
+
+
 Aplicar y retirar los efectos del territorio con reglas nativas verificadas y sin acumulación duplicada.
 
 [Diagnóstico](DIAGNOSTICO.md) · [Cotejo de código](COTEJO.md) · [Solución](SOLUCION.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md) · [Contratos y límites](REVISION-RESPUESTAS.md)
@@ -36,3 +39,17 @@ La población regional tiene cobertura aparte en [revisión de respuestas](REVIS
 ## Revalidación del despliegue — 7 de octubre
 
 **Solucionado parcialmente.** El cálculo territorial está presente en r9: hash del módulo idéntico a fuente, attachment en dispatcher y XP de plantación/cosecha comprobados en el contenedor activo. Gate del dominio12/12 aprobado. Quedan carrier visual fuera de combate, TLS de transición y aceptación del sistema completo.
+
+## Current implementation review — 2026-10-11
+
+`territory_bonuses.refresh_world` now builds an exploration characteristic refresh using the existing native `13046` envelope, format 3, with `fightID=-1`. The payload contains complete owned public characteristics, including explicit native defaults, so leaving a satisfied region removes Wisdom/Prospection instead of leaving omitted zero values on the client. Actor direction, HP, equipment, aptitudes and active build remain authoritative. Derived regional values are never persisted or added repeatedly.
+
+The dispatcher should invoke this helper in `send_planting_context`, independently of the weather-publication flag. Existing entry, transition and accepted-walk paths then refresh regional bonuses, including satisfaction changes within the same region. This source change does not establish deployment or graphical acceptance. Idle characters still need a subsequent context publication to observe ecological changes; combat uses its existing fresh entry snapshot.
+
+Automated regression coverage was added for initial publication, unchanged snapshots, regional bonus removal, serialization retry, complete zero-valued characteristics, preserved direction and the exploration fight identifier. Execution is delegated to the validation agent; do not treat this paragraph as a passing test result.
+
+Manual acceptance: open the characteristic panel and ecosystem panel together; record Wisdom/Prospection and regional wish satisfaction. Walk into a region with different satisfaction, then return, repeat twice and reconnect. Expected deltas are +30/+30 for partial satisfaction, +60/+60 for all wishes, and -10/-10 for none, relative to the same equipment/build baseline; regions without wishes contribute zero. No stacking, movement-direction reset, HP reset or combat transition should occur. Harvest/plant until satisfaction changes and move once: characteristics must follow the new state. Finally start and finish a normal fight and verify the exploration values remain correct afterward.
+
+## Stationary refresh — 2026-10-11
+
+Prepared, not deployed. A bounded ecology worker domain (`bonuses`, migration123) prepares complete regional populations outside gameplay locks. The owner session publishes native13046 from current character stats only outside combat and spectating, and acknowledges after successful delivery. Epoch, durable scope revision, generation, peer, location and fresh-context fences reject obsolete observations. Inline ecology uses the same producer. No unchanged-stat spam or repeated weather packets. Final integrated gate:80 tests passed, plus the updated15-test module including one-slot fairness and actual World projection fences. Coordinated deployment and graphical acceptance pending.

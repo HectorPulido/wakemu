@@ -196,7 +196,9 @@ class ConditionContext:
     surrounding_own_summon_query: object = None  # eMP complete direct-owner fUQ roster.
     controlled_by_ai_query: object = None  # eNH actual eGj.fqL state.
     free_cell_query: object = None  # eNR rotated point and actual QI/Qs.
+    free_surrounding_cell_query: object = None  # eMp cardinal QI.V/Q/R.
     gate_count_query: object = None  # ePn actual Qs type19 population.
+    glyph_count_query: object = None  # ePo/ePi actual Qs type0 and Qq.bch owner.
     own_specific_area_query: object = None  # eOF Qz/owner criterion.
     area_identity_query: object = None  # eNm/eOQ/eOC actual Qz/aBn/null target.
     valid_gate_for_tp_query: object = None  # eMT complete Qs/captured bcM/QI.U.
@@ -407,6 +409,10 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             return
         if name == "GetSpaceInSymbiot":
             # eLm does not call alS.s(parameters): parsed arguments are ignored.
+            return
+        if name == "NbGlyphs":
+            if len(args) > 1 or (args and not is_state_actor_selector(args[0])):
+                raise UnknownCondition("Unsupported native NbGlyphs selector")
             return
         if name == "NbGates":
             if len(args) != 2 or any(
@@ -752,7 +758,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 or not isinstance(args[0], ast.Constant)
                 or type(args[0].value) is not str
                 or args[0].value.upper() not in aliases
-                or (len(args) == 2 and not is_selector(args[1]))
+                or (len(args) == 2 and not is_state_actor_selector(args[1]))
             ):
                 raise UnknownCondition("Unsupported native characteristic or actor")
             return
@@ -859,6 +865,16 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 raise UnknownCondition(str(error)) from error
             if type(result) is not int or not -1 <= result <= 10:
                 raise UnknownCondition("Invalid native symbiot space count")
+            return result
+        if name == "NbGlyphs":
+            if not callable(context.glyph_count_query):
+                raise UnknownCondition("Missing native glyph-count authority")
+            try:
+                result = context.glyph_count_query(args[0].value if args else None)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(result) is not int or result < 0:
+                raise UnknownCondition("Invalid native glyph count")
             return result
         if name == "NbGates":
             if not callable(context.gate_count_query):
@@ -1583,6 +1599,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "IsOwnDeposit",
                     "IsOwnArea",
                     "IsFreeCell",
+                    "HasFreeSurroundingCell",
                     "IsControlledByAI",
                     "HasSurroundingCellWithOwnSummon",
                     "IsOnSpecificEffectArea",
@@ -1626,6 +1643,15 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     )
                 check_number(args[0])
                 check_number(args[1])
+                return
+            if name == "HasFreeSurroundingCell":
+                if len(args) > 2 or any(
+                    not isinstance(arg, ast.Constant) or type(arg.value) is not bool
+                    for arg in args
+                ):
+                    raise UnknownCondition(
+                        "Native free-surrounding predicate requires literal booleans"
+                    )
                 return
             if name == "IsControlledByAI":
                 if (
@@ -1886,7 +1912,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if name == "IsBreedId":
                 if (
                     len(args) < 2
-                    or not is_selector(args[0])
+                    or not is_state_actor_selector(args[0])
                     or any(
                         not isinstance(a, ast.Constant) or type(a.value) is not int
                         for a in args[1:]
@@ -2302,8 +2328,15 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 )
             return identity in actor.retained_action_ids
         if name == "HasEffectWithSpecificId":
-            actor = context.actors.get(node.args[0].value.lower())
-            if actor is None or actor.retained_effect_ids is None:
+            selector = node.args[0].value.lower()
+            actor = context.actors.get(selector)
+            if actor is None:
+                if selector == "target" and context.effect_target_absent is True:
+                    return False
+                raise UnknownCondition("Missing native effect-presence actor")
+            if actor.is_native_ehg is False:
+                return False
+            if actor.retained_effect_ids is None:
                 raise UnknownCondition(
                     "Missing complete native retained effect population"
                 )
@@ -2379,6 +2412,19 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 result = context.controlled_by_ai_query(node.args[0].value)
                 if type(result) is not bool:
                     raise ValueError("Missing native AI-control boolean")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "HasFreeSurroundingCell":
+            if not callable(context.free_surrounding_cell_query):
+                raise UnknownCondition("Missing native free-surrounding cell authority")
+            try:
+                result = context.free_surrounding_cell_query(
+                    node.args[0].value if node.args else False,
+                    node.args[1].value if len(node.args) == 2 else True,
+                )
+                if type(result) is not bool:
+                    raise ValueError("Missing native free-surrounding boolean")
                 return result
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
@@ -2629,6 +2675,11 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 # eNu.a returns -1 when eII.a resolves an actual null eHg.
                 if selector in context.null_actor_aliases or (
                     selector == "target" and context.effect_target_absent is True
+                ):
+                    return False
+                if (
+                    selector in ("triggeringcaster", "triggeringtarget")
+                    and context.triggering_effect_present is False
                 ):
                     return False
                 raise UnknownCondition(f"Missing native breed: {selector}")

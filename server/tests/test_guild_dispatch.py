@@ -189,6 +189,17 @@ class FakeGuildService:
 
 
 class GuildDispatchTests(unittest.TestCase):
+    def test_local_and_remote_guild_refresh_preserve_citizenship(self):
+        self.world.identities[self.actor][1]["nation_id"] = 32
+        packet = self.dispatcher._packet(self.actor, _snapshot())
+        self.assertEqual(packet[0], 15548)
+        self.assertEqual(struct.unpack_from(">i", packet[1], 11)[0], 32)
+        self.assertEqual(packet[1][15:42], bytes(27))
+        self.dispatcher._projection(self.actor, self.generation, _snapshot())
+        remote = self.remote_calls[-1][1]
+        self.assertEqual(struct.unpack_from(">i", remote[1], 11)[0], 32)
+        self.assertEqual(remote[1][15:42], bytes(27))
+
     def setUp(self):
         self.actor = 1
         self.account = 101

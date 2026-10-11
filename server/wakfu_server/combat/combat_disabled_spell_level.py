@@ -1,5 +1,10 @@
 """Native47/eZb explicitly disabled spell-level effect; preserve runner lifecycle."""
 from dataclasses import replace
+from .combat_npc_initialization import constructor_stat_context
+from .combat_summon_initialization import (
+    detached_actor,
+    registered_or_detached_actor,
+)
 from .combat_value_transfer import apply_context_value
 from .combat_stat_handler import StatExecutionContext
 from .combat_stat_effects import owned_effect_payload, owned_effect_application
@@ -25,11 +30,16 @@ class NativeDisabledSpellLevelHandler:
         if effect["effect_class"] != 47:
             raise ValueError("Unsupported native eZb definition")
         if (
+            detached_actor(self.fight, invocation.caster_id) is not None
+            or detached_actor(self.fight, invocation.target_id) is not None
+        ) and invocation.caster_id != invocation.target_id:
+            raise ValueError("Native eZb detached constructor requires SELF delivery")
+        if (
             self.fight.phase != "active"
-            or invocation.caster_id not in self.fight.actors
-        ):
+            and not constructor_stat_context(self.fight, invocation)
+        ) or registered_or_detached_actor(self.fight, invocation.caster_id) is None:
             raise ValueError("Invalid native eZb fight/caster")
-        if invocation.target_id not in self.fight.actors:
+        if registered_or_detached_actor(self.fight, invocation.target_id) is None:
             # Non-eGj PV is a native no-op, but area retention/delivery has its
             # own manager contract. Do not fabricate an actor or silent success.
             raise ValueError("Native eZb non-fighter/null-target delivery unsupported")
@@ -128,7 +138,7 @@ class NativeDisabledSpellLevelHandler:
             if live.retained != context.retained:
                 raise ValueError("Native eZb retention changed during L2")
             amount = runner.value
-        actor = self.fight.actors[invocation.target_id]
+        actor = registered_or_detached_actor(self.fight, invocation.target_id)
 
         def payload_for(value):
             return owned_effect_payload(

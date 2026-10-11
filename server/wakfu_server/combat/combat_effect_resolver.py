@@ -236,7 +236,7 @@ class NativeEffectResolver:
         # PV. Server-created children with an explicit relationship selector
         # select that relationship first. Non-point areas also enumerate their
         # occupants before passing a chosen PV to point children. An absent or
-        # point self selector retains the group's intentional transmitted PV.
+        # point AREA selector retains the group's intentional transmitted PV.
         # Fresh actor groups with mask zero enumerate their criterion candidates.
         # Leaf runners and event-bound groups keep the transmitted PV; a
         # zero selector must not fan a direct hit out across the whole fight.
@@ -256,6 +256,18 @@ class NativeEffectResolver:
                 or bool(
                     selector["mask"] & (2 | 4 | 8 | 64 | 128 | 256 | 4096 | (1 << 43))
                 )
+                # QK is fighter-index eligibility, not a relationship selector.
+                # Preserve an explicit chosen PV only for a point AREA|QK leaf;
+                # groups, nonpoint geometry and typed-PV selectors still select.
+                or (
+                    bool(selector["mask"] & (1 << 50))
+                    and not (
+                        selector["mask"] == ((1 << 50) | 1)
+                        and effect.get("area_class") == "anD"
+                        and native_group_route(effect) != "actors"
+                        and invocation.native_explicit_target
+                    )
+                )
                 or (
                     bool(selector["mask"] & 1)
                     and effect.get("area_class") not in (None, "anA", "anD")
@@ -266,7 +278,7 @@ class NativeEffectResolver:
         # triggering recipient. Re-selecting self here loses allied received-
         # healing modifiers: the caster is outside the recipient's point.
         # Keep Qe.g(PV)'s explicit-target contract for this combined selector;
-        # a pure self selector still requests the server relationship policy.
+        # a pure caster selector still requests the server relationship policy.
         # A group may also rebind the selected recipient as its caster. Its
         # transmitted point PV is still already selected: rerunning an ally
         # selector would now reject that same actor as self. Area children

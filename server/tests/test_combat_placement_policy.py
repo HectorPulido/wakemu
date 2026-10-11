@@ -163,3 +163,60 @@ class PlacementPolicyTests(PostgresCase):
                 ).fetchone()["n"],
                 1,
             )
+
+    def test_border_selection_is_frozen_across_policy_changes_and_reopen(self):
+        fight_id = create(
+            self.store, self.account, self.generation, self.character["id"]
+        )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='fight_border_policy'",
+                ('{"version":1,"pool":[48]}',),
+            )
+        first = self.call(fight_id)
+        self.assertEqual(first["terrain_effect_id"], 48)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='fight_border_policy'",
+                ('{"version":2,"pool":[46]}',),
+            )
+        self.assertEqual(self.call(fight_id, self.reopen()), first)
+        next_fight = create(
+            self.store, self.account, self.generation, self.character["id"]
+        )
+        self.assertEqual(self.call(next_fight)["terrain_effect_id"], 46)
+
+    def test_invalid_border_pool_cannot_commit_partial_layout(self):
+        fight_id = create(
+            self.store, self.account, self.generation, self.character["id"]
+        )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='fight_border_policy'",
+                ('{"version":1,"pool":[44]}',),
+            )
+        with self.assertRaises(ValueError):
+            self.call(fight_id)
+        with self.store.connection() as db:
+            self.assertIsNone(
+                db.execute(
+                    "SELECT 1 FROM fight_placement_layouts WHERE fight_id=%s",
+                    (fight_id,),
+                ).fetchone()
+            )
+
+    def test_preexisting_layout_without_border_receipt_preserves_original46(self):
+        fight_id = create(
+            self.store, self.account, self.generation, self.character["id"]
+        )
+        self.call(fight_id)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE fight_placement_layouts SET layout=layout-'border' WHERE fight_id=%s",
+                (fight_id,),
+            )
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='fight_border_policy'",
+                ('{"version":2,"pool":[48]}',),
+            )
+        self.assertEqual(self.call(fight_id)["terrain_effect_id"], 46)

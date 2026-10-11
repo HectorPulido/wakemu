@@ -33,6 +33,10 @@ def apply_native_fighter_state_transition(actor, state):
         actor.native_death_status = snapshot
     if not isinstance(snapshot, dict):
         raise ValueError("Malformed actual native death status")
+    if state in (0, 3):
+        # Record the actual wire transition without changing native mwD.
+        # This checkpointed writer distinguishes reversible KO from final2.
+        snapshot["last_writer"] = f"owned.aTS.F.type{state}"
     if state in (1, 2):
         requested = state == 2
         # eGj.gg first compares COMPOUND dsA to the requested value. A

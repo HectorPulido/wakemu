@@ -178,6 +178,9 @@ def complete(store, instance_id, fight_id, *, topology, in_fight):
                     destination["z"],
                 ),
             )
+        from wakfu_server.characters.dungeon_modulation_health import reconcile
+
+        reconcile(store, db, member_ids)
         party_change = player_parties.cleanup_dungeon_solo(db, run["party_id"])
         saved = dict(result, auto_exit_revision=revision)
         db.execute(

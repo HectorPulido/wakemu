@@ -227,7 +227,16 @@ class NativeEffectTimingProvider:
         native = native_definition_timing(effect, invocation.level)
         retained = native["retained"]
         timer = None
-        if effect["native_execution_mode"] == 2 and native["duration"] > 0:
+        from .combat_npc_initialization import constructor_stat_context
+
+        # big.a(eGH) applies cle through its actual eZQ/PO context.
+        # PO.bac returns null; eZR.bbT returns before scheduling a Tt.
+        # Retention still follows Ty, while Ts.biM remains the no-clock sentinel.
+        if (
+            effect["native_execution_mode"] == 2
+            and native["duration"] > 0
+            and not constructor_stat_context(preview, invocation)
+        ):
             fields = effect["native_timing_definition"]
             for key in ("clock_on_caster", "clock_on_target"):
                 if type(fields.get(key)) is not bool:

@@ -18,6 +18,33 @@ class BuildTests(PostgresCase):
         )
         self.blobs = {"sheet": sheet, "equipment": b"", "deck": b"", "aptitudes": b""}
 
+    def test_missing_decks_resolve_each_sheet_level_independently(self):
+        from wakfu_server.spells import default_deck
+
+        character = dict(self.character, level=100, effective_level=1)
+        character["builds"] = {
+            1: dict(
+                self.blobs,
+                sheet=self.blobs["sheet"].hex(),
+                equipment="",
+                deck="",
+                aptitudes="",
+            )
+        }
+        character["builds"][1]["sheet"] = b"".join(
+            wire.proto_field(tag, value)
+            for tag, value in [(8, 1), (18, b"Capped"), (24, 1), (56, 0)]
+        ).hex()
+        reader = Reader(builds.deck_collection(character))
+        decks = Reader(reader.take(reader.number("H")))
+        reader.finish()
+        self.assertEqual(decks.number("i"), 2)
+        for index, level in ((0, 100), (1, 1)):
+            expected = default_deck(dict(character, effective_level=level))
+            self.assertEqual(decks.number("b"), index)
+            self.assertEqual(decks.take(len(expected)), expected)
+        decks.finish()
+
     def test_save_response_and_reopen_are_authoritative(self):
         body = struct.pack(">q", self.character["id"]) + b"".join(
             struct.pack(">I", len(self.blobs[key])) + self.blobs[key]

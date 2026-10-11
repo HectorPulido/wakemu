@@ -67,14 +67,24 @@ class Guilds:
             lock.release()
 
     def _packet(self, character, snapshot):
-        return guild_wire.local_actor_update(
-            character,
-            guild_wire.replace_local_entity(
-                self.local_entity(),
-                guild_model.native_model(snapshot),
-                guild_model.moderation_factor(snapshot),
-            ),
+        from .nation_state import nation_id, synchro
+        import struct
+
+        entity = guild_wire.replace_local_entity(
+            self.local_entity(),
+            guild_model.native_model(snapshot),
+            guild_model.moderation_factor(snapshot),
         )
+        live = self.world.live_identity(character_id=character)
+        if live is None:
+            raise ValueError("Guild actor session is stale")
+        entity = (
+            entity[:1]
+            + struct.pack(">i", nation_id(live[1]))
+            + synchro(live[1])
+            + entity[32:]
+        )
+        return guild_wire.local_actor_update(character, entity)
 
     def refresh(self, account, generation, character):
         """Reconnect uses a fresh snapshot, never historic outbox payloads."""
@@ -103,12 +113,16 @@ class Guilds:
         if self.remote_publish is not None:
             live = self.world.live_identity(character_id=character)
             if live is not None and live[0] == generation:
+                from .nation_state import nation_id, synchro
+
                 packet = guild_wire.remote_actor_update(
                     character,
                     model["guildId"] if model else 0,
                     model["blazon"] if model else 0,
                     model["level"] if model else 0,
                     model["name"] if model else "",
+                    nation_id=nation_id(live[1]),
+                    nation_synchro=synchro(live[1]),
                 )
                 self.remote_publish(live[1], packet)
 

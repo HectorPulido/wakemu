@@ -279,6 +279,39 @@ class MonsterCorpseHarvestTests(PostgresCase):
         ):
             self.begin()
 
+    def test_unrestricted_native_seed_action_consumes_once_and_blocks_hand_afterward(
+        self,
+    ):
+        self.action_id = 3724
+        self.rule = action(self.monster_ref, self.action_id)
+        self.assertEqual((7361, ""), (self.rule["item_ref"], self.rule["condition"]))
+        self.prepare_completion()
+        result = self.complete()
+        self.assertTrue(result["applied"])
+        self.assertEqual(
+            (7361, 1), (result["item"]["reference"], result["item"]["quantity"])
+        )
+        self.assertEqual(12304, result["availability"][2][0])
+        self.assertFalse(self.complete()["applied"])
+        self.action_id = 3722
+        self.rule = action(self.monster_ref, self.action_id)
+        with self.assertRaisesRegex(
+            ValueError, "unavailable|expired|already harvested"
+        ):
+            self.begin()
+        with self.store.connection() as db:
+            rewards = db.execute(
+                "SELECT reference,sum(quantity) AS quantity FROM inventory_items "
+                "WHERE character_id=%s AND reference IN (7361,2731) GROUP BY reference",
+                (self.character["id"],),
+            ).fetchall()
+            receipts = db.execute(
+                "SELECT action_id FROM monster_harvest_receipts WHERE monster_id=%s",
+                (self.corpse_id,),
+            ).fetchall()
+        self.assertEqual([{"reference": 7361, "quantity": 1}], rewards)
+        self.assertEqual([{"action_id": 3724}], receipts)
+
     def test_expiry_after_start_aborts_without_consumption_or_rewards(self):
         self.begin()
         token = self.harvest.pending[self.character["id"]]["token"]

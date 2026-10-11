@@ -128,8 +128,9 @@ def prepare_play(
             if random and 0 < int(random[1]) <= 1000:
                 value = secrets.randbelow(int(random[1]))
             elif expressions[2] == "GetNationId()":
-                # Own characters currently have native nation0 (wire identity).
-                value = 0
+                from .nation_state import nation_id
+
+                value = nation_id(character)
             else:
                 raise ValueError("Unverified native emote expression")
             parameters.append((key, value))

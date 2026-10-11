@@ -6,7 +6,9 @@ Hacer que la probabilidad autoritativa y la disponible para presentación descri
 
 ## Estado y alcance
 
-Auditoría y propuesta de cambios del **servidor**. No se ha implementado esta solución. El cotejo distingue lo existente de lo pendiente; ninguna prueba de base certifica automáticamente el recorrido completo.
+**Closed by Hector on2026-10-11 with an accepted final limitation.** The ordinary existing profile keeps its fixed visual1%. This does not mean the actual server planting roll is1%. Optional native percentage work remains inactive and historical; native activation and general extra-effect integration are not requirements for this issue. No client files or flags were changed.
+
+The implementation and investigation sections below preserve their dated evidence and do not override this closure.
 
 ## Dependencias
 
@@ -18,7 +20,7 @@ Permiso no equivale a probabilidad; repetir una solicitud no vuelve a sortear el
 
 ## Cotejo actual y resultado fallido
 
-Estado: **En revision**. `dev.am` calcula `round(100*p)` para la celda, mediante `fyi.b` con terreno, clima y modificador de oficio. El parche `OpenPlantingAgent` sustituye precisamente esa función por1: explica el1% visual sin acreditar una tirada del servidor. El servidor cargado todavía finaliza siempre con éxito. No se cambia el cliente como parte de esta solución.
+Historical review: `dev.am` calcula `round(100*p)` para la celda, mediante `fyi.b` con terreno, clima y modificador de oficio. El parche `OpenPlantingAgent` sustituye precisamente esa función por1: explica el1% visual sin acreditar una tirada del servidor. El servidor cargado todavía finaliza siempre con éxito. No se cambia el cliente como parte de esta solución.
 
 En fuente, migración018 y `planting.complete(success=False)` permiten persistir un fracaso: consume una semilla, guarda el resultado sin recurso/grupo, publica12954 falso y delta12470; no concede XP ni crea población. El retry usa el recibo y no vuelve a consumir. Gate de fallos/recibos y recursos:112 pruebas OK en PostgreSQL aislado; sin despliegue ni RNG integrado. La fórmula nativa y los carriers del contexto siguen bajo cotejo para alinear presentación y autoridad.
 

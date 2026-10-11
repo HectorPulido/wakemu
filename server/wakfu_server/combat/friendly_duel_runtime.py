@@ -95,6 +95,7 @@ def prepare_and_register(
         },
         db=db,
     )
+    terrain_effect_id = arena["terrain_effect_id"]
     # A retry may reuse an already committed placement layout. Always derive
     # starts from that authoritative final layout, not the fresh proposal.
     combat_positions = opposing_starts(

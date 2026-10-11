@@ -5,6 +5,38 @@ import secrets
 class ShopService:
     def __init__(self, store):
         self.store = store
+        self.public_cache = None
+
+    def catalog_revision(self):
+        with self.store.connection() as db:
+            return db.execute(
+                "SELECT revision FROM shop_catalog_revision WHERE id=1"
+            ).fetchone()["revision"]
+
+    def load_public_catalog(self):
+        # One MVCC snapshot binds both collections to the same invalidation revision.
+        with self.store.connection() as db:
+            db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            revision = db.execute(
+                "SELECT revision FROM shop_catalog_revision WHERE id=1"
+            ).fetchone()["revision"]
+            categories = db.execute(
+                "SELECT * FROM shop_categories WHERE enabled ORDER BY sort_order,id"
+            ).fetchall()
+            rows = db.execute(
+                "SELECT a.* FROM shop_articles a JOIN shop_categories c ON c.key=a.category "
+                "WHERE a.enabled AND c.enabled ORDER BY c.sort_order,c.id,a.id"
+            ).fetchall()
+        return {
+            "revision": revision,
+            "categories": [dict(row) for row in categories],
+            "articles": [dict(row, item_id=row["item_ref"]) for row in rows],
+        }
+
+    def public_catalog(self):
+        if self.public_cache is not None:
+            return self.public_cache.get()
+        return self.load_public_catalog()
 
     def _authenticate(self, db, token):
         if not isinstance(token, str) or not 20 <= len(token) <= 512:

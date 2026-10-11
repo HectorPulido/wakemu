@@ -25,3 +25,22 @@ La migración058, el tick y la ruta de bootstrap están conectados en fuente. El
 - `server/wakfu_server/maps/territory_cells.py`: mapa/región nativos resueltos por celda.
 - `server/migrations/020_territory_weather.sql`, `055_territory_weather_transitions.sql`, `056_territory_weather_local_policy.sql`, `058_territory_weather_forecast_policy.sql`: persistencia por fases.
 - `.runtime/local/review-continuacion-20261004/ForecastNativeProbe.java`: vector local verificado con el parser instalado.
+
+## Native numeric consumer follow-up — 11 October
+
+The six 13948 floats are now mapped by following `ctm.dp`, the 13948 branch of
+`chl.b`, both overloads of `bRW.a`, and the actual `bRX` presentation fields.
+The signed byte is current base temperature; float1 is current wind; float2/3
+are daily base temperature bounds; float4 is their temperature modifier;
+float5/6 are the ambient base wind and wind modifier. Current temperature is
+byte plus float4. Wind is a 0..1 ratio displayed as a percentage. Temperature
+uses the installed degree display scale; physical calibration is not claimed.
+
+The forecast seasonal minimum/maximum records are clamp bounds used by
+`bRX.minTemperatureWithMods` and `maxTemperatureWithMods`, rather than arbitrary
+zero adjustments. The automatic encoder now derives all numeric 13948 fields
+and forecast bounds from the same deterministic local model. Captured and
+operator-authored snapshots retain their exact bytes and precedence.
+
+The complete mapping and native consumer oracle are recorded in
+[regional weather implementation](../../reports/REGIONAL-WEATHER-20261011.md).

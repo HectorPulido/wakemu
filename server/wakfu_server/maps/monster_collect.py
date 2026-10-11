@@ -296,7 +296,10 @@ class Harvests:
         ):
             raise ValueError("Invalid local harvest policy")
         rule = action(monster["ref"], request["action_id"])
-        if monster.get("corpse") and rule["condition"].strip() != 'IsDead("target")':
+        if monster.get("corpse") and rule["condition"].strip() not in (
+            "",
+            'IsDead("target")',
+        ):
             raise ValueError("Action does not belong to a native corpse harvest")
         from .inventory_move import STACKS
 
@@ -379,10 +382,9 @@ class Harvests:
             if ticket.get("corpse"):
                 from .monster_corpses import consume
 
-                if (
-                    not monster.get("corpse")
-                    or ticket["rule"]["condition"].strip() != 'IsDead("target")'
-                ):
+                if not monster.get("corpse") or ticket["rule"][
+                    "condition"
+                ].strip() not in ("", 'IsDead("target")'):
                     raise ValueError("Corpse harvest target changed")
                 corpse_removal = consume(
                     db, monster, character_id=character_id, token=ticket["token"]

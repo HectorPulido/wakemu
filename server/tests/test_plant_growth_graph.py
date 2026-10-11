@@ -11,7 +11,7 @@ from wakfu_server.combat_groups import Groups
 from wakfu_server.planting import RESOURCES, SEEDS
 from wakfu_server.planting_runtime import Plantings, state_packet
 from wakfu_server.profession_store import ensure_learned
-from wakfu_server.resource_collect import complete, prepare, reserve
+from wakfu_server.resource_collect import action, complete, prepare, reserve
 from wakfu_server.wire import proto_field
 from wakfu_server import native_catalog
 from wakfu_server.paths import DATA_ROOT
@@ -311,6 +311,36 @@ class PlantGrowthGraphTests(PostgresCase):
                         (-12, 34, -2, stage, 0, 0),
                     )
 
+    def test_all_seedable_flora_stage_actions_and_harvest_destinations_are_native(self):
+        references = {
+            seed["resource_reference"]
+            for seed in SEEDS.values()
+            if not RESOURCES[seed["resource_reference"]]["monster_resource"]
+        }
+        for reference in sorted(references):
+            definition = RESOURCES[reference]
+            for step in definition["stage_definitions"]:
+                stage = step["stage_id"]
+                with self.subTest(reference=reference, stage=stage):
+                    self.assertIn(stage, definition["stages"])
+                    packet = state_packet(dict(x=-12, y=34, z=-2), stage)
+                    self.assertEqual(
+                        (-12, 34, -2, stage, 0, 0),
+                        struct.unpack(">iihhqi", packet[1]),
+                    )
+                    for native_action in step["actions"]:
+                        if stage == 16:
+                            with self.assertRaises(ValueError):
+                                action(reference, stage, native_action["action_id"])
+                            continue
+                        rule = action(reference, stage, native_action["action_id"])
+                        self.assertEqual(native_action, rule)
+                        destination = rule["raw_getters"]["cvF"]
+                        self.assertTrue(
+                            destination == 0 or destination in definition["stages"],
+                            (reference, stage, rule["action_id"], destination),
+                        )
+
     def test_transition_constraints_reject_invalid_stages_and_delays(self):
         invalid = (
             (60, 16, 17, 30000),
@@ -465,6 +495,64 @@ class PlantGrowthGraphTests(PostgresCase):
         self.harvest_to_stage2_and_mature(
             reference=139, profession_id=71, action_id=538, uid=9511
         )
+
+    def test_harvest_starts_new_growth_cycle_after_durable_variant_decision(self):
+        for index, (reference, profession, action_id) in enumerate(
+            ((60, 72, 100), (139, 71, 538))
+        ):
+            with self.subTest(reference=reference):
+                self.clock[0] = 1000.0
+                uid = 9520 + index
+                account, character, generation = self.actor(profession)
+                resource = self.add_resource(
+                    uid,
+                    reference,
+                    3,
+                    x=character["x"] + index,
+                    y=character["y"],
+                    creation_time=1_000_000,
+                )
+                with self.store.connection() as db:
+                    db.execute(
+                        "UPDATE planted_resources SET map_id=%s,instance_id=%s,z=%s "
+                        "WHERE resource_uid=%s",
+                        (
+                            character["map_id"],
+                            character["instance_id"],
+                            character["z"],
+                            uid,
+                        ),
+                    )
+                self.clock[0] = 1030.0
+                self.assertEqual([], self.mature(random_draw=lambda: 0.5))
+                self.assertTrue(self.store.heartbeat(account, generation))
+                prepared = prepare(
+                    self.store,
+                    account,
+                    generation,
+                    character["id"],
+                    harvest_request(action_id, resource["x"], resource["y"]),
+                    reachable=lambda _actor, _resource: True,
+                )
+                ticket = reserve(self.store, account, generation, prepared)
+                self.clock[0] += 3
+                outcome = complete(self.store, ticket, collect_result())
+                self.assertEqual(2, outcome["outcome"]["stage"])
+                with self.store.connection() as db:
+                    self.assertIsNone(
+                        db.execute(
+                            "SELECT 1 FROM resource_growth_decisions WHERE resource_uid=%s",
+                            (uid,),
+                        ).fetchone()
+                    )
+                self.clock[0] += 30
+                self.mature()
+                self.assertEqual(3, self.resource_row(uid)["stage"])
+                reopened = self.reopen()
+                reopened.clock = self.store.clock
+                self.clock[0] += 30
+                self.mature(runtime=Plantings(reopened), random_draw=lambda: 0.0)
+                self.assertEqual(4, self.resource_row(uid)["stage"])
 
     def test_every_catalog_final_stage5_transition_is_supported_and_terminal(self):
         with self.store.connection() as db:

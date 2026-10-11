@@ -23,6 +23,7 @@ ENTITY_DEFAULTS = {
 }
 EMPTY_SECTIONS = {
     "HP",
+    "ACCOUNT_INFORMATION",
     "GUILD_ID",
     "GUILD_BLAZON",
     "SOCIAL_STATES",
@@ -65,7 +66,14 @@ def minimal_entity(body, character):
             character.get("guild_native"),
             character.get("guild_moderation_factor", 0.0),
         )
-        return body[:1] + bytes(31) + body[32:]
+        from wakfu_server.characters.nation_state import nation_id, synchro
+
+        return (
+            body[:1]
+            + struct.pack(">i", nation_id(character))
+            + synchro(character)
+            + body[32:]
+        )
     level_xp(character["level"])
     layout = ENTITY_LAYOUTS.get(body[0])
     if layout is None or not any(
@@ -103,12 +111,13 @@ def minimal_entity(body, character):
         elif section["name"] == "APPEARANCE" and character.get("appearance"):
             replacement = appearance_section(character["appearance"])
         elif section["name"] in ("NATION_ID", "CHARACTER_LIST_NATION_ID"):
-            # Own characters have no nation until an authoritative local model exists.
-            replacement = struct.pack(">i", 0)
+            from wakfu_server.characters.nation_state import nation_id
+
+            replacement = struct.pack(">i", nation_id(character))
         elif section["name"] == "NATION_SYNCHRO":
-            # rk constructor and clear(): rank/jobs/voteDate (3*i64),
-            # governmentOpinion/candidate/pvpRank (3*byte), all zero.
-            replacement = bytes(27)
+            from wakfu_server.characters.nation_state import synchro
+
+            replacement = synchro(character)
         elif (
             section["name"] == "WORLD_PROPERTIES"
             and character.get("exploration_secrets") is not None
@@ -120,6 +129,13 @@ def minimal_entity(body, character):
             from wakfu_server.characters.cosmetics import actor_component
 
             replacement = actor_component(character)
+        elif section["name"] == "ACCOUNT_INFORMATION":
+            from wakfu_server.maps.admin_chat_rights import project_account_information
+
+            replacement = project_account_information(
+                body[section["start"] : section["end"]],
+                is_admin=character.get("account_is_admin", False),
+            )
         elif section["name"] == "BREED_SPECIFIC":
             from wakfu_server.characters.captured_roster import breed_specific_section
 
@@ -206,6 +222,7 @@ def owned_public_characteristics(character):
     # A refresh can target an actor that previously received a richer capture
     # or another equipment sheet. Send native defaults explicitly so omitted
     # damage/resistance rows cannot survive from that older snapshot.
+    native_rows = native_actor_catalog()["characteristics"]
     rows = {
         int(identity): (
             int(identity),
@@ -214,10 +231,33 @@ def owned_public_characteristics(character):
             row["maximum"],
             0,
         )
-        for identity, row in native_actor_catalog()["characteristics"].items()
+        for identity, row in native_rows.items()
     }
     for index in range(count):
         row = struct.unpack_from(">Biiii", blob, offset + 2 + index * row_size)
+        if row[0] not in (1, 2, 3, 4, 35):
+            # actor_stats serializes non-resource equipment contributions.
+            # Apply them to ffh defaults with the same bounds as fresh combat
+            # snapshots, rather than replacing a nonzero native baseline.
+            native = native_rows[str(row[0])]
+            delta = row[1]
+            maximum = native["maximum"]
+            if native["expandable"]:
+                maximum = min(
+                    native["hard_maximum"],
+                    max(
+                        native["hard_minimum"],
+                        ((maximum + delta + (1 << 31)) % (1 << 32)) - (1 << 31),
+                    ),
+                )
+            current = min(
+                maximum,
+                max(
+                    native["minimum"],
+                    ((native["current"] + delta + (1 << 31)) % (1 << 32)) - (1 << 31),
+                ),
+            )
+            row = (row[0], current, native["minimum"], maximum, 0)
         rows[row[0]] = row
     return struct.pack(">H", len(rows)) + b"".join(
         struct.pack(">Biiii", *row) for _, row in sorted(rows.items())
@@ -406,12 +446,24 @@ def position(body, character):
         INITIAL_POSITION,
         struct.pack(">iih", character["x"], character["y"], character["z"]),
     )
+    if "map_id" in character:
+        map_id = character["map_id"]
+        if type(map_id) is not int or not 0 <= map_id < 2**63:
+            raise ValueError("Invalid native world map identity")
+        # rE.Vp becomes eGj.arM(), used by world/compass ownership. Private
+        # instance identity is separate and must not replace the asset map ID.
+        map_offset = offset + struct.calcsize(">iih")
+        if map_offset + 8 > len(result):
+            raise ValueError("Truncated native world position")
+        result = (
+            result[:map_offset] + struct.pack(">q", map_id) + result[map_offset + 8 :]
+        )
     if "direction" in character:
         direction = character["direction"]
         if type(direction) is not int or not 0 <= direction <= 7:
             raise ValueError("Invalid native world direction")
         # rE: x:i32,y:i32,z:i16,map:i64,direction:u8,present:u8,
-        # followed by the secondary rH position. Preserve all other fields.
+        # followed by the secondary rH position. Preserve the secondary data.
         direction_offset = offset + struct.calcsize(">iihq")
         if direction_offset >= len(result):
             raise ValueError("Truncated native world position")

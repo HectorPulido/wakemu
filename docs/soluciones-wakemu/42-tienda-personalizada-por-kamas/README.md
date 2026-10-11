@@ -1,6 +1,10 @@
 # 42. Custom shop paid with kamas
 
-**Status: 🧪 Basic purchase manually confirmed; expanded catalog pending.** Hector confirmed successful native Jalamartillo purchase on 2026-10-10. The complete sets/items/appearances/pets catalog remains future work.
+**Performance and artwork:** [Redis cache, bounded catalog responses and native JPEG icons](../../reports/shop-performance-20261011/README.md) are deployed to shop only. Native expanded-shop graphical acceptance remains pending.
+
+**Current selection:** [Highest-rarity deduplication](../../reports/item-pricing-20261011/deduplication/README.md) leaves **11,765 active articles**. The original publication counts below are historical; all administrator-quality and previously held articles remain disabled.
+
+**Status: 🧪 Expanded catalog published; expanded native client acceptance pending.** Hector confirmed successful native Jalamartillo purchase on 2026-10-10. On 2026-10-11, the reviewed catalog was published with 17,047 active and 1,769 disabled articles, priced at 100–10,000,000 kamas per unit. See [publication evidence](../../reports/item-pricing-20261011/publication.md). This database-only publication required no service restart. The historical pilot below records its original price and deployment.
 
 ## Scope and evidence
 

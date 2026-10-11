@@ -5,6 +5,70 @@ from wakfu_server import wire
 
 
 class WireTests(unittest.TestCase):
+    def test_owned_account_information_projects_only_authoritative_admin_chat_bit(self):
+        import hashlib
+        from unittest.mock import patch
+
+        section = struct.pack(">H4I", 4, 7, 8, 9, 0x80004001) + b"native-account-tail"
+        body = bytes([10]) + b"prefix" + section + b"entity-tail"
+        layout = {
+            "template_sha256": hashlib.sha256(body).hexdigest(),
+            "sections": [
+                {"name": "ACCOUNT_INFORMATION", "start": 7, "end": 7 + len(section)}
+            ],
+        }
+        for role in (False, True, None):
+            character = {"level": 1}
+            if role is not None:
+                character["account_is_admin"] = role
+            with self.subTest(role=role), patch.dict(wire.ENTITY_LAYOUTS, {10: layout}):
+                actual = wire.minimal_entity(body, character)
+            word = 0x80004001 if role else 0x80000001
+            expected = (
+                body[:7]
+                + struct.pack(">H4I", 4, 7, 8, 9, word)
+                + section[18:]
+                + b"entity-tail"
+            )
+            self.assertEqual(actual, expected)
+
+    def test_authoritative_nation_survives_all_owned_entity_formats(self):
+        import hashlib
+        from unittest.mock import patch
+
+        for kind, name in (
+            (10, "NATION_ID"),
+            (11, "NATION_ID"),
+            (5, "CHARACTER_LIST_NATION_ID"),
+        ):
+            body = bytes([kind]) + b"prefix" + struct.pack(">i", 30) + b"suffix"
+            layout = {
+                "template_sha256": hashlib.sha256(body).hexdigest(),
+                "sections": [{"name": name, "start": 7, "end": 11}],
+            }
+            for nation in (0, 30, 31, 32, 33):
+                with self.subTest(kind=kind, nation=nation):
+                    with patch.dict(wire.ENTITY_LAYOUTS, {kind: layout}):
+                        actual = wire.minimal_entity(
+                            body, {"level": 1, "nation_id": nation}
+                        )
+                    self.assertEqual(
+                        actual, body[:7] + struct.pack(">i", nation) + body[11:]
+                    )
+
+    def test_global_to_local_preserves_citizenship_without_government(self):
+        entity = bytes([22]) + struct.pack(">i", 30) + bytes([7]) * 27 + bytes(14)
+        original = struct.pack(">qH", wire.TEMPLATE_CHARACTER, len(entity)) + entity
+        for nation in (30, 31, 32, 33):
+            with self.subTest(nation=nation):
+                character = {"id": 4, "level": 60, "nation_id": nation}
+                actual = wire.adapt(15548, original, 5, character)
+                self.assertEqual(
+                    actual[10:42], bytes([22]) + struct.pack(">i", nation) + bytes(27)
+                )
+                self.assertEqual(actual[42:], entity[32:])
+                self.assertEqual(wire.adapt(15548, actual, 5, character), actual)
+
     def test_global_to_local_snapshot_does_not_restore_fixture_nation(self):
         entity = bytes([22]) + struct.pack(">i", 30) + bytes([7]) * 27 + bytes(14)
         original = struct.pack(">qH", wire.TEMPLATE_CHARACTER, len(entity)) + entity
@@ -105,6 +169,32 @@ class WireTests(unittest.TestCase):
                 ValueError
             ):
                 bootstrap(dict(character, direction=direction))
+
+    def test_owned_position_replaces_captured_world_id_without_using_private_instance(
+        self,
+    ):
+        original = (
+            b"prefix" + struct.pack(">iihqBB", -12, -8, -1, 1134, 3, 1) + b"secondary"
+        )
+        for map_id in (9, 527, 794, 943, 1314):
+            character = dict(
+                x=10, y=20, z=4, map_id=map_id, instance_id=(1 << 58) + 7, direction=6
+            )
+            actual = wire.position(original, character)
+            self.assertEqual(
+                actual,
+                b"prefix"
+                + struct.pack(">iihqBB", 10, 20, 4, map_id, 6, 1)
+                + b"secondary",
+            )
+        for map_id in (True, -1, 1 << 63):
+            with self.subTest(map_id=map_id), self.assertRaises(ValueError):
+                wire.position(original, dict(x=1, y=2, z=3, map_id=map_id))
+        with self.assertRaises(ValueError):
+            wire.position(
+                b"prefix" + wire.INITIAL_POSITION + b"bad",
+                dict(x=1, y=2, z=3, map_id=527),
+            )
 
     def test_private_chat_echo_uses_recipient_character_and_sender_account_ids(self):
         body = wire.private_chat(

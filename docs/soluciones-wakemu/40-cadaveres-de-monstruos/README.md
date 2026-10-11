@@ -1,5 +1,10 @@
 # 40. Monster corpses after combat
 
+> Closed by Hector on2026-10-11: "ya puedo extraer semilla". One-hour expiry was already accepted; server-only seed extraction and atomic corpse consumption are accepted. Earlier pending-acceptance wording below is historical.
+
+> Current release2026-10-11: complete shared World/AI/ecology/admin deployed and automatically verified. Migration123; stable window released08:07 UTC. [Deployment evidence](../../reports/SYSTEMS-DEPLOYMENT-20261011.md). Graphical acceptance remains pending; any earlier prepared/not-deployed wording below is historical. Native planting bonus stays disabled pending its separate native-display acceptance.
+
+
 **Status: implementation prepared; deployment and manual acceptance pending.** No restart or runtime migration was performed for this change.
 
 ## Scope and evidence
@@ -122,3 +127,11 @@ Further fixes must use server/protocol behavior without modifying client assets
 or introducing gameplay transformations in the capture agent. Corpse appearance
 and hand-resource harvesting retain their earlier acceptance. No services or
 clients were restarted during withdrawal.
+
+## Server-only menu audit — 2026-10-11
+
+Hector accepted the one-hour expiry and requires either hidden corpse seed extraction or working extraction, with no client changes. The current source already emits native world DEAD19, which makes the actual native contextual popup hide living-only seed actions while retaining hand resource harvest. A new offline native probe passed all installed breeds: **334 corpse collection actions visible and 332 living collection actions hidden**, with living targets as the reverse control. Native cooldown packets cannot override static life-state criteria. No server harvest logic or client files were changed for this audit. Full evidence, limitations, commands and complete manual acceptance steps: [server menu audit](../../reports/corpse-server-menu-visibility-20261011.md). Confirm the popup on the current complete deployment before closing; an icon in a separate hover information panel is not covered by this offline probe.
+
+## Actual third seed action corrected — 2026-10-11
+
+The prior audit missed the root cause: Jalató has a third native action **3724/item7361**, whose installed Spanish name is **semilla de jalato** and whose criterion is empty. The server disabled this unrestricted action through `sR` and rejected it for corpses, leaving a visible disabled seed button. The server now enables native empty-criterion corpse actions and authorizes them through the existing atomic harvest/consumption flow. Extracting this seed consumes the corpse once; the hand action remains unchanged; living-only3723 stays hidden. This is a general native rule across375 unrestricted collection actions, with no client/assets/capture-agent modification and no migration. Updated native oracle:334 dead-only actions visible,332 living-only hidden,375 unrestricted visible and available. PostgreSQL seed-once/then-hand-rejected regression added. Await coordinated automated validation and enabled seed extraction acceptance after the complete server deployment. Evidence and full steps: [server seed correction](../../reports/corpse-server-menu-visibility-20261011.md).

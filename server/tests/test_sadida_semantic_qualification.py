@@ -625,9 +625,17 @@ class SadidaSemanticQualificationTests(unittest.TestCase):
             ("baseline", ()),
             ("913+7053", (913, 7053)),
             ("5055+7053", (5055, 7053)),
+            ("7053-control", (7053,)),
+            ("4959+7053", (4959, 7053)),
+            ("8150+7053", (8150, 7053)),
         ):
             data = self.fixture_at_distance(2, passives=passives)
             character, monster, fight, deck, rng, _ = data
+            if name in ("7053-control", "4959+7053"):
+                from wakfu_server.combat_hp_raw import set_hp_raw_current
+
+                set_hp_raw_current(fight.actors[7], max(1, fight.actors[7].max_hp // 2))
+            caster_hp_before_turn = fight.actors[7].hp
             grants = granted_spells(fight, 7)
             _, adapter = server_runtime(
                 character,
@@ -700,17 +708,35 @@ class SadidaSemanticQualificationTests(unittest.TestCase):
                 if row.get("reference") == 1835
             ]
             self.assertTrue(
-                seed_areas,
+                seed_areas or name == "8150+7053",
                 {
                     "case": name,
                     "areas": list(seed_tx.fight.native_effect_areas.values()),
                 },
             )
-            transform_tx, transform_trace = self.cast_with_trace(
-                data, 8137, target=seed_cell, action_id=11
-            )
+            if seed_areas:
+                transform_tx, transform_trace = self.cast_with_trace(
+                    data, 8137, target=seed_cell, action_id=11
+                )
+            else:
+                # Passive8150 can take the authored alternate tree-area path
+                # on the first seed cast; preserve that actual transaction
+                # and trace instead of assuming every deck first emits1835.
+                transform_tx, transform_trace = seed_tx, seed_trace
             area_rows = [
-                dict(row) for row in transform_tx.fight.native_effect_areas.values()
+                {
+                    key: row.get(key)
+                    for key in (
+                        "uid",
+                        "reference",
+                        "owner_id",
+                        "cell",
+                        "native_cells_xy",
+                        "remaining_activations",
+                        "native_area_contract",
+                    )
+                }
+                for row in transform_tx.fight.native_effect_areas.values()
             ]
             trees = [
                 actor
@@ -719,7 +745,8 @@ class SadidaSemanticQualificationTests(unittest.TestCase):
                 and actor.hp > 0
                 and actor_action_book(actor)["profile"] == 5577
             ]
-            self.assertEqual(len(trees), 1)
+            if name != "8150+7053":
+                self.assertEqual(len(trees), 1)
             runtime_fight = transform_tx.fight
             turn_trace = []
             from wakfu_server.combat_runtime_messages import RuntimeMessages
@@ -758,9 +785,10 @@ class SadidaSemanticQualificationTests(unittest.TestCase):
                 lambda **row: turn_trace.append(row), limit=8192
             ):
                 for _ in range(20):
-                    if (
-                        runtime_fight.current is not None
-                        and runtime_fight.current.id == -7
+                    if runtime_fight.current is not None and (
+                        runtime_fight.current.id == -7
+                        if name not in ("7053-control", "4959+7053")
+                        else runtime_fight.current.id == 7 and turn_order
                     ):
                         break
                     turn_order.append(
@@ -797,6 +825,26 @@ class SadidaSemanticQualificationTests(unittest.TestCase):
                     if row.get("effect_reference")
                     in (379712, 380035, 378645, 380036, 379719, 379720, 380014, 380015)
                 ],
+                "passive_8150_trace": [
+                    dict(row)
+                    for row in (*seed_trace, *transform_trace, *turn_trace)
+                    if row.get("effect_reference")
+                    in (
+                        378184,
+                        378650,
+                        379582,
+                        379583,
+                        379584,
+                        379585,
+                        379586,
+                        379587,
+                        379588,
+                        379589,
+                        379614,
+                        380016,
+                        380017,
+                    )
+                ],
                 "turn_order": turn_order,
                 "enemy_states_after_native_turn_start": sorted(
                     entry.reference for entry in enemy_after.state_ledger.entries
@@ -818,8 +866,12 @@ class SadidaSemanticQualificationTests(unittest.TestCase):
                         380032,
                         380033,
                         380034,
+                        379630,
+                        379631,
                     )
                 ],
+                "caster_hp_before_turn_cycle": caster_hp_before_turn,
+                "caster_hp_after_turn_cycle": runtime_fight.actors[7].hp,
                 "summons": [
                     {
                         "id": actor.id,
@@ -847,6 +899,28 @@ class SadidaSemanticQualificationTests(unittest.TestCase):
         self.assertIn(8217, cases["baseline"]["tree_states"][0])
         self.assertIn(8217, cases["913+7053"]["tree_states"][0])
         self.assertIn(8217, cases["5055+7053"]["tree_states"][0])
+        self.assertTrue(cases["8150+7053"]["seed_outcomes"])
+        self.assertTrue(cases["8150+7053"]["transform_outcomes"])
+        passive_8150_completed = {
+            row["effect_reference"]
+            for row in cases["8150+7053"]["passive_8150_trace"]
+            if row.get("status") == "completed"
+        }
+        baseline_8150_completed = {
+            row["effect_reference"]
+            for row in cases["baseline"]["passive_8150_trace"]
+            if row.get("status") == "completed"
+        }
+        self.assertTrue(
+            {379582, 379583, 379586, 379587, 379589, 380017} <= passive_8150_completed,
+            sorted(passive_8150_completed),
+        )
+        self.assertFalse(
+            {379582, 379583, 379586, 379587, 379589, 380017} & baseline_8150_completed,
+            sorted(baseline_8150_completed),
+        )
+        self.assertEqual(len(cases["8150+7053"]["tree_profiles"]), 1)
+        self.assertIn(8217, cases["8150+7053"]["tree_states"][0])
         self.assertIn(1836, cases["baseline"]["tree_area_refs"])
         self.assertIn(1850, cases["913+7053"]["tree_area_refs"])
         self.assertIn(1850, cases["5055+7053"]["tree_area_refs"])
@@ -860,6 +934,18 @@ class SadidaSemanticQualificationTests(unittest.TestCase):
             self.completed_references(cases["5055+7053"]["turn_area_effect_trace"]),
         )
         self.assertIn(3617, cases["5055+7053"]["enemy_states_after_native_turn_start"])
+        self.assertIn(1850, cases["7053-control"]["tree_area_refs"])
+        self.assertIn(1850, cases["4959+7053"]["tree_area_refs"])
+        self.assertGreater(
+            cases["4959+7053"]["caster_hp_after_turn_cycle"],
+            cases["4959+7053"]["caster_hp_before_turn_cycle"],
+            cases["4959+7053"]["turn_area_effect_trace"],
+        )
+        self.assertEqual(
+            cases["7053-control"]["caster_hp_after_turn_cycle"],
+            cases["7053-control"]["caster_hp_before_turn_cycle"],
+            cases["7053-control"]["turn_area_effect_trace"],
+        )
 
     def test_all_twenty_passives_receive_a_real_native_turn_and_cast_cycle(self):
         """Run the existing actual-event audit for every owned Sadida passive.

@@ -22,11 +22,11 @@ services:
       retries: 30
       start_period: 180s
   world:
-    image: ${WAKFU_WORLD_IMAGE:-wakemu-world:fishing-20261010}
+    image: ${WAKFU_WORLD_IMAGE:-wakemu-world:systems-20261011}
     build:
       context: ./server
       args:
-        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d}
+        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1}
     init: true
     depends_on:
       postgres:
@@ -38,7 +38,7 @@ services:
     environment:
       WAKFU_FISHING_CATALOG_REVISION: 20f2731c921701c025af2d8416696e5b01c7346fc9393408b47533c092cab5fa
       WAKFU_MINING_CATALOG_REVISION: 14b63a5b28014e455fd9910c99fe037e6d957ac9b40508335bfe130c2ee54518
-      WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d}
+      WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1}
       WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
       # Listen on the container network; published host ports stay localhost.
       WAKFU_BIND_HOST: ${WAKFU_BIND_HOST:-0.0.0.0}
@@ -54,6 +54,7 @@ services:
       WAKFU_ADVERTISE_WORLD_PORT: ${WAKFU_ADVERTISE_WORLD_PORT:-15556}
       WAKFU_ALL_DRAGOS: ${WAKFU_ALL_DRAGOS:-1}
       WAKFU_OPEN_PLANTING: ${WAKFU_OPEN_PLANTING:-1}
+      WAKFU_NATIVE_PLANTING_BONUS: ${WAKFU_NATIVE_PLANTING_BONUS:-0}
       WAKFU_PLANT_GROWTH_SECONDS: ${WAKFU_PLANT_GROWTH_SECONDS:-30}
       WAKFU_POSITION_FLUSH_SECONDS: ${WAKFU_POSITION_FLUSH_SECONDS:-2}
       WAKFU_ENABLE_COMBAT_TEST: ${WAKFU_ENABLE_COMBAT_TEST:-1}
@@ -73,6 +74,7 @@ services:
     ports:
       - "127.0.0.1:15556:15556"
       - "127.0.0.1:15558:15558"
+      - "127.0.0.1:16337:16337"
       - "127.0.0.1:18081:18081"
     volumes:
       # Runtime code, protocol and migrations come from the validated image.
@@ -88,6 +90,7 @@ services:
       retries: 3
       start_period: 120s
   shop:
+    image: ${WAKFU_SHOP_IMAGE:-wakemu-shop:performance-icons-20261011}
     build:
       context: ./server
       dockerfile: shop-service/Dockerfile
@@ -100,8 +103,11 @@ services:
       WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
       WAKFU_SHOP_PORT: '18083'
       WAKFU_REDIS_URL: redis://redis:6379/0
+      SHOP_ASSETS_DIR: /shop-assets
+      SHOP_PUBLIC_URL: http://127.0.0.1:18083
     volumes:
       - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./.runtime/local/shop-assets:/shop-assets:ro
     ports:
       - '127.0.0.1:18083:18083'
     networks: [isolated, client-access]
@@ -181,12 +187,12 @@ services:
       retries: 3
       start_period: 30s
   ecology:
-    image: ${WAKFU_ECOLOGY_IMAGE:-wakemu-ecology:fishing-20261010}
+    image: ${WAKFU_ECOLOGY_IMAGE:-wakemu-ecology:systems-20261011}
     build:
       context: ./server
       dockerfile: ecology-service/Dockerfile
       args:
-        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d}
+        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1}
     init: true
     depends_on:
       world:
@@ -248,8 +254,8 @@ services:
     build:
       context: ./server/ai-service
       args:
-        WORLD_IMAGE: ${WAKFU_WORLD_IMAGE:-wakemu-world:fishing-20261010}
-        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-677062aedeeb9fa0deaad21e0c9a40989e5c8b64cc13b1ebba7200f684d3437d}
+        WORLD_IMAGE: ${WAKFU_WORLD_IMAGE:-wakemu-world:systems-20261011}
+        CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1}
     init: true
     depends_on:
       postgres:

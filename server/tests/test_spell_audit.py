@@ -1,18 +1,29 @@
 import unittest
-from wakfu_server.spell_audit import inspect_spell, catalog
+from wakfu_server import native_catalog as protocol_catalog
+from wakfu_server.paths import DATA_ROOT
+from wakfu_server.spell_audit import inspect_spell, catalog, costs_catalog
 
 
 class NativeSpellAuditTests(unittest.TestCase):
     def test_complete_owned_catalog_and_native_level_tables(self):
         data = catalog()
-        self.assertEqual(len(data["spells"]), 722)
-        self.assertEqual(len(data["effects"]), 11528)
+        # Compare to the complete native owned-spell set, not a frozen count.
+        native_ids = {
+            str(spell["id"])
+            for spell in protocol_catalog.load(DATA_ROOT / "spells.json")["spells"]
+        }
+        self.assertEqual(set(data["spells"]), native_ids)
+        self.assertEqual(set(costs_catalog()), native_ids)
+        for spell in data["spells"].values():
+            self.assertEqual(len(spell["levels"]), 200)
+            for _minimum, _maximum, roots in spell["levels"]:
+                for reference in roots:
+                    self.assertIn(str(reference), data["effects"])
         for effect in data["effects"].values():
             self.assertIs(type(effect["native_localization_enabled"]), bool)
             self.assertTrue(
                 all(type(flag) is int for flag in effect["native_effect_flags"])
             )
-        self.assertTrue(all(len(s["levels"]) == 200 for s in data["spells"].values()))
 
     def test_iop_cannot_omit_required_states(self):
         for spell in (4778, 4780, 4785):

@@ -1,5 +1,7 @@
 # Haven Bag permissions and remaining acceptance review
 
+> Superseded on2026-10-11: Hector requested public guest access regardless of historical room/lock settings. The old ACL grant/revoke steps below are historical, not current acceptance. Account chest implementation is now accepted; the visible blue portal is RanchEntrance, with its staged repair tracked separately. Use [current guest authority](../HAVEN-BAG-PUBLIC-GUEST-AUDIT-20261011.md), [Ranch portal](../HAVEN-RANCH-PORTAL-20261011.md) and [canonical complete acceptance](../SYSTEMS-ACCEPTANCE-20261011.md).
+
 Read-only review of the current shared checkout, 2026-10-09. No runtime, database, service, or gameplay source changes were made. This report distinguishes source behavior from live acceptance; the running r58 image is not presumed identical to every current shared source file.
 
 ## Accepted and failed live behavior

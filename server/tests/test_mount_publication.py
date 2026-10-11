@@ -863,16 +863,23 @@ class MountPublicationTests(PostgresCase):
         tree = ast.fix_missing_locations(ast.Module(body=[wrapper], type_ignores=[]))
         from wakfu_server.performance_profiler import PROFILER
 
+        bonus_publications = []
+        peer = object()
         namespace = {
             "PLAYER_TEMPLATE": b"template",
             "PROFILER": PROFILER,
             "WORLD": fake_world,
+            "connection": peer,
+            "send_native_planting_bonus": lambda connection, current: bonus_publications.append(
+                (connection, current, list(fake_world.sent))
+            ),
         }
         exec(compile(tree, str(source_path), "exec"), namespace)
         generation = object()
         publisher = namespace["make_publisher"](object(), generation)
         publisher({"id": 1}, {"id": 1})
         self.assertEqual(fake_world.sent, [])
+        self.assertEqual(bonus_publications, [])
 
         publisher = namespace["make_publisher"](None, generation)
         fake_packets = [(15548, b"refresh"), (13928, b"dismount")]
@@ -892,6 +899,8 @@ class MountPublicationTests(PostgresCase):
                 (generation, current, 13928, b"dismount"),
             ],
         )
+
+        self.assertEqual(bonus_publications, [(peer, current, fake_world.sent)])
 
     def test_build_handlers_publish_only_from_success_branch_after_store_commit(self):
         source_path = Path(__file__).resolve().parents[1] / "local_game_server.py"

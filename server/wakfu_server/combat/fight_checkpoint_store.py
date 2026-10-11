@@ -322,6 +322,10 @@ class Checkpoints:
             )
 
             persist_captured_roster_updates(db, fight)
+            if getattr(fight, "boss_score_profile", None) is not None:
+                from wakfu_server.maps.boss_score_runtime import persist
+
+                persist(db, fight)
             if getattr(fight, "rift_wave_state", None) is not None:
                 from .rift_runtime import persist_progress
 

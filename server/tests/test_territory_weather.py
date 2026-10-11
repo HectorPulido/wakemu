@@ -8,6 +8,15 @@ from wakfu_server.territory_weather import context, decode, save
 
 
 class TerritoryWeatherTests(PostgresCase):
+    def setUp(self):
+        super().setUp()
+        # This suite tests explicit snapshot/baseline authority. Automatic
+        # current-day weather and forecast coverage lives in the model suite.
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=jsonb_set(value,'{enabled}','false'::jsonb) WHERE name='weather_simulation'"
+            )
+
     # A real exported surface in map 1134, native territory 79201.
     character = {"map_id": 1134, "instance_id": 17}
     x, y, z = -23, -143, 70

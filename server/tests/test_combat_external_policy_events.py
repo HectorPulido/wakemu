@@ -133,7 +133,14 @@ class VoluntaryMovementEventTests(unittest.TestCase):
         self.opponent = SimpleNamespace(id=-7, position=(4, 0, 0))
         self.area = SimpleNamespace(native_running_effect_manager=True)
         self.inactive_area = SimpleNamespace(native_running_effect_manager=False)
-        self.fight = SimpleNamespace(actors={7: self.actor, -7: self.opponent})
+        self.fight = SimpleNamespace(
+            actors={7: self.actor, -7: self.opponent},
+            current=self.actor,
+            phase="active",
+            turn_id=1,
+            walkable={(0, 0, 0), (1, 0, 0)},
+            edges={((0, 0, 0), (1, 0, 0))},
+        )
         self.dispatcher = SimpleNamespace(
             native_retention=SimpleNamespace(fight=self.fight),
             native_clone_authority=object(),
@@ -160,6 +167,7 @@ class VoluntaryMovementEventTests(unittest.TestCase):
         ):
             result = deliver_voluntary_movement(
                 self.dispatcher,
+                action_id=12,
                 actor_id=7,
                 from_cell=(0, 0, 0),
                 to_cell=(1, 0, 0),
@@ -204,6 +212,7 @@ class VoluntaryMovementEventTests(unittest.TestCase):
             self.assertEqual(
                 deliver_voluntary_movement(
                     self.dispatcher,
+                    action_id=12,
                     actor_id=7,
                     from_cell=(1, 0, 0),
                     to_cell=(1, 0, 0),
@@ -213,6 +222,7 @@ class VoluntaryMovementEventTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "actual moved fighter"):
                 deliver_voluntary_movement(
                     self.dispatcher,
+                    action_id=12,
                     actor_id=99,
                     from_cell=(0, 0, 0),
                     to_cell=(1, 0, 0),
@@ -220,6 +230,7 @@ class VoluntaryMovementEventTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "actual moved fighter"):
                 deliver_voluntary_movement(
                     self.dispatcher,
+                    action_id=12,
                     actor_id=-7,
                     from_cell=(3, 0, 0),
                     to_cell=(2, 0, 0),

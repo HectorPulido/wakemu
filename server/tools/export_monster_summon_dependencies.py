@@ -211,13 +211,16 @@ def summon_dependency_scopes(
             if effect is None or effect["family"] != 307:
                 continue
             for values in effect.get("parameter_samples", ()):
-                if len(values) < 2:
-                    raise ValueError("Missing original summon level mode")
+                if not values:
+                    raise ValueError("Missing original summon reference")
                 reference = ((values[0] + 32768) % 65536) - 32768
                 profile = monsters.get(str(reference))
                 if profile is None:
                     continue
-                mode = values[1]
+                # eZl.C uses SQ.a(1, -1): omitted level mode means the actual
+                # effect container level, exactly as summon_specification does.
+                # Its level domain remains unproven below; this is no bypass.
+                mode = values[1] if len(values) > 1 else -1
                 # These are original evaluated eZl parameters. Preserve their
                 # actual native descriptor mode instead of wild species bounds.
                 levels = (

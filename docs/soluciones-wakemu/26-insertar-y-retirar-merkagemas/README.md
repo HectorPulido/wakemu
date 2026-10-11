@@ -54,3 +54,7 @@ Aceptación visual pendiente. La identificación/sorteo13787 y la autoridad de c
 ## Contexto oficial — 8 de octubre de 2026
 
 El usuario abrió Merkamundo y un cofre durante la captura oficial. Merkamundo y Merkasaco son sistemas distintos: verificar el destino y objeto exactos antes de reutilizar paquetes. El nuevo issue41 cubre el cofre de Merkasaco; mantener transferencias, capacidad, pertenencia y persistencia separadas de inserción/retirada de merkagemas. Referencia privada: `.runtime/official-dungeon-capture/`, con manifiestos y contratos de versión registrados. No se declara aceptación ni cambio desplegado por esta captura.
+
+## Public guest policy audit — 2026-10-11
+
+Hector reports the bag generally works and requests unrestricted guest access. The current source already allows every nearby visitor into a published bag and sends unlocked/public room rights, while preserving owner authority over chest, furniture, gems and configuration. Guest gardens and portable crafting use the visitor's inventory and the visited layout. No additional gameplay edit was needed in this audit. The owner's active connection must publish the exterior bag; this is not offline discovery. See [public guest authority and complete acceptance](../../reports/HAVEN-BAG-PUBLIC-GUEST-AUDIT-20261011.md). A dedicated bag Zaap is not implemented: map9 and portable furniture contain no verified native Zaap source; see [native inventory](../../reports/HAVEN-BAG-ZAAP-AUDIT-20261011.md). Keep that scope distinct from working bag exit.

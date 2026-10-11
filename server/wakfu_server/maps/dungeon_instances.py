@@ -186,6 +186,7 @@ def create_or_reuse(
     route_key,
     *,
     authorize_entry,
+    difficulty_selection=None,
     transition_destination=None,
     initialize_instance=None,
     resolve_destination=None,
@@ -340,6 +341,15 @@ def create_or_reuse(
             pinned_policy = policy_version(
                 db, selected_route, existing["context_policy_version"]
             )
+            if difficulty_selection is not None:
+                from wakfu_server import dungeon_difficulty
+
+                dungeon_difficulty.configure_entry(
+                    db, existing["instance_id"], character_id, **difficulty_selection
+                )
+                from wakfu_server.characters.dungeon_modulation_health import reconcile
+
+                reconcile(store, db, [member["id"] for member in live_rows])
             if transition_destination is not None and resolve_destination is not None:
                 transition_destination = resolve_destination(
                     db,
@@ -386,7 +396,7 @@ def create_or_reuse(
                 result = _session_result(existing, member_ids, reused=True)
                 result["context_policy_version"] = pinned_policy.policy_version
                 result["transition"] = _move_party_members(
-                    db, outside, existing, transition_destination
+                    db, outside, existing, transition_destination, store=store
                 )
                 if initialize_instance is not None:
                     initialize_instance(db, result)
@@ -491,7 +501,7 @@ def create_or_reuse(
             result["context_policy_version"] = pinned_policy.policy_version
             if transition_destination is not None:
                 result["transition"] = _move_party_members(
-                    db, live_rows, existing, transition_destination
+                    db, live_rows, existing, transition_destination, store=store
                 )
             if initialize_instance is not None:
                 initialize_instance(db, result)
@@ -576,6 +586,12 @@ def create_or_reuse(
                     "leader" if member["id"] == party["leader_id"] else "member",
                 ),
             )
+        if difficulty_selection is not None:
+            from wakfu_server import dungeon_difficulty
+
+            dungeon_difficulty.configure_entry(
+                db, instance["instance_id"], character_id, **difficulty_selection
+            )
         result = _session_result(instance, member_ids, reused=False)
         result["context_policy_version"] = context_policy.policy_version
         if transition_destination is not None and resolve_destination is not None:
@@ -584,14 +600,14 @@ def create_or_reuse(
             )
         if transition_destination is not None:
             result["transition"] = _move_party_members(
-                db, live_rows, instance, transition_destination
+                db, live_rows, instance, transition_destination, store=store
             )
         if initialize_instance is not None:
             initialize_instance(db, result)
         return result
 
 
-def _move_party_members(db, live_rows, session, destination):
+def _move_party_members(db, live_rows, session, destination, *, store):
     """CAS all already-locked members into the session before commit."""
     if not isinstance(destination, dict) or set(destination) != {
         "map_id",
@@ -635,6 +651,9 @@ def _move_party_members(db, live_rows, session, destination):
         if updated.rowcount != 1:
             raise ValueError("Party member location changed during dungeon entry")
         moved.append(member["id"])
+    from wakfu_server.characters.dungeon_modulation_health import reconcile
+
+    reconcile(store, db, moved)
     for member in live_rows:
         if member.get("hero_main_id") is not None:
             continue

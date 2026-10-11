@@ -48,17 +48,92 @@ class NativeSurfaceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             surface(1385, 3, -13, 32767)
 
-    def test_explicit_open_policy_family_does_not_change_native_catalog(self):
-        packet = context.bootstrap(1134, 79101, test_monster_families=(81,))
-        count = struct.unpack_from(">i", packet[1], 8)[0]
-        self.assertEqual(count, 3)
-        self.assertNotIn(
-            81,
-            {f["family_id"] for f in context.region(1134, 79101)["monster_families"]},
+    def test_foreign_test_family_cannot_overflow_native_display(self):
+        with self.assertRaises(ValueError):
+            context.bootstrap(1134, 79101, test_monster_families=(81,))
+
+    def test_open_permissions_preserve_regional_family_list_and_counts(self):
+        from wakfu_server.planting_cells import region_context
+
+        character = {"map_id": 1134}
+        kwargs = {"monster_counts": {113: 7, 219: 9, 81: 100, 952: 20}}
+        normal = region_context(character, 79101, **kwargs)
+        opened = region_context(character, 79101, open_test_policy=True, **kwargs)
+        self.assertEqual(normal, opened)
+        self.assertEqual(
+            struct.unpack_from(">iiiii", opened[1], 8), (2, 113, 7, 219, 9)
         )
 
-    def test_open_families_are_suitable_native_species(self):
-        from wakfu_server.planting_cells import open_families
+    def test_all_native_regions_fit_named_unique_display_slots(self):
+        for map_id, world in context.MAPS.items():
+            for region in world["regions"]:
+                with self.subTest(map_id=map_id, region_id=region["region_id"]):
+                    body = context.bootstrap(map_id, region["region_id"])[1]
+                    offset = 4
+                    for kind in ("monster", "plant"):
+                        length = struct.unpack_from(">i", body, offset)[0]
+                        offset += 4
+                        count = struct.unpack_from(">i", body, offset)[0]
+                        self.assertLessEqual(count, 3)
+                        self.assertEqual(length, 4 + 8 * count)
+                        rows = [
+                            struct.unpack_from(">ii", body, offset + 4 + 8 * i)
+                            for i in range(count)
+                        ]
+                        expected = list(
+                            dict.fromkeys(
+                                r["family_id"]
+                                for r in region[kind + "_families"]
+                                if r["family_id"] > 0
+                            )
+                        )
+                        self.assertEqual(rows, [(family, 0) for family in expected])
+                        offset += length
+                    self.assertEqual(offset, len(body))
 
-        self.assertIn(81, open_families(1134, 79101))
-        self.assertIn(68, open_families(1134, 79101))
+    def test_empty_native_sentinel_is_not_an_unnamed_family(self):
+        body = context.bootstrap(1365, 92601)[1]
+        self.assertEqual(struct.unpack_from(">iii", body, 8), (1, 1106, 0))
+
+    def test_duplicate_catalog_family_is_encoded_once_and_overflow_rejected(self):
+        from unittest.mock import patch
+
+        definition = {
+            "monster_families": [{"family_id": f} for f in (113, 113, 219)],
+            "plant_families": [],
+        }
+        with patch.object(context, "region", return_value=definition):
+            body = context.bootstrap(1, 1, monster_counts={113: 8})[1]
+            self.assertEqual(struct.unpack_from(">iiiii", body, 8), (2, 113, 8, 219, 0))
+            definition["monster_families"] = [{"family_id": f} for f in (1, 2, 3, 4)]
+            with self.assertRaises(ValueError):
+                context.bootstrap(1, 1)
+
+    def test_every_display_family_has_installed_native_localized_name(self):
+        import zipfile
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[2]
+        families = {
+            kind: {
+                family
+                for world in context.MAPS.values()
+                for region in world["regions"]
+                for family in context.display_families(region, kind)
+            }
+            for kind in ("monster", "plant")
+        }
+        for locale in ("en", "es", "fr", "pt"):
+            with zipfile.ZipFile(
+                root / "client" / "contents" / "i18n" / ("i18n_" + locale + ".jar")
+            ) as archive:
+                content = archive.read("texts_" + locale + ".properties").decode("utf8")
+            names = dict(
+                line.split("=", 1) for line in content.splitlines() if "=" in line
+            )
+            for kind, table in (("monster", 38), ("plant", 37)):
+                for family in families[kind]:
+                    with self.subTest(locale=locale, kind=kind, family=family):
+                        self.assertTrue(
+                            names.get(f"content.{table}.{family}", "").strip()
+                        )

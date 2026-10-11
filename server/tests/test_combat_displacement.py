@@ -484,43 +484,27 @@ class NativeDisplacementTests(unittest.TestCase):
 
         class PhysicalMapAuthority:
             def __call__(self, fight, actor):
-                return replace(original(fight, actor), native_instance_id=999999)
+                return replace(original(fight, actor), native_instance_id=1134)
 
             def properties(self, fight, actor):
                 return original.properties(fight, actor)
 
         self.handler.authority = PhysicalMapAuthority()
+        self.preview.actors[-7].position = (4, 0, -1)
+        self.preview.actors[-7].native_physical_position = (4, 0, -1)
         self.preview.actors[-7].native_los_height = 1
         install_synthetic_qi_occupancy(self.preview, physical_radii={-7: 1})
-        columns = NativeSnColumns(
-            dict(
-                schema="native-Sn-Vy-columns-v1",
-                map_id=999999,
-                source_sha256="a" * 64,
-                chunks=[
-                    dict(
-                        x=-1,
-                        y=-1,
-                        width=18,
-                        height=18,
-                        columns=[
-                            [x, y, [[0, 0, 0, 0, 0, False]]]
-                            for x in range(-1, 17)
-                            for y in range(-1, 17)
-                        ],
-                    )
-                ],
-            ),
-            map_id=999999,
-            source_sha256="a" * 64,
+        # Load the exact native-exported map 1134 from the isolated published
+        # protocol tree; no injected column provider or fabricated map identity.
+        columns = NativeSnColumns.from_published(1134)
+        self.assertEqual(columns.map_id, 1134)
+        self.assertEqual(
+            columns.source_sha256,
+            "d3211998b492de5fdaf2d3e99f39ffd30af545eed5a8c5df8480ca561e84cb3b",
         )
-        with patch(
-            "wakfu_server.combat_forced_footprint.forced_physical_columns",
-            return_value=columns,
-        ):
-            self.assertTrue(self.execute(358000))
+        self.assertTrue(self.execute(358000))
         target = self.preview.actors[-7]
-        self.assertEqual(target.position, (5, 0, 0))
+        self.assertEqual(target.position, (5, 0, -1))
         qi = current_registry(self.preview).snapshot()
         self.assertIn(target.native_obstacle_id, qi.U(6, 1))
         self.assertNotIn(target.native_obstacle_id, qi.U(3, 0))
@@ -562,6 +546,42 @@ class NativeDisplacementTests(unittest.TestCase):
     def test_real_target_teleport_catalog351394(self):
         self.execute(351394, cell=(3, 3, 0))
         self.assertEqual(self.preview.actors[-7].position, (3, 3, 0))
+
+    def test_target_teleport_without_native_actor_is_rejected_without_movement(self):
+        target = self.preview.actors[-7]
+        before = target.position
+        for identity in (None, 900001):
+            with self.subTest(identity=identity):
+                self.assertFalse(self.execute(351394, target=identity, cell=(3, 3, 0)))
+                self.assertEqual(target.position, before)
+                self.assertEqual(self.packets, [])
+
+    def test_factory_selection_binds_a_real_caster_actor(self):
+        cast = ordinary_cast_authority(
+            actors=self.authority,
+            timing=NativeEffectTimingProvider(self.fixture.states),
+            rng=random.Random(1),
+            critical=False,
+        )
+        adapter = NativeServerRuntimeAdapter(actor_authority=self.authority, cast=cast)
+        factory = NativeEffectRuntimeFactory(
+            effects=self.effects,
+            state_catalog=self.fixture.states,
+            characteristic_registry=self.fixture.registry,
+            action_id=1,
+            contexts=replace(
+                adapter.contexts(), selected_surface=self.selected_surface
+            ),
+            displacement_authority=self.authority,
+        )
+        dispatcher, packets = factory(self.preview, {})
+        enemy_position = self.preview.actors[-7].position
+        result = dispatcher.execute(EffectInvocation(351394, 1, 7, None, (3, 3, 0)))
+        self.assertTrue(result)
+        self.assertEqual(self.preview.actors[7].position, (3, 3, 0))
+        self.assertEqual(self.preview.actors[-7].position, enemy_position)
+        self.assertEqual(len(packets), 1)
+        self.assertEqual(packets[0][0], 12613)
 
     def test_real_move_away_catalog262489(self):
         self.execute(262489, target=7, cell=(2, 0, 0))

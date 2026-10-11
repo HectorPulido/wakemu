@@ -123,7 +123,10 @@ def plan(session, fight, runtime):
             candidate._event(
                 "withdrawn", actor_id=identity, owner_id=session.account_id
             )
-            public.extend(combat_death.death_messages(candidate_runtime, identity))
+        # Withdrawal finalizes both living actors and existing reversible KO.
+        public.extend(
+            combat_death.death_messages(candidate_runtime, identity, fighter_state=2)
+        )
     turn_changed = False
     if candidate.phase == "active":
         candidate._settle_deaths()

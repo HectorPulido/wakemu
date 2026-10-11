@@ -388,6 +388,7 @@ class SpellTransactionTests(unittest.TestCase):
         target_level=1,
         owned_cosmetics=None,
         target_distance=2,
+        target_position=None,
         variation_seed=None,
     ):
         from wakfu_server.combat_actor_snapshot import (
@@ -462,7 +463,11 @@ class SpellTransactionTests(unittest.TestCase):
             from wakfu_server.combat_terrain import local_arena
 
             caster.position = (-8, -7, -1)
-            target.position = (-8 + target_distance, -7, -1)
+            target.position = (
+                tuple(target_position)
+                if target_position is not None
+                else (-8 + target_distance, -7, -1)
+            )
             terrain = local_arena(
                 1134,
                 7,

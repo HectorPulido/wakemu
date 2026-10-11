@@ -1,5 +1,6 @@
 """Native public/party chat with authoritative identities and recipients."""
 import struct
+from wakfu_server.characters.nation_state import load as load_nation
 
 
 def payload(account_id, character, text, *, language_mask, community):
@@ -44,7 +45,7 @@ class Channels:
         return value / 1000
 
     def handle(self, opcode, request, account_id, generation, character_id):
-        if opcode not in (13074, 13224, 13188, 13831):
+        if opcode not in (13074, 13224, 13188, 13831, 12116, 13702, 12387):
             raise ValueError("Unsupported chat channel")
         live = self.world.live_identity(character_id=character_id)
         if live is None or live[0] != generation or live[1]["account_id"] != account_id:
@@ -80,7 +81,7 @@ class Channels:
             ).fetchone()
             preferences = policy if preferences is None else preferences
             mask, community = preferences["language_mask"], preferences["community"]
-            language = request.get("language_id")
+            language = request.get("language_id") if opcode in (13188, 13831) else None
             if opcode in (13188, 13831):
                 if (
                     type(language) is not int
@@ -88,7 +89,33 @@ class Channels:
                     or not mask & (1 << language)
                 ):
                     raise ValueError("El idioma no está habilitado para esta cuenta.")
-            if opcode == 13224:
+            if opcode == 12116:
+                admin = db.execute(
+                    "SELECT is_admin FROM accounts WHERE id=%s", (account_id,)
+                ).fetchone()
+                if admin is None or not admin["is_admin"]:
+                    raise ValueError(
+                        "El canal administrativo requiere una cuenta administradora."
+                    )
+                identities = {
+                    row["id"]
+                    for row in db.execute(
+                        "SELECT c.id FROM characters c JOIN accounts a ON a.id=c.account_id "
+                        "WHERE a.is_admin"
+                    )
+                }
+            elif opcode in (13702, 12387):
+                nation_id = load_nation(db, character_id)
+                identities = {
+                    row["character_id"]
+                    for row in db.execute(
+                        "SELECT c.id AS character_id FROM characters c "
+                        "LEFT JOIN character_chat_nations n ON n.character_id=c.id "
+                        "WHERE COALESCE(n.nation_id,0)=%s",
+                        (nation_id,),
+                    )
+                }
+            elif opcode == 13224:
                 membership = db.execute(
                     "SELECT party_id FROM player_party_members WHERE character_id=%s",
                     (character_id,),
@@ -138,7 +165,18 @@ class Channels:
             )
             if opcode in (13188, 13831):
                 packet = bytes((language,)) + packet
-        response = {13074: 626, 13224: 606, 13188: 769, 13831: 655}[opcode]
+            if opcode == 12116:
+                # NP prepends eEY.ADMIN_CHANNEL (0) to the common NQ body.
+                packet = struct.pack(">i", 0) + packet
+        response = {
+            13074: 626,
+            13224: 606,
+            13188: 769,
+            13831: 655,
+            12116: 762,
+            13702: 632,
+            12387: 758,
+        }[opcode]
         return sum(
             self.world.send_to(identity, lease, response, packet)
             for identity, lease in recipients

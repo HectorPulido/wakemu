@@ -11,7 +11,9 @@ class HavenBagPersistenceTests(PostgresCase):
         account = store.register("owner", "local-password")["id"]
         first = store.create_character(account, "First")
         second = store.create_character(account, "Second")
-        self.assertNotEqual(
+        # Migration085 makes the account bag authoritative for both characters.
+        # Physical gems share identity; character inventory ownership does not.
+        self.assertEqual(
             first["haven_bag"]["rooms"][0]["primary_uid"],
             second["haven_bag"]["rooms"][0]["primary_uid"],
         )
@@ -39,8 +41,13 @@ class HavenBagPersistenceTests(PostgresCase):
         )
         self.assertEqual(
             reopened.character(account, second["id"])["haven_bag"],
-            second["haven_bag"],
+            saved["haven_bag"],
         )
+        for original in (first, second):
+            self.assertEqual(
+                reopened.character(account, original["id"])["inventory_items"],
+                original["inventory_items"],
+            )
         self.assertNotEqual(own_bag(first), own_bag(saved))
         with self.assertRaises(ValueError):
             save(store, account, generation, second["id"], locked=True)
@@ -119,7 +126,14 @@ class HavenBagPersistenceTests(PostgresCase):
         self.assertEqual(
             reopened.character(account, char["id"])["haven_bag"]["access"], access
         )
-        self.assertIn(payload, own_bag(saved))
+        from wakfu_server.haven_bag import visit_permission_payload
+
+        public_payload = visit_permission_payload(saved["haven_bag"])
+        self.assertIn(public_payload, own_bag(saved))
+        self.assertEqual(
+            decode_permissions(struct.pack(">I", len(public_payload)) + public_payload),
+            (False, {"groups": [{"group": 0, "rights": 255}], "characters": []}),
+        )
         access["characters"][0]["name"] = "Captured official player"
         with self.assertRaises(ValueError):
             save(store, account, generation, char["id"], access=access)
@@ -178,7 +192,7 @@ class HavenBagPersistenceTests(PostgresCase):
                 furniture=[{**item, "quantity": 2}],
             )
 
-    def test_itemizable_actions_resolve_owned_template_not_item_uid(self):
+    def test_itemizable_actions_resolve_owned_instance_and_legacy_template(self):
         import struct
         from wakfu_server.haven_bag_store import edit_furniture, initial_layout
 
@@ -206,8 +220,16 @@ class HavenBagPersistenceTests(PostgresCase):
         repacked = edit_furniture(config, 12870, struct.pack(">qHxx", 21327, 23))
         self.assertFalse(repacked[0]["deployed"])
         self.assertEqual(repacked[0]["item_uid"], 123456)
+        # Native cwG13664 publishes item_uid as the scene object identity;
+        # cpF12870 returns that identity. Template IDs remain a legacy path.
+        by_instance = edit_furniture(config, 12870, struct.pack(">qHxx", 123456, 23))
+        self.assertEqual(by_instance, repacked)
+        moved_instance = edit_furniture(
+            config, 12363, struct.pack(">qiihi", 123456, 2, 3, 0, 4)
+        )
+        self.assertEqual(moved_instance, moved)
         for opcode, body in (
-            (12870, struct.pack(">qHxx", 123456, 23)),
+            (12870, struct.pack(">qHxx", 123457, 23)),
             (12870, struct.pack(">qHxx", 21327, 47)),
             (12363, struct.pack(">qiihi", 21327, 9, 9, 0, 0)),
             (12363, struct.pack(">qiihi", 21327, 2, 3, 0, 8)),
@@ -291,7 +313,7 @@ class HavenBagPersistenceTests(PostgresCase):
         with self.assertRaises(ValueError):
             rearrange_rooms(config, bytes((1, 0, 1, 0)))
 
-    def test_custom_model_furniture_permissions_stay_per_character_across_accounts_and_reopen(
+    def test_custom_model_furniture_permissions_share_account_and_isolate_foreign_accounts(
         self,
     ):
         from wakfu_server.haven_bag_store import MODELS
@@ -342,8 +364,16 @@ class HavenBagPersistenceTests(PostgresCase):
         )
         self.assertEqual(
             reopened.character(first_account, sibling["id"])["haven_bag"],
-            sibling["haven_bag"],
+            saved["haven_bag"],
         )
+        self.assertEqual(saved["haven_bag"]["appearance_id"], model)
+        self.assertEqual(saved["haven_bag"]["furniture"], furniture)
+        self.assertEqual(saved["haven_bag"]["access"], access)
+        for original in (first, sibling):
+            self.assertEqual(
+                reopened.character(first_account, original["id"])["inventory_items"],
+                original["inventory_items"],
+            )
         self.assertEqual(
             reopened.character(second_account, foreign["id"])["haven_bag"],
             foreign["haven_bag"],

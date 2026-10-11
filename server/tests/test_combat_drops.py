@@ -59,6 +59,33 @@ class Draws:
 
 
 class CombatDropMathTests(unittest.TestCase):
+    def test_dungeon_multiplier_preserves_decimal_probability_and_default(self):
+        args = dict(
+            monsters=[{"actor_id": -11, "reference": 1}],
+            character_id=7,
+            prospecting_bonus=0,
+            can_loot=True,
+            catalog=catalog_for(drop_row("0.008")),
+        )
+        normal = plan_player_drops(
+            **args, fight_context={}, rng=Draws(DRAW_DENOMINATOR - 1)
+        )[0]
+        selected = plan_player_drops(
+            **args,
+            fight_context={"dungeon_drop_rate_bp": 40000},
+            rng=Draws(DRAW_DENOMINATOR - 1),
+        )[0]
+        self.assertEqual(
+            selected.effective_probability, normal.effective_probability * 4
+        )
+        for invalid in (0, 71001, True):
+            with self.assertRaises(ValueError):
+                plan_player_drops(
+                    **args,
+                    fight_context={"dungeon_drop_rate_bp": invalid},
+                    rng=Draws(0),
+                )
+
     def test_native_wakfu_catalog_keeps_exact_jalato_hat_probability_and_rows(self):
         catalog = native_drop_catalog()
         matches = []
@@ -260,6 +287,63 @@ class CombatDropMathTests(unittest.TestCase):
             ),
             (),
         )
+
+    def test_stele_selected_items_never_unlock_unselected_native_rows(self):
+        rows = (
+            drop_row(
+                "1", conditions=[{"native_enum": "CAN_BE_LOOTED_IN_STELE", "value": -1}]
+            ),
+            drop_row(
+                "1",
+                reference_id=999,
+                conditions=[{"native_enum": "CAN_BE_LOOTED_IN_STELE", "value": -1}],
+            ),
+        )
+        options = dict(
+            monsters=[{"actor_id": -11, "reference": 1}],
+            character_id=7,
+            prospecting_bonus=0,
+            can_loot=True,
+            catalog=catalog_for(*rows),
+        )
+        self.assertEqual(
+            plan_player_drops(
+                **options, fight_context={"stele_loot_enabled": True}, rng=Draws()
+            ),
+            (),
+        )
+        selected = rows[0]["reference_id"]
+        result = plan_player_drops(
+            **options,
+            fight_context={"selected_stele_item_references": [selected]},
+            rng=Draws(0, 0),
+        )
+        self.assertEqual([row.item_reference for row in result], [selected])
+
+    def test_missing_stele_and_score_authorities_never_draw_or_inherit_stasis(self):
+        rows = (
+            drop_row(
+                "1", conditions=[{"native_enum": "CAN_BE_LOOTED_IN_STELE", "value": -1}]
+            ),
+            drop_row("1", conditions=[{"native_enum": "MIN_SCORE", "value": 15000}]),
+        )
+        draws = Draws()
+        result = plan_player_drops(
+            monsters=[{"actor_id": -11, "reference": 1}],
+            character_id=7,
+            prospecting_bonus=0,
+            can_loot=True,
+            catalog=catalog_for(*rows),
+            fight_context={
+                "in_dungeon": True,
+                "downscaled": True,
+                "stasis_level": 10,
+                "dungeon_drop_rate_bp": 71000,
+            },
+            rng=draws,
+        )
+        self.assertEqual(result, ())
+        self.assertEqual(draws.bounds, [])
 
     def test_complex_flag_still_fails_closed_when_simple_conditions_are_also_exported(
         self,

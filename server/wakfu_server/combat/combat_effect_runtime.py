@@ -294,9 +294,11 @@ class NativeEffectRuntimeFactory:
             actor = native_actor(preview, identity)
             if actor is not None:
                 return actor.position
-            for area in area_targets(preview):
-                if area.id == identity:
-                    return area.position
+            from .combat_state_managers import registered_area_pv
+
+            area = registered_area_pv(preview, identity)
+            if area is not None:
+                return area.position
             raise ValueError("Missing authoritative native target position")
 
         def resolution(effect, invocation):
@@ -1233,6 +1235,14 @@ class NativeEffectRuntimeFactory:
             distance_group_runner=distance_group,
             group_execution_scope=lambda invocation: selected_area_pv_scope(
                 preview, (invocation.caster_id, invocation.target_id)
+            ),
+            resolved_population_scope=lambda population: selected_area_pv_scope(
+                preview,
+                tuple(
+                    identity
+                    for selected in population
+                    for identity in (selected.caster_id, selected.target_id)
+                ),
             ),
             group_level=group_level,
             random_group_children=None

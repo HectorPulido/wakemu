@@ -244,6 +244,7 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         the entrant's world actor registry before the marker is decoded.
         """
         import threading
+        from contextlib import nullcontext
         from types import SimpleNamespace
 
         from wakfu_server.characters import heroes
@@ -252,6 +253,7 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         from wakfu_server.combat.combat_external_markers import ExternalFightMarkers
         from wakfu_server.combat.combat_multiplayer_wire import decode_external
         from wakfu_server.maps.world import World
+        from wakfu_server.maps import npc_world
 
         markers = ExternalFightMarkers()
         player_actor = SimpleNamespace(id=17, team=0)
@@ -350,8 +352,9 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         join = _function(self.tree, "join_world")
         from wakfu_server.performance_profiler import PROFILER
 
+        scene_db = object()
         namespace = {
-            "STORE": object(),
+            "STORE": SimpleNamespace(connection=lambda: nullcontext(scene_db)),
             "COMBAT_TEST": True,
             "send": send,
             "send_planting_context": lambda *_args, **_kwargs: None,
@@ -372,6 +375,8 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         )
 
         with patch.object(
+            npc_world, "load_scene", return_value=()
+        ) as load_scene, patch.object(
             profession_store,
             "ensure_learned",
             return_value={"packets": ()},
@@ -395,6 +400,7 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
                 },
             )
 
+        load_scene.assert_called_once_with(scene_db, 1134, 0)
         observer_events = [event for event in events if event[0] is not owner_peer]
         marker_index = next(
             index

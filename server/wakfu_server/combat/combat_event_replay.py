@@ -161,8 +161,23 @@ class NativeExternalEvent:
     suppressed: bool = False
     cast_boundary_context: dict | None = None
     turn_boundary_context: dict | None = None
+    movement_boundary_context: dict | None = None
 
     def validate(self):
+        if self.movement_boundary_context is not None:
+            from .combat_external_movement_recipient import (
+                validate_movement_boundary_context,
+            )
+
+            validate_movement_boundary_context(self.movement_boundary_context)
+            if (
+                self.event_ids != (1005,)
+                or self.turn_boundary_context is not None
+                or self.cast_boundary_context is not None
+            ):
+                raise ValueError(
+                    "Movement facts require one matching external boundary"
+                )
         if self.turn_boundary_context is not None:
             from .combat_turn_events import validate_turn_boundary_context
 
@@ -347,6 +362,22 @@ class NativeEventReplay:
                 source_target=source.target_id,
                 source_present=isinstance(source, NativeEventSource),
             )
+            from .combat_external_turn_recipient import external_turn_recipient
+
+            target = external_turn_recipient(
+                self.retention.fight,
+                source,
+                target_code=definition["event_target_code"],
+                original_target=target,
+            )
+            from .combat_external_turn_recipient import external_movement_recipient
+
+            target = external_movement_recipient(
+                self.retention.fight,
+                source,
+                target_code=definition["event_target_code"],
+                original_target=target,
+            )
             if caster is None:
                 raise ValueError("Native group clone requires caster actor")
             from .combat_state_managers import registered_area_pv
@@ -409,6 +440,11 @@ class NativeEventReplay:
                 native_trigger_context=(source_context),
                 native_turn_boundary_context=(
                     source.turn_boundary_context
+                    if isinstance(source, NativeExternalEvent)
+                    else None
+                ),
+                native_movement_boundary_context=(
+                    source.movement_boundary_context
                     if isinstance(source, NativeExternalEvent)
                     else None
                 ),

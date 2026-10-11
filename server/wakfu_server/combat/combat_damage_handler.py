@@ -207,7 +207,20 @@ class NativeDamageHandler:
         # change to this runner. Owned KO/revival lifecycle remains guarded.
         # eVl.rwA (3) is DONT_DISPLAY_ZONE, consumed only by aJs
         # client zone preview. eXt calculation/gates and wire remain identical.
-        unknown = set(interpreted["unhandled_flags"]) - {3, 4, 5, 6, 15, 17, 22, 23, 24}
+        # eVl.rxb (31), BOMB_EFFECT, classifies the source. Native eXt has
+        # no arithmetic or event override for this tag; keep it on the source.
+        unknown = set(interpreted["unhandled_flags"]) - {
+            3,
+            4,
+            5,
+            6,
+            15,
+            17,
+            22,
+            23,
+            24,
+            31,
+        }
         if unknown:
             raise ValueError(f"Unsupported native damage flags: {sorted(unknown)}")
         if not context.executable:
@@ -465,6 +478,17 @@ class NativeDamageHandler:
         if not runner.notification_suppressed:
             self.packets.append((12613, packet))
         runner.finish_application()
+        if wall is None and getattr(self.fight, "boss_score_profile", None) is not None:
+            from wakfu_server.maps.boss_score_runtime import stage_damage
+
+            stage_damage(
+                self.fight,
+                action_id=self.action_id,
+                runner_uid=uid,
+                source=source,
+                target=target,
+                result=result,
+            )
         if self.event_lifecycle is not None:
             self.event_lifecycle.phase(
                 effect,

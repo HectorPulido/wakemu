@@ -64,9 +64,17 @@ class NativeForcedCharacteristicHandler:
         row = self.registry.get(str(effect["effect_class"]))
         if row is None or row["runner"] != "eYO":
             raise ValueError("Missing native forced characteristic registry")
-        actor = self.fight.actors.get(invocation.target_id)
-        caster = self.fight.actors.get(invocation.caster_id)
-        if actor is None or caster is None or self.fight.phase != "active":
+        from .combat_summon_initialization import registered_or_detached_actor
+        from .combat_npc_initialization import constructor_stat_context
+
+        actor = registered_or_detached_actor(self.fight, invocation.target_id)
+        caster = registered_or_detached_actor(self.fight, invocation.caster_id)
+        constructor = constructor_stat_context(self.fight, invocation)
+        if (
+            actor is None
+            or caster is None
+            or (not constructor and self.fight.phase != "active")
+        ):
             raise ValueError("Invalid native forced characteristic actors")
         ctx = self.context(effect, invocation)
         if (

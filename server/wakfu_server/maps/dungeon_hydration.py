@@ -14,9 +14,12 @@ class HydrationPlan:
     packets: tuple
 
 
-def prepare_transition(store, account_id, generation, character_id, event):
+def prepare_transition(
+    store, account_id, generation, character_id, event, *, fixture_provider=None
+):
     """Validate the live destination and pinned context, then encode all packets.
 
+    If fixture_provider is omitted, the caller owns build profile publication.
     The caller owns socket/WORLD/POSITIONS changes. A successful plan is not an
     outbox ACK; delivery must complete before the existing consumer acknowledges
     its event with a second database generation/location check.
@@ -72,8 +75,23 @@ def prepare_transition(store, account_id, generation, character_id, event):
         context = dungeon_context.for_instance(
             store, character["instance_id"], fight_in_progress=False
         )
-    packets = (
-        *native_transports.bootstrap(character, dungeon_context=context),
-        *party_packets,
-    )
+    build_packets = ()
+    if fixture_provider is not None:
+        from wakfu_server.characters.dungeon_modulation_publication import (
+            packets as build_publication,
+            owned_hero_role,
+        )
+
+        with store.connection() as db:
+            is_hero = owned_hero_role(db, account_id, character_id)
+        build_packets = build_publication(
+            character,
+            fixture_provider,
+            owned_characters=store.characters(account_id),
+            owned_hero=is_hero,
+        )
+    bootstrap = tuple(native_transports.bootstrap(character, dungeon_context=context))
+    # Native ctB13256 tears down the old scene; install the owned profile after
+    # that cleanup and before csW13974 applies the destination, as at login.
+    packets = (bootstrap[0], *build_packets, *bootstrap[1:], *party_packets)
     return HydrationPlan(character=dict(character), packets=packets)

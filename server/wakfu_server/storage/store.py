@@ -9,6 +9,7 @@ import secrets
 from psycopg.errors import UniqueViolation, ForeignKeyViolation
 from psycopg.types.json import Jsonb
 from wakfu_server.postgres import Database
+from wakfu_server.account_bans import require_access
 import time
 from protocol_codec import APPEARANCE_FIELDS
 from wakfu_server.characters.selection_capacity import configured_capacity
@@ -76,6 +77,8 @@ class Store:
         candidate = self.password_hash(password, salt)
         if row is None or not hmac.compare_digest(candidate, row["password_hash"]):
             raise ValueError("Usuario o contraseña incorrectos.")
+        with self.connection() as db:
+            require_access(db, row["id"], self.now())
         return {"id": row["id"], "username": row["username"]}
 
     @staticmethod
@@ -87,6 +90,7 @@ class Store:
             raise ValueError("Invalid token kind")
         token = secrets.token_urlsafe(32)
         with self.connection() as db:
+            require_access(db, account_id, self.now())
             db.execute("DELETE FROM tokens WHERE expires_at<=%s", (self.now(),))
             db.execute(
                 "INSERT INTO tokens(digest,account_id,kind,expires_at,generation,realm_id) "
@@ -104,6 +108,13 @@ class Store:
 
     def token(self, token, kind, consume=False):
         with self.connection() as db:
+            owner = db.execute(
+                "SELECT account_id FROM tokens WHERE digest=%s AND kind=%s",
+                (self.digest(token), kind),
+            ).fetchone()
+            if owner is None:
+                raise ValueError("Acceso inválido o caducado.")
+            require_access(db, owner["account_id"], self.now())
             if consume:
                 row = db.execute(
                     "WITH consumed AS (DELETE FROM tokens WHERE digest=%s AND kind=%s "
@@ -128,13 +139,7 @@ class Store:
     def begin_session(self, account_id, ttl=300):
         generation = secrets.token_hex(16)
         with self.connection() as db:
-            if (
-                db.execute(
-                    "SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,)
-                ).fetchone()
-                is None
-            ):
-                raise ValueError("Cuenta inválida")
+            require_access(db, account_id, self.now())
             db.execute(
                 "INSERT INTO sessions(account_id,generation,expires_at) VALUES(%s,%s,%s) "
                 "ON CONFLICT(account_id) DO UPDATE SET generation=excluded.generation, "
@@ -381,12 +386,16 @@ class Store:
             with self.connection() as connection:
                 return self.character(account_id, character_id, connection)
         row = db.execute(
-            "SELECT * FROM characters WHERE account_id=%s AND id=%s AND deleted_at IS NULL",
+            "SELECT c.*,a.is_admin account_is_admin FROM characters c JOIN accounts a ON a.id=c.account_id "
+            "WHERE c.account_id=%s AND c.id=%s AND c.deleted_at IS NULL",
             (account_id, character_id),
         ).fetchone()
         if row is None:
             raise ValueError("Personaje no encontrado.")
         result = dict(row)
+        from wakfu_server.characters.nation_state import load as load_nation
+
+        result["nation_id"] = load_nation(db, character_id)
         from wakfu_server.characters.guild_character import load as load_guild
 
         load_guild(db, self, result)
@@ -457,7 +466,9 @@ class Store:
         result["effective_level"] = effective_sheet_level(
             result, result["active_build_index"]
         )
-        return result
+        from wakfu_server.characters.dungeon_modulation import hydrate
+
+        return hydrate(db, result)
 
     def characters(self, account_id):
         with self.connection() as db:
@@ -730,6 +741,8 @@ class Store:
         with self.connection() as db:
             self.lock_character(db, account_id, generation, character_id)
             current = self.character(account_id, character_id, db)
+            if current.get("dungeon_modulation") is not None:
+                raise ValueError("Competitive automatic build selection is read-only")
             if index not in catalog_indices(current):
                 raise ValueError("Requested build does not exist")
             if index == current["active_build_index"]:
@@ -769,6 +782,10 @@ class Store:
         with self.connection() as db:
             self.lock_character(db, account_id, generation, character_id)
             current = self.character(account_id, character_id, db)
+            if current.get("dungeon_modulation") is not None:
+                raise ValueError(
+                    "Build deletion waits until competitive modulation ends"
+                )
             sheet = current["builds"].get(index)
             if sheet is None:
                 raise ValueError("Requested build does not exist")
@@ -812,6 +829,9 @@ class Store:
         with self.connection() as db:
             self.lock_character(db, account_id, generation, character_id)
             character = self.character(account_id, character_id, db)
+            modulation = character.get("dungeon_modulation")
+            if modulation is not None and build_index == modulation["build_index"]:
+                raise ValueError("Temporary automatic build is read-only")
             from wakfu_server.builds import validated_saved_blobs
 
             merged = validated_saved_blobs(character, build_index, blobs)
@@ -868,6 +888,9 @@ class Store:
                 "UPDATE characters SET map_id=%s,instance_id=%s,x=%s,y=%s,z=%s WHERE id=%s",
                 (*[destination[key] for key in keys], character_id),
             )
+            from wakfu_server.characters.dungeon_modulation_health import reconcile
+
+            reconcile(self, db, [character_id])
             return self.character(account_id, character_id, db)
 
     def account_kamas(self, account_id):

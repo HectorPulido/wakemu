@@ -69,7 +69,7 @@ class HeroPlacementDispatchTests(unittest.TestCase):
             "monster_actor_stats": monster_stats,
             "actor_effects": effects,
             "placement_messages": placement,
-            "arena": object(),
+            "arena": {"terrain_effect_id": 10338},
             "terrain_instance_id": 44,
             "placement_duration": 30_000,
             "should_rebuild_placement": should_rebuild_placement,

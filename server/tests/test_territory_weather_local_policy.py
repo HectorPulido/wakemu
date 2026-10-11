@@ -13,6 +13,14 @@ from wakfu_server.territory_weather import (
 
 
 class TerritoryWeatherLocalPolicyTests(PostgresCase):
+    def setUp(self):
+        super().setUp()
+        # Preserve this suite's static baseline contract under explicit opt-out.
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=jsonb_set(value,'{enabled}','false'::jsonb) WHERE name='weather_simulation'"
+            )
+
     def test_all_catalog_territories_get_explicit_local_baseline_without_copying_capture(
         self,
     ):

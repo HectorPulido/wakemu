@@ -1,5 +1,9 @@
 # Monster combat source inventory
 
+## Current complete filtered inventory — 2026-10-11
+
+[All levels, category counts and downloadable inventories](inventory-20261011/README.md): 1,921 references after excluding all 940 empty spellbooks and 13 incomplete definitions. The 247 enabled references are verified against the live policy. Coverage uses current handler registrations and existing extraction; no runtime replay or service change is required.
+
 Date: 2026-10-10. Scope: extract the installed client's monster combat definitions automatically, starting review with Miaumiaus, Tofus and Gobballs (Spanish client names retained in tables).
 
 Current deployment: [automated native ranges 10–49](ACTIVATION_LEVEL_10_49_20261010.md). **190 newly activated references**, preserving the previous 57; **247 active references total**. The new range contains 371 references, including 303 with covered effect families; 113 covered references remain disabled. Validation passed 430 tests, zero failures/errors/skips, and complete native spell/level plus AI-commit checks for every newly activated reference. [Manual acceptance](MANUAL_LEVEL_10_49_20261010.md) and [reusable cohort automation](AUTOMATION_COHORTS.md) describe testing and expansion. The complete 2,874-reference inventory is current in [ACTIVATION_STATUS.json](ACTIVATION_STATUS.json). Earlier reports retain historical counts.

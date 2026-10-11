@@ -49,7 +49,13 @@ def _arena(map_id, instance_id, layout):
         surface_indices=indices,
         border_cells=layout.get("native_border_cells", []),
     )
+    from .combat_border_policy import validate as validate_border
+
+    border = layout.get("border")
+    reference = 46 if border is None else validate_border(border)
     result.update(
+        terrain_effect_id=reference,
+        native_border_receipt=border,
         validated_cells=cells,
         valid_edges=edges,
         placement_cells=placement,
@@ -121,7 +127,10 @@ def freeze(
             == "wakemu.compact-cardinal-perimeter-v1",
             avoid_cells=selected_arena.get("native_border_cells", ()),
         )
+        from .combat_border_policy import choose as choose_border
+
         layout = dict(
+            border=choose_border(db),
             native_border_cells=sorted(selected_arena.get("native_border_cells", [])),
             native_border_policy=selected_arena.get("native_border_policy"),
             participant_positions=relocations,

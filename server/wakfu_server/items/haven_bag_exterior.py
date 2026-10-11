@@ -56,18 +56,12 @@ def remove(character):
 
 
 def can_visit(visitor, owner):
-    if visitor["account_id"] == owner["account_id"]:
-        return True
-    config = owner.get("haven_bag") or {}
-    if config.get("locked", False):
-        return False
-    access = config.get("access", {})
-    explicit = next(
-        (r for r in access.get("characters", ()) if r["id"] == visitor["id"]), None
-    )
-    if explicit is not None:
-        return bool(explicit["rights"] & 1)
-    return any(r["group"] == 0 and r["rights"] & 1 for r in access.get("groups", ()))
+    """All players may visit; discovery still checks live map and distance.
+
+    Room masks grant traversal/use only. Inventory, room configuration and
+    furniture mutations retain their separate account ownership checks.
+    """
+    return True
 
 
 class ExteriorBags:

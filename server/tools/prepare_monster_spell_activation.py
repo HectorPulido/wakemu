@@ -51,6 +51,43 @@ def merge_records(existing, additions, *, effects=False):
     return merged
 
 
+def supplement_zero_level_dependencies(exported, required, shared_ids, definitions):
+    """Append original full zero-level-only rows missing from shared catalogs.
+
+    Keep bounds and all sampled arrays intact: index zero in positive-level
+    samples still means native level one, never the zero-level sample.
+    """
+    missing = set(required) - set(exported["effects"]) - set(shared_ids)
+    additions = {}
+    for key in sorted(missing):
+        row = definitions.get(key)
+        if row is None:
+            continue
+        if (
+            type(row.get("minimum_level")) is not int
+            or type(row.get("maximum_level")) is not int
+            or row["minimum_level"] != 0
+            or row["maximum_level"] != 0
+        ):
+            continue
+        if (
+            type(row.get("effect_class")) is not int
+            or not isinstance(row.get("parameters"), list)
+            or type(row.get("parameter_count")) is not int
+            or len(row["parameters"]) != 2 * row["parameter_count"]
+            or not isinstance(row.get("children"), list)
+            or not isinstance(row.get("native_timing_definition"), dict)
+            or not isinstance(row.get("native_target_selector"), dict)
+            or type(row.get("native_execution_mode")) is not int
+            or not isinstance(row.get("native_definition_class"), str)
+        ):
+            raise ValueError("Incomplete original zero-level effect definition: " + key)
+        additions[key] = deepcopy(row)
+    result = dict(exported)
+    result["effects"] = merge_records(exported["effects"], additions, effects=True)
+    return result
+
+
 def select_candidates(coverage, maximum=9):
     if type(maximum) is not int or maximum < 1:
         raise ValueError("Maximum native level must be a positive integer")
@@ -558,9 +595,20 @@ def main():
                 ),
             )
         }
-        if missing - got:
+        exported = supplement_zero_level_dependencies(
+            exported,
+            needed,
+            got,
+            read_bundle(args.bundle, "zero-effect-definitions")["effects"],
+        )
+        # Persist the complete candidate source, retaining original zero bounds.
+        (output / "exported-spells.json").write_text(
+            json.dumps(exported, separators=(",", ":"))
+        )
+        unresolved = needed - exported["effects"].keys() - got
+        if unresolved:
             raise ValueError(
-                "Missing candidate effect dependencies: " + str(sorted(missing - got))
+                "Missing candidate effect dependencies: " + str(sorted(unresolved))
             )
     # Constructor states share the same fenced NPC document as spell imports.
     # Keep raw cle order, levels (including -1), and flags from native evidence.

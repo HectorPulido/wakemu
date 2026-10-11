@@ -62,6 +62,7 @@ def apply_client(
     *,
     area_provider=None,
     runtime_stats_serializer=None,
+    _step_callback=None,
 ):
     if runtime_stats_serializer is not None and not callable(runtime_stats_serializer):
         raise ValueError("Invalid current-fight movement stats serializer")
@@ -69,12 +70,13 @@ def apply_client(
         return _with_areas(
             runtime,
             area_provider,
-            lambda candidate: apply_client(
+            lambda candidate, callback: apply_client(
                 candidate,
                 owner_id,
                 body,
                 stats_serializer,
                 runtime_stats_serializer=runtime_stats_serializer,
+                _step_callback=callback,
             ),
         )
     if runtime.awaiting_ack is not None:
@@ -90,33 +92,52 @@ def apply_client(
 
     from .combat_carrying import set_registered_direction
 
-    candidate_fight = copy.deepcopy(fight)
-    candidate = candidate_fight.actors[actor_id]
-    candidate_fight.move(owner_id, actor_id, path)
-    set_registered_direction(candidate_fight, candidate, direction)
-    stats = (
-        runtime_stats_serializer(candidate, candidate_fight)
-        if runtime_stats_serializer is not None
-        else stats_serializer(candidate)
-    )
+    if _step_callback is not None:
+        event = fight.move(owner_id, actor_id, path, step_callback=_step_callback)
+        path = event["path"]
+        direction = direction_after_path(
+            origin, path, getattr(actor, "direction", None)
+        )
+        set_registered_direction(fight, actor, direction)
+        stats = (
+            runtime_stats_serializer(actor, fight)
+            if runtime_stats_serializer is not None
+            else stats_serializer(actor)
+        )
+    else:
+        candidate_fight = copy.deepcopy(fight)
+        candidate = candidate_fight.actors[actor_id]
+        candidate_fight.move(owner_id, actor_id, path)
+        set_registered_direction(candidate_fight, candidate, direction)
+        stats = (
+            runtime_stats_serializer(candidate, candidate_fight)
+            if runtime_stats_serializer is not None
+            else stats_serializer(candidate)
+        )
     animation = movement(
         fight.id, runtime.action_id + 1, actor_id, [origin, *path], direction
     )
     refresh = (12873, actor_state(12873, fight.id, actor_id, stats))
-    event = fight.move(owner_id, actor_id, path)
-    set_registered_direction(fight, actor, direction)
+    if _step_callback is None:
+        event = fight.move(owner_id, actor_id, path)
+        set_registered_direction(fight, actor, direction)
     runtime.action_id += 1
     return [animation, runtime._flush(), refresh], event
 
 
-def apply_ai(runtime, stats_serializer, *, direction, area_provider=None):
+def apply_ai(
+    runtime, stats_serializer, *, direction, area_provider=None, _step_callback=None
+):
     """Plan and commit one server movement; attacking remains explicit policy."""
     if area_provider is not None:
         return _with_areas(
             runtime,
             area_provider,
-            lambda candidate: apply_ai(
-                candidate, stats_serializer, direction=direction
+            lambda candidate, callback: apply_ai(
+                candidate,
+                stats_serializer,
+                direction=direction,
+                _step_callback=callback,
             ),
         )
     from .combat_ai import plan
@@ -134,44 +155,58 @@ def apply_ai(runtime, stats_serializer, *, direction, area_provider=None):
         return [], result
     from .combat_carrying import set_registered_direction
 
-    candidate_fight = copy.deepcopy(fight)
-    candidate = candidate_fight.actors[actor.id]
-    candidate_fight.server_move(actor.id, path)
-    set_registered_direction(candidate_fight, candidate, direction)
-    stats = stats_serializer(candidate)
+    origin = actor.position
+    if _step_callback is not None:
+        result["event"] = fight.server_move(
+            actor.id, path, step_callback=_step_callback
+        )
+        path = result["event"]["path"]
+        result["path"] = path
+        direction = direction_after_path(origin, path, actor.direction)
+        set_registered_direction(fight, actor, direction)
+        stats = stats_serializer(actor)
+    else:
+        candidate_fight = copy.deepcopy(fight)
+        candidate = candidate_fight.actors[actor.id]
+        candidate_fight.server_move(actor.id, path)
+        set_registered_direction(candidate_fight, candidate, direction)
+        stats = stats_serializer(candidate)
     animation = movement(
-        fight.id, runtime.action_id + 1, actor.id, [actor.position, *path], direction
+        fight.id, runtime.action_id + 1, actor.id, [origin, *path], direction
     )
     refresh = (12873, actor_state(12873, fight.id, actor.id, stats))
-    result["event"] = fight.server_move(actor.id, path)
-    set_registered_direction(fight, actor, direction)
+    if _step_callback is None:
+        result["event"] = fight.server_move(actor.id, path)
+        set_registered_direction(fight, actor, direction)
     runtime.action_id += 1
     return [animation, runtime._flush(), refresh], result
 
 
 def _with_areas(runtime, provider, operation):
     from copy import deepcopy
-    from .combat_area_boundary import adopt_runtime
+    from .combat_area_boundary import adopt_fight, adopt_runtime
 
     candidate = deepcopy(runtime)
-    actor = candidate.fight.current
-    if actor is None:
-        raise ValueError("No active area movement actor")
-    identity, origin = actor.id, tuple(actor.position)
-    packets, result = operation(candidate)
-    event = result.get("event", result)
-    path = event.get("path", ())
-    if path:
-        preview, callbacks = provider(
-            candidate.fight,
-            actor_id=identity,
-            action_id=candidate.action_id + 1,
-            path=path,
-            origin=origin,
+    callbacks = []
+    action_id = candidate.action_id + 2
+
+    def deliver_step(fight, actor, before, cell):
+        preview, packets = provider(
+            fight,
+            actor_id=actor.id,
+            action_id=action_id,
+            path=[cell],
+            origin=before,
         )
-        candidate.fight = preview
+        # execute_steps holds the current actor object between resource checks.
+        adopt_fight(fight, preview)
+        callbacks.extend(packets)
+
+    packets, result = operation(candidate, deliver_step)
+    event = result.get("event", result)
+    if event.get("path"):
         candidate.action_id += 1
-        packets = list(packets) + list(callbacks)
+        packets = list(packets) + callbacks
         if callbacks:
             packets.append(candidate._flush())
     adopt_runtime(runtime, candidate)

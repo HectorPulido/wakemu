@@ -1,0 +1,13 @@
+# Native breed predicate trigger selectors
+
+Representative: monster 3735, Viktoria Franka Enstein, first owned spell 4944 at level 98. Its real effect criterion is `IsBreedId("triggeringTarget", 3732) and GetTeamId("triggeringTarget") == 0`. The evaluator rejected its selector before any branch evaluation. Monster 5235, Tortumulto, spell 7128, contains the same selector in four negated breed checks followed by a literal false branch; validating all branches remains required.
+
+Native proof: client `eQd` token 256 constructs `eNu`. `eNu.a` resolves its first string argument using `eII.a`; `eII.a` explicitly accepts `triggeringCaster`, `triggeringTarget`, and `casterController`, in addition to caster and target. It returns a null actor for an absent native triggering effect. `eNu.a` returns -1 (false) for a null actor or null breed descriptor; otherwise it compares short-converted breed IDs. Bytecode evidence is retained locally under `.runtime/monster-blocker-recovery-20261011/native-eNu.txt` and `.runtime/local/native-condition-source-resolution.txt`.
+
+The general fix reuses the existing verified actor-selector validation. Numeric literal validation and short conversion remain unchanged. A missing trigger alias is false only when the context explicitly proves the triggering effect is absent; unknown trigger authority still raises `UnknownCondition`. Existing explicit null aliases and nonfighter-area behavior are preserved. No state injection, targeting override, or automatic activation is introduced.
+
+Six new regression methods cover all three aliases, genuine null triggers, unknown triggers/controllers, unknown breed, explicit null/area descriptors, existing short conversion, malformed arguments, and validation across short circuits. Original tests are unchanged. Run with the local read-only catalog DSN and `PYTHONPATH=server python -m unittest discover -s server/tests -p test_monster_breed_trigger_predicate.py`.
+
+`IsHero` is deliberately unchanged. Native token 311 constructs `eNT`, which compares the actor identity to `fkJ.sS(actor.Xi())`, an account-to-primary-character mapping. It is not equivalent to player/NPC kind. Supporting it needs real primary-character authority; assuming all NPCs false would invent semantics. Proof: `.runtime/monster-blocker-recovery-20261011/native-eNT-IsHero.txt`.
+
+A successful representative replay does not certify a complete spellbook or level range. The coordinator must rerun the affected references before counting recovery, and defer the complete heavy matrix until final validation. No services or catalogs were changed.

@@ -23,6 +23,7 @@ class SceneRegistryDispatchTests(unittest.TestCase):
         sent = []
         character = {"id": 6, "map_id": 527, "instance_id": 0, "x": -217, "y": -39}
         namespace = {
+            "publish_environment_scene": lambda **kwargs: None,
             "PROFILER": IdentityProfiler(),
             "loaded": True,
             "character": character,

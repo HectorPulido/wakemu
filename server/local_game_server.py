@@ -112,13 +112,25 @@ if ECOLOGY_MODE not in ("inline", "external", "disabled"):
     raise ValueError("Invalid ecology execution mode")
 ECOLOGY_BRIDGE = None
 OPEN_PLANTING = os.environ.get("WAKFU_OPEN_PLANTING", "1") == "1"
+from wakfu_server.planting_level_policy import resolver as planting_level_bonus_resolver
+from wakfu_server.planting_bonus_publisher import Publisher as PlantingBonusPublisher
+
+NATIVE_PLANTING_BONUS = (
+    not OPEN_PLANTING and os.environ.get("WAKFU_NATIVE_PLANTING_BONUS", "0") == "1"
+)
+PLANTING_BONUSES = PlantingBonusPublisher(STORE)
+PLANTING_BONUS_RESOLVER = (
+    planting_level_bonus_resolver(STORE)
+    if NATIVE_PLANTING_BONUS
+    else current_planting_bonus
+)
 PLANTINGS = Plantings(
     STORE,
     open_test_policy=OPEN_PLANTING,
     location_context=lambda stored: active_garden_character(stored, WORLD.snapshot()),
     growth_seconds=float(os.environ.get("WAKFU_PLANT_GROWTH_SECONDS", "30")),
     probability_context=planting_probability_resolver(
-        STORE, profession_bonus=current_planting_bonus, open_test_policy=OPEN_PLANTING
+        STORE, profession_bonus=PLANTING_BONUS_RESOLVER, open_test_policy=OPEN_PLANTING
     ),
 )
 TRANSPORT_DISCOVERIES = transport_discovery.Discoveries(STORE)
@@ -487,7 +499,11 @@ def receive(connection, count, on_idle=None):
 
 
 def send(connection, service, opcode, body):
-    connection.sendall(struct.pack(">IH", 6 + len(body), opcode) + body)
+    write = lambda: connection.sendall(struct.pack(">IH", 6 + len(body), opcode) + body)
+    if service == "world" and NATIVE_PLANTING_BONUS:
+        PLANTING_BONUSES.deliver(connection, ((opcode, body),), write)
+    else:
+        write()
     record(
         service=service,
         direction="out",
@@ -509,7 +525,11 @@ def send_batch(connection, service, packets):
             raise ValueError("Invalid pushed packet body")
         frames.append(struct.pack(">IH", 6 + len(body), opcode) + body)
     # Connection.sendall holds one write lock for the entire ordered batch.
-    connection.sendall(b"".join(frames))
+    write = lambda: connection.sendall(b"".join(frames))
+    if service == "world" and NATIVE_PLANTING_BONUS:
+        PLANTING_BONUSES.deliver(connection, packets, write)
+    else:
+        write()
     for opcode, body in packets:
         record(
             service=service,
@@ -561,6 +581,10 @@ WORLD = World(
     ),
 )
 
+from wakfu_server.territory_bonus_updates import RegionalBonusUpdates
+
+REGIONAL_BONUSES = RegionalBonusUpdates(STORE, WORLD)
+
 from wakfu_server.party_dispatch import Parties
 from wakfu_server.chat_channels import Channels
 from wakfu_server.exchange_dispatch import Exchanges
@@ -587,11 +611,13 @@ def guild_local_entity():
 
 def guild_company_packet(character, model):
     from wakfu_server.characters.hero_wire import company
+    from wakfu_server.characters.nation_state import nation_id
 
     return company(
         character["account_id"],
         character["id"],
         guild_id=model["guildId"] if model else 0,
+        nation_id=nation_id(character),
     )
 
 
@@ -646,7 +672,17 @@ def territory_weather_region_changed(map_id, old_position, new_position):
     return current != previous
 
 
+def send_native_planting_bonus(connection, character):
+    if NATIVE_PLANTING_BONUS:
+        PLANTING_BONUSES.publish(
+            connection,
+            character,
+            lambda packets: send_batch(connection, "world", packets),
+        )
+
+
 def send_planting_context(connection, character, *, include_weather=True):
+    send_native_planting_bonus(connection, character)
     from wakfu_server.ecology_context import packet as ecology_packet
     from wakfu_server.territory_weather_forecast import packet_for_territory
     from wakfu_server.territory_weather import context as weather_context
@@ -659,6 +695,35 @@ def send_planting_context(connection, character, *, include_weather=True):
             event="planting_context_unavailable",
             actor_id=character["id"],
             map_id=character["map_id"],
+            reason=str(error),
+        )
+    try:
+        from wakfu_server.territory_bonuses import refresh_world
+
+        refreshed = dict(character)
+        for bonus_packet in refresh_world(STORE, refreshed):
+            send(connection, "world", *bonus_packet)
+        character["territory_stat_bonuses"] = refreshed["territory_stat_bonuses"]
+        character["_published_territory_stat_bonuses"] = refreshed[
+            "_published_territory_stat_bonuses"
+        ]
+        REGIONAL_BONUSES.mark_context_refreshed(character)
+        with WORLD.lock:
+            entry = WORLD.players.get(character["id"])
+            bonus_generation = (
+                entry[0] if entry is not None and entry[1] is connection else None
+            )
+        if bonus_generation is not None:
+            WORLD.update_territory_projection(
+                bonus_generation,
+                character,
+                peer=connection,
+                bonuses=character["territory_stat_bonuses"],
+            )
+    except ValueError as error:
+        record(
+            event="territory_bonus_unavailable",
+            actor_id=character["id"],
             reason=str(error),
         )
     if not include_weather:
@@ -678,12 +743,14 @@ def send_planting_context(connection, character, *, include_weather=True):
         return
     send(connection, "world", 13948, weather["native_payload"])
     try:
-        forecast = packet_for_territory(
-            STORE,
-            map_id=character["map_id"],
-            instance_id=character["instance_id"],
-            region_id=weather["region_id"],
-        )
+        forecast = weather.get("forecast_payload")
+        if forecast is None:
+            forecast = packet_for_territory(
+                STORE,
+                map_id=character["map_id"],
+                instance_id=character["instance_id"],
+                region_id=weather["region_id"],
+            )
     except ValueError as error:
         record(
             event="territory_weather_forecast_unavailable",
@@ -736,6 +803,14 @@ def join_world(generation, connection, character, *, hydrate_heroes=True):
     send_planting_context(connection, character)
     for packet in PLANTINGS.snapshots(character["map_id"], character["instance_id"]):
         send(connection, "world", *packet)
+    from wakfu_server.maps import npc_world
+
+    with STORE.connection() as db:
+        dialogue_npcs = npc_world.load_scene(
+            db, character["map_id"], character["instance_id"]
+        )
+    for npc in dialogue_npcs:
+        send(connection, "world", *npc_world.spawn(npc))
     from wakfu_server.characters import heroes, hero_wire
 
     hero_roster = heroes.ensure_company_party(
@@ -754,6 +829,7 @@ def join_world(generation, connection, character, *, hydrate_heroes=True):
             character["account_id"],
             character["id"],
             guild_id=(character.get("guild_native") or {}).get("guildId", 0),
+            nation_id=character.get("nation_id", 0),
         ),
     )
     if not COMBAT_TEST:
@@ -832,6 +908,13 @@ def is_dungeon_run(instance_id):
 
 @PROFILER.profile("world.bootstrap")
 def owned_native_bootstrap(character, **options):
+    if (character.get("map_id"), character.get("instance_id", 0)) == (1385, 0):
+        from wakfu_server.maps import npc_protectors
+
+        with STORE.connection() as db:
+            options["protector_records"] = npc_protectors.bootstrap_records(
+                db, character
+            )
     if is_dungeon_run(character.get("instance_id", 0)):
         from wakfu_server.maps import dungeon_context
 
@@ -904,6 +987,7 @@ def owned_haven_leave(body, character):
 
 def replay(connection, start, end, account_id, character=None, *, generation=None):
     account_characters = None
+    registry_actor_ids = ()
     if character is not None:
         from wakfu_server.combat_drop_delivery import temporary_section
 
@@ -913,6 +997,10 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
                 **character,
                 "temporary_inventory_section": temporary_section(db, character["id"]),
             }
+            registry_actor_ids = tuple(
+                row["actor_id"]
+                for row in db.execute("SELECT actor_id FROM world_dialogue_npcs")
+            )
 
     def owned_characters():
         nonlocal account_characters
@@ -999,7 +1087,18 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
             ):
                 from wakfu_server.characters.hero_wire import company as hero_company
 
-                send(connection, "world", *hero_company(account_id, character["id"]))
+                send(
+                    connection,
+                    "world",
+                    *hero_company(
+                        account_id,
+                        character["id"],
+                        guild_id=(character.get("guild_native") or {}).get(
+                            "guildId", 0
+                        ),
+                        nation_id=character.get("nation_id", 0),
+                    ),
+                )
                 continue
             if frame["opcode"] == 13873 and original[:8] == struct.pack(">II", 1, 10):
                 from wakfu_server.characters.emotes import (
@@ -1097,6 +1196,14 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
                 body = wire.attribute_sheets(original, owned_characters())
             elif frame["opcode"] == 12608:
                 body = wire.without_captured_players(original)
+                if character is not None:
+                    from wakfu_server.maps.npc_capture_scene import (
+                        filter_reference_actors,
+                    )
+
+                    body = filter_reference_actors(
+                        body, character, registry_actor_ids=registry_actor_ids
+                    )
             elif frame["opcode"] == 13664:
                 body = wire.without_captured_haven_bags(original)
                 send(
@@ -1163,11 +1270,13 @@ def session(raw, peer, service, context):
     account_id = generation = character = None
     hero_switch_pending = None
     bag_session = None
+    ranch_session = None
     chest_opening = None
     guild_chest_session = None
     fight = None
     combat_session = None
     spectator_session = None
+    npc_dialogue_session = None
     spectator_fight_id = None
     spectator_terminal_pending = None
     pve_withdrawal_pending = None
@@ -1192,6 +1301,20 @@ def session(raw, peer, service, context):
     last_dungeon_transition_report = None
     from wakfu_server.placement_deadline import Deadline
 
+    def active_private_session():
+        return ranch_session or bag_session
+
+    def validate_ranch_lease():
+        if not STORE.current_character_session(account_id, generation, character["id"]):
+            raise ValueError("Expired ranch actor lease")
+
+    def cancel_private_scene_activity():
+        PLANTINGS.cancel(character["id"], generation)
+        HARVESTS.cancel(character["id"], generation=generation)
+        cancel_flora()
+        cancel_crafting()
+        WORLD.leave(character["id"], generation)
+
     @PROFILER.profile("world.static_sync")
     def sync_static_world(*, force=False, validated=False):
         nonlocal static_sync_pending, static_sync_attempts, static_sync_due
@@ -1209,9 +1332,14 @@ def session(raw, peer, service, context):
             or not STORE.current_session(account_id, generation)
         ):
             return
+        if ranch_session is not None and ranch_session.owns(character):
+            send(connection, service, 13864, ranch_session.context())
         if character["map_id"] != 9:
-            for message_body in world_static.snapshots(character["map_id"]):
+            for message_body in world_static.snapshots(
+                character["map_id"], position=character
+            ):
                 send(connection, service, 13984, message_body)
+            publish_environment_scene(force=True)
             # The asset baseline also belongs to private dungeon scenes. Replay
             # its dynamic state first, then restore the run-owned door policy;
             # native default states must never reopen progression exits.
@@ -1219,16 +1347,21 @@ def session(raw, peer, service, context):
                 for message_id, message_body in owned_native_bootstrap(character):
                     if message_id == 12344:
                         send(connection, service, message_id, message_body)
-        elif (
-            bag_session is not None
-            and bag_session.is_owner
-            and bag_session.owns(character)
-        ):
-            from wakfu_server.haven_chest_wire import scene_packet as chest_scene_packet
+        elif bag_session is not None and bag_session.owns(character):
+            from wakfu_server.haven_bag_native_scene import packets as bag_scene_packets
 
-            for chest_object in world_static.objects(9):
-                if chest_object["type"] == "AccountChest":
-                    send(connection, service, *chest_scene_packet(chest_object["id"]))
+            for message_id, message_body in bag_scene_packets(bag_session, character):
+                send(connection, service, message_id, message_body)
+            if bag_session.is_owner:
+                from wakfu_server.haven_chest_wire import (
+                    scene_packet as chest_scene_packet,
+                )
+
+                for chest_object in world_static.objects(9):
+                    if chest_object["type"] == "AccountChest":
+                        send(
+                            connection, service, *chest_scene_packet(chest_object["id"])
+                        )
         if validated:
             static_sync_pending = False
             static_sync_attempts = 0
@@ -1279,6 +1412,7 @@ def session(raw, peer, service, context):
             # the authoritative state directly to that retained instance too.
             for state in refresh_snapshots(payload):
                 send(connection, service, 12344, state)
+        publish_environment_scene(force=True)
         if is_dungeon_run(character.get("instance_id", 0)):
             for message_id, payload in owned_native_bootstrap(character):
                 if message_id == 12344:
@@ -1476,6 +1610,7 @@ def session(raw, peer, service, context):
                 account_id,
                 roster["leader"]["id"],
                 guild_id=(roster["leader"].get("guild_native") or {}).get("guildId", 0),
+                nation_id=roster["leader"].get("nation_id", 0),
             ),
         )
         refresh_party(generation, roster["leader"])
@@ -1696,7 +1831,12 @@ def session(raw, peer, service, context):
         def bootstrap_dungeon_event(event):
             nonlocal character, position, movement_state
             plan = dungeon_hydration.prepare_transition(
-                STORE, account_id, generation, character["id"], event
+                STORE,
+                account_id,
+                generation,
+                character["id"],
+                event,
+                fixture_provider=fixture,
             )
             cancel_crafting()
             WORLD.leave(character["id"], generation)
@@ -1743,9 +1883,156 @@ def session(raw, peer, service, context):
     position = {"x": -12, "y": -8, "z": -1}
     console_session = None
     flora_ticket = None
+    environment_ticket = None
+    environment_seat = None
+    environment_scene_identity = None
+    environment_scene_states = {}
+    last_environment_refresh = 0.0
+
+    def cancel_environment(*, publish=True):
+        nonlocal environment_ticket, environment_seat
+        if environment_ticket is not None:
+            from wakfu_server.environment_interactions import cancel
+
+            cancel(STORE, account_id, generation, environment_ticket["character_id"])
+            environment_ticket = None
+        if environment_seat is not None:
+            from wakfu_server.environment_seats import release
+
+            occupied = environment_seat
+            result = release(STORE, account_id, generation, occupied["character_id"])
+            environment_seat = None
+            if publish:
+                for packet in result["packets"]:
+                    send(connection, service, *packet)
+                publish_environment_scene(force=True)
+
+    def environment_actor_is_hero():
+        from wakfu_server.characters.heroes import ensure_company_party
+
+        roster = ensure_company_party(STORE, account_id, generation, character["id"])
+        if roster["leader"]["id"] == character["id"]:
+            return False
+        if any(hero["id"] == character["id"] for hero in roster["heroes"]):
+            return True
+        raise ValueError("Environment actor is outside the owned company")
+
+    def environment_blocked(*, allow_seated=False):
+        if (
+            fight is not None
+            or combat_session is not None
+            or spectator_session is not None
+            or bag_session is not None
+            or flora_ticket is not None
+            or (environment_seat is not None and not allow_seated)
+        ):
+            return True
+        with PLANTINGS.lock:
+            planting = character["id"] in PLANTINGS.pending
+        with HARVESTS.lock:
+            harvesting = character["id"] in HARVESTS.pending
+        if planting or harvesting:
+            return True
+        from wakfu_server.crafting import current
+
+        return current(STORE, account_id, generation, character["id"]) is not None
+
+    def publish_environment_scene(*, force=False):
+        nonlocal environment_scene_identity, environment_scene_states
+        nonlocal last_environment_refresh
+        if (
+            not loaded
+            or character is None
+            or fight is not None
+            or combat_session is not None
+            or spectator_session is not None
+            or character.get("instance_id", 0) != 0
+        ):
+            return
+        now = time.monotonic()
+        if not force and now - last_environment_refresh < 1:
+            return
+        from wakfu_server.environment_interactions import snapshots
+        from wakfu_server.world_scene_sync import chunk, neighborhood
+
+        selected = neighborhood(chunk(character))
+        nearby = {
+            row["id"]
+            for row in world_static.objects(character["map_id"])
+            if chunk((row["x"], row["y"])) in selected
+        }
+        identity = (
+            character["map_id"],
+            character.get("instance_id", 0),
+            chunk(character),
+        )
+        previous = (
+            environment_scene_states if environment_scene_identity == identity else {}
+        )
+        current = {}
+        from wakfu_server.environment_seats import snapshots as seat_snapshots
+
+        for packet in snapshots(STORE, character["map_id"]) + seat_snapshots(
+            STORE, character["map_id"]
+        ):
+            object_id = struct.unpack_from(">q", packet[1])[0]
+            if object_id not in nearby:
+                continue
+            if force or previous.get(object_id) != packet:
+                send(connection, service, *packet)
+            current[object_id] = packet
+        environment_scene_identity, environment_scene_states = identity, current
+        last_environment_refresh = now
+
+    def complete_environment_occupation():
+        nonlocal environment_ticket, character
+        if environment_ticket is None:
+            return
+        if (
+            not loaded
+            or character is None
+            or environment_blocked()
+            or any(
+                character.get(key) != environment_ticket[key]
+                for key in ("map_id", "x", "y", "z")
+            )
+        ):
+            cancel_environment()
+            return
+        if STORE.now() < environment_ticket["due_at"]:
+            return
+        from wakfu_server.environment_interactions import complete
+
+        try:
+            result = complete(
+                STORE,
+                account_id,
+                generation,
+                character["id"],
+                environment_ticket["token"],
+                location=character,
+                is_hero=environment_actor_is_hero(),
+            )
+        except ValueError as error:
+            cancel_environment()
+            record(
+                event="environment_occupation_rejected",
+                actor_id=character["id"],
+                reason=str(error),
+            )
+            return
+        for packet in result["packets"]:
+            send(connection, service, *packet)
+        if result.get("character") is not None:
+            saved = result["character"]
+            character.update(
+                {key: saved[key] for key in ("inventory_items", "inventory_containers")}
+            )
+        environment_ticket = None
 
     def cancel_flora():
         nonlocal flora_ticket
+        cancel_environment()
         if flora_ticket is not None:
             from wakfu_server.resource_collect import cancel
 
@@ -1753,6 +2040,7 @@ def session(raw, peer, service, context):
             flora_ticket = None
 
     def cancel_crafting():
+        cancel_environment()
         if account_id is None or generation is None or character is None:
             return
         from wakfu_server.crafting import current as current_crafting
@@ -1780,6 +2068,7 @@ def session(raw, peer, service, context):
 
         for packet in equipment_changes(PLAYER_TEMPLATE, previous, current):
             WORLD.update(generation, current, *packet)
+        send_native_planting_bonus(connection, current)
 
     @PROFILER.profile("combat.checkpoint")
     def checkpoint_fight(status=None):
@@ -2030,13 +2319,37 @@ def session(raw, peer, service, context):
 
             def shared_policy(db, member, source):
                 if getattr(fight, "rift_wave_state", None) is not None:
-                    from wakfu_server.combat_rewards import Policy
+                    from wakfu_server.maps import rift_currency_rewards
 
                     # Loot receipts must exist before per-member native reports are built.
                     settle_rift_rewards(db)
-                    return Policy(xp=0, kamas=0)
+                    return rift_currency_rewards.resolve(
+                        STORE,
+                        db,
+                        account_id=member["account_id"],
+                        generation=member["session_generation"],
+                        character_id=member["character_id"],
+                        fight=fight,
+                        character=source,
+                        eligible_character_ids=tuple(
+                            actor.id
+                            for actor in fight.actors.values()
+                            if actor.id in owner_characters
+                            and actor.team == fight.winner
+                            and not getattr(actor, "pve_withdrawn", False)
+                        ),
+                    )
                 context, drop_context = combat_reward_context.settlement_contexts(
-                    db, fight, source, TEST_MONSTERS
+                    db,
+                    fight,
+                    source,
+                    TEST_MONSTERS,
+                    encounter_kind=combat_reward_context.authoritative_encounter_kind(
+                        db,
+                        fight.id,
+                        None if group_lease is None else group_lease[0],
+                        dungeon_runtime_available=DUNGEON_ROOM_RUNTIME_AVAILABLE,
+                    ),
                 )
                 frozen_contexts[member["character_id"]] = (context, drop_context)
                 return reward_policy.resolve(
@@ -2355,7 +2668,11 @@ def session(raw, peer, service, context):
             deck = decks[source["id"]]
         else:
             source = character
-            stored = character.get("builds", {}).get(0, {}).get("deck")
+            stored = (
+                character.get("builds", {})
+                .get(character.get("active_build_index", 0), {})
+                .get("deck")
+            )
             deck = bytes.fromhex(stored) if stored else default_deck(character)
         return prepare_server_turn_start(
             source,
@@ -2381,7 +2698,11 @@ def session(raw, peer, service, context):
             deck = decks[source["id"]]
         else:
             source = character
-            stored = character.get("builds", {}).get(0, {}).get("deck")
+            stored = (
+                character.get("builds", {})
+                .get(character.get("active_build_index", 0), {})
+                .get("deck")
+            )
             deck = bytes.fromhex(stored) if stored else default_deck(character)
         return prepare_area_movement(
             source,
@@ -2672,12 +2993,24 @@ def session(raw, peer, service, context):
                 mark_static_sync_pending()
             else:
                 character = (
-                    bag_session.refresh(character, result["character"])
-                    if bag_session is not None and bag_session.owns(character)
+                    active_private_session().refresh(character, result["character"])
+                    if active_private_session() is not None
+                    and active_private_session().owns(character)
                     else result["character"]
                 )
                 for message_id, message_body in result["packets"]:
                     send(connection, service, message_id, message_body)
+                if result["action"] == "nivel":
+                    from wakfu_server.level_publication import refresh
+
+                    for message_id, message_body in refresh(
+                        character,
+                        STORE.characters(account_id),
+                        entity_template=OWNED_HERO_TEMPLATE,
+                        roster_template=CHARACTERS,
+                    ):
+                        send(connection, service, message_id, message_body)
+                    send_native_planting_bonus(connection, character)
                 for message_id, message_body in result.get("world_packets", []):
                     WORLD.emit_location(
                         character["map_id"],
@@ -2901,6 +3234,12 @@ def session(raw, peer, service, context):
             packets = tuple(packet for batch in batches for packet in batch.packets)
             if not packets:
                 return
+            if any(packet[0] == 12847 for packet in packets):
+                # Membership is committed before outboxes drain. Replay icons
+                # after the native fight constructor for late join/reconnect.
+                from wakfu_server.combat.combat_tactical_markers import snapshots
+
+                packets += snapshots(COMBAT_SESSIONS.registry, owner, fight.id)
             if (
                 owner.account_id == combat_session.account_id
                 and owner.generation == combat_session.generation
@@ -3281,6 +3620,54 @@ def session(raw, peer, service, context):
         )
         from wakfu_server.spells import default_deck
 
+        def initialize_encounter_states(
+            preview, action_id, characters, decks, monsters
+        ):
+            source_id = next(iter(characters))
+            source = characters[source_id]
+            from wakfu_server.maps import boss_score, boss_score_runtime
+
+            if getattr(preview, "rift_wave_state", None) is None:
+                with STORE.connection() as score_db:
+                    score_snapshot = boss_score.prepare_snapshot(
+                        score_db,
+                        preview.id,
+                        monsters={
+                            identity: {
+                                "ref": monster["ref"],
+                                "team": preview.actors[identity].team,
+                            }
+                            for identity, monster in monsters.items()
+                            if identity in preview.actors
+                        },
+                        player_ids=tuple(characters),
+                        player_team=preview.actors[source_id].team,
+                    )
+                    boss_score_runtime.install(preview, score_snapshot)
+            if not is_dungeon_run(source.get("instance_id", 0)):
+                return preview, ()
+            from wakfu_server.maps.dungeon_stele_states import (
+                initialize as initialize_stele_states,
+            )
+
+            def native_factory(state, boss_id):
+                factory, _ = server_runtime(
+                    source,
+                    monsters,
+                    decks[source_id],
+                    action_id=action_id,
+                    critical=False,
+                    player_characters=characters,
+                    deck_blobs=decks,
+                )
+                return factory
+
+            with STORE.connection() as db:
+                preview, receipt, packets = initialize_stele_states(
+                    db, preview, monsters, runtime_factory=native_factory
+                )
+            return preview, tuple(packets)
+
         if combat_session is not None:
             from wakfu_server.fight_store import activate
 
@@ -3299,6 +3686,15 @@ def session(raw, peer, service, context):
                     fight_start=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
                     area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1")
                     == "1",
+                    encounter_initializer=lambda preview, action_id, characters, decks: (
+                        initialize_encounter_states(
+                            preview,
+                            action_id,
+                            characters,
+                            decks,
+                            shared.join_context["monsters"],
+                        )
+                    ),
                 )
                 if candidate.phase == "placement" and prepared.fight.phase == "active":
                     activate(
@@ -3326,13 +3722,22 @@ def session(raw, peer, service, context):
                 pass_test_monster_turn()
             return True
 
-        stored_deck = character.get("builds", {}).get(0, {}).get("deck")
+        stored_deck = (
+            character.get("builds", {})
+            .get(character.get("active_build_index", 0), {})
+            .get("deck")
+        )
         deck = bytes.fromhex(stored_deck) if stored_deck else default_deck(character)
-        candidate, candidate_messages, packets = prepare_ready(
-            fight,
-            account_id,
-            ready,
-            initialize=lambda preview, action_id: prepare_server_initialization(
+
+        def initialize_legacy(preview, action_id):
+            preview, encounter_packets = initialize_encounter_states(
+                preview,
+                action_id,
+                {character["id"]: character},
+                {character["id"]: deck},
+                TEST_MONSTERS_BY_ID,
+            )
+            preview, owned_packets = prepare_server_initialization(
                 character,
                 TEST_MONSTERS_BY_ID,
                 preview,
@@ -3340,7 +3745,14 @@ def session(raw, peer, service, context):
                 deck,
                 action_id=action_id,
                 fight_start=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
-            ),
+            )
+            return preview, (*encounter_packets, *owned_packets)
+
+        candidate, candidate_messages, packets = prepare_ready(
+            fight,
+            account_id,
+            ready,
+            initialize=initialize_legacy,
             stats_serializer=current_combat_stats,
             runtime_stats_serializer=current_combat_stats,
             effects_serializer=actor_effects,
@@ -3463,6 +3875,14 @@ def session(raw, peer, service, context):
             if not sync_loaded_world_snapshot():
                 sync_static_world()
             sync_scene_world()
+            if environment_seat is not None and (
+                fight is not None
+                or combat_session is not None
+                or spectator_session is not None
+            ):
+                cancel_environment()
+            complete_environment_occupation()
+            publish_environment_scene()
             if spectator_session is not None and spectator_fight_id is not None:
                 try:
                     if character is None or (
@@ -3603,6 +4023,22 @@ def session(raw, peer, service, context):
                         )
                     if fight.phase == "finished":
                         complete_test_fight()
+            if (
+                loaded
+                and character is not None
+                and fight is None
+                and combat_session is None
+                and spectator_session is None
+            ):
+                bonus_packets = REGIONAL_BONUSES.packets_for(
+                    character, generation, connection
+                )
+                for bonus_packet in bonus_packets:
+                    send(connection, "world", *bonus_packet)
+                if bonus_packets:
+                    REGIONAL_BONUSES.acknowledge(
+                        character, generation, connection, bonus_packets
+                    )
             if (
                 loaded
                 and character is not None
@@ -3812,6 +4248,13 @@ def session(raw, peer, service, context):
                             ),
                         )
                         continue
+                if opcode == 13429 and environment_seat is not None and len(body) == 3:
+                    seat_phase, seat_occupation = struct.unpack(">Bh", body)
+                    if seat_occupation == 16:
+                        if seat_phase == 3:
+                            cancel_environment()
+                        # Phase2 completes the sitting animation; occupancy remains.
+                        continue
                 if flora_ticket is not None and opcode in (
                     13331,
                     13686,
@@ -3823,6 +4266,26 @@ def session(raw, peer, service, context):
                     13481,
                 ):
                     cancel_flora()
+                if (
+                    environment_ticket is not None or environment_seat is not None
+                ) and opcode in (
+                    12117,
+                    13520,
+                    13241,
+                    13413,
+                    13331,
+                    13686,
+                    12296,
+                    13578,
+                    12247,
+                    13130,
+                    13220,
+                    13481,
+                    12219,
+                    12006,
+                    12054,
+                ):
+                    cancel_environment()
                 if character is not None and opcode in (13686, 12296, 13578, 12247):
                     HARVESTS.cancel(character["id"], generation=generation)
                     PLANTINGS.cancel(character["id"], generation)
@@ -4008,6 +4471,23 @@ def session(raw, peer, service, context):
                 if opcode == 33:
                     send(connection, service, 23, b"\x01" + body)
                     send(connection, service, 309, struct.pack(">I", 12345))
+                elif (
+                    loaded
+                    and ranch_session is not None
+                    and opcode
+                    in (
+                        13578,
+                        13220,
+                        12995,
+                    )
+                ):
+                    from wakfu_server.ecology_feedback import information
+
+                    send(
+                        connection,
+                        service,
+                        *information("Leave the ranch before this action"),
+                    )
                 elif opcode == 574:
                     send(
                         connection,
@@ -4240,6 +4720,7 @@ def session(raw, peer, service, context):
                     character = None
                     movement_state = None
                     bag_session = None
+                    ranch_session = None
                     replay(connection, 31, 44, account_id, generation=generation)
                     send(
                         connection,
@@ -4406,8 +4887,7 @@ def session(raw, peer, service, context):
                             )
                             is not None,
                         )
-                        if recovery.get("recovered_exterior"):
-                            character = STORE.character(account_id, character["id"])
+                        character = STORE.character(account_id, character["id"])
                         if is_dungeon_run(character.get("instance_id", 0)):
                             with STORE.connection() as dungeon_db:
                                 dungeon_runtime.ensure_current_room(
@@ -4475,6 +4955,7 @@ def session(raw, peer, service, context):
                         character,
                         generation=generation,
                     )
+                    send(connection, service, *builds.selection_message(character))
                     send(connection, service, *rich_inventory_packet(character))
                     from wakfu_server.inventory_uids import initialize_pool
 
@@ -4550,8 +5031,9 @@ def session(raw, peer, service, context):
                         )
                         saved = result["character"]
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         if result["applied"]:
@@ -4677,9 +5159,11 @@ def session(raw, peer, service, context):
                             # uses the native percentage formula.
                             craft_speed_modifier=0,
                             location_resolver=(
-                                lambda saved: bag_session.refresh(character, saved)
+                                lambda saved: active_private_session().refresh(
+                                    character, saved
+                                )
                             )
-                            if bag_session is not None
+                            if active_private_session() is not None
                             else None,
                         )
                         for message_id, message_body in result["packets"]:
@@ -4786,9 +5270,11 @@ def session(raw, peer, service, context):
                             body,
                             station=station,
                             location_resolver=(
-                                lambda saved: bag_session.refresh(character, saved)
+                                lambda saved: active_private_session().refresh(
+                                    character, saved
+                                )
                             )
-                            if bag_session is not None
+                            if active_private_session() is not None
                             else None,
                         )
                         if result["replay"]:
@@ -4807,10 +5293,12 @@ def session(raw, peer, service, context):
                                 send(connection, service, message_id, message_body)
                         saved = STORE.character(account_id, character["id"])
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
+                        send_native_planting_bonus(connection, character)
                         record(
                             event="craft_occupation_completed",
                             actor_id=character["id"],
@@ -4968,8 +5456,8 @@ def session(raw, peer, service, context):
                         if result["applied"]:
                             saved = STORE.character(account_id, character["id"])
                             character = (
-                                bag_session.refresh(character, saved)
-                                if bag_session is not None
+                                active_private_session().refresh(character, saved)
+                                if active_private_session() is not None
                                 else saved
                             )
                         for message_id, payload in result["packets"]:
@@ -4982,6 +5470,8 @@ def session(raw, peer, service, context):
                                     include_sender=False,
                                 )
                             send(connection, service, message_id, payload)
+                        if result["applied"]:
+                            send_native_planting_bonus(connection, character)
                         record(
                             event="resource_harvest_completed",
                             actor_id=character["id"],
@@ -5024,8 +5514,9 @@ def session(raw, peer, service, context):
                         )
                         saved = result["character"]
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         for message_id, message_body in result["packets"]:
@@ -5135,6 +5626,7 @@ def session(raw, peer, service, context):
 
                         with COMBAT_GROUPS.lock:
                             HARVESTS.cancel(character["id"], generation=generation)
+                            send_native_planting_bonus(connection, character)
                             packet = PLANTINGS.begin(
                                 account_id,
                                 generation,
@@ -5277,8 +5769,8 @@ def session(raw, peer, service, context):
                             if result["applied"]:
                                 saved = STORE.character(account_id, character["id"])
                                 character = (
-                                    bag_session.refresh(character, saved)
-                                    if bag_session is not None
+                                    active_private_session().refresh(character, saved)
+                                    if active_private_session() is not None
                                     else saved
                                 )
                                 send_planting_context(connection, character)
@@ -5318,6 +5810,7 @@ def session(raw, peer, service, context):
                         if result["applied"]:
                             character = STORE.character(account_id, character["id"])
                             send(connection, service, *equipment_inventory(character))
+                            send_native_planting_bonus(connection, character)
                         record(
                             event="monster_harvest_completed",
                             actor_id=character["id"],
@@ -5820,13 +6313,27 @@ def session(raw, peer, service, context):
                                 bind_room_group,
                             )
 
-                            dungeon_binding = lambda db, fight_id: bind_room_group(
-                                db,
-                                TEST_GROUP_KEY,
-                                character["id"],
-                                fight_id,
-                                player_team=0,
-                            )
+                            def dungeon_binding(db, fight_id):
+                                from wakfu_server.maps.dungeon_difficulty import (
+                                    encounter_scaling,
+                                )
+
+                                profile = encounter_scaling(
+                                    db, character["instance_id"]
+                                )
+                                return bind_room_group(
+                                    db,
+                                    TEST_GROUP_KEY,
+                                    character["id"],
+                                    fight_id,
+                                    player_team=0,
+                                    expected_selection_revision=(
+                                        None
+                                        if profile is None
+                                        else profile["selection_revision"]
+                                    ),
+                                )
+
                         durable_fight_id = create_fight_identity(
                             STORE,
                             account_id,
@@ -5862,7 +6369,7 @@ def session(raw, peer, service, context):
                             player_mp=resources["mp"],
                             player_wp=resources["wp"],
                             player_initiative=resources["initiative"],
-                            terrain_effect_id=46,
+                            terrain_effect_id=arena["terrain_effect_id"],
                             terrain_instance_id=terrain_instance_id,
                             duration_ms=placement_duration,
                         )
@@ -5894,6 +6401,16 @@ def session(raw, peer, service, context):
                             initialization_warnings=initialization_warnings,
                         )
                         entry_stage("actor_snapshots_initialized")
+                        if dungeon_binding is not None:
+                            from wakfu_server.maps.dungeon_scaling_entry import (
+                                initialize as initialize_dungeon_scaling,
+                            )
+
+                            with STORE.connection() as scaling_db:
+                                candidate, scaling_receipt = initialize_dungeon_scaling(
+                                    scaling_db, candidate, TEST_MONSTERS_BY_ID
+                                )
+                            entry_stage("dungeon_scaling_initialized")
                         from wakfu_server.combat_forced_terrain import prewarm_map
 
                         warm_started = time.monotonic()
@@ -6039,14 +6556,25 @@ def session(raw, peer, service, context):
                                             direction=3,
                                             obstacle_id=placement_actor.native_obstacle_id,
                                         )
-                                        if placement_actor.id in getattr(
-                                            candidate,
-                                            "native_npc_initialization_receipts",
-                                            {},
-                                        ) or placement_actor.id in getattr(
-                                            candidate,
-                                            "native_npc_ai_actors",
-                                            frozenset(),
+                                        if (
+                                            placement_actor.id
+                                            in getattr(
+                                                candidate,
+                                                "native_npc_initialization_receipts",
+                                                {},
+                                            )
+                                            or placement_actor.id
+                                            in getattr(
+                                                candidate,
+                                                "native_npc_ai_actors",
+                                                frozenset(),
+                                            )
+                                            or placement_actor.id
+                                            in getattr(
+                                                candidate,
+                                                "native_dungeon_scaling_receipt",
+                                                {},
+                                            ).get("actor_ids", ())
                                         ):
                                             from wakfu_server.combat_actor import (
                                                 actual_monster_actor_stats,
@@ -6063,15 +6591,28 @@ def session(raw, peer, service, context):
                                                 wp_current=wp[0],
                                                 wp_maximum=wp[1],
                                             )
+                                        effects = actor_effects()
+                                        if placement_actor.id in getattr(
+                                            candidate,
+                                            "native_dungeon_scaling_receipt",
+                                            {},
+                                        ).get("actor_ids", ()):
+                                            from wakfu_server.combat_remote_effects import (
+                                                initial_npc_actor_effects,
+                                            )
+
+                                            effects = initial_npc_actor_effects(
+                                                candidate, placement_actor.id
+                                            )
                                         actor_payloads[placement_actor.id] = (
                                             stats,
-                                            actor_effects(),
+                                            effects,
                                         )
                                 packets = placement_messages(
                                     candidate,
                                     arena,
                                     actor_payloads,
-                                    terrain_effect_id=46,
+                                    terrain_effect_id=arena["terrain_effect_id"],
                                     terrain_instance_id=terrain_instance_id,
                                     leaders={
                                         0: character["id"],
@@ -6091,7 +6632,7 @@ def session(raw, peer, service, context):
                                     else {}
                                 ),
                                 "arena": arena,
-                                "terrain_effect_id": 46,
+                                "terrain_effect_id": arena["terrain_effect_id"],
                                 "terrain_instance_id": terrain_instance_id,
                                 "leaders": {
                                     0: character["id"],
@@ -6327,6 +6868,53 @@ def session(raw, peer, service, context):
                                     durable_fight_id
                                 )
                         raise
+                elif opcode in (12543, 12519, 12597) and loaded:
+                    try:
+                        if combat_session is None or fight is None:
+                            raise ValueError(
+                                "Tactical signaling requires owned fight membership"
+                            )
+                        from wakfu_server.combat import combat_tactical_markers
+                        from wakfu_server.combat_terminal_metadata import (
+                            registered_summon_actor_ids,
+                        )
+
+                        refresh_shared_combat()
+                        selected_actor = fight.actors[combat_session.character_id]
+                        current_actor = fight.current
+                        if (
+                            current_actor is not None
+                            and current_actor.controlled
+                            and current_actor.owner_id == combat_session.account_id
+                            and current_actor.id
+                            not in registered_summon_actor_ids(fight)
+                        ):
+                            selected_actor = current_actor
+                        result = combat_tactical_markers.handle(
+                            COMBAT_SESSIONS.registry,
+                            combat_session,
+                            fight.id,
+                            selected_actor.id,
+                            opcode,
+                            body,
+                        )
+                        if result["accepted"]:
+                            checkpoint_fight()
+                            drain_shared_combat()
+                        record(
+                            event="combat_tactical_signal",
+                            fight_id=fight.id,
+                            actor_id=selected_actor.id,
+                            opcode=opcode,
+                            accepted=result["accepted"],
+                        )
+                    except ValueError as error:
+                        record(
+                            event="combat_tactical_signal_rejected",
+                            opcode=opcode,
+                            actor_id=None if character is None else character["id"],
+                            reason=str(error),
+                        )
                 elif opcode == 12806 and fight is not None:
                     from wakfu_server.combat_bootstrap import placement_positions
 
@@ -6581,7 +7169,11 @@ def session(raw, peer, service, context):
                         cast_request = decode_cast(body)
                         if fight_messages.awaiting_ack is not None:
                             raise ValueError("Previous turn is not synchronized")
-                        deck_hex = character["builds"].get(0, {}).get("deck")
+                        deck_hex = (
+                            character["builds"]
+                            .get(character.get("active_build_index", 0), {})
+                            .get("deck")
+                        )
                         from wakfu_server.combat_server_spell import (
                             prepare_server_spell,
                         )
@@ -6995,7 +7587,11 @@ def session(raw, peer, service, context):
                                 ),
                             )
                         else:
-                            deck_hex = character["builds"].get(0, {}).get("deck")
+                            deck_hex = (
+                                character["builds"]
+                                .get(character.get("active_build_index", 0), {})
+                                .get("deck")
+                            )
                             weapon_prepare_started = time.monotonic()
                             transaction = prepare_server_weapon(
                                 body,
@@ -8035,7 +8631,7 @@ def session(raw, peer, service, context):
                         )
                         for message_id, message_body in response_packets:
                             send(connection, service, message_id, message_body)
-                        send(connection, service, *equipment_inventory(character))
+                        send(connection, service, *result["equipment_packet"])
                         record(
                             event="inventory_socket_enchantment_changed",
                             actor_id=character["id"],
@@ -8080,8 +8676,9 @@ def session(raw, peer, service, context):
                         )
                         saved = result["character"]
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         for message_id, message_body in result["packets"]:
@@ -8119,8 +8716,9 @@ def session(raw, peer, service, context):
                         )
                         saved = result["character"]
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         for message_id, message_body in result["packets"]:
@@ -8170,8 +8768,9 @@ def session(raw, peer, service, context):
                             result["character"] if opcode == 13993 else result["source"]
                         )
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         for packet in result["packets"]:
@@ -8218,8 +8817,9 @@ def session(raw, peer, service, context):
                         )
                         saved = result["character"]
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         for packet in result["packets"]:
@@ -8258,8 +8858,9 @@ def session(raw, peer, service, context):
                         )
                         saved = result["character"]
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         # Replace both native bags and their rich UID registry.
@@ -8302,8 +8903,9 @@ def session(raw, peer, service, context):
                         )
                         saved = result["character"]
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         for message_id, message_body in result["packets"]:
@@ -8336,8 +8938,9 @@ def session(raw, peer, service, context):
                         )
                         saved = result["character"]
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         record(event="inventory_item_moved", actor_id=character["id"])
@@ -8394,6 +8997,102 @@ def session(raw, peer, service, context):
                             destination_id=destination_route["destination_id"],
                             map_id=character["map_id"],
                             position=position,
+                        )
+                elif opcode == 12463 and loaded:
+                    from wakfu_server.characters import nation_state, guild_wire
+
+                    try:
+                        if fight is not None:
+                            raise ValueError(
+                                "La inscripción requiere estar fuera de combate."
+                            )
+                        saved = nation_state.enroll(
+                            STORE, account_id, generation, character["id"], body
+                        )
+                        character = (
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
+                            else saved
+                        )
+                        send(
+                            connection,
+                            service,
+                            15548,
+                            wire.adapt(15548, fixture(15548), account_id, character),
+                        )
+                        guild = character.get("guild_native")
+                        send(
+                            connection, service, *guild_company_packet(character, guild)
+                        )
+                        packet = guild_wire.remote_actor_update(
+                            character["id"],
+                            guild["guildId"] if guild else 0,
+                            guild["blazon"] if guild else 0,
+                            guild["level"] if guild else 0,
+                            guild["name"] if guild else "",
+                            nation_id=nation_state.nation_id(character),
+                            nation_synchro=nation_state.synchro(character),
+                        )
+                        WORLD.update(
+                            generation, character, *packet, include_sender=False
+                        )
+                        record(
+                            event="nation_enrolled",
+                            actor_id=character["id"],
+                            nation_id=nation_state.nation_id(character),
+                        )
+                    except ValueError as error:
+                        send(connection, service, *information(str(error)))
+                        record(
+                            event="nation_enrollment_rejected",
+                            actor_id=character["id"],
+                            reason=str(error),
+                        )
+                elif opcode == 12223 and loaded:
+                    from wakfu_server.maps import dungeon_context, dungeon_difficulty
+
+                    try:
+                        if fight is not None:
+                            raise ValueError(
+                                "Dungeon difficulty cannot change during combat"
+                            )
+                        request = dungeon_difficulty.decode_request(body)
+                        if request["character_id"] != character["id"]:
+                            raise ValueError(
+                                "Dungeon request targets another character"
+                            )
+                        chosen = dungeon_difficulty.select(
+                            STORE,
+                            account_id,
+                            generation,
+                            character["id"],
+                            stasis_level=request["stasis_level"],
+                            expected_instance_id=request["instance_id"],
+                        )
+                        instance_id = chosen["instance_id"]
+                        packet = dungeon_context.update_packet(
+                            STORE, instance_id, fight_in_progress=False
+                        )
+                        maps = {
+                            player["map_id"]
+                            for player in WORLD.snapshot()
+                            if player["instance_id"] == instance_id
+                        }
+                        for map_id in maps:
+                            WORLD.emit_location(map_id, instance_id, *packet)
+                        record(
+                            event="dungeon_difficulty_selected",
+                            actor_id=character["id"],
+                            instance_id=instance_id,
+                            stasis_level=chosen["stasis_level"],
+                        )
+                    except (ValueError, DatabaseError, PoolTimeout) as error:
+                        send(connection, service, *information(str(error)))
+                        record(
+                            event="dungeon_difficulty_rejected",
+                            actor_id=character["id"],
+                            reason=str(error),
                         )
                 elif opcode == 12296 and loaded:
                     from wakfu_server import generic_transports, teleporter_approach
@@ -8708,8 +9407,9 @@ def session(raw, peer, service, context):
                         )
                     else:
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         record(event="world_shortcuts_saved", actor_id=character["id"])
@@ -8730,8 +9430,9 @@ def session(raw, peer, service, context):
                             in_fight=fight is not None,
                         )
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                     except (ValueError, UnicodeError) as error:
@@ -8792,8 +9493,9 @@ def session(raw, peer, service, context):
                             in_fight=fight is not None,
                         )
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                     except (ValueError, UnicodeError) as error:
@@ -8844,8 +9546,9 @@ def session(raw, peer, service, context):
                             build_index=index,
                         )
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                     except (ValueError, UnicodeError) as error:
@@ -8861,8 +9564,9 @@ def session(raw, peer, service, context):
                         )
                         saved = STORE.character(account_id, request_id)
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         send(connection, service, *builds.capacity_message(character))
@@ -9061,7 +9765,9 @@ def session(raw, peer, service, context):
                             opening_token=chest_opening,
                             location=character,
                         )
-                        character = bag_session.refresh(character, result["character"])
+                        character = active_private_session().refresh(
+                            character, result["character"]
+                        )
                         # 318/ciH replaces existing bmM slots (including empty
                         # cells) and refreshes cYz; rich state uses item_proto.
                         # BAGS + registry reconcile the client's pending move
@@ -9098,6 +9804,143 @@ def session(raw, peer, service, context):
                                 chest_bootstrap(current_chest),
                             ):
                                 send(connection, service, *packet)
+                elif opcode == 12686 and loaded:
+                    from wakfu_server.maps import dungeon_stele
+                    from wakfu_server.ecology_feedback import information
+
+                    try:
+                        if (
+                            fight is not None
+                            or spectator_session is not None
+                            or bag_session is not None
+                        ):
+                            raise ValueError(
+                                "Stele selection is unavailable during combat or a bag visit"
+                            )
+                        packets = dungeon_stele.activate(
+                            STORE, account_id, generation, character["id"], body
+                        )
+                        character = STORE.character(account_id, character["id"])
+                        for packet in packets:
+                            send(connection, service, *packet)
+                    except ValueError as error:
+                        record(
+                            event="dungeon_stele_selection_rejected",
+                            actor_id=character["id"],
+                            reason=str(error),
+                        )
+                        send(connection, service, *information(str(error)))
+                elif loaded and (
+                    opcode in (12380, 13982)
+                    or (
+                        opcode == 12870
+                        and len(body) == 12
+                        and struct.unpack_from(">q", body)[0] == 36028
+                    )
+                ):
+                    from wakfu_server.haven_ranch import (
+                        RanchSession,
+                        leave_messages as ranch_leave_messages,
+                    )
+                    from wakfu_server.haven_ranch_authority import (
+                        portal_target,
+                        biome_target,
+                        validate_return,
+                    )
+                    from wakfu_server.combat_terrain import map_geometry
+                    from wakfu_server.ecology_feedback import information
+
+                    try:
+                        if fight is not None or spectator_session is not None:
+                            raise ValueError(
+                                "Ranch travel is unavailable during combat"
+                            )
+                        if opcode == 13982:
+                            validate_return(
+                                character,
+                                ranch_session,
+                                body,
+                                validate_lease=validate_ranch_lease,
+                            )
+                            cancel_private_scene_activity()
+                            character = ranch_session.leave(character)
+                            ranch_session = None
+                            packets = ranch_leave_messages(
+                                fixture(13974), character, bag_session
+                            )
+                        else:
+                            if opcode == 12870:
+                                if ranch_session is not None:
+                                    raise ValueError(
+                                        "Nested ranch entry is unavailable"
+                                    )
+                                target = portal_target(
+                                    character,
+                                    bag_session,
+                                    body,
+                                    validate_lease=validate_ranch_lease,
+                                    geometry=map_geometry(9),
+                                )
+                                child = RanchSession(
+                                    bag_session,
+                                    character,
+                                    target,
+                                    lease=generation,
+                                    now_ms=int(time.time() * 1000),
+                                )
+                            else:
+                                target = biome_target(
+                                    character,
+                                    ranch_session,
+                                    body,
+                                    validate_lease=validate_ranch_lease,
+                                )
+                                child = RanchSession(
+                                    bag_session,
+                                    ranch_session.return_point,
+                                    target,
+                                    lease=generation,
+                                    now_ms=int(time.time() * 1000),
+                                )
+                            cancel_private_scene_activity()
+                            ranch_session = child
+                            character = dict(child.inside)
+                            packets = child.entry_messages(fixture(13974), character)
+                        position = {key: character[key] for key in ("x", "y", "z")}
+                        movement_state = Movement(position)
+                        for packet in packets:
+                            send(connection, service, *packet)
+                        join_world(
+                            generation,
+                            connection,
+                            character,
+                            hydrate_heroes=ranch_session is None,
+                        )
+                        if ranch_session is None:
+                            from wakfu_server.haven_bag import own_bag
+                            from wakfu_server.haven_bag_furniture_world import (
+                                packets as bag_furniture_packets,
+                            )
+
+                            render_owner = {
+                                **bag_session.owner,
+                                "haven_bag": character["haven_bag"],
+                            }
+                            from copy import deepcopy
+
+                            layout_owner = deepcopy(render_owner)
+                            layout_owner["haven_bag"]["furniture"] = []
+                            send(connection, service, 12187, own_bag(layout_owner))
+                            for packet in bag_furniture_packets(render_owner):
+                                send(connection, service, *packet)
+                        mark_static_sync_pending()
+                    except ValueError as error:
+                        send(connection, service, *information(str(error)))
+                        record(
+                            event="ranch_travel_rejected",
+                            actor_id=character["id"],
+                            reason=str(error),
+                        )
                 elif opcode in (12870, 12363) and loaded:
                     from wakfu_server.haven_bag_furniture_transfer import (
                         edit as edit_bag_furniture,
@@ -9174,7 +10017,70 @@ def session(raw, peer, service, context):
                             )
                             continue
                     if opcode == 12870 and len(body) == 12:
-                        target_id, target_action, _ = struct.unpack(">qHH", body)
+                        target_id, target_action, target_parameter = struct.unpack(
+                            ">qHH", body
+                        )
+                        if target_action in (12, 13) and any(
+                            row["id"] == target_id and row["type"] == "Stele"
+                            for row in world_static.objects(character["map_id"])
+                        ):
+                            from wakfu_server.maps import dungeon_stele
+                            from wakfu_server.ecology_feedback import information
+
+                            try:
+                                if target_parameter != 0:
+                                    raise ValueError(
+                                        "Invalid stele interaction parameter"
+                                    )
+                                if (
+                                    fight is not None
+                                    or spectator_session is not None
+                                    or bag_session is not None
+                                ):
+                                    raise ValueError(
+                                        "Stele interaction is unavailable during combat or a bag visit"
+                                    )
+                                if (
+                                    dungeon_stele.definition(
+                                        STORE, character["map_id"], target_id
+                                    )
+                                    is None
+                                ):
+                                    raise ValueError("Unknown native stele placement")
+                                if target_action == 12:
+                                    cancel_environment()
+                                    cancel_crafting()
+                                    packets = dungeon_stele.browse(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character["id"],
+                                        target_id,
+                                    )
+                                else:
+                                    packets = dungeon_stele.close(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character["id"],
+                                        target_id,
+                                    )
+                                for packet in packets:
+                                    send(connection, service, *packet)
+                            except ValueError as error:
+                                record(
+                                    event="dungeon_stele_interaction_rejected",
+                                    actor_id=character["id"],
+                                    reason=str(error),
+                                )
+                                if target_action == 12:
+                                    send(
+                                        connection,
+                                        service,
+                                        *dungeon_stele.cancel_packet(character["id"]),
+                                    )
+                                send(connection, service, *information(str(error)))
+                            continue
                         target = next(
                             (
                                 row
@@ -9294,8 +10200,127 @@ def session(raw, peer, service, context):
                                 reason=str(error),
                             )
                         continue
+                    if opcode == 12870 and len(body) == 12:
+                        stool_id, stool_action, stool_parameter = struct.unpack(
+                            ">qHH", body
+                        )
+                        stool = next(
+                            (
+                                row
+                                for row in world_static.objects(character["map_id"])
+                                if row["id"] == stool_id and row["type"] == "Stool"
+                            ),
+                            None,
+                        )
+                        if stool is not None:
+                            try:
+                                from wakfu_server import (
+                                    environment_seats,
+                                    environment_seat_animations,
+                                )
+
+                                # This proximity limit is server policy, not bDV.am geometry.
+                                in_range = (
+                                    abs(character["x"] - stool["x"])
+                                    + abs(character["y"] - stool["y"])
+                                    <= 4
+                                    and abs(character["z"] - stool["z"]) <= 1
+                                )
+                                result = environment_seats.sit(
+                                    STORE,
+                                    account_id,
+                                    generation,
+                                    character,
+                                    body,
+                                    in_range=in_range,
+                                    animation_verified=environment_seat_animations.supported(
+                                        character, ordinary_actor=True
+                                    ),
+                                    blocked=environment_blocked(allow_seated=True)
+                                    or environment_ticket is not None,
+                                )
+                                environment_seat = result if stool_action == 6 else None
+                                for packet in result["packets"]:
+                                    send(connection, service, *packet)
+                                publish_environment_scene(force=True)
+                            except ValueError as error:
+                                record(
+                                    event="stool_interaction_rejected",
+                                    actor_id=character["id"],
+                                    object_id=stool_id,
+                                    reason=str(error),
+                                )
+                            continue
+                    if opcode == 12870 and len(body) == 12:
+                        from wakfu_server import nation_board
+
+                        board_id = struct.unpack_from(">q", body)[0]
+                        if (
+                            nation_board.definition(character["map_id"], board_id)
+                            is not None
+                        ):
+                            try:
+                                packet = nation_board.open_selection(
+                                    STORE,
+                                    account_id,
+                                    generation,
+                                    character,
+                                    body,
+                                    blocked=environment_blocked(),
+                                )
+                                send(connection, service, *packet)
+                            except ValueError as error:
+                                record(
+                                    event="nation_board_rejected",
+                                    actor_id=character["id"],
+                                    object_id=board_id,
+                                    reason=str(error),
+                                )
+                            continue
                     if opcode == 12870 and character["map_id"] != 9:
                         try:
+                            from wakfu_server import environment_interactions
+
+                            if len(body) != 12:
+                                raise ValueError(
+                                    "Invalid native environment interaction length"
+                                )
+                            environment_id = struct.unpack_from(">q", body)[0]
+                            environment_rule = environment_interactions.definition(
+                                STORE, character["map_id"], environment_id
+                            )
+                            if environment_rule is not None:
+                                blocked = environment_blocked()
+                                if environment_rule["kind"] == "well":
+                                    environment_ticket = environment_interactions.begin(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        body,
+                                        blocked=blocked,
+                                        is_hero=environment_actor_is_hero(),
+                                    )
+                                    record(
+                                        event="environment_well_started",
+                                        actor_id=character["id"],
+                                        object_id=environment_id,
+                                        due_at=str(environment_ticket["due_at"]),
+                                    )
+                                else:
+                                    result = environment_interactions.toggle(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        body,
+                                        blocked=blocked
+                                        or environment_ticket is not None,
+                                    )
+                                    # Each observer publishes only its loaded native
+                                    # neighborhood; other peers observe this on idle.
+                                    publish_environment_scene(force=True)
+                                continue
                             interaction = world_static.interaction(character, body)
                             # An accepted action only proves this target was
                             # registered. Keep the map-wide retry armed so
@@ -9354,7 +10379,9 @@ def session(raw, peer, service, context):
                             body,
                             location=character,
                         )
-                        character = bag_session.refresh(character, result["character"])
+                        character = active_private_session().refresh(
+                            character, result["character"]
+                        )
                         for message_id, message_body in result["packets"]:
                             send(connection, service, message_id, message_body)
                         from wakfu_server.haven_bag_furniture_world import (
@@ -9418,7 +10445,9 @@ def session(raw, peer, service, context):
                             body,
                             location=character,
                         )
-                        character = bag_session.refresh(character, result["character"])
+                        character = active_private_session().refresh(
+                            character, result["character"]
+                        )
                         for message_id, message_body in result["packets"]:
                             send(connection, service, message_id, message_body)
                         from wakfu_server.haven_bag_furniture_world import (
@@ -9448,7 +10477,7 @@ def session(raw, peer, service, context):
                     from wakfu_server.haven_bag_store import save as save_haven_bag
                     from wakfu_server.haven_bag import (
                         decode_permissions,
-                        permission_payload,
+                        visit_permission_payload,
                     )
 
                     if (
@@ -9467,7 +10496,7 @@ def session(raw, peer, service, context):
                             locked=locked,
                             access=access,
                         )
-                        character = bag_session.refresh(character, saved)
+                        character = active_private_session().refresh(character, saved)
                         record(
                             event="haven_bag_permissions_saved",
                             actor_id=character["id"],
@@ -9478,10 +10507,10 @@ def session(raw, peer, service, context):
                             actor_id=character["id"],
                             reason=str(error),
                         )
-                    payload = permission_payload(character["haven_bag"])
-                    send(
-                        connection,
-                        service,
+                    payload = visit_permission_payload(character["haven_bag"])
+                    WORLD.emit_location(
+                        9,
+                        bag_session.bag_instance_id,
                         13522,
                         struct.pack(">qI", character["id"], len(payload)) + payload,
                     )
@@ -9528,7 +10557,9 @@ def session(raw, peer, service, context):
                                     "other_occupants": occupied_by_others,
                                 },
                             )
-                        character = bag_session.refresh(character, result["character"])
+                        character = active_private_session().refresh(
+                            character, result["character"]
+                        )
                         if STORE.current_session(account_id, generation):
                             for message_id, message_body in result["packets"]:
                                 send(connection, service, message_id, message_body)
@@ -9569,7 +10600,7 @@ def session(raw, peer, service, context):
                         saved = save_haven_bag(
                             STORE, account_id, generation, character["id"], rooms=rooms
                         )
-                        character = bag_session.refresh(character, saved)
+                        character = active_private_session().refresh(character, saved)
                         record(event="haven_bag_rooms_saved", actor_id=character["id"])
                     except ValueError as error:
                         record(
@@ -9594,8 +10625,9 @@ def session(raw, peer, service, context):
                         appearance_id=appearance_id,
                     )
                     character = (
-                        bag_session.refresh(character, saved)
-                        if bag_session is not None and bag_session.owns(character)
+                        active_private_session().refresh(character, saved)
+                        if active_private_session() is not None
+                        and active_private_session().owns(character)
                         else saved
                     )
                     record(
@@ -9608,6 +10640,10 @@ def session(raw, peer, service, context):
                     from wakfu_server.haven_bag import validate_leave_request
 
                     validate_leave_request(body)
+                    if ranch_session is not None:
+                        validate_ranch_lease()
+                        character = ranch_session.leave(character)
+                        ranch_session = None
                     if bag_session is None or not bag_session.owns(character):
                         # A missing cyV13019 notification could leave bag UI
                         # active after the exterior map was already restored.
@@ -9632,6 +10668,7 @@ def session(raw, peer, service, context):
                         )
                     character = bag_session.leave(character)
                     bag_session = None
+                    ranch_session = None
                     position = {key: character[key] for key in ("x", "y", "z")}
                     movement_state = Movement(position)
                     for message_id, message_body in owned_haven_leave(
@@ -9653,6 +10690,8 @@ def session(raw, peer, service, context):
                         if fight is not None or combat_session is not None:
                             raise ValueError("Hero roster cannot change during combat")
                         target = hero_wire.add_request(body)
+                        if ranch_session is not None:
+                            raise ValueError("Leave the ranch before changing heroes")
                         with POSITIONS.account_barrier(account_id):
                             flush_positions(account_id=account_id)
                             roster = heroes.add(
@@ -9688,6 +10727,8 @@ def session(raw, peer, service, context):
                     switch_target = None
                     try:
                         switch_target = hero_wire.switch_request(body)
+                        if ranch_session is not None:
+                            raise ValueError("Leave the ranch before switching heroes")
                         if hero_switch_pending is not None:
                             raise ValueError("A native hero switch is already pending")
                         if fight is not None or combat_session is not None:
@@ -9929,9 +10970,12 @@ def session(raw, peer, service, context):
                             (time.monotonic() - crafting_cancel_started) * 1000, 3
                         )
                     position_update_started = time.monotonic()
-                    if bag_session is not None and bag_session.owns(character):
+                    if (
+                        active_private_session() is not None
+                        and active_private_session().owns(character)
+                    ):
                         try:
-                            character = bag_session.move(character, end)
+                            character = active_private_session().move(character, end)
                         except ValueError as error:
                             record(
                                 event="movement_rejected",
@@ -10035,6 +11079,95 @@ def session(raw, peer, service, context):
                         ),
                         **movement_timings,
                     )
+                elif opcode in (13222, 12058, 12535) and loaded:
+                    from wakfu_server.maps import npc_dialogue, npc_world
+                    from wakfu_server.maps import npc_objective_facts
+                    from wakfu_server.ecology_feedback import information
+                    from psycopg import Error as DatabaseError
+                    from psycopg_pool import PoolTimeout
+
+                    try:
+                        if fight is not None or spectator_session is not None:
+                            if npc_dialogue_session is not None:
+                                npc_dialogue_session.close()
+                            npc_dialogue_session = None
+                            raise ValueError(
+                                "NPC dialogue is unavailable during combat"
+                            )
+
+                        def dialogue_rows():
+                            with STORE.connection() as db:
+                                return npc_world.load_scene(
+                                    db, character["map_id"], character["instance_id"]
+                                )
+
+                        def dialogue_facts():
+                            # Keep the current leased scene position. Reading
+                            # owned objective facts must not reload SQL exterior
+                            # coordinates while inside a private scene.
+                            with STORE.connection() as db:
+                                return npc_objective_facts.load(
+                                    db, account_id, character["id"]
+                                )
+
+                        if opcode == 12058:
+                            if npc_dialogue_session is None:
+                                raise ValueError("No NPC conversation is active")
+                            request = npc_dialogue.decode_request(opcode, body)
+                            packet = npc_dialogue_session.choose(
+                                request["node_id"], request["choice_id"]
+                            )
+                        else:
+                            if opcode == 13222:
+                                actor_id, action_id = npc_world.decode_interaction(body)
+                            else:
+                                request = npc_dialogue.decode_request(opcode, body)
+                                row = next(
+                                    (
+                                        npc
+                                        for npc in dialogue_rows()
+                                        if npc_world.matches_open_request(npc, request)
+                                    ),
+                                    None,
+                                )
+                                if row is None:
+                                    raise ValueError("Unavailable NPC dialogue root")
+                                actor_id, action_id = (
+                                    row["actor_id"],
+                                    row["action_ids"][0],
+                                )
+                            if npc_dialogue_session is not None:
+                                npc_dialogue_session.close()
+                            npc_dialogue_session, packet = npc_world.begin(
+                                lambda: character,
+                                dialogue_rows,
+                                actor_id,
+                                action_id,
+                                facts_provider=dialogue_facts,
+                            )
+                        if packet is not None:
+                            send(connection, service, *packet)
+                    except (
+                        ValueError,
+                        UnicodeError,
+                        DatabaseError,
+                        PoolTimeout,
+                    ) as error:
+                        send(
+                            connection,
+                            service,
+                            *information(
+                                str(error)
+                                if isinstance(error, ValueError)
+                                else "NPC dialogue is temporarily unavailable."
+                            ),
+                        )
+                        record(
+                            event="npc_dialogue_rejected",
+                            actor_id=character["id"],
+                            opcode=opcode,
+                            reason=type(error).__name__,
+                        )
                 elif opcode in GUILD_REQUEST_OPCODES and loaded:
                     from psycopg import Error as DatabaseError
                     from psycopg_pool import PoolTimeout
@@ -10089,7 +11222,10 @@ def session(raw, peer, service, context):
                             opcode=opcode,
                             reason=type(error).__name__,
                         )
-                elif opcode in (13074, 13224, 13188, 13831) and loaded:
+                elif (
+                    opcode in (13074, 13224, 13188, 13831, 12116, 13702, 12387)
+                    and loaded
+                ):
                     from psycopg import Error as DatabaseError
                     from psycopg_pool import PoolTimeout
                     from wakfu_server.ecology_feedback import information
@@ -10221,6 +11357,10 @@ def session(raw, peer, service, context):
                                     ),
                                 ).fetchone()
                             if hero_slot is not None:
+                                if ranch_session is not None:
+                                    raise ValueError(
+                                        "Leave the ranch before removing heroes"
+                                    )
                                 with POSITIONS.account_barrier(account_id):
                                     flush_positions(account_id=account_id)
                                     roster = heroes.remove(
@@ -10287,8 +11427,9 @@ def session(raw, peer, service, context):
                             account_id, character["id"], opcode, body
                         )
                         character = (
-                            bag_session.refresh(character, saved)
-                            if bag_session is not None and bag_session.owns(character)
+                            active_private_session().refresh(character, saved)
+                            if active_private_session() is not None
+                            and active_private_session().owns(character)
                             else saved
                         )
                         cosmetics = OwnedCosmetics.from_record(
@@ -10369,6 +11510,49 @@ def session(raw, peer, service, context):
                         )
                 elif opcode == 12366 and loaded:
                     text = decode_body("out", opcode, body)["text"].strip()
+                    local_command = text.split(None, 1)[0].lower() if text else ""
+                    if local_command == "!nacion":
+                        from psycopg import Error as DatabaseError
+                        from psycopg_pool import PoolTimeout
+                        from wakfu_server.characters import nation_state
+                        from wakfu_server.ecology_feedback import information
+
+                        try:
+                            nation_state.local_selection_request(text)
+                            if fight is not None:
+                                raise ValueError(
+                                    "La inscripción requiere estar fuera de combate."
+                                )
+                            now = time.monotonic()
+                            if now - last_chat < CHANNELS.minimum_interval():
+                                raise ValueError(
+                                    "Espera un momento antes de enviar otro mensaje."
+                                )
+                            packet = nation_state.open_selection(
+                                STORE, account_id, generation, character["id"]
+                            )
+                            send(connection, service, *packet)
+                            last_chat = now
+                        except (
+                            ValueError,
+                            UnicodeError,
+                            DatabaseError,
+                            PoolTimeout,
+                        ) as error:
+                            message = (
+                                str(error)
+                                if isinstance(error, ValueError)
+                                else (
+                                    "La selección de nación está temporalmente indisponible."
+                                )
+                            )
+                            send(connection, service, *information(message))
+                            record(
+                                event="nation_selection_rejected",
+                                actor_id=character["id"],
+                                reason=type(error).__name__,
+                            )
+                        continue
                     if text.lower() in ("!exitdungeon", "!salirmazmorra"):
                         try:
                             from wakfu_server.maps import dungeon_exit
@@ -10530,6 +11714,12 @@ def session(raw, peer, service, context):
                 else None,
             )
 
+        if service == "world" and (
+            environment_ticket is not None or environment_seat is not None
+        ):
+            logout_barrier(
+                "environment_occupation", lambda: cancel_environment(publish=False)
+            )
         if service == "world" and flora_ticket is not None:
             logout_barrier("flora_occupation", cancel_flora)
         if service == "world":
@@ -10834,6 +12024,24 @@ def listen(port, service, context):
             ).start()
 
 
+def refresh_regional_bonuses():
+    """Inline-mode producer; SQL preparation never holds gameplay locks."""
+    from wakfu_server.territory_bonus_updates import prepare
+
+    epoch = uuid.uuid4().hex
+    tick = 0
+    while not STOPPING.wait(1):
+        tick += 1
+        try:
+            snapshot = dict(
+                world_epoch=epoch, players=WORLD.ecology_snapshot(), planning_tick=tick
+            )
+            for proposal in prepare(STORE, snapshot):
+                REGIONAL_BONUSES.apply(proposal, world_epoch=epoch)
+        except Exception as error:
+            record(event="regional_bonus_prepare_retry", reason=type(error).__name__)
+
+
 def grow_planted_resources():
     while not STOPPING.wait(1):
         with PROFILER.span("background.grow_planted_resources"):
@@ -11086,6 +12294,8 @@ def wander_monsters():
 
 def main():
     global ECOLOGY_BRIDGE
+    intergame_server = None
+    intergame_thread = None
     if ECOLOGY_MODE == "external":
         from wakfu_server.ecology.world_bridge import EcologyWorldBridge
         from wakfu_server.ecology.runtime import configure_domains
@@ -11108,7 +12318,8 @@ def main():
                     token,
                     timeout=2.0,
                 ),
-            )
+            ),
+            regional_bonuses=REGIONAL_BONUSES,
         )
         from wakfu_server.ecology_planting_intents import EcologyPlantingIntents
 
@@ -11179,6 +12390,11 @@ def main():
         ):
             record(event="shutdown_waiting_for_session_cleanup")
             return
+        if intergame_server is not None:
+            if intergame_thread is not None and intergame_thread.is_alive():
+                intergame_server.shutdown()
+            intergame_server.connections.close_all()
+            intergame_server.server_close()
         STORE.close()
         DIAGNOSTIC_LOG.close(timeout=1.0)
         raise SystemExit(0)
@@ -11207,6 +12423,9 @@ def main():
     callbacks = {"positions_flush": flush_positions}
     if ECOLOGY_MODE == "inline":
         callbacks["territory_weather_tick"] = tick_territory_weather
+        threading.Thread(
+            target=refresh_regional_bonuses, name="wakfu-regional-bonuses", daemon=True
+        ).start()
     global_tasks = GlobalTasks(callbacks, observer=SlowSaveAnnouncements(WORLD))
     threading.Thread(
         target=refresh_player_parties, name="wakfu-player-parties", daemon=True
@@ -11241,6 +12460,22 @@ def main():
         ).start()
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(RUNTIME / "server.crt", RUNTIME / "server.key")
+    from wakfu_server.intergame_domain import Intergame
+    from wakfu_server.intergame_transport import make_server as make_intergame_server
+
+    intergame_server = make_intergame_server(
+        Intergame(STORE),
+        context,
+        host=os.environ.get("WAKFU_BIND_HOST", "127.0.0.1"),
+        port=16337,
+    )
+    intergame_thread = threading.Thread(
+        target=intergame_server.serve_forever,
+        name="wakfu-intergame-listener",
+        daemon=True,
+    )
+    intergame_thread.start()
+    record(event="listening", service="intergame", port=16337)
     threading.Thread(
         target=serve_api,
         args=(STORE, os.environ.get("WAKFU_BIND_HOST", "127.0.0.1"), 18081),

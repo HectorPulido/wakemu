@@ -21,7 +21,8 @@ public final class ExportNativeSublimations {
         try {
           bJp item = new bIJ().f(raw);
           fpP pattern = item.dHt();
-          if (pattern == null || pattern.gkb() == null || pattern.gkb().length == 0) return;
+          if (pattern == null || pattern.gkb() == null
+              || (pattern.gkb().length == 0 && pattern.dHw() == fpR.sRD)) return;
           List<Integer> colors = new ArrayList<>();
           for (QE color : pattern.gkb()) colors.add((int) color.aKg());
           rows.add("{\"reference\":" + item.d()
@@ -39,7 +40,7 @@ public final class ExportNativeSublimations {
         + "\"binary_table\":\"aLO.cpY -> aLS.cqj/cqk/cql\","
         + "\"mechanism\":\"bGT.i(aLO) -> fpP(slotColors,type); fpK.a(fpI,fpP) compatibility\","
         + "\"colors\":{\"NONE\":0,\"RED\":1,\"GREEN\":2,\"BLUE\":3,\"WHITE\":4},"
-        + "\"compatibility\":\"fpK.a(fpI,fpP): ordered contiguous slot-color pattern; white item slots and NONE pattern entries wildcard\"},"
+        + "\"compatibility\":\"BASIC: fpK.a(fpI,fpP) ordered contiguous colors, white item slots/NONE pattern entries wildcard; EPIC/RELIC: empty colors, fpR.ax(fnR) exact rarity predicate, independent special slot\"},"
         + "\"count\":" + rows.size() + ",\"items\":[" + String.join(",", rows)
         + "],\"export_errors\":[" + String.join(",", errors.stream().map(ExportNativeSublimations::quote).toList()) + "]}";
     Path output = args.length > 0 ? Path.of(args[0]) : root.resolve("server/protocol/item-sublimations.json");

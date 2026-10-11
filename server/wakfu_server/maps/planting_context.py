@@ -29,6 +29,22 @@ def region(map_id, region_id):
     return match
 
 
+def display_families(definition, kind):
+    """Native bRN exposes three named slots per kind; -1 is an empty slot."""
+    families = []
+    for row in definition[kind + "_families"]:
+        family = row["family_id"]
+        if type(family) is not int or family >= 2**31:
+            raise ValueError("Invalid native ecosystem family")
+        if family <= 0:
+            continue
+        if family not in families:
+            families.append(family)
+    if len(families) > 3:
+        raise ValueError("Native ecosystem exceeds three display slots")
+    return families
+
+
 def bootstrap(
     map_id,
     region_id,
@@ -41,19 +57,19 @@ def bootstrap(
 
     Absent counts mean an empty LOCAL population, never official population.
     Family rows must remain present even when population is zero; dev.am uses
-    bRT.Jp(family) existence as a planting gate.
+    bRT.Jp(family) existence as a planting gate. Open planting permissions must
+    never append display rows: the native receiver has only three typed slots.
     """
     definition = region(map_id, region_id)
 
     def encode(kind, counts):
         counts = {} if counts is None else counts
-        families = [r["family_id"] for r in definition[kind + "_families"]]
-        if kind == "monster":
-            for family in test_monster_families:
-                if type(family) is not int or not 0 < family < 2**31:
-                    raise ValueError("Invalid test ecosystem family")
-                if family not in families:
-                    families.append(family)
+        families = display_families(definition, kind)
+        if kind == "monster" and any(
+            type(family) is not int or family not in families
+            for family in test_monster_families
+        ):
+            raise ValueError("Foreign test ecosystem family")
         if any(k not in families for k in counts):
             raise ValueError("Foreign ecosystem family")
         rows = []

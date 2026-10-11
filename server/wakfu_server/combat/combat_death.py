@@ -25,13 +25,15 @@ def newly_registered_death_messages(runtime, *, after_sequence):
     return packets
 
 
-def death_messages(runtime, actor_id):
+def death_messages(runtime, actor_id, *, fighter_state=None):
     """NPC state0 removes the timeline member before state2/AnimMort.
 
     Official dungeon captures send state0 then state2 for each dead NPC.
     aTS.cbj immediately calls D for state0; state2 defers that call until its
     animation callback. Sending only state2 lets the next-turn action overtake
-    timeline removal. Player death retains its existing distinct delivery.
+    timeline removal. Controlled player death defaults to reversible state0, matching OFF_PLAY and
+    the retained resurrection QI slot. Explicit state2 finalizes any ordinary
+    registered fighter, including players; HP0 alone does not request finality.
     State0 is KO, state1 resurrection, state3 another removal mode. Only
     actual HP-zero actors belonging to this fight can receive a death event.
     Send after the lethal damage action and before normal fight results.
@@ -39,9 +41,42 @@ def death_messages(runtime, actor_id):
     actor = runtime.fight.actors.get(actor_id)
     if actor is None or actor.hp != 0:
         raise ValueError("Death requires an owned zero-HP fight actor")
+    if fighter_state is None:
+        fighter_state = (
+            0
+            if actor.controlled and getattr(actor, "native_summon_source", None) is None
+            else 2
+        )
+    if type(fighter_state) is not int or fighter_state not in (0, 2):
+        raise ValueError("Death delivery requires native KO0 or final state2")
     sent = getattr(runtime, "_reported_deaths", set())
-    if actor_id in sent:
+    status = getattr(actor, "native_death_status", {})
+    writer = status.get("last_writer") if isinstance(status, dict) else None
+    previous_state = (
+        0
+        if writer == "owned.aTS.F.type0"
+        else 2
+        if writer == "owned.aTS.F.type2"
+        else None
+    )
+    if (actor_id in sent or previous_state is not None) and not (
+        fighter_state == 2 and previous_state == 0
+    ):
         raise ValueError("Death was already reported")
+    # Explicit withdrawal is a different native source: QI.g/fdt.bx already
+    # retired the fighter before HP changes, so it is not a damage corpse.
+    departed = False
+    if getattr(actor, "pve_withdrawn", False):
+        from .combat_pve_departure import retired_pve_actor_ids
+
+        departed = actor_id in retired_pve_actor_ids(runtime.fight)
+        if departed and fighter_state != 2:
+            raise ValueError("Retired PvE departure requires final fighter state2")
+    if hasattr(runtime.fight, "native_global_pv_collections") and not departed:
+        from .combat_ordinary_death import registered_ordinary_death
+
+        if not registered_ordinary_death(runtime.fight, actor):
+            raise ValueError("Death delivery requires a registered corpse")
     queued = getattr(runtime.fight, "native_finisher_after_death_packets", {})
     if not isinstance(queued, dict):
         raise ValueError("Malformed owned finisher post-death deliveries")
@@ -60,23 +95,37 @@ def death_messages(runtime, actor_id):
         ):
             raise ValueError("Finisher cleanup belongs to another fight")
         decoded.append((opcode, payload))
-    from .combat_ordinary_qi_retirement import complete_ordinary_qi_death
-
-    complete_ordinary_qi_death(runtime.fight, actor)
-    prefix = runtime._prefix()
-    body = prefix + struct.pack(">qB", actor_id, 2)
+    # Preflight status writes before committing QI/global collection mutations.
+    from copy import deepcopy
     from .combat_native_death_status import apply_native_fighter_state_transition
 
-    apply_native_fighter_state_transition(actor, 2)
-    runtime._reported_deaths = sent | {actor_id}
+    status_preview = deepcopy(actor)
+    apply_native_fighter_state_transition(status_preview, fighter_state)
+    from .combat_ordinary_qi_retirement import complete_ordinary_qi_death
+
+    # Serialize every packet on a shallow runtime preview before committing.
+    # _prefix only advances the preview's logical counter; QI remains private.
+    from copy import copy
+
+    wire_preview = copy(runtime)
+    prefix = wire_preview._prefix()
+    body = prefix + struct.pack(">qB", actor_id, fighter_state)
+    flush = wire_preview._flush()
     packets = []
-    if not actor.controlled:
+    if not actor.controlled and fighter_state == 2 and previous_state != 0:
         packets.append((12727, prefix + struct.pack(">qB", actor_id, 0)))
-    packets.extend(((12727, body), runtime._flush()))
+    packets.extend(((12727, body), flush))
+    if decoded:
+        packets.extend(decoded)
+        packets.append(flush)
+    if fighter_state == 2 and not departed:
+        complete_ordinary_qi_death(runtime.fight, actor, fighter_state=2)
+    actor.native_death_status = status_preview.native_death_status
+    if hasattr(wire_preview, "action_id"):
+        runtime.action_id = wire_preview.action_id
+    runtime._reported_deaths = sent | {actor_id}
     if decoded:
         queued.pop(str(actor_id))
-        packets.extend(decoded)
-        packets.append(runtime._flush())
     return packets
 
 

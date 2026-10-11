@@ -62,13 +62,13 @@ class ExteriorBagTests(unittest.TestCase):
         self.assertEqual(bags.discard("current", owner["id"])[1][0], 13082)
         self.assertEqual(bags.snapshots(owner), [])
 
-    def test_visitor_permissions_lock_and_explicit_denial(self):
+    def test_public_visits_ignore_historical_room_restrictions(self):
         owner, visitor = actor(), actor(11, 6)
         self.assertTrue(can_visit(visitor, owner))
         owner["haven_bag"]["access"]["characters"] = [dict(id=11, rights=0)]
-        self.assertFalse(can_visit(visitor, owner))
+        self.assertTrue(can_visit(visitor, owner))
         owner["haven_bag"]["locked"] = True
-        self.assertFalse(can_visit(visitor, owner))
+        self.assertTrue(can_visit(visitor, owner))
         self.assertTrue(can_visit(actor(12, 5), owner))
 
     def test_shared_account_and_foreign_session_return_restore_own_state(self):
@@ -79,6 +79,9 @@ class ExteriorBagTests(unittest.TestCase):
         self.assertEqual(session.inside["instance_id"], 7)
         self.assertTrue(session.inside["haven_bag_visitor"])
         self.assertTrue(session.owns(session.inside))
+        from wakfu_server.haven_bag_transfer import can_transfer
+
+        self.assertFalse(can_transfer(session, session.inside, fight_active=False))
         self.assertEqual(session.leave(session.inside), visitor)
         own = HavenBagSession(owner)
         self.assertEqual(own.inside["instance_id"], 7)

@@ -47,3 +47,39 @@ La [auditoría de cobertura del catálogo](AUDITORIA-COBERTURA-DROP.md) cuantifi
 La semántica de `native_csE` (`m_rollMax`) sigue sin estar resuelta: el cliente instalado lo carga y conserva, pero no se encontró un ejecutor de tiradas que defina ámbito o reinicio. El resolver conserva el campo, sin aplicarlo como límite. Ref. 5767 (`Mekarbok perturbado`, nivel10) con ref.32426 ofrece una fila garantizada sin condiciones exportadas, pero su mapa y si aparece como enemigo ordinario o invocación no están acreditados; todavía no es una prueba oficial lista para pedir. Evidencia y plan discriminante: [auditoría rollMax](../../reports/wakemu-drop-rollmax.md).
 
 Revisión JAR 2026-10-07: `csH` elige en el tooltip la etiqueta genérica de criterio complejo y oculta la lista `csG`; cinco de esas filas aún exponen MIN_STASIS_LEVEL, pero no la expresión completa, así que siguen fail-closed. `csE`/`m_rollMax` se copia al modelo, pero el cliente instalado no contiene consumidor de tiradas que defina cap, ámbito o reset; no se interpreta como límite. La prueba mantiene explícitamente ese límite desconocido y comprueba que `roll_count`, no `csE`, determina los intentos implementados.
+
+
+2026-10-11 native follow-up: all123 installed library JARs/57,562 classes were
+scanned. Proven rollMax references only load, store, return or represent the
+field; no lottery/shared-award consumer establishes scope/reset. All1,343
+positive-limit rows already have at most one local attempt (1,214 sentinel−1;
+129 explicit1). No cap or row deduplication was invented. Trusted dungeon/world
+classification is now connected separately; complex criteria and native
+Stasis/stele/score authority remain open. [Current evidence](../../reports/rifts/DROPS-REWARD-AUDIT-20261011.md#native-rollmax-follow-up--2026-10-11).
+
+
+Read-only criteria inventory (2026-10-11): 686 direct opaque-complex rows have
+no expression payload in the inspected raw `aMf` objects; 3,869 other simple
+rows lack production Stasis/Stele/score authority. The160 downscaling rows need
+competitive/at-level contract confirmation; numerical level reduction alone is
+not proof of native parity. External tables exist but have zero direct monster
+reference edges, so their14,328 rows are not counted as missing combat drops.
+[Exact populations, examples and next requirements](../../reports/DROP-CRITERIA-COVERAGE-20261011.md).
+
+
+### Actualización de autoridad — 2026-10-11
+
+La selección Stasis nativa1–10 y el modo competitivo ahora tienen persistencia
+por instancia y perfiles inmutables por encuentro (migration125). La autoridad
+incluye jugadores exactamente al límite competitivo. El gate PostgreSQL30/30
+verifica reducción entre combates y conservación de recompensas anteriores;
+el suplemento128 ejecuta250/250 combinaciones de curvas mediante runtime real.
+La integración completa y la aceptación gráfica siguen pendientes. El análisis
+histórico anterior de ausencia de Stasis ya no describe estos módulos nuevos.
+
+Quedan902 filas simples sin productor acreditado:634Stele y268score, sin
+solapamiento entre ambos conjuntos. Las686 filas complejas permanecen
+inactivas por instrucción explícita. `rollMax` conserva su dato nativo, sin
+inventar un límite cuyo consumidor no aparece en los123JARs instalados.
+[Estado de autoridad](../../reports/DUNGEON-DIFFICULTY-AUTHORITY-20261011.md) y
+[inventario actualizado](../../reports/DROP-CRITERIA-COVERAGE-20261011.md).

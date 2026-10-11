@@ -290,8 +290,14 @@ class Fight:
                 if stat in actor.effect_stats:
                     actor.effect_stats[stat] = value
 
-    def _begin_turn(self):
-        actor = self.current
+    def _refill_turn_resources(self, actor):
+        """Server policy: refill AP/MP after a completed turn or resurrection.
+
+        This is an explicit server scheduling policy, not a recovered native
+        refill producer. Successful resurrection restores one action budget before later external
+        losses; turn start never refreshes it again. HP/WP and maxima remain
+        effect-driven.
+        """
         if getattr(actor, "effect_resource_raw_currents", None) is not None:
             from .combat_resource_pa_notifications import set_resource_current
 
@@ -306,6 +312,10 @@ class Fight:
 
             notify_resource_pa(self, actor, 2, before_current=before_ap)
             actor.mp = actor.max_mp
+        self._sync_resources(actor)
+
+    def _begin_turn(self):
+        actor = self.current
         self._sync_resources(actor)
         actor.turn_count += 1
         if self.native_timeline_round == 0:
@@ -464,6 +474,9 @@ class Fight:
     def _advance(self):
         from .combat_timeline_snapshot import end_current
 
+        # Runtime end reactions and native expiry finish before _advance.
+        # Refill the completed actor before another actor can mutate its budget.
+        self._refill_turn_resources(self.current)
         end_current(self)
         self._event("turn_ended", actor_id=self.current.id, turn_id=self.turn_id)
         next_index = (self.turn_index + 1) % len(self.order)
@@ -484,6 +497,11 @@ class Fight:
         self.turn_id += 1
         if getattr(self, "rift_wave_state", None) is not None:
             from .rift_combat_adapter import finish_survival
+
+            if finish_survival(self):
+                return
+        if next_index == 0 and getattr(self, "boss_score_profile", None) is not None:
+            from wakfu_server.maps.boss_score_runtime import finish_survival
 
             if finish_survival(self):
                 return

@@ -1,6 +1,8 @@
 # Remaining six classes — refreshed inventory, 2026-10-10
 
-The user provisionally accepts **12/18** classes. This refresh inventories the six remaining classes; it does not implement mechanics, activate catalog changes, restart services or accept another class. The authoritative read-only PostgreSQL release is `548e1468d1c17a9542b34419c8a4f6c539696135fb4ffd4c03e8dae29c9f4edd`.
+The user provisionally accepts **12/18** classes. This refresh inventories the six remaining classes; it does not itself establish gameplay or manual acceptance. The current published and deployed catalog is `bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1`; the three-service deployment receipt reports World, AI and Ecology healthy on that pin. See [current closure status](current-closure-20261011.md) and [`LIVE_DEPLOYMENT.json`](../../monster-combat/bulk-1297-20261011/LIVE_DEPLOYMENT.json). The detailed class inventories and most class test artifacts below are historical snapshots (548, 677 or fede6) and must retain their own pins.
+
+The integrated V14 gate ran **1,246 tests with 6 failures, 0 errors and 0 skips** on fede6, before the bd79 deployment. Five failures were stale literal catalog checks; those assertions were revised without removing behavior checks. Four supplemental selectors passed and are integrated with backups. The corrected V15.1 full18 run against bd79/current sources is now executing (coordinator PID 85147); its result is pending. The previously observed Rogue robot7952 movement discrepancy remains separately open. Neither the deployment receipt nor the historical V14 count constitutes six-class acceptance. The [closure ledger](current-closure-20261011.md) now lists finite next proofs and separates unqualified behavior from manual-only checks and original-server contract questions.
 
 ## Comparable estimates and suggested order
 
@@ -23,19 +25,19 @@ Previously accepted classes contribute shared casting, conditional targeting, re
 
 ## Concrete concerns versus unverified behavior
 
-- **Eliotrope:** the inspected movement and area-event paths did not reveal a paired portal crossing that relocates the actor. This is a scoped source-review gap requiring a complete traversal test, not proof that no alternate path exists anywhere.
+- **Eliotrope:** the supported Gift→ally attack→giver back-attack path now positively qualifies Celada's conditional +60 branch. Native state3671 carrier cleanup/expiry remains unresolved: the observed cleanup selector targets the giver while the carrier is retained by the ally. This is a lifecycle boundary, not a missing Celada damage producer.
 - **Xelor:** the prior bounded summon integration created14 of15 expected areas. The center production via effect352198/event2251 remains unresolved. Native empty summon books are unrelated to this concern.
-- **Rogue:** the inspected explicit HUD resource adapter lacks breed13. Alternate producers must be checked before declaring the resource display broken.
+- **Rogue:** the inspected explicit HUD resource adapter lacks breed13. Alternate producers must be checked before declaring the resource display broken; the robot7952 movement discrepancy also remains open.
 - **Enutrof:** deposit event10006 delivery and actual prospecting/reward settlement remain unqualified; deposit construction is implemented.
-- **Sadida and Rogue:** no dedicated doll/Voodoll or bomb semantic test modules were found. Generic summon or area checks cannot certify these chains.
-- **Shared catalog:** a copied-book metadata correction was validated separately but remains inactive; preserve the current monster release when eventually publishing it. It is not silently counted as deployed here.
+- **Sadida and Rogue:** dedicated class semantic suites now exist, with stable Sadida 44/44 and corrected staged Rogue 9/9 evidence on release677. These are bounded historical suites, not bd79 runs and not complete client lifecycle acceptance.
+- **Shared catalog/deployment:** the additive copied-book metadata is included in the published lineage and current bd79 service pin. This records catalog/service rollout only; the current V14 class gate and class manual acceptance remain outstanding.
 
 No new enabled missing handler was demonstrated merely from roster presence, native empty data or literalFalse branches. Remaining qualification must include positive and negative conditions, every passive branch that is enabled in this catalog, resource caps, rejected-action rollback, death, reconnect and a second fight.
 
 ## Automated evidence and limits
 
-Luna ran **36/36 existing tests**, seven modules, zero failures/errors/skips: Xelor casting/passives, portal casting, rail movement, Microbot network/path and deposit lifecycle. Source/test hashes remained stable. Evidence: `.runtime/remaining-six-refresh-20261010/README.md` and its logs/hashes. This is shared primitive coverage, not six complete class pipelines. The earlier182-test shared/class gate remains separately scoped; neither result certifies the global repository suite or all six classes.
+Luna's historical **36/36** seven-module run covered shared Xelor casting/passives, portal casting, rail movement, Microbot network/path and deposit lifecycle. It is shared primitive evidence, not six complete class pipelines or a bd79 run. Later class-specific aggregates are listed in the current closure ledger; the latest integrated V14 full18 run is **1,246 tests, 6 failures, 0 errors/skips** and needs its corrected repeat.
 
-## Next implementation target
+## Current follow-up
 
-Enutrof is the suggested next class. Complete owned-action integration and passive/lifecycle qualification before promoting it. Steamer and Sadida follow; Rogue, Eliotrope and Xelor require more complex chain/routing/time integration. No implementation has been started by this refresh.
+Do not schedule from the original inventory order as if implementation had not advanced. The immediate acceptance gate is the corrected full18 rerun against bd79/current sources; keep Enutrof event74 and Rogue robot7952, plus Eliotrope state3671 carrier cleanup, visible as individual boundaries. Manual client acceptance follows only after the automated result and deployed-source alignment are recorded.

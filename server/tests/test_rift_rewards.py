@@ -1,6 +1,6 @@
 """Local rift reward policy, draw audit and durable delivery regressions."""
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from postgres_case import PostgresCase
 from wakfu_server import rift_runtime, rift_rewards
 from wakfu_server.rift_policy import select_wave
@@ -91,6 +91,86 @@ class RiftRewardPolicyTests(unittest.TestCase):
                 dict(outcome="won", completed_waves=1, defeated_monsters=4),
                 rng=lambda n: n,
             )
+
+
+class RiftNativePoolTests(unittest.TestCase):
+    def test_native_pool_freezes_only_supported_eligible_physical_items(self):
+        p = policy()
+        pool = p["pools"][0]
+        pool.update(category="item", source="native_rift_monsters", references=[])
+
+        def row(ref, **changes):
+            return dict(
+                reference_id=ref,
+                probability=1,
+                is_loot_table=False,
+                complex_criteria=False,
+                conditions=[],
+                native_csF=0,
+                **changes
+            )
+
+        rows = [row(2021), row(2022), row(2023), row(9727), row(9999)]
+        blocked = row(2222)
+        blocked["conditions"] = [{"native_enum": "NOT_IN_INFINITE_WAVES", "value": -1}]
+        rows.append(blocked)
+        complex_row = row(3333)
+        complex_row["complex_criteria"] = True
+        rows.append(complex_row)
+        pp_row = row(4444)
+        pp_row["native_csF"] = 1
+        rows.append(pp_row)
+        db = MagicMock()
+        db.execute.side_effect = [
+            MagicMock(fetchall=lambda: [{"reference": 2022}]),
+            MagicMock(fetchall=lambda: [{"item_ref": 9727}]),
+        ]
+        with patch(
+            "wakfu_server.inventory_move.STACKS",
+            {r: 1 for r in (2021, 2022, 2023, 9727, 2222, 3333, 4444)},
+        ), patch(
+            "wakfu_server.combat_drop_delivery._template_binding",
+            side_effect=lambda ref: ("NOT_BOUND", 0, False)
+            if ref == 2021
+            else ("BOUND_ON_EQUIP_TO_ACCOUNT", 0, False),
+        ):
+            resolved = rift_rewards.resolve_native_pools(
+                db, p, [100], catalog={"monsters": {100: rows}}
+            )
+        self.assertEqual(resolved["pools"][0]["references"], [2021])
+        self.assertEqual(p["pools"][0]["references"], [])
+        self.assertEqual(
+            rift_rewards.plan(
+                resolved,
+                dict(outcome="won", completed_waves=1, defeated_monsters=1),
+                rng=lambda n: 0,
+            )[0]["reference"],
+            2021,
+        )
+        with self.assertRaisesRegex(ValueError, "resolved before drawing"):
+            rift_rewards.plan(
+                p, dict(outcome="won", completed_waves=1, defeated_monsters=1)
+            )
+
+    def test_empty_or_unknown_native_species_fails_before_award(self):
+        p = policy()
+        p["pools"][0].update(
+            category="item", source="native_rift_monsters", references=[]
+        )
+        db = MagicMock()
+        db.execute.return_value.fetchall.return_value = []
+        with self.assertRaisesRegex(ValueError, "no native loot catalog"):
+            rift_rewards.resolve_native_pools(db, p, [100], catalog={"monsters": {}})
+        with self.assertRaisesRegex(ValueError, "no supported eligible items"):
+            rift_rewards.resolve_native_pools(
+                db, p, [100], catalog={"monsters": {100: []}}
+            )
+
+    def test_native_selector_cannot_be_used_for_special_learning_categories(self):
+        p = policy()
+        p["pools"][0].update(source="native_rift_monsters", references=[])
+        with self.assertRaisesRegex(ValueError, "ordinary item category"):
+            rift_rewards.validate_policy(p)
 
 
 class RiftRewardPostgresTests(PostgresCase):
@@ -291,6 +371,128 @@ class RiftRewardPostgresTests(PostgresCase):
                     "SELECT count(*) AS n FROM cosmetic_learning_receipts"
                 ).fetchone()["n"],
                 0,
+            )
+
+    def test_default_survival_endpoint_delivers_loot_after_forty_complete_rounds(self):
+        from wakfu_server.combat_state import Actor, Fight
+
+        actors = [
+            Actor(self.character, 0, (0, 0, 0), 20, 6, 3, 100, 1, self.account, True),
+            Actor(-1, 1, (2, 0, 0), 10, 6, 3, 50, 1),
+        ]
+        fight = Fight(
+            self.fight,
+            actors,
+            {(x, 0, 0) for x in range(3)},
+            {0: {(0, 0, 0)}, 1: {(2, 0, 0)}},
+        )
+        fight.rift_wave_state = dict(
+            instance_id=self.run["instance_id"],
+            wave=2,
+            turn_budget=self.run["policy"]["turn_budget"],
+            wave_actor_ids=[-1],
+        )
+        fight.ready(self.account)
+        rounds = self.run["policy"]["turn_budget"]
+        self.assertEqual(rounds, 40)
+        for round_index in range(rounds):
+            fight.end_turn(
+                self.account, self.character, fight.actors[self.character].turn_count
+            )
+            self.assertEqual(fight.phase, "active")
+            fight.end_server_turn(-1, fight.turn_id)
+            if round_index < rounds - 1:
+                self.assertEqual(fight.phase, "active")
+        self.assertEqual((fight.phase, fight.winner), ("finished", 0))
+        with self.store.connection() as db:
+            receipt = rift_runtime.settle(
+                db,
+                self.run["instance_id"],
+                fight.id,
+                outcome="won",
+                turn=fight.native_timeline_round,
+                apply_rewards=lambda connection, run, result: rift_rewards.apply(
+                    connection,
+                    run,
+                    result,
+                    store=self.store,
+                    eligible_character_ids=[self.character],
+                    rng=lambda n: 0,
+                ),
+            )
+            delivery = rift_rewards.delivery(
+                db, self.store, self.run["instance_id"], self.character
+            )
+            self.assertEqual(receipt["outcome"], "won")
+            self.assertEqual(
+                delivery["loots"],
+                [
+                    dict(
+                        reference=27083,
+                        quantity=2,
+                        is_purse_loot=False,
+                        is_pvp_loot=False,
+                    )
+                ],
+            )
+            self.assertEqual(len(delivery["packets"]), 3)
+            self.assertEqual(
+                db.execute(
+                    "SELECT sum(quantity) AS n FROM inventory_items WHERE character_id=%s AND reference=27083",
+                    (self.character,),
+                ).fetchone()["n"],
+                2,
+            )
+
+    def test_native_pool_awards_once_with_resolved_references_frozen_in_receipt(self):
+        from psycopg.types.json import Jsonb
+
+        p = policy()
+        p["pools"][0].update(
+            category="item", source="native_rift_monsters", references=[]
+        )
+        native_row = dict(
+            reference_id=2021,
+            probability=1,
+            is_loot_table=False,
+            complex_criteria=False,
+            conditions=[],
+            native_csF=0,
+        )
+        catalog = {
+            "monsters": {
+                ref: [native_row] for ref in self.run["catalog"]["species_refs"]
+            }
+        }
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=%s WHERE name='rift_reward_policy'",
+                (Jsonb(p),),
+            )
+            with patch(
+                "wakfu_server.combat_drops.native_drop_catalog", return_value=catalog
+            ):
+                self.award(db)
+                self.award(db)
+            snapshot = db.execute(
+                "SELECT snapshot FROM fight_drop_awards WHERE fight_id=%s AND character_id=%s",
+                (self.fight, self.character),
+            ).fetchone()["snapshot"]
+            self.assertEqual(snapshot["policy"]["pools"][0]["references"], [2021])
+            self.assertEqual(
+                snapshot["policy"]["pools"][0]["source"], "native_rift_monsters"
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM rift_item_reward_receipts"
+                ).fetchone()["n"],
+                1,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT sum(quantity) AS n FROM inventory_items WHERE reference=2021"
+                ).fetchone()["n"],
+                2,
             )
 
     def test_full_default_pool_settles_once_with_sublimation_and_learnable_costume(

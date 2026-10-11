@@ -68,6 +68,10 @@ def prepare_finish(
             from .fight_store import finish
 
             finish(store, db, account_id, generation, character["id"], fight.id)
+            if getattr(fight, "boss_score_profile", None) is not None:
+                from wakfu_server.maps.boss_score_runtime import finalize
+
+                finalize(db, fight)
             from .combat_captured_roster_checkpoint import (
                 persist_captured_roster_updates,
             )
@@ -254,6 +258,10 @@ def prepare_finish_shared(
 
         # Capture and roster mutations share the reward/terminal transaction;
         # every character snapshot below observes the actual settled roster.
+        if getattr(candidate, "boss_score_profile", None) is not None:
+            from wakfu_server.maps.boss_score_runtime import finalize
+
+            observe("boss_score", finalize, db, candidate)
         observe("captured_roster", persist_captured_roster_updates, db, candidate)
         participant_rewards = {}
         participant_loot = {}

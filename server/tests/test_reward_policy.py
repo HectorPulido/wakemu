@@ -31,6 +31,18 @@ def context(
 
 
 class RewardPolicyMathTests(PostgresCase):
+    def test_native_dungeon_rate_is_optional_and_multiplies_before_final_cast(self):
+        ordinary = context(7)
+        selected = dict(ordinary, dungeon_rate_bp=40000)
+        args = dict(
+            character_id=7, group_xp=1000, xp_rate_bp=10000, conquest_rate_bp=10000
+        )
+        self.assertEqual(xp_amount(context=ordinary, **args), 1105)
+        self.assertEqual(xp_amount(context=selected, **args), 4422)
+        for invalid in (0, 71001, True):
+            with self.assertRaises(ValueError):
+                xp_amount(context=dict(ordinary, dungeon_rate_bp=invalid), **args)
+
     def test_dofus_reference_golden_xp_vectors_preserve_integer_casts(self):
         one = context(7)
         self.assertEqual(

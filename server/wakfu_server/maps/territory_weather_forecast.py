@@ -2,8 +2,8 @@
 
 The installed client parser's wire domains are preserved explicitly. Their
 units are not documented as upstream physical units, so this module does not
-label them Celsius or invent a forecast model. A policy is absent until a
-trusted operator configures its day and seasonal rows.
+label them Celsius. Trusted operators or the configured deterministic local
+simulation supply the day and seasonal rows through the same validated writer.
 """
 import struct
 

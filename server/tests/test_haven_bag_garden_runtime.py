@@ -33,6 +33,12 @@ class HavenBagGardenRuntimeTests(PostgresCase):
         self.proto_field = proto_field
 
     def test_plant_grow_harvest_reentry_without_moving_exterior_or_other_instance(self):
+        self._exercise_garden()
+
+    def test_guest_garden_consumes_and_rewards_only_the_visitors_inventory(self):
+        self._exercise_garden(guest=True)
+
+    def _exercise_garden(self, *, guest=False):
         now = [1000.0]
         self.store.clock = lambda: now[0]
         account = self.store.register("garden-runtime", "local-password")["id"]
@@ -47,6 +53,14 @@ class HavenBagGardenRuntimeTests(PostgresCase):
         character = self.save_haven_bag(
             self.store, account, generation, character["id"], rooms=rooms
         )
+        owner = character
+        bag_id = character["haven_bag"]["owner_id"]
+        if guest:
+            account = self.store.register("garden-guest", "local-password")["id"]
+            character = self.store.create_character(account, "Garden Guest")
+            generation = self.store.begin_session(account)
+            self.store.select_character(account, generation, character["id"])
+            exterior = {key: character[key] for key in exterior}
         self.ensure_learned(self.store, account, generation, character["id"], [72])
         seed = self.grant_item(
             self.store,
@@ -59,7 +73,18 @@ class HavenBagGardenRuntimeTests(PostgresCase):
             slot=0,
             allowed_references=self.seeds,
         )
-        live = [dict(character, map_id=9, instance_id=character["id"], x=7, y=2, z=0)]
+        live = [
+            dict(
+                character,
+                map_id=9,
+                instance_id=bag_id,
+                x=7,
+                y=2,
+                z=0,
+                haven_bag=owner["haven_bag"],
+                haven_bag_visitor=guest,
+            )
+        ]
         context = lambda stored: self.active_character(stored, live)
         runtime = self.Plantings(
             self.store,
@@ -82,16 +107,14 @@ class HavenBagGardenRuntimeTests(PostgresCase):
         self.assertTrue(result["applied"])
         self.assertEqual(result["character"]["map_id"], 9)
         self.assertEqual(result["ecology"]["reason"], "private_haven_bag_garden")
-        self.assertEqual(len(runtime.snapshots(9, character["id"])), 1)
-        self.assertEqual(runtime.snapshots(9, character["id"] + 1), [])
+        self.assertEqual(len(runtime.snapshots(9, bag_id)), 1)
+        self.assertEqual(runtime.snapshots(9, bag_id + 1), [])
         stored = self.store.character(account, character["id"])
         self.assertEqual({key: stored[key] for key in exterior}, exterior)
         self.assertEqual(stored["inventory_items"][0]["quantity"], 1)
         now[0] += 30
         runtime.mature(self.Groups(), publish=lambda event: None)
-        self.assertEqual(
-            len(self.Plantings(self.reopen()).snapshots(9, character["id"])), 1
-        )
+        self.assertEqual(len(self.Plantings(self.reopen()).snapshots(9, bag_id)), 1)
         harvest = b"".join(
             (self.proto_field(8, 201), self.proto_field(16, 7), self.proto_field(24, 3))
         )
@@ -113,7 +136,7 @@ class HavenBagGardenRuntimeTests(PostgresCase):
         )
         self.assertTrue(result["applied"])
         self.assertEqual(result["map_id"], 9)
-        self.assertEqual(result["instance_id"], character["id"])
+        self.assertEqual(result["instance_id"], bag_id)
         self.assertTrue(
             any(
                 i["reference"] == 2504
@@ -122,6 +145,9 @@ class HavenBagGardenRuntimeTests(PostgresCase):
                 ]
             )
         )
+        if guest:
+            stored_owner = self.store.character(owner["account_id"], owner["id"])
+            self.assertEqual(stored_owner["inventory_items"], owner["inventory_items"])
         self.assertFalse(
             self.resource_collect.complete(
                 self.store, ticket, b"\x02\x00\x03", location_context=context

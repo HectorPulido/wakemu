@@ -145,45 +145,40 @@ class NativeSummonEntryTests(unittest.TestCase):
                 f"caster_cell={fight.actors[7].position!r}; target_cell={summon_cell!r}"
             )
         self.assertEqual(snapshot(fight), before)
-        # Fresh creation installs the twelve hours. Center1558 is a separate
-        # native reaction:313306 requires an actual owned area1557 recipient,
-        # not an actor positioned on an hour or an unconditional thirteenth area.
-        self.assertEqual(len(cast.fight.native_effect_areas), 14)
+        # The native current-hour6759 starts at12. Its actual313308 reaction
+        # already creates1558 on hour1557 during the same cast.
         self.assertEqual(
             {
-                row["reference"]
-                for row in cast.fight.native_effect_areas.values()
-                if row.get("native_area_contract") not in ("faP", "faY")
+                r["reference"]
+                for r in cast.fight.native_effect_areas.values()
+                if r.get("owner_id") == 7
             },
-            set(range(1546, 1558)),
+            set(range(1546, 1559)),
         )
-        import copy
-        from dataclasses import replace
-
-        clock_preview = copy.deepcopy(cast.fight)
-        clock_factory, _ = server_runtime(
-            character,
-            {-7: monster},
-            deck,
-            action_id=3,
-            critical=False,
-            rng=random.Random(1),
-        )
-        clock_dispatcher, clock_packets = clock_factory(
-            clock_preview, {"native_retained_container": {"present": False}}
-        )
-        hour = next(
-            row
-            for row in clock_preview.native_effect_areas.values()
-            if row["reference"] == 1557
-        )
-        clock_dispatcher.execute(
-            EffectInvocation(
-                352198, 1, 7, hour["uid"], hour["cell"], native_explicit_target=True
+        owned = [
+            r for r in cast.fight.native_effect_areas.values() if r.get("owner_id") == 7
+        ]
+        self.assertEqual(len(owned), 13)
+        self.assertTrue(
+            all(
+                r["native_area_contract"] == "faZ" and r["native_type_id"] == 1
+                for r in owned
             )
         )
-        cast = replace(
-            cast, fight=clock_preview, packets=cast.packets + tuple(clock_packets)
+        center = next(r for r in owned if r["reference"] == 1558)
+        hour = next(r for r in owned if r["reference"] == 1557)
+        self.assertEqual(center["cell"], hour["cell"])
+        self.assertEqual(center["effect_reference"], 313308)
+        self.assertEqual(center["effect_class"], 315)
+        self.assertFalse(center["keep_after"])
+        self.assertFalse(center["native_running_effect_manager"])
+        self.assertEqual(
+            next(
+                s.level
+                for s in cast.fight.actors[7].state_ledger.entries
+                if s.reference == 6759
+            ),
+            12,
         )
         # The native battleground has an faP border and a faY environmental
         # glyph alongside the thirteen class-owned areas.

@@ -371,7 +371,7 @@ class LifecycleTests(PostgresCase):
         )
         self.assertEqual(len(calls), 1)
         self.assertEqual(
-            [opcode for opcode, _ in result["packets"]], [12238, 12755, 13052]
+            [opcode for opcode, _ in result["packets"]], [12755, 12238, 13052]
         )
         self.assertEqual(result["packets"][-1], (13052, b"owned loot update"))
         self.assertEqual(
@@ -382,7 +382,10 @@ class LifecycleTests(PostgresCase):
             ],
         )
 
-        report = dict(proto_fields(result["packets"][1][1][12:]))
+        report_packet = next(
+            body for opcode, body in result["packets"] if opcode == 12755
+        )
+        report = dict(proto_fields(report_packet[12:]))
         team = dict(proto_fields(report[42]))
         player_fields = list(proto_fields(team[18]))
         serialized_loots = [
@@ -856,7 +859,7 @@ class LifecycleTests(PostgresCase):
                 fight_instance_id=8,
                 policy=Policy(level_xp(2) + 1, 13),
             )
-            self.assertEqual([op for op, b in done["packets"]], [13613, 12238, 12755])
+            self.assertEqual([op for op, b in done["packets"]], [13613, 12755, 12238])
             self.assertEqual(
                 done["packets"][0],
                 (

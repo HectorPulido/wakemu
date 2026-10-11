@@ -140,19 +140,30 @@ def initialization_proven(reference, level, raw_triples, receipt):
 
 
 def nonretained_initial_states(raw_triples, level):
-    """Native eZk.Ty/bbX retain neither clock when both durations are zero."""
+    """Use the same native eZk.Ty/bbX retention decision as StateLedger."""
     from wakfu_server.combat_summon_initial_states import initial_state_plan
     from wakfu_server.combat_definitions import state_profile
     from wakfu_server.combat_server_spell import states_catalog
 
+    from wakfu_server.combat_state_timing import state_requires_retention
+
     catalog = states_catalog()
-    return [
-        item.state_id
-        for item in initial_state_plan(raw_triples, level)
-        if (lambda p: p["duration"] == 0 and p["realtime_duration"] == 0)(
-            state_profile(catalog, item.state_id, item.level)
-        )
-    ]
+    result = []
+    for item in initial_state_plan(raw_triples, level):
+        profile = state_profile(catalog, item.state_id, item.level)
+        turn, realtime = profile["duration"], profile["realtime_duration"]
+        if turn == 0 and realtime == 0:
+            result.append(item.state_id)  # Neither flag value can retain zero clocks.
+        elif turn > 0 or realtime != 0:
+            continue  # Both flag branches retain these native clock values.
+        elif not state_requires_retention(
+            turn_duration=turn,
+            realtime_duration=realtime,
+            permanent_flag=profile["skip_turn_timer"],
+            applying_effect_has_delay=False,
+        ):
+            result.append(item.state_id)
+    return result
 
 
 def placement_effects_proven(receipt, state_count):
@@ -249,6 +260,26 @@ def test_hashes():
     }
 
 
+COPY_BOOK_PATH = "native-class-copy-book-flags.json"
+
+
+def preserve_copy_book(base, candidate):
+    """Accept additive copy metadata while preserving every existing spell."""
+    for name in ("schema", "copy_level_minimum", "copy_level_maximum"):
+        if candidate.get(name) != base.get(name):
+            raise ValueError("Copy-book native domain changed: " + name)
+    for document in (base, candidate):
+        spells = document.get("spells")
+        if not isinstance(spells, dict) or document.get("missing"):
+            raise ValueError("Incomplete copy-book metadata")
+        scope = document.get("scope", [])
+        if len(scope) != len(set(scope)) or set(map(str, scope)) != set(spells):
+            raise ValueError("Copy-book scope differs from spell metadata")
+    for reference, metadata in base["spells"].items():
+        if candidate["spells"].get(reference) != metadata:
+            raise ValueError("Existing copy-book flags changed: " + reference)
+
+
 def install_overlay(candidate, *, overlay=True):
     from wakfu_server import native_catalog
 
@@ -272,6 +303,7 @@ def install_overlay(candidate, *, overlay=True):
 
     if not required <= set(raw) or set(raw) - required - {
         "native-spell-resource-costs.json",
+        COPY_BOOK_PATH,
         CATALOG_PATH,
         CELL_PATH,
     } - set(SUMMON_PATHS):
@@ -302,14 +334,18 @@ def install_overlay(candidate, *, overlay=True):
     base_hashes = {}
     audited = required | (
         set(manifest["changed_documents"])
-        & ({CATALOG_PATH, CELL_PATH} | set(SUMMON_PATHS))
+        & ({CATALOG_PATH, CELL_PATH, COPY_BOOK_PATH} | set(SUMMON_PATHS))
     )
     for name in audited:
         base_raw = native_catalog.read_bytes(native_catalog.DATA_ROOT / name)
         base_hashes[name] = hashlib.sha256(base_raw).hexdigest()
         if hashes.get(name) != base_hashes[name]:
             raise ValueError("Pinned base document checksum mismatch: " + name)
-        if name == CATALOG_PATH:
+        if name == COPY_BOOK_PATH:
+            preserve_copy_book(
+                json.loads(base_raw), json.loads((candidate / name).read_bytes())
+            )
+        elif name == CATALOG_PATH:
             assert_preserved(
                 json.loads(base_raw), json.loads((candidate / name).read_bytes())
             )
@@ -708,7 +744,172 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
     return fight, character, monsters, deck
 
 
-def run_case(reference, level, spell, spell_level, cells, limit):
+def raise_infrastructure_failure(exc):
+    """Never classify an unavailable dependency or broken isolation as a mob defect."""
+    if (
+        isinstance(exc, (OSError, TimeoutError, MemoryError))
+        or any(
+            base.__module__.split(".")[0] in {"psycopg", "psycopg2"}
+            for base in type(exc).__mro__
+        )
+        or str(exc)
+        in {
+            "Native preview mutated original fight",
+            "Native preview mutated cached fixture",
+        }
+    ):
+        raise exc
+
+
+class ReferenceFixtureCache:
+    """Reuse attested initial contexts only within one reference and actor level."""
+
+    def __init__(self, factory=None):
+        self.factory = fixture if factory is None else factory
+        self.scope = None
+        self.entries = {}
+
+    @staticmethod
+    def snapshot(value):
+        from wakfu_server.combat_geometry_snapshot import source_snapshot
+        from wakfu_server.fight_checkpoint_store import _plain
+
+        fight, character, monsters, deck = value
+        deck_snapshot = (
+            (type(deck).__name__, bytes(deck))
+            if isinstance(deck, (bytes, bytearray))
+            else _plain(deck)
+        )
+        return source_snapshot(fight), _plain((character, monsters)), deck_snapshot
+
+    def clear(self):
+        self.entries.clear()
+        self.scope = None
+
+    def verify(self, value):
+        for cached, initial in self.entries.values():
+            if cached is value:
+                try:
+                    unchanged = self.snapshot(value) == initial
+                except (TypeError, ValueError):
+                    unchanged = False
+                if not unchanged:
+                    raise RuntimeError("Native preview mutated cached fixture")
+
+    def get(self, reference, level, enemy_cell, *, scenario=None):
+        scope = reference, level
+        if self.scope != scope:
+            self.clear()
+            self.scope = scope
+        try:
+            key = tuple(enemy_cell), json.dumps(
+                scenario, sort_keys=True, separators=(",", ":")
+            )
+        except (TypeError, ValueError):
+            return self.factory(reference, level, enemy_cell, scenario=scenario)
+        if key in self.entries:
+            value, initial = self.entries[key]
+            self.verify(value)
+            return value
+        value = self.factory(reference, level, enemy_cell, scenario=scenario)
+        # This authority is deliberately omitted by source_snapshot; do not
+        # reuse contexts whose mutable authority cannot be fully attested.
+        if getattr(value[0], "native_rail_movement_authority", None) is None:
+            try:
+                initial = self.snapshot(value)
+            except (TypeError, ValueError):
+                # Cache eligibility must never reject a valid native fixture.
+                # Unsupported supplemental metadata follows the uncached path.
+                return value
+            self.entries[key] = value, initial
+        return value
+
+
+def evaluate_reference_cases(
+    row,
+    abilities_for_level,
+    cells,
+    limit,
+    *,
+    fail_fast=False,
+    case_runner=None,
+    recovery_search=False,
+    recovery_attempt_cap=None,
+    recovery_scene_cap=None,
+):
+    """Retain complete proof for passes; stop cheaply once a reference cannot pass."""
+    validate_recovery_caps(recovery_search, recovery_attempt_cap, recovery_scene_cap)
+    recovery_options = {"recovery_search": True} if recovery_search else {}
+    if recovery_attempt_cap is not None:
+        recovery_options["recovery_attempt_cap"] = recovery_attempt_cap
+    if recovery_scene_cap is not None:
+        recovery_options["recovery_scene_cap"] = recovery_scene_cap
+    fixture_cache = (
+        ReferenceFixtureCache() if fail_fast and case_runner is None else None
+    )
+    if case_runner is None:
+
+        def case_runner(*args):
+            return run_case(
+                *args,
+                propagate_infrastructure=fail_fast,
+                fixture_cache=fixture_cache,
+                **recovery_options,
+            )
+
+    cases = []
+    for level in range(row["min_level"], row["max_level"] + 1):
+        spell = spell_level = None
+        try:
+            for ability in abilities_for_level(row["ref"], level):
+                spell, spell_level = ability["spell_id"], ability["spell_level"]
+                case = case_runner(row["ref"], level, spell, spell_level, cells, limit)
+                cases.append(case)
+                # Catalog graphs are frozen by main(); collect temporary fight
+                # cycles within large books instead of retaining every fixture
+                # until the reference's complete level matrix has finished.
+                if fail_fast and len(cases) % 16 == 0:
+                    if fixture_cache is not None:
+                        fixture_cache.clear()
+                    gc.collect()
+                    gc.freeze()
+                if fail_fast and case["status"] != "validated":
+                    return cases
+        except Exception as exc:
+            if not fail_fast:
+                raise
+            raise_infrastructure_failure(exc)
+            cases.append(
+                dict(
+                    level=level,
+                    spell_id=spell,
+                    spell_level=spell_level,
+                    status="pending",
+                    attempts=0,
+                    errors={type(exc).__name__ + ": " + str(exc): 1},
+                    successful_targets=[],
+                    initialization_receipts=[],
+                )
+            )
+            return cases
+    return cases
+
+
+def run_case(
+    reference,
+    level,
+    spell,
+    spell_level,
+    cells,
+    limit,
+    *,
+    propagate_infrastructure=False,
+    fixture_cache=None,
+    recovery_search=False,
+    recovery_attempt_cap=None,
+    recovery_scene_cap=None,
+):
+    validate_recovery_caps(recovery_search, recovery_attempt_cap, recovery_scene_cap)
     from wakfu_server.combat_ai_capabilities import describe_spell
     from wakfu_server.combat_npc_spell import prepare_npc_spell
     from wakfu_server.combat_geometry_snapshot import source_snapshot
@@ -722,12 +923,22 @@ def run_case(reference, level, spell, spell_level, cells, limit):
         errors={},
         successful_targets=[],
         initialization_receipts=[],
+        cast_diagnostics=[],
+        search_budget_policy=(
+            "per_scene_target_class_v1" if recovery_search else "per_scenario_v1"
+        ),
+        search_budget=dict(
+            attempt_cap=recovery_attempt_cap, scene_cap=recovery_scene_cap
+        ),
+        scenes_attempted=0,
     )
     errors = Counter()
     try:
         capability = describe_spell(spell, spell_level)
         result["capability"] = capability
     except Exception as exc:
+        if propagate_infrastructure:
+            raise_infrastructure_failure(exc)
         result["errors"] = {type(exc).__name__ + ": " + str(exc): 1}
         return result
     source = (-8, -7, -1)
@@ -755,6 +966,25 @@ def run_case(reference, level, spell, spell_level, cells, limit):
     from monster_pending_scenarios import scenario_recipes
 
     scenarios = scenario_recipes(reference, spell) + [None]
+    if recovery_search:
+        from wakfu_server.combat_native_spell_casting import (
+            catalog as native_casting_catalog,
+        )
+
+        criterion = (
+            native_casting_catalog().get(str(spell), {}).get("cast_criterion_raw")
+        )
+        if criterion:
+            from monster_pending_scenarios import recovery_owned_state_recipes
+
+            scenarios.extend(
+                recovery_owned_state_recipes(reference, level, spell, criterion)
+            )
+            from monster_pending_scenarios import recovery_native_opponent_recipes
+
+            scenarios.extend(
+                recovery_native_opponent_recipes(reference, level, spell, criterion)
+            )
     if "heal" in capability.get("tags", []):
         scenarios.append("wounded_ally")
     from monster_class_buff_scenarios import CLASS_BUFF_RECIPES
@@ -763,19 +993,49 @@ def run_case(reference, level, spell, spell_level, cells, limit):
         scenarios.append(dict(CLASS_BUFF_RECIPES["ap"]))
     elif (reference, spell) == (5710, 4641):
         scenarios.append(dict(CLASS_BUFF_RECIPES["mp"]))
-    scenes = [(scenario, enemy) for scenario in scenarios for enemy in enemies]
+    scenes = (
+        [(scenario, enemy) for enemy in enemies for scenario in scenarios]
+        if recovery_search
+        else [(scenario, enemy) for scenario in scenarios for enemy in enemies]
+    )
     for scenario, enemy in scenes:
+        if (
+            recovery_attempt_cap is not None
+            and result["attempts"] >= recovery_attempt_cap
+        ):
+            break
+        if (
+            recovery_scene_cap is not None
+            and result["scenes_attempted"] >= recovery_scene_cap
+        ):
+            break
         scene_limit = limit * (scenarios.index(scenario) + 1)
-        # Exhausted scenarios cannot attempt another cast. Keep later scenario
-        # budgets available without constructing unused native fights.
-        if result["attempts"] >= scene_limit:
+        if not recovery_search and result["attempts"] >= scene_limit:
             continue
+        # Each real enemy placement needs its own witness search. A failed
+        # adjacent enemy/caster pair must not consume every later distance or
+        # prevent empty-cell and companion targets from being examined.
+        target_class_attempts = Counter()
+        result["scenes_attempted"] += 1
         try:
-            fight, character, monsters, deck = fixture(
+            context = (fixture if fixture_cache is None else fixture_cache.get)(
                 reference, level, enemy, scenario=scenario
             )
+            fight, character, monsters, deck = context
         except Exception as exc:
+            if propagate_infrastructure:
+                raise_infrastructure_failure(exc)
             errors["initialization: " + type(exc).__name__ + ": " + str(exc)] += 1
+            continue
+        if recovery_search and native_scene_footprints_overlap(fight, -200, 7):
+            # An overlapping harness placement cannot be a witness for the
+            # requested enemy identity. Extend only this scenario with bounded
+            # actual nonoverlapping placements; runtime QI remains unchanged.
+            for alternative in native_nonoverlapping_enemy_cells(
+                fight, -200, 7, destinations, enemy_maximum, limit=16
+            ):
+                if (scenario, alternative) not in scenes:
+                    scenes.append((scenario, alternative))
             continue
         receipt = getattr(fight, "native_npc_initialization_receipts", {}).get(-200)
         if receipt is not None and receipt not in result["initialization_receipts"]:
@@ -823,8 +1083,17 @@ def run_case(reference, level, spell, spell_level, cells, limit):
             ]
             targets.extend((cell, None) for cell in ordinary_empty[:2])
         for target, identity in targets:
-            if result["attempts"] >= scene_limit:
+            if (
+                recovery_attempt_cap is not None
+                and result["attempts"] >= recovery_attempt_cap
+            ):
                 break
+            target_class = native_witness_target_class(identity, -200)
+            if not recovery_search and result["attempts"] >= scene_limit:
+                break
+            if recovery_search and target_class_attempts[target_class] >= limit:
+                continue
+            target_class_attempts[target_class] += 1
             result["attempts"] += 1
             before = source_snapshot(fight)
             try:
@@ -868,15 +1137,107 @@ def run_case(reference, level, spell, spell_level, cells, limit):
                 if effectful:
                     result["status"] = "validated"
             except Exception as exc:
+                if propagate_infrastructure:
+                    raise_infrastructure_failure(exc)
                 errors[type(exc).__name__ + ": " + str(exc)] += 1
+                diagnostic = native_witness_diagnostic(exc, target, identity, enemy)
+                if diagnostic is not None and len(result["cast_diagnostics"]) < 24:
+                    result["cast_diagnostics"].append(diagnostic)
             if source_snapshot(fight) != before:
                 raise RuntimeError("Native preview mutated original fight")
+            if fixture_cache is not None:
+                fixture_cache.verify(context)
             if result["status"] == "validated":
                 break
         if result["status"] == "validated":
             break
     result["errors"] = dict(errors)
     return result
+
+
+def validate_recovery_caps(recovery_search, attempt_cap, scene_cap):
+    """Preliminary search caps are explicit, positive and recovery-only."""
+    for cap in (attempt_cap, scene_cap):
+        if cap is not None and (
+            not recovery_search or type(cap) is not int or cap <= 0
+        ):
+            raise ValueError(
+                "Recovery search caps require recovery mode and positive integers"
+            )
+
+
+def native_scene_footprints_overlap(fight, caster_id, enemy_id):
+    """Query actual native registered footprints, with no synthetic radius."""
+    from wakfu_server.combat_obstacle_condition import footprint
+
+    caster, enemy = fight.actors.get(caster_id), fight.actors.get(enemy_id)
+    if caster is None or enemy is None:
+        return False
+    return bool(
+        set(footprint(caster.position, caster.physical_radius))
+        & set(footprint(enemy.position, enemy.physical_radius))
+    )
+
+
+def native_nonoverlapping_enemy_cells(
+    fight, caster_id, enemy_id, cells, maximum, *, limit=16
+):
+    """Bound recovery placements using actual radii and native QI footprints."""
+    from wakfu_server.combat_obstacle_condition import footprint
+
+    caster, enemy = fight.actors[caster_id], fight.actors[enemy_id]
+    occupied = set(footprint(caster.position, caster.physical_radius))
+    # Native range uses physical actor extents. This is only a finite search
+    # envelope; each candidate must still pass the actual casting query.
+    extent = 2 * (max(0, caster.physical_radius) + max(0, enemy.physical_radius))
+    candidates = []
+    for cell in cells:
+        distance = abs(cell[0] - caster.position[0]) + abs(cell[1] - caster.position[1])
+        if distance <= maximum + extent and not occupied.intersection(
+            footprint(cell, enemy.physical_radius)
+        ):
+            candidates.append(tuple(cell))
+    return sorted(
+        set(candidates),
+        key=lambda cell: (
+            abs(cell[0] - caster.position[0]) + abs(cell[1] - caster.position[1]),
+            cell,
+        ),
+    )[:limit]
+
+
+def native_witness_target_class(identity, caster_id):
+    """Allocate independent finite budgets to actual target relationships."""
+    if identity is None:
+        return "empty_cell"
+    return "caster" if identity == caster_id else "other_actor"
+
+
+def native_witness_diagnostic(error, target, identity, enemy):
+    """Retain authoritative failed hooks; never infer an eligibility bypass."""
+    attributes = (
+        "native_casting_result",
+        "native_casting_diagnostic",
+        "native_casting_selection",
+        "cast_validation_code",
+        "cast_diagnostics",
+        "native_target_diagnostic",
+    )
+    details = {
+        name: getattr(error, name)
+        for name in attributes
+        if getattr(error, name, None) is not None
+    }
+    if not details:
+        return None
+    return dict(
+        target=list(target),
+        target_id=identity,
+        enemy_cell=list(enemy),
+        error_type=type(error).__name__,
+        message=str(error),
+        details=details,
+    )
 
 
 def commit_smoke(monster):
@@ -1068,8 +1429,20 @@ def main():
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--max-attempts", type=int, default=12)
+    parser.add_argument(
+        "--recovery-search",
+        action="store_true",
+        help="Use independent bounded witness budgets per enemy scene and target class",
+    )
+    parser.add_argument("--recovery-attempt-cap", type=int)
+    parser.add_argument("--recovery-scene-cap", type=int)
     parser.add_argument("--only-ref", type=int, action="append")
     parser.add_argument("--skip-class-tests", action="store_true")
+    parser.add_argument(
+        "--fail-fast-reference",
+        action="store_true",
+        help="Stop each reference at its first failed case; passes still require every native level and owned spell",
+    )
     parser.add_argument("--class-tests-only", action="store_true")
     parser.add_argument("--baseline", action="store_true")
     parser.add_argument("--extend-results", type=Path)
@@ -1082,6 +1455,12 @@ def main():
         default=ROOT / ".runtime/monster-combat-extraction-20261010/monsters.json.gz",
     )
     args = parser.parse_args()
+    try:
+        validate_recovery_caps(
+            args.recovery_search, args.recovery_attempt_cap, args.recovery_scene_cap
+        )
+    except ValueError as error:
+        parser.error(str(error))
     if (ROOT / ".runtime").resolve() not in args.output.resolve().parents:
         parser.error("Validation artifacts must stay beneath .runtime")
     os.environ.setdefault("PGOPTIONS", "-c default_transaction_read_only=on")
@@ -1140,18 +1519,16 @@ def main():
         if row["ref"] not in selected:
             continue
         source = native_monsters[row["ref"]]
-        cases = [
-            run_case(
-                row["ref"],
-                level,
-                a["spell_id"],
-                a["spell_level"],
-                cells,
-                args.max_attempts,
-            )
-            for level in range(row["min_level"], row["max_level"] + 1)
-            for a in native_abilities(row["ref"], level)
-        ]
+        cases = evaluate_reference_cases(
+            row,
+            native_abilities,
+            cells,
+            args.max_attempts,
+            fail_fast=args.fail_fast_reference,
+            recovery_search=args.recovery_search,
+            recovery_attempt_cap=args.recovery_attempt_cap,
+            recovery_scene_cap=args.recovery_scene_cap,
+        )
         pending_initialization = bool(source["initial_state_triples"]) and not all(
             any(
                 initialization_proven(

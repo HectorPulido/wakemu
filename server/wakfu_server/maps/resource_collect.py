@@ -466,6 +466,13 @@ def complete(store, ticket, body, *, location_context=None):
             "DELETE FROM planting_growth_outbox WHERE resource_uid=%s",
             (resource["resource_uid"],),
         )
+        # A harvest starts a new growth cycle even when it preserves the UID.
+        # Rare-stage decisions are durable within one cycle, not forever: an
+        # old accepted/rejected draw must not block regrowth after collecting.
+        db.execute(
+            "DELETE FROM resource_growth_decisions WHERE resource_uid=%s",
+            (resource["resource_uid"],),
+        )
         from .resource_domains import is_fish
 
         if is_fish(resource["resource_reference"]):

@@ -14,6 +14,7 @@ from psycopg.types.json import Jsonb
 from postgres_case import PostgresCase
 from wakfu_server.characters import guild_character
 from wakfu_server.characters.guild_service import GuildService
+from wakfu_server.haven_bag_store import initial_layout
 
 
 class GuildServicePostgresTests(PostgresCase):
@@ -80,6 +81,20 @@ class GuildServicePostgresTests(PostgresCase):
             db.execute(
                 "INSERT INTO character_progression(character_id,xp) VALUES(%s,%s)",
                 (character_id, 10000 + character_id),
+            )
+            # This SQL fixture bypasses Store.create_character; reproduce its
+            # durable account bag so a reconnect can hydrate the real character.
+            db.execute(
+                "INSERT INTO haven_bags(character_id,layout) VALUES(%s,%s)",
+                (character_id, Jsonb(initial_layout(character_id))),
+            )
+            db.execute(
+                "INSERT INTO account_haven_bags(account_id,character_id) VALUES(%s,%s)",
+                (account, character_id),
+            )
+            db.execute(
+                "INSERT INTO character_build_selection(character_id) VALUES(%s)",
+                (character_id,),
             )
         generation = self.store.begin_session(account)
         with self.store.connection() as db:

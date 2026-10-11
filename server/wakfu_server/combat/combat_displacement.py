@@ -495,7 +495,9 @@ class NativeDisplacementHandler:
         """eZB.C captures acceptance before mutable level-two reactions."""
         actor = geometry["actor"]
         if actor is None:
-            raise ValueError("Teleport requires native actor")
+            # eZB.C sets rIw=false when fRz() is not an eGj PV. Its later c()
+            # path then returns without applying the teleport.
+            return False
         props = self.authority.properties(self.fight, actor)
         destination = geometry["destination"]
         if self._selected_surface(destination) is None:
@@ -522,9 +524,9 @@ class NativeDisplacementHandler:
     def __call__(self, effect, values, invocation):
         if self.fight.phase != "active" or self.fight.current is None:
             raise ValueError("Displacement requires active combat")
-        # eZR.i rejects an actual corpse before invoking eXD.c. A proven
+        # eZR.i rejects an actual corpse before invoking eXD.c/eXk.c. A proven
         # rejection skips this runner; it does not reject its parent spell.
-        if effect["effect_class"] in (300, 301):
+        if effect["effect_class"] in (300, 301, 422):
             recipient = self.fight.actors.get(invocation.target_id)
             if recipient is not None:
                 from .combat_runner_target_life import runner_target_life_eligible
@@ -568,6 +570,11 @@ class NativeDisplacementHandler:
                 teleport_geometry, teleport_accepted = self._calculate_teleport(
                     effect, invocation
                 )
+            if not teleport_accepted:
+                # Native eZB.C rejected the destination before eZB.c's
+                # movement execution. Keep phase 1 from prepare(), but do not
+                # emit later displacement phases or movement packets.
+                return False
         if self.event_lifecycle is not None:
             self.event_lifecycle.phase(effect, invocation, uid=uid, value=0, channel=2)
         source = self.fight.actors[invocation.caster_id]
@@ -651,9 +658,6 @@ class NativeDisplacementHandler:
         elif kind.startswith("teleport"):
             actor = geometry["actor"]
             destination = geometry["destination"]
-            if not teleport_accepted:
-                self._finish_events(effect, invocation, uid, 0)
-                return False
             additional = displacement_additional(
                 effect["effect_class"], destination=destination
             )

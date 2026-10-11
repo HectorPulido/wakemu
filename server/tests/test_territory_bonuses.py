@@ -253,6 +253,86 @@ class TerritoryBonusesTests(unittest.TestCase):
         ):
             self.assertIsNone(territory_bonuses.current_region(object(), character))
 
+    def test_world_refresh_initializes_changes_and_clears_region_stats(self):
+        from unittest.mock import MagicMock
+
+        store = MagicMock()
+        character = {"id": 99, "hp": 420, "active_build_index": 2}
+        regional = {
+            "state_id": 1915,
+            "effects": territory_bonuses.state_effects(1, 2)["effects"],
+        }
+        with (
+            patch.object(
+                territory_bonuses,
+                "current_region",
+                side_effect=[regional, regional, None, None],
+            ),
+            patch.object(
+                territory_bonuses, "world_packet", return_value=(13046, b"owned")
+            ) as serialize,
+        ):
+            self.assertEqual(
+                territory_bonuses.refresh_world(store, character), [(13046, b"owned")]
+            )
+            self.assertEqual(character["territory_stat_bonuses"], {36: 30, 33: 30})
+            self.assertEqual(serialize.call_args.args[0]["active_build_index"], 2)
+            self.assertEqual(serialize.call_args.args[0]["hp"], 420)
+            self.assertEqual(territory_bonuses.refresh_world(store, character), [])
+            self.assertEqual(
+                territory_bonuses.refresh_world(store, character), [(13046, b"owned")]
+            )
+            self.assertEqual(character["territory_stat_bonuses"], {})
+            self.assertEqual(territory_bonuses.refresh_world(store, character), [])
+            self.assertEqual(serialize.call_count, 2)
+
+    def test_world_refresh_retries_if_serialization_fails(self):
+        from unittest.mock import MagicMock
+
+        character = {"id": 99}
+        with (
+            patch.object(territory_bonuses, "current_region", return_value=None),
+            patch.object(
+                territory_bonuses,
+                "world_packet",
+                side_effect=ValueError("bad snapshot"),
+            ),
+            self.assertRaises(ValueError),
+        ):
+            territory_bonuses.refresh_world(MagicMock(), character)
+        self.assertNotIn("_published_territory_stat_bonuses", character)
+
+    def test_world_packet_sends_complete_characteristics_without_fight_or_direction_reset(
+        self,
+    ):
+        import struct
+
+        character = {"id": 99, "direction": 6}
+        position_end = 1 + 8 + struct.calcsize(">iihqBB")
+        blob = bytes(position_end) + struct.pack(">i", 1) + b"tail"
+        complete = struct.pack(">HBiiii", 1, 36, 0, -1000, 1000, 0)
+        with (
+            patch(
+                "wakfu_server.equipment_stats.effective_character",
+                return_value=character,
+            ),
+            patch(
+                "wakfu_server.equipment_stats.combat_resources",
+                return_value={"wp": 6, "ap": 6, "mp": 3, "initiative": 0},
+            ),
+            patch(
+                "wakfu_server.wire.owned_public_characteristics", return_value=complete
+            ),
+            patch("wakfu_server.combat_actor.actor_stats", return_value=blob) as codec,
+        ):
+            opcode, body = territory_bonuses.world_packet(character)
+        self.assertEqual(opcode, 13046)
+        self.assertEqual(struct.unpack_from(">qh", body), (99, len(blob)))
+        self.assertEqual(struct.unpack_from(">i", body, 10 + position_end)[0], -1)
+        self.assertEqual(body[-4:], b"tail")
+        self.assertEqual(codec.call_args.kwargs["direction"], 6)
+        self.assertEqual(codec.call_args.kwargs["characteristics_payload"], complete)
+
 
 if __name__ == "__main__":
     unittest.main()

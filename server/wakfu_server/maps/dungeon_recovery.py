@@ -45,9 +45,14 @@ def resume_member(
             "SELECT 1 FROM player_party_members WHERE party_id=%s AND character_id=%s",
             (identity["party_id"], character_id),
         ).fetchone()
-        fighting = in_fight(character_id) if in_fight is not None else False
-        if type(fighting) is not bool:
+        owned_ids = _owned_cohort(db, account_id, instance_id, character_id)
+        fight_states = [
+            in_fight(identity) if in_fight is not None else False
+            for identity in owned_ids
+        ]
+        if any(type(state) is not bool for state in fight_states):
             raise ValueError("Dungeon recovery combat state must be boolean")
+        fighting = any(fight_states)
         if (
             party is None
             or run["status"] != "active"
@@ -61,23 +66,34 @@ def resume_member(
                     "Cannot recover an invalid dungeon location during combat"
                 )
             return _recover_exterior(
-                store, db, account_id, generation, character_id, character, run
+                store,
+                db,
+                account_id,
+                generation,
+                character_id,
+                character,
+                run,
+                character_ids=owned_ids,
             )
         previous_generation = member["session_generation"]
-        if previous_generation != generation:
-            db.execute(
-                "UPDATE dungeon_instance_members SET session_generation=%s "
-                "WHERE instance_id=%s AND character_id=%s",
-                (generation, instance_id, character_id),
-            )
-            db.execute(
-                "UPDATE dungeon_transition_outbox SET status='superseded',superseded_at=%s "
-                "WHERE instance_id=%s AND character_id=%s AND status='pending' "
-                "AND session_generation<>%s",
-                (store.now(), instance_id, character_id, generation),
-            )
+        db.execute(
+            "UPDATE dungeon_instance_members SET session_generation=%s "
+            "WHERE instance_id=%s AND character_id=ANY(%s) AND status='active'",
+            (generation, instance_id, list(owned_ids)),
+        )
+        db.execute(
+            "UPDATE dungeon_transition_outbox SET status='superseded',superseded_at=%s "
+            "WHERE instance_id=%s AND character_id=ANY(%s) AND status='pending' "
+            "AND session_generation<>%s",
+            (store.now(), instance_id, list(owned_ids), generation),
+        )
+        if not fighting:
+            from wakfu_server.characters.dungeon_modulation_health import reconcile
+
+            reconcile(store, db, owned_ids)
         return dict(
             instance_id=instance_id,
+            character_ids=owned_ids,
             party_id=run["party_id"],
             rebound=previous_generation != generation,
             previous_generation=previous_generation,
@@ -85,7 +101,21 @@ def resume_member(
         )
 
 
-def _recover_exterior(store, db, account_id, generation, character_id, character, run):
+def _owned_cohort(db, account_id, instance_id, character_id):
+    """Only durable same-account members at this actual private location."""
+    rows = db.execute(
+        "SELECT c.id FROM characters c JOIN dungeon_instance_members m "
+        "ON m.character_id=c.id AND m.instance_id=c.instance_id "
+        "WHERE c.account_id=%s AND c.instance_id=%s AND c.deleted_at IS NULL "
+        "AND m.status='active' ORDER BY c.id FOR UPDATE OF c",
+        (account_id, instance_id),
+    ).fetchall()
+    return tuple(sorted({character_id, *(row["id"] for row in rows)}))
+
+
+def _recover_exterior(
+    store, db, account_id, generation, character_id, character, run, *, character_ids
+):
     """Repair persisted private locations using pinned server-owned exit facts."""
     from wakfu_server import dungeon_runtime
     from wakfu_server.maps.dungeon_exit import automatic_destination
@@ -96,26 +126,26 @@ def _recover_exterior(store, db, account_id, generation, character_id, character
     destination = automatic_destination(character, run, configuration)
     db.execute(
         "UPDATE characters SET map_id=%s,instance_id=0,x=%s,y=%s,z=%s "
-        "WHERE id=%s AND account_id=%s AND instance_id=%s",
+        "WHERE id=ANY(%s) AND account_id=%s AND instance_id=%s",
         (
             destination["map_id"],
             destination["x"],
             destination["y"],
             destination["z"],
-            character_id,
+            list(character_ids),
             account_id,
             run["instance_id"],
         ),
     )
     db.execute(
         "UPDATE dungeon_instance_members SET status='returned',ended_at=%s "
-        "WHERE instance_id=%s AND character_id=%s AND status='active'",
-        (store.now(), run["instance_id"], character_id),
+        "WHERE instance_id=%s AND character_id=ANY(%s) AND status='active'",
+        (store.now(), run["instance_id"], list(character_ids)),
     )
     db.execute(
         "UPDATE dungeon_transition_outbox SET status='superseded',superseded_at=%s "
-        "WHERE character_id=%s AND status='pending'",
-        (store.now(), character_id),
+        "WHERE character_id=ANY(%s) AND status='pending'",
+        (store.now(), list(character_ids)),
     )
     db.execute(
         "UPDATE dungeon_instances SET status='closed',ended_at=%s WHERE instance_id=%s "
@@ -123,11 +153,15 @@ def _recover_exterior(store, db, account_id, generation, character_id, character
         "(SELECT 1 FROM dungeon_instance_members WHERE instance_id=%s AND status='active')",
         (store.now(), run["instance_id"], run["instance_id"]),
     )
+    from wakfu_server.characters.dungeon_modulation_health import reconcile
+
+    reconcile(store, db, character_ids)
     return dict(
         instance_id=0,
         party_id=run["party_id"],
         rebound=False,
         generation=generation,
         recovered_exterior=True,
+        character_ids=character_ids,
         destination=destination,
     )

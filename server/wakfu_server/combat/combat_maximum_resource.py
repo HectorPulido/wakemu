@@ -11,6 +11,8 @@ from wakfu_server import native_catalog as protocol_catalog
 from .combat_parameters import parameter_value
 from .combat_actor_snapshot import native_actor_catalog
 from .combat_stat_handler import StatExecutionContext
+from .combat_summon_initialization import registered_or_detached_actor
+from .combat_npc_initialization import constructor_stat_context
 from .combat_stat_effects import (
     owned_effect_payload,
     owned_effect_application,
@@ -207,10 +209,13 @@ class NativeMaximumResourceHandler:
     def _context(self, effect, invocation):
         if effect["effect_class"] not in FAMILIES or len(effect["parameters"]) != 6:
             raise ValueError("Unsupported native eWN resource definition")
-        if (
-            self.fight.actors.get(invocation.target_id) is None
-            or self.fight.phase != "active"
-            or invocation.caster_id not in self.fight.actors
+        if registered_or_detached_actor(self.fight, invocation.target_id) is None or (
+            not constructor_stat_context(self.fight, invocation)
+            and (
+                self.fight.phase != "active"
+                or invocation.target_id not in self.fight.actors
+                or invocation.caster_id not in self.fight.actors
+            )
         ):
             raise ValueError("Invalid native maximum resource actors/fight")
         context = self.context(effect, invocation)
@@ -333,7 +338,7 @@ class NativeMaximumResourceHandler:
         amount = maximum_application_amount(
             amount if runner is None else runner.value, invocation, context_applied=True
         )
-        actor = self.fight.actors[invocation.target_id]
+        actor = registered_or_detached_actor(self.fight, invocation.target_id)
         stat, cap = family
         current, raw, maximum, minimum, raw_min, percent, low, high = _snapshot(
             actor, stat
@@ -464,7 +469,9 @@ class NativeMaximumResourceHandler:
 
 def remove_maximum_resource(handler, uid):
     entry = handler.fight.owned_stat_effects[uid]
-    actor = handler.fight.actors[entry["target_id"]]
+    actor = registered_or_detached_actor(handler.fight, entry["target_id"])
+    if actor is None:
+        raise ValueError("Missing native maximum resource removal actor")
     stat = entry["stat_id"]
     current, raw, maximum, minimum, raw_min, percent, low, high = _snapshot(actor, stat)
     updated_raw = (
@@ -557,11 +564,14 @@ class NativeMaximumReductionHandler:
         parameters = effect["parameters"]
         if stat is None or len(parameters) not in (2, 4, 6, 8):
             raise ValueError("Unsupported native eWO resource definition")
-        actor = self.fight.actors.get(invocation.target_id)
-        if (
-            actor is None
-            or self.fight.phase != "active"
-            or invocation.caster_id not in self.fight.actors
+        actor = registered_or_detached_actor(self.fight, invocation.target_id)
+        if actor is None or (
+            not constructor_stat_context(self.fight, invocation)
+            and (
+                self.fight.phase != "active"
+                or invocation.target_id not in self.fight.actors
+                or invocation.caster_id not in self.fight.actors
+            )
         ):
             raise ValueError("Invalid native reduction resource actors/fight")
         context = self.context(effect, invocation)
@@ -707,7 +717,9 @@ class NativeMaximumReductionHandler:
 
 def remove_maximum_reduction(handler, uid):
     entry = handler.fight.owned_stat_effects[uid]
-    actor = handler.fight.actors[entry["target_id"]]
+    actor = registered_or_detached_actor(handler.fight, entry["target_id"])
+    if actor is None:
+        raise ValueError("Missing native maximum resource removal actor")
     stat = entry["stat_id"]
     current, raw, maximum, minimum, raw_min, percent, low, high = _snapshot(actor, stat)
     amount = entry["actual"]
@@ -784,12 +796,18 @@ class NativePercentageHPHandler:
     def __call__(self, effect, values, invocation):
         if effect["effect_class"] != 986 or len(effect["parameters"]) not in (2, 6):
             raise ValueError("Unsupported native eZI HP definition")
-        actor = self.fight.actors.get(invocation.target_id)
+        actor = registered_or_detached_actor(self.fight, invocation.target_id)
         if (
             actor is None
             or actor.hp <= 0
-            or self.fight.phase != "active"
-            or invocation.caster_id not in self.fight.actors
+            or (
+                not constructor_stat_context(self.fight, invocation)
+                and (
+                    self.fight.phase != "active"
+                    or invocation.target_id not in self.fight.actors
+                    or invocation.caster_id not in self.fight.actors
+                )
+            )
         ):
             raise ValueError("Invalid native percentage HP actor/fight")
         context = self.context(effect, invocation)
@@ -916,7 +934,9 @@ class NativePercentageHPHandler:
 
 def remove_percentage_hp(handler, uid):
     entry = handler.fight.owned_stat_effects[uid]
-    actor = handler.fight.actors[entry["target_id"]]
+    actor = registered_or_detached_actor(handler.fight, entry["target_id"])
+    if actor is None:
+        raise ValueError("Missing native maximum resource removal actor")
     current, raw, maximum, minimum, raw_min, percent, low, high = _snapshot(actor, 1)
     updated_percent = _int32(percent - entry["actual"])
     updated = effective_maximum(raw, updated_percent, low, high)

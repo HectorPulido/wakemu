@@ -204,34 +204,6 @@ def _policy(db):
     return value, hashlib.sha256(encoded).digest()
 
 
-def _native_sublimation_pattern(db, reference):
-    row = db.execute(
-        "SELECT slot_colors,pattern_type FROM native_sublimation_patterns "
-        "WHERE reference=%s AND enabled=TRUE",
-        (reference,),
-    ).fetchone()
-    if row is None:
-        return None
-    colors = row["slot_colors"]
-    if isinstance(colors, str):
-        colors = json.loads(colors)
-    if (
-        not isinstance(colors, (list, tuple))
-        or not 1 <= len(colors) <= 4
-        or any(
-            type(color) is not int or color not in (0, 1, 2, 3, 4) for color in colors
-        )
-        or row["pattern_type"] not in {"BASIC", "EPIC", "RELIC"}
-    ):
-        raise ValueError("Malformed native sublimation pattern")
-    # The current client export contains BASIC patterns only; BASIC's native
-    # fpR predicate accepts any item. EPIC/RELIC target eligibility is kept
-    # fail-closed until the target category carrier is implemented.
-    if row["pattern_type"] != "BASIC":
-        return None
-    return tuple(colors)
-
-
 def _native_pattern_matches(rows, pattern):
     """Mirror fpK.a(fpI, fpP): ordered contiguous colors, white is wildcard."""
     if not pattern:
@@ -364,6 +336,7 @@ def _published_state(
     applied
 ):
     from wakfu_server.inventory_move import synchronization
+    from wakfu_server.inventory_items import equipment_inventory
 
     character = store.character(account_id, character_id, db)
     packet = synchronization(character)
@@ -375,6 +348,7 @@ def _published_state(
         cost_kamas=cost_kamas,
         consumed_uid=consumed_uid,
         inventory_packet=packet,
+        equipment_packet=equipment_inventory(character),
         inventory_items=character["inventory_items"],
         inventory_containers=character["inventory_containers"],
         applied=applied,
@@ -463,8 +437,22 @@ def mutate(
         if item is None or item["quantity"] != 1:
             raise ValueError("Socket mutation requires one owned unstacked item")
         from .shard_identification import _catalog
+        from .sublimation_eligibility import pattern, special_target
 
+        attachment = pattern(db, extra) if operation == "apply_sublimation" else None
+        special = (attachment is not None and attachment["tag"] == 32) or (
+            operation == "remove_sublimation" and selector
+        )
         template = _catalog().get(item["reference"])
+        if special:
+            authority = special_target(
+                db,
+                item["reference"],
+                kind=None if attachment is None else attachment["kind"],
+            )
+            # Native bqV.dHp accepts an unstacked matching-rarity target even
+            # without fpI. Special attachments do not require socket colors.
+            template = dict(item_level=authority["item_level"])
         if template is None:
             raise ValueError("Socket target is not natively eligible")
         character_level = db.execute(
@@ -485,9 +473,11 @@ def mutate(
             "SELECT shard_state FROM inventory_item_shards WHERE uid=%s FOR UPDATE",
             (uid,),
         ).fetchone()
-        if shard is None:
+        if shard is None and not (special and operation == "apply_sublimation"):
             raise ValueError("Socket target has no identified shard state")
-        state = validate(bytes(shard["shard_state"]))
+        state = validate(
+            proto_field(72, 0) if shard is None else bytes(shard["shard_state"])
+        )
         policy, policy_hash = _policy(db)
         if operation not in policy["enabled_operations"]:
             raise ValueError("Socket operation disabled by local policy")
@@ -535,7 +525,10 @@ def mutate(
             # The native request names a scroll reference, not a unique unit.
             # Replaying an already-installed scroll must not consume another
             # copy, including after the short transport retry window expires.
-            if any(tag == 24 and value == extra for tag, value in proto_fields(state)):
+            if any(
+                tag == attachment["tag"] and value == extra
+                for tag, value in proto_fields(state)
+            ):
                 return _published_state(
                     store,
                     db,
@@ -548,11 +541,28 @@ def mutate(
                     consumed_uid=None,
                     applied=False,
                 )
-            scroll = db.execute(
+            scrolls = db.execute(
                 "SELECT uid,quantity FROM inventory_items WHERE character_id=%s AND reference=%s "
-                "AND uid<>%s ORDER BY uid LIMIT 1 FOR UPDATE",
+                "AND uid<>%s ORDER BY uid FOR UPDATE",
                 (character_id, extra, uid),
-            ).fetchone()
+            ).fetchall()
+            # A reference-only request does not select a specific stack. A
+            # protected first UID must not hide another consumable owned copy.
+            scroll = next(
+                (
+                    candidate
+                    for candidate in scrolls
+                    if candidate["quantity"] > 0
+                    and not db.execute(
+                        "SELECT 1 FROM player_exchange_items WHERE uid=%s LIMIT 1",
+                        (candidate["uid"],),
+                    ).fetchone()
+                    and not _equipped(
+                        store, db, account_id, character_id, candidate["uid"]
+                    )
+                ),
+                None,
+            )
             if scroll is None:
                 raise ValueError("Owned sublimation item is unavailable")
             if scroll["quantity"] < 1:
@@ -560,7 +570,10 @@ def mutate(
             ingredient = scroll["uid"]
 
         rows = _slots(state)
-        if not template["min_sockets"] <= len(rows) <= template["max_sockets"]:
+        if (
+            not special
+            and not template["min_sockets"] <= len(rows) <= template["max_sockets"]
+        ):
             raise ValueError(
                 "Persisted socket count is outside the native template bounds"
             )
@@ -661,10 +674,7 @@ def mutate(
 
         result = _replace_slots(state, rows)
         if operation == "apply_sublimation":
-            pattern = _native_sublimation_pattern(db, extra)
-            if pattern is None:
-                raise ValueError("Sublimation reference has no enabled native pattern")
-            if not _native_pattern_matches(rows, pattern):
+            if not _native_pattern_matches(rows, attachment["colors"]):
                 raise ValueError(
                     "Target sockets do not match the native sublimation pattern"
                 )
@@ -677,7 +687,9 @@ def mutate(
                 expected_reference=extra,
                 allow_stack=True,
             )
-            result = validate(_put(list(proto_fields(result)), 24, extra))
+            result = validate(
+                _put(list(proto_fields(result)), attachment["tag"], extra)
+            )
         elif operation == "remove_sublimation":
             tag = 32 if selector else 24
             if not any(
@@ -877,6 +889,7 @@ def install_bonus(store, account_id, generation, character_id, body):
                 # Publish authoritative state without another receipt or fee.
                 character = store.character(account_id, character_id, db)
                 from wakfu_server.inventory_move import synchronization
+                from wakfu_server.inventory_items import equipment_inventory
 
                 return dict(
                     uid=target_uid,
@@ -884,6 +897,7 @@ def install_bonus(store, account_id, generation, character_id, body):
                     shard_state=state,
                     elements=_current_elements(db, target_uid),
                     inventory_packet=synchronization(character),
+                    equipment_packet=equipment_inventory(character),
                     inventory_items=character["inventory_items"],
                     inventory_containers=character["inventory_containers"],
                     wallet_kamas=character["kamas"],
@@ -984,6 +998,7 @@ def install_bonus(store, account_id, generation, character_id, body):
 
         character = store.character(account_id, character_id, db)
         from wakfu_server.inventory_move import synchronization
+        from wakfu_server.inventory_items import equipment_inventory
 
         inventory_packet = synchronization(character)
         publication = dict(
@@ -992,6 +1007,7 @@ def install_bonus(store, account_id, generation, character_id, body):
             shard_state=state,
             elements=_current_elements(db, target_uid),
             inventory_packet=inventory_packet,
+            equipment_packet=equipment_inventory(character),
             inventory_items=character["inventory_items"],
             inventory_containers=character["inventory_containers"],
             wallet_kamas=character["kamas"],

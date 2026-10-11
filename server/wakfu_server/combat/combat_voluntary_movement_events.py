@@ -8,7 +8,7 @@ explicit server policy, independent of damage, push and teleport events.
 from .combat_event_replay import NativeExternalEvent
 
 
-def deliver_voluntary_movement(dispatcher, *, actor_id, from_cell, to_cell):
+def deliver_voluntary_movement(dispatcher, *, actor_id, from_cell, to_cell, action_id):
     fight = dispatcher.native_retention.fight
     actor = fight.actors.get(actor_id)
     if actor is None or tuple(actor.position) != tuple(to_cell):
@@ -28,11 +28,28 @@ def deliver_voluntary_movement(dispatcher, *, actor_id, from_cell, to_cell):
                 continue
         recipients.extend((identity, channel) for channel in (61, 41))
     outcomes = []
-    for identity, channel in recipients:
-        outcomes.extend(
-            dispatcher.replay_event(
-                NativeExternalEvent(identity, (1005,), channel),
-                authority=dispatcher.native_clone_authority,
+    from .combat_external_movement_recipient import (
+        POLICY,
+        committed_movement_recipient_scope,
+    )
+
+    context = dict(
+        policy=POLICY,
+        actor_id=actor_id,
+        turn_id=fight.turn_id,
+        action_id=action_id,
+        from_cell=tuple(from_cell),
+        to_cell=tuple(to_cell),
+        event_id=1005,
+    )
+    with committed_movement_recipient_scope(fight, context):
+        for identity, channel in recipients:
+            outcomes.extend(
+                dispatcher.replay_event(
+                    NativeExternalEvent(
+                        identity, (1005,), channel, movement_boundary_context=context
+                    ),
+                    authority=dispatcher.native_clone_authority,
+                )
             )
-        )
     return tuple(outcomes)

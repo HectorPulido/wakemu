@@ -33,6 +33,24 @@ class World:
         with self.lock:
             return [deepcopy(character) for _, _, character in self.players.values()]
 
+    def update_territory_projection(self, generation, character, *, peer, bonuses):
+        """Merge derived stats only while the exact owner/location lease is live."""
+        with self.lock:
+            entry = self.players.get(character["id"])
+            if (
+                entry is None
+                or entry[0] != generation
+                or entry[1] is not peer
+                or any(
+                    entry[2].get(key) != character.get(key)
+                    for key in ("map_id", "instance_id", "x", "y", "z")
+                )
+            ):
+                return False
+            entry[2]["territory_stat_bonuses"] = dict(bonuses)
+            entry[2]["_published_territory_stat_bonuses"] = dict(bonuses)
+            return True
+
     def ecology_snapshot(self):
         """Copy only scalar occupancy authority, without inventory/build graphs."""
         keys = ("id", "account_id", "map_id", "instance_id", "x", "y", "z")

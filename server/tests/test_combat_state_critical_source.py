@@ -81,6 +81,7 @@ class CausingStateCriticalTests(unittest.TestCase):
                 critical=not hit,
             )
             invocation = SimpleNamespace(
+                reference=350694,
                 state_uid=18,
                 native_trigger_context=dict(
                     native_definition_present=True, native_definition_variant=int(hit)

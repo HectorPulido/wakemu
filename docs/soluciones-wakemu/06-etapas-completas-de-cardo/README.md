@@ -1,12 +1,28 @@
 # 6. Cardo no llega a su etapa final
 
+> Current release2026-10-11: complete shared World/AI/ecology/admin deployed and automatically verified. Migration123; stable window released08:07 UTC. [Deployment evidence](../../reports/SYSTEMS-DEPLOYMENT-20261011.md). Closed by Hector after the full flora review; any earlier prepared/not-deployed wording below is historical. Native planting bonus stays disabled pending its separate native-display acceptance.
+
+
 Recorrer todas las etapas válidas de una planta y conservar el progreso.
 
 [Diagnóstico](DIAGNOSTICO.md) · [Cotejo de código](COTEJO.md) · [Solución](SOLUCION.md) · [Pruebas](PRUEBAS.md) · [Información pendiente](FALTANTES.md)
 
 ## Estado y alcance
 
-**En revision.** El servidor ya utiliza el grafo PostgreSQL de migración017: 401 aristas para141 referencias vegetales, más cinco referencias con etapa1 terminal. Está desplegado; falta completar la aceptación visual y el recorrido automatizado de todas las especies. Las notas anteriores a017 se conservan como historial.
+### Closed by Hector — 2026-10-11
+
+All146 plantable trees, cereals and plants were checked. Hector explicitly closes this issue; new graphical defects will be tracked in a new issue. The native planting probability proposal is separate.
+
+| Scope | Current evidence | Remaining acceptance |
+| --- | --- | --- |
+| All plantable flora | Native stages/actions and harvest destinations checked for146 references;401 growth edges,141 growing references and5 terminal-only references. All88 optional variants covered. | Accepted for closure by Hector. |
+| Repeated seed-harvest cycles | Fixed durable rare-variant decisions surviving into the next lifecycle. Harvest clears the old decision in the same transaction; Cardo/Fresno regressions cover regrowth, storage reopen and a fresh rare decision. | Correction deployed and automatically verified. |
+| Automated verification | `test_plant_growth_graph` matrix and lifecycle regressions passed in the133-test core gate; evidence: `.runtime/local/verification-20261011-plant-socket-mount.log`. | No pending automatic species traversal from this review. |
+| General manual journey | [Complete systems acceptance](../../reports/SYSTEMS-MANUAL-ACCEPTANCE-20261011.md) gives exact Cardo/Fresno seeds, cells and expected seed/crop cycles. | Optional future regression journey; not a closure requirement. |
+
+The dated sections below retain historical deployment and test evidence; they do not override this current review.
+
+**Historical review.** El servidor ya utiliza el grafo PostgreSQL de migración017: 401 aristas para141 referencias vegetales, más cinco referencias con etapa1 terminal. Está desplegado; falta completar la aceptación visual y el recorrido automatizado de todas las especies. Las notas anteriores a017 se conservan como historial.
 
 ## Dependencias
 

@@ -1,4 +1,4 @@
-"""Owner-scoped garden policy for dynamic Haven Bag rooms.
+"""Public garden policy for authoritative dynamic Haven Bag interiors.
 
 Garden plants use the shared durable flora growth and harvesting engine. Native
 exterior terrain and weather catalogs do not describe these dynamic interiors.
@@ -11,24 +11,52 @@ LOCATION_KEYS = ("map_id", "instance_id", "x", "y", "z")
 GARDEN_GEMS = frozenset((4266, 11099))
 
 
-def active_character(stored, players):
+def active_character(stored, players, *, store=None):
     """Overlay only a server-owned active interior; retain SQL inventory/build."""
     live = next((p for p in players if p["id"] == stored["id"]), None)
     if live is None or live.get("map_id") != 9:
         return stored
+    if live.get("account_id") != stored["account_id"]:
+        raise ValueError("Garden actor account does not match its active session")
+    config = live.get("haven_bag")
+    if not config:
+        if live.get("instance_id") == instance_id(stored):
+            config = stored.get("haven_bag") or {}
+        elif (
+            store is not None
+            and type(live.get("instance_id")) is int
+            and live["instance_id"] > 0
+        ):
+            # External ecology carries scalar occupancy only. Resolve the bag
+            # from its authoritative private instance rather than substituting
+            # the visitor's SQL layout or transmitting inventory graphs.
+            from .haven_bag_store import load
+
+            with store.connection() as db:
+                config = load(db, live["instance_id"])
+        else:
+            config = {}
     if (
-        live.get("instance_id") != instance_id(stored)
-        or live.get("account_id") != stored["account_id"]
+        type(live.get("instance_id")) is not int
+        or live["instance_id"] <= 0
+        or (live["instance_id"] != config.get("owner_id", stored["id"]))
     ):
-        raise ValueError("Garden requires the owner's active Haven Bag")
-    return {**stored, **{key: live[key] for key in LOCATION_KEYS}}
+        raise ValueError("Garden requires an authoritative active Haven Bag")
+    # The live session supplies the visited layout and location only. Seeds,
+    # harvested items, profession progress and identity remain the visitor's.
+    return {
+        **stored,
+        **{key: live[key] for key in LOCATION_KEYS},
+        "haven_bag": config,
+        "haven_bag_visitor": live.get("haven_bag_visitor", False),
+    }
 
 
 def room_at(character, x, y):
     if character.get("map_id") != 9 or character.get("instance_id") != instance_id(
         character
     ):
-        raise ValueError("Garden requires the owner's active Haven Bag")
+        raise ValueError("Garden requires the active Haven Bag layout")
     if any(type(v) is not int or not 0 <= v < 18 for v in (x, y)):
         raise ValueError("Garden target is outside the Haven Bag rooms")
     config = character.get("haven_bag") or {}

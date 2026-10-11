@@ -1,4 +1,4 @@
-"""Owned NPC state2 completion: fcb.aD/H/aQ removes QI, not fighter history."""
+"""Owned non-summon fighter state2 completion: fcb.aD/H/aQ removes QI, not fighter history."""
 SOURCE = "wakemu.owned-npc-state2-qi-completion-v1"
 
 
@@ -14,8 +14,6 @@ def retired_ordinary_qi_ids(fight):
         actor = fight.actors.get(int(key))
         if (
             actor is None
-            or actor.controlled
-            or actor.id >= 0
             or actor.hp != 0
             or not isinstance(row, dict)
             or row.get("source") != SOURCE
@@ -30,8 +28,10 @@ def retired_ordinary_qi_ids(fight):
     return result
 
 
-def complete_ordinary_qi_death(fight, actor):
-    """Explicit owned state2 completion policy; unknown/IN_PLAY HP0 is untouched."""
+def complete_ordinary_qi_death(fight, actor, *, fighter_state=2):
+    """Complete an explicitly requested state2, never mere HP0 or reversible KO."""
+    if type(fighter_state) is not int or fighter_state != 2:
+        raise ValueError("Explicit native final fighter state2 required")
     from .combat_global_pv_collections import (
         global_fighter_guards,
         set_global_fighter_status,
@@ -39,11 +39,7 @@ def complete_ordinary_qi_death(fight, actor):
     from .combat_ordinary_death import registered_ordinary_death
     from .combat_qi_fight import current_registry
 
-    if (
-        actor.controlled
-        or actor.id >= 0
-        or getattr(actor, "native_summon_source", None) is not None
-    ):
+    if getattr(actor, "native_summon_source", None) is not None:
         return False
     records = getattr(fight, "native_ordinary_qi_retirements", {})
     if str(actor.id) in records:
@@ -59,12 +55,15 @@ def complete_ordinary_qi_death(fight, actor):
     registry = current_registry(fight)
     slot = actor.native_obstacle_id
     registry.remove(slot, ("actor", actor.id))
+    serialized_slots = registry.serialized_slots()
+    serialized_cells = registry.serialized_cells()
+    serialized_topology = registry.serialized_byte_topology()
     row = dict(source=SOURCE, actor_id=actor.id, qi_slot=slot)
     set_global_fighter_status(fight, actor.id, "OUT_OF_PLAY")
     actor.native_obstacle_id = -1
     actor.native_ordinary_qi_retirement = row
     fight.native_ordinary_qi_retirements = dict(records, **{str(actor.id): row})
-    fight.native_qi_slots = registry.serialized_slots()
-    fight.native_qi_touched_cells = registry.serialized_cells()
-    fight.native_qi_byte_topology = registry.serialized_byte_topology()
+    fight.native_qi_slots = serialized_slots
+    fight.native_qi_touched_cells = serialized_cells
+    fight.native_qi_byte_topology = serialized_topology
     return True

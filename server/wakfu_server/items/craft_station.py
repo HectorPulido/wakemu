@@ -261,7 +261,11 @@ def native_interactions():
 
 
 def resolve_haven_bag(character, table_id, catalog, templates):
-    """Authorize native portable crafting against the current owned bag layout."""
+    """Authorize portable crafting against the authoritative visited layout.
+
+    The active HavenBagSession supplies this layout; crafting consumes and
+    grants items through the requesting character's SQL inventory only.
+    """
     from wakfu_server.haven_bag_store import instance_id
 
     if (

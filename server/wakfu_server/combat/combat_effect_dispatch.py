@@ -41,6 +41,7 @@ class EffectInvocation:
         None  # Explicit server cast policy; never a Qe.
     )
     native_turn_boundary_context: dict | None = None  # Owned turn policy, never a Qe.
+    native_movement_boundary_context: dict | None = None  # Committed step, never a Qe.
     native_running_uid: int | None = None
     native_value_scope: object | None = (
         None  # Ephemeral identity of the PS/eVt observer.
@@ -83,6 +84,7 @@ class EffectDispatcher:
         group_random=None,
         distance_group_runner=None,
         group_execution_scope=None,
+        resolved_population_scope=None,
     ):
         self.effects = effects
         self.handlers = handlers
@@ -104,6 +106,7 @@ class EffectDispatcher:
         self.group_random = group_random
         self.distance_group_runner = distance_group_runner
         self.group_execution_scope = group_execution_scope
+        self.resolved_population_scope = resolved_population_scope
         self._active_pt = None
         self._active_ancestors = ()
         self._active_execution_keys = ()
@@ -219,14 +222,18 @@ class EffectDispatcher:
             )
         return self.execute(invocation, ancestors=())
 
-    def execute_pt(self, invocation, *, ancestors=None):
+    def execute_pt(
+        self, invocation, *, ancestors=None, fresh_relationship_policy=False
+    ):
         from .combat_repeated_group import NativePtResult
 
-        # PT calls deliberately bind their supplied PV. The server fresh-child
-        # policy applies only to ordinary ordered-group child selection.
+        if type(fresh_relationship_policy) is not bool:
+            raise ValueError("Explicit PT relationship policy required")
+        # Native PT binds its supplied PV. Only the explicitly opted-in eYC
+        # server reconstruction applies fresh relationship selectors instead.
         invocation = replace(
             invocation,
-            wakemu_fresh_child_selection=False,
+            wakemu_fresh_child_selection=fresh_relationship_policy,
             wakemu_rebound_child_selection=False,
         )
 
@@ -276,12 +283,33 @@ class EffectDispatcher:
         )
         # Resolving per effect also supplies native eligibility for critical
         # branches, event triggers and target overrides. Never default to all.
-        success = False
-        for selected in (
+        population = tuple(
             (invocation,)
             if activation is not None
             else self.resolve(effect, invocation)
-        ):
+        )
+        # Native selection holds actual PV pointers for the complete traversal,
+        # including later recipients unregistered by an earlier selected runner.
+        scope = (
+            self.resolved_population_scope(population)
+            if self.resolved_population_scope is not None
+            else nullcontext()
+        )
+        with scope:
+            return self._execute_resolved(
+                invocation,
+                ancestors=ancestors,
+                effect=effect,
+                values=values,
+                activation=activation,
+                population=population,
+            )
+
+    def _execute_resolved(
+        self, invocation, *, ancestors, effect, values, activation, population
+    ):
+        success = False
+        for selected in population:
             if not isinstance(selected, EffectInvocation) or (
                 selected.reference != invocation.reference
                 or selected.level != invocation.level
@@ -568,35 +596,46 @@ class EffectDispatcher:
                     rng=self.group_random,
                 )
                 applied = False
-                for target in targets:
-                    child_level, context = self.group_retention.child_level_context(
-                        effect,
-                        values,
-                        selected,
-                        default_level=selected.level,
-                        event_activation=activation is not None,
-                    )
-                    for reference in effect["children"]:
-                        child = replace(
+                target_scope = (
+                    self.resolved_population_scope(targets)
+                    if self.resolved_population_scope is not None
+                    else nullcontext()
+                )
+                with target_scope:
+                    for target in targets:
+                        child_level, context = self.group_retention.child_level_context(
+                            effect,
+                            values,
                             selected,
-                            reference=reference,
-                            level=child_level,
-                            target_id=target.target_id,
-                            cell=self.actor_position(target.target_id),
-                            native_context_hex=context.hex(),
-                            native_value_scope=None,
-                            native_running_uid=None,
-                            native_explicit_target=True,
-                            base_uid=None
-                            if activation is not None
-                            else selected.base_uid,
+                            default_level=selected.level,
+                            event_activation=activation is not None,
                         )
-                        applied = (
-                            self.execute_pt(
-                                child, ancestors=(*ancestors, invocation.reference)
-                            ).applied
-                            or applied
-                        )
+                        for reference in effect["children"]:
+                            child = replace(
+                                selected,
+                                reference=reference,
+                                level=child_level,
+                                target_id=target.target_id,
+                                cell=self.actor_position(target.target_id),
+                                native_context_hex=context.hex(),
+                                native_value_scope=None,
+                                native_running_uid=None,
+                                native_explicit_target=True,
+                                # Wakemu reconstructs fresh child relationship
+                                # selectors independently of the transmitted PV.
+                                wakemu_fresh_child_selection=True,
+                                base_uid=None
+                                if activation is not None
+                                else selected.base_uid,
+                            )
+                            applied = (
+                                self.execute_pt(
+                                    child,
+                                    ancestors=(*ancestors, invocation.reference),
+                                    fresh_relationship_policy=True,
+                                ).applied
+                                or applied
+                            )
                 self.group_retention.finish_group(pending_group, notify=False)
                 success = applied or success
             elif effect["effect_class"] == 949:

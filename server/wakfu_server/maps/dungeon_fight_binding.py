@@ -2,7 +2,15 @@
 from wakfu_server.dungeon_progression import bind_encounter
 
 
-def bind_room_group(db, group_key, character_id, fight_id, *, player_team=0):
+def bind_room_group(
+    db,
+    group_key,
+    character_id,
+    fight_id,
+    *,
+    player_team=0,
+    expected_selection_revision=None
+):
     """Run inside fight creation after its durable participant is inserted.
 
     Ordinary map groups do not acquire a dungeon binding. A dungeon run only
@@ -39,14 +47,19 @@ def bind_room_group(db, group_key, character_id, fight_id, *, player_team=0):
     ):
         raise ValueError("Combat group is not the current dungeon room")
     reconcile_aborted_encounters(db, instance_id=instance_id)
-    return bind_encounter(
+    binding = bind_encounter(
         db,
         instance_id,
         run["party_id"],
         character_id,
         fight_id,
         player_team=player_team,
+        expected_selection_revision=expected_selection_revision,
     )
+    from wakfu_server import dungeon_stele
+
+    dungeon_stele.freeze_encounter(db, instance_id, fight_id)
+    return binding
 
 
 def abort_room_encounter(db, fight_id):

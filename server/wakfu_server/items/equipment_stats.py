@@ -1,9 +1,10 @@
-"""Native flat equipment bonuses from the owned selected equipment sheet.
+"""Selected equipment/aptitude bonuses and explicit temporary server profiles.
 
 Only native passive equipment effects (eHi.a: aZD==0, fKP==false) feed
 characteristics. Active item actions remain separately reported; unconditional
 eWN maximum+current and scalar eWQ passives are evaluated.
 Other effects remain explicitly reported, never converted to invented bonuses.
+Competitive dungeon profile bonuses are separately authorized local policy.
 """
 from wakfu_server import native_catalog as protocol_catalog
 import json
@@ -182,6 +183,10 @@ def bonuses(character, *, build_index=None):
 
     aptitudes = aptitude_bonuses(character, build_index=index)
     for stat, delta in aptitudes["stats"].items():
+        stats[stat] = stats.get(stat, 0) + delta
+    from wakfu_server.characters.dungeon_modulation import bonus_stats
+
+    for stat, delta in bonus_stats(character, index).items():
         stats[stat] = stats.get(stat, 0) + delta
     territory_stats = character.get("territory_stat_bonuses", {})
     if not isinstance(territory_stats, dict) or any(

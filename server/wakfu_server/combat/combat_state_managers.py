@@ -137,6 +137,10 @@ def registered_area_pv(fight, identity):
         id=identity,
         position=tuple(cell),
         native_is_area=True,
+        # Verified faV.rzt contains fbo objects (namespace4). Native eMo
+        # queries ffe objects (namespace1), never the same numeric fbo IDs.
+        # area_properties and the actual constructor were validated above.
+        native_fight_properties=frozenset(),
         native_fight_affiliation=row.get("native_fight_affiliation"),
         native_running_effect_manager=row["native_running_effect_manager"],
         native_los_height=(
@@ -150,6 +154,46 @@ def registered_area_pv(fight, identity):
         state_ledger=ledger,
         native_characteristics=trap_stats,
     )
+
+
+def selected_native_area_entity(fight, identity):
+    """Validated Qq/eHg geometry, without fighter or invented Qf authority."""
+    selected = registered_area_pv(fight, identity)
+    if selected is None:
+        return None
+    row = retained_area_pv_row(fight, identity)
+    # Qq.bcL is zero. eII.aT follows Qp.bch to its actual owner PV.
+    return SimpleNamespace(
+        id=identity,
+        position=selected.position,
+        physical_radius=0,
+        owner_id=row.get("owner_id"),
+        native_fight_affiliation=selected.native_fight_affiliation,
+    )
+
+
+def verified_native_owner_root(fight, identity, actor_authority):
+    """eII.aT: verified eGj.dpu or recursive Qp.bch, never UID inference."""
+    from .combat_native_actor_lookup import native_actor
+
+    visited = set()
+    while identity is not None:
+        if type(identity) is not int or identity in visited or len(visited) >= 128:
+            raise ValueError("Invalid or recursive native owner chain")
+        visited.add(identity)
+        actor = native_actor(fight, identity)
+        if actor is not None:
+            controller = actor_authority(actor).native_controller_id
+            if type(controller) is not int:
+                raise ValueError("Missing verified native owner controller")
+            if controller == identity:
+                return identity
+            identity = controller
+        else:
+            if registered_area_pv(fight, identity) is None:
+                raise ValueError("Unknown native owner PV")
+            identity = retained_area_pv_row(fight, identity).get("owner_id")
+    return None
 
 
 def state_manager(fight, identity):

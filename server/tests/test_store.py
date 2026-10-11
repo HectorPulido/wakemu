@@ -128,6 +128,22 @@ class StoreTests(PostgresCase):
                 ),
             )
 
+    def test_character_hydrates_authoritative_account_admin_role(self):
+        admin_character = self.store.create_character(self.a, "Admin Chat Role")
+        ordinary_character = self.store.create_character(self.b, "Ordinary Chat Role")
+        with self.store.connection() as db:
+            db.execute("UPDATE accounts SET is_admin=true WHERE id=%s", (self.a,))
+
+        admin = self.store.character(self.a, admin_character["id"])
+        ordinary = self.store.character(self.b, ordinary_character["id"])
+        self.assertIs(admin["account_is_admin"], True)
+        self.assertIs(ordinary["account_is_admin"], False)
+
+        with self.store.connection() as db:
+            db.execute("UPDATE accounts SET is_admin=false WHERE id=%s", (self.a,))
+        refreshed = self.store.character(self.a, admin_character["id"])
+        self.assertIs(refreshed["account_is_admin"], False)
+
     def test_one_use_token_under_race(self):
         token = self.store.issue_token(self.a, "ticket")
 
@@ -143,7 +159,8 @@ class StoreTests(PostgresCase):
 
     def test_replacement_and_late_cleanup(self):
         old = self.store.begin_session(self.a)
-        new = self.store.begin_session(self.a)
+        # The deterministic clock advances by 61 seconds below.
+        new = self.store.begin_session(self.a, ttl=60)
         self.store.end_session(self.a, old)
         self.assertFalse(self.store.current_session(self.a, old))
         self.assertTrue(self.store.current_session(self.a, new))

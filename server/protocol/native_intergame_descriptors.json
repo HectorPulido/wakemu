@@ -1,0 +1,1070 @@
+{
+  "identifiers": [
+    {
+      "registry": "CHANNEL_MESSAGE",
+      "id": -1069660172,
+      "java_class": "i",
+      "message": "channel.ChannelMessage"
+    },
+    {
+      "registry": "CHANNEL_MESSAGE_CREATED_EVT",
+      "id": 804239649,
+      "java_class": "l",
+      "message": "channel.ChannelMessageCreatedEvt"
+    },
+    {
+      "registry": "CHANNEL_MESSAGE_LIST",
+      "id": 1116378206,
+      "java_class": "p",
+      "message": "channel.ChannelMessageList"
+    },
+    {
+      "registry": "CREATE_CHANNEL_MESSAGE_CMD",
+      "id": 1835442294,
+      "java_class": "u",
+      "message": "channel.CreateChannelMessageCmd"
+    },
+    {
+      "registry": "LIST_CHANNEL_MESSAGES_CMD",
+      "id": -882050982,
+      "java_class": "y",
+      "message": "channel.ListChannelMessagesCmd"
+    },
+    {
+      "registry": "CREATE_FRIEND_INVITE_CMD",
+      "id": -666416802,
+      "java_class": "E",
+      "message": "friend_invite.CreateFriendInviteCmd"
+    },
+    {
+      "registry": "RECIPIENT_USER_NAME_AND_TAG",
+      "id": -1094628021,
+      "java_class": "I",
+      "message": "friend_invite.CreateFriendInviteCmd.RecipientUserNameAndTag"
+    },
+    {
+      "registry": "DELETE_FRIEND_INVITE_CMD",
+      "id": 1707706475,
+      "java_class": "N",
+      "message": "friend_invite.DeleteFriendInviteCmd"
+    },
+    {
+      "registry": "FRIEND_INVITE",
+      "id": 1982397216,
+      "java_class": "T",
+      "message": "friend_invite.FriendInvite"
+    },
+    {
+      "registry": "FRIEND_INVITE_CREATED_EVT",
+      "id": 775219117,
+      "java_class": "W",
+      "message": "friend_invite.FriendInviteCreatedEvt"
+    },
+    {
+      "registry": "FRIEND_INVITE_DELETED_EVT",
+      "id": -280368044,
+      "java_class": "aa",
+      "message": "friend_invite.FriendInviteDeletedEvt"
+    },
+    {
+      "registry": "FRIEND_INVITE_LIST",
+      "id": 425860746,
+      "java_class": "ae",
+      "message": "friend_invite.FriendInviteList"
+    },
+    {
+      "registry": "CREATE_USER_BLOCKED_USER_CMD",
+      "id": 535531165,
+      "java_class": "aG",
+      "message": "user.CreateUserBlockedUserCmd"
+    },
+    {
+      "registry": "CREATE_USER_FRIEND_GROUP_CMD",
+      "id": 2103632902,
+      "java_class": "aK",
+      "message": "user.CreateUserFriendGroupCmd"
+    },
+    {
+      "registry": "DELETE_USER_BLOCKED_USER_CMD",
+      "id": -441785997,
+      "java_class": "aO",
+      "message": "user.DeleteUserBlockedUserCmd"
+    },
+    {
+      "registry": "DELETE_USER_FRIEND_CMD",
+      "id": 926307863,
+      "java_class": "aS",
+      "message": "user.DeleteUserFriendCmd"
+    },
+    {
+      "registry": "DELETE_USER_FRIEND_GROUP_CMD",
+      "id": -2027713560,
+      "java_class": "aW",
+      "message": "user.DeleteUserFriendGroupCmd"
+    },
+    {
+      "registry": "ENDPOINT_PROPERTIES",
+      "id": 340427268,
+      "java_class": "ba",
+      "message": "user.EndpointProperties"
+    },
+    {
+      "registry": "FRIEND",
+      "id": 2098162165,
+      "java_class": "bf",
+      "message": "user.Friend"
+    },
+    {
+      "registry": "FRIEND_GROUP",
+      "id": 862990330,
+      "java_class": "bi",
+      "message": "user.Friend.Group"
+    },
+    {
+      "registry": "FRIEND_GROUP_LIST",
+      "id": -87853131,
+      "java_class": "bm",
+      "message": "user.FriendGroupList"
+    },
+    {
+      "registry": "FRIEND_LIST",
+      "id": -1150791598,
+      "java_class": "bq",
+      "message": "user.FriendList"
+    },
+    {
+      "registry": "LIST_USER_BLOCKED_USERS_CMD",
+      "id": 937824261,
+      "java_class": "bv",
+      "message": "user.ListUserBlockedUsersCmd"
+    },
+    {
+      "registry": "LIST_USER_FRIEND_GROUPS_CMD",
+      "id": 1348064163,
+      "java_class": "bz",
+      "message": "user.ListUserFriendGroupsCmd"
+    },
+    {
+      "registry": "LIST_USER_FRIEND_INVITES_CMD",
+      "id": 669955095,
+      "java_class": "bD",
+      "message": "user.ListUserFriendInvitesCmd"
+    },
+    {
+      "registry": "LIST_USER_FRIENDS_CMD",
+      "id": -1933682604,
+      "java_class": "bH",
+      "message": "user.ListUserFriendsCmd"
+    },
+    {
+      "registry": "UPDATE_USER_ENDPOINT_PROPERTIES_CMD",
+      "id": -73350898,
+      "java_class": "bL",
+      "message": "user.UpdateUserEndpointPropertiesCmd"
+    },
+    {
+      "registry": "UPDATE_USER_FRIEND_CMD",
+      "id": 200201123,
+      "java_class": "bP",
+      "message": "user.UpdateUserFriendCmd"
+    },
+    {
+      "registry": "UPDATE_USER_STATUS_CMD",
+      "id": 172854262,
+      "java_class": "bT",
+      "message": "user.UpdateUserStatusCmd"
+    },
+    {
+      "registry": "USER",
+      "id": -1819083583,
+      "java_class": "bX",
+      "message": "user.User"
+    },
+    {
+      "registry": "USER_BLOCKED_USER_CREATED_EVT",
+      "id": -48328327,
+      "java_class": "ca",
+      "message": "user.UserBlockedUserCreatedEvt"
+    },
+    {
+      "registry": "USER_BLOCKED_USER_DELETED_EVT",
+      "id": 1013160576,
+      "java_class": "ce",
+      "message": "user.UserBlockedUserDeletedEvt"
+    },
+    {
+      "registry": "USER_ENDPOINT_PROPERTIES_UPDATED_EVT",
+      "id": 1572432262,
+      "java_class": "ci",
+      "message": "user.UserEndpointPropertiesUpdatedEvt"
+    },
+    {
+      "registry": "USER_FRIEND_CREATED_EVT",
+      "id": 1611743244,
+      "java_class": "cm",
+      "message": "user.UserFriendCreatedEvt"
+    },
+    {
+      "registry": "USER_FRIEND_DELETED_EVT",
+      "id": -1586738187,
+      "java_class": "cq",
+      "message": "user.UserFriendDeletedEvt"
+    },
+    {
+      "registry": "USER_FRIEND_GROUP_CREATED_EVT",
+      "id": -1805159704,
+      "java_class": "cu",
+      "message": "user.UserFriendGroupCreatedEvt"
+    },
+    {
+      "registry": "USER_FRIEND_GROUP_DELETED_EVT",
+      "id": 1427798289,
+      "java_class": "cy",
+      "message": "user.UserFriendGroupDeletedEvt"
+    },
+    {
+      "registry": "USER_FRIEND_UPDATED_EVT",
+      "id": -1459775045,
+      "java_class": "cC",
+      "message": "user.UserFriendUpdatedEvt"
+    },
+    {
+      "registry": "USER_LIST",
+      "id": -1130070377,
+      "java_class": "cG",
+      "message": "user.UserList"
+    },
+    {
+      "registry": "USER_PRESENCE_UPDATED_EVT",
+      "id": -128858966,
+      "java_class": "cN",
+      "message": "user.UserPresenceUpdatedEvt"
+    },
+    {
+      "registry": "USER_STATUS_UPDATED_EVT",
+      "id": -1225369838,
+      "java_class": "cT",
+      "message": "user.UserStatusUpdatedEvt"
+    }
+  ],
+  "messages": {
+    "channel.ChannelMessage": [
+      {
+        "name": "message_id",
+        "number": 1,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "channel_id",
+        "number": 2,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "created_timestamp",
+        "number": 3,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "content",
+        "number": 4,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "author",
+        "number": 5,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.User"
+      }
+    ],
+    "channel.ChannelMessageCreatedEvt": [
+      {
+        "name": "message",
+        "number": 1,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "channel.ChannelMessage"
+      }
+    ],
+    "channel.ChannelMessageList": [
+      {
+        "name": "values",
+        "number": 1,
+        "type": "MESSAGE",
+        "repeated": true,
+        "required": false,
+        "message": "channel.ChannelMessage"
+      }
+    ],
+    "channel.CreateChannelMessageCmd": [
+      {
+        "name": "channel_id",
+        "number": 1,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "author_user_id",
+        "number": 2,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "content",
+        "number": 3,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "channel.ListChannelMessagesCmd": [
+      {
+        "name": "channel_id",
+        "number": 1,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "limit",
+        "number": 2,
+        "type": "INT32",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "before",
+        "number": 3,
+        "type": "STRING",
+        "repeated": false,
+        "required": false,
+        "oneof": "direction"
+      },
+      {
+        "name": "after",
+        "number": 4,
+        "type": "STRING",
+        "repeated": false,
+        "required": false,
+        "oneof": "direction"
+      }
+    ],
+    "friend_invite.CreateFriendInviteCmd": [
+      {
+        "name": "inviter_user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "recipient_user_id",
+        "number": 2,
+        "type": "INT64",
+        "repeated": false,
+        "required": false,
+        "oneof": "recipient"
+      },
+      {
+        "name": "recipient_user_name",
+        "number": 3,
+        "type": "STRING",
+        "repeated": false,
+        "required": false,
+        "oneof": "recipient"
+      },
+      {
+        "name": "recipient_user_name_and_tag",
+        "number": 4,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "oneof": "recipient",
+        "message": "friend_invite.CreateFriendInviteCmd.RecipientUserNameAndTag"
+      }
+    ],
+    "friend_invite.CreateFriendInviteCmd.RecipientUserNameAndTag": [
+      {
+        "name": "name",
+        "number": 1,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "tag",
+        "number": 2,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "friend_invite.DeleteFriendInviteCmd": [
+      {
+        "name": "inviter_user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "recipient_user_id",
+        "number": 2,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "reason",
+        "number": 3,
+        "type": "ENUM",
+        "repeated": false,
+        "required": false,
+        "enum": {
+          "Accepted": 0,
+          "Rejected": 1,
+          "Canceled": 2
+        }
+      }
+    ],
+    "friend_invite.FriendInvite": [
+      {
+        "name": "inviter",
+        "number": 1,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.User"
+      },
+      {
+        "name": "recipient",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.User"
+      }
+    ],
+    "friend_invite.FriendInviteCreatedEvt": [
+      {
+        "name": "invite",
+        "number": 1,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "friend_invite.FriendInvite"
+      }
+    ],
+    "friend_invite.FriendInviteDeletedEvt": [
+      {
+        "name": "invite",
+        "number": 1,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "friend_invite.FriendInvite"
+      },
+      {
+        "name": "reason",
+        "number": 2,
+        "type": "ENUM",
+        "repeated": false,
+        "required": false,
+        "enum": {
+          "Accepted": 0,
+          "Rejected": 1,
+          "Canceled": 2
+        }
+      }
+    ],
+    "friend_invite.FriendInviteList": [
+      {
+        "name": "values",
+        "number": 1,
+        "type": "MESSAGE",
+        "repeated": true,
+        "required": false,
+        "message": "friend_invite.FriendInvite"
+      }
+    ],
+    "transport.Frame": [
+      {
+        "name": "request",
+        "number": 1,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "oneof": "content",
+        "message": "transport.Frame.Request"
+      },
+      {
+        "name": "response",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "oneof": "content",
+        "message": "transport.Frame.Response"
+      },
+      {
+        "name": "event",
+        "number": 3,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "oneof": "content",
+        "message": "transport.Frame.Payload"
+      }
+    ],
+    "transport.Frame.Payload": [
+      {
+        "name": "id",
+        "number": 1,
+        "type": "INT32",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "data",
+        "number": 2,
+        "type": "BYTES",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "transport.Frame.Request": [
+      {
+        "name": "correlation_id",
+        "number": 1,
+        "type": "INT32",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "payload",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "transport.Frame.Payload"
+      }
+    ],
+    "transport.Frame.Response": [
+      {
+        "name": "correlation_id",
+        "number": 1,
+        "type": "INT32",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "status",
+        "number": 2,
+        "type": "ENUM",
+        "repeated": false,
+        "required": false,
+        "enum": {
+          "Unknown": 0,
+          "Success": 1,
+          "Forbidden": 2,
+          "BadRequest": 3,
+          "Timeout": 4,
+          "Failure": 5
+        }
+      },
+      {
+        "name": "payload",
+        "number": 3,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "transport.Frame.Payload"
+      }
+    ],
+    "user.CreateUserBlockedUserCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "blocked_user_id",
+        "number": 2,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.CreateUserFriendGroupCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "group",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.Friend.Group"
+      }
+    ],
+    "user.DeleteUserBlockedUserCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "blocked_user_id",
+        "number": 2,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.DeleteUserFriendCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "friend_user_id",
+        "number": 2,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.DeleteUserFriendGroupCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "name",
+        "number": 2,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.EndpointProperties": [
+      {
+        "name": "application_id",
+        "number": 1,
+        "type": "INT32",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "activities",
+        "number": 2,
+        "type": "STRING",
+        "repeated": true,
+        "required": false
+      },
+      {
+        "name": "metadata",
+        "number": 3,
+        "type": "MESSAGE",
+        "repeated": true,
+        "required": false,
+        "message": "user.EndpointProperties.MetadataEntry"
+      }
+    ],
+    "user.EndpointProperties.MetadataEntry": [
+      {
+        "name": "key",
+        "number": 1,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "value",
+        "number": 2,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.Friend": [
+      {
+        "name": "user",
+        "number": 1,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.User"
+      },
+      {
+        "name": "group",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.Friend.Group"
+      },
+      {
+        "name": "note",
+        "number": 3,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.Friend.Group": [
+      {
+        "name": "name",
+        "number": 1,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.FriendGroupList": [
+      {
+        "name": "values",
+        "number": 1,
+        "type": "MESSAGE",
+        "repeated": true,
+        "required": false,
+        "message": "user.Friend.Group"
+      }
+    ],
+    "user.FriendList": [
+      {
+        "name": "values",
+        "number": 1,
+        "type": "MESSAGE",
+        "repeated": true,
+        "required": false,
+        "message": "user.Friend"
+      }
+    ],
+    "user.ListUserBlockedUsersCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.ListUserFriendGroupsCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.ListUserFriendInvitesCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.ListUserFriendsCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.UpdateUserEndpointPropertiesCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "properties",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.EndpointProperties"
+      }
+    ],
+    "user.UpdateUserFriendCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "friend",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.Friend"
+      }
+    ],
+    "user.UpdateUserStatusCmd": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "status",
+        "number": 2,
+        "type": "ENUM",
+        "repeated": false,
+        "required": false,
+        "enum": {
+          "Available": 0,
+          "Away": 1,
+          "Busy": 2
+        }
+      }
+    ],
+    "user.User": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "name",
+        "number": 2,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "tag",
+        "number": 3,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.UserBlockedUserCreatedEvt": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "blocked_user",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.User"
+      }
+    ],
+    "user.UserBlockedUserDeletedEvt": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "blocked_user_id",
+        "number": 2,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.UserEndpointPropertiesUpdatedEvt": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "properties",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": true,
+        "required": false,
+        "message": "user.EndpointProperties"
+      }
+    ],
+    "user.UserFriendCreatedEvt": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "friend",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.Friend"
+      }
+    ],
+    "user.UserFriendDeletedEvt": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "friend_user_id",
+        "number": 2,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.UserFriendGroupCreatedEvt": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "group",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.Friend.Group"
+      }
+    ],
+    "user.UserFriendGroupDeletedEvt": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "name",
+        "number": 2,
+        "type": "STRING",
+        "repeated": false,
+        "required": false
+      }
+    ],
+    "user.UserFriendUpdatedEvt": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "friend",
+        "number": 2,
+        "type": "MESSAGE",
+        "repeated": false,
+        "required": false,
+        "message": "user.Friend"
+      }
+    ],
+    "user.UserList": [
+      {
+        "name": "values",
+        "number": 1,
+        "type": "MESSAGE",
+        "repeated": true,
+        "required": false,
+        "message": "user.User"
+      }
+    ],
+    "user.UserPresenceUpdatedEvt": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "presence",
+        "number": 2,
+        "type": "ENUM",
+        "repeated": false,
+        "required": false,
+        "enum": {
+          "Online": 0,
+          "Offline": 1
+        }
+      }
+    ],
+    "user.UserStatusUpdatedEvt": [
+      {
+        "name": "user_id",
+        "number": 1,
+        "type": "INT64",
+        "repeated": false,
+        "required": false
+      },
+      {
+        "name": "status",
+        "number": 2,
+        "type": "ENUM",
+        "repeated": false,
+        "required": false,
+        "enum": {
+          "Available": 0,
+          "Away": 1,
+          "Busy": 2
+        }
+      }
+    ]
+  }
+}

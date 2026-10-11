@@ -96,6 +96,11 @@ def edges_within(cells, adjacency):
 def _published_geometry(revision, map_id):
     # The revision is pinned by native_catalog. Mutable dictionaries from
     # map_geometry callers are never keys or sources of this reusable cache.
+    from wakfu_server.prepared_geometry import published_artifact
+
+    artifact = published_artifact(map_id)
+    if artifact is not None:
+        return artifact.geometry
     path = DATA_ROOT / "combat-maps" / f"{map_id}.json"
     if not protocol_catalog.exists(path):
         raise ValueError("No installed-client geometry export for this map")

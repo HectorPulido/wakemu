@@ -1,9 +1,14 @@
 import unittest
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from wakfu_server.combat_state import Actor
 from wakfu_server.combat_actor_snapshot import build_player_snapshot
-from wakfu_server.combat_reward_context import build_context, build_drop_context
+from wakfu_server.combat_reward_context import (
+    build_context,
+    build_drop_context,
+    authoritative_encounter_kind,
+)
 from wakfu_server.equipment_stats import effective_character
 from wakfu_server.health import maximum
 from wakfu_server.monsters import owned_instance
@@ -36,6 +41,33 @@ class CombatRewardContextTests(unittest.TestCase):
             player,
             npc,
         )
+
+    def test_encounter_origin_uses_durable_fight_binding_before_world_lease(self):
+        db = MagicMock()
+        db.execute.return_value.fetchone.return_value = {"instance_id": 501}
+        self.assertEqual(authoritative_encounter_kind(db, 91, (1134, 0, 44)), "dungeon")
+        db.execute.assert_called_once_with(
+            "SELECT instance_id FROM dungeon_room_encounters WHERE fight_id=%s", (91,)
+        )
+        self.assertEqual(authoritative_encounter_kind(db, 91, None), "dungeon")
+
+    def test_encounter_origin_only_public_world_group_has_known_negative_context(self):
+        db = MagicMock()
+        db.execute.return_value.fetchone.return_value = None
+        self.assertEqual(
+            authoritative_encounter_kind(db, 91, (1134, 0, 44)), "ordinary_world"
+        )
+        for unknown in ((1134, 501, 44), None, (1134,), (1134, False, 44)):
+            with self.subTest(group_key=unknown):
+                self.assertIsNone(authoritative_encounter_kind(db, 91, unknown))
+        db.reset_mock()
+        self.assertEqual(
+            authoritative_encounter_kind(
+                db, 91, (1134, 0, 44), dungeon_runtime_available=False
+            ),
+            "ordinary_world",
+        )
+        db.execute.assert_not_called()
 
     def test_context_accepts_real_spawn_and_native_player_snapshot(self):
         # Mirrors the production boundary: TEST_MONSTERS contains the owned
@@ -166,7 +198,22 @@ class CombatRewardContextTests(unittest.TestCase):
                 "in_infinite_waves": False,
             },
         )
-        for unsupported in ("dungeon", "infinite_waves", "unknown"):
+        for origin, dungeon, infinite_waves in (
+            ("dungeon", True, False),
+            ("infinite_waves", False, True),
+        ):
+            with self.subTest(encounter_kind=origin):
+                self.assertEqual(
+                    build_drop_context(
+                        fight, character, monsters, encounter_kind=origin
+                    ),
+                    dict(
+                        downscaled=False,
+                        in_dungeon=dungeon,
+                        in_infinite_waves=infinite_waves,
+                    ),
+                )
+        for unsupported in ("unknown", "", 123):
             with self.subTest(encounter_kind=unsupported):
                 with self.assertRaisesRegex(ValueError, "Unsupported authoritative"):
                     build_drop_context(

@@ -147,7 +147,22 @@ def prepare_npc_spell(
         context,
     )
     if action.get("targetId") != plan["target_id"]:
-        raise ValueError("NPC target identity differs from native cell target")
+        from .combat_qi_fight import current_registry
+
+        registry = current_registry(fight)
+        occupants = [
+            registry.slots[slot]["identity"]
+            for slot in registry.ordered_U(*request["target"][:2])
+            if registry.slots[slot] is not None
+        ]
+        error = ValueError("NPC target identity differs from native cell target")
+        error.native_target_diagnostic = dict(
+            requested_target_id=action.get("targetId"),
+            native_target_id=plan["target_id"],
+            target_cell=list(request["target"]),
+            ordered_qi_occupants=occupants,
+        )
+        raise error
     return prepare_validated_npc_spell(
         fight,
         plan,

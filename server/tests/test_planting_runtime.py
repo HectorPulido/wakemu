@@ -500,6 +500,13 @@ class RuntimePlantingTests(PostgresCase):
         body = self.native_probability_body(4444)
         from wakfu_server import territory_weather
 
+        # This case exercises the preserved baseline, independently of the
+        # separately tested daily weather simulator enabled by default.
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value=jsonb_set(value,'{enabled}','false') "
+                "WHERE name='weather_simulation'"
+            )
         baseline = territory_weather.context(self.store, self.char, x=-23, y=-143, z=70)
         self.assertEqual(baseline["weather"], "ABSENT")
         self.runtime = Plantings(

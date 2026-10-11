@@ -51,7 +51,7 @@ class TerritoryWeatherMovementDispatchTests(unittest.TestCase):
             self.assertFalse(transition(1134, old, new))
 
     def test_same_region_movement_keeps_ecology_without_repeating_weather(self):
-        from wakfu_server import ecology_context, territory_weather
+        from wakfu_server import ecology_context, territory_bonuses, territory_weather
 
         sent = []
         namespace = {
@@ -63,10 +63,9 @@ class TerritoryWeatherMovementDispatchTests(unittest.TestCase):
             "record": lambda **entry: None,
         }
         publish = production_function("send_planting_context", namespace)
-        with patch.object(
-            ecology_context,
-            "packet",
-            return_value=(12789, b"ecology"),
+        with (
+            patch.object(ecology_context, "packet", return_value=(12789, b"ecology")),
+            patch.object(territory_bonuses, "refresh_world", return_value=[]),
         ):
             with patch.object(territory_weather, "context") as weather:
                 publish(
@@ -82,6 +81,46 @@ class TerritoryWeatherMovementDispatchTests(unittest.TestCase):
                     include_weather=False,
                 )
         self.assertEqual(sent, [(12789, b"ecology")])
+        weather.assert_not_called()
+
+    def test_same_region_satisfaction_change_publishes_stats_without_weather(self):
+        from wakfu_server import ecology_context, territory_bonuses, territory_weather
+
+        sent = []
+        store = object()
+        character = {
+            "id": 3,
+            "map_id": 1134,
+            "instance_id": 17,
+            "x": 10,
+            "y": 20,
+            "z": 0,
+        }
+        publish = production_function(
+            "send_planting_context",
+            {
+                "STORE": store,
+                "OPEN_PLANTING": False,
+                "send": lambda connection, service, opcode, payload: sent.append(
+                    (opcode, payload)
+                ),
+                "record": lambda **entry: None,
+            },
+        )
+        with (
+            patch.object(ecology_context, "packet", return_value=(12789, b"ecology")),
+            patch.object(
+                territory_bonuses,
+                "refresh_world",
+                return_value=[(13046, b"updated-characteristics")],
+            ) as bonuses,
+            patch.object(territory_weather, "context") as weather,
+        ):
+            publish("peer", character, include_weather=False)
+        bonuses.assert_called_once_with(store, character)
+        self.assertEqual(
+            sent, [(12789, b"ecology"), (13046, b"updated-characteristics")]
+        )
         weather.assert_not_called()
 
     def test_normal_world_movement_checks_region_after_validation_and_commit(self):

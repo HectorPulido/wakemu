@@ -148,3 +148,16 @@ Run a later implementation qualification in this order: all21 active legal conte
 ## Final inherited validation boundary
 
 The parent workstream reports the latest deployed shared implementation/catalog548e1468… inherited a green182-test shared gate. A fresh Luna inventory-validation run passed36/36 tests across seven generic modules. These are shared foundation evidence only: no doll/Voodoll/Sadida class pipeline was found and neither result is counted as Sadida semantic acceptance. This refresh is frozen after read-only extraction and documentation; no services, gameplay code, DB data or catalog activation were changed.
+
+
+### Superpoderosa role-action follow-up — 2026-10-11
+
+All six remaining profile3746 actions5023/5021/5026/5024/5025/5356 now have
+actual source-role acquisition and semantic assertions passing in the staged
+module, including heal/damage, poison states, displacement, protection and
+self-explosion/QI retirement. The corrected context preserves911 linear LOS,
+5023 alignment,5356 exact range1, and5024 native cross1. Current677 combined
+gate7/7 passes in `extensions-corrected-current.log`; see the detailed
+[supplemental runtime evidence](../sadida-runtime-qualification-20261011.md).
+This is focused staged-test evidence and not a new deployment or full client
+manual acceptance receipt.

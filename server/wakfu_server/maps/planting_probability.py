@@ -6,6 +6,7 @@ official server uses this implementation or invent missing actor/climate data.
 from wakfu_server import native_catalog as protocol_catalog
 import math
 import json
+import struct
 from .paths import DATA_ROOT
 
 RESOURCE_CLIMATES = {
@@ -127,16 +128,18 @@ def calculate(*, ground_percent, climate_compatible, profession_bonus_percent):
         raise ValueError("Invalid native planting ground threshold")
     if type(climate_compatible) is not bool:
         raise ValueError("Unknown planting climate compatibility")
-    if type(profession_bonus_percent) not in (int, float) or not math.isfinite(
-        profession_bonus_percent
+    if (
+        type(profession_bonus_percent) not in (int, float)
+        or not math.isfinite(profession_bonus_percent)
+        or not -(1 << 31) <= profession_bonus_percent < (1 << 31)
     ):
         raise ValueError("Invalid authoritative planting profession bonus")
     climate_factor = 1.0 if climate_compatible else 0.8
-    probability = (
-        (ground_percent / 100.0)
-        * climate_factor
-        * (1.0 + profession_bonus_percent / 100.0)
-    )
+    # eGj.PS converts the integer effect2000 bonus to float, divides by
+    # float100, then widens to double. Preserve that intermediate rounding.
+    native_bonus = struct.unpack(">f", struct.pack(">f", profession_bonus_percent))[0]
+    native_bonus = struct.unpack(">f", struct.pack(">f", native_bonus / 100.0))[0]
+    probability = (ground_percent / 100.0) * climate_factor * (1.0 + native_bonus)
     probability = max(0.0, min(1.0, probability))
     # dev.am uses -1 for forbidden (X), not 0%; JVM Math.round is floor(x+.5).
     displayed = -1 if probability <= 0 else math.floor(probability * 100 + 0.5)

@@ -259,11 +259,31 @@ class TerritoryWeatherPublicationTests(unittest.TestCase):
             )
         ]
         self.assertEqual(len(registrations), 1)
-        callback_names = {key.value for key in registrations[0].value.keys}
-        self.assertIn("territory_weather_tick", callback_names)
+        registration_index = main.body.index(registrations[0])
+        conditional_registration = main.body[registration_index + 1]
+        self.assertIsInstance(conditional_registration, ast.If)
+        registration_code = compile(
+            ast.Module(
+                body=[registrations[0], conditional_registration], type_ignores=[]
+            ),
+            "local_game_server.py",
+            "exec",
+        )
+        for mode in ("inline", "external", "disabled"):
+            namespace = dict(
+                ECOLOGY_MODE=mode,
+                flush_positions=object(),
+                tick_territory_weather=object(),
+            )
+            exec(registration_code, namespace)
+            self.assertEqual(
+                "territory_weather_tick" in namespace["callbacks"], mode == "inline"
+            )
         config = json.loads((server_root / "cron-service/config.json").read_text())
         task = config["tasks"]["territory_weather_tick"]
-        self.assertTrue(task["enabled"])
+        # Compose delegates ecology to the external worker; a simultaneous cron
+        # weather loop must stay disabled. Inline still registers its callback.
+        self.assertFalse(task["enabled"])
         self.assertEqual(
             task["url"], "http://world:18081/test/tasks/territory_weather_tick"
         )

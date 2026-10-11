@@ -197,7 +197,9 @@ def prepare_intents(store, snapshot, *, limit=4):
                 bytes(row["body"]),
                 authorize_cell=authorize_cell,
                 open_test_policy=open_policy,
-                location_context=lambda stored: active_character(stored, players),
+                location_context=lambda stored: active_character(
+                    stored, players, store=store
+                ),
                 read_only=True,
             )
             chance = probability(prepared)

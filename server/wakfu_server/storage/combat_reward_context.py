@@ -58,7 +58,7 @@ def _monster_index(monsters):
             raise ValueError("Invalid trusted spawned monster")
         identity = _integer(member.get("id"), "monster identity", -(1 << 63) + 1, -1)
         reference = _integer(member.get("ref"), "monster reference", 1, (1 << 31) - 1)
-        level = _integer(member.get("level"), "monster level", 1, 200)
+        level = _integer(member.get("level"), "monster level", 1, 32767)
         if identity in indexed:
             raise ValueError("Duplicate trusted spawned monster identity")
         # This confirms the supplied reference/level is a native Wakfu actor.
@@ -121,7 +121,9 @@ def build_context(
     for key, actor in sorted(actors.items()):
         if type(key) is not int or actor.id != key:
             raise ValueError("Fight actor identity mismatch")
-        level = _integer(actor.effective_level, "actor level", 1, 200)
+        level = _integer(
+            actor.effective_level, "actor level", 1, 200 if actor.controlled else 32767
+        )
         is_summon = _summon(actor)
         monster = monster_rows.get(actor.id)
         if monster is not None:
@@ -166,6 +168,38 @@ def build_context(
     )
 
 
+def authoritative_encounter_kind(
+    db, fight_id, group_key, *, dungeon_runtime_available=True
+):
+    """Classify only a durable dungeon binding or an owned public-world group.
+
+    Dungeon encounter bindings are written when the fight is created and remain
+    authoritative after room progression or a player's map changes. An ordinary
+    world-group lease has a (map, instance, group) key with public instance zero.
+    Private or absent leases are unknown, never guessed from geography. Rifts
+    use their own settlement callback and do not enter this adapter.
+    """
+    _integer(fight_id, "fight identity", 1, (1 << 31) - 1)
+    if type(dungeon_runtime_available) is not bool:
+        raise ValueError("Invalid dungeon runtime availability")
+    if dungeon_runtime_available:
+        binding = db.execute(
+            "SELECT instance_id FROM dungeon_room_encounters WHERE fight_id=%s",
+            (fight_id,),
+        ).fetchone()
+        if binding is not None:
+            _integer(binding["instance_id"], "dungeon instance", 1, (1 << 63) - 1)
+            return "dungeon"
+    if (
+        isinstance(group_key, (tuple, list))
+        and len(group_key) == 3
+        and all(type(value) is int for value in group_key)
+        and group_key[1] == 0
+    ):
+        return "ordinary_world"
+    return None
+
+
 def build_drop_context(fight, character, monsters, *, encounter_kind=None):
     """Return the drop-condition context that this runtime can prove.
 
@@ -174,8 +208,8 @@ def build_drop_context(fight, character, monsters, *, encounter_kind=None):
     native drop condition ONLY_WHEN_DOWNSCALED is supported by comparing that
     winning actor's effective level with the persisted character level.
     Dungeon/wave negatives are emitted only when the trusted encounter creator
-    explicitly tags this route as an ordinary world-group fight. Map IDs and
-    combat terrain IDs are not classifiers. Stasis and Stele remain absent.
+    explicitly tags this route as a world-group, dungeon or rift fight. Map IDs
+    and combat terrain IDs are not classifiers. Stasis and Stele remain absent.
     """
     if not isinstance(character, dict):
         raise ValueError("Invalid combat drop character")
@@ -184,9 +218,15 @@ def build_drop_context(fight, character, monsters, *, encounter_kind=None):
     actor = fight.actors[character["id"]]
     context = {"downscaled": actor.effective_level < real_level}
     if encounter_kind is not None:
-        if encounter_kind != "ordinary_world":
+        origins = {
+            "ordinary_world": (False, False),
+            "dungeon": (True, False),
+            "infinite_waves": (False, True),
+        }
+        if encounter_kind not in origins:
             raise ValueError("Unsupported authoritative encounter kind")
-        context.update(in_dungeon=False, in_infinite_waves=False)
+        dungeon, infinite_waves = origins[encounter_kind]
+        context.update(in_dungeon=dungeon, in_infinite_waves=infinite_waves)
     return context
 
 
@@ -229,6 +269,25 @@ def settlement_contexts(db, fight, character, monsters, *, encounter_kind=None):
         drop_context = build_drop_context(
             fight, character, monsters, encounter_kind=encounter_kind
         )
+        if encounter_kind == "dungeon":
+            from wakfu_server import dungeon_difficulty
+
+            durable = dungeon_difficulty.encounter_context(
+                db, fight.id, effective_level=fight.actors[character_id].effective_level
+            )
+            if durable is not None:
+                drop_context.update(durable)
+                reward_context["dungeon_rate_bp"] = durable["dungeon_drop_rate_bp"]
+            from wakfu_server.maps import dungeon_stele
+
+            selected = dungeon_stele.encounter_snapshot(db, fight.id)
+            if selected is not None and selected["player_team"] == fight.winner:
+                drop_context["selected_stele_item_references"] = selected[
+                    "selected_stele_item_references"
+                ]
+        from wakfu_server.maps import boss_score
+
+        drop_context.update(boss_score.drop_context(db, fight.id))
     else:
         snapshot = drop_row["snapshot"]
         drop_context = (

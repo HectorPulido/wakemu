@@ -53,7 +53,24 @@ class NativeOracleTests(unittest.TestCase):
             for opcode, body in packets
             if opcode == 12727
         ]
-        self.assertEqual(deaths, [(target_id, 2)])
+        # Ordinary player victims retain reversible KO and their native QI slot.
+        self.assertEqual(deaths, [(target_id, 0)])
+        target = runtime.fight.actors[target_id]
+        self.assertTrue(target.controlled)
+        self.assertIsNone(getattr(target, "native_summon_source", None))
+        from wakfu_server.combat_global_pv_collections import global_fighter_guards
+        from wakfu_server.combat_qi_fight import current_registry
+
+        self.assertEqual(
+            global_fighter_guards(runtime.fight, target_id),
+            dict(baF=False, baG=True, baK=False),
+        )
+        self.assertEqual(
+            current_registry(runtime.fight).slots[target.native_obstacle_id][
+                "identity"
+            ],
+            ["actor", target_id],
+        )
         self.assertEqual(runtime.fight.actors[target_id].hp, 0)
         self.assertIn(target_id, runtime._reported_deaths)
 

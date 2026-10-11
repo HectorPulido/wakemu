@@ -2,6 +2,7 @@
 import struct
 import zlib
 from protocol_codec import Reader
+from .nation_state import nation_id
 
 ACCOUNT_DEFAULTS = {
     7: bytes(9),
@@ -26,7 +27,7 @@ def company(account_id, character):
         ">qqiqIiB",
         account_id,
         character["id"] if character else 0,
-        0,
+        nation_id(character),
         (character.get("guild_native") or {}).get("guildId", 0) if character else 0,
         0,
         1,
