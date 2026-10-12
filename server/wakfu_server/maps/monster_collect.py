@@ -259,12 +259,15 @@ class Harvests:
         monster,
         *,
         profession_level,
-        reachable
+        reachable,
+        location_context=None,
     ):
         request = decode_request(body)
         with self.store.connection() as db:
             _lease(self.store, db, account_id, generation, character_id)
             character = self.store.character(account_id, character_id, db)
+            if location_context is not None:
+                character = location_context(character)
             configuration = policy(db)
             if monster.get("corpse"):
                 from .monster_corpses import resolve_target as resolve_corpse
@@ -339,7 +342,15 @@ class Harvests:
 
     @_serialized
     def complete(
-        self, account_id, generation, character_id, body, *, monster, profession_level
+        self,
+        account_id,
+        generation,
+        character_id,
+        body,
+        *,
+        monster,
+        profession_level,
+        location_context=None,
     ):
         result = decode_result(body)
         ticket = self.pending.get(character_id)
@@ -360,6 +371,8 @@ class Harvests:
         with self.store.connection() as db:
             _lease(self.store, db, account_id, generation, character_id)
             character = self.store.character(account_id, character_id, db)
+            if location_context is not None:
+                character = location_context(character)
             if (
                 tuple(character[k] for k in ("map_id", "instance_id", "x", "y", "z"))
                 != ticket["position"]
