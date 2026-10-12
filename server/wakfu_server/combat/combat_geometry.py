@@ -1,8 +1,9 @@
 """Immutable validated native geometry shared across encounter selections."""
-from collections import defaultdict, deque
+from collections import OrderedDict, defaultdict, deque
 from dataclasses import dataclass
 from functools import lru_cache
 from types import MappingProxyType
+from threading import RLock
 
 from wakfu_server import native_catalog as protocol_catalog
 from wakfu_server.paths import DATA_ROOT
@@ -81,6 +82,58 @@ def reachable(origin, cells, adjacency):
                 reached.add(target)
                 pending.append(target)
     return reached
+
+
+# Keys use identity, not map IDs: distinct exports may share a map ID. Each
+# entry retains the immutable geometry, preventing identity reuse while cached.
+_ENCOUNTER_COMPONENT_LIMIT = 32
+_encounter_components = OrderedDict()
+_encounter_components_lock = RLock()
+
+
+def _compute_encounter_component(geometry, origin):
+    if origin not in geometry.cells:
+        raise ValueError("Player is outside native encounter terrain")
+    selected = reachable(origin, geometry.cells, geometry.outgoing) & reachable(
+        origin, geometry.cells, geometry.incoming
+    )
+    columns = defaultdict(list)
+    for cell in selected:
+        columns[cell[:2]].append(cell)
+    ambiguous = {xy for xy, values in columns.items() if len(values) > 1}
+    if origin[:2] in ambiguous:
+        raise ValueError("Player occupies ambiguous native encounter surface")
+    selected = {cell for cell in selected if cell[:2] not in ambiguous}
+    selected = reachable(origin, selected, geometry.outgoing) & reachable(
+        origin, selected, geometry.incoming
+    )
+    return frozenset(selected), frozenset(ambiguous)
+
+
+def encounter_component(data, origin, *, memoize=True):
+    """Return fresh sets for the native mutual component after column pruning.
+
+    Only explicit immutable prepared snapshots are memoized. Mutable dictionary
+    callers are snapshotted and traversed anew, even when their map ID matches.
+    Formation, budgets and local induced-subgraph traversal remain per encounter.
+    """
+    prepared = memoize and isinstance(data, PreparedGeometry)
+    geometry = prepare_geometry(data)
+    key = (id(geometry), origin)
+    if prepared:
+        with _encounter_components_lock:
+            cached = _encounter_components.get(key)
+            if cached is not None and cached[0] is geometry:
+                _encounter_components.move_to_end(key)
+                return set(cached[1]), set(cached[2])
+    selected, ambiguous = _compute_encounter_component(geometry, origin)
+    if prepared:
+        with _encounter_components_lock:
+            _encounter_components[key] = (geometry, selected, ambiguous)
+            _encounter_components.move_to_end(key)
+            while len(_encounter_components) > _ENCOUNTER_COMPONENT_LIMIT:
+                _encounter_components.popitem(last=False)
+    return set(selected), set(ambiguous)
 
 
 def edges_within(cells, adjacency):

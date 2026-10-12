@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from test_static_map_sync_dispatch import _session_function, SERVER_SOURCE
 from wakfu_server.maps.world_scene_sync import refresh_snapshots, snapshot_ids
+from wakfu_server.interactive_publication import InteractivePublication
 
 
 class IdentityProfiler:
@@ -22,9 +23,32 @@ class SceneRegistryDispatchTests(unittest.TestCase):
         )
         sent = []
         character = {"id": 6, "map_id": 527, "instance_id": 0, "x": -217, "y": -39}
+        publication = InteractivePublication(
+            lambda _: [dict(id=26865, x=-217, y=-39, auto=False)]
+        )
+        scope = dict(
+            session_id="test",
+            generation=1,
+            account_id=1,
+            character_id=6,
+            map_id=527,
+            instance_id=0,
+        )
+
+        def wire_send(connection, service, opcode, payload):
+            data = publication.transform(
+                struct.pack(">IH", 6 + len(payload), opcode) + payload, scope
+            )
+            offset = 0
+            while offset < len(data):
+                length, code = struct.unpack_from(">IH", data, offset)
+                sent.append((code, data[offset + 6 : offset + length]))
+                offset += length
+
         namespace = {
             "publish_environment_scene": lambda **kwargs: None,
             "PROFILER": IdentityProfiler(),
+            "PLANTINGS": SimpleNamespace(snapshots=lambda *args, **kwargs: []),
             "loaded": True,
             "character": character,
             "fight": None,
@@ -37,9 +61,7 @@ class SceneRegistryDispatchTests(unittest.TestCase):
             "is_dungeon_run": lambda value: False,
             "refresh_snapshots": refresh_snapshots,
             "snapshot_ids": snapshot_ids,
-            "send": lambda connection, service, opcode, payload: sent.append(
-                (opcode, payload)
-            ),
+            "send": wire_send,
             "record": lambda **kwargs: None,
         }
         module = ast.Module(
@@ -48,9 +70,10 @@ class SceneRegistryDispatchTests(unittest.TestCase):
         ast.fix_missing_locations(module)
         exec(compile(module, str(SERVER_SOURCE), "exec"), namespace)
         namespace["sync_scene_world"]()
-        self.assertEqual([opcode for opcode, _ in sent], [12318, 13984, 12344])
+        namespace["sync_scene_world"]()
+        self.assertEqual([opcode for opcode, _ in sent], [12318, 13984, 12318, 12344])
         self.assertEqual(struct.unpack(">ii", sent[0][1]), (-217, -39))
-        self.assertEqual(struct.unpack_from(">q", sent[2][1])[0], 26865)
+        self.assertEqual(struct.unpack_from(">q", sent[3][1])[0], 26865)
 
 
 if __name__ == "__main__":

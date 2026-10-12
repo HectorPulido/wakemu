@@ -189,11 +189,16 @@ class EcologyWanderBulkTests(unittest.TestCase):
         )
 
         def path(members, *_args, **_kwargs):
-            entry = self.entry(-members[0]["id"] - 7000)
+            moved = [dict(member, x=member["x"] + 1) for member in members]
             return dict(
-                members=entry["moved_members"],
+                members=moved,
                 packets=[
-                    (opcode, bytes.fromhex(body)) for opcode, body in entry["packets"]
+                    monster_wander.movement_packet(
+                        before["id"],
+                        monster_wander.point(before),
+                        monster_wander.point(after),
+                    )
+                    for before, after in zip(members, moved)
                 ],
             )
 
@@ -241,7 +246,7 @@ class EcologyWanderBulkTests(unittest.TestCase):
                 patch.object(monster_wander, "policy", return_value=self.configuration)
             )
             patches.enter_context(
-                patch.object(monster_wander, "plan_path", side_effect=path)
+                patch.object(monster_wander, "plan_group_path", side_effect=path)
             )
             patches.enter_context(
                 patch.object(ecology_mobs, "_edges", return_value=(set(), {}))

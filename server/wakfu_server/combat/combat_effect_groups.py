@@ -157,6 +157,8 @@ def native_group_route(effect):
             raise UnsupportedEffectGroup("Missing raw native eXR So(1)")
         raw = parameters[2]
         return "cell" if raw == 0 else "actors" if raw == 1 else "none"
+    if effect.get("effect_class") == 1100:
+        return "actors"  # eYo.bbA=true / bbB=false, independent of parameters.
     if effect.get("effect_class") in (345, 352):
         return "cell"  # eYA.bbA=false / bbB=true, independent of So(2).
     if effect.get("effect_class") not in NATIVE_CELL_GROUP_FAMILIES:

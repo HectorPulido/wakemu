@@ -199,11 +199,18 @@ def execute_unarmed(
             source_state=source,
             action_id=action_id,
         )
+    from .combat_pointer_qi_commit import prepare_pointer_commit
+
+    pointer_binding = prepare_pointer_commit(preview)
+    if pointer_binding is not None:
+        pointer_binding.stage(fight)
     for identity, copy in preview.actors.items():
         fight.actors[identity].__dict__.update(copy.__dict__)
     for key, value in preview.__dict__.items():
         if key != "actors":
             setattr(fight, key, value)
+    if pointer_binding is not None:
+        pointer_binding.publish()
     return dict(
         damage=dealt,
         packets=packets,

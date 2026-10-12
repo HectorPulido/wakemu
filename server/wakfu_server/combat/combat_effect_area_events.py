@@ -40,6 +40,27 @@ class NativeAreaEventRuntime:
                 raise ValueError("Invalid installed native area BitSet masks")
         return definition
 
+    def _requires_area_source(self, reference):
+        """Server policy: preserve Qq identity for immediate owner selectors.
+
+        The client area callbacks are visual no-ops. Installed root groups
+        whose immediate child requests fcE bit46 need the actual Qq source
+        before that child can select its owner. Other glyph source policy is
+        intentionally unchanged; this is not inferred from a class or spell.
+        """
+        effects = getattr(self.dispatcher, "effects", {})
+        root = effects.get(str(reference), {})
+        for identity in (reference, *root.get("children", ())):
+            selector = effects.get(str(identity), {}).get("native_target_selector")
+            if (
+                isinstance(selector, dict)
+                and selector.get("class") == "fcE"
+                and type(selector.get("mask")) is int
+                and selector["mask"] & (1 << 46)
+            ):
+                return True
+        return False
+
     def _target_affiliation(self, target):
         """faV filters actual amO targets; its ebh never follows owner changes."""
         from .combat_effect_area_targets import NativeAreaTarget
@@ -166,6 +187,7 @@ class NativeAreaEventRuntime:
                         if border
                         or environment
                         or row.get("native_area_contract") == "fbc"
+                        or self._requires_area_source(reference)
                         else row["owner_id"],
                         None if target is None else target.id,
                         tuple(row["cell"])

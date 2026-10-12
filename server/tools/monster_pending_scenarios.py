@@ -32,8 +32,117 @@ def scenario_recipes(reference, spell):
     return []
 
 
+def requires_non_enemy_target(criterion):
+    """Recognize a required native non-enemy conjunct, never an OR branch.
+
+    This only requests an ordinary witness scene. It does not certify that an
+    ally satisfies any remaining criterion or effect selector.
+    """
+    import ast
+
+    if not isinstance(criterion, str) or not criterion.strip():
+        return False
+    try:
+        expression = ast.parse("(" + criterion.strip() + ")", mode="eval").body
+    except (SyntaxError, ValueError):
+        return False
+
+    def required(node):
+        if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.And):
+            return any(required(value) for value in node.values)
+        return (
+            isinstance(node, ast.UnaryOp)
+            and isinstance(node.op, ast.Not)
+            and isinstance(node.operand, ast.Call)
+            and isinstance(node.operand.func, ast.Name)
+            and node.operand.func.id == "IsEnnemy"
+            and not node.operand.args
+            and not node.operand.keywords
+        )
+
+    return required(expression)
+
+
+def native_ko_ally_recipe(criterion):
+    """Suggest owned hostile KO preparation only for required allied corpses."""
+    import ast
+
+    if not requires_non_enemy_target(criterion):
+        return None
+    try:
+        expression = ast.parse("(" + criterion.strip() + ")", mode="eval").body
+    except (SyntaxError, ValueError):
+        return None
+
+    def required(node):
+        if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.And):
+            return any(required(value) for value in node.values)
+        return (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "IsOffPlay"
+            and not node.keywords
+            and len(node.args) == 1
+            and isinstance(node.args[0], ast.Constant)
+            and node.args[0].value == "target"
+        )
+
+    return "knocked_out_ally" if required(expression) else None
+
+
+def native_ally_recipe(
+    reference, level, capability, *, criterion=None, root_effects=()
+):
+    """Suggest an ordinary same-species ally for supportive spell witnesses.
+
+    This grants no resources or states: the existing native constructor and
+    preparation path must initialize the additional participant normally.
+    """
+    from wakfu_server.combat_effect_targets import native_selector_policy
+
+    ally_only_root = False
+    for effect in root_effects:
+        relations = native_selector_policy(effect)["relations"]
+        if "ally" in relations and "enemy" not in relations:
+            ally_only_root = True
+    if (
+        not set(capability.get("tags", ())) & {"heal", "armor", "buff"}
+        and not requires_non_enemy_target(criterion)
+        and not ally_only_root
+    ):
+        return None
+    if (
+        type(reference) is not int
+        or reference <= 0
+        or type(level) is not int
+        or level <= 0
+    ):
+        raise ValueError("Invalid native ally descriptor")
+    return dict(
+        kind="native_opponent",
+        opponent=dict(reference=reference, level=level, team=1),
+        discovery="ordinary_same_species_ally_v1",
+    )
+
+
+def additional_native_actor_targets(fight, existing):
+    """Include actual living companions omitted by the primary target pair."""
+    present = {identity for _, identity in existing if identity is not None}
+    return [
+        (tuple(actor.position), identity)
+        for identity, actor in sorted(fight.actors.items())
+        if identity not in present and actor.hp > 0
+    ]
+
+
 def prepare_scenario(fight, character, monsters, deck, *, caster_id=-200, recipe):
     """Replay a recipe using normal ownership, eligibility and commit paths."""
+    from external_owned_area_preparation import DISCOVERY, prepare
+
+    if recipe.get("discovery") == DISCOVERY:
+        return prepare(
+            fight, character, monsters, deck, recipe=recipe, caster_id=caster_id
+        )
     from monster_spell_scenarios import advance_to, finish_current_turn
     from wakfu_server.combat_tactical_ai import NativeProvider
     from wakfu_server.combat_runtime_messages import RuntimeMessages
@@ -44,7 +153,13 @@ def prepare_scenario(fight, character, monsters, deck, *, caster_id=-200, recipe
         raise ValueError("Unknown native preparation recipe")
     advance_to(fight, caster_id)
     preparations = []
-    provider = NativeProvider(character, monsters, deck)
+    if recipe.get("discovery") == "owned_conditional_self_state_v1":
+        from conditional_owned_state import guarded_native_provider
+
+        Provider = guarded_native_provider(NativeProvider, recipe, caster_id)
+    else:
+        Provider = NativeProvider
+    provider = Provider(character, monsters, deck)
 
     def serialize(actor, state):
         keywords = dict(
@@ -101,17 +216,27 @@ def prepare_scenario(fight, character, monsters, deck, *, caster_id=-200, recipe
         packets = provider.commit(RuntimeMessages(fight), action, serialize)
         if not packets:
             raise ValueError("Native preparation cast delivered no packets")
+        state_proof = None
+        if recipe.get("discovery") == "owned_conditional_self_state_v1":
+            from conditional_owned_state import verify_committed_states
+
+            state_proof = verify_committed_states(
+                fight, provider.native_state_preparation_proof, caster_id
+            )
         preparations.append(
             dict(
                 spell_id=spell_id,
                 spell_level=owned["spell_level"],
                 packets=len(packets),
+                conditional_native_state_proof=state_proof,
                 turn_id=fight.turn_id,
             )
         )
         if step.get("next_turn"):
             finish_current_turn(fight)
             advance_to(fight, caster_id)
+        if state_proof is not None:
+            verify_committed_states(fight, state_proof, caster_id)
     return dict(
         schema="native-monster-scenario-v1",
         kind=recipe["kind"],
@@ -215,10 +340,9 @@ def enemy_search_envelope(spell, spell_level, casting_maximum):
     from wakfu_server.combat_native_spell_casting import catalog
     from wakfu_server.combat_npc_attack import npc_runtime_catalog
 
-    casting = catalog().get(str(spell))
-    if casting is None or not 1 <= spell_level <= len(casting["levels"]):
-        raise ValueError("Missing native casting roots for enemy scene search")
-    roots = casting["levels"][spell_level - 1][2]
+    from native_scene_casting import native_scene_casting_row
+
+    roots = native_scene_casting_row(spell, spell_level, catalog())[2]
     return effect_search_envelope(npc_runtime_catalog().effects, roots, casting_maximum)
 
 
@@ -351,7 +475,15 @@ def recovery_owned_state_recipes(reference, level, spell, criterion):
         for ability in native_abilities(reference, level)
         if ability["spell_id"] != spell
     ]
-    return discover_owned_state_recipes(abilities, states, npc_spell_catalog(), limit=4)
+    from conditional_owned_state import discover_conditional_owned_state_recipes
+
+    document = npc_spell_catalog()
+    conditional = discover_conditional_owned_state_recipes(
+        abilities, states, document, limit=4
+    )
+    return (
+        conditional + discover_owned_state_recipes(abilities, states, document, limit=4)
+    )[:4]
 
 
 def required_native_target_identity(criterion):

@@ -101,6 +101,23 @@ class CombatHeroesPostgresTests(PostgresCase):
                     return blob
         raise AssertionError("Native 12608 player template missing from capture")
 
+    def test_stale_owned_hero_location_is_repaired_when_entering_combat(self):
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET map_id=1385,instance_id=0,x=3,y=-21,z=7 WHERE id=%s",
+                (self.hero_a["id"],),
+            )
+        result = self._admit()
+        expected = tuple(
+            self.main[key] for key in ("map_id", "instance_id", "x", "y", "z")
+        )
+        repaired = self.store.character(self.account, self.hero_a["id"])
+        self.assertEqual(
+            expected,
+            tuple(repaired[key] for key in ("map_id", "instance_id", "x", "y", "z")),
+        )
+        self.assertIn(self.hero_a["id"], result["characters"])
+
     def test_real_roster_admits_full_owned_heroes_with_main_generation_and_state(self):
         result = self._admit()
         expected = {self.hero_a["id"], self.hero_b["id"]}

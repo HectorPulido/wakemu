@@ -92,12 +92,13 @@ def classify_roots(
 
 @lru_cache(maxsize=1024)
 def describe_spell(spell, level):
-    from .combat_native_spell_casting import catalog
+    from .combat_native_spell_casting import native_casting_table
     from .combat_npc_attack import npc_runtime_catalog
     from .combat_static_catalogs import characteristic_registry
 
-    row = catalog().get(str(spell))
-    if row is None or not 1 <= level <= len(row["levels"]):
+    try:
+        row, index = native_casting_table(spell, level)
+    except ValueError:
         return dict(
             spellId=spell,
             level=level,
@@ -107,7 +108,7 @@ def describe_spell(spell, level):
             unknownDependencies=["missing_casting_table"],
             conditional=True,
         )
-    minimum, maximum, roots = row["levels"][level - 1]
+    minimum, maximum, roots = row["levels"][index]
     compiled = npc_runtime_catalog()
     semantic = classify_roots(
         roots,
@@ -119,7 +120,7 @@ def describe_spell(spell, level):
     # Candidate pruning uses the envelope of every conditional native table.
     # It never drops a cast solely because baseline range would exclude it.
     envelope = [(minimum, maximum)] + [
-        tuple(rule["ranges"][level - 1]) for rule in row["conditional"]
+        tuple(rule["ranges"][index]) for rule in row["conditional"]
     ]
     return dict(
         spellId=spell,
@@ -141,10 +142,17 @@ def spell_capabilities(fight, monsters):
     ]
 
 
-def target_affinity(capability, actor, target):
+def target_affinity(capability, actor, target, *, fight=None):
     """Cheap candidate priority; exact effects still decide the useful target."""
     tags = set(capability.get("tags", ()))
-    ally = actor.team == target.team
+    if fight is None:
+        ally = actor.team == target.team
+    else:
+        from .combat_effective_control import effective_affiliation
+
+        ally = effective_affiliation(fight, actor) == effective_affiliation(
+            fight, target
+        )
     offensive = bool(tags & {"damage", "control", "debuff", "displacement"})
     supportive = bool(tags & {"heal", "armor", "buff"})
     if ally and "heal" in tags and target.hp < target.max_hp:

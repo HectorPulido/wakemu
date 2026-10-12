@@ -581,6 +581,7 @@ def main():
         from export_monster_cell_groups import (
             CATALOG_PATH as CELL_PATH,
             export as export_cells,
+            required_effect_ids,
         )
 
         effect_ids = sorted(
@@ -598,6 +599,7 @@ def main():
                 (revision, effect_ids),
             )
         ]
+        cell_ids = required_effect_ids(cell_ids, exported)
         cell_raw = bytes(
             connection.execute(
                 "SELECT raw FROM native_catalog_documents WHERE revision=%s AND path=%s",

@@ -61,6 +61,8 @@ def prepare_and_register(
     if type(duration_ms) is not int or not 1000 <= duration_ms <= 300000:
         raise ValueError("Invalid PostgreSQL placement duration")
 
+    from wakfu_server.combat_arena_policy import cell_budget
+
     selected = local_arena(
         map_id,
         fight_id,
@@ -70,6 +72,7 @@ def prepare_and_register(
         compact=True,
         minimum_dimensions=(30, 30),
         prepared_terrain=prepared_terrain,
+        automatic_cell_budget=cell_budget(db),
     )
     from wakfu_server.combat_placement_cells import opposing_starts
 

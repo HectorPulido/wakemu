@@ -236,7 +236,22 @@ class Plantings:
             finished["applied"] = not finished["duplicate"]
             return finished
 
-    def snapshots(self, map_id, instance_id):
+    def snapshots(self, map_id, instance_id, *, position=None):
+        """Replay native resource appearances only into loaded nearby partitions.
+
+        Omitting position retains the complete-map API for offline callers.
+        Presentation filtering does not change persisted resources or growth.
+        """
+        visible_chunks = None
+        if position is not None:
+            from .world_scene_sync import chunk, neighborhood
+
+            if (
+                position["map_id"] != map_id
+                or position.get("instance_id", 0) != instance_id
+            ):
+                raise ValueError("Resource snapshot position belongs to another scene")
+            visible_chunks = neighborhood(chunk(position))
         with self.store.connection() as db:
             rows = list(
                 db.execute(
@@ -244,7 +259,11 @@ class Plantings:
                     (map_id, instance_id),
                 )
             )
-        return [planting.resource_packet(dict(row)) for row in rows]
+        return [
+            planting.resource_packet(dict(row))
+            for row in rows
+            if visible_chunks is None or chunk(dict(row)) in visible_chunks
+        ]
 
     def mature(
         self,

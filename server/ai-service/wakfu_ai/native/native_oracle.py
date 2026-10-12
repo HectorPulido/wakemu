@@ -4,6 +4,11 @@ It contains transaction orchestration, not spell formulas or AI policy. Native
 handlers, ownership, targeting, timers and packet codecs remain authoritative.
 The stable world shim supplies the encounter and complete authority maps once.
 """
+from ..native.native_control import (
+    effective_server_controlled,
+    effective_affiliation,
+    effective_input_owner,
+)
 from copy import deepcopy
 import hashlib
 import inspect
@@ -153,7 +158,9 @@ class NativeOracle:
             verified_trap_characteristics(row, definition)
             owner = runtime.fight.actors.get(row["owner_id"])
             if row["native_trap_constructor"]["fqx"] and (
-                owner is None or owner.team != observer.team
+                owner is None
+                or effective_affiliation(runtime.fight, owner)
+                != effective_affiliation(runtime.fight, observer)
             ):
                 result.add(row["uid"])
         return frozenset(result)
@@ -206,6 +213,11 @@ class NativeOracle:
                     for i, d in selected.items()
                 },
                 excluded_decks={i: frozenset(self.excluded_decks[i]) for i in chars},
+                deck_blobs={i: self.decks[i] for i in chars},
+                deck_caps={
+                    i: d["level_cap"] if d["level_cap"] >= 0 else None
+                    for i, d in selected.items()
+                },
             )
         )
         states = states_catalog()
@@ -370,9 +382,12 @@ class NativeOracle:
         if actor is None or actor.hp <= 0:
             raise ValueError("Missing active native caster")
         if actor.id in self.characters:
-            c = self.characters[actor.id]
-            deck = validate_deck(self.decks[actor.id], c["breed"], c["level"])
-            result = {spell: actor.effective_level for spell in deck["active"] if spell}
+            from wakfu_server.combat_class_ai_spell import canonical_class_actions
+
+            actions = canonical_class_actions(
+                fight, actor, self.characters[actor.id], self.decks[actor.id]
+            )
+            return {spell: entry["level"] for spell, entry in actions.items()}
         elif actor.id in self.monsters or actor.id in getattr(
             fight, "native_summon_registrations", {}
         ):
@@ -716,13 +731,25 @@ class NativeOracle:
         )
         if actor.id in self.characters:
             char = self.characters[actor.id]
-            grant = granted_spells(fight, actor.id).get(spell)
-            uid = grant["uid"] if grant is not None else (actor.id << 32) | spell
-            tx = prepare_spell_transaction(
+            from wakfu_server.combat_class_ai_spell import (
+                canonical_class_actions,
+                prepare_class_ai_plan,
+            )
+            from wakfu_server.combat_spell_transaction import _prepare_spell_transaction
+
+            entry = canonical_class_actions(fight, actor, char, self.decks[actor.id])[
+                spell
+            ]
+            uid = entry["uid"]
+            server_ai = effective_server_controlled(fight, actor)
+            prepare = (
+                _prepare_spell_transaction if server_ai else prepare_spell_transaction
+            )
+            tx = prepare(
                 struct.pack(">qqiih", actor.id, uid, *target),
                 char,
                 fight,
-                actor.owner_id,
+                effective_input_owner(fight, actor),
                 self.decks[actor.id],
                 wp_current=actor.effect_stats[4],
                 action_id=runtime.action_id + 1,
@@ -732,6 +759,7 @@ class NativeOracle:
                     state, request
                 ),
                 critical=False,
+                **({"plan_builder": prepare_class_ai_plan} if server_ai else {}),
             )
             if action.get("targetId") != tx.plan["target_id"]:
                 raise ValueError(
@@ -834,7 +862,9 @@ class NativeOracle:
             step_callback = None
             # Player movement retains its established transaction path. NPC
             # previews and real commits share this stepwise resource delivery.
-            if not actor.controlled and self.flags.get("native_area_callbacks", False):
+            if effective_server_controlled(private.fight, actor) and self.flags.get(
+                "native_area_callbacks", False
+            ):
                 if forecast:
                     movement_rng.setstate(self._rng(private.fight, action).getstate())
                 dispatcher, callbacks = movement_factory(
@@ -860,14 +890,18 @@ class NativeOracle:
                         moving_actor.id, from_cell=before, to_cell=cell
                     )
 
-            if actor.controlled:
-                event = private.fight.move(actor.owner_id, actor.id, path)
+            if not effective_server_controlled(private.fight, actor):
+                event = private.fight.move(
+                    effective_input_owner(private.fight, actor), actor.id, path
+                )
             else:
                 with private.fight.effect_resolution():
                     event = private.fight.server_move(
                         actor.id, path, step_callback=step_callback
                     )
-            if actor.controlled and self.flags.get("native_area_callbacks", False):
+            if not effective_server_controlled(private.fight, actor) and self.flags.get(
+                "native_area_callbacks", False
+            ):
                 previous = origin if len(path) == 1 else path[-2]
                 actor.direction = DIRECTIONS[
                     (path[-1][0] - previous[0], path[-1][1] - previous[1])
@@ -918,8 +952,12 @@ class NativeOracle:
             if set(action) != {"type"}:
                 raise ValueError("Invalid native end-turn action")
             packets = (
-                private.end_turn(actor.owner_id, actor.id, actor.turn_count)
-                if actor.controlled
+                private.end_turn(
+                    effective_input_owner(private.fight, actor),
+                    actor.id,
+                    actor.turn_count,
+                )
+                if not effective_server_controlled(private.fight, actor)
                 else private.end_server_turn(actor.id, private.fight.turn_id)
             )
             # These acknowledgments are confined to the forecast instance.
@@ -974,8 +1012,12 @@ class NativeOracle:
                 raise ValueError("Invalid native end-turn commit")
             actor = candidate.fight.current
             packets = (
-                candidate.end_turn(actor.owner_id, actor.id, actor.turn_count)
-                if actor.controlled
+                candidate.end_turn(
+                    effective_input_owner(candidate.fight, actor),
+                    actor.id,
+                    actor.turn_count,
+                )
+                if not effective_server_controlled(candidate.fight, actor)
                 else candidate.end_server_turn(actor.id, candidate.fight.turn_id)
             )
         elif kind == "cast":

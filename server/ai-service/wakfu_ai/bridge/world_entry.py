@@ -1,4 +1,5 @@
 """Complete native SDK entry point loaded by the final stable world shim."""
+from ..native.native_control import effective_server_controlled
 import os
 from copy import deepcopy
 from pathlib import Path
@@ -103,7 +104,7 @@ def run_npc_turn(
         if (
             fight.phase == "active"
             and fight.current is not None
-            and not fight.current.controlled
+            and effective_server_controlled(fight, fight.current)
             and runtime.awaiting_ack is None
             and not runtime.pending
         ):

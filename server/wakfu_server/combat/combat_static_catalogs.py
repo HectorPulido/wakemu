@@ -39,11 +39,18 @@ class ImmutableCatalog(dict):
             if entry is not None and entry[0]() is self:
                 return entry[1]
 
-            def discard(reference, *, identity=identity):
-                with _VIEW_CACHE_LOCK:
-                    current = _VIEW_CACHE.get(identity)
+            def discard(
+                reference,
+                *,
+                identity=identity,
+                lock=_VIEW_CACHE_LOCK,
+                cache=_VIEW_CACHE,
+            ):
+                # Weak callbacks can outlive module globals during teardown.
+                with lock:
+                    current = cache.get(identity)
                     if current is not None and current[0] is reference:
-                        _VIEW_CACHE.pop(identity, None)
+                        cache.pop(identity, None)
 
             reference = weakref.ref(self, discard)
             views = {}

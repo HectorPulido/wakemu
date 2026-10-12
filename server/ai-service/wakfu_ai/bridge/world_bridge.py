@@ -5,6 +5,7 @@ assets, actors or history are selected away to satisfy a packet-size limit.
 Large objects are streamed as verified content-addressed blocks.
 """
 import base64
+from ..native.native_control import effective_affiliation
 import importlib.util
 import hashlib
 import io
@@ -991,7 +992,8 @@ class NativeSession:
             actor.id
             for actor in getattr(oracle.runtime.fight, "actors", {}).values()
             if observer is not None
-            and actor.team != observer.team
+            and effective_affiliation(oracle.runtime.fight, actor)
+            != effective_affiliation(oracle.runtime.fight, observer)
             and {5, 18}.intersection(observed_properties.get(actor.id) or ())
         )
         area_provider = getattr(oracle, "unobserved_areas", None)
@@ -1152,6 +1154,7 @@ class NativeSession:
         from wakfu_server.combat_obstacle_condition import footprint
 
         from ..planning.topology_distance import measure
+        from ..native.native_control import effective_affiliation
         from ..native.native_facings import measure as facing_measure
 
         if key not in self.states:
@@ -1169,7 +1172,7 @@ class NativeSession:
             actors.append(
                 dict(
                     id=actor.id,
-                    team=actor.team,
+                    team=effective_affiliation(runtime.fight, actor),
                     controlled=actor.controlled,
                     position=list(actor.position),
                     hp=actor.hp,

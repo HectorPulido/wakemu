@@ -24,6 +24,7 @@ ORDINARY_SYMBIOT_SOURCE = "eZl.new_eHD.pRO_false"
 CAPTURED_SYMBIOT_SOURCE = "eZr324.after_common_factory_and_fan.lE_true"
 COPIED_SYMBIOT_SOURCE = "eZw1002.new_eHI.pRO_false"
 TARGET_COPIED_SYMBIOT_SOURCE = "eZq994.new_eHI.pRO_false"
+THREE_COPIED_SYMBIOT_SOURCE = "eZp839.new_eHI.pRO_false"
 
 
 def _registration(fight, actor_id):
@@ -57,7 +58,11 @@ def _registration(fight, actor_id):
         raise ValueError("Missing complete native summon retirement registration")
     symbiot = source.get("native_symbiot_source")
     captured = symbiot == CAPTURED_SYMBIOT_SOURCE
-    copied = symbiot in (COPIED_SYMBIOT_SOURCE, TARGET_COPIED_SYMBIOT_SOURCE)
+    copied = symbiot in (
+        COPIED_SYMBIOT_SOURCE,
+        TARGET_COPIED_SYMBIOT_SOURCE,
+        THREE_COPIED_SYMBIOT_SOURCE,
+    )
     if (
         symbiot
         not in (
@@ -65,6 +70,7 @@ def _registration(fight, actor_id):
             CAPTURED_SYMBIOT_SOURCE,
             COPIED_SYMBIOT_SOURCE,
             TARGET_COPIED_SYMBIOT_SOURCE,
+            THREE_COPIED_SYMBIOT_SOURCE,
         )
         or authority.get("native_summoned_from_symbiot") is not captured
     ):
@@ -82,17 +88,25 @@ def _registration(fight, actor_id):
         effect_reference = source.get("native_copy_effect_reference")
         runner_uid = source.get("native_copy_runner_uid")
         source_actor_id = source.get("native_copy_source_actor_id")
-        target_copy = symbiot == TARGET_COPIED_SYMBIOT_SOURCE
+        target_copy = symbiot in (
+            TARGET_COPIED_SYMBIOT_SOURCE,
+            THREE_COPIED_SYMBIOT_SOURCE,
+        )
+        copied_family = 839 if symbiot == THREE_COPIED_SYMBIOT_SOURCE else 994
+        copied_profile = 1549 if copied_family == 839 else 2349
+        copied_producer = (
+            "eZp839.faB.eHI.bPl" if copied_family == 839 else "eZq994.faB.eHI.bPl"
+        )
         if (
             source.get("native_character_copy_source")
-            != ("eZq994.faB.eHI.bPl" if target_copy else "eZw1002.faB.eHI.bPl")
+            != (copied_producer if target_copy else "eZw1002.faB.eHI.bPl")
             or source["ref"]
             != (copy_source.get("profile") if isinstance(copy_source, dict) else None)
             or (not target_copy and source_actor_id != source.get("caster_id"))
             or (
                 target_copy
                 and (
-                    source.get("ref") != 2349
+                    source.get("ref") != copied_profile
                     or type(source_actor_id) is not int
                     or source_actor_id <= 0
                 )
@@ -110,7 +124,7 @@ def _registration(fight, actor_id):
                 target_copy
                 and (
                     type(copy_source.get("native_copy_family")) is not int
-                    or copy_source["native_copy_family"] != 994
+                    or copy_source["native_copy_family"] != copied_family
                 )
             )
             or copy_source.get("effect_reference") != effect_reference
@@ -167,12 +181,15 @@ def retired_summon_ids(fight, *, registry=None):
             or not isinstance(touched, list)
         ):
             raise ValueError("Missing QI checkpoint for retired summon")
-        registry = NativeQIRegistry(
-            arena,
-            slots,
-            touched_cells=touched,
-            byte_topology=getattr(fight, "native_qi_byte_topology", None),
-        )
+        if hasattr(fight, "native_pointer_checkpoint"):
+            registry = current_registry(fight)
+        else:
+            registry = NativeQIRegistry(
+                arena,
+                slots,
+                touched_cells=touched,
+                byte_topology=getattr(fight, "native_qi_byte_topology", None),
+            )
     result = set()
     for actor_id, record in records.items():
         if (
@@ -181,7 +198,18 @@ def retired_summon_ids(fight, *, registry=None):
             or record.get("source") not in (SOURCE, PROTECTED_SOURCE)
             or record.get("actor_id") != actor_id
             or type(record.get("qi_slot")) is not int
-            or not 0 <= record["qi_slot"] <= 126
+            or not (
+                0 <= record["qi_slot"] <= 126
+                or (
+                    record["qi_slot"] == -1
+                    and hasattr(fight, "native_pointer_checkpoint")
+                    and getattr(registry, "qi", None)
+                    is fight.native_pointer_checkpoint._qi
+                    and registry.qi.objects.get(actor_id) is not None
+                    and registry.qi.objects[actor_id].actor
+                    is fight.actors.get(actor_id)
+                )
+            )
             or type(record.get("sequence")) is not int
         ):
             raise ValueError("Invalid native summon retirement record")
@@ -218,11 +246,18 @@ def retired_summon_ids(fight, *, registry=None):
             raise ValueError("Retired summon lacks OUT_OF_PLAY status")
         if not global_fighter_registered(fight, actor_id):
             raise ValueError("Retired summon lost its native fighter identity")
-        if any(
-            row is not None and row["identity"] == ["actor", actor_id]
-            for row in registry.slots
-        ):
-            raise ValueError("Retired summon still occupies a native QI slot")
+        aliases = [
+            slot
+            for slot, row in enumerate(registry.slots)
+            if row is not None and row["identity"] == ["actor", actor_id]
+        ]
+        if aliases:
+            from .combat_pointer_qi_registry import PointerRegistryCompatibility
+
+            if not isinstance(registry, PointerRegistryCompatibility) or any(
+                registry.actual_slot_object(slot).actor is not actor for slot in aliases
+            ):
+                raise ValueError("Retired summon still occupies a native QI slot")
         if captured:
             owner_id = source["native_captured_owner_id"]
             slot = source["native_captured_slot"]
@@ -279,12 +314,19 @@ def _retire_one(preview, actor_id, *, protected=False):
     if not global_fighter_registered(preview, actor_id):
         raise ValueError("Summon retirement requires current fdt membership")
     slot = actor.native_obstacle_id
-    if type(slot) is not int or not 0 <= slot <= 126:
-        raise ValueError("Missing actual summon QI slot for retirement")
     registry = current_registry(preview)
-    descriptor = registry.slots[slot]
-    if descriptor is None or descriptor["identity"] != ["actor", actor_id]:
-        raise ValueError("Summon retirement QI identity changed")
+    if (
+        slot == -1
+        and type(slot) is int
+        and hasattr(preview, "native_pointer_checkpoint")
+    ):
+        registry.validate_exclusion_target(actor)
+    else:
+        if type(slot) is not int or not 0 <= slot <= 126:
+            raise ValueError("Missing actual summon QI slot for retirement")
+        descriptor = registry.slots[slot]
+        if descriptor is None or descriptor["identity"] != ["actor", actor_id]:
+            raise ValueError("Summon retirement QI identity changed")
 
     # Source fcb.aD sets OUT_OF_PLAY, then H removes QI and releases a captured
     # descriptor. Probe the component step on an isolated copy so any missing
@@ -305,9 +347,14 @@ def _retire_one(preview, actor_id, *, protected=False):
     # Native QI.g removes the row and calls the actor's QK.M(-1); keep the
     # prior byte only in the retirement record for audit/history.
     actor.native_obstacle_id = -1
-    preview.native_qi_slots = registry.serialized_slots()
-    preview.native_qi_touched_cells = registry.serialized_cells()
-    preview.native_qi_byte_topology = registry.serialized_byte_topology()
+    if hasattr(preview, "native_pointer_checkpoint"):
+        from .combat_carrying import _publish_registry
+
+        _publish_registry(preview, registry)
+    else:
+        preview.native_qi_slots = registry.serialized_slots()
+        preview.native_qi_touched_cells = registry.serialized_cells()
+        preview.native_qi_byte_topology = registry.serialized_byte_topology()
     event = preview._event(
         "summon_out_of_play",
         actor_id=actor_id,
@@ -387,6 +434,10 @@ def settle_summon_retirements(fight):
     if hasattr(preview, "native_captured_roster_updates"):
         fight.native_captured_roster_updates = preview.native_captured_roster_updates
     fight.native_summon_retirements = preview.native_summon_retirements
+    if hasattr(fight, "native_pointer_checkpoint"):
+        fight.native_pointer_checkpoint.commit_topology_from(
+            preview.native_pointer_checkpoint, fight
+        )
     for actor_id in retired:
         # Publish the exact QK.M(-1) identity update alongside the QI row
         # removal; actor objects are retained rather than replaced by preview.

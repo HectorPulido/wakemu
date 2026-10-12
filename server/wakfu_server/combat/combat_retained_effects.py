@@ -135,12 +135,24 @@ class NativeRetainedEffectView:
                     caster -= 1 << 64
                 if (
                     entry is None
-                    or row["effect_class"] not in GROUP_SUBSCRIPTION_FAMILIES
+                    or row["effect_class"] not in GROUP_SUBSCRIPTION_FAMILIES + (307,)
                     or 7 in fields
                     or registered_or_detached_actor(fight, caster) is None
                     or entry.manager_id != caster
                 ):
                     raise ValueError("Unverified native cell group manager")
+            if row["effect_class"] == 307:
+                messages = {}
+                _identity_fields(bytes.fromhex(row["payload"]), messages=messages)
+                from .combat_retained_summon import retained_summon_actor
+
+                native_actor_id = retained_summon_actor(bytes.fromhex(row["payload"]))
+                if row.get(
+                    "native_creation_source"
+                ) != "eZl.c/eZR.d" or native_actor_id != row.get(
+                    "native_summon_actor_id"
+                ):
+                    raise ValueError("Unverified native retained summon actor identity")
             known[uid] = (
                 row["target_id"],
                 row["effect_class"],
@@ -179,6 +191,19 @@ class NativeRetainedEffectView:
                 row["effect_class"],
                 fields.get(3),
                 row.get("state_uid"),
+            )
+        for uid, row in getattr(fight, "native_owned_spatial_effects", {}).items():
+            from .combat_pointer_qi_spatialowned import validate_spatial_record
+
+            entry = self.by_uid.get(uid)
+            if entry is None:
+                raise ValueError("Complete Qf view omitted actual spatial runner")
+            validate_spatial_record(fight, row, entry)
+            known[uid] = (
+                row["target_id"],
+                937,
+                row["generic_effect"],
+                row["state_uid"],
             )
         if set(fight.state_wire_payloads) - set(known) - pending:
             raise ValueError("Orphan native state payload")
@@ -400,6 +425,10 @@ def register_owned_removals(
             remove=area_remove,
             validate=area_validate,
         )
+
+    from .combat_pointer_qi_spatialowned import register_spatial_removals
+
+    register_spatial_removals(removal, packets=packets, action_id=action_id)
 
     def carrier_exists(uid):
         return uid in fight.state_wire_payloads and any(

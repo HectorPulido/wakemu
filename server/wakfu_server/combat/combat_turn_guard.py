@@ -1,4 +1,5 @@
 """Isolate shared NPC preparation failures from the owner's transport."""
+from .combat_effective_control import effective_server_controlled
 import time
 import uuid
 
@@ -10,7 +11,7 @@ def run_shared_npc_attempt(shared, operation, failed, *, clock=time.monotonic):
         if (
             shared.fight.phase != "active"
             or actor is None
-            or actor.controlled
+            or not effective_server_controlled(shared.fight, actor)
             or runtime is None
             or runtime.awaiting_ack is not None
             or runtime.pending

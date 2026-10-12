@@ -39,15 +39,24 @@ def resolve_owned_spell_action(request, character, fight, owner_id, deck_blob):
     """Resolve one active owned UID and level before resource or RNG work."""
     actor_id = request["actor_id"]
     actor = fight.actors.get(actor_id)
+    from .combat_effective_control import effective_input_owner
+
     if (
         fight.phase != "active"
         or fight.current is not actor
         or actor is None
-        or not actor.controlled
-        or actor.owner_id != owner_id
+        or effective_input_owner(fight, actor) != owner_id
         or actor.hp <= 0
     ):
         raise ValueError("Caster is not the owned active actor")
+    return _resolve_actor_spell_action(
+        request, character, fight, actor, deck_blob, owner_id
+    )
+
+
+def _resolve_actor_spell_action(request, character, fight, actor, deck_blob, owner_id):
+    """Resolve the actual owned book after the caller proves control authority."""
+    actor_id = actor.id
     uid = request["spell_uid"]
     spell_id = uid & 0xFFFFFFFF
     from .combat_spell_grant import granted_spells
@@ -64,6 +73,15 @@ def resolve_owned_spell_action(request, character, fight, owner_id, deck_blob):
 
             validate_controlled_owner(fight, actor, character["id"], owner_id)
         reference, level = resolve_morph_action(fight, actor_id, uid)
+        return actor, reference, level
+    if actor_id != character["id"] and actor_id in getattr(
+        fight, "native_controller_action_books", {}
+    ):
+        from .combat_controller_transfer import resolve_controller_action
+
+        if granted:
+            return actor, spell_id, temporary["level"]
+        reference, level = resolve_controller_action(fight, actor, owner_id, uid)
         return actor, reference, level
     summon_level = None
     if actor_id != character["id"]:
@@ -117,6 +135,36 @@ def prepare_spell_cast(
     actor, spell_id, evaluation_level = resolve_owned_spell_action(
         request, character, fight, owner_id, deck_blob
     )
+    return _prepare_resolved_spell_cast(
+        request,
+        character,
+        fight,
+        deck_blob,
+        actor,
+        spell_id,
+        evaluation_level,
+        wp=wp,
+        line_of_sight=line_of_sight,
+        conditional_context=conditional_context,
+        diagnostic=diagnostic,
+    )
+
+
+def _prepare_resolved_spell_cast(
+    request,
+    character,
+    fight,
+    deck_blob,
+    actor,
+    spell_id,
+    evaluation_level,
+    *,
+    wp,
+    line_of_sight,
+    conditional_context=None,
+    diagnostic=None,
+):
+    """Common native casting validation after explicit book/control resolution."""
     from .combat_conditional_costs import ConditionalCostContext
     from .combat_native_spell_casting import definition as native_definition
     from .combat_casting_range import resolve_range
@@ -199,6 +247,15 @@ def _validate_target(
     if actor.ap < costs["ap"] or actor.mp < costs["mp"] or wp < costs["wp"]:
         error = ValueError("Insufficient authoritative spell resources")
         error.cast_validation_code = "insufficient_resources"
+        error.native_resource_diagnostic = {
+            "available": {"ap": actor.ap, "mp": actor.mp, "wp": wp},
+            "required": {name: costs[name] for name in ("ap", "mp", "wp")},
+            "deficits": {
+                name: costs[name] - available
+                for name, available in (("ap", actor.ap), ("mp", actor.mp), ("wp", wp))
+                if costs[name] > available
+            },
+        }
         raise error
     from .combat_spell_resource_costs import extra_costs, validate_extra_resources
 

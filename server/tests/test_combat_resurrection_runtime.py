@@ -279,4 +279,4 @@ class ResurrectionRuntimeTests(unittest.TestCase):
             )
         self.assertEqual(runtime.fight.actors[8].hp, 0)
         second_death = runtime.prepare_delivery(death_messages(runtime, 8))
-        self.assertTrue(any(op == 12727 and body[-1] == 2 for op, body in second_death))
+        self.assertTrue(any(op == 12727 and body[-1] == 0 for op, body in second_death))

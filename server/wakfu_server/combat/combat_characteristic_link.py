@@ -216,6 +216,8 @@ class NativeCharacteristicLinkHandler:
         _characteristic(self.fight, source_id, source_stat)
         _characteristic(self.fight, destination_id, destination_stat)
         records = getattr(self.fight, "native_characteristic_links", {})
+        if getattr(self.fight, "native_characteristic_transfers", []):
+            raise ValueError("Mixed eWh/eWj native listener order unsupported")
         _check_dependency(
             records, (source_id, source_stat), (destination_id, destination_stat)
         )

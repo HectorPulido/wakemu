@@ -8,6 +8,7 @@ import time
 from psycopg.types.json import Jsonb
 from dataclasses import asdict
 from .combat_state_ledger import StateLedger
+from .combat_character_copy_book import CopyBookAction
 
 
 def _trace_stage(
@@ -33,6 +34,11 @@ def _plain(value):
     if isinstance(value, NativeCarryPair):
         # Persistent reciprocal carry authority is a typed immutable record,
         # not a runtime callback. Preserve every field in the checkpoint.
+        return _plain(asdict(value))
+    if isinstance(value, CopyBookAction):
+        # eZd publishes immutable owned UI actions. Keep every exact UID and
+        # native field in both durable evidence and transaction source guards.
+        value.validate()
         return _plain(asdict(value))
     if isinstance(value, StateLedger):
         return dict(

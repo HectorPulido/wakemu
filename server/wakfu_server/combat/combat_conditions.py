@@ -107,6 +107,8 @@ class ConditionActor:
     is_native_ehg: bool | None = None  # Registered faV is eHg, plain Qq need not be.
     is_in_play: bool | None = None  # Actual eHg.baF, not positive HP.
     is_dead: bool | None = None  # Actual eGj.dsA, not baG or HP0.
+    is_abandonning: bool | None = None  # eGz.pHJ via eGj.fqy.
+    is_fleeing: bool | None = None  # eGz.pHK via eGj.frF.
     is_summoned_from_symbiot: bool | None = None  # Actual eHg.dTC creation source.
     native_sex: int | None = None  # Actual eGj.aXz signed byte, independent of breed.
     is_summon: bool | None = None  # eGj.dTE(), not merely an NPC kind.
@@ -196,6 +198,8 @@ class ConditionContext:
     surrounding_own_summon_query: object = None  # eMP complete direct-owner fUQ roster.
     controlled_by_ai_query: object = None  # eNH actual eGj.fqL state.
     free_cell_query: object = None  # eNR rotated point and actual QI/Qs.
+    caster_facing_fighter_query: object = None  # eNz actual one-cell-ahead QI lookup.
+    behind_target_free_query: object = None  # eNA actual bcy offset and default eOV.
     free_surrounding_cell_query: object = None  # eMp cardinal QI.V/Q/R.
     gate_count_query: object = None  # ePn actual Qs type19 population.
     glyph_count_query: object = None  # ePo/ePi actual Qs type0 and Qq.bch owner.
@@ -1576,6 +1580,8 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "HasLineOfSight",
                     "IsOffPlay",
                     "IsDead",
+                    "IsAbandonning",
+                    "IsFleeing",
                     "IsInPlay",
                     "IsEnemy",
                     "IsEnnemy",
@@ -1601,6 +1607,8 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "IsOwnDeposit",
                     "IsOwnArea",
                     "IsFreeCell",
+                    "IsCellBehindTargetFree",
+                    "IsCasterFacingFighter",
                     "HasFreeSurroundingCell",
                     "IsControlledByAI",
                     "HasSurroundingCellWithOwnSummon",
@@ -1677,6 +1685,18 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 literal_long(args[1])
                 literal_long(args[2])
                 return
+            if name == "IsCasterFacingFighter":
+                if args:
+                    raise UnknownCondition(
+                        "Native IsCasterFacingFighter takes no arguments"
+                    )
+                return
+            if name == "IsCellBehindTargetFree":
+                if args:
+                    raise UnknownCondition(
+                        "Native IsCellBehindTargetFree takes no arguments"
+                    )
+                return
             if name == "HasSummonWithBreed":
                 if len(args) != 1:
                     raise UnknownCondition(
@@ -1729,9 +1749,15 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                         "IsPlayer requires zero or one native string selector"
                     )
                 return
-            if name in ("IsInFight", "IsCharacter", "IsChallenger"):
+            if name == "IsChallenger":
+                # eNC preserves its string and calls eII.a, including actual
+                # triggering actors/controller; eNZ/eND use another selector.
+                if len(args) > 1 or args and not is_state_actor_selector(args[0]):
+                    raise UnknownCondition("Unsupported native IsChallenger selector")
+                return
+            if name in ("IsInFight", "IsCharacter"):
                 if len(args) > 1 or args and not is_selector(args[0]):
-                    raise UnknownCondition("Unsupported native IsInFight selector")
+                    raise UnknownCondition(f"Unsupported native {name} selector")
                 return
             if name == "HasEffectWithActionId":
                 if len(args) != 2 or not is_selector(args[0]):
@@ -1809,7 +1835,13 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 if args:
                     raise UnknownCondition("Native IsEnemy takes no arguments")
                 return
-            if name in ("IsOffPlay", "IsDead", "IsInPlay"):
+            if name in (
+                "IsOffPlay",
+                "IsDead",
+                "IsInPlay",
+                "IsAbandonning",
+                "IsFleeing",
+            ):
                 if len(args) > 1 or (
                     args
                     and (
@@ -2293,12 +2325,11 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             return actor.is_player
         if name == "IsChallenger":
             # eNC defaults to target, unlike IsCharacter's caster default.
-            actor = context.actors.get(
-                node.args[0].value.lower() if node.args else "target"
+            from .combat_challenger_predicate import native_challenger
+
+            return native_challenger(
+                context, node.args[0].value.lower() if node.args else "target"
             )
-            if actor is None or type(actor.is_challenger) is not bool:
-                raise UnknownCondition("Missing native PLAYER_CHARACTER/COMPANION kind")
-            return actor.is_challenger
         if name == "IsCharacter":
             selector = node.args[0].value.lower() if node.args else "caster"
             actor = context.actors.get(selector)
@@ -2429,6 +2460,29 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 )
                 if type(result) is not bool:
                     raise ValueError("Missing native free-surrounding boolean")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "IsCasterFacingFighter":
+            if not callable(context.caster_facing_fighter_query):
+                raise UnknownCondition("Missing native caster-facing fighter authority")
+            try:
+                result = context.caster_facing_fighter_query()
+                if type(result) is not bool:
+                    raise ValueError("Missing native caster-facing fighter boolean")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+
+        if name == "IsCellBehindTargetFree":
+            if not callable(context.behind_target_free_query):
+                raise UnknownCondition(
+                    "Missing native behind-target free-cell authority"
+                )
+            try:
+                result = context.behind_target_free_query()
+                if type(result) is not bool:
+                    raise ValueError("Missing native behind-target free-cell boolean")
                 return result
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
@@ -2600,6 +2654,21 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if target is None or type(target.fight_affiliation) is not int:
                 raise UnknownCondition("Missing native target bcM affiliation")
             return source.fight_affiliation != target.fight_affiliation
+        if name in ("IsAbandonning", "IsFleeing"):
+            selector = (
+                "target"
+                if node.args and node.args[0].value.lower() == "target"
+                else "caster"
+            )
+            actor = context.actors.get(selector)
+            if actor is None:
+                return False  # Native eMY/eNQ null actor returns -1.
+            value = (
+                actor.is_abandonning if name == "IsAbandonning" else actor.is_fleeing
+            )
+            if type(value) is not bool:
+                raise UnknownCondition(f"Missing native {name} delegate authority")
+            return value
         if name in ("IsDead", "IsInPlay"):
             from .combat_condition_life import life_predicate
 

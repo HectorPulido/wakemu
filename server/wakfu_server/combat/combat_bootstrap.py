@@ -89,7 +89,11 @@ def placement_messages(
         ):
             from .combat_remote_effects import initial_npc_actor_effects
 
-            effects = initial_npc_actor_effects(fight, actor.id)
+            import time
+
+            effects = initial_npc_actor_effects(
+                fight, actor.id, now_milliseconds=time.time_ns() // 1000000
+            )
         participants.append(
             dict(
                 actor_id=actor.id,

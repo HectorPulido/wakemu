@@ -7,6 +7,7 @@ from wakfu_server import native_catalog as protocol_catalog
 from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass
+from .combat_effective_control import effective_server_controlled, effective_affiliation
 import hashlib
 import json
 import os
@@ -233,7 +234,7 @@ class NativeProvider:
             result.append(
                 dict(
                     id=actor.id,
-                    team=actor.team,
+                    team=effective_affiliation(fight, actor),
                     controlled=actor.controlled,
                     position=list(actor.position),
                     hp=actor.hp,
@@ -250,6 +251,14 @@ class NativeProvider:
     def capabilities(self, fight):
         from .combat_ai_capabilities import spell_capabilities
 
+        if fight.current is not None and fight.current.controlled:
+            from .combat_class_ai_spell import class_ai_capabilities
+
+            character = (self.player_characters or {}).get(fight.current.id)
+            deck = (self.deck_blobs or {}).get(fight.current.id)
+            if character is None or deck is None:
+                raise ValueError("Missing actual class AI participant book")
+            return class_ai_capabilities(fight, character, deck)
         return spell_capabilities(fight, self.monsters)
 
     def _useful_targets(self, fight, capability):
@@ -259,7 +268,9 @@ class NativeProvider:
         for target in fight.actors.values():
             if target.hp <= 0:
                 continue
-            ally = target.team == actor.team
+            ally = effective_affiliation(fight, target) == effective_affiliation(
+                fight, actor
+            )
             if (
                 not ally
                 and tags & {"damage", "control", "debuff", "displacement"}
@@ -277,7 +288,11 @@ class NativeProvider:
     def outcome_features(self, fight):
         # Advisory position value rewards proximity to useful capabilities.
         # Native previews still decide range/LOS/conditions and actual benefit.
-        if fight.phase != "active" or fight.current is None or fight.current.controlled:
+        if (
+            fight.phase != "active"
+            or fight.current is None
+            or not effective_server_controlled(fight, fight.current)
+        ):
             return dict(positionValue=0)
         actor = fight.current
         capabilities = self.capabilities(fight)
@@ -308,7 +323,11 @@ class NativeProvider:
         # melee. Empty/unknown repertories may still approach living enemies.
         if not capabilities:
             enemies = [
-                a for a in fight.actors.values() if a.hp > 0 and a.team != actor.team
+                a
+                for a in fight.actors.values()
+                if a.hp > 0
+                and effective_affiliation(fight, a)
+                != effective_affiliation(fight, actor)
             ]
 
             def useful(cell):
@@ -323,13 +342,21 @@ class NativeProvider:
         from .combat_ai_capabilities import target_affinity
 
         actor = fight.current
-        if actor is None or actor.controlled or actor.hp <= 0:
+        if (
+            actor is None
+            or not effective_server_controlled(fight, actor)
+            or actor.hp <= 0
+        ):
             return
         capabilities = self.capabilities(fight)
         targets = [a for a in fight.actors.values() if a.hp > 0]
         distances = _distances(fight, actor.position, actor.id, budget=actor.mp)
         useful = [(c, t) for c in capabilities for t in self._useful_targets(fight, c)]
-        enemies = [a for a in targets if a.team != actor.team]
+        enemies = [
+            a
+            for a in targets
+            if effective_affiliation(fight, a) != effective_affiliation(fight, actor)
+        ]
 
         def movement_rank(cell):
             gap = min(
@@ -406,7 +433,8 @@ class NativeProvider:
         spell_groups = []
         for capability in capabilities:
             ordered = sorted(
-                targets, key=lambda t: target_affinity(capability, actor, t)
+                targets,
+                key=lambda t: target_affinity(capability, actor, t, fight=fight),
             )
             candidates = [
                 dict(
@@ -461,17 +489,49 @@ class NativeProvider:
             # Independent deterministic forecast draws; real execution receives
             # a fresh RNG and is re-evaluated after every commit.
             seed = int(_hash(dict(state=state_key(fight), action=action)), 16)
-            transaction = prepare_npc_spell(
-                fight,
-                action,
-                self.character,
-                self.monsters,
-                self.deck,
-                action_id=action_id,
-                rng=random.Random(seed) if forecast else None,
-                player_characters=self.player_characters,
-                deck_blobs=self.deck_blobs,
-            )
+            if fight.current is not None and fight.current.controlled:
+                from .combat_class_ai_spell import prepare_class_ai_spell
+                from .combat_los import authoritative_visible
+                from .combat_obstacle_condition import footprint
+
+                character = (self.player_characters or {}).get(fight.current.id)
+                deck = (self.deck_blobs or {}).get(fight.current.id)
+                if character is None or deck is None:
+                    raise ValueError("Missing actual class AI participant book")
+                transaction = prepare_class_ai_spell(
+                    fight,
+                    action,
+                    character,
+                    self.monsters,
+                    deck,
+                    action_id=action_id,
+                    player_characters=self.player_characters,
+                    deck_blobs=self.deck_blobs,
+                    rng=random.Random(seed) if forecast else None,
+                    line_of_sight=lambda source, destination, state: authoritative_visible(
+                        character["map_id"],
+                        source,
+                        destination,
+                        state,
+                        blocking_footprints={
+                            a.id: footprint(a.position, a.physical_radius)
+                            for a in state.actors.values()
+                            if a.hp > 0
+                        },
+                    ),
+                )
+            else:
+                transaction = prepare_npc_spell(
+                    fight,
+                    action,
+                    self.character,
+                    self.monsters,
+                    self.deck,
+                    action_id=action_id,
+                    rng=random.Random(seed) if forecast else None,
+                    player_characters=self.player_characters,
+                    deck_blobs=self.deck_blobs,
+                )
             _validate_added_summons(fight, transaction, self.character.get("map_id"))
             return Preview(transaction.fight, transaction.packets, transaction)
         if action["type"] != "move":
@@ -546,9 +606,13 @@ class NativeProvider:
         target = runtime.fight.actors.get(action.get("targetId"))
         if action["type"] == "cast" and target is not None:
             caster = runtime.fight.actors[preview.spell.plan["actor_id"]]
-            if target.team != caster.team:
+            if effective_affiliation(runtime.fight, target) != effective_affiliation(
+                runtime.fight, caster
+            ):
                 focus = dict(getattr(runtime, "tactical_focus", {}))
-                focus[str(caster.team)] = target.id if target.hp > 0 else None
+                focus[str(effective_affiliation(runtime.fight, caster))] = (
+                    target.id if target.hp > 0 else None
+                )
                 runtime.tactical_focus = focus
         return packets
 
@@ -614,7 +678,11 @@ def build_request(runtime, provider, *, max_previews=48, budget_ms=150, depth=2)
     fight = runtime.fight
     if runtime.awaiting_ack is not None or runtime.pending:
         raise ValueError("Previous combat turn is not synchronized")
-    if fight.phase != "active" or fight.current is None or fight.current.controlled:
+    if (
+        fight.phase != "active"
+        or fight.current is None
+        or not effective_server_controlled(fight, fight.current)
+    ):
         raise ValueError("Missing active NPC turn")
     if fight.edges is None:
         raise ValueError("AI requires native movement edges")
@@ -762,13 +830,20 @@ def build_request(runtime, provider, *, max_previews=48, budget_ms=150, depth=2)
             elapsedMs=round((time.monotonic() - started) * 1000, 3),
         ),
     )
-    focus_id = getattr(runtime, "tactical_focus", {}).get(str(fight.current.team))
+    focus_id = getattr(runtime, "tactical_focus", {}).get(
+        str(effective_affiliation(fight, fight.current))
+    )
     focus = fight.actors.get(focus_id)
-    if focus is not None and focus.hp > 0 and focus.team != fight.current.team:
+    if (
+        focus is not None
+        and focus.hp > 0
+        and effective_affiliation(fight, focus)
+        != effective_affiliation(fight, fight.current)
+    ):
         request["teamContext"] = dict(
             fightInstanceId=runtime.tactical_instance_id,
             stateRevision=fight.sequence,
-            team=fight.current.team,
+            team=effective_affiliation(fight, fight.current),
             focusId=focus_id,
             reservedCells=[],
         )

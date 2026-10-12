@@ -187,6 +187,65 @@ def plan_path(
     return dict(members=moved, packets=packets)
 
 
+COHESION_RADIUS = 4
+
+
+def plan_group_path(members, players, valid_edges, **options):
+    """Translate compact groups; safely draw distant companions to their leader.
+
+    Regrouping holds the stable first roster member in place. Each follower uses
+    a native directed edge that strictly reduces its distance; blocked routes
+    wait for a later cadence rather than teleporting or detaching companions.
+    """
+    if not members:
+        return None
+    anchor = point(members[0])
+
+    def distance(cell):
+        return max(abs(cell[0] - anchor[0]), abs(cell[1] - anchor[1]))
+
+    if all(distance(point(member)) <= COHESION_RADIUS for member in members):
+        return plan_path(members, players, valid_edges, **options)
+    radius = options.get("radius", 20)
+    if not any(
+        max(abs(player["x"] - member["x"]), abs(player["y"] - member["y"])) <= radius
+        for player in players
+        for member in members
+    ):
+        return None
+    indexed = options.get("indexed")
+    _, adjacent = edge_index(valid_edges) if indexed is None else indexed
+    allowed = options.get("destination_allowed")
+    occupied = set(options.get("occupied", ()))
+    occupied.update(point(player) for player in players)
+    occupied.update(point(member) for member in members)
+    moved = deepcopy(list(members))
+    packets = []
+    for member in moved[1:]:
+        origin = point(member)
+        if distance(origin) <= COHESION_RADIUS:
+            continue
+        candidates = [
+            destination
+            for destination in adjacent.get(origin, ())
+            if destination not in occupied
+            and distance(destination) < distance(origin)
+            and (allowed is None or allowed(destination))
+        ]
+        if not candidates:
+            continue
+        destination = min(candidates, key=lambda cell: (distance(cell), cell))
+        try:
+            packet = movement_packet(member["id"], origin, destination)
+        except ValueError:
+            continue
+        occupied.remove(origin)
+        occupied.add(destination)
+        member.update(zip(("x", "y", "z"), destination))
+        packets.append(packet)
+    return dict(members=moved, packets=packets) if packets else None
+
+
 def wander_location(
     groups,
     map_id,
@@ -233,38 +292,35 @@ def wander_location(
             if group["status"] == "fighting" or member["id"] in excluded_ids
         )
         for group in roster:
-            candidate = deepcopy(list(group["members"]))
-            packets = []
-            for index, member in enumerate(candidate):
-                if member["id"] in excluded_ids or rng.random() >= move_probability:
-                    continue
-                others = {
-                    point(other)
-                    for other_group in roster
-                    for other in (
-                        candidate
-                        if other_group["key"] == group["key"]
-                        else other_group["members"]
-                    )
-                    if other["id"] != member["id"]
-                }
-                result = plan_path(
-                    [member],
-                    players,
-                    valid_edges,
-                    occupied=blocked | others,
-                    radius=radius,
-                    rng=rng,
-                    indexed=indexed,
-                    min_steps=min_steps,
-                    max_steps=max_steps,
-                    destination_allowed=lambda cell: habitat_destination_allowed(
-                        map_id, instance_id, cell
-                    ),
-                )
-                if result is not None:
-                    candidate[index] = result["members"][0]
-                    packets.extend(result["packets"])
+            members = list(group["members"])
+            if not members or any(m["id"] in excluded_ids for m in members):
+                continue
+            if rng.random() >= move_probability:
+                continue
+            others = {
+                point(member)
+                for other_group in roster
+                if other_group["key"] != group["key"]
+                for member in other_group["members"]
+            }
+            result = plan_group_path(
+                members,
+                players,
+                valid_edges,
+                occupied=blocked | others,
+                radius=radius,
+                rng=rng,
+                indexed=indexed,
+                min_steps=min_steps,
+                max_steps=max_steps,
+                destination_allowed=lambda cell: habitat_destination_allowed(
+                    map_id, instance_id, cell
+                ),
+            )
+            if result is None:
+                continue
+            candidate = result["members"]
+            packets = result["packets"]
             if not packets or not groups.move_members(
                 group["key"], group["members"], candidate
             ):

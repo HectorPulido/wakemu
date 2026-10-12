@@ -184,6 +184,13 @@ def validated_copied_action_book(actor, source):
 
         return validated_target_copied_action_book(actor, source)
 
+    if source.get("native_character_copy_source") == "eZp839.faB.eHI.bPl":
+        from .combat_three_spell_copy_runtime_book import (
+            validated_target_copied_action_book,
+        )
+
+        return validated_target_copied_action_book(actor, source)
+
     proof = getattr(actor, "native_character_copy_book_source", None)
     expected_base = fresh_action_book(source.get("ref"), source.get("level"))
     if (

@@ -41,7 +41,39 @@ def prepare_spell_transaction(
     line_of_sight,
     runtime_factory,
     conditional_context=None,
-    critical=False
+    critical=False,
+):
+    return _prepare_spell_transaction(
+        body,
+        character,
+        fight,
+        owner_id,
+        deck_blob,
+        wp_current=wp_current,
+        action_id=action_id,
+        line_of_sight=line_of_sight,
+        runtime_factory=runtime_factory,
+        conditional_context=conditional_context,
+        critical=critical,
+        plan_builder=prepare_spell_cast,
+    )
+
+
+@transactional_spell_rng
+def _prepare_spell_transaction(
+    body,
+    character,
+    fight,
+    owner_id,
+    deck_blob,
+    *,
+    wp_current,
+    action_id,
+    line_of_sight,
+    runtime_factory,
+    conditional_context=None,
+    critical=False,
+    plan_builder,
 ):
     """Validate and execute every native root on one authoritative preview.
 
@@ -57,7 +89,7 @@ def prepare_spell_transaction(
         raise ValueError("Missing explicit critical branch")
     source_state = source_snapshot(fight)
     preview = deepcopy(fight)
-    plan = prepare_spell_cast(
+    plan = plan_builder(
         body,
         character,
         preview,

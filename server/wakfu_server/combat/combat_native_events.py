@@ -168,6 +168,18 @@ def validate_group_registration_flags(
 
         validate_native_target_ordering_identity(effect, reference)
         unknown.remove(8)
+    if 22 in unknown and effect is not None and reference is not None:
+        # eXt owns SINGLE_TARGET_EFFECT mastery and event2216. Its fresh
+        # subscribed listener reaches central retention before activation;
+        # eZR registration itself has no rwS consumer.
+        if (
+            type(effect.get("effect_class")) is int
+            and effect["effect_class"] in (1, 2, 3, 4, 5)
+            and type(reference) is int
+            and reference > 0
+            and set(effect.get("native_effect_flags", ())) == set(flags)
+        ):
+            unknown.remove(22)
     if unknown:
         raise ValueError(f"Unaudited native group execution flags: {sorted(unknown)}")
     # eYg.bcd returns true unconditionally; no active-phase predicate is

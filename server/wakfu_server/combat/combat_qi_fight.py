@@ -88,6 +88,23 @@ def _actor_lifecycle_error(identity, slot, actor, row, *, boundary):
 
 
 def current_registry(fight, *, pending_area_id=None):
+    if hasattr(fight, "native_pointer_checkpoint"):
+        from .combat_pointer_qi_checkpoint import NativePointerCheckpoint
+        from .combat_pointer_qi_registry import PointerRegistryCompatibility
+
+        checkpoint = fight.native_pointer_checkpoint
+        if not isinstance(checkpoint, NativePointerCheckpoint):
+            raise ValueError("Missing typed canonical native pointer owner")
+        if pending_area_id is not None:
+            row = getattr(fight, "native_effect_areas", {}).get(pending_area_id)
+            if (
+                not isinstance(row, dict)
+                or row.get("uid") != pending_area_id
+                or row.get("native_obstacle_id") != -1
+                or pending_area_id in checkpoint._qi.area_objects
+            ):
+                raise ValueError("Missing actual pending canonical Qq constructor")
+        return PointerRegistryCompatibility(checkpoint.validate(fight))
     """Reject stale or unproved populations instead of rebuilding a roster."""
     arena = getattr(fight, "native_qi_snapshot", None)
     slots = getattr(fight, "native_qi_slots", None)
@@ -109,8 +126,16 @@ def current_registry(fight, *, pending_area_id=None):
     from .combat_summon_retirement import retired_summon_ids
 
     from .combat_ordinary_qi_retirement import retired_ordinary_qi_ids
+    from .combat_forced_retirement import (
+        retired_forced_fighter_ids,
+        forced_retirement_transition,
+    )
 
-    retired = retired_pve_actor_ids(fight) | retired_ordinary_qi_ids(fight)
+    retired = (
+        retired_pve_actor_ids(fight)
+        | retired_ordinary_qi_ids(fight)
+        | retired_forced_fighter_ids(fight)
+    )
     retired_summons = retired_summon_ids(fight, registry=registry)
     seen_areas = set()
     areas = getattr(fight, "native_effect_areas", {})
@@ -158,17 +183,18 @@ def current_registry(fight, *, pending_area_id=None):
             raise ValueError("Retired native QK remains registered")
         actor = fight.actors.get(identity)
         life = None
+        transitioning = forced_retirement_transition(fight, identity, slot)
         if actor is not None and hasattr(fight, "native_global_pv_collections"):
             from .combat_global_pv_collections import global_fighter_guards
 
             life = global_fighter_guards(fight, identity)
-            if life["baK"]:
+            if life["baK"] and not transitioning:
                 # Native OUT_OF_PLAY H performs QI.g and M(-1), including
                 # actors whose HP is positive. A remaining slot is stale.
                 raise _actor_lifecycle_error(
                     identity, slot, actor, row, boundary="out_of_play"
                 )
-        if actor is not None and actor.hp <= 0:
+        if actor is not None and actor.hp <= 0 and not transitioning:
             from .combat_ordinary_death import registered_ordinary_death
 
             # OFF_PLAY changes fdy, not QI indexing or the actor's QK byte.
@@ -307,6 +333,14 @@ def register_effect_area_obstacle(fight, row, constructor):
             raise ValueError("Native QK wall constructor does not match its source")
     elif row.get("native_area_contract") != "faW":
         raise ValueError("Unsupported native QK area obstacle contract")
+    if hasattr(fight, "native_pointer_checkpoint"):
+        from .combat_carrying import _publish_registry
+
+        slot = registry.register_constructor_area(row, constructor)
+        if slot < 0:
+            raise ValueError("Native QI obstacle byte capacity exhausted")
+        _publish_registry(fight, registry)
+        return slot
     descriptor = dict(
         identity=["effect_area", identity],
         position=list(position[:2]),

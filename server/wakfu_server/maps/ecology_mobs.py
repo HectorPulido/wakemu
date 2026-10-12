@@ -5,6 +5,7 @@ worker and world use the same pinned catalog release. SQL receipts remain the
 idempotency authority; publication is performed only by world.
 """
 from copy import deepcopy
+from contextlib import nullcontext
 from functools import lru_cache
 import random
 import secrets
@@ -34,7 +35,12 @@ def _sample():
 
 
 def _scoped_players(players, scope):
-    return [p for p in players if (p["map_id"], p.get("instance_id", 0)) == scope]
+    return [
+        p
+        for p in players
+        if p.get("_ecology_active", True)
+        and (p["map_id"], p.get("instance_id", 0)) == scope
+    ]
 
 
 def _path_cells(packets):
@@ -103,7 +109,7 @@ def prepare(store, snapshot, limit=16):
     epoch = snapshot["world_epoch"]
     if type(epoch) is not str or not epoch:
         raise ValueError("Missing ecology world epoch")
-    players = snapshot["players"]
+    players = [p for p in snapshot["players"] if p.get("_ecology_active", True)]
     excluded = set(snapshot["excluded_ids"])
     locations = {tuple(scope) for scope in snapshot["locations"]}
     locations &= {(p["map_id"], p.get("instance_id", 0)) for p in players}
@@ -141,12 +147,18 @@ def prepare(store, snapshot, limit=16):
                 *scope,
                 present=False,
                 generation=epoch,
-                now_ms=snapshot["now_ms"]
+                now_ms=snapshot["now_ms"],
             )
     for scope in scopes:
         if reproduction.dungeon_population(store, scope[1]):
             continue
         scoped = _scoped_players(players, scope)
+        # A fresh occupancy episode resets elapsed time even if the worker never
+        # sampled the intervening empty interval.
+        episode = scoped[0].get("presence_generation")
+        observation_generation = (
+            epoch if episode is None else f"{epoch}:presence:{episode}"
+        )
         with store.connection() as db:
             groups = [
                 dict(row)
@@ -197,10 +209,10 @@ def prepare(store, snapshot, limit=16):
                 store,
                 *scope,
                 present=True,
-                generation=epoch,
+                generation=observation_generation,
                 now_ms=snapshot["now_ms"],
                 excluded_ids=excluded,
-                configuration=policies[kind]
+                configuration=policies[kind],
             )
             tickets = life_plans.attach(
                 store, scope, kind, domain.pending(store, *scope), policies[kind]
@@ -272,7 +284,7 @@ def prepare(store, snapshot, limit=16):
                             map_id=scope[0],
                             instance_id=scope[1],
                             team=parent["team"],
-                            **{k: parent[k] for k in ("x", "y", "z")}
+                            **{k: parent[k] for k in ("x", "y", "z")},
                         )
                     )
                     proposal["grown"] = grown
@@ -376,41 +388,31 @@ def prepare(store, snapshot, limit=16):
                 or any(m["id"] in excluded for m in members)
             ):
                 continue
-            candidate = deepcopy(members)
-            packets = []
-            blocked = set(scope_occupied)
-            blocked.update(wander.point(member) for member in candidate)
-            for i, member in enumerate(candidate):
-                if time.monotonic() >= plan_deadline:
-                    break
-                if moved_member_count + len(packets) >= MAX_WANDER_BATCH_MOVED_MEMBERS:
-                    break
-                if random.random() >= configuration["move_probability"]:
-                    continue
-                result = wander.plan_path(
-                    [member],
-                    scoped,
-                    (),
-                    occupied=blocked,
-                    radius=configuration["radius"],
-                    min_steps=configuration["min_steps"],
-                    max_steps=configuration["max_steps"],
-                    indexed=indexed,
-                    destination_allowed=lambda cell: habitat_destination_allowed(
-                        scope[0], scope[1], cell
-                    ),
-                )
-                if result is not None:
-                    candidate[i] = result["members"][0]
-                    blocked.add(wander.point(candidate[i]))
-                    packets.extend(result["packets"])
-                    if (
-                        sum(len(payload) + 6 for _, payload in packets)
-                        > MAX_WANDER_BATCH_PACKET_BYTES - packet_bytes
-                    ):
-                        packets.pop()
-                        candidate[i] = members[i]
-                        break
+            # One probability decision and native path search for the entire group.
+            # Rigid translation preserves its formation instead of random walks
+            # increasing the distance between companions on every cadence.
+            if moved_member_count + len(members) > MAX_WANDER_BATCH_MOVED_MEMBERS:
+                continue
+            if random.random() >= configuration["move_probability"]:
+                continue
+            own_cells = {wander.point(member) for member in members}
+            result = wander.plan_group_path(
+                members,
+                scoped,
+                (),
+                occupied=scope_occupied - own_cells,
+                radius=configuration["radius"],
+                min_steps=configuration["min_steps"],
+                max_steps=configuration["max_steps"],
+                indexed=indexed,
+                destination_allowed=lambda cell: habitat_destination_allowed(
+                    scope[0], scope[1], cell
+                ),
+            )
+            if result is None:
+                continue
+            candidate = result["members"]
+            packets = result["packets"]
             if packets:
                 count = sum(
                     wander.point(before) != wander.point(after)
@@ -441,6 +443,8 @@ def prepare(store, snapshot, limit=16):
                 ):
                     continue
                 moves.append(move)
+                scope_occupied.difference_update(own_cells)
+                scope_occupied.update(wander.point(member) for member in candidate)
                 moved_member_count += count
                 packet_bytes += group_packet_bytes
                 if len(moves) >= MAX_WANDER_BATCH_GROUPS:
@@ -605,7 +609,7 @@ def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch)
         packet_bytes += decoded[6]
         decoded_moves.append((*decoded, habitat_valid))
 
-    with groups.lock, harvests.lock:
+    with groups.lock, harvests.lock, getattr(world, "lock", nullcontext()):
         players = _scoped_players(world.snapshot(), tuple(scope))
         if not players:
             return {"status": "absent"}
@@ -727,7 +731,7 @@ def apply(store, groups, harvests, world, proposal, *, world_epoch):
     birth_edges = (
         _edges(scope[0]) if kind == "reproduction" and not publication else None
     )
-    with groups.lock, harvests.lock:
+    with groups.lock, harvests.lock, getattr(world, "lock", nullcontext()):
         players = _scoped_players(world.snapshot(), scope)
         if not players:
             return {"status": "absent"}

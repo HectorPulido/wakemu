@@ -63,6 +63,7 @@ def owned_container_users(fight, uid):
             fight.owned_stat_effects,
             fight.native_owned_group_effects,
             getattr(fight, "native_owned_area_effects", {}),
+            getattr(fight, "native_owned_spatial_effects", {}),
         )
         for child_uid, row in collection.items()
         if row.get("state_uid") == uid
@@ -96,6 +97,7 @@ def owned_state_container(fight, uid):
     """Attest a PL snapshot only while an actual owned child keeps it alive."""
     from .combat_state_ledger import RunningState
     from .combat_state_timing import StateTimer
+    from .combat_summon_initialization import registered_or_detached_actor
 
     facts = getattr(fight, "native_owned_state_containers", None)
     if (
@@ -112,7 +114,7 @@ def owned_state_container(fight, uid):
         or row["reference"] <= 0
         or type(row.get("level")) is not int
         or not 0 <= row["level"] <= 32767
-        or row.get("caster_id") not in fight.actors
+        or registered_or_detached_actor(fight, row.get("caster_id")) is None
         or state_manager(fight, row.get("target_id")) is None
     ):
         raise ValueError("Invalid owned native state container identity")

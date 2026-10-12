@@ -4,12 +4,15 @@ Stacked floors disconnected from the player are not confused with reachable
 floors. Columns with multiple reachable heights remain blocked; no height or
 movement connection is invented to accommodate a fight participant.
 """
-from collections import defaultdict, deque
+from collections import OrderedDict, defaultdict, deque
+from threading import RLock
 from .combat_geometry import (
     coordinate as _cell,
+    PreparedGeometry,
     prepare_geometry,
     reachable,
     edges_within,
+    encounter_component,
 )
 
 
@@ -190,6 +193,7 @@ def compact_encounter(
     minimum_cells=25,
     minimum_dimensions=(5, 5),
     spread_opponents=False,
+    automatic_cell_budget=MAX_CELL_BUDGET,
 ):
     """Local encounter formation on one mutually reachable native component.
 
@@ -214,7 +218,7 @@ def compact_encounter(
         raise ValueError("Automatic encounter dimensions must be between 5 and 50")
     automatic_size = cell_budget is None
     if automatic_size:
-        cell_budget = MAX_CELL_BUDGET
+        cell_budget = automatic_cell_budget
 
     origin = _cell(player)
     originals = [_cell(member) for member in members]
@@ -225,23 +229,89 @@ def compact_encounter(
             "Encounter cell budget must be between2 and " + str(MAX_CELL_BUDGET)
         )
     geometry = prepare_geometry(data)
-    cells = geometry.cells
-    cropped = cells
-    if origin not in cropped:
-        raise ValueError("Player is outside native encounter terrain")
-    selected = reachable(origin, cropped, geometry.outgoing) & reachable(
-        origin, cropped, geometry.incoming
+    memoize = isinstance(data, PreparedGeometry)
+    key = (
+        id(geometry),
+        origin,
+        tuple(originals),
+        cell_budget,
+        automatic_size,
+        minimum_cells,
+        tuple(minimum_dimensions),
+        spread_opponents,
     )
-    columns = defaultdict(list)
-    for cell in selected:
-        columns[cell[:2]].append(cell)
-    ambiguous = {xy for xy, values in columns.items() if len(values) > 1}
-    if origin[:2] in ambiguous:
-        raise ValueError("Player occupies ambiguous native encounter surface")
-    selected = {c for c in selected if c[:2] not in ambiguous}
-    selected = reachable(origin, selected, geometry.outgoing) & reachable(
-        origin, selected, geometry.incoming
+    if memoize:
+        with _compact_encounters_lock:
+            cached = _compact_encounters.get(key)
+            if cached is not None and cached[0] is geometry:
+                _compact_encounters.move_to_end(key)
+                return _thaw_compact_encounter(cached[1])
+    result = _select_compact_encounter(
+        geometry,
+        origin,
+        originals,
+        cell_budget,
+        automatic_size,
+        minimum_cells,
+        minimum_dimensions,
+        spread_opponents,
+        memoize,
     )
+    if memoize:
+        frozen = _freeze_compact_encounter(result)
+        with _compact_encounters_lock:
+            _compact_encounters[key] = (geometry, frozen)
+            _compact_encounters.move_to_end(key)
+            while len(_compact_encounters) > _COMPACT_ENCOUNTER_LIMIT:
+                _compact_encounters.popitem(last=False)
+        return _thaw_compact_encounter(frozen)
+    return result
+
+
+# Retain geometry identity with each entry; cached results contain only immutable
+# values. Map IDs alone cannot distinguish native exports or revised topology.
+_COMPACT_ENCOUNTER_LIMIT = 32
+_compact_encounters = OrderedDict()
+_compact_encounters_lock = RLock()
+
+
+def _freeze_compact_encounter(result):
+    return (
+        result["map_id"],
+        frozenset(result["cells"]),
+        frozenset(result["edges"]),
+        tuple(result["placement"][0]),
+        tuple(result["placement"][1]),
+        tuple(result["participant_positions"]),
+        frozenset(result["blocked_ambiguous"]),
+        result["bounds"],
+    )
+
+
+def _thaw_compact_encounter(result):
+    return dict(
+        map_id=result[0],
+        cells=set(result[1]),
+        edges=set(result[2]),
+        placement={0: list(result[3]), 1: list(result[4])},
+        participant_positions=list(result[5]),
+        blocked_ambiguous=set(result[6]),
+        bounds=result[7],
+    )
+
+
+def _select_compact_encounter(
+    geometry,
+    origin,
+    originals,
+    cell_budget,
+    automatic_size,
+    minimum_cells,
+    minimum_dimensions,
+    spread_opponents,
+    memoize,
+):
+    selected, ambiguous = encounter_component(geometry, origin, memoize=memoize)
     preferred = _preferred_originals(origin, originals, selected, cell_budget)
     target_cells = max(minimum_cells, 12 + max(12, len(originals)) + 12)
     rectangle = None

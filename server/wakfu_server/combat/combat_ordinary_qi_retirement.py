@@ -55,15 +55,21 @@ def complete_ordinary_qi_death(fight, actor, *, fighter_state=2):
     registry = current_registry(fight)
     slot = actor.native_obstacle_id
     registry.remove(slot, ("actor", actor.id))
-    serialized_slots = registry.serialized_slots()
-    serialized_cells = registry.serialized_cells()
-    serialized_topology = registry.serialized_byte_topology()
+    if not hasattr(fight, "native_pointer_checkpoint"):
+        serialized_slots = registry.serialized_slots()
+        serialized_cells = registry.serialized_cells()
+        serialized_topology = registry.serialized_byte_topology()
     row = dict(source=SOURCE, actor_id=actor.id, qi_slot=slot)
     set_global_fighter_status(fight, actor.id, "OUT_OF_PLAY")
     actor.native_obstacle_id = -1
     actor.native_ordinary_qi_retirement = row
     fight.native_ordinary_qi_retirements = dict(records, **{str(actor.id): row})
-    fight.native_qi_slots = serialized_slots
-    fight.native_qi_touched_cells = serialized_cells
-    fight.native_qi_byte_topology = serialized_topology
+    if hasattr(fight, "native_pointer_checkpoint"):
+        from .combat_carrying import _publish_registry
+
+        _publish_registry(fight, registry)
+    else:
+        fight.native_qi_slots = serialized_slots
+        fight.native_qi_touched_cells = serialized_cells
+        fight.native_qi_byte_topology = serialized_topology
     return True

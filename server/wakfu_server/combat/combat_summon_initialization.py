@@ -105,7 +105,15 @@ def install_initial_states(
         # eZk.bbT returns before fyW.guG when PN.bac() is null, retaining
         # Ts.biM even for a positive turn duration. Only the actual scoped
         # constructor attests that absent SU; a detached lookup alone cannot.
-        if profile["realtime_duration"] > 0 or (
+        realtime = profile["realtime_duration"] > 0
+        realtime_supported = (
+            realtime
+            and profile["duration"] < 0
+            and profile["skip_turn_timer"] is True
+            and detached_actor_authority(fight, actor) is not None
+            and fight.phase in ("placement", "active")
+        )
+        if (realtime and not realtime_supported) or (
             profile["duration"] > 0 and detached_actor_authority(fight, actor) is None
         ):
             raise ValueError("Initial summon state requires an audited finite timeline")
@@ -124,6 +132,11 @@ def install_initial_states(
             0,
             native_time_payload(realtime_remaining=profile["realtime_duration"]),
         )
+        existing_uids = (
+            {entry.uid for entry in actor.state_ledger.entries}
+            if realtime_supported
+            else set()
+        )
         applied = retention.apply_state_reference(
             handler,
             invocation,
@@ -132,6 +145,39 @@ def install_initial_states(
             carrier_context=context,
             protected=True if item.native_rBq else None,
         )
+        if applied and realtime_supported:
+            # big's eZQ constructor precedes its real combat registration.
+            # eGj.g/eZk.h migrate the remaining realtime clock to eVw; its
+            # state310 timer callback explicitly suppresses combat removal.
+            import time
+            from .combat_realtime_state_clock import (
+                register_realtime_state,
+                migrate_realtime_state,
+            )
+
+            entries = tuple(
+                entry
+                for entry in actor.state_ledger.entries
+                if entry.uid not in existing_uids and entry.reference == item.state_id
+            )
+            if len(entries) != 1 or entries[0].timer is not None:
+                raise ValueError("Missing actual constructor realtime carrier")
+            entry = entries[0]
+            now = time.time_ns() // 1000000
+            clocks = {}
+            register_realtime_state(
+                clocks,
+                uid=entry.uid,
+                duration_ms=entry.realtime_duration,
+                now_ms=now,
+                in_combat=False,
+            )
+            migrate_realtime_state(clocks, entry.uid, now_ms=now, in_combat=True)
+            actor.state_ledger.install_realtime_clock(
+                entry.uid,
+                deadline_ms=clocks[entry.uid]["deadline_ms"],
+                in_combat=True,
+            )
         if application_results is not None:
             application_results.append(
                 dict(

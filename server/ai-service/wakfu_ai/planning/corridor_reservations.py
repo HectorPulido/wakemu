@@ -1,4 +1,5 @@
 """Advisory firing corridors from the exact native LOS probes, never XY rays."""
+from ..native.native_control import effective_affiliation
 
 
 def draft(fight, actor, action, map_id, *, rays=None, legacy=None, footprint=None):
@@ -24,7 +25,9 @@ def draft(fight, actor, action, map_id, *, rays=None, legacy=None, footprint=Non
     ]
     if len(targets) > 1:
         raise ValueError("Ambiguous native corridor target")
-    if not targets or targets[0].team == actor.team:
+    if not targets or effective_affiliation(fight, targets[0]) == effective_affiliation(
+        fight, actor
+    ):
         return None
     permitted = {tuple(cell[:2]) for cell in fight.walkable}
     ignored = getattr(fight, "native_los_ignored_affiliations", frozenset())
@@ -61,7 +64,7 @@ def draft(fight, actor, action, map_id, *, rays=None, legacy=None, footprint=Non
         return None
     return dict(
         ownerId=actor.id,
-        team=actor.team,
+        team=effective_affiliation(fight, actor),
         source=list(source),
         target=list(target),
         targetId=targets[0].id,
@@ -100,7 +103,7 @@ def valid(record, fight, team, *, footprint=None):
     if (
         owner is None
         or owner.hp <= 0
-        or owner.team != team
+        or effective_affiliation(fight, owner) != team
         or tuple(owner.position) != tuple(record.get("source", ()))
         or getattr(owner, "turn_count", None) != record.get("ownerTurnCount")
         or type(record.get("expiresRound")) is not int
@@ -113,7 +116,7 @@ def valid(record, fight, team, *, footprint=None):
         if (
             target is None
             or target.hp <= 0
-            or target.team == team
+            or effective_affiliation(fight, target) == team
             or tuple(target.position) != tuple(record.get("target", ()))
         ):
             return False

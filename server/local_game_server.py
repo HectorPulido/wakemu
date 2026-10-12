@@ -423,6 +423,13 @@ class Connection:
     def __init__(self, socket):
         self.socket = socket
         self.write_lock = threading.Lock()
+        from wakfu_server.combat_instance_publication import InstancePublicationTracker
+
+        self.instance_publications = InstancePublicationTracker()
+        self.native_instance_scope = lambda: None
+        self.interactive_publication = None
+        self.interactive_scope = lambda: None
+        self.interactive_trace = []
 
     def __getattr__(self, name):
         return getattr(self.socket, name)
@@ -431,9 +438,25 @@ class Connection:
         with PROFILER.span("network.send_lock"):
             self.write_lock.acquire()
         try:
+            publication_scope = self.native_instance_scope()
+            if self.interactive_publication is not None:
+                self.interactive_trace.clear()
+                data = self.interactive_publication.transform(
+                    data, self.interactive_scope()
+                )
             with PROFILER.span("network.send"):
-                self.socket.sendall(data)
+                if data:
+                    self.socket.sendall(data)
+            self.instance_publications.after_write(data, publication_scope)
+            for event in self.interactive_trace:
+                record(event="interactive_wire_publication", **event)
+        except BaseException:
+            self.instance_publications.invalidate()
+            if self.interactive_publication is not None:
+                self.interactive_publication.clear()
+            raise
         finally:
+            self.interactive_trace.clear()
             self.write_lock.release()
 
 
@@ -803,7 +826,9 @@ def join_world(generation, connection, character, *, hydrate_heroes=True):
     for packet in HAVEN_BAG_EXTERIORS.snapshots(character):
         send(connection, "world", *packet)
     send_planting_context(connection, character)
-    for packet in PLANTINGS.snapshots(character["map_id"], character["instance_id"]):
+    for packet in PLANTINGS.snapshots(
+        character["map_id"], character["instance_id"], position=character
+    ):
         send(connection, "world", *packet)
     from wakfu_server.maps import npc_world, npc_placements
 
@@ -1507,7 +1532,7 @@ def session(raw, peer, service, context):
         packets = scene_sync.poll(
             character["map_id"], character.get("instance_id", 0), time.monotonic()
         )
-        if not packets:
+        if not packets and not scene_sync.last_regions:
             return
         # csV/cgN shifts the native interactive registry independently of the
         # terrain camera. Raw assets must be registered before state hydration.
@@ -1519,10 +1544,14 @@ def session(raw, peer, service, context):
         )
         for payload in packets:
             send(connection, service, 13984, payload)
-            # Native duplicate attachment retains an existing instance. Apply
-            # the authoritative state directly to that retained instance too.
-            for state in refresh_snapshots(payload):
-                send(connection, service, 12344, state)
+            # The connection publishes each native attachment once and converts
+            # retained-object hydration to in-place state updates.
+        # Partition entry replays persisted resource state, including growth
+        # updates intentionally omitted while this peer was outside visibility.
+        for packet in PLANTINGS.snapshots(
+            character["map_id"], character.get("instance_id", 0), position=character
+        ):
+            send(connection, service, *packet)
         publish_environment_scene(force=True)
         if is_dungeon_run(character.get("instance_id", 0)):
             for message_id, payload in owned_native_bootstrap(character):
@@ -1559,7 +1588,7 @@ def session(raw, peer, service, context):
         sync_static_world(force=True, validated=True)
         send_planting_context(connection, character)
         for packet in PLANTINGS.snapshots(
-            character["map_id"], character.get("instance_id", 0)
+            character["map_id"], character.get("instance_id", 0), position=character
         ):
             send(connection, service, *packet)
         if COMBAT_TEST:
@@ -3053,6 +3082,7 @@ def session(raw, peer, service, context):
     @PROFILER.profile("admin.command")
     def execute_test_command(text, *, authorized_by=None):
         nonlocal character, position, movement_state, fight, fight_messages
+        nonlocal bag_session, ranch_session
         from wakfu_server.test_console import execute, parse_target
         from wakfu_server.command_permissions import (
             authorize_command,
@@ -3234,10 +3264,15 @@ def session(raw, peer, service, context):
                         wire.chat(dict(character, name="Consola local"), line),
                     )
                 return {"message": found["message"]}
-            if (
-                command in ("!tp", "!mob", "!item", "!equip", "!unequip", "!nivel")
-                and fight is not None
-            ):
+            if command in (
+                "!tp",
+                "!astrub",
+                "!mob",
+                "!item",
+                "!equip",
+                "!unequip",
+                "!nivel",
+            ) and (fight is not None or combat_session is not None):
                 raise ValueError(
                     "Termina el combate antes de modificar el mundo o el inventario."
                 )
@@ -3247,6 +3282,8 @@ def session(raw, peer, service, context):
                 raise ValueError(
                     "Sal del combate o del merkasaco antes de usar este comando."
                 )
+            if command == "!astrub" and ranch_session is not None:
+                validate_ranch_lease()
             flush_positions(
                 account_id=account_id,
                 generation=generation,
@@ -3351,13 +3388,39 @@ def session(raw, peer, service, context):
                 private_scene=ranch_session,
             )
             if result["action"] == "tp":
+                leaving_ranch = command == "!astrub" and ranch_session is not None
+                leaving_private = command == "!astrub" and bag_session is not None
+                if command == "!astrub" and bag_session is not None:
+                    PLANTINGS.cancel(character["id"], generation)
+                    HARVESTS.cancel(character["id"], generation=generation)
+                    cancel_flora()
+                    exterior = HAVEN_BAG_EXTERIORS.discard(
+                        generation, bag_session.exterior_actor_id
+                    )
+                    if exterior is not None:
+                        outside, packet = exterior
+                        WORLD.emit_location(
+                            outside["map_id"], outside["instance_id"], *packet
+                        )
+                    if ranch_session is not None:
+                        ranch_session.leave(character)
+                    bag_session = None
+                    ranch_session = None
                 cancel_crafting()
                 WORLD.leave(character["id"], generation)
                 character = result["character"]
                 POSITIONS.attach(account_id, generation, character)
                 position = {key: character[key] for key in ("x", "y", "z")}
                 movement_state = Movement(position)
-                for message_id, message_body in owned_native_bootstrap(character):
+                transition_messages = (
+                    owned_haven_leave(fixture(13974), character)
+                    if leaving_private
+                    else owned_native_bootstrap(character)
+                )
+                for message_id, message_body in transition_messages:
+                    # Ranch entry already cleared the non-nullsafe bpq controller.
+                    if leaving_ranch and message_id == 13019:
+                        continue
                     send(connection, service, message_id, message_body)
                 join_world(generation, connection, character)
                 mark_static_sync_pending()
@@ -4343,10 +4406,14 @@ def session(raw, peer, service, context):
                     # A failed Ready/ACK callback can leave an unpublished NPC
                     # action pending. Any remaining owner may retry it; the AI
                     # bridge claims the actual shared actor/turn under its lock.
+                    from wakfu_server.combat_effective_control import (
+                        effective_server_controlled,
+                    )
+
                     if (
                         fight.phase == "active"
                         and fight.current is not None
-                        and not fight.current.controlled
+                        and effective_server_controlled(fight, fight.current)
                         and fight_messages.awaiting_ack is None
                         and not fight_messages.pending
                     ):
@@ -4504,6 +4571,41 @@ def session(raw, peer, service, context):
         with context.wrap_socket(raw, server_side=True) as connection:
             connection = Connection(connection)
             connection.trace_id = connection_trace_id
+            if service == "world":
+                from wakfu_server.interactive_publication import InteractivePublication
+
+                trace_ids = os.environ.get("WAKFU_INTERACTIVE_TRACE_IDS", "")
+                trace_account = os.environ.get("WAKFU_INTERACTIVE_TRACE_ACCOUNT", "")
+                connection.interactive_publication = InteractivePublication(
+                    world_static.objects,
+                    trace=connection.interactive_trace.append,
+                    trace_ids={int(value) for value in trace_ids.split(",") if value},
+                    trace_account_id=int(trace_account) if trace_account else None,
+                    trace_limit=512 if trace_ids else 0,
+                )
+                connection.interactive_scope = lambda: (
+                    dict(
+                        session_id=connection_trace_id,
+                        generation=generation,
+                        account_id=account_id,
+                        character_id=character["id"],
+                        map_id=character["map_id"],
+                        instance_id=character.get("instance_id", 0),
+                    )
+                    if character is not None and generation is not None
+                    else None
+                )
+                connection.native_instance_scope = (
+                    lambda: (
+                        account_id,
+                        generation,
+                        character["id"],
+                        character["map_id"],
+                        character["instance_id"],
+                    )
+                    if account_id is not None and generation and character is not None
+                    else None
+                )
             if not CONNECTIONS.register(
                 connection, lambda opcode, body: send(connection, service, opcode, body)
             ):
@@ -6686,11 +6788,16 @@ def session(raw, peer, service, context):
                         TEST_MONSTERS = tuple(selected_group["members"])
                         TEST_MONSTERS_BY_ID = {m["id"]: m for m in TEST_MONSTERS}
                         entry_stage("group_selected")
+                        from wakfu_server.combat_arena_policy import cell_budget
+
+                        with STORE.connection() as arena_policy_db:
+                            arena_cell_budget = cell_budget(arena_policy_db)
                         arena = local_arena(
                             character["map_id"],
                             character["id"],
                             (character["x"], character["y"], character["z"]),
                             [(m["x"], m["y"], m["z"]) for m in TEST_MONSTERS],
+                            automatic_cell_budget=arena_cell_budget,
                             stage_callback=lambda stage, elapsed_ms, thread_cpu_ms: record(
                                 event="combat_arena_stage",
                                 stage=stage,
@@ -6788,6 +6895,13 @@ def session(raw, peer, service, context):
                             terrain_instance_id=terrain_instance_id,
                             duration_ms=placement_duration,
                         )
+                        with connection.write_lock:
+                            connection.instance_publications.bind_encounter(
+                                candidate,
+                                connection.native_instance_scope(),
+                                npc_ids=tuple(m["id"] for m in TEST_MONSTERS),
+                                player_id=character["id"],
+                            )
                         entry_stage("placement_created")
                         from wakfu_server.combat_actor_snapshot import (
                             initialize_fight_snapshots,
@@ -8794,12 +8908,15 @@ def session(raw, peer, service, context):
                         # Only an owned, still-active turn may be reannounced.
                         # Stale or foreign requests must not clear another
                         # actor's native synchronization barrier.
+                        from wakfu_server.combat_effective_control import (
+                            effective_input_owner,
+                        )
+
                         current = fight.current
                         if (
                             fight.phase == "active"
                             and current is not None
-                            and current.controlled
-                            and current.owner_id == account_id
+                            and effective_input_owner(fight, current) == account_id
                             and fight_messages.awaiting_ack is None
                         ):
                             for message_id, payload in fight_messages.recover(
@@ -12393,6 +12510,12 @@ def session(raw, peer, service, context):
             active_request.finish(status="unexpected_error")
             active_request = None
     finally:
+        # Stop ecology occupancy before potentially blocking combat/storage cleanup.
+        if service == "world" and character is not None and generation is not None:
+            WORLD.deactivate_ecology(character["id"], generation)
+        publication_connection = locals().get("connection")
+        if isinstance(publication_connection, Connection):
+            publication_connection.instance_publications.invalidate()
         if guild_chest_session is not None:
             guild_chest_session.close()
             guild_chest_session = None

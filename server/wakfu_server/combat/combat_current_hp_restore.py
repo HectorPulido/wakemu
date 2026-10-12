@@ -191,7 +191,9 @@ class NativeCurrentHPRestoreHandler:
                 raise ValueError("Missing actual eGz restore strategy component")
         from .combat_resurrection import prepare_resurrection, complete_resurrection
 
-        resurrection = prepare_resurrection(self.fight, target, effect)
+        resurrection = prepare_resurrection(
+            self.fight, target, effect, execution_context=context
+        )
         virtual = 0
         if parameters["percentage_mode"]:
             runner.set_calculated(

@@ -1,0 +1,10 @@
+{
+  "maximum_level": 245,
+  "resolved_spell_level": 245,
+  "native_roots": [
+    392568
+  ],
+  "original_casting_document_sha256": "0e6ef6f9f3bd4f3c4192a77673fd0598034e51d1149364d66f5f24f5ff6095c9",
+  "claim": "source lookup only; no engine admission",
+  "original_validator_sha256": "9ad6909d5bc6814c4a665d99ebcd6e519528907aa3af928fed1a35e0ae91a273"
+}

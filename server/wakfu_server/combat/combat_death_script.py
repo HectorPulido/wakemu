@@ -24,12 +24,15 @@ class NativeDeathScriptHandler:
     def _context(self, effect, invocation):
         if effect["effect_class"] != 1099 or len(effect["parameters"]) < 2:
             raise ValueError("Unsupported native eWE definition")
+        from .combat_npc_initialization import constructor_stat_context
+        from .combat_summon_initialization import registered_or_detached_actor
+
+        constructor = constructor_stat_context(self.fight, invocation)
         if (
-            self.fight.phase != "active"
-            or invocation.caster_id not in self.fight.actors
-        ):
+            self.fight.phase != "active" and not constructor
+        ) or registered_or_detached_actor(self.fight, invocation.caster_id) is None:
             raise ValueError("Invalid native eWE fight/caster")
-        if invocation.target_id not in self.fight.actors:
+        if registered_or_detached_actor(self.fight, invocation.target_id) is None:
             # Non-eGj PV is a native no-op, but area retention/delivery has its
             # own manager contract. Do not fabricate an actor or silent success.
             raise ValueError("Native eWE non-fighter/null-target delivery unsupported")
@@ -119,7 +122,9 @@ class NativeDeathScriptHandler:
             if live.retained != context.retained:
                 raise ValueError("Native eWE retention changed during L2")
             amount = runner.value
-        actor = self.fight.actors[invocation.target_id]
+        from .combat_summon_initialization import registered_or_detached_actor
+
+        actor = registered_or_detached_actor(self.fight, invocation.target_id)
         actor.native_death_script_id = amount
 
         def payload_for(value):
@@ -217,7 +222,11 @@ def remove_death_script(handler, uid):
         uid=uid,
         running_effect_payload=bytes.fromhex(entry["payload"]),
     )
-    actor = handler.fight.actors[entry["target_id"]]
+    from .combat_summon_initialization import registered_or_detached_actor
+
+    actor = registered_or_detached_actor(handler.fight, entry["target_id"])
+    if actor is None:
+        raise ValueError("Missing owned eWE removal actor")
     # Native bbR never restores the previous script or recomputes an overlay.
     actor.native_death_script_id = -1
     actor.native_immediate_death_script = None

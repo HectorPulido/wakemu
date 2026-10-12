@@ -46,6 +46,7 @@ def actor_stats(
     *,
     wp,
     obstacle_id=None,
+    native_qi_retired=False,
     ap=6,
     mp=3,
     direction=0,
@@ -112,7 +113,9 @@ def actor_stats(
         0,
     )
     obstacle = team if obstacle_id is None else obstacle_id
-    if type(obstacle) is not int or not 0 <= obstacle <= 126:
+    if type(obstacle) is not int or not (
+        0 <= obstacle <= 126 or native_qi_retired is True and obstacle == -1
+    ):
         raise ValueError("Invalid native obstacle byte")
     fight = struct.pack(">iBBBBbB", fight_id, 0, 0, 0, 0, obstacle, 0)
     return (
@@ -209,8 +212,25 @@ def monster_actor_stats(
     )
 
 
+def _forced_qi_retired(fight, actor, fight_id):
+    """Only an actual completed934 transition authorizes the signed absent byte."""
+    if fight is None:
+        return False
+    if fight.id != fight_id or fight.actors.get(actor.id) is not actor:
+        raise ValueError("Mismatched actual retirement serialization context")
+    from .combat_forced_retirement import retired_forced_fighter_ids
+    from .combat_qi_fight import current_registry
+
+    retired = retired_forced_fighter_ids(fight)
+    if actor.id not in retired:
+        return False
+    # Validate complete actual spatial population, not just a copied receipt.
+    current_registry(fight)
+    return True
+
+
 def actual_actor_stats(
-    character, actor, fight_id, *, wp_current, wp_maximum, direction=0
+    character, actor, fight_id, *, wp_current, wp_maximum, direction=0, fight=None
 ):
     """PC snapshot after movement/cast; resources remain current/max distinct."""
     if (
@@ -240,6 +260,7 @@ def actual_actor_stats(
         fight_id,
         team=actor.team,
         obstacle_id=actor.native_obstacle_id,
+        native_qi_retired=_forced_qi_retired(fight, actor, fight_id),
         characteristics_payload=snapshot,
         ap=actor.ap,
         mp=actor.mp,
@@ -254,7 +275,7 @@ def actual_actor_stats(
 
 
 def actual_monster_actor_stats(
-    monster, actor, fight_id, *, wp_current, wp_maximum, direction=0
+    monster, actor, fight_id, *, wp_current, wp_maximum, direction=0, fight=None
 ):
     """NPC snapshot from live fight resources, preserving its native reference."""
     from .combat_property_wire import ordinary_monster_property_counts
@@ -297,7 +318,8 @@ def actual_monster_actor_stats(
         characteristics_payload=snapshot,
         native_controlled_by_ai=getattr(actor, "native_controlled_by_ai", None),
         native_qi_retired=(
-            getattr(actor, "native_ordinary_qi_retirement", {}).get("source")
+            _forced_qi_retired(fight, actor, fight_id)
+            or getattr(actor, "native_ordinary_qi_retirement", {}).get("source")
             == "wakemu.owned-npc-state2-qi-completion-v1"
         ),
         fight_property_counts=ordinary_monster_property_counts(monster, actor),

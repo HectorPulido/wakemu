@@ -122,4 +122,5 @@ class BlockingAreaRemovalTests(unittest.TestCase):
                 )
             )
             self.assertEqual(remove.call_args.args[1], 901)
-        self.assertEqual(packets[0][0], 13497)
+        self.assertEqual(packets[0][0], 12613)
+        self.assertEqual(packets[0][1][12], 1)

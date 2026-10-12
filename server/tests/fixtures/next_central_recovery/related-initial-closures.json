@@ -1,0 +1,689 @@
+[
+  {
+    "ref": 3044,
+    "states": [
+      {
+        "state": 2659,
+        "level": 1,
+        "effects": [
+          111558,
+          111559,
+          111560
+        ]
+      },
+      {
+        "state": 2650,
+        "level": 1,
+        "effects": [
+          111319
+        ]
+      },
+      {
+        "state": 2658,
+        "level": 1,
+        "effects": [
+          111521,
+          111533
+        ]
+      }
+    ],
+    "families": [
+      304,
+      314,
+      330,
+      400,
+      1021
+    ],
+    "effects": {
+      "111533": {
+        "family": 400,
+        "children": [],
+        "subscription": false
+      },
+      "111521": {
+        "family": 330,
+        "children": [
+          111522,
+          111523,
+          111524,
+          111525,
+          111526,
+          111527
+        ],
+        "subscription": true
+      },
+      "111527": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "111526": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "111525": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "111524": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "111523": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "111522": {
+        "family": 400,
+        "children": [],
+        "subscription": false
+      },
+      "111319": {
+        "family": 330,
+        "children": [
+          111320
+        ],
+        "subscription": true
+      },
+      "111320": {
+        "family": 1021,
+        "children": [],
+        "subscription": false
+      },
+      "111560": {
+        "family": 400,
+        "children": [],
+        "subscription": false
+      },
+      "111559": {
+        "family": 400,
+        "children": [],
+        "subscription": false
+      },
+      "111558": {
+        "family": 314,
+        "children": [],
+        "subscription": true
+      }
+    }
+  },
+  {
+    "ref": 3840,
+    "states": [
+      {
+        "state": 3959,
+        "level": 1,
+        "effects": [
+          170770,
+          170717,
+          170720,
+          170721
+        ]
+      }
+    ],
+    "families": [
+      28,
+      304,
+      314,
+      330,
+      421,
+      1003
+    ],
+    "effects": {
+      "170721": {
+        "family": 330,
+        "children": [
+          170722,
+          170723
+        ],
+        "subscription": true
+      },
+      "170723": {
+        "family": 28,
+        "children": [],
+        "subscription": false
+      },
+      "170722": {
+        "family": 421,
+        "children": [],
+        "subscription": false
+      },
+      "170720": {
+        "family": 1003,
+        "children": [],
+        "subscription": false
+      },
+      "170717": {
+        "family": 330,
+        "children": [
+          170718
+        ],
+        "subscription": true
+      },
+      "170718": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "170770": {
+        "family": 330,
+        "children": [
+          170771
+        ],
+        "subscription": true
+      },
+      "170771": {
+        "family": 314,
+        "children": [],
+        "subscription": false
+      }
+    }
+  },
+  {
+    "ref": 3841,
+    "states": [
+      {
+        "state": 3958,
+        "level": 1,
+        "effects": [
+          170765,
+          170695,
+          170709,
+          170711
+        ]
+      }
+    ],
+    "families": [
+      28,
+      304,
+      314,
+      330,
+      421,
+      1003
+    ],
+    "effects": {
+      "170711": {
+        "family": 330,
+        "children": [
+          170712,
+          170713
+        ],
+        "subscription": true
+      },
+      "170713": {
+        "family": 28,
+        "children": [],
+        "subscription": false
+      },
+      "170712": {
+        "family": 421,
+        "children": [],
+        "subscription": false
+      },
+      "170709": {
+        "family": 1003,
+        "children": [],
+        "subscription": false
+      },
+      "170695": {
+        "family": 330,
+        "children": [
+          170710
+        ],
+        "subscription": true
+      },
+      "170710": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "170765": {
+        "family": 330,
+        "children": [
+          170766
+        ],
+        "subscription": true
+      },
+      "170766": {
+        "family": 314,
+        "children": [],
+        "subscription": false
+      }
+    }
+  },
+  {
+    "ref": 3960,
+    "states": [
+      {
+        "state": 3958,
+        "level": 1,
+        "effects": [
+          170765,
+          170695,
+          170709,
+          170711
+        ]
+      }
+    ],
+    "families": [
+      28,
+      304,
+      314,
+      330,
+      421,
+      1003
+    ],
+    "effects": {
+      "170711": {
+        "family": 330,
+        "children": [
+          170712,
+          170713
+        ],
+        "subscription": true
+      },
+      "170713": {
+        "family": 28,
+        "children": [],
+        "subscription": false
+      },
+      "170712": {
+        "family": 421,
+        "children": [],
+        "subscription": false
+      },
+      "170709": {
+        "family": 1003,
+        "children": [],
+        "subscription": false
+      },
+      "170695": {
+        "family": 330,
+        "children": [
+          170710
+        ],
+        "subscription": true
+      },
+      "170710": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "170765": {
+        "family": 330,
+        "children": [
+          170766
+        ],
+        "subscription": true
+      },
+      "170766": {
+        "family": 314,
+        "children": [],
+        "subscription": false
+      }
+    }
+  },
+  {
+    "ref": 3961,
+    "states": [
+      {
+        "state": 3959,
+        "level": 1,
+        "effects": [
+          170770,
+          170717,
+          170720,
+          170721
+        ]
+      }
+    ],
+    "families": [
+      28,
+      304,
+      314,
+      330,
+      421,
+      1003
+    ],
+    "effects": {
+      "170721": {
+        "family": 330,
+        "children": [
+          170722,
+          170723
+        ],
+        "subscription": true
+      },
+      "170723": {
+        "family": 28,
+        "children": [],
+        "subscription": false
+      },
+      "170722": {
+        "family": 421,
+        "children": [],
+        "subscription": false
+      },
+      "170720": {
+        "family": 1003,
+        "children": [],
+        "subscription": false
+      },
+      "170717": {
+        "family": 330,
+        "children": [
+          170718
+        ],
+        "subscription": true
+      },
+      "170718": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "170770": {
+        "family": 330,
+        "children": [
+          170771
+        ],
+        "subscription": true
+      },
+      "170771": {
+        "family": 314,
+        "children": [],
+        "subscription": false
+      }
+    }
+  },
+  {
+    "ref": 4138,
+    "states": [
+      {
+        "state": 3958,
+        "level": 1,
+        "effects": [
+          170765,
+          170695,
+          170709,
+          170711
+        ]
+      }
+    ],
+    "families": [
+      28,
+      304,
+      314,
+      330,
+      421,
+      1003
+    ],
+    "effects": {
+      "170711": {
+        "family": 330,
+        "children": [
+          170712,
+          170713
+        ],
+        "subscription": true
+      },
+      "170713": {
+        "family": 28,
+        "children": [],
+        "subscription": false
+      },
+      "170712": {
+        "family": 421,
+        "children": [],
+        "subscription": false
+      },
+      "170709": {
+        "family": 1003,
+        "children": [],
+        "subscription": false
+      },
+      "170695": {
+        "family": 330,
+        "children": [
+          170710
+        ],
+        "subscription": true
+      },
+      "170710": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "170765": {
+        "family": 330,
+        "children": [
+          170766
+        ],
+        "subscription": true
+      },
+      "170766": {
+        "family": 314,
+        "children": [],
+        "subscription": false
+      }
+    }
+  },
+  {
+    "ref": 4139,
+    "states": [
+      {
+        "state": 3959,
+        "level": 1,
+        "effects": [
+          170770,
+          170717,
+          170720,
+          170721
+        ]
+      }
+    ],
+    "families": [
+      28,
+      304,
+      314,
+      330,
+      421,
+      1003
+    ],
+    "effects": {
+      "170721": {
+        "family": 330,
+        "children": [
+          170722,
+          170723
+        ],
+        "subscription": true
+      },
+      "170723": {
+        "family": 28,
+        "children": [],
+        "subscription": false
+      },
+      "170722": {
+        "family": 421,
+        "children": [],
+        "subscription": false
+      },
+      "170720": {
+        "family": 1003,
+        "children": [],
+        "subscription": false
+      },
+      "170717": {
+        "family": 330,
+        "children": [
+          170718
+        ],
+        "subscription": true
+      },
+      "170718": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "170770": {
+        "family": 330,
+        "children": [
+          170771
+        ],
+        "subscription": true
+      },
+      "170771": {
+        "family": 314,
+        "children": [],
+        "subscription": false
+      }
+    }
+  },
+  {
+    "ref": 5661,
+    "states": [
+      {
+        "state": 8649,
+        "level": 1,
+        "effects": [
+          389432,
+          389435
+        ]
+      },
+      {
+        "state": 8640,
+        "level": 1,
+        "effects": [
+          389401
+        ]
+      },
+      {
+        "state": 8650,
+        "level": 1,
+        "effects": [
+          389445,
+          389447,
+          389449
+        ]
+      },
+      {
+        "state": 8773,
+        "level": 1,
+        "effects": [
+          392042
+        ]
+      }
+    ],
+    "families": [
+      28,
+      193,
+      194,
+      304,
+      330,
+      400,
+      426,
+      430
+    ],
+    "effects": {
+      "392042": {
+        "family": 400,
+        "children": [],
+        "subscription": false
+      },
+      "389449": {
+        "family": 330,
+        "children": [
+          389450
+        ],
+        "subscription": true
+      },
+      "389450": {
+        "family": 28,
+        "children": [],
+        "subscription": false
+      },
+      "389447": {
+        "family": 330,
+        "children": [
+          389448
+        ],
+        "subscription": true
+      },
+      "389448": {
+        "family": 28,
+        "children": [],
+        "subscription": false
+      },
+      "389445": {
+        "family": 330,
+        "children": [
+          389446
+        ],
+        "subscription": true
+      },
+      "389446": {
+        "family": 430,
+        "children": [],
+        "subscription": false
+      },
+      "389401": {
+        "family": 330,
+        "children": [
+          389198,
+          389453
+        ],
+        "subscription": true
+      },
+      "389453": {
+        "family": 194,
+        "children": [],
+        "subscription": false
+      },
+      "389198": {
+        "family": 194,
+        "children": [],
+        "subscription": false
+      },
+      "389435": {
+        "family": 330,
+        "children": [
+          389437,
+          389436
+        ],
+        "subscription": true
+      },
+      "389436": {
+        "family": 426,
+        "children": [],
+        "subscription": false
+      },
+      "389437": {
+        "family": 426,
+        "children": [],
+        "subscription": false
+      },
+      "389432": {
+        "family": 330,
+        "children": [
+          389433,
+          389434
+        ],
+        "subscription": true
+      },
+      "389434": {
+        "family": 304,
+        "children": [],
+        "subscription": false
+      },
+      "389433": {
+        "family": 193,
+        "children": [],
+        "subscription": false
+      }
+    }
+  }
+]

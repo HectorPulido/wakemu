@@ -15,6 +15,9 @@ class World:
     ):
         self.lock = threading.RLock()
         self.players = {}
+        self._ecology_inactive = set()
+        self._presence_generation = {}
+        self._presence_sequence = 0
         self.spawn = spawn
         self.remove = remove
         self.deliver = deliver
@@ -31,7 +34,14 @@ class World:
         from copy import deepcopy
 
         with self.lock:
-            return [deepcopy(character) for _, _, character in self.players.values()]
+            return [
+                (
+                    dict(deepcopy(character), _ecology_active=False)
+                    if (character["id"], generation) in self._ecology_inactive
+                    else deepcopy(character)
+                )
+                for generation, _, character in self.players.values()
+            ]
 
     def update_territory_projection(self, generation, character, *, peer, bonuses):
         """Merge derived stats only while the exact owner/location lease is live."""
@@ -56,9 +66,31 @@ class World:
         keys = ("id", "account_id", "map_id", "instance_id", "x", "y", "z")
         with self.lock:
             return [
-                {key: character[key] for key in keys}
-                for _, _, character in self.players.values()
+                dict(
+                    {key: character[key] for key in keys},
+                    presence_generation=self._presence_generation[
+                        self.location(character)
+                    ],
+                )
+                for generation, _, character in self.players.values()
+                if (character["id"], generation) not in self._ecology_inactive
             ]
+
+    def deactivate_ecology(self, character_id, generation):
+        """Stop simulation authority immediately without disrupting combat cleanup."""
+        with self.lock:
+            entry = self.players.get(character_id)
+            if entry is None or entry[0] != generation:
+                return False
+            self._ecology_inactive.add((character_id, generation))
+            location = self.location(entry[2])
+            if not any(
+                self.location(other) == location
+                and (other["id"], lease) not in self._ecology_inactive
+                for lease, _, other in self.players.values()
+            ):
+                self._presence_generation.pop(location, None)
+            return True
 
     def _send(self, peer, opcode, body):
         try:
@@ -245,6 +277,11 @@ class World:
             existing = self.players.get(character["id"])
             if existing:
                 self.leave(character["id"], existing[0])
+            location = self.location(character)
+            self._ecology_inactive.discard((character["id"], generation))
+            if location not in self._presence_generation:
+                self._presence_sequence += 1
+                self._presence_generation[location] = self._presence_sequence
             entry = (generation, peer, dict(character))
             for _, other_peer, other in self.players.values():
                 if self.location(other) == self.location(character):
@@ -302,7 +339,9 @@ class World:
             existing = self.players.get(character_id)
             if not existing or existing[0] != generation:
                 return False
+            self.deactivate_ecology(character_id, generation)
             self.players.pop(character_id)
+            self._ecology_inactive.discard((character_id, generation))
             for _, peer, other in self.players.values():
                 if self.location(other) == self.location(existing[2]):
                     self._send(peer, 12304, self.remove(character_id))

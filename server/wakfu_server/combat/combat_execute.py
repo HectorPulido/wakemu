@@ -145,11 +145,18 @@ def execute_adjacent_cast(
     }
     # Keep existing Actor objects live for callers holding references. No
     # operation that can fail follows this commit boundary.
+    from .combat_pointer_qi_commit import prepare_pointer_commit
+
+    pointer_binding = prepare_pointer_commit(preview)
+    if pointer_binding is not None:
+        pointer_binding.stage(fight)
     for actor_id, copy in preview.actors.items():
         fight.actors[actor_id].__dict__.update(copy.__dict__)
     for key, value in preview.__dict__.items():
         if key != "actors":
             setattr(fight, key, value)
+    if pointer_binding is not None:
+        pointer_binding.publish()
     return dict(
         plan=plan,
         damage=dealt,

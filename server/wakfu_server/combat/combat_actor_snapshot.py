@@ -153,6 +153,9 @@ class ActorSnapshot:
             -1
         )  # Fresh eGj constructor, before retained effects.
         actor.native_turn_suppression_bits = 0  # Fresh eGj.pGO = new BitSet().
+        from .combat_departure_predicates import initialize_fresh_departure_flags
+
+        initialize_fresh_departure_flags(actor)
 
 
 def _rows(catalog):
@@ -491,6 +494,11 @@ def initialize_fight_snapshots(
     if not plans:
         fight.native_effect_uid_next = initial_effect_uid
     if fight is not original_fight:
+        from .combat_pointer_qi_commit import prepare_pointer_commit
+
+        pointer_binding = prepare_pointer_commit(fight)
+        if pointer_binding is not None:
+            pointer_binding.stage(original_fight)
         original_actors = original_fight.actors
         for identity, actor in fight.actors.items():
             original_actors[identity].__dict__.clear()
@@ -498,6 +506,8 @@ def initialize_fight_snapshots(
         fight.actors = original_actors
         original_fight.__dict__.clear()
         original_fight.__dict__.update(fight.__dict__)
+        if pointer_binding is not None:
+            pointer_binding.publish()
     if initialization_warnings is not None:
         initialization_warnings.extend(local_warnings)
     return prepared

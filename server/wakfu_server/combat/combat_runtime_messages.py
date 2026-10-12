@@ -2,6 +2,7 @@
 
 No spell effects, AI, rewards or ordinary victory-result protobuf are invented.
 """
+from .combat_effective_control import effective_server_controlled, effective_input_owner
 import struct
 import time
 from copy import deepcopy
@@ -117,7 +118,7 @@ class RuntimeMessages:
         return not (
             self.fight.phase != "active"
             or actor is None
-            or not actor.controlled
+            or effective_input_owner(self.fight, actor) is None
             or actor.hp <= 0
             or self.awaiting_ack is not None
             or self.turn_deadline is None
@@ -132,7 +133,11 @@ class RuntimeMessages:
         actor = self.fight.current
         from .combat_timeline_snapshot import current_wire_turn
 
-        return self.end_turn(actor.owner_id, actor.id, current_wire_turn(self.fight))
+        return self.end_turn(
+            effective_input_owner(self.fight, actor),
+            actor.id,
+            current_wire_turn(self.fight),
+        )
 
     def expire_current_or_recover(self, owner_id, *, now_ms):
         """Keep the world socket and owned turn when an end reaction rejects.
@@ -500,7 +505,7 @@ class RuntimeMessages:
         if (
             actor is None
             or actor.id != actor_id
-            or actor.controlled
+            or not effective_server_controlled(self.fight, actor)
             or global_turn != self.fight.turn_id
         ):
             raise ValueError("Invalid server controlled turn")

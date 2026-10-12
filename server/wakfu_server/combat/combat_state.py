@@ -156,6 +156,7 @@ class Fight:
             None  # Authoritative runtime initializes the owned UID sequence.
         )
         self.native_owned_area_effects = {}
+        self.native_owned_spatial_effects = {}
         self.native_effect_areas = {}  # Fresh native Qs has no registered areas.
         # Plain, source-tagged records for the Wakemu settled-summon OUT_OF_PLAY
         # policy. Native actor identity and fdt membership remain intact.
@@ -184,6 +185,7 @@ class Fight:
             | set(self.owned_stat_effects)
             | set(self.native_owned_group_effects)
             | set(getattr(self, "native_owned_area_effects", {}))
+            | set(getattr(self, "native_owned_spatial_effects", {}))
             | set(getattr(self, "native_effect_areas", {}))
             | set(getattr(self, "native_retired_area_managers", {}))
         )
@@ -359,7 +361,12 @@ class Fight:
         )
 
     def _current_owned(self, owner_id, actor_id):
-        actor = self._owned(owner_id, actor_id)
+        from .combat_effective_control import require_effective_owner
+
+        actor = self.actors.get(actor_id)
+        if actor is None or not self._in_play(actor):
+            raise ValueError("Actor is not controlled by this owner")
+        require_effective_owner(self, actor, owner_id)
         if self.current is None or self.current.id != actor_id:
             raise ValueError("Actor does not have the turn")
         return actor
@@ -400,11 +407,13 @@ class Fight:
         return self._move_actor(actor, path, step_callback=step_callback)
 
     def server_move(self, actor_id, path, *, step_callback=None):
+        from .combat_effective_control import effective_server_controlled
+
         actor = self.current
         if (
             actor is None
             or actor.id != actor_id
-            or actor.controlled
+            or not effective_server_controlled(self, actor)
             or not self._in_play(actor)
         ):
             raise ValueError("Invalid server controlled movement")
@@ -493,10 +502,12 @@ class Fight:
         self._advance()
 
     def end_server_turn(self, actor_id, turn_id):
+        from .combat_effective_control import effective_server_controlled
+
         if (
             self.current is None
             or self.current.id != actor_id
-            or self.current.controlled
+            or not effective_server_controlled(self, self.current)
             or turn_id != self.turn_id
         ):
             raise ValueError("Invalid server controlled turn")

@@ -24,6 +24,25 @@ CLASS_BUFF_RECIPES = {
 }
 
 
+def resource_recovery_recipes(diagnostic):
+    """Suggest real class preparations only for observed AP/MP deficits.
+
+    The original cost rejection is authoritative. These recipes do not pay it
+    or assign characteristics; each ordinary owned buff must actually commit.
+    """
+    if not isinstance(diagnostic, dict):
+        return []
+    deficits = diagnostic.get("deficits")
+    if (
+        not isinstance(deficits, dict)
+        or not deficits
+        or not set(deficits).issubset(CLASS_BUFF_RECIPES)
+        or any(type(value) is not int or value <= 0 for value in deficits.values())
+    ):
+        return []
+    return [dict(CLASS_BUFF_RECIPES[name]) for name in sorted(deficits)]
+
+
 def encounter_buff_recipe(reference, spell):
     """Describe an audited native encounter prerequisite without granting it."""
     if (reference, spell) != (2778, 4019):

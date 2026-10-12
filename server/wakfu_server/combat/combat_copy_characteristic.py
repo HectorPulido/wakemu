@@ -162,7 +162,20 @@ class NativeCopyCharacteristicHandler:
             set_resource_current(self.fight, target, stat, copied.current)
             after = target.effect_stats[stat]
         else:
-            _write(target, stat, after, updated_raw, updated)
+            from .combat_characteristic_transfer import observed_fixed_assignment
+
+            if not observed_fixed_assignment(
+                self.fight,
+                target,
+                stat,
+                source_id=caster.id,
+                requested=copied.current,
+                raw_maximum=updated_raw,
+                maximum=updated,
+                maximum_step=True,
+            ):
+                _write(target, stat, after, updated_raw, updated)
+            after = target.effect_stats[stat]
         self.fight._event(
             "characteristic_changed",
             source_id=caster.id,

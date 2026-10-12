@@ -185,29 +185,37 @@ class NativeEffectTimingProvider:
             if definition["clock_actor"] == "caster"
             else invocation.target_id
         )
-        if getattr(target, "native_is_area", False) and clock == target.id:
-            if profile["duration"] > 0:
-                raise ValueError("Timed area state clock is unaudited")
-            # Zero/indefinite carriers retain no turn timer (fyW duration<=0).
-            # The active boundary exists, but no area timeline slot is invented.
-            timeline = native_state_timeline(preview, invocation.caster_id)
+        from .combat_npc_initialization import constructor_stat_context
+
+        if constructor_stat_context(preview, invocation):
+            # Actual eZQ/PO constructor PN.bac() is null, including nested
+            # eWu.D state applications. eZk.bbT retains Ts.biM without SU.
+            timeline = None
+            timer = None
         else:
-            timeline = native_state_timeline(preview, clock)
-        timing = StateTimingDefinition(
-            definition["duration_base"],
-            definition["duration_per_level"],
-            definition["maximum_level"],
-            definition["tick_at_turn_end"],
-            definition["clock_actor"] == "caster",
-            definition["skip_turn_timer"],
-        )
-        timer = schedule_state_timer(
-            timing,
-            level=level,
-            caster_id=invocation.caster_id,
-            target_id=invocation.target_id,
-            **vars(timeline)
-        )
+            if getattr(target, "native_is_area", False) and clock == target.id:
+                if profile["duration"] > 0:
+                    raise ValueError("Timed area state clock is unaudited")
+                # Zero/indefinite carriers retain no turn timer (fyW duration<=0).
+                # The active boundary exists, but no area timeline slot is invented.
+                timeline = native_state_timeline(preview, invocation.caster_id)
+            else:
+                timeline = native_state_timeline(preview, clock)
+            timing = StateTimingDefinition(
+                definition["duration_base"],
+                definition["duration_per_level"],
+                definition["maximum_level"],
+                definition["tick_at_turn_end"],
+                definition["clock_actor"] == "caster",
+                definition["skip_turn_timer"],
+            )
+            timer = schedule_state_timer(
+                timing,
+                level=level,
+                caster_id=invocation.caster_id,
+                target_id=invocation.target_id,
+                **vars(timeline)
+            )
         # eZk.a/aWr initialize rHv=-1,dPa=0,rHy/rHz=false. eWu.D
         # propagates the chosen applying effect's dd(1) critical variant.
         return StateCarrierContext(
