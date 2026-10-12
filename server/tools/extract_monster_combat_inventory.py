@@ -176,7 +176,7 @@ def dependency_index(table):
                     {tuple(values) for values in row.get("parameters_by_level", [])}
                 )
             ]
-            if row["effect_class"] in (304, 321, 649)
+            if row["effect_class"] in (304, 321, 426, 649)
             else [],
         )
         for key, row in table.get("effects", {}).items()
@@ -257,7 +257,11 @@ def dependency_closure(
             pending += [("effect", str(ref)) for ref in row.get("children", [])]
             family = row["effect_class"]
             target = (
-                "state" if family in (304, 321) else "spell" if family == 649 else None
+                "state"
+                if family in (304, 321)
+                else "spell"
+                if family in (426, 649)
+                else None
             )
             if target:
                 for ref in parameter_candidates(

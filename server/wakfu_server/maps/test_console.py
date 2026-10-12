@@ -13,7 +13,7 @@ from .inventory_move import STACKS
 from .monsters import owned_instance, statistics, reference as monster_reference
 from .combat_monster_world import spawn_group
 
-HELP = "!help | !position | !level level [target] | !teleport map x y z [target] | !item reference quantity [target] | !monster reference level quantity [target] | !kamas amount [target] | !buscar [item|mob] name [--pagina N] | !checkpoint [receipt] | !resultado receipt | !perfil [informe|estado|iniciar seconds|detener|reiniciar] | !equip uid slot | !unequip slot | !exitdungeon | !winfight | !losefight | !nuke | !nuke-all | !genesis | !genesis-all | !eco-status | !nuke-all-flora | !genesis-all-flora"
+HELP = "!help | !position | !astrub | !level level [target] | !teleport map x y z [target] | !item reference quantity [target] | !monster reference level quantity [target] | !kamas amount [target] | !buscar [item|mob] name [--pagina N] | !checkpoint [receipt] | !resultado receipt | !perfil [informe|estado|iniciar seconds|detener|reiniciar] | !equip uid slot | !unequip slot | !exitdungeon | !winfight | !losefight | !nuke | !nuke-all | !genesis | !genesis-all | !eco-status | !nuke-all-flora | !genesis-all-flora"
 
 TARGET_ARITY = {"!nivel": 1, "!tp": 4, "!item": 2, "!mob": 3, "!kamas": 1}
 
@@ -83,6 +83,7 @@ def execute(
         "!nivel": 1,
         "!kamas": 1,
         "!tp": 4,
+        "!astrub": 0,
         "!item": 2,
         "!mob": 3,
         "!equip": 2,
@@ -217,8 +218,9 @@ def execute(
             packets=[(12753, account_kamas_update(row["kamas"]))],
             message=f"{amount} kamas añadidos; saldo={row['kamas']}",
         )
-    elif command == "!tp":
-        map_id, x, y, z = values
+    elif command in ("!tp", "!astrub"):
+        # Native central Astrub zaap 19249 arrival, independent of arbitrary !tp rights.
+        map_id, x, y, z = (527, 0, 32, 0) if command == "!astrub" else values
         if (x, y, z) not in {tuple(cell) for cell in map_geometry(map_id)["cells"]}:
             raise ValueError(
                 "La casilla de destino no es transitable en la geometría nativa"
@@ -228,6 +230,7 @@ def execute(
             account, generation, current["id"], current, destination
         )
         result.update(
+            action="tp",
             source=current,
             destination=destination,
             message="Teletransporte local realizado",

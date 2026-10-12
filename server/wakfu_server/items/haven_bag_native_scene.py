@@ -8,6 +8,7 @@ this publication does not pretend they are Zaaps.
 import struct
 
 from wakfu_server import world_static
+from wakfu_server.world_scene_sync import refresh_snapshots
 
 
 def packets(session, character):
@@ -31,5 +32,10 @@ def packets(session, character):
         if offset != len(body):
             raise ValueError("Malformed native bag scene snapshot")
         if rows:
-            result.append((13984, struct.pack(">h", len(rows)) + b"".join(rows)))
+            snapshot = struct.pack(">h", len(rows)) + b"".join(rows)
+            result.append((13984, snapshot))
+            # cEX retains a previously registered object when attachment is
+            # repeated. cEY applies state to that retained object, including
+            # after a visitor leaves or a private scene is reloaded.
+            result.extend((12344, update) for update in refresh_snapshots(snapshot))
     return result

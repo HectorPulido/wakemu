@@ -1,0 +1,149 @@
+{
+  "389093": {
+    "family": 330,
+    "children": [
+      389094
+    ],
+    "timing": {
+      "clock_on_caster": false,
+      "clock_on_target": true,
+      "esr": false,
+      "ryE": 0,
+      "ryF": 0.0,
+      "ryG": false,
+      "ryH": 0,
+      "ryI": 0.0
+    },
+    "masks": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "389094": {
+    "family": 913,
+    "children": [
+      389095,
+      389313
+    ],
+    "timing": {
+      "clock_on_caster": false,
+      "clock_on_target": true,
+      "esr": false,
+      "ryE": 0,
+      "ryF": 0.0,
+      "ryG": false,
+      "ryH": 0,
+      "ryI": 0.0
+    },
+    "masks": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "389313": {
+    "family": 194,
+    "children": [],
+    "timing": {
+      "clock_on_caster": false,
+      "clock_on_target": true,
+      "esr": false,
+      "ryE": 0,
+      "ryF": 0.0,
+      "ryG": false,
+      "ryH": 0,
+      "ryI": 0.0
+    },
+    "masks": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "389095": {
+    "family": 949,
+    "children": [
+      389096
+    ],
+    "timing": {
+      "clock_on_caster": false,
+      "clock_on_target": true,
+      "esr": false,
+      "ryE": 0,
+      "ryF": 0.0,
+      "ryG": false,
+      "ryH": 0,
+      "ryI": 0.0
+    },
+    "masks": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "389096": {
+    "family": 349,
+    "children": [
+      389097
+    ],
+    "timing": {
+      "clock_on_caster": false,
+      "clock_on_target": true,
+      "esr": false,
+      "ryE": 0,
+      "ryF": 0.0,
+      "ryG": false,
+      "ryH": 0,
+      "ryI": 0.0
+    },
+    "masks": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "389097": {
+    "family": 307,
+    "children": [],
+    "timing": {
+      "clock_on_caster": false,
+      "clock_on_target": true,
+      "esr": false,
+      "ryE": -1,
+      "ryF": 0.0,
+      "ryG": false,
+      "ryH": 0,
+      "ryI": 0.0
+    },
+    "masks": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  }
+}

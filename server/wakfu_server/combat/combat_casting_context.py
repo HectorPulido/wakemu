@@ -476,7 +476,12 @@ class NativeOwnedCastingContext:
                 # Native QI.b temporarily adds the target slot to biN. Sn with
                 # a QI environment consumes QI.Z masks, not QI.g slot blockers.
                 slot = target.native_obstacle_id
-                if self.registry().slots[slot]["identity"] != ["actor", target.id]:
+                from .combat_pointer_qi_registry import PointerRegistryCompatibility
+
+                registry = self.registry()
+                if isinstance(registry, PointerRegistryCompatibility):
+                    registry.validate_exclusion_target(target)
+                elif registry.slots[slot]["identity"] != ["actor", target.id]:
                     raise UnknownCondition("Missing actual Sn target QK registration")
                 ignored = getattr(self.fight, "native_qi_ignored_slots", None)
                 if not isinstance(ignored, list):

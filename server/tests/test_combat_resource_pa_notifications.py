@@ -91,6 +91,10 @@ class ResourcePANotificationTests(unittest.TestCase):
         )
         invocation = EffectInvocation(999, 1, 7, 7, (0, 0, 0))
         self.assertTrue(handler({"effect_class": 808}, [], invocation))
+        # cvY/aTR observes a runner without calling eWq.c(). The retained
+        # cvX/aVo branch must execute the decoded MP/property/listener mutation.
+        self.assertEqual(packets[-1][0], 12613)
+        self.assertEqual(packets[-1][1][12], 0)
         # eWq uses PA.or directly, bypassing eWN's MP-family PC.aZt cap8.
         self.assertEqual(
             (actor.mp, actor.max_mp, actor.effect_base_maxima[3]), (9, 9, 9)
@@ -102,6 +106,10 @@ class ResourcePANotificationTests(unittest.TestCase):
         self.assertEqual((actor.mp, actor.max_mp), (3, 3))
         self.assertNotIn(50, actor.native_fight_properties)
         self.assertEqual(packets[-1][0], 13560)
+        # Removing the form detaches the client/server AP observer; subsequent
+        # AP spending must no longer consume the restored human-form MP.
+        set_resource_current(fight, actor, 2, 2)
+        self.assertEqual((actor.mp, actor.max_mp), (3, 3))
 
     def test_expandable_mp_without_fzb_clamps_on_and_or_to_effective_maximum(self):
         fight, actor = self.fixture()

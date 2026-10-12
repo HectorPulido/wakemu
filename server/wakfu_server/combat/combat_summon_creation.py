@@ -52,6 +52,8 @@ def native_fresh_summon_authority(actor, reference):
         native_instance_id=None,
         native_controller_id=actor.id,
         native_in_play=False,
+        # big constructor igA=-1, igz=null; dnz is false before aQc.
+        native_constructor_in_fight=False,
         # This producer constructs actual bje, whose dpR is unconditionally true.
         native_ai_control_baseline=True,
         native_controlled_by_ai=actor.native_controlled_by_ai,
@@ -64,6 +66,16 @@ def native_fresh_summon_authority(actor, reference):
 
 def register_fresh_summon_obstacle(preview, actor):
     """Actual fresh eGj QK registration, shared with registered faW areas."""
+    if hasattr(preview, "native_pointer_checkpoint"):
+        from .combat_qi_fight import current_registry
+        from .combat_carrying import _publish_registry
+
+        registry = current_registry(preview)
+        slot = registry.register_constructor_actor(actor)
+        if slot < 0:
+            raise ValueError("Native QI summon obstacle byte capacity exhausted")
+        _publish_registry(preview, registry)
+        return
     if getattr(preview, "native_qi_slots", None) is not None:
         from .combat_qi_fight import current_registry
 

@@ -68,7 +68,8 @@ class AreaRemovalTests(unittest.TestCase):
             )
         self.assertEqual(seen, [(901, False)])
         self.assertEqual(set(fight.native_effect_areas), {902})
-        self.assertEqual(packets[0][0], 13497)
+        self.assertEqual(packets[0][0], 12613)
+        self.assertEqual(packets[0][1][12], 1)
 
     def test_911_cell_route_uses_same_native_removal_and_complete_area_order(self):
         from wakfu_server.combat_global_pv_collections import (
@@ -120,6 +121,8 @@ class AreaRemovalTests(unittest.TestCase):
         ):
             invocation = handler.prepare(effect, {"parameters": [-1]}, invocation)
             self.assertTrue(handler(effect, {"parameters": [-1]}, invocation))
+        self.assertEqual(packets[0][0], 12613)
+        self.assertEqual(packets[0][1][12], 1)
         self.assertNotIn(expected, fight.native_effect_areas)
         self.assertNotIn(expected, global_area_order(fight))
         self.assertEqual(phases, [(1, 0), (2, 0), (3, 0), (4, 0)])

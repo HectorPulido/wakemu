@@ -138,7 +138,17 @@ class EcologyWorldBridge:
         positions = [
             {
                 key: player[key]
-                for key in ("id", "account_id", "map_id", "instance_id", "x", "y", "z")
+                for key in (
+                    "id",
+                    "account_id",
+                    "map_id",
+                    "instance_id",
+                    "x",
+                    "y",
+                    "z",
+                    "presence_generation",
+                )
+                if key in player
             }
             for player in players
         ]

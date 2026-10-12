@@ -115,21 +115,31 @@ def install_native_wave(fight, monsters, *, initialize_actor, catalog=None):
         raise ValueError("Rift NPC placement collides with current fight")
     registry = current_registry(fight)
     for actor in actors:
-        slot = registry.register(
-            dict(
-                identity=["actor", actor.id],
-                position=list(actor.position[:2]),
-                radius=actor.physical_radius,
-                indexed=False,
-                movement_blocking=True,
+        if hasattr(fight, "native_pointer_checkpoint"):
+            if actor.native_obstacle_id is None:
+                actor.native_obstacle_id = -1
+            slot = registry.register_constructor_actor(actor)
+        else:
+            slot = registry.register(
+                dict(
+                    identity=["actor", actor.id],
+                    position=list(actor.position[:2]),
+                    radius=actor.physical_radius,
+                    indexed=False,
+                    movement_blocking=True,
+                )
             )
-        )
         if slot < 0:
             raise ValueError("Native rift QI population exhausted")
         actor.native_obstacle_id = slot
-    fight.native_qi_slots = registry.serialized_slots()
-    fight.native_qi_touched_cells = registry.serialized_cells()
-    fight.native_qi_byte_topology = registry.serialized_byte_topology()
+    if hasattr(fight, "native_pointer_checkpoint"):
+        from .combat_carrying import _publish_registry
+
+        _publish_registry(fight, registry)
+    else:
+        fight.native_qi_slots = registry.serialized_slots()
+        fight.native_qi_touched_cells = registry.serialized_cells()
+        fight.native_qi_byte_topology = registry.serialized_byte_topology()
     base = getattr(fight, "native_base_turn_order", None)
     for actor in actors:
         fight.actors[actor.id] = actor

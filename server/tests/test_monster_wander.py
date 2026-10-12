@@ -321,8 +321,8 @@ class WanderTests(PostgresCase):
 
     def test_durable_policy_reloads_from_postgres_and_rejects_invalid_shapes(self):
         expected = {
-            "interval_seconds": 5,
-            "move_probability": 0.25,
+            "interval_seconds": 2,
+            "move_probability": 0.6,
             "min_steps": 1,
             "max_steps": 3,
             "radius": 20,
@@ -417,7 +417,7 @@ class WanderTests(PostgresCase):
         self.assertFalse(groups.move_members(key, current, [dict(current[0], x=1)]))
         self.assertTrue(groups.finish(lease, defeated=False))
 
-    def test_five_member_group_uses_independent_rolls_and_destinations(self):
+    def test_five_member_group_uses_one_roll_and_keeps_formation(self):
         groups = PersistentGroups(self.store)
         members = [
             owned_instance(
@@ -425,7 +425,7 @@ class WanderTests(PostgresCase):
                 1,
                 -200 - index,
                 map_id=1134,
-                x=index * 10,
+                x=index,
                 y=0,
                 z=0,
             )
@@ -433,13 +433,7 @@ class WanderTests(PostgresCase):
         ]
         original = deepcopy(members)
         key = groups.register(1134, 0, 508, members)
-        destinations = [
-            (1, 0, 0),
-            (10, 1, 0),
-            (21, 0, 0),
-            (30, -1, 0),
-            (41, 1, 0),
-        ]
+        destinations = [(member["x"], 1, 0) for member in members]
         edges = [
             ((member["x"], member["y"], member["z"]), destination)
             for member, destination in zip(members, destinations)
@@ -461,10 +455,10 @@ class WanderTests(PostgresCase):
             )
 
         self.assertEqual(moved, [key])
-        self.assertEqual(rng.random_calls, 5)
+        self.assertEqual(rng.random_calls, 1)
         cas.assert_called_once()
         current = groups.available(1134, 0)[0]["members"]
-        moved_ids = {-200, -201, -204}
+        moved_ids = {-200, -201, -202, -203, -204}
         for before, after, destination in zip(original, current, destinations):
             expected = (
                 destination
@@ -475,10 +469,12 @@ class WanderTests(PostgresCase):
             self.assertEqual(after["id"], before["id"])
             self.assertEqual(after["ref"], before["ref"])
         decoded = [decode_body("in", opcode, body) for opcode, body in emitted]
-        self.assertEqual([row["actor_id"] for row in decoded], [-200, -201, -204])
-        self.assertEqual(len(emitted), 3)
+        self.assertEqual(
+            [row["actor_id"] for row in decoded], [-200, -201, -202, -203, -204]
+        )
+        self.assertEqual(len(emitted), 5)
 
-    def test_excluding_one_member_still_moves_other_group_members(self):
+    def test_excluding_one_member_holds_entire_group(self):
         groups = PersistentGroups(self.store)
         members = [
             owned_instance(
@@ -510,18 +506,18 @@ class WanderTests(PostgresCase):
             max_steps=1,
         )
 
-        self.assertEqual(moved, [key])
-        self.assertEqual(rng.random_calls, 4)
+        self.assertEqual(moved, [])
+        self.assertEqual(rng.random_calls, 0)
         current = groups.available(1134, 0)[0]["members"]
         for before, after in zip(members, current):
-            expected_y = 0 if before["id"] == -212 else 1
+            expected_y = 0
             self.assertEqual(after["y"], expected_y)
             self.assertEqual(after["id"], before["id"])
             self.assertEqual(after["ref"], before["ref"])
         decoded = [decode_body("in", opcode, body) for opcode, body in emitted]
         self.assertEqual(
             {row["actor_id"] for row in decoded},
-            {-210, -211, -213, -214},
+            set(),
         )
 
     def test_failed_group_position_cas_emits_no_packets(self):
@@ -532,7 +528,7 @@ class WanderTests(PostgresCase):
                 1,
                 -220 - index,
                 map_id=1134,
-                x=index * 10,
+                x=index,
                 y=0,
                 z=0,
             )

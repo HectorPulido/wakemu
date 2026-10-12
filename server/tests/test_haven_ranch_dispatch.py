@@ -85,6 +85,15 @@ class RanchDispatcherTests(unittest.TestCase):
         self.sent = []
         self.events = []
         self.context = {"lease_valid": True, "account_id": 2, "generation": "lease"}
+        snapshot_patch = patch(
+            "wakfu_server.haven_ranch_furniture.snapshot",
+            side_effect=lambda store, account, generation, character, *, session, now_ms: {
+                "packet": (13864, session.context()),
+                "scene_packets": [],
+            },
+        )
+        snapshot_patch.start()
+        self.addCleanup(snapshot_patch.stop)
         self.globals = {
             "time": time,
             "struct": struct,
@@ -160,6 +169,7 @@ class RanchDispatcherTests(unittest.TestCase):
             "fight": fight,
             "spectator_session": spectator_session,
             "generation": self.context["generation"],
+            "account_id": self.context["account_id"],
             "movement_state": None,
             "packets": (),
         }

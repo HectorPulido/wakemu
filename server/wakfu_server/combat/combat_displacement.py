@@ -163,7 +163,9 @@ def _facing_vector(actor, *, forced=False, reverse=False):
     return cardinal_vector(-dx if reverse else dx, -dy if reverse else dy)
 
 
-def displacement_geometry(effect, level, *, source, target, cell):
+def displacement_geometry(
+    effect, level, *, source, target, cell, teleport_recipient_is_fighter=None
+):
     """Pure eXD.C/eXK/eXJ fOu/faz.bcy geometry; no actor IDs select behavior."""
     kind = FAMILIES[effect["effect_class"]]
     raw = effect["parameters"]
@@ -253,7 +255,7 @@ def displacement_geometry(effect, level, *, source, target, cell):
     if kind.startswith("teleport"):
         if count > 4:
             raise ValueError("Unsupported native teleport parameters")
-        if count and values[0] == 1:
+        if count and values[0] == 1 and teleport_recipient_is_fighter is not True:
             raise ValueError("Qq owner teleport requires wrapped actor context")
         return dict(
             actor=source if kind == "teleport_caster" else target,
@@ -344,8 +346,26 @@ class NativeDisplacementHandler:
     def _calculate_teleport(self, effect, invocation):
         source = self.fight.actors[invocation.caster_id]
         target = self.fight.actors.get(invocation.target_id)
+        recipient = source if effect["effect_class"] == 302 else target
+        # eZC/eZD.fRz redirects operand-zero=1 only for an actual Qq.
+        # The ordinary eGj path returns the original fighter unchanged.
+        recipient_is_fighter = None
+        parameters = effect.get("parameters")
+        if (
+            recipient is not None
+            and parameters
+            and parameter_value(parameters, 0, invocation.level) == 1
+        ):
+            recipient_is_fighter = self.authority(self.fight, recipient).targeting.get(
+                "is_eGj"
+            )
         geometry = displacement_geometry(
-            effect, invocation.level, source=source, target=target, cell=invocation.cell
+            effect,
+            invocation.level,
+            source=source,
+            target=target,
+            cell=invocation.cell,
+            teleport_recipient_is_fighter=recipient_is_fighter,
         )
         accepted = self._teleport_accepted(
             geometry, source, set(effect["native_effect_flags"])
@@ -585,9 +605,14 @@ class NativeDisplacementHandler:
                     effect, invocation
                 )
             if not teleport_accepted:
-                # Native eZB.C rejected the destination before eZB.c's
-                # movement execution. Keep phase 1 from prepare(), but do not
-                # emit later displacement phases or movement packets.
+                # eZB.c returns without movement when C set rIw=false.
+                # Qe.bbJ still emits L2, and eZR.a continues into Qe.a's
+                # L3/L4 completion after that ordinary return.
+                if self.event_lifecycle is not None:
+                    self.event_lifecycle.phase(
+                        effect, invocation, uid=uid, value=0, channel=2
+                    )
+                    self._finish_events(effect, invocation, uid, 0)
                 return False
         if self.event_lifecycle is not None:
             self.event_lifecycle.phase(effect, invocation, uid=uid, value=0, channel=2)

@@ -897,6 +897,7 @@ class Store:
         ):
             raise ValueError("Invalid map destination")
         with self.connection() as db:
+            db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
             self.lock_character(db, account_id, generation, character_id)
             current = self.character(account_id, character_id, db)
             if any(current[key] != source[key] for key in keys):
@@ -905,6 +906,9 @@ class Store:
                 "UPDATE characters SET map_id=%s,instance_id=%s,x=%s,y=%s,z=%s WHERE id=%s",
                 (*[destination[key] for key in keys], character_id),
             )
+            from wakfu_server.characters.heroes import follow_main
+
+            follow_main(db, self, account_id, generation, character_id)
             from wakfu_server.characters.dungeon_modulation_health import reconcile
 
             reconcile(self, db, [character_id])

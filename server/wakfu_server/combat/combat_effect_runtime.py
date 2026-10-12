@@ -221,6 +221,7 @@ class NativeEffectRuntimeFactory:
             set(preview.owned_stat_effects)
             | set(preview.state_wire_payloads)
             | set(preview.native_owned_group_effects)
+            | set(getattr(preview, "native_owned_spatial_effects", {}))
         )
         owned.update(
             entry.uid
@@ -233,6 +234,8 @@ class NativeEffectRuntimeFactory:
         packets = []
         allocate = preview.allocate_effect_uid
         dispel = None
+        state_cleanup = None
+        order_hooks = None
         retention = None
         if (
             plan.get("spell_id") is not None
@@ -280,7 +283,12 @@ class NativeEffectRuntimeFactory:
             return actors + area_targets(preview)
 
         def target_contexts(effect, invocation):
+            from .combat_effect_area_targets import retained_area_source_target
+
             contexts = provider.native_targets(preview, plan, effect, invocation)
+            source = retained_area_source_target(preview, invocation.caster_id)
+            if source is not None:
+                contexts = {**contexts, source.id: area_target_context(source)}
             return {
                 **contexts,
                 **{
@@ -318,7 +326,7 @@ class NativeEffectRuntimeFactory:
             actor = native_actor(preview, invocation.caster_id)
             if actor is not None:
                 return actor
-            return next(
+            source = next(
                 (
                     area
                     for area in area_targets(preview)
@@ -326,6 +334,11 @@ class NativeEffectRuntimeFactory:
                 ),
                 None,
             )
+            if source is not None:
+                return source
+            from .combat_effect_area_targets import retained_area_source_target
+
+            return retained_area_source_target(preview, invocation.caster_id)
 
         from .combat_target_health_ordering import health_operand_for_pv
 
@@ -355,6 +368,41 @@ class NativeEffectRuntimeFactory:
             block_after_calculation=contextual("damage_block")
             if provider.damage_block is not None
             else None,
+        )
+        from .combat_random_earth_damage import (
+            NativeRandomEarthDamageHandler,
+            initialized_handler_type,
+            dispatcher_child_gate,
+            ordinary_child_eligibility,
+        )
+
+        initialized_damage = initialized_handler_type(NativeDamageHandler)
+
+        def initialized_child(source):
+            return initialized_damage(
+                preview,
+                packets,
+                action_id=self.action_id,
+                allocate_uid=lambda: source.uid,
+                context=contextual("damage"),
+                rng=rng,
+                block_after_calculation=contextual("damage_block")
+                if provider.damage_block is not None
+                else None,
+            )
+
+        random_earth = NativeRandomEarthDamageHandler(
+            fight=preview,
+            allocate_uid=allocate,
+            rng=rng,
+            actor_authority=self.summon_authority,
+            child_factory=initialized_child,
+            parent_context=contextual("stat"),
+            child_execution_gate=lambda source, invocation: (_ for _ in ()).throw(
+                ValueError(
+                    "Native random damage requires initialized runtime lifecycle"
+                )
+            ),
         )
         healing = NativeHealingHandler(
             preview,
@@ -399,6 +447,8 @@ class NativeEffectRuntimeFactory:
             retention.stat_handler = stat
         handlers = {effect_class: damage for effect_class in DAMAGE_FAMILIES}
         handlers.update({48: loss, 55: loss})
+        handlers[635] = random_earth
+        handlers[636] = random_earth
         from .combat_spell_cost_effect import NativeSpellCostHandler
 
         handlers[1065] = NativeSpellCostHandler(
@@ -624,6 +674,19 @@ class NativeEffectRuntimeFactory:
             rng=rng,
         )
         handlers[1049] = characteristic_swap
+        from .combat_characteristic_transfer_handler import (
+            NativeCharacteristicTransferHandler,
+        )
+
+        characteristic_transfer = NativeCharacteristicTransferHandler(
+            preview,
+            packets,
+            action_id=self.action_id,
+            allocate_uid=allocate,
+            context=contextual("stat"),
+            rng=rng,
+        )
+        handlers[1070] = characteristic_transfer
         from .combat_world_property_handler import NativeWorldPropertyHandler
 
         world_property = NativeWorldPropertyHandler(
@@ -654,6 +717,7 @@ class NativeEffectRuntimeFactory:
                 container=retention.container,
                 rng=rng,
             )
+            summon.retained_application = retention.register_applied_summon
             handlers[307] = summon
             from .combat_captured_summon_handler import NativeCapturedSummonHandler
 
@@ -701,6 +765,22 @@ class NativeEffectRuntimeFactory:
                 source_effects=self.effects,
             )
             handlers[994] = target_copy
+            from .combat_three_spell_copy_handler import NativeThreeSpellCopyHandler
+
+            three_spell_copy = NativeThreeSpellCopyHandler(
+                preview,
+                packets,
+                action_id=self.action_id,
+                allocate_uid=allocate,
+                context=contextual("stat"),
+                actor_authority=self.summon_authority,
+                container_level=retention.container_level,
+                container=retention.container,
+                rng=rng,
+                casting_definitions=casting_catalog,
+                source_effects=self.effects,
+            )
+            handlers[839] = three_spell_copy
             from .combat_summon_initialization import summon_initializer
 
             summon.builder.initialize_states = summon_initializer(self, packets)
@@ -709,6 +789,9 @@ class NativeEffectRuntimeFactory:
             )
             character_copy.builder.initialize_states = summon_initializer(self, packets)
             target_copy.builder.initialize_states = summon_initializer(self, packets)
+            three_spell_copy.builder.initialize_states = summon_initializer(
+                self, packets
+            )
             from .combat_copied_equipment_execution import equipment_initializer
 
             summon.initialize_equipment = equipment_initializer(self)
@@ -728,6 +811,35 @@ class NativeEffectRuntimeFactory:
                 rng=rng,
             )
             handlers[316] = aura_removal
+            from .combat_forced_retirement_handler import NativeForcedRetirementHandler
+
+            forced_retirement = NativeForcedRetirementHandler(
+                preview,
+                packets,
+                action_id=self.action_id,
+                allocate_uid=allocate,
+                context=contextual("stat"),
+                retention=retention,
+                rng=rng,
+                actor_authority=self.summon_authority,
+            )
+            handlers[934] = forced_retirement
+            from .combat_pointer_qi_handler import (
+                NativeSpatialHandler,
+                publish_spatial_registry,
+            )
+
+            spatial_qi = NativeSpatialHandler(
+                preview,
+                packets,
+                action_id=self.action_id,
+                allocate_uid=allocate,
+                context=contextual("stat"),
+                retention=retention,
+                rng=rng,
+                publish_registry=publish_spatial_registry,
+            )
+            handlers[937] = spatial_qi
 
             area_handler = NativeEffectAreaHandler(
                 preview,
@@ -972,6 +1084,17 @@ class NativeEffectRuntimeFactory:
             rng=rng,
         )
         handlers[1000] = redirect_runner
+        from .combat_source_split_handler import NativeSourceSplitRunnerHandler
+
+        split_runner = NativeSourceSplitRunnerHandler(
+            preview,
+            packets,
+            action_id=self.action_id,
+            allocate_uid=allocate,
+            context=contextual("stat"),
+            rng=rng,
+        )
+        handlers[401] = split_runner
         from .combat_morph_handler import NativeMorphHandler
 
         morph = NativeMorphHandler(
@@ -1010,6 +1133,21 @@ class NativeEffectRuntimeFactory:
             ),
         )
         handlers[325] = ai_control
+        from .combat_controller_transfer import NativeControllerTransferHandler
+        from .combat_native_spell_casting import catalog as controller_definitions
+
+        controller_transfer = NativeControllerTransferHandler(
+            preview,
+            packets,
+            allocate_uid=allocate,
+            action_id=self.action_id,
+            context=contextual("stat"),
+            authority=self.displacement_authority,
+            rng=rng,
+            definitions=controller_definitions,
+            effects=self.effects,
+        )
+        handlers[207] = controller_transfer
         from .combat_turn_suppression import NativeTurnSuppressionHandler
 
         turn_suppression = NativeTurnSuppressionHandler(
@@ -1223,6 +1361,10 @@ class NativeEffectRuntimeFactory:
             retention.cost_resolver = cost_resolver
 
         def group_level(effect, values, invocation):
+            if effect["effect_class"] == 1100:
+                from .combat_instance_level_group import runtime_child_level
+
+                return runtime_child_level(effect, values, invocation, preview)
             if effect["effect_class"] in (910, 912):
                 return native_cost_group_level(
                     effect,
@@ -1446,6 +1588,7 @@ class NativeEffectRuntimeFactory:
                     area_property.event_lifecycle = healing.event_lifecycle
                     distance_group.event_lifecycle = healing.event_lifecycle
                     redirect_runner.event_lifecycle = healing.event_lifecycle
+                    split_runner.event_lifecycle = healing.event_lifecycle
                     morph.event_lifecycle = healing.event_lifecycle
                     kill.event_lifecycle = healing.event_lifecycle
                     hp_minimum_set.event_lifecycle = healing.event_lifecycle
@@ -1469,6 +1612,27 @@ class NativeEffectRuntimeFactory:
                     damage.event_lifecycle = OrdinaryDamageEvents.from_healing(
                         healing.event_lifecycle
                     )
+                    random_earth.parent_events = healing.event_lifecycle
+                    random_earth.damage_events = damage.event_lifecycle
+                    from .combat_source_split import calculated_source_clone_gate
+
+                    damage.calculated_clone_gate = calculated_source_clone_gate(
+                        native_eligibility=ordinary_child_eligibility(
+                            contextual("native_targets"),
+                            fight=preview,
+                            actor_authority=self.summon_authority,
+                            retention=retention,
+                        ),
+                    )
+                    random_earth.child_execution_gate = dispatcher_child_gate(
+                        dispatcher,
+                        native_eligibility=ordinary_child_eligibility(
+                            contextual("native_targets"),
+                            fight=preview,
+                            actor_authority=self.summon_authority,
+                            retention=retention,
+                        ),
+                    )
                     if self.displacement_authority is not None:
                         from .combat_ordinary_events import OrdinaryDisplacementEvents
 
@@ -1484,18 +1648,22 @@ class NativeEffectRuntimeFactory:
                         )
                     movement_link.event_lifecycle = healing.event_lifecycle
                     ai_control.event_lifecycle = healing.event_lifecycle
+                    controller_transfer.event_lifecycle = healing.event_lifecycle
                     turn_suppression.event_lifecycle = healing.event_lifecycle
                     additional_turn.event_lifecycle = healing.event_lifecycle
                     turn_duration.event_lifecycle = healing.event_lifecycle
                     carrying.event_lifecycle = healing.event_lifecycle
                     triggered_spell.event_lifecycle = healing.event_lifecycle
                     aura_removal.event_lifecycle = healing.event_lifecycle
+                    forced_retirement.event_lifecycle = healing.event_lifecycle
+                    spatial_qi.event_lifecycle = healing.event_lifecycle
                     target_aura.event_lifecycle = healing.event_lifecycle
                     stat.event_lifecycle = healing.event_lifecycle
                     maximum.event_lifecycle = healing.event_lifecycle
                     caster_hp_maximum.event_lifecycle = healing.event_lifecycle
                     hp_maximum_reduction.event_lifecycle = healing.event_lifecycle
                     characteristic_swap.event_lifecycle = healing.event_lifecycle
+                    characteristic_transfer.event_lifecycle = healing.event_lifecycle
                     world_property.event_lifecycle = healing.event_lifecycle
                     from .combat_ordinary_events import OrdinaryResourceLossEvents
 
@@ -1638,12 +1806,27 @@ class NativeEffectRuntimeFactory:
                         displacement.collision_executor = execute_collision
 
                 def prepare(effect, values, invocation):
+                    if effect["effect_class"] in (635, 636):
+                        return random_earth.prepare(effect, values, invocation)
+                    if effect["effect_class"] == 207:
+                        return controller_transfer.prepare(effect, values, invocation)
                     if effect["effect_class"] == 421 and dispel is not None:
                         return dispel.prepare(effect, values, invocation)
+                    if effect["effect_class"] == 982 and state_cleanup is not None:
+                        return state_cleanup.prepare(effect, values, invocation)
+                    if (
+                        effect["effect_class"] in (327, 328, 342)
+                        and order_hooks is not None
+                    ):
+                        return order_hooks.prepare(effect, values, invocation)
                     if effect["effect_class"] == 808:
                         return ap_as_mp.prepare(effect, values, invocation)
                     if effect["effect_class"] == 316:
                         return aura_removal.prepare(effect, values, invocation)
+                    if effect["effect_class"] == 934:
+                        return forced_retirement.prepare(effect, values, invocation)
+                    if effect["effect_class"] == 937:
+                        return spatial_qi.prepare(effect, values, invocation)
                     if effect["effect_class"] == 338:
                         return target_aura.prepare(effect, values, invocation)
                     if effect["effect_class"] == 1030:
@@ -1681,12 +1864,18 @@ class NativeEffectRuntimeFactory:
                         return distance_group.prepare(effect, values, invocation)
                     if effect["effect_class"] == 1000:
                         return redirect_runner.prepare(effect, values, invocation)
+                    if effect["effect_class"] == 401:
+                        return split_runner.prepare(effect, values, invocation)
                     if effect["effect_class"] == 933:
                         return morph.prepare(effect, values, invocation)
                     if effect["effect_class"] == 1099:
                         return death_script.prepare(effect, values, invocation)
                     if effect["effect_class"] == 449:
                         return world_property.prepare(effect, values, invocation)
+                    if effect["effect_class"] == 1070:
+                        return characteristic_transfer.prepare(
+                            effect, values, invocation
+                        )
                     if effect["effect_class"] == 1049:
                         return characteristic_swap.prepare(effect, values, invocation)
                     if effect["effect_class"] == 21:
@@ -1713,6 +1902,11 @@ class NativeEffectRuntimeFactory:
                         and effect["effect_class"] == 994
                     ):
                         return target_copy.prepare(effect, values, invocation)
+                    if (
+                        self.summon_authority is not None
+                        and effect["effect_class"] == 839
+                    ):
+                        return three_spell_copy.prepare(effect, values, invocation)
                     if effect["effect_class"] == 304:
                         return state.prepare(effect, values, invocation)
                     if effect["effect_class"] == 321:
@@ -1847,6 +2041,30 @@ class NativeEffectRuntimeFactory:
                 event_lifecycle=healing.event_lifecycle,
             )
             handlers[421] = dispel
+            from .combat_state_cleanup import NativeStateCleanupHandler
+
+            state_cleanup = NativeStateCleanupHandler(
+                retention,
+                allocate_uid=allocate,
+                rng=rng,
+                event_lifecycle=healing.event_lifecycle,
+            )
+            handlers[982] = state_cleanup
+            from .combat_native_order_hooks import NativeOrderHookHandler
+
+            order_hooks = NativeOrderHookHandler(
+                preview,
+                packets,
+                action_id=self.action_id,
+                allocate_uid=allocate,
+                context=contextual("stat"),
+                retention=retention,
+                rng=rng,
+                actor_authority=self.summon_authority,
+            )
+            order_hooks.event_lifecycle = healing.event_lifecycle
+            for family in (327, 328, 342):
+                handlers[family] = order_hooks
             for kind, handler in tuple(handlers.items()):
                 handlers[kind] = retention.wrap(handler, state=kind in (304, 321))
         from .combat_effect_area_events import NativeAreaEventRuntime

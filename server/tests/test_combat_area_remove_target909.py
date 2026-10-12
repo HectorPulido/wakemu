@@ -47,7 +47,8 @@ class TargetAreaRemoval909Tests(unittest.TestCase):
             )
         self.assertEqual(seen, [(901, False)])
         self.assertEqual(set(fight.native_effect_areas), {902})
-        self.assertEqual(packets[0][0], 13497)
+        self.assertEqual(packets[0][0], 12613)
+        self.assertEqual(packets[0][1][12], 1)
 
     def test909_explicit_mismatch_does_not_fall_back_to_matching_neighbor(self):
         fight, h, packets, seen = self.fixture()

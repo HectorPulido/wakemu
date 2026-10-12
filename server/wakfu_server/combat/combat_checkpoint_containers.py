@@ -39,6 +39,7 @@ def reconstruct_state_containers(saved):
                 "owned_stat_effects",
                 "native_owned_group_effects",
                 "native_owned_area_effects",
+                "native_owned_spatial_effects",
             )
             if uid in (collection := result.get(name, {}))
         ]

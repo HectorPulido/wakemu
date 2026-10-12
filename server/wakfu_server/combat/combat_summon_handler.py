@@ -15,7 +15,7 @@ from .combat_summon import (
     RegisteredSummonAuthority,
 )
 from .combat_summon_creation import NativeSummonBuilder
-from .combat_summon_codec import summon_application
+from .combat_summon_codec import summon_application, summon_payload
 from .combat_stat_handler import StatExecutionContext
 from .combat_actor_snapshot import native_actor_catalog
 
@@ -54,6 +54,7 @@ class NativeSummonHandler:
         self.rng = rng if rng is not None else _unused_rng
         self.event_lifecycle = None
         self.prepared_runners = {}
+        self.retained_application = None
 
     def _phase(self, effect, invocation, runner, channel):
         if self.event_lifecycle is None:
@@ -150,10 +151,18 @@ class NativeSummonHandler:
         prepared = self.prepared_runners.pop(invocation.native_running_uid, None)
         if not ctx.executable:
             return False
-        if ctx.retained or (
+        if (ctx.retained and not callable(self.retained_application)) or (
             invocation.native_running_uid is not None and prepared is None
         ):
             raise ValueError("Native retained/subscribed summon lifecycle is unaudited")
+        if ctx.retained:
+            masks = effect.get("target_masks")
+            if (
+                not isinstance(masks, (list, tuple))
+                or len(masks) != 7
+                or any(masks[index] for index in (0, 1, 3, 4, 5))
+            ):
+                raise ValueError("Native subscribed summon lifecycle is unaudited")
         if prepared is None:
             if self.event_lifecycle is not None:
                 raise ValueError("Missing prepared fresh native eZl lifecycle")
@@ -185,9 +194,7 @@ class NativeSummonHandler:
             )
         owner, owner_id = self.container(invocation)
         properties = self.builder.properties["npc"][str(reference)]["fight_properties"]
-        packet = summon_application(
-            self.fight.id,
-            self.action_id,
+        payload_arguments = dict(
             uid=effect_uid,
             base_uid=invocation.base_uid,
             effect_reference=invocation.reference,
@@ -205,6 +212,7 @@ class NativeSummonHandler:
             if invocation.native_context_hex is None
             else bytes.fromhex(invocation.native_context_hex),
         )
+        packet = summon_application(self.fight.id, self.action_id, **payload_arguments)
         self.authority.register(
             self.fight, actor, registration, new_order=order, new_turn_index=index
         )
@@ -229,6 +237,15 @@ class NativeSummonHandler:
         # Introduce the actual entity before constructor state/equipment
         # deliveries refer to its manager on the client.
         self.packets.insert(creation_packet_index, packet)
+        if ctx.retained:
+            self.retained_application(
+                effect,
+                invocation,
+                uid=effect_uid,
+                actor_id=actor_uid,
+                payload=summon_payload(**payload_arguments),
+                context=ctx,
+            )
         runner.finish_application()
         self._phase(effect, invocation, runner, 3)
         self._phase(effect, invocation, runner, 4)

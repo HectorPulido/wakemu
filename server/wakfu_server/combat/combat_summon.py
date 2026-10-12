@@ -14,6 +14,14 @@ from .combat_effects import _integer, _varint
 
 def fresh_summon_slot_owned(preview, actor):
     """QI.f owns slots by registered QK identity, not historical Actor bytes."""
+    if hasattr(preview, "native_pointer_checkpoint"):
+        from .combat_qi_fight import current_registry
+
+        registry = current_registry(preview)
+        pointer = registry.actual_slot_object(actor.native_obstacle_id)
+        return (
+            pointer is not None and pointer.kind == "actor" and pointer.actor is actor
+        )
     slots = getattr(preview, "native_qi_slots", None)
     if slots is None:
         # Legacy fixtures have only a complete actor-only registration table.
@@ -233,6 +241,8 @@ class RegisteredSummonAuthority:
                 )
 
     def register(self, preview, actor, registration, *, new_order, new_turn_index):
+        from .combat_summon_placement import native_summon_placement
+
         if (
             preview.phase != "active"
             or not isinstance(actor, Actor)
@@ -242,7 +252,7 @@ class RegisteredSummonAuthority:
             or actor.id <= 0
             or registration.caster_id not in preview.actors
             or registration.controller_id not in (*preview.actors, actor.id)
-            or actor.position not in preview.walkable
+            or not native_summon_placement(preview, actor)
         ):
             raise ValueError("Invalid owned summon registration")
         # Native big.a/fdt registers QK identities even at a shared cell.

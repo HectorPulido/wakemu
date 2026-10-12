@@ -141,6 +141,22 @@ class EnutrofRuntimeTests(unittest.TestCase):
         entered = self.cast(fixture, 2038, source.position)
         actor = entered.fight.actors[7]
         self.assertIn(702, {entry.reference for entry in actor.state_ledger.entries})
+        # eWq808 adds the AP maximum/current to MP and installs AP_AS_MP;
+        # native AP remains an observed characteristic, not a second budget.
+        paid_ap = entered.plan["costs"]["ap"]
+        self.assertEqual(actor.ap, before[0] - paid_ap)
+        self.assertEqual(actor.mp, before[1] + before[0] - paid_ap)
+        self.assertEqual(actor.max_mp, before[3] + before[2])
+        self.assertIn(50, actor.native_fight_properties)
+        # The installed active branch386138 does not consume the companion.
+        # Historical fusion87760/38039 is explicitly gated by `and False`.
+        companions = [
+            summon
+            for summon in entered.fight.actors.values()
+            if getattr(summon, "native_summon_source", None)
+        ]
+        self.assertEqual(len(companions), 1)
+        self.assertGreater(companions[0].hp, 0)
         fixture = (*fixture[:2], entered.fight, *fixture[3:])
         # The native exit uses eYv913 and removes702 through88401; it is a real
         # second owned grant activation, never a direct state-removal fixture.
@@ -253,6 +269,13 @@ class EnutrofRuntimeTests(unittest.TestCase):
                     )
                     self.assertEqual(attacked.plan["costs"]["ap"], 0)
                     self.assertEqual(attacked.plan["costs"]["mp"], 2)
+                    self.assertEqual(
+                        attacked.fight.actors[7].ap, entered.fight.actors[7].ap
+                    )
+                    self.assertEqual(
+                        attacked.fight.actors[7].mp,
+                        entered.fight.actors[7].mp - 2,
+                    )
         for passive in (None, 8274):
             with self.subTest(cost_passive=passive):
                 fixture = self.fixture(

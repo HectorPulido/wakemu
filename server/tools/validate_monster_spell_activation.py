@@ -85,6 +85,40 @@ CLASS_TEST_MODULES = [
     "test_monster_activation_scope",
     "test_monster_validation_budget",
     "test_monster_validation_missing_geometry",
+    "test_combat_resource_rejection_diagnostics",
+    "test_monster_prepared_cell_group_dependencies",
+    "test_monster_deferred_kill_subscription28",
+    "test_monster_realtime_state_clock",
+    "test_monster_supportive_ally_search",
+    "test_combat_behind_target_condition",
+    "test_combat_caster_facing_condition",
+    "test_monster_resource_recovery_scenarios",
+    "test_combat_controller_transfer207",
+    "test_combat_effective_control207",
+    "test_combat_teleport_owner_parameter",
+    "test_monster_challenger_trigger_predicate",
+    "test_monster_summon_container_levels",
+    "test_monster_dispatcher_family_coverage",
+    "test_monster_team_repeat1041",
+    "test_monster_passive_witness_geometry",
+    "test_monster_native_non_enemy_ally_recipe",
+    "test_monster_ally_recovery_catalog_hook",
+    "test_monster_owned_knockout_scene",
+    "test_monster_native_ko_scene_discovery",
+    "test_native_spell_visibility_query",
+    "test_combat_class_ai207",
+    "test_combat_characteristic_transfer",
+    "test_combat_characteristic_transfer_handler",
+    "test_combat_forced_retirement",
+    "test_combat_commit_observables",
+    "test_combat_summon_indexed_placement",
+    "test_encounter_component_cache",
+    "test_monster_native_restore_ko_authority",
+    "test_combat_resurrection_runtime",
+    "test_native_player_death_runtime_qualified",
+    "test_native_resurrection_regression",
+    "test_resurrection_first_turn_budget",
+    "test_resurrection_later_loss",
 ]
 
 
@@ -280,6 +314,46 @@ def preserve_copy_book(base, candidate):
             raise ValueError("Existing copy-book flags changed: " + reference)
 
 
+OPTIONAL_NATIVE_CATALOGS = frozenset(
+    {
+        "native-spell-element-damage-pcs.json",
+        "native-health-target-ordering.json",
+    }
+)
+
+
+def assert_candidate_overlay_scope(names, required, allowed):
+    if not required <= set(names) or set(names) - required - set(allowed):
+        raise ValueError("Unexpected candidate overlay scope")
+
+
+def validate_optional_native_catalogs(candidate, manifest, hashes, *, root):
+    """Only source-bound official native exports, append-only against actual base."""
+    from export_monster_spell_element_damage_pcs import package_document as element_pc
+    from export_monster_health_target_ordering import (
+        package_document as health_ordering,
+    )
+
+    validators = {
+        "native-spell-element-damage-pcs.json": element_pc,
+        "native-health-target-ordering.json": health_ordering,
+    }
+    for name in OPTIONAL_NATIVE_CATALOGS & set(manifest["changed_documents"]):
+        path = candidate / name
+        if (
+            hashlib.sha256(path.read_bytes()).hexdigest()
+            != manifest["changed_documents"][name]
+        ):
+            raise ValueError("Optional native catalog checksum mismatch: " + name)
+        additions = validators[name](path, hashes, root=root)
+        if name not in hashes and name not in manifest.get("added_dependencies", []):
+            raise ValueError(
+                "Optional native export absent from declared dependencies: " + name
+            )
+        if additions and set(additions) != {name}:
+            raise ValueError("Unexpected optional native package scope")
+
+
 def install_overlay(candidate, *, overlay=True):
     from wakfu_server import native_catalog
 
@@ -301,13 +375,18 @@ def install_overlay(candidate, *, overlay=True):
         assert_preserved as preserve_summons,
     )
 
-    if not required <= set(raw) or set(raw) - required - {
-        "native-spell-resource-costs.json",
-        COPY_BOOK_PATH,
-        CATALOG_PATH,
-        CELL_PATH,
-    } - set(SUMMON_PATHS):
-        raise ValueError("Unexpected candidate overlay scope")
+    assert_candidate_overlay_scope(
+        raw,
+        required,
+        {
+            "native-spell-resource-costs.json",
+            COPY_BOOK_PATH,
+            CATALOG_PATH,
+            CELL_PATH,
+        }
+        | set(SUMMON_PATHS)
+        | OPTIONAL_NATIVE_CATALOGS,
+    )
 
     class NoRedis:
         def get(self, key):
@@ -320,6 +399,7 @@ def install_overlay(candidate, *, overlay=True):
     if native_catalog.release() != manifest["base_revision"]:
         raise ValueError("Active base revision changed")
     hashes = native_catalog.document_hashes()
+    validate_optional_native_catalogs(candidate, manifest, hashes, root=ROOT)
     if any(
         hashes.get(name) != expected
         for name, expected in manifest["unchanged_documents"].items()
@@ -397,6 +477,8 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
         dict(
             id=7,
             account_id=3,
+            name="Monster validation opponent",
+            appearance=dict(sex=0, clothIndex=0),
             breed=character_breed,
             level=character_level,
             hp=maximum(character_breed, character_level),
@@ -426,7 +508,7 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
     )
     player = Actor(
         7,
-        1 if scenario == "wounded_ally" else 0,
+        1 if scenario in ("wounded_ally", "knocked_out_ally") else 0,
         enemy_cell,
         character["hp"],
         resources["ap"],
@@ -502,6 +584,8 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
             monsters[-201] = hostile
             placements = {0: {source, enemy_cell}, 1: {hostile_cell}}
         elif scenario.get("kind") == "native_opponent":
+            from private_population_harness import private_spare_eligible
+
             descriptor = scenario["opponent"]
             spare = next(
                 (
@@ -514,6 +598,7 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
                         ),
                     )
                     if cell not in {source, enemy_cell}
+                    and private_spare_eligible(scenario, source, enemy_cell, cell)
                 ),
                 None,
             )
@@ -525,6 +610,36 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
             if dependency_team not in (0, 1):
                 raise ValueError("Invalid native encounter dependency team")
             dependency_cell = spare if dependency_team == 1 else enemy_cell
+            from external_owned_area_preparation import DISCOVERY, producer_scene_cells
+
+            external_area_scene = scenario.get("discovery") == DISCOVERY
+            if external_area_scene:
+                if scenario.get("area_mode") == "target_area":
+                    from target_area_scene import target_area_scene
+
+                    area_plan = target_area_scene(
+                        source,
+                        enemy_cell,
+                        terrain["validated_cells"],
+                        minimum=scenario["target_minimum"],
+                        maximum=scenario["target_maximum"],
+                    )
+                    dependency_cell, player_cell = (
+                        area_plan["producer_cell"],
+                        area_plan["player_cell"],
+                    )
+                    player.position = player_cell
+                    character.update(
+                        x=player_cell[0], y=player_cell[1], z=player_cell[2]
+                    )
+                else:
+                    dependency_cell, player_cell = producer_scene_cells(
+                        source, enemy_cell, terrain["validated_cells"], dependency_team
+                    )
+                if dependency_team == 1:
+                    spare = dependency_cell
+                else:
+                    spare = player_cell
             if dependency_team == 0:
                 player.position = spare
                 character.update(x=spare[0], y=spare[1], z=spare[2])
@@ -557,9 +672,15 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
                 if dependency_team == 1
                 else {0: {spare, enemy_cell}, 1: {source}}
             )
+            if external_area_scene:
+                placements = (
+                    {0: {player_cell}, 1: {source, dependency_cell}}
+                    if dependency_team == 1
+                    else {0: {player_cell, dependency_cell}, 1: {source}}
+                )
         elif scenario.get("kind") != "owned_spell_sequence":
             raise ValueError("Unknown native monster scenario recipe")
-    elif scenario == "wounded_ally":
+    elif scenario in ("wounded_ally", "knocked_out_ally"):
         attacker_cells = [
             (enemy_cell[0] + dx, enemy_cell[1] + dy, enemy_cell[2])
             for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1))
@@ -609,7 +730,9 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
     }
     fight.native_qi_surface_provenance = dict(terrain["native_qi_surface_provenance"])
     freeze_terrain(fight)
-    initialize_global_pv_collections(fight, tuple(fight.actors))
+    initialize_global_pv_collections(
+        fight, tuple(fight.actors), controller_registration=True
+    )
     from contextlib import nullcontext
     from unittest.mock import patch
     from wakfu_server import combat_npc_initialization
@@ -672,7 +795,11 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
     for identity, receipt in getattr(
         fight, "native_npc_initialization_receipts", {}
     ).items():
-        payload = initial_npc_actor_effects(fight, identity)
+        import time
+
+        payload = initial_npc_actor_effects(
+            fight, identity, now_milliseconds=time.time_ns() // 1000000
+        )
         decoded = decode_remote_effects(payload)
         carriers = sum(item.effect_class == 310 for item in decoded)
         nonretained = nonretained_initial_states(
@@ -724,9 +851,25 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
         else:
             from monster_pending_scenarios import prepare_scenario
 
+            if scenario.get("area_mode") == "target_area":
+                fight.validation_external_target_area_cell = tuple(enemy_cell)
             fight.validation_scenario_receipt = prepare_scenario(
                 fight, character, monsters, deck, recipe=scenario
             )
+    elif scenario == "knocked_out_ally":
+        from monster_knockout_scenarios import knock_out_ally
+
+        fight.validation_scenario_receipt = knock_out_ally(
+            fight,
+            character,
+            monsters,
+            deck,
+            attacker_id=-201,
+            ally_id=7,
+            caster_id=-200,
+            spell_id=5790,
+            spell_level=4,
+        )
     elif scenario == "wounded_ally":
         fight.validation_scenario_receipt = wound_ally(
             fight,
@@ -875,14 +1018,21 @@ def passive_initialization_case(
     ):
         return None
     result["reference"] = reference
-    destination = next((cell for cell in cells if tuple(cell) != (-8, -7, -1)), None)
-    if destination is None:
-        result["errors"] = {"passive initialization: missing actual fixture cell": 1}
-        return result
-    result["scenes_attempted"] = 1
     try:
-        context = (fixture if fixture_cache is None else fixture_cache.get)(
-            reference, level, destination, scenario=None
+        from wakfu_server.combat_geometry import published_geometry
+        from monster_passive_witness import passive_fixture_context
+
+        factory = fixture if fixture_cache is None else fixture_cache.get
+
+        def build_native_fixture(destination):
+            result["scenes_attempted"] = result.get("scenes_attempted", 0) + 1
+            return factory(reference, level, destination, scenario=None)
+
+        context = passive_fixture_context(
+            cells,
+            (-8, -7, -1),
+            build_native_fixture,
+            lambda: published_geometry(1134),
         )
         receipt = getattr(context[0], "native_npc_initialization_receipts", {}).get(
             -200
@@ -1069,23 +1219,82 @@ def run_case(
 
     scenarios = scenario_recipes(reference, spell) + [None]
     if recovery_search:
+        from external_owned_area_preparation import recipes as external_area_recipes
+
+        scenarios = (
+            external_area_recipes(
+                reference,
+                spell,
+                minimum=capability.get("minimum"),
+                maximum=capability.get("maximum"),
+            )
+            + scenarios
+        )
+        from monster_pending_scenarios import native_ally_recipe
         from wakfu_server.combat_native_spell_casting import (
             catalog as native_casting_catalog,
         )
+        from wakfu_server.combat_npc_attack import npc_spell_catalog
+        from collections import ChainMap
 
         criterion = (
             native_casting_catalog().get(str(spell), {}).get("cast_criterion_raw")
         )
+        from monster_pending_scenarios import native_ko_ally_recipe
+
+        ko_ally = native_ko_ally_recipe(criterion)
+        if ko_ally is not None and ko_ally not in scenarios:
+            scenarios.insert(len(scenarios) - 1, ko_ally)
+        npc_document = npc_spell_catalog()
+        from ally_scene_roots import native_ally_scene_roots
+
+        root_records = ChainMap(
+            npc_document.get("effects", {}),
+            npc_document.get("baseline_effects", {}),
+        )
+        scene_roots = native_ally_scene_roots(
+            spell, spell_level, native_casting_catalog(), root_records
+        )
+        from private_population_harness import private_recipes
+
+        for private_recipe in private_recipes(
+            reference, level, capability, criterion, scene_roots
+        ):
+            if private_recipe not in scenarios:
+                scenarios.insert(len(scenarios) - 1, private_recipe)
+        ally = native_ally_recipe(
+            reference,
+            level,
+            capability,
+            criterion=criterion,
+            root_effects=scene_roots,
+        )
+        if ally is not None and ally not in scenarios:
+            # Keep explicit preparations first; all suggested allies still
+            # require normal initialization, eligibility and effect commits.
+            scenarios.insert(len(scenarios) - 1, ally)
         if criterion:
             from monster_pending_scenarios import recovery_owned_state_recipes
 
-            scenarios.extend(
-                recovery_owned_state_recipes(reference, level, spell, criterion)
+            state_recipes = recovery_owned_state_recipes(
+                reference, level, spell, criterion
             )
+            # Try real newly discovered conditional producers before generic
+            # targets consume the unchanged recovery attempt/scene caps.
+            conditional = [
+                r
+                for r in state_recipes
+                if r.get("discovery") == "owned_conditional_self_state_v1"
+            ]
+            scenarios = conditional + [s for s in scenarios if s not in conditional]
+            scenarios.extend(r for r in state_recipes if r not in conditional)
             from monster_pending_scenarios import recovery_native_opponent_recipes
 
-            scenarios.extend(
-                recovery_native_opponent_recipes(reference, level, spell, criterion)
+            from native_identity_priority import prioritize_native_identities
+
+            scenarios = prioritize_native_identities(
+                scenarios,
+                recovery_native_opponent_recipes(reference, level, spell, criterion),
             )
     if "heal" in capability.get("tags", []):
         scenarios.append("wounded_ally")
@@ -1095,12 +1304,42 @@ def run_case(
         scenarios.append(dict(CLASS_BUFF_RECIPES["ap"]))
     elif (reference, spell) == (5710, 4641):
         scenarios.append(dict(CLASS_BUFF_RECIPES["mp"]))
+    if recovery_search:
+        from caster_point_recipient import caster_point_recipient_cells
+
+        # fixture() gives every real native NPC direction3; do not infer facing
+        # from the cast anchor or change the actor's direction to fit a scene.
+        point_recipients = caster_point_recipient_cells(
+            source,
+            3,
+            scene_roots,
+            root_records,
+            destinations,
+        )
+        from directional_freecell_recipient import directional_freecell_recipient_cells
+
+        freecell_recipients = directional_freecell_recipient_cells(
+            source,
+            dict(
+                native_casting_catalog().get(str(spell), {}),
+                minimum=capability["minimum"],
+                maximum=capability["maximum"],
+            ),
+            scene_roots,
+            destinations,
+        )
+        recipients = point_recipients + freecell_recipients
+        enemies = recipients + [cell for cell in enemies if cell not in recipients]
     scenes = (
         [(scenario, enemy) for enemy in enemies for scenario in scenarios]
         if recovery_search
         else [(scenario, enemy) for scenario in scenarios for enemy in enemies]
     )
-    for scenario, enemy in scenes:
+    from resource_priority_scheduler import PreparationScheduler
+
+    scheduler = PreparationScheduler(scenes)
+    for work in scheduler:
+        scenario, enemy = work.scene
         if (
             recovery_attempt_cap is not None
             and result["attempts"] >= recovery_attempt_cap
@@ -1108,20 +1347,26 @@ def run_case(
             break
         if (
             recovery_scene_cap is not None
+            and not work.resumed
             and result["scenes_attempted"] >= recovery_scene_cap
         ):
-            break
+            continue
         scene_limit = limit * (scenarios.index(scenario) + 1)
         if not recovery_search and result["attempts"] >= scene_limit:
             continue
         # Each real enemy placement needs its own witness search. A failed
         # adjacent enemy/caster pair must not consume every later distance or
         # prevent empty-cell and companion targets from being examined.
-        target_class_attempts = Counter()
-        result["scenes_attempted"] += 1
+        target_class_attempts = work.target_counts if work.resumed else Counter()
+        if not work.resumed:
+            result["scenes_attempted"] += 1
         try:
-            context = (fixture if fixture_cache is None else fixture_cache.get)(
-                reference, level, enemy, scenario=scenario
+            context = (
+                work.context
+                if work.resumed
+                else (fixture if fixture_cache is None else fixture_cache.get)(
+                    reference, level, enemy, scenario=scenario
+                )
             )
             fight, character, monsters, deck = context
         except Exception as exc:
@@ -1138,6 +1383,7 @@ def run_case(
             ):
                 if (scenario, alternative) not in scenes:
                     scenes.append((scenario, alternative))
+                    scheduler.append((scenario, alternative))
             continue
         receipt = getattr(fight, "native_npc_initialization_receipts", {}).get(-200)
         if receipt is not None and receipt not in result["initialization_receipts"]:
@@ -1150,9 +1396,21 @@ def run_case(
             else 7
         )
         targets = [(enemy, target_id), (source, -200)]
+        from external_owned_area_preparation import DISCOVERY, actual_external_targets
+
+        if isinstance(scenario, dict) and scenario.get("discovery") == DISCOVERY:
+            targets = actual_external_targets(fight)
+        if recovery_search and isinstance(scenario, dict):
+            from zero_range_ally import extra_cell_request
+
+            targets = extra_cell_request(fight, scenario) + targets
         if isinstance(scenario, dict) and scenario.get("kind") == "class_buff":
             hostile = fight.actors[-201]
             targets.insert(0, (hostile.position, -201))
+        if recovery_search:
+            from monster_pending_scenarios import additional_native_actor_targets
+
+            targets.extend(additional_native_actor_targets(fight, targets))
         from monster_pending_scenarios import bounded_empty_targets
         from wakfu_server.combat_native_spell_casting import catalog as casting_catalog
 
@@ -1168,7 +1426,12 @@ def run_case(
                 prefer_diagonal=casting.get("diagonal") is True,
             )
             empty_targets = [(cell, None) for cell in empty]
-            targets = empty_targets + targets
+            targets = (
+                targets + empty_targets
+                if getattr(fight, "validation_external_target_area_cell", None)
+                is not None
+                else empty_targets + targets
+            )
         else:
             # Retain the certified ordinary-spell search order. Proximity
             # ordering is useful for free-cell AoE, but can discard the aligned
@@ -1185,8 +1448,21 @@ def run_case(
                 <= abs(cell[0] - source[0]) + abs(cell[1] - source[1])
                 <= capability["maximum"]
             ]
-            targets.extend((cell, None) for cell in ordinary_empty[:2])
-        for target, identity in targets:
+            from ordinary_linear_empty_anchor import ordinary_linear_empty_targets
+
+            ordinary_empty = ordinary_linear_empty_targets(
+                fight,
+                source,
+                capability["minimum"],
+                capability["maximum"],
+                casting,
+                ordinary_empty,
+            )
+            targets.extend((cell, None) for cell in ordinary_empty)
+        if work.resumed:
+            targets = work.targets
+        for target_index, (target, identity) in enumerate(targets):
+            preempted = False
             if (
                 recovery_attempt_cap is not None
                 and result["attempts"] >= recovery_attempt_cap
@@ -1243,6 +1519,26 @@ def run_case(
             except Exception as exc:
                 if propagate_infrastructure:
                     raise_infrastructure_failure(exc)
+                if recovery_search:
+                    from monster_class_buff_scenarios import resource_recovery_recipes
+
+                    preparations = resource_recovery_recipes(
+                        getattr(exc, "native_resource_diagnostic", None)
+                    )
+                    for preparation in preparations:
+                        if preparation not in scenarios:
+                            scenarios.append(preparation)
+                    preempted = scheduler.prioritize(
+                        preparations,
+                        work,
+                        targets[target_index + 1 :],
+                        context,
+                        target_class_attempts,
+                        attempts=result["attempts"],
+                        attempt_cap=recovery_attempt_cap,
+                        scenes=result["scenes_attempted"],
+                        scene_cap=recovery_scene_cap,
+                    )
                 errors[type(exc).__name__ + ": " + str(exc)] += 1
                 diagnostic = native_witness_diagnostic(exc, target, identity, enemy)
                 if diagnostic is not None and len(result["cast_diagnostics"]) < 24:
@@ -1251,7 +1547,7 @@ def run_case(
                 raise RuntimeError("Native preview mutated original fight")
             if fixture_cache is not None:
                 fixture_cache.verify(context)
-            if result["status"] == "validated":
+            if result["status"] == "validated" or preempted:
                 break
         if result["status"] == "validated":
             break
@@ -1324,6 +1620,7 @@ def native_witness_diagnostic(error, target, identity, enemy):
         "native_casting_diagnostic",
         "native_casting_selection",
         "cast_validation_code",
+        "native_resource_diagnostic",
         "cast_diagnostics",
         "native_target_diagnostic",
     )
@@ -1351,8 +1648,9 @@ def commit_smoke(monster):
     from wakfu_server.fight_checkpoint_store import snapshot
     from wakfu_server.combat_actor import actual_actor_stats, actual_monster_actor_stats
 
-    case = next(c for c in monster["cases"] if c["status"] == "validated")
-    success = next(t for t in case["successful_targets"] if t["effectful"])
+    from ai_witness import select
+
+    case, success = select(monster)
     target = tuple(success["target"])
     # The recorded enemy location is exact for enemy casts; self/empty casts
     # retain the same native adjacent enemy creation context.
@@ -1403,14 +1701,19 @@ def commit_smoke(monster):
 
                 return registered_summon_stats(actor, state, character["map_id"])
             if actor.controlled:
-                return actual_actor_stats(character, actor, state.id, **keywords)
+                return actual_actor_stats(
+                    character, actor, state.id, fight=state, **keywords
+                )
             return actual_monster_actor_stats(
-                monsters[actor.id], actor, state.id, **keywords
+                monsters[actor.id], actor, state.id, fight=state, **keywords
             )
+
+        from wakfu_server.combat_commit_observables import actor_lifecycle_observables
 
         event_start = len(fight.events)
         observed_before = {
             str(a.id): dict(
+                lifecycle=actor_lifecycle_observables(fight, a),
                 hp=a.hp,
                 ap=a.ap,
                 mp=a.mp,
@@ -1436,6 +1739,7 @@ def commit_smoke(monster):
             raise RuntimeError("AI delivery did not commit atomically")
         observed_after = {
             str(a.id): dict(
+                lifecycle=actor_lifecycle_observables(runtime.fight, a),
                 hp=a.hp,
                 ap=a.ap,
                 mp=a.mp,
@@ -1771,8 +2075,31 @@ def main():
     )
     for monster in result["monsters"]:
         reasons = []
+        from monster_initialization_diagnostic import (
+            initialization_diagnostic,
+            native_case_coverage,
+        )
+
+        descriptor = native_monsters[monster["ref"]]
+        initialization = initialization_diagnostic(
+            monster["ref"],
+            descriptor["initial_state_triples"],
+            descriptor["min_level"],
+            descriptor["max_level"],
+            monster["cases"],
+            proven=initialization_proven,
+        )
+        monster["initialization_diagnostic"] = initialization
+        monster["native_case_coverage"] = native_case_coverage(
+            descriptor["min_level"],
+            descriptor["max_level"],
+            [ability["spell_id"] for ability in descriptor["native_abilities"]],
+            monster["cases"],
+        )
         if monster["pending_initialization"]:
-            reasons.append("native_initial_states_not_initialized")
+            reasons.append(
+                initialization["reason"] or "native_initial_state_coverage_unknown"
+            )
         if any(not case_qualification_complete(c) for c in monster["cases"]):
             reasons.append("no_effectful_native_execution_in_finite_target_search")
         if monster.get("ai_commit", {}).get("status", "validated") != "validated":

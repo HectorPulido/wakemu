@@ -34,6 +34,17 @@ def compact(document):
             for level in row.get("levels", []):
                 roots.update(level["effects"] if isinstance(level, dict) else level[2])
             result[kind][key] = sorted(roots)
+    result["spell_level_roots"] = {}
+    for key, row in document.get("spells", {}).items():
+        samples = {
+            str(level.get("level", index) if isinstance(level, dict) else index): list(
+                level["effects"] if isinstance(level, dict) else level[2]
+            )
+            for index, level in enumerate(row.get("levels", []), 1)
+        }
+        if "level_zero_roots" in row:
+            samples["0"] = list(row["level_zero_roots"])
+        result["spell_level_roots"][key] = samples
     result["effects"] = {}
     for key, row in document.get("effects", {}).items():
         family = row["effect_class"]
@@ -46,17 +57,24 @@ def compact(document):
                     if len(values) > index and type(values[index]) is int
                 }
             )
-            if family in (304, 321, 307, 315, 649)
+            if family in (304, 321, 307, 315, 426, 649)
             else []
         )
         result["effects"][key] = dict(
-            family=family, children=row.get("children", []), references=references
+            family=family,
+            children=row.get("children", []),
+            references=references,
+            native_effect_flags=row.get("native_effect_flags"),
         )
         if family == 994:
             # Installed eZq/eZn constructs faB; eHI.cmY is fixed2349.
             result["effects"][key]["references"] = [2349]
             result["effects"][key]["fixed_profile_source"] = "eZq.eZn.faB.eHI.cmY"
         if family == 307:
+            result["effects"][key]["parameter_samples_by_level"] = {
+                str(level): list(values)
+                for level, values in enumerate(row.get("parameters_by_level", []), 1)
+            }
             result["effects"][key]["parameter_samples"] = sorted(
                 {tuple(values) for values in row.get("parameters_by_level", [])}
             )
@@ -97,6 +115,7 @@ def dependency_closure(tables, monsters, seed_spell_ids, seed_state_ids=()):
                 307: "profiles",
                 994: "profiles",
                 315: "areas",
+                426: "spells",
                 649: "spells",
             }.get(row["family"])
             if target:
@@ -210,8 +229,106 @@ def merge_profiles(base_documents, exported, provenance):
     return documents
 
 
+def resolved_container_domains(tables, monsters, spell, contexts):
+    """Carry proven PL identity through eYk/eXR; other producers stay unknown.
+
+    eVE.a forwards PL into Qe.bfq. eZR.fRR selects eVt.Oh or PL.cmZ;
+    fresh eVt.Oh is -1. Flag16 (eVl.rwM) transmits parent fRR to children.
+    This does not infer a spell container level from an actor level.
+    """
+    roots = tables.get("spell_level_roots", {}).get(str(spell), {})
+    pending = []
+    if contexts:
+        for context in contexts:
+            level = context.get("container_level")
+            override = context.get("level_override", -1)
+            if (
+                type(level) is not int
+                or not 0 <= level <= 32767
+                or type(override) is not int
+                or not -1 <= override <= 32767
+                or str(level) not in roots
+            ):
+                raise ValueError("Unproven native spell container context")
+            pending.extend(
+                ("effects", str(root), level, override) for root in roots[str(level)]
+            )
+    else:
+        pending.extend(
+            ("effects", str(root), None, -1)
+            for root in tables["spells"].get(str(spell), [])
+        )
+    seen, domains, unknown = set(), {}, set()
+    while pending:
+        kind, key, level, override = pending.pop()
+        identity = (kind, key, level, override)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        row = (monsters if kind == "profiles" else tables[kind]).get(key)
+        if row is None:
+            continue
+        if kind == "effects":
+            if level is None:
+                unknown.add(int(key))
+            else:
+                domains.setdefault(int(key), set()).add(
+                    level if override == -1 else override
+                )
+            flags = row.get("native_effect_flags")
+            safe = (
+                row["family"] in (349, 341)
+                and isinstance(flags, list)
+                and all(type(flag) is int for flag in flags)
+            )
+            child_level = level if safe else None
+            child_override = (
+                (level if override == -1 else override)
+                if safe and level is not None and 16 in flags
+                else -1
+            )
+            pending.extend(
+                ("effects", str(child), child_level, child_override)
+                for child in row["children"]
+            )
+            target = {
+                304: "states",
+                321: "states",
+                307: "profiles",
+                994: "profiles",
+                315: "areas",
+                426: "spells",
+                649: "spells",
+            }.get(row["family"])
+            if target:
+                for ref in row["references"]:
+                    if row["family"] == 307:
+                        ref = ((ref + 32768) % 65536) - 32768
+                    if ref > 0:
+                        pending.append((target, str(ref), None, -1))
+        elif kind == "profiles":
+            pending.extend(
+                ("spells", str(a["spell_id"]), None, -1)
+                for a in row["native_abilities"]
+            )
+            pending.extend(
+                ("states", str(ref), None, -1)
+                for ref in row["initial_state_triples"][::3]
+            )
+        else:
+            # State application, granted spells and areas introduce contexts
+            # whose resolved levels have not been proved by the wrapper audit.
+            pending.extend(("effects", str(ref), None, -1) for ref in row)
+    return domains, unknown
+
+
 def summon_dependency_scopes(
-    tables, monsters, seed_spell_ids, *, seed_actor_levels=None
+    tables,
+    monsters,
+    seed_spell_ids,
+    *,
+    seed_actor_levels=None,
+    seed_container_contexts=None
 ):
     """Report original descriptor levels; uncertain nested contexts stay blocked."""
     report = dict(spell_profile_dependencies={}, spell_summon_profiles={})
@@ -224,6 +341,12 @@ def summon_dependency_scopes(
             "closure_profile_ids"
         ]
         scopes = {}
+        container_contexts = (seed_container_contexts or {}).get(
+            str(spell), (seed_container_contexts or {}).get(spell)
+        )
+        container_domains, unknown_containers = resolved_container_domains(
+            tables, monsters, spell, container_contexts
+        )
         parent_levels = (seed_actor_levels or {}).get(
             str(spell), (seed_actor_levels or {}).get(spell, range(246))
         )
@@ -319,22 +442,51 @@ def summon_dependency_scopes(
                     continue
                 # These are original evaluated eZl parameters. Preserve their
                 # actual native descriptor mode instead of wild species bounds.
+                known_container_levels = container_domains.get(effect_id, set())
+                evaluated_samples = effect.get("parameter_samples_by_level", {})
+                matched_container_levels = sorted(
+                    level
+                    for level in known_container_levels
+                    if tuple(evaluated_samples.get(str(level), ())) == tuple(values)
+                )
                 levels = (
                     [profile["min_level"]]
                     if mode == -3
                     else parent_levels
                     if mode == -2
-                    else range(246)
+                    else matched_container_levels
                     if mode == -1
                     else [((mode + 32768) % 65536) - 32768]
                     if mode > 0
                     else []
                 )
+                if mode == -1 and not levels:
+                    current_scope["level_domain_exact"] = False
+                    current_scope.setdefault(
+                        "unproven_container_effect_ids", []
+                    ).append(effect_id)
+                    continue
                 if not levels or any(level < 0 for level in levels):
                     raise ValueError("Unsupported native summon descriptor level mode")
                 current_scope["descriptor_levels"].update(levels)
+                if mode == -1:
+                    current_scope.setdefault("container_level_sources", []).append(
+                        dict(
+                            effect_id=effect_id,
+                            descriptor_levels=list(levels),
+                            producer="eVE.a.Qe.bfq.eZR.fRR.eZl.C",
+                            wrappers="eYk/eXR.PL_reuse.eVt.rwM16",
+                        )
+                    )
                 if (
                     mode == -1
+                    and (
+                        effect_id in unknown_containers
+                        or any(
+                            str(level) not in evaluated_samples
+                            for level in known_container_levels
+                        )
+                    )
                     or mode == -2
                     and (not seed_actor_levels or effect_id not in direct_effects)
                 ):
@@ -359,6 +511,7 @@ def build_documents(
     *,
     seed_state_ids=(),
     seed_actor_levels=None,
+    seed_container_contexts=None,
     spell_supplement=None
 ):
     """Return changed shared documents and closure report; never write the DB."""
@@ -393,7 +546,10 @@ def build_documents(
     ):
         raise ValueError("Native summon inputs differ from sealed extraction")
     before[str(exporter.relative_to(ROOT))] = digest(exporter)
-    tables = {kind: {} for kind in ("spells", "states", "areas", "effects")}
+    tables = {
+        kind: {}
+        for kind in ("spells", "states", "areas", "effects", "spell_level_roots")
+    }
     for name in ("trees", "states", "area-effects", "areas"):
         index = compact(read_bundle(bundle, name))
         for kind, records in index.items():
@@ -429,7 +585,7 @@ def build_documents(
         current = tables["effects"][key]
         if current["family"] != row["family"] or current["children"] != row["children"]:
             raise ValueError("Conflicting original zero-level effect " + key)
-        if row["family"] in (304, 321, 307, 315, 649):
+        if row["family"] in (304, 321, 307, 315, 426, 649):
             index = 2 if row["family"] == 649 else 0
             if len(row["parameters"]) <= index:
                 raise ValueError("Missing original zero-level reference " + key)
@@ -437,6 +593,9 @@ def build_documents(
                 set(current["references"]) | {row["parameters"][index]}
             )
             if row["family"] == 307:
+                current.setdefault("parameter_samples_by_level", {})["0"] = list(
+                    row["parameters"]
+                )
                 current["parameter_samples"] = sorted(
                     set(map(tuple, current.get("parameter_samples", ())))
                     | {tuple(row["parameters"])}
@@ -454,7 +613,11 @@ def build_documents(
         )
     report.update(
         summon_dependency_scopes(
-            tables, monsters, seed_spell_ids, seed_actor_levels=seed_actor_levels
+            tables,
+            monsters,
+            seed_spell_ids,
+            seed_actor_levels=seed_actor_levels,
+            seed_container_contexts=seed_container_contexts,
         )
     )
     if report["missing_definitions"]:

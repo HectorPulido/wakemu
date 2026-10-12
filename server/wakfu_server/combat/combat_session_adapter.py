@@ -329,7 +329,12 @@ class CombatSessionAdapter:
                 if wp is None or maximum is None:
                     raise ValueError("Missing authoritative combat WP snapshot")
                 return actual_actor_stats(
-                    source, actor, fight.id, wp_current=wp, wp_maximum=maximum
+                    source,
+                    actor,
+                    fight.id,
+                    fight=current,
+                    wp_current=wp,
+                    wp_maximum=maximum,
                 )
             current_monsters = getattr(current, "rift_monsters", monsters)
             monster = current_monsters.get(actor.id)
@@ -348,7 +353,12 @@ class CombatSessionAdapter:
             if wp is None or maximum is None:
                 raise ValueError("Missing authoritative combat WP snapshot")
             return actual_monster_actor_stats(
-                monster, actor, fight.id, wp_current=wp, wp_maximum=maximum
+                monster,
+                actor,
+                fight.id,
+                fight=current,
+                wp_current=wp,
+                wp_maximum=maximum,
             )
 
         def turn_end(preview, *, actor_id, action_id):
@@ -449,6 +459,7 @@ class CombatSessionAdapter:
                 character,
                 actor,
                 fight.id,
+                fight=fight,
                 wp_current=live_wp(fight, actor.id)[0],
                 wp_maximum=live_wp(fight, actor.id)[1],
             )
@@ -468,17 +479,25 @@ class CombatSessionAdapter:
                 monster,
                 actor,
                 fight.id,
+                fight=fight,
                 wp_current=current[0],
                 wp_maximum=current[1],
             )
+        import time
+
+        now_milliseconds = time.time_ns() // 1000000
         if fight.phase == "active":
             from wakfu_server.combat_remote_effects import active_actor_effects
 
-            effects = active_actor_effects(fight, actor.id)
+            effects = active_actor_effects(
+                fight, actor.id, now_milliseconds=now_milliseconds
+            )
         else:
             from wakfu_server.combat_remote_effects import initial_npc_actor_effects
 
-            effects = initial_npc_actor_effects(fight, actor.id)
+            effects = initial_npc_actor_effects(
+                fight, actor.id, now_milliseconds=now_milliseconds
+            )
         return stats, effects
 
     @staticmethod

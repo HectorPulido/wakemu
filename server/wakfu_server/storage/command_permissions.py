@@ -1,7 +1,7 @@
 """Current database-backed development-command authorization."""
 
 PUBLIC_COMMANDS_SETTING = "player_allowed_commands"
-DEFAULT_PLAYER_COMMANDS = ("!ayuda", "!pos")
+DEFAULT_PLAYER_COMMANDS = ("!ayuda", "!pos", "!astrub")
 ADMIN_ONLY_COMMANDS = frozenset(
     {
         "!nuke",

@@ -162,6 +162,11 @@ def has_ap_listener(fight, actor):
 
 def notify_resource_pa(fight, actor, stat, *, before_current=None, maximum=False):
     """fff.on notifies only a changed current; fff.or always notifies."""
+    from .combat_characteristic_transfer import notify_characteristic_transfers
+
+    notify_characteristic_transfers(
+        fight, actor, stat, before_current=before_current, maximum=maximum
+    )
     if stat != 2:
         return
     rows = _listeners(fight, actor)

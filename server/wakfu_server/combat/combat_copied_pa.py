@@ -14,6 +14,9 @@ def _known_copied_profile(source):
         or source.get("profile") == 2349
         and type(source.get("native_copy_family")) is int
         and source["native_copy_family"] == 994
+        or source.get("profile") == 1549
+        and type(source.get("native_copy_family")) is int
+        and source["native_copy_family"] == 839
     )
 
 

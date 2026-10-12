@@ -1,4 +1,5 @@
 """Adapt the complete embedding session context without another world patch."""
+from ..native.native_control import effective_server_controlled
 from ..planning.team_blackboard import observe, confirm
 
 
@@ -39,7 +40,7 @@ def execute(runtime, world_context, runner):
         runtime is None
         or runtime.fight is None
         or runtime.fight.current is None
-        or runtime.fight.current.controlled
+        or not effective_server_controlled(runtime.fight, runtime.fight.current)
         or runtime.awaiting_ack is not None
         or runtime.pending
     ):

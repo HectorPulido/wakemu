@@ -198,6 +198,7 @@ def native_selector_policy(effect):
         | 8192
         | (1 << 34)
         | (1 << 40)
+        | (1 << 41)
         | (1 << 42)
         | (1 << 43)
         | (1 << 44)
@@ -253,6 +254,9 @@ def _native_target_valid(mask, caster, actor, contexts, *, include_fah=True):
         return False
     # fcE uses Sn()>0, not PLAYER_CHARACTER; positive summons also qualify.
     if mask & 16 and (not value("is_eGj") or actor.id <= 0):
+        return False
+    # fcE bit41 requires an actual eGj with Sn() <= 0.
+    if mask & (1 << 41) and (not value("is_eGj") or actor.id > 0):
         return False
     # eGj.baF is fdy IN_PLAY membership, distinct from a raw HP field.
     if mask & (1 << 40) and (not value("is_eGj") or not value("baF")):

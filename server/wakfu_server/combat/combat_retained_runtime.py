@@ -62,6 +62,7 @@ def native_retained_condition_effects(fight, actor_id):
         | set(fight.state_wire_payloads)
         | set(fight.native_owned_group_effects)
         | set(getattr(fight, "native_owned_area_effects", {}))
+        | set(getattr(fight, "native_owned_spatial_effects", {}))
     )
     live.update(e.uid for a in state_managers(fight) for e in a.state_ledger.entries)
     live.difference_update(pending_state_uids(fight))
@@ -180,6 +181,7 @@ class NativeRetainedRuntime:
             | set(self.fight.state_wire_payloads)
             | set(self.fight.native_owned_group_effects)
             | set(getattr(self.fight, "native_owned_area_effects", {}))
+            | set(getattr(self.fight, "native_owned_spatial_effects", {}))
             | {
                 e.uid
                 for a in state_managers(self.fight)
@@ -205,6 +207,7 @@ class NativeRetainedRuntime:
                 self.fight.owned_stat_effects,
                 self.fight.native_owned_group_effects,
                 getattr(self.fight, "native_owned_area_effects", {}),
+                getattr(self.fight, "native_owned_spatial_effects", {}),
             ):
                 for row in collection.values():
                     state_uid = row.get("state_uid")
@@ -404,6 +407,76 @@ class NativeRetainedRuntime:
             )
         )
 
+    def register_applied_summon(
+        self, effect, invocation, *, uid, actor_id, payload, context
+    ):
+        """eZl.c calls eZR.d after creating PV; effect removal never undoes PV."""
+        from .combat_stat_handler import StatExecutionContext
+
+        messages = {}
+        fields = _identity_fields(payload, messages=messages)
+        from .combat_retained_summon import retained_summon_actor
+
+        native_actor_id = retained_summon_actor(payload)
+        registration = getattr(self.fight, "native_summon_registrations", {}).get(
+            actor_id
+        )
+        definition = self.definition(effect, invocation)
+        if (
+            effect["effect_class"] != 307
+            or invocation.target_id is not None
+            or not isinstance(context, StatExecutionContext)
+            or context.retained is not True
+            or context.source_guards_verified is not True
+            or native_definition_timing(effect, invocation.level)["retained"]
+            is not True
+            or definition["subscription"] is not False
+            or registration is None
+            or registration.get("actor_id") != actor_id
+            or registration.get("caster_id") != invocation.caster_id
+            or native_actor_id != actor_id
+            or fields.get(1) != uid
+            or fields.get(3) != invocation.reference
+            or fields.get(6) != invocation.caster_id & ((1 << 64) - 1)
+            or 7 in fields
+            or uid in self._live()
+        ):
+            raise ValueError("Missing exact native retained summon creation authority")
+        container, _ = self.container(invocation)
+        self.fight.native_owned_group_effects[uid] = dict(
+            uid=uid,
+            target_id=None,
+            effect_class=307,
+            state_uid=invocation.state_uid,
+            payload=payload.hex(),
+            timer=None if context.timer is None else dict(vars(context.timer)),
+            invocation=dict(
+                vars(invocation),
+                native_value_scope=None,
+                native_cast_boundary_context=None,
+            ),
+            execution_count=-1,
+            native_subscription_masks=[
+                None if mask is None else list(mask) for mask in effect["target_masks"]
+            ],
+            native_effect_flags=list(effect["native_effect_flags"]),
+            native_summon_actor_id=actor_id,
+            native_creation_source="eZl.c/eZR.d",
+        )
+        self.record(
+            RetainedEffect(
+                uid,
+                None,
+                307,
+                invocation.reference,
+                owner_uid=invocation.state_uid,
+                manager_id=invocation.caster_id,
+                definition_type=definition["definition_type"],
+                definition_dispellable=definition["definition_dispellable"],
+                **container,
+            )
+        )
+
     def register_applied_stat(self, effect, invocation, uid):
         """Qe.a/PT inserts this exact applied effect before L3/L4 replay."""
         row = self.fight.owned_stat_effects.get(uid)
@@ -564,8 +637,10 @@ class NativeRetainedRuntime:
                         808,
                         303,
                         308,
+                        307,
                         321,
                         325,
+                        207,
                         332,
                         314,
                         315,
@@ -587,20 +662,38 @@ class NativeRetainedRuntime:
                         668,
                         802,
                         877,
+                        1003,
                         923,  # eXm always cancels itself; synthetic eWf30 is non-retained.
+                        982,
+                        327,
+                        328,
+                        342,
                         986,
                         1001,
                         1000,
+                        401,
                         933,
+                        934,
+                        937,
                         1008,
                         1013,
                         1038,
+                        1070,
                         1030,
                         1065,
                         1066,
                         1099,
                         1201,
                         1202,
+                    )
+                    or (
+                        effect["effect_class"] == 1
+                        and invocation.native_running_uid is not None
+                        and invocation.base_uid is not None
+                        and isinstance(invocation.native_trigger_context, dict)
+                        and any(
+                            effect.get("target_masks", ())[i] for i in (0, 1, 3, 4, 5)
+                        )
                     )
                     or effect["effect_class"] in _set_current_families()
                     or str(effect["effect_class"]) in self.stat_handler.registry
@@ -678,6 +771,9 @@ class NativeRetainedRuntime:
             # Dispatcher rejection happens before execute() is called. Keep
             # cleanup attached to the registered wrapper, not only its owner.
             execute.cancel_prepared = cancel
+        collection_scope = getattr(handler, "native_collection_scope", None)
+        if callable(collection_scope):
+            execute.native_collection_scope = collection_scope
         return execute
 
     def is_subscription(self, effect, invocation):
@@ -945,6 +1041,14 @@ class NativeRetainedRuntime:
             if type(native_override) is not int:
                 raise ValueError("Native eYx child context requires calculated value")
             override = native_override
+        elif effect["effect_class"] == 1100:
+            from .combat_instance_level_group import (
+                runtime_child_level as instance_level,
+            )
+
+            override = instance_level(
+                effect, values, invocation, self.fight, return_native_override=True
+            )
         elif effect["effect_class"] == 844:
             override = runtime_child_level(
                 effect,
@@ -1373,7 +1477,7 @@ class NativeRetainedRuntime:
         )
         from .combat_subscription_runners import SUBSCRIPTION_FAMILIES
 
-        for family in SUBSCRIPTION_FAMILIES:
+        for family in SUBSCRIPTION_FAMILIES + (307,):
             previous = removal.families.pop(family, None)
 
             def validate(entry):

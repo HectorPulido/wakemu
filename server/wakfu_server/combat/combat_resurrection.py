@@ -1,16 +1,24 @@
 """Owned eXO restoration and native aTS1 put-fighter-back-in-play boundary.
 
 Original aTS1 calls buH.be -> fbX.D -> fem.rD and fcb.D -> fdt.bu.
-The original server publisher is unavailable; coupling a successful flagged196
-HP restoration to this inverse lifecycle is explicit Wakemu server policy.
+The original server publisher is unavailable; coupling an authorized196 HP
+restoration to this inverse lifecycle is explicit Wakemu server policy. Native
+flag15 permits KO execution; eXO overrides that guard independently of flags.
 """
 import struct
 
 
-def prepare_resurrection(fight, target, effect):
+def prepare_resurrection(fight, target, effect, *, execution_context=None):
     """Capture an actual revivable OFF_PLAY fighter before any PA assignment."""
-    if 15 not in effect.get("native_effect_flags", ()):
+    # Partial arithmetic/strategy definitions do not attest a full native
+    # effect. Preserve their resource-only execution without projecting fdy.
+    flags = effect.get("native_effect_flags")
+    if flags is None:
         return None
+    if not isinstance(flags, (list, tuple)) or any(
+        type(flag) is not int for flag in flags
+    ):
+        raise ValueError("Missing actual native eXO effect flags")
     from .combat_global_pv_collections import global_fighter_guards
     from .combat_ordinary_death import registered_ordinary_death
     from .combat_qi_fight import current_registry
@@ -20,6 +28,15 @@ def prepare_resurrection(fight, target, effect):
     guards = global_fighter_guards(fight, target.id)
     if not guards["baG"]:
         return None  # IN_PLAY restoration is ordinary; OUT_OF_PLAY is final.
+    from .combat_stat_handler import StatExecutionContext
+
+    if (
+        effect.get("effect_class") != 196
+        or not isinstance(execution_context, StatExecutionContext)
+        or execution_context.source_guards_verified is not True
+        or execution_context.executable is not True
+    ):
+        raise ValueError("Resurrection requires authorized native eXO execution")
     if target.hp != 0 or not registered_ordinary_death(fight, target):
         raise ValueError("Resurrection requires an actual owned OFF_PLAY corpse")
     registry = current_registry(fight)

@@ -257,7 +257,18 @@ class NativeEffectResolver:
                 )
                 or bool(
                     selector["mask"]
-                    & (2 | 4 | 8 | 64 | 128 | 256 | 4096 | (1 << 43) | (1 << 42))
+                    & (
+                        2
+                        | 4
+                        | 8
+                        | 64
+                        | 128
+                        | 256
+                        | 4096
+                        | (1 << 43)
+                        | (1 << 42)
+                        | (1 << 46)
+                    )
                 )
                 # QK is fighter-index eligibility, not a relationship selector.
                 # Preserve an explicit chosen PV only for a point AREA|QK leaf;

@@ -13,20 +13,38 @@ def catalog():
     return protocol_catalog.load(DATA_ROOT / "native-spell-casting.json")["spells"]
 
 
-def definition(reference, level, context, modifiers, *, calculate_costs=True):
-    """Select the entire native fyP, preserving ambiguous branches as errors."""
+def native_casting_table(reference, level, *, casting=None, zero_casting=None):
+    """Select an explicit native table/index; zero never indexes positive levels."""
     if type(level) is not int or level < 0:
         raise ValueError("Native temporary spell level unavailable")
     if level == 0:
-        from .combat_class_initialization import level_zero_catalog
+        if zero_casting is None:
+            from .combat_class_initialization import level_zero_catalog
 
-        record = level_zero_catalog().get("casting", {}).get(str(reference))
-        index = 0  # Explicit native zero table, never levels[-1].
+            zero_casting = level_zero_catalog().get("casting", {})
+        record = zero_casting.get(str(reference))
+        index = 0
+        if (
+            not isinstance(record, dict)
+            or not isinstance(record.get("levels"), list)
+            or len(record["levels"]) != 1
+        ):
+            raise ValueError("Native explicit zero spell table unavailable")
     else:
-        record = catalog().get(str(reference))
+        record = (catalog() if casting is None else casting).get(str(reference))
         index = level - 1
-    if record is None or index >= len(record["levels"]):
-        raise ValueError("Native temporary spell level unavailable")
+        if (
+            not isinstance(record, dict)
+            or not isinstance(record.get("levels"), list)
+            or index >= len(record["levels"])
+        ):
+            raise ValueError("Native temporary spell level unavailable")
+    return record, index
+
+
+def definition(reference, level, context, modifiers, *, calculate_costs=True):
+    """Select the entire native fyP, preserving ambiguous branches as errors."""
+    record, index = native_casting_table(reference, level)
     baseline = (
         tuple(record["costs"][index])
         + tuple(record["levels"][index][:2])

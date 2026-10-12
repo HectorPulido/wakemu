@@ -142,6 +142,31 @@ class NativeDamageHandler:
         self.final_modifiers = {}
         self.runner_modifiers = {}
 
+    def _damage_parameters(
+        self, effect, invocation, *, source, target_hp, target_max_hp
+    ):
+        return interpret_damage_parameters(
+            effect["parameters"],
+            invocation.level,
+            hp_context=dict(
+                source_hp=source.hp,
+                source_max_hp=source.max_hp,
+                target_hp=target_hp,
+                target_max_hp=target_max_hp,
+            ),
+            rng=self.rng,
+        )
+
+    def _context_amount(self, amount, invocation):
+        from .combat_value_transfer import apply_context_value
+
+        return apply_context_value(
+            amount,
+            None
+            if invocation.native_context_hex is None
+            else bytes.fromhex(invocation.native_context_hex),
+        )
+
     def _calculate(self, effect, invocation, *, additional_final=0, runner=None):
         from .combat_native_actor_lookup import native_actor
 
@@ -250,16 +275,12 @@ class NativeDamageHandler:
             verify_runner_target_life(self.fight, target, effect, invocation=invocation)
         if context.blocked and not interpreted["block_enabled"]:
             raise ValueError("Blocked result conflicts with native effect flags")
-        parameters = interpret_damage_parameters(
-            effect["parameters"],
-            invocation.level,
-            hp_context=dict(
-                source_hp=source.hp,
-                source_max_hp=source.max_hp,
-                target_hp=target_hp,
-                target_max_hp=target_max_hp,
-            ),
-            rng=self.rng,
+        parameters = self._damage_parameters(
+            effect,
+            invocation,
+            source=source,
+            target_hp=target_hp,
+            target_max_hp=target_max_hp,
         )
         mastery = damage_mastery_context(
             flags,
@@ -299,20 +320,15 @@ class NativeDamageHandler:
             if type(blocked) is not bool:
                 raise ValueError("Unknown native post-calculation BLOCK result")
             context = replace(context, blocked=blocked)
-        from .combat_value_transfer import apply_context_value
-
-        amount = apply_context_value(
-            amount,
-            None
-            if invocation.native_context_hex is None
-            else bytes.fromhex(invocation.native_context_hex),
-        )
+        amount = self._context_amount(amount, invocation)
         return context, interpreted, amount
 
     def prepare(self, effect, values, invocation):
         if self.event_lifecycle is None:
             return invocation
-        uid = self.allocate_uid()
+        return self._prepare_uid(effect, values, invocation, self.allocate_uid())
+
+    def _prepare_uid(self, effect, values, invocation, uid):
         invocation = replace(invocation, native_running_uid=uid)
         from .combat_final_modifier import NativeFinalModifier
 
@@ -325,30 +341,66 @@ class NativeDamageHandler:
         bind_runner_target(runner, invocation)
         from .combat_attack_preparation import deliver_attack_preparation
 
-        deliver_attack_preparation(
-            self.event_lifecycle,
-            effect,
-            invocation,
-            uid=uid,
-            final_modifier=modifier,
-            runner_modifier=runner,
+        try:
+            deliver_attack_preparation(
+                self.event_lifecycle,
+                effect,
+                invocation,
+                uid=uid,
+                final_modifier=modifier,
+                runner_modifier=runner,
+            )
+            self.event_lifecycle.phase(
+                effect,
+                invocation,
+                uid=uid,
+                final_modifier=modifier,
+                runner_modifier=runner,
+                value=0,
+                channel=1,
+                blocked=False,
+                localization="FRONT",
+            )
+            invocation = runner_target_invocation(runner, invocation)
+            self.prepared[uid] = self._calculate(
+                effect, invocation, additional_final=modifier.value, runner=runner
+            )
+            return invocation
+        except Exception:
+            self.cancel_prepared(invocation)
+            raise
+
+    def prepare_activation(self, effect, values, invocation, *, clone_uid):
+        # Qe.k owns this new clone UID; the original listener stays registered.
+        if (
+            effect.get("effect_class") != 1
+            or type(clone_uid) is not int
+            or not 0 < clone_uid < (1 << 63)
+            or invocation.native_running_uid is not None
+            or type(invocation.base_uid) is not int
+            or invocation.base_uid <= 0
+            or not isinstance(invocation.native_trigger_context, dict)
+            or clone_uid in self.prepared
+        ):
+            raise ValueError("Missing audited subscribed eXt clone authority")
+        listener = getattr(self.fight, "native_owned_group_effects", {}).get(
+            invocation.base_uid
         )
-        self.event_lifecycle.phase(
-            effect,
-            invocation,
-            uid=uid,
-            final_modifier=modifier,
-            runner_modifier=runner,
-            value=0,
-            channel=1,
-            blocked=False,
-            localization="FRONT",
-        )
-        invocation = runner_target_invocation(runner, invocation)
-        self.prepared[uid] = self._calculate(
-            effect, invocation, additional_final=modifier.value, runner=runner
-        )
-        return invocation
+        if (
+            listener is None
+            or listener.get("effect_class") != 1
+            or listener.get("invocation", {}).get("reference") != invocation.reference
+        ):
+            raise ValueError("Missing subscribed eXt original listener")
+        if self.event_lifecycle is None:
+            raise ValueError("Missing subscribed eXt event lifecycle")
+        return self._prepare_uid(effect, values, invocation, clone_uid)
+
+    def cancel_prepared(self, invocation):
+        uid = invocation.native_running_uid
+        self.prepared.pop(uid, None)
+        self.final_modifiers.pop(uid, None)
+        self.runner_modifiers.pop(uid, None)
 
     def __call__(self, effect, values, invocation):
         uid = invocation.native_running_uid
@@ -371,6 +423,14 @@ class NativeDamageHandler:
         runner.set_calculated(amount)
         bind_runner_target(runner, invocation)
         invocation = runner_target_invocation(runner, invocation)
+        if callable(getattr(self, "calculated_clone_gate", None)):
+            from .combat_source_split import bind_calculated_damage_clone
+
+            invocation = replace(invocation, native_running_uid=uid)
+            if not interpreted.get("native_no_resources"):
+                bind_calculated_damage_clone(
+                    self, effect, invocation, context, interpreted, runner, modifier
+                )
         if self.event_lifecycle is not None:
             self.event_lifecycle.phase(
                 effect,

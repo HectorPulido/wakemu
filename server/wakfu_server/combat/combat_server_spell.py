@@ -151,7 +151,15 @@ def server_runtime(
     adapter = NativeServerRuntimeAdapter(
         actor_authority=actors, cast=authority, viewer_id=character["id"]
     )
-    compiled = compiled_runtime_catalog() if compiled is None else compiled
+    from .combat_fight_runtime_catalog import fight_runtime_catalog
+    from .combat_npc_attack import npc_runtime_catalog
+
+    compiled = fight_runtime_catalog(
+        monsters,
+        compiled,
+        class_catalog=compiled_runtime_catalog,
+        npc_catalog=npc_runtime_catalog,
+    )
     factory = NativeEffectRuntimeFactory(
         effects=compiled.source_effects,
         state_catalog=states,

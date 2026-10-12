@@ -211,7 +211,7 @@ def running_effect_removal(
             )
 
     cell_only = (
-        effect_class in (315, 402)
+        effect_class in (307, 315, 402)
         or (configured_area and 7 not in fields)
         or (effect_class == 935 and 7 not in fields)
         or (7 not in fields and effect_class in GROUP_SUBSCRIPTION_FAMILIES)
@@ -226,9 +226,13 @@ def running_effect_removal(
         5 not in messages
         or 7 in fields
         # eYQ serializes its area reference as Qe value, not zero.
-        or (not configured_area and effect_class != 935 and fields[4] != 0)
+        or (not configured_area and effect_class not in (307, 935) and fields[4] != 0)
     ):
         raise ValueError("Native cell null payload must have absent target/zero value")
+    if effect_class == 307:
+        from .combat_retained_summon import retained_summon_actor
+
+        retained_summon_actor(running_effect_payload)
     if cell_only:
         position = _identity_fields(messages[5], integer_fields=(1, 2, 3))
         if set(position) != {1, 2, 3}:

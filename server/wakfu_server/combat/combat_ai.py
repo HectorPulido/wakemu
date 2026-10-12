@@ -1,4 +1,5 @@
 """HTTP client for the separate monster planner; execution stays authoritative."""
+from .combat_effective_control import effective_server_controlled
 import hashlib
 import json
 import os
@@ -11,7 +12,7 @@ def snapshot(fight, actor_id):
     if fight.current is None or fight.current.id != actor_id:
         raise ValueError("AI actor is not current")
     actor = fight.actors[actor_id]
-    if actor.controlled or actor.hp <= 0:
+    if not effective_server_controlled(fight, actor) or actor.hp <= 0:
         raise ValueError("AI requires a living server-controlled actor")
     if fight.edges is None:
         raise ValueError("AI requires verified movement edges")

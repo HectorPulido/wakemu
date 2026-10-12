@@ -345,6 +345,7 @@ class AdminSettings:
             _shape(before, value)
         scalars = {
             "combat_placement_duration_ms": (1000, 300000),
+            "combat_arena_cell_budget": (900, 2500),
             "planting_duration_ms": (1, 300000),
             "mount_toggle_cooldown_ms": (0, 300000),
             "non_permanent_build_limit": (1, 24),

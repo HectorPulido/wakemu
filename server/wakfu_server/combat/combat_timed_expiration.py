@@ -34,6 +34,7 @@ def _remove_owned_areas(preview, packets, handler, action_id, uids, retention=No
         | set(preview.state_wire_payloads)
         | set(preview.native_owned_group_effects)
         | set(getattr(preview, "native_owned_area_effects", {}))
+        | set(getattr(preview, "native_owned_spatial_effects", {}))
         | {
             entry.uid
             for manager in state_managers(preview)
@@ -235,6 +236,7 @@ def prepare_timed_expiration(
         | set(preview.state_wire_payloads)
         | set(preview.native_owned_group_effects)
         | set(getattr(preview, "native_owned_area_effects", {}))
+        | set(getattr(preview, "native_owned_spatial_effects", {}))
         | {
             entry.uid
             for manager in state_managers(preview)

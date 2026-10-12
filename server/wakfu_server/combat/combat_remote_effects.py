@@ -106,10 +106,14 @@ def active_actor_effects(fight, actor_id, *, now_milliseconds=None):
     """
     if fight.phase != "active" or actor_id not in fight.actors:
         raise ValueError("Native active effect snapshot requires a live actor")
-    return _live_actor_effects(fight, actor_id, now_milliseconds=now_milliseconds)
+    return (
+        _live_actor_effects(fight, actor_id)
+        if now_milliseconds is None
+        else _live_actor_effects(fight, actor_id, now_milliseconds=now_milliseconds)
+    )
 
 
-def initial_npc_actor_effects(fight, actor_id):
+def initial_npc_actor_effects(fight, actor_id, *, now_milliseconds=None):
     """Exact constructor Qf for placement; no second cle replay on the client.
 
     Native big.a -> dq -> eZV.a clears the old world manager before restoring
@@ -125,7 +129,13 @@ def initial_npc_actor_effects(fight, actor_id):
     receipt = getattr(fight, "native_npc_initialization_receipts", {}).get(actor_id)
     if receipt is None:
         if scaling_constructor:
-            return _live_actor_effects(fight, actor_id)
+            return (
+                _live_actor_effects(fight, actor_id)
+                if now_milliseconds is None
+                else _live_actor_effects(
+                    fight, actor_id, now_milliseconds=now_milliseconds
+                )
+            )
         return actor_effects()
     actor = fight.actors[actor_id]
     if actor.controlled or receipt.get("initialized") is not True:
@@ -144,7 +154,11 @@ def initial_npc_actor_effects(fight, actor_id):
         or receipt.get("applications") != expected
     ):
         raise ValueError("Incomplete ordinary native initial-state applications")
-    return _live_actor_effects(fight, actor_id)
+    return (
+        _live_actor_effects(fight, actor_id)
+        if now_milliseconds is None
+        else _live_actor_effects(fight, actor_id, now_milliseconds=now_milliseconds)
+    )
 
 
 def _live_actor_effects(fight, actor_id, *, now_milliseconds=None):
@@ -169,6 +183,7 @@ def _live_actor_effects(fight, actor_id, *, now_milliseconds=None):
             "owned_stat_effects",
             "native_owned_group_effects",
             "native_owned_area_effects",
+            "native_owned_spatial_effects",
         ):
             row = getattr(fight, name, {}).get(uid)
             if row is not None:
@@ -208,16 +223,22 @@ def _live_actor_effects(fight, actor_id, *, now_milliseconds=None):
             if value >= 1 << 63:
                 value -= 1 << 64
             if value > 0:
-                deadline = getattr(
-                    fight, "native_remote_effect_wall_deadlines", {}
-                ).get(uid)
-                if type(deadline) is not int or type(now_milliseconds) is not int:
-                    raise ValueError(
-                        "Missing native remote effect wall timer authority"
+                if entry["effect_class"] == 310:
+                    from .combat_remote_state_clock import state_remaining_milliseconds
+
+                    remaining = state_remaining_milliseconds(
+                        fight, actor_id, uid, value, now_milliseconds
                     )
-                # eZU writes Math.max(0, deadline-currentTimeMillis()).intValue().
-                remaining = max(0, deadline - now_milliseconds)
-                remaining = ((remaining + (1 << 31)) % (1 << 32)) - (1 << 31)
+                else:
+                    deadline = getattr(
+                        fight, "native_remote_effect_wall_deadlines", {}
+                    ).get(uid)
+                    if type(deadline) is not int or type(now_milliseconds) is not int:
+                        raise ValueError(
+                            "Missing native remote effect wall timer authority"
+                        )
+                    remaining = max(0, deadline - now_milliseconds)
+                    remaining = ((remaining + (1 << 31)) % (1 << 32)) - (1 << 31)
         record = RemoteRunningEffect(entry["effect_class"], payload, remaining)
         (carriers if entry["effect_class"] == 310 else ordinary).append(record)
     return encode_remote_effects((*carriers, *ordinary))

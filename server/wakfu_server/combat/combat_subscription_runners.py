@@ -21,13 +21,21 @@ GROUP_SUBSCRIPTION_FAMILIES = (
     1076,
     1080,
     1103,
+    1100,
 )
 DEFERRED_RUNNERS = {
+    1: "eXt",  # Fresh damage C()/resources wait for the subscribed event.
+    28: "eXc",  # Fresh inherited eZR wire; HP assignment waits for its event.
     304: "eWu",
+    314: "eYQ",
     321: "eZi",
     400: "eXE",
+    401: "eZh",
     421: "eXe",
+    982: "eXW",  # Inherited eXY.C is a no-op; cleanup waits for activation.
     430: "eZL",
+    877: "eWV",  # Fresh inherited eZR; minimum changes only on activation.
+    1003: "eWV",
     1001: "eWZ",
     1093: "eZJ",
 }
@@ -68,6 +76,14 @@ def deferred_payload(
         return _varint(field << 3 | 2) + _varint(len(data)) + data
 
     payload += blob(5, b"".join(_integer(k, v) for k, v in enumerate(cell, 1)))
+    if family == 1:
+        # Actual fresh eXt.b(iP): ij armor10=0 and barrier19=0.
+        payload += blob(8, _integer(10, 0) + _integer(19, 0))
+    if family == 314:
+        # Fresh eYQ.b(iP): en=0, eo=-1, r=false and af=0 before C().
+        payload += blob(
+            8, _integer(14, 0) + _integer(16, -1) + _integer(17, 0) + _integer(21, 0)
+        )
     if family == 304:
         # Fresh eWu, before C(): kFB=0 and rBo=-1; b(iP) writes el/en.
         payload += blob(8, _integer(11, 0) + _integer(14, -1))

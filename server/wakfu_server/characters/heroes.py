@@ -116,6 +116,37 @@ def load_roster(db, store, account_id, main_character_id):
     }
 
 
+def follow_main(db, store, account_id, generation, main_character_id):
+    """Move the active owned companions with their fenced main, atomically."""
+    db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
+    store.lock_character(db, account_id, generation, main_character_id)
+    db.execute(
+        "SELECT account_id FROM account_hero_rosters WHERE account_id=%s FOR UPDATE",
+        (account_id,),
+    )
+    roster = load_roster(db, store, account_id, main_character_id)
+    keys = ("map_id", "instance_id", "x", "y", "z")
+    companions = []
+    for hero in roster["heroes"]:
+        identity = hero["id"]
+        store.lock_character(db, account_id, generation, identity, selected=False)
+        if db.execute(
+            "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+            "WHERE p.character_id=%s AND f.status IN ('placement','active') "
+            "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals w WHERE w.fight_id=p.fight_id "
+            "AND w.character_id=p.character_id) LIMIT 1",
+            (identity,),
+        ).fetchone():
+            raise ValueError("Hero already has durable combat membership")
+        db.execute(
+            "UPDATE characters SET map_id=%s,instance_id=%s,x=%s,y=%s,z=%s "
+            "WHERE id=%s AND account_id=%s",
+            tuple(roster["leader"][key] for key in keys) + (identity, account_id),
+        )
+        companions.append(dict(hero, **{key: roster["leader"][key] for key in keys}))
+    return dict(roster, heroes=tuple(companions))
+
+
 def add(store, account_id, generation, main_character_id, hero_id):
     if type(hero_id) is not int or hero_id <= 0 or hero_id == main_character_id:
         raise ValueError("Invalid hero identity")

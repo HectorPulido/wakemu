@@ -81,7 +81,7 @@ def _write(fight, source_id, actor, stat, value):
 
         set_resource_current(fight, actor, stat, value)
         return
-    before_current = actor.ap if stat == 2 else None
+    before_current = _current(actor, stat)
     if stat == 1:
         before = actor.hp
         if value < before:
@@ -416,7 +416,7 @@ class NativeStatHandler:
             from .combat_morph_handler import remove_morph_effect
 
             return remove_morph_effect(self, uid)
-        if entry.get("family") == "eWK":
+        if entry.get("family") in ("eWK", "eZh"):
             from .combat_redirect_runner import remove_redirect_runner
 
             return remove_redirect_runner(self, uid)
@@ -474,6 +474,10 @@ class NativeStatHandler:
             from .combat_death_script import remove_death_script
 
             return remove_death_script(self, uid)
+        if entry.get("family") == "eWD":
+            from .combat_controller_transfer import remove_controller_runner
+
+            return remove_controller_runner(self, uid)
         if entry.get("family") == "eYH":
             from .combat_ai_control import remove_ai_control
 
@@ -486,6 +490,12 @@ class NativeStatHandler:
             from .combat_aura_removal import remove_aura_removal_runner
 
             return remove_aura_removal_runner(self, uid)
+        if entry.get("family") == "eXl":
+            from .combat_forced_retirement_handler import (
+                remove_forced_retirement_runner,
+            )
+
+            return remove_forced_retirement_runner(self, uid)
         if entry.get("family") == "eVZ":
             from .combat_resource_loss_handler import remove_owned_resource_loss
 
@@ -522,6 +532,10 @@ class NativeStatHandler:
             from .combat_fight_property import remove_fight_property
 
             return remove_fight_property(self, uid)
+        if entry.get("family") in ("eVX", "eVY", "eXB"):
+            from .combat_native_order_hooks import remove_order_hook
+
+            return remove_order_hook(self, uid)
         if entry.get("family") == "eXG":
             from .combat_cell_null import remove_cell_null
 
@@ -534,6 +548,12 @@ class NativeStatHandler:
             from .combat_world_property_handler import remove_world_property
 
             return remove_world_property(self, uid)
+        if entry.get("family") == "eWj":
+            from .combat_characteristic_transfer_handler import (
+                remove_characteristic_transfer,
+            )
+
+            return remove_characteristic_transfer(self, uid)
         if entry.get("family") == "eZy":
             from .combat_characteristic_swap_handler import remove_characteristic_swap
 

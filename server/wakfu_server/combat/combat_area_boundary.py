@@ -7,6 +7,11 @@ def adopt_fight(destination, candidate):
     from .combat_characteristic_link import characteristic_adoption_bindings
 
     bindings = characteristic_adoption_bindings(candidate)
+    from .combat_pointer_qi_commit import prepare_pointer_commit
+
+    pointer_binding = prepare_pointer_commit(candidate)
+    if pointer_binding is not None:
+        pointer_binding.stage(destination)
     # Main and serializers retain this Fight reference. Preserve existing actor
     # references too; actual new summon actors are adopted without fabrication.
     actors = {}
@@ -20,6 +25,8 @@ def adopt_fight(destination, candidate):
     destination.__dict__.clear()
     destination.__dict__.update(candidate.__dict__)
     destination.actors = actors
+    if pointer_binding is not None:
+        pointer_binding.publish()
     for stats in bindings:
         stats._fight = destination
 

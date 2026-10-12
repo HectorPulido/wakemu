@@ -14,6 +14,7 @@ from .combat_damage_handler import _snapshot
 from .combat_native_actor_lookup import native_actor, native_actor_population
 from .combat_original_controller import CURRENT_TARGET, original_target_controller
 from .combat_native_death_status import native_is_dead as current_native_is_dead
+from .combat_departure_predicates import query as native_departure_flag
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,7 @@ class NativeActorAuthority:
         None  # Authoritative eHg.dTD lookup in current fbX.
     )
     native_spellbook: object = None  # Explicit eGj.dok/dsx/fzf authority.
+    native_constructor_in_fight: bool | None = None  # Fresh big.dnz before aQc.
     native_in_play: bool | None = (
         None  # fdy sax membership, attested by creation/death lifecycle.
     )
@@ -310,6 +312,8 @@ class NativeServerRuntimeAdapter:
                 # Only a condition needing this information rejects the cast.
                 retained_ids = None
                 retained_actions = None
+            from .combat_native_actor_lookup import detached_authority
+
             aliases[name] = actor.state_ledger.condition_actor(
                 is_player=authority.is_player,
                 deck_spell_ids=authority.deck_spell_ids,
@@ -327,6 +331,8 @@ class NativeServerRuntimeAdapter:
                 is_character=True
                 if authority.targeting.get("is_eGj") is True
                 else None,
+                is_abandonning=native_departure_flag(actor, "abandonning"),
+                is_fleeing=native_departure_flag(actor, "fleeing"),
                 is_off_play=authority.targeting.get("baG"),
                 is_native_ehg=authority.targeting.get("is_eGj"),
                 is_in_play=authority.targeting.get("baF"),
@@ -343,7 +349,13 @@ class NativeServerRuntimeAdapter:
                 retained_action_ids=retained_actions,
                 # This entry only attests ordinary actors registered in an
                 # active Fight. Other lifecycle contexts need their own proof.
-                in_fight=True if preview.phase == "active" else None,
+                in_fight=(
+                    authority.native_constructor_in_fight
+                    if detached_authority(preview, actor) is authority
+                    else True
+                    if preview.phase == "active"
+                    else None
+                ),
                 physical_radius=actor.physical_radius,
                 direction=actor.direction,
                 native_instance_id=authority.native_instance_id,
@@ -377,7 +389,10 @@ class NativeServerRuntimeAdapter:
         source = native_actor(preview, invocation.caster_id)
         target = native_actor(preview, invocation.target_id)
         if source is None:
-            from .combat_effect_area_targets import area_targets
+            from .combat_effect_area_targets import (
+                area_targets,
+                retained_area_source_target,
+            )
 
             source = next(
                 (
@@ -387,6 +402,8 @@ class NativeServerRuntimeAdapter:
                 ),
                 None,
             )
+            if source is None:
+                source = retained_area_source_target(preview, invocation.caster_id)
             if source is None:
                 raise ValueError("Missing actual criterion source PV")
         from .combat_condition_distance import (
@@ -572,6 +589,20 @@ class NativeServerRuntimeAdapter:
             else:
                 center = None  # eII.a: an unrecognized selector has no actor.
             if relation == "state":
+                from .combat_native_actor_lookup import detached_authority
+                from .combat_native_criterion_failure import (
+                    NativeCriterionRuntimeFailure,
+                )
+
+                if (
+                    source is not None
+                    and detached_authority(preview, source) is not None
+                ):
+                    # eKn.d -> eII.o: fresh bje/eZQ has no fbX. The native
+                    # alA aborts the entire criterion; eZR.I maps it to false.
+                    raise NativeCriterionRuntimeFailure(
+                        "Native eKn criterion has no constructor combat context"
+                    )
                 area_state_rows = attest_state_area_population(preview)
                 if owner.lower() == "caster":
                     state_caster = source.id
@@ -1439,6 +1470,34 @@ class NativeServerRuntimeAdapter:
                 raise ValueError("Missing native ePH event target authority")
             return -1  # Unrecognized eII.a selector is native null.
 
+        def caster_facing_fighter_query():
+            from .combat_caster_facing_condition import native_caster_facing_fighter
+
+            # The running Qe criterion context is not an ePy wrapper.
+            return native_caster_facing_fighter(
+                preview, native_actor(preview, invocation.caster_id), self._actor
+            )
+
+        def behind_target_free_query():
+            from .combat_behind_target_condition import native_behind_target_free
+
+            if (native_cell_argument or invocation.target_id is None) and getattr(
+                invocation, "state_uid", None
+            ) is not None:
+                # eII.b checks an actual ePy wrapper before its aBn/QI fallback.
+                raise ValueError("Missing native eNA wrapped state target authority")
+            selected = native_actor(preview, invocation.target_id)
+            if selected is None and invocation.target_id in getattr(
+                preview, "native_effect_areas", {}
+            ):
+                raise ValueError("Missing native eNA non-eHg wrapped target authority")
+            return native_behind_target_free(
+                preview,
+                native_actor(preview, invocation.caster_id),
+                selected,
+                self._actor,
+            )
+
         def free_cell_query(selector, forward, sideways):
             from .combat_free_cell_condition import native_free_cell
             from .combat_qi_fight import current_registry
@@ -1719,6 +1778,8 @@ class NativeServerRuntimeAdapter:
             surrounding_own_summon_query=surrounding_own_summon_query,
             controlled_by_ai_query=controlled_by_ai_query,
             free_cell_query=free_cell_query,
+            caster_facing_fighter_query=caster_facing_fighter_query,
+            behind_target_free_query=behind_target_free_query,
             free_surrounding_cell_query=free_surrounding_cell_query,
             gate_count_query=gate_count_query,
             glyph_count_query=glyph_count_query,

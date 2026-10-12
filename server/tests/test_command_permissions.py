@@ -91,3 +91,34 @@ class CommandPermissionTests(PostgresCase):
         with self.assertRaises(ValueError):
             set_admin(self.store, self.account, False, operator="", reason="")
         self.assertTrue(is_admin(self.store, self.account))
+
+    def test_public_astrub_uses_fixed_native_destination_without_tp_rights(self):
+        authorize_command(self.store, self.account, "!astrub")
+        with self.assertRaises(PermissionError):
+            authorize_command(self.store, self.account, "!tp 527 0 32 0")
+        outcome = execute(
+            self.store,
+            None,
+            self.account,
+            self.generation,
+            self.character,
+            "!astrub",
+        )
+        self.assertEqual(outcome["action"], "tp")
+        self.assertEqual(
+            {
+                key: outcome["character"][key]
+                for key in ("map_id", "instance_id", "x", "y", "z")
+            },
+            dict(map_id=527, instance_id=0, x=0, y=32, z=0),
+        )
+        for command in ("!astrub Other", "!astrub 1134 -10 -10 -1"):
+            with self.assertRaises(ValueError):
+                execute(
+                    self.store,
+                    None,
+                    self.account,
+                    self.generation,
+                    outcome["character"],
+                    command,
+                )

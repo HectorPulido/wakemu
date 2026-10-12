@@ -8,7 +8,7 @@ from .combat_effect_area import native_effect_areas, remove_owned_hour_area
 from .combat_effect_area_queries import _rows
 from .combat_effect_area_geometry import contains_area_cell
 from .combat_retained_runtime import group_payload
-from .combat_stat_effects import owned_effect_application
+from .combat_stat_effects import evaluated_effect_delivery
 from .combat_stat_handler import StatExecutionContext
 from .combat_effects import _integer, _varint
 from wakfu_server.wire import proto_fields
@@ -189,17 +189,17 @@ class NativeAreaRemovalHandler:
             else bytes.fromhex(invocation.native_context_hex),
             initial_value=runner.value,
         )
+        # eYc.c performs Qs.b; cvY/aTR only observes the evaluated runner.
+        # Deliver cvX/eIK=true so the client executes the same retirement.
         self.packets.append(
-            (
-                13497,
-                owned_effect_application(
-                    self.fight.id,
-                    self.action_id,
-                    effect_class=effect["effect_class"],
-                    target_id=row["uid"],
-                    uid=uid,
-                    running_effect_payload=payload,
-                ),
+            evaluated_effect_delivery(
+                self.fight.id,
+                self.action_id,
+                retained=False,
+                effect_class=effect["effect_class"],
+                target_id=row["uid"],
+                uid=uid,
+                running_effect_payload=payload,
             )
         )
         remove_owned_hour_area(self.fight, row["uid"], callbacks=self.events)

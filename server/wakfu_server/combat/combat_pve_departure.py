@@ -55,9 +55,14 @@ def retire_pve_actor(fight, actor, *, root_actor_id, owner_id):
 
         unregister_global_fighter(fight, actor.id)
     if registry is not None:
-        fight.native_qi_slots = registry.serialized_slots()
-        fight.native_qi_touched_cells = registry.serialized_cells()
-        fight.native_qi_byte_topology = registry.serialized_byte_topology()
+        if hasattr(fight, "native_pointer_checkpoint"):
+            from .combat_carrying import _publish_registry
+
+            _publish_registry(fight, registry)
+        else:
+            fight.native_qi_slots = registry.serialized_slots()
+            fight.native_qi_touched_cells = registry.serialized_cells()
+            fight.native_qi_byte_topology = registry.serialized_byte_topology()
     actor.native_obstacle_id = -1  # Original QI.g calls QK.M(-1).
     fight.native_pve_departures = dict(records)
     fight.native_pve_departures[actor.id] = dict(

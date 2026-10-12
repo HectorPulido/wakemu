@@ -5,7 +5,7 @@ execute child effects or advance clocks: those operations require the effect
 dispatcher. In particular, duration zero is returned to the dispatcher for
 instant execution only when all native persistence rules permit it.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from .combat_definitions import state_profile
 from .combat_state_application import (
     existing_state_from_definition,
@@ -44,6 +44,8 @@ class RunningState:
     retained: bool
     timer: StateTimer | None
     protected: bool | None = None
+    realtime_deadline_ms: int | None = None
+    realtime_in_combat: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -174,6 +176,24 @@ class StateLedger:
         )
         self._entries = survivors + ((applied,) if applied.retained else ())
         return StateChange(applied, removed)
+
+    def install_realtime_clock(self, uid, *, deadline_ms, in_combat):
+        """Attach actual eZV timing to its carrier; removal drops both atomically."""
+        from .combat_realtime_state_clock import _integer
+
+        _integer(deadline_ms, "deadline")
+        if type(in_combat) is not bool:
+            raise ValueError("Explicit native realtime context required")
+        entry = next((item for item in self._entries if item.uid == uid), None)
+        if entry is None or entry.realtime_duration <= 0 or entry.timer is not None:
+            raise ValueError("Actual realtime state carrier required")
+        updated = replace(
+            entry, realtime_deadline_ms=deadline_ms, realtime_in_combat=in_combat
+        )
+        self._entries = tuple(
+            updated if item.uid == uid else item for item in self._entries
+        )
+        return updated
 
     def remove(self, uid):
         removed = next((entry for entry in self._entries if entry.uid == uid), None)

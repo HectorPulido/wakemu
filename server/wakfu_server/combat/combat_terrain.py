@@ -69,6 +69,7 @@ def local_arena(
     minimum_dimensions=None,
     prepared_terrain=None,
     stage_callback=None,
+    automatic_cell_budget=2500,
 ):
     stage_started, stage_cpu = time.monotonic(), time.thread_time()
 
@@ -130,6 +131,7 @@ def local_arena(
             minimum_cells=minimum_width * minimum_height,
             minimum_dimensions=(minimum_width, minimum_height),
             spread_opponents=relocate_monsters,
+            automatic_cell_budget=automatic_cell_budget,
         )
         if not relocate_monsters and any(
             original != destination

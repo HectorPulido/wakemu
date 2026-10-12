@@ -149,7 +149,16 @@ def admit_owned_heroes(
             session.instance_id,
         ):
             raise ValueError("Main character moved outside the admitted world instance")
-        heroes = roster["heroes"]
+        from wakfu_server.characters.heroes import follow_main
+
+        companions = (
+            follow_main(
+                db, store, session.account_id, session.generation, session.character_id
+            )
+            if private_scene is None
+            else roster
+        )
+        heroes = companions["heroes"]
         if frozen_members is not None:
             expected = {
                 row["id"]

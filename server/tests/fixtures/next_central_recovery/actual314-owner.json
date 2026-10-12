@@ -1,0 +1,18 @@
+{
+  "effects": {
+    "314": {
+      "runner": "eYQ",
+      "bbA": true,
+      "bbB": true,
+      "bbA_owner": "eYQ",
+      "bbB_owner": "eYQ",
+      "literal_constants_verified": false,
+      "static_ownership_verified": true,
+      "prototype_clone_verified": true,
+      "bbA_proof": "immutable_registry_configuration",
+      "bbB_proof": "immutable_registry_configuration",
+      "bbA_source": "eYQ.bbA -> eYQ.pYi",
+      "bbB_source": "eYQ.bbB -> eYQ.rGU"
+    }
+  }
+}

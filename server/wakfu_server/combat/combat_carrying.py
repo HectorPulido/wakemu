@@ -86,6 +86,21 @@ def carrying_relations(fight, actor):
 
 
 def _publish_registry(fight, registry):
+    if hasattr(fight, "native_pointer_checkpoint"):
+        from .combat_pointer_qi_checkpoint import NativePointerCheckpoint
+        from .combat_pointer_qi_registry import PointerRegistryCompatibility
+
+        checkpoint = fight.native_pointer_checkpoint
+        if (
+            not isinstance(checkpoint, NativePointerCheckpoint)
+            or not isinstance(registry, PointerRegistryCompatibility)
+            or checkpoint._qi is not registry.qi
+            or registry.qi.fight is not fight
+        ):
+            raise ValueError("Mismatched canonical native QI publisher")
+        checkpoint.publish()
+        checkpoint.validate(fight)
+        return
     fight.native_qi_slots = registry.serialized_slots()
     fight.native_qi_touched_cells = registry.serialized_cells()
     fight.native_qi_byte_topology = registry.serialized_byte_topology()

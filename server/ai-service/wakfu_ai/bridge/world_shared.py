@@ -1,4 +1,5 @@
 """Publish AI commits through the existing shared fight authority and ACKs."""
+from ..native.native_control import effective_server_controlled
 
 import time
 import gzip
@@ -31,7 +32,7 @@ def _run_shared_turn(runtime, adapter, session, runner):
         if (
             shared.runtime is None
             or current is None
-            or current.controlled
+            or not effective_server_controlled(shared.fight, current)
             or shared.runtime.awaiting_ack is not None
             or shared.runtime.pending
             or getattr(shared, "native_ai_turn_claim", None) is not None

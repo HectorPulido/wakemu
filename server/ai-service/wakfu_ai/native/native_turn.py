@@ -4,6 +4,7 @@ Candidate generation, query negotiation and this SDK live in ai-service.
 The embedding world supplies its encounter and complete native authorities;
 network sends and client ACK handling remain with the encounter owner.
 """
+from ..native.native_control import effective_server_controlled
 import time
 import uuid
 import math
@@ -47,7 +48,11 @@ def run_turn(
     ):
         raise ValueError("Invalid native turn budget")
     fight = runtime.fight
-    if fight.phase != "active" or fight.current is None or fight.current.controlled:
+    if (
+        fight.phase != "active"
+        or fight.current is None
+        or not effective_server_controlled(fight, fight.current)
+    ):
         raise ValueError("Native AI turn requires an active NPC")
     actor_id, turn_id = fight.current.id, fight.turn_id
     if not hasattr(runtime, "tactical_encounter_id"):

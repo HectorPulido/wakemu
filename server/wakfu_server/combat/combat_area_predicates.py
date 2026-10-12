@@ -14,6 +14,13 @@ def _target_rows(fight, target_kind, target_id):
     if target_kind == "area":
         if target_id is None:  # Qz.bda() explicitly null.
             return ()
+        # eNm/eOQ/eOz read the selected Qq itself, without requesting its
+        # state manager. Active rows already passed the Qs snapshot checks.
+        for row in rows:
+            if row["uid"] == target_id:
+                if target_id in getattr(fight, "actors", {}):
+                    raise ValueError("Native area/fighter identity collision")
+                return (row,)
         from .combat_state_managers import retained_area_pv_row, registered_area_pv
 
         row = retained_area_pv_row(fight, target_id)

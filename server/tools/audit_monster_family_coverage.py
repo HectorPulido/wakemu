@@ -26,6 +26,64 @@ def literal_assignment(path, name):
     raise ValueError(f"Missing literal assignment: {name}")
 
 
+def dispatcher_families(path):
+    """Read executable family branches ending in the ordinary handler fallback."""
+    tree = ast.parse(path.read_text())
+    elif_nodes = {
+        id(node.orelse[0])
+        for node in ast.walk(tree)
+        if isinstance(node, ast.If)
+        and len(node.orelse) == 1
+        and isinstance(node.orelse[0], ast.If)
+    }
+    matches = []
+    for root in ast.walk(tree):
+        if not isinstance(root, ast.If) or id(root) in elif_nodes:
+            continue
+        branches = []
+        current = root
+        while True:
+            branches.append(current.test)
+            if len(current.orelse) == 1 and isinstance(current.orelse[0], ast.If):
+                current = current.orelse[0]
+            else:
+                break
+        fallback = ast.Module(body=current.orelse, type_ignores=[])
+        if not any(
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "handler"
+            for node in ast.walk(fallback)
+        ):
+            continue
+        families = set()
+        for test in branches:
+            if not (
+                isinstance(test, ast.Compare)
+                and len(test.ops) == len(test.comparators) == 1
+                and isinstance(test.left, ast.Subscript)
+                and isinstance(test.left.value, ast.Name)
+                and test.left.value.id == "effect"
+                and isinstance(test.left.slice, ast.Constant)
+                and test.left.slice.value == "effect_class"
+            ):
+                raise ValueError("Unrecognized executable dispatcher family branch")
+            values = ast.literal_eval(test.comparators[0])
+            if isinstance(test.ops[0], ast.Eq):
+                values = (values,)
+            elif not isinstance(test.ops[0], ast.In):
+                raise ValueError("Unrecognized executable dispatcher family operator")
+            if not isinstance(values, (tuple, list, set)) or any(
+                type(value) is not int or value <= 0 for value in values
+            ):
+                raise ValueError("Invalid executable dispatcher family IDs")
+            families.update(values)
+        matches.append(families)
+    if len(matches) != 1:
+        raise ValueError("Expected one executable dispatcher family chain")
+    return matches[0]
+
+
 def supported_families(registry, setters):
     """Read actual handler registrations without importing DB-backed modules."""
     constants = {
@@ -77,28 +135,7 @@ def supported_families(registry, setters):
                     )
                 else:
                     raise ValueError("Unrecognized handler registration")
-    # Branches executed directly by EffectDispatcher, before handler lookup.
-    families.update(
-        (
-            865,
-            1076,
-            1080,
-            349,
-            345,
-            949,
-            330,
-            341,
-            352,
-            844,
-            910,
-            912,
-            913,
-            999,
-            1020,
-            1047,
-            1103,
-        )
-    )
+    families.update(dispatcher_families(COMBAT / "combat_effect_dispatch.py"))
     return families
 
 
@@ -157,6 +194,7 @@ def main():
             args.setters.resolve(),
             COMBAT / "combat_effect_runtime.py",
             COMBAT / "combat_effect_dispatch.py",
+            Path(__file__).resolve(),
         ]
     }
     cached = {}

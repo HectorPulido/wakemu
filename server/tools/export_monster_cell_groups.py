@@ -8,6 +8,22 @@ from export_monster_state_resistance import ROOT, digest
 CATALOG_PATH = "native-class-cell-group-metadata.json"
 
 
+def required_effect_ids(active_effect_ids, prepared_graph):
+    """Include newly imported native children absent from active DB records."""
+    effects = prepared_graph.get("effects")
+    if not isinstance(effects, dict):
+        raise ValueError("Missing prepared native effect graph")
+    result = set(active_effect_ids)
+    for key, effect in effects.items():
+        if not isinstance(effect, dict):
+            raise ValueError("Invalid prepared native effect definition")
+        if effect.get("effect_class") == 349:
+            if str(int(key)) != key or int(key) <= 0:
+                raise ValueError("Invalid prepared native cell-group reference")
+            result.add(int(key))
+    return sorted(result)
+
+
 def validate(document):
     if document.get("schema") != "native-eYk-class-cell-group-v1" or not isinstance(
         document.get("effects"), dict

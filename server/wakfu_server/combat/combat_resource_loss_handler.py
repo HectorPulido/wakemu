@@ -167,10 +167,16 @@ class NativeResourceLossHandler:
                 plan=None,
                 runner_modifier=runner,
             )
-        self.prepared[uid] = self._calculate(effect, invocation)
+        try:
+            self.prepared[uid] = self._calculate(effect, invocation)
+        except BaseException:
+            # Dispatcher cannot register this invocation until prepare returns.
+            self.runner_amounts.pop(uid, None)
+            raise
         plan = self.prepared[uid][2]
         if plan is None:
-            self.prepared.pop(uid, None)
+            # Preserve the rejected calculation until __call__ consumes its UID.
+            # Phase-one lifecycle events may invalidate native target eligibility.
             self.runner_amounts.pop(uid, None)
             return invocation
         runner.set_calculated(plan.calculated)
@@ -183,6 +189,12 @@ class NativeResourceLossHandler:
         )
         values["probability"] = 100 if chance < 0 else max(0, min(100, chance))
         return invocation
+
+    def cancel_prepared(self, invocation):
+        """Release execution-local state after criteria rejection or unwind."""
+        uid = invocation.native_running_uid
+        self.prepared.pop(uid, None)
+        self.runner_amounts.pop(uid, None)
 
     def __call__(self, effect, values, invocation):
         uid = invocation.native_running_uid

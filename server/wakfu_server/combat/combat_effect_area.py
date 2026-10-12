@@ -49,16 +49,26 @@ def remove_owned_hour_area(fight, uid, *, callbacks=None, removal_target_id=None
 
         if not isinstance(getattr(fight, "native_qi_touched_cells", None), list):
             raise ValueError("Missing native QL touched-cell checkpoint")
-        registry = NativeQIRegistry(
-            getattr(fight, "native_qi_snapshot", None),
-            getattr(fight, "native_qi_slots", None),
-            touched_cells=getattr(fight, "native_qi_touched_cells", None),
-            byte_topology=getattr(fight, "native_qi_byte_topology", None),
-        )
+        if hasattr(fight, "native_pointer_checkpoint"):
+            from .combat_qi_fight import current_registry
+
+            registry = current_registry(fight)
+        else:
+            registry = NativeQIRegistry(
+                getattr(fight, "native_qi_snapshot", None),
+                getattr(fight, "native_qi_slots", None),
+                touched_cells=getattr(fight, "native_qi_touched_cells", None),
+                byte_topology=getattr(fight, "native_qi_byte_topology", None),
+            )
         registry.remove(row.get("native_obstacle_id"), ("effect_area", uid))
-        fight.native_qi_slots = registry.serialized_slots()
-        fight.native_qi_byte_topology = registry.serialized_byte_topology()
-        fight.native_qi_touched_cells = registry.serialized_cells()
+        if hasattr(fight, "native_pointer_checkpoint"):
+            from .combat_carrying import _publish_registry
+
+            _publish_registry(fight, registry)
+        else:
+            fight.native_qi_slots = registry.serialized_slots()
+            fight.native_qi_byte_topology = registry.serialized_byte_topology()
+            fight.native_qi_touched_cells = registry.serialized_cells()
         row["native_obstacle_id"] = -1
         row["native_obstacle_source"] = "QI.g(QK)"
     removed = areas.pop(uid)

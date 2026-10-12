@@ -1,5 +1,6 @@
 """Encounter-local coordination derived only from published native outcomes."""
 from copy import deepcopy
+from ..native.native_control import effective_affiliation
 
 from .corridor_reservations import valid as valid_corridor
 
@@ -9,11 +10,13 @@ HISTORY_LIMIT = 32
 def observe(fight):
     return dict(
         actorId=fight.current.id if fight.current is not None else None,
-        team=fight.current.team if fight.current is not None else None,
+        team=effective_affiliation(fight, fight.current)
+        if fight.current is not None
+        else None,
         turnId=fight.turn_id,
         actors={
             identity: dict(
-                team=actor.team,
+                team=effective_affiliation(fight, actor),
                 hp=actor.hp,
                 armor=(
                     actor.effect_stats.get(97)
@@ -31,13 +34,15 @@ def team_context(fight, instance_id, actor_id):
     result = dict(
         fightInstanceId=instance_id,
         stateRevision=fight.sequence,
-        team=actor.team,
+        team=effective_affiliation(fight, actor),
         focusId=None,
         reservedCells=[],
     )
     if getattr(fight, "native_ai_fight_uuid", None) != instance_id:
         return result
-    book = getattr(fight, "native_ai_team_context", {}).get(str(actor.team))
+    book = getattr(fight, "native_ai_team_context", {}).get(
+        str(effective_affiliation(fight, actor))
+    )
     if (
         not isinstance(book, dict)
         or book.get("instanceId") != instance_id
@@ -48,7 +53,11 @@ def team_context(fight, instance_id, actor_id):
     ):
         return result
     focus = fight.actors.get(book.get("focusId"))
-    if focus is not None and focus.team != actor.team and focus.hp > 0:
+    if (
+        focus is not None
+        and effective_affiliation(fight, focus) != effective_affiliation(fight, actor)
+        and focus.hp > 0
+    ):
         result["focusId"] = focus.id
     corridors = [
         row
@@ -56,7 +65,7 @@ def team_context(fight, instance_id, actor_id):
         if isinstance(row, dict)
         and row.get("ownerId") != actor_id
         and row.get("instanceId") == instance_id
-        and valid_corridor(row, fight, actor.team)
+        and valid_corridor(row, fight, effective_affiliation(fight, actor))
     ]
     result["corridors"] = deepcopy(corridors)
     result["reservedCells"] = [

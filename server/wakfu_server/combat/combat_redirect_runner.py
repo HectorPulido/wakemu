@@ -16,6 +16,11 @@ from .combat_runner_callbacks import notify_runner_value
 
 class NativeRedirectRunnerHandler:
     native_runner_value_verified = True
+    effect_family = 1000
+    runner_name = "eWK"
+
+    def _redirect(self, effect, invocation, runner, on_target):
+        return redirect_source_runner(self.fight, invocation, runner.value, on_target)
 
     def __init__(self, fight, packets, *, action_id, allocate_uid, context, rng):
         self.fight, self.packets = fight, packets
@@ -69,7 +74,7 @@ class NativeRedirectRunnerHandler:
     def prepare(self, effect, values, invocation):
         uid = self.allocate_uid()
         invocation = replace(invocation, native_running_uid=uid)
-        runner = NativeRunnerAmount(uid, 1000, rng=self.rng)
+        runner = NativeRunnerAmount(uid, self.effect_family, rng=self.rng)
         bind_runner_target(runner, invocation)
         self.runners[uid] = runner
         try:
@@ -106,7 +111,9 @@ class NativeRedirectRunnerHandler:
         runner = self.runners.get(uid)
         if runner is None:
             ratio, on_target = self._calculate(effect, invocation)
-            runner = NativeRunnerAmount(uid, 1000, rng=self.rng, value=ratio)
+            runner = NativeRunnerAmount(
+                uid, self.effect_family, rng=self.rng, value=ratio
+            )
             bind_runner_target(runner, invocation)
             self.runners[uid] = runner
             self.prepared[uid] = on_target
@@ -115,7 +122,7 @@ class NativeRedirectRunnerHandler:
         invocation = runner_target_invocation(runner, invocation)
         self._phase(effect, invocation, runner, 2)
         invocation = runner_target_invocation(runner, invocation)
-        redirect_source_runner(self.fight, invocation, runner.value, on_target)
+        self._redirect(effect, invocation, runner, on_target)
         payload = owned_effect_payload(
             uid=uid,
             base_uid=invocation.base_uid,
@@ -128,27 +135,28 @@ class NativeRedirectRunnerHandler:
         if ctx.retained:
             self.fight.owned_stat_effects[uid] = dict(
                 uid=uid,
-                family="eWK",
-                effect_class=1000,
+                family=self.runner_name,
+                effect_class=self.effect_family,
                 target_id=invocation.target_id,
                 caster_id=invocation.caster_id,
                 payload=payload.hex(),
                 state_uid=invocation.state_uid,
                 timer=None if ctx.timer is None else dict(vars(ctx.timer)),
             )
-        self.packets.append(
-            (
-                13497,
-                owned_effect_application(
-                    self.fight.id,
-                    self.action_id,
-                    effect_class=1000,
-                    target_id=invocation.target_id,
-                    uid=uid,
-                    running_effect_payload=payload,
-                ),
+        if not runner.notification_suppressed:
+            self.packets.append(
+                (
+                    13497,
+                    owned_effect_application(
+                        self.fight.id,
+                        self.action_id,
+                        effect_class=self.effect_family,
+                        target_id=invocation.target_id,
+                        uid=uid,
+                        running_effect_payload=payload,
+                    ),
+                )
             )
-        )
         if ctx.retained and self.event_lifecycle is not None:
             self.event_lifecycle.register_applied(effect, invocation, uid)
         runner.finish_application()
@@ -163,7 +171,7 @@ def remove_redirect_runner(handler, uid):
     packet = running_effect_removal(
         handler.fight.id,
         handler.action_id,
-        effect_class=1000,
+        effect_class=row["effect_class"],
         target_id=row["target_id"],
         uid=uid,
         running_effect_payload=bytes.fromhex(row["payload"]),

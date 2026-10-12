@@ -12,7 +12,9 @@ from contextlib import nullcontext
 from dataclasses import dataclass, replace
 from time import perf_counter
 from .combat_diagnostics import diagnostics_enabled, effect_step
-from .combat_conditions import evaluate_condition
+from .combat_native_criterion_failure import (
+    evaluate_native_effect_condition as evaluate_condition,
+)
 from .combat_definitions import effect_profile
 from .combat_effect_groups import decode_group_mode, execute_ordered_group
 
@@ -297,7 +299,10 @@ class EffectDispatcher:
             if self.resolved_population_scope is not None
             else nullcontext()
         )
-        with scope:
+        collection_scope = getattr(
+            self.handlers.get(effect["effect_class"]), "native_collection_scope", None
+        )
+        with scope, collection_scope() if callable(collection_scope) else nullcontext():
             return self._execute_resolved(
                 invocation,
                 ancestors=ancestors,
@@ -403,7 +408,7 @@ class EffectDispatcher:
                     )
                     if self._prepared_scopes:
                         self._prepared_scopes[-1].append((effect, selected))
-                elif effect["effect_class"] in (400, 933, 1000, 1001, 1080):
+                elif effect["effect_class"] in (400, 401, 933, 1000, 1001, 1080):
                     selected = replace(selected, native_running_uid=clone_uid)
             if effect["effect_class"] == 865:
                 from .combat_value_transfer_runtime import execute_runtime_transfer
@@ -715,6 +720,7 @@ class EffectDispatcher:
                 1020,
                 1047,
                 1103,
+                1100,
             ):
                 if effect["effect_class"] == 1103 and self.group_retention is None:
                     raise UnsupportedEffectExecution(
@@ -732,7 +738,16 @@ class EffectDispatcher:
                 )
                 parameters = values["parameters"]
                 child_level = selected.level
-                if effect["effect_class"] in (844, 910, 912, 913, 999, 1020, 1047):
+                if effect["effect_class"] in (
+                    844,
+                    910,
+                    912,
+                    913,
+                    999,
+                    1020,
+                    1047,
+                    1100,
+                ):
                     if not callable(self.group_level):
                         raise UnsupportedEffectExecution(
                             "Missing native dynamic group level context"
@@ -744,7 +759,11 @@ class EffectDispatcher:
                     ):
                         raise ValueError("Native child level must be signed short")
 
-                if effect["effect_class"] == 352:
+                if effect["effect_class"] == 1100:
+                    from .combat_effect_groups import EffectGroupMode
+
+                    mode = EffectGroupMode(on_target=True)
+                elif effect["effect_class"] == 352:
                     from .combat_effect_groups import EffectGroupMode
 
                     mode = EffectGroupMode(on_target=False)

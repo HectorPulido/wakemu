@@ -72,6 +72,32 @@ def area_targets(fight):
     return tuple(targets)
 
 
+def retained_area_source_target(fight, identity):
+    """Resolve a selected Qq source pointer without restoring Qs membership."""
+    from .combat_state_managers import registered_area_pv, retained_area_pv_row
+
+    if identity in fight.actors:
+        return None
+    pv = registered_area_pv(fight, identity)
+    if pv is None:
+        return None
+    row = retained_area_pv_row(fight, identity)
+    owner = fight.actors.get(row.get("owner_id"))
+    affiliation = row.get("native_fight_affiliation")
+    if affiliation is None:
+        if owner is None:
+            raise ValueError("Missing selected area source affiliation")
+        affiliation = getattr(owner, "native_fight_affiliation", owner.team)
+    return NativeAreaTarget(
+        identity,
+        pv.position,
+        affiliation,
+        row.get("owner_id"),
+        direction=row["direction"],
+        native_los_height=pv.native_los_height,
+    )
+
+
 def area_target_context(target):
     if not isinstance(target, NativeAreaTarget):
         raise ValueError("Unknown native area target")

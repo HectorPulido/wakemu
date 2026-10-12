@@ -3,7 +3,7 @@ from dataclasses import replace
 from .combat_trigger_value_modifier import NativeRunnerAmount
 from .combat_value_transfer import apply_context_value
 from .combat_stat_handler import StatExecutionContext
-from .combat_stat_effects import owned_effect_payload, owned_effect_delivery
+from .combat_stat_effects import owned_effect_payload, evaluated_effect_delivery
 from .combat_effect_removal import running_effect_removal
 
 
@@ -145,9 +145,10 @@ class NativeAPAsMPHandler:
                 timer=None if context.timer is None else dict(vars(context.timer)),
             )
         self.packets.append(
-            owned_effect_delivery(
+            evaluated_effect_delivery(
                 self.fight.id,
                 self.action_id,
+                retained=context.retained,
                 effect_class=808,
                 target_id=actor.id,
                 uid=runner.uid,

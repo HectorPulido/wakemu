@@ -71,7 +71,7 @@ def prepare_npc_spell(
     ):
         raise ValueError("Invalid NPC target coordinates")
     request = dict(actor_id=actor.id, spell_uid=spell, target=tuple(target))
-    from .combat_native_spell_casting import catalog as casting_catalog
+    from .combat_native_spell_casting import native_casting_table
 
     from .combat_npc_activation import imports_enabled
     from .combat_npc_attack import npc_spell_catalog
@@ -84,10 +84,8 @@ def prepare_npc_spell(
             spell,
         )
     )
-    casting = casting_catalog().get(str(spell))
-    if casting is None or not 1 <= spells[spell] <= len(casting["levels"]):
-        raise ValueError("Missing native NPC casting table")
-    roots = casting["levels"][spells[spell] - 1][2]
+    casting, index = native_casting_table(spell, spells[spell])
+    roots = casting["levels"][index][2]
     missing = [root for root in roots if str(root) not in compiled.effects]
     if missing:
         raise ValueError(

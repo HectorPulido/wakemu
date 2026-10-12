@@ -35,6 +35,17 @@ def register_joined_fighter(fight, actor, position):
 
         register_global_fighter(fight, actor.id)
     if registry is not None:
+        if hasattr(fight, "native_pointer_checkpoint"):
+            from .combat_carrying import _publish_registry
+
+            if actor.native_obstacle_id is None:
+                # Fresh joined eGj crosses the QK constructor boundary here.
+                actor.native_obstacle_id = -1
+            slot = registry.register_constructor_actor(actor)
+            if slot < 0:
+                raise ValueError("Native QI fighter capacity exhausted")
+            _publish_registry(fight, registry)
+            return
         slot = registry.register(
             dict(
                 identity=["actor", actor.id],

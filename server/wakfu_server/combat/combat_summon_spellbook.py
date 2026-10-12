@@ -111,6 +111,24 @@ def validate_controlled_owner(fight, actor, character_id, owner_id):
     """Validate the actual registered controller chain to this character."""
     if fight.actors.get(actor.id) is not actor:
         raise ValueError("Caster is absent from the current native roster")
+    if hasattr(fight, "native_controller_registry"):
+        from .combat_effective_control import require_effective_owner
+
+        require_effective_owner(fight, actor, owner_id)
+        controller_book = getattr(fight, "native_controller_action_books", {}).get(
+            actor.id
+        )
+        if controller_book is not None:
+            from .combat_controller_registry import current_native_controller
+
+            if (
+                not isinstance(controller_book, dict)
+                or controller_book.get("producer") != "eWD207.eZd.fQM.actual"
+                or controller_book.get("controller_id")
+                != current_native_controller(fight, actor.id)
+            ):
+                raise ValueError("Missing actual transferred controller book")
+            return
     registrations = getattr(fight, "native_summon_registrations", {})
     seen = set()
     current = actor

@@ -107,10 +107,12 @@ class SceneSync:
     def __init__(self):
         self.identity = None
         self.pending = {}
+        self.last_regions = frozenset()
 
     def clear(self):
         self.identity = None
         self.pending.clear()
+        self.last_regions = frozenset()
 
     def arm(self, map_id, instance_id, steps, now):
         steps = tuple(steps)
@@ -150,6 +152,7 @@ class SceneSync:
             )
 
     def poll(self, map_id, instance_id, now):
+        self.last_regions = frozenset()
         if self.identity != (map_id, instance_id):
             self.clear()
             return ()
@@ -157,4 +160,5 @@ class SceneSync:
         if not due:
             return ()
         regions = frozenset().union(*(self.pending.pop(deadline) for deadline in due))
+        self.last_regions = regions
         return dynamic_snapshots(map_id, regions) if regions else ()
