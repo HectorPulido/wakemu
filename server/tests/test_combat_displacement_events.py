@@ -213,6 +213,7 @@ class OrdinaryDisplacementEventTests(unittest.TestCase):
             EffectInvocation(353390, 1, 7, -7, (2, 0, 0)),
         )
         selection_trace = []
+        qualified_trace = []
         for source in sources:
             if source.manager_actor_id != listener_entry.manager_id:
                 continue
@@ -240,9 +241,10 @@ class OrdinaryDisplacementEventTests(unittest.TestCase):
                 source_target=source.target_id,
                 source_present=True,
             )
-            selection_trace.append(
-                (source.channel, source.event_ids, action, caster, target)
-            )
+            selection = (source.channel, source.event_ids, action, caster, target)
+            qualified_trace.append((source.generic_effect, *selection))
+            if source.generic_effect == 326111:
+                selection_trace.append(selection)
 
         def executions():
             matched = 0
@@ -274,6 +276,23 @@ class OrdinaryDisplacementEventTests(unittest.TestCase):
         self.assertIs(child_definition["subscription"], False)
         self.assertIs(child_timing["retained"], True)
         self.assertIs(child_timing["delay"], False)
+        # eXE inherits Qe.bbx's generic event 0 and Qe's four lifecycle
+        # phases. Its synchronous child execution occurs inside the parent's
+        # phase 3; these events must neither reactivate the listener nor be
+        # mistaken for extra displacement events.
+        self.assertEqual(
+            qualified_trace,
+            [
+                (326111, 10, (0, 185, 188), None, 7, -7),
+                (326111, 20, (0, 185, 188), None, 7, -7),
+                (326111, 30, (0, 185, 188), "activate", 7, -7),
+                (353390, 10, (0,), None, 7, -7),
+                (353390, 20, (0,), None, 7, -7),
+                (353390, 30, (0,), None, 7, -7),
+                (353390, 40, (0,), None, 7, -7),
+                (326111, 40, (0, 185, 188), None, 7, -7),
+            ],
+        )
         self.assertEqual(
             selection_trace,
             [
@@ -303,7 +322,10 @@ class OrdinaryDisplacementEventTests(unittest.TestCase):
             f"group_packet_count={executions()}",
         )
         signed = lambda value: value - (1 << 64) if value >= (1 << 63) else value
-        self.assertEqual([opcode for opcode, _ in child_packets], [12613] * 3)
+        # eYg's actor branch transmits the rebound PV to its eXE leaf.
+        # Qe.g(PV) bypasses fcE for that explicit PV; mask zero does not
+        # authorize broadcasting this child to every actor in the fight.
+        self.assertEqual([opcode for opcode, _ in child_packets], [12613])
         child_uids = [fields.get(1, 0) for _, fields in child_packets]
         self.assertTrue(all(uid > listener for uid in child_uids), child_uids)
         self.assertEqual(child_uids, sorted(set(child_uids)))
@@ -320,7 +342,7 @@ class OrdinaryDisplacementEventTests(unittest.TestCase):
         )
         self.assertEqual(
             {signed(fields.get(7, 0)) for _, fields in child_packets},
-            set(self.f.preview.actors),
+            {-7},
             child_packets,
         )
         observer_children = []

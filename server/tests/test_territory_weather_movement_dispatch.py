@@ -1,6 +1,8 @@
 import ast
 from pathlib import Path
 import unittest
+from threading import RLock
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -17,6 +19,12 @@ def production_function(name, namespace):
     module = ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[]))
     exec(compile(module, str(SERVER_SOURCE), "exec"), namespace)
     return namespace[name]
+
+
+def refresh_bonuses(character, packets):
+    character["territory_stat_bonuses"] = {}
+    character["_published_territory_stat_bonuses"] = {}
+    return packets
 
 
 class TerritoryWeatherMovementDispatchTests(unittest.TestCase):
@@ -61,11 +69,20 @@ class TerritoryWeatherMovementDispatchTests(unittest.TestCase):
                 (opcode, payload)
             ),
             "record": lambda **entry: None,
+            "send_native_planting_bonus": lambda *_args: None,
+            "WORLD": SimpleNamespace(lock=RLock(), players={}),
+            "REGIONAL_BONUSES": SimpleNamespace(
+                mark_context_refreshed=lambda *_args: None
+            ),
         }
         publish = production_function("send_planting_context", namespace)
         with (
             patch.object(ecology_context, "packet", return_value=(12789, b"ecology")),
-            patch.object(territory_bonuses, "refresh_world", return_value=[]),
+            patch.object(
+                territory_bonuses,
+                "refresh_world",
+                side_effect=lambda store, character: refresh_bonuses(character, []),
+            ),
         ):
             with patch.object(territory_weather, "context") as weather:
                 publish(
@@ -105,6 +122,11 @@ class TerritoryWeatherMovementDispatchTests(unittest.TestCase):
                     (opcode, payload)
                 ),
                 "record": lambda **entry: None,
+                "send_native_planting_bonus": lambda *_args: None,
+                "WORLD": SimpleNamespace(lock=RLock(), players={}),
+                "REGIONAL_BONUSES": SimpleNamespace(
+                    mark_context_refreshed=lambda *_args: None
+                ),
             },
         )
         with (
@@ -112,12 +134,16 @@ class TerritoryWeatherMovementDispatchTests(unittest.TestCase):
             patch.object(
                 territory_bonuses,
                 "refresh_world",
-                return_value=[(13046, b"updated-characteristics")],
+                side_effect=lambda store, character: refresh_bonuses(
+                    character, [(13046, b"updated-characteristics")]
+                ),
             ) as bonuses,
             patch.object(territory_weather, "context") as weather,
         ):
             publish("peer", character, include_weather=False)
-        bonuses.assert_called_once_with(store, character)
+        bonuses.assert_called_once()
+        self.assertIs(bonuses.call_args.args[0], store)
+        self.assertEqual(bonuses.call_args.args[1], character)
         self.assertEqual(
             sent, [(12789, b"ecology"), (13046, b"updated-characteristics")]
         )

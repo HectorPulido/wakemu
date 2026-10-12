@@ -799,9 +799,26 @@ class RuntimePlantingTests(PostgresCase):
         self.assertEqual(result[0]["ecology"]["reason"], "already_activated")
         self.assertEqual([p[0] for p in result[0]["ecology"]["packets"]], [13574])
         self.assertNotIn("information", result[0]["ecology"])
+        with self.store.connection() as db:
+            pending = db.execute(
+                "SELECT group_payload FROM planting_growth_outbox "
+                "WHERE group_payload IS NOT NULL"
+            ).fetchall()
+        self.assertEqual(1, len(pending))
+        expected_ref = pending[0]["group_payload"]["members"][0]["ref"]
+        from wakfu_server import monster_family_stages
+
+        self.assertEqual(
+            {5455, 5456},
+            {
+                row["reference"]
+                for row in monster_family_stages.initial_candidates(1113)
+            },
+        )
+        self.assertIn(expected_ref, (5455, 5456))
         available = groups.available(1134, 0)
         self.assertEqual(len(available), 1)
-        self.assertEqual(available[0]["members"][0]["ref"], 5455)
+        self.assertEqual(available[0]["members"][0]["ref"], expected_ref)
         self.assertEqual(self.runtime.publish_growth(groups, publish=self.publish), [])
         self.assertEqual(
             Plantings(self.reopen()).mature(self.groups, publish=self.publish), []

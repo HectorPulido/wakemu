@@ -190,3 +190,18 @@ class OfflineReportReconciliationTests(unittest.TestCase):
         )
         self.assertEqual(status, "pending_local_validation")
         self.assertIn("missing_case_execution_receipt", reasons)
+
+    def test_batch_catalog_receipt_cannot_be_reused_for_another_report(self):
+        from reconcile_monster_offline_reports import catalog_reference_binding
+
+        self.assertTrue(
+            catalog_reference_binding(
+                {"monsters": [{"ref": 1}, {"ref": 2}]}, {"reference": "batch-1-2"}
+            )
+        )
+        self.assertFalse(
+            catalog_reference_binding(
+                {"monsters": [{"ref": 1}, {"ref": 3}]}, {"reference": "batch-1-2"}
+            )
+        )
+        self.assertFalse(catalog_reference_binding({"monsters": [{"ref": 1}]}, {}))

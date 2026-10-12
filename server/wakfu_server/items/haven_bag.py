@@ -113,7 +113,13 @@ def map_transition(template, character, map_id):
     )
     # Fight entities/context from the captured exterior do not belong to the
     # destination. csW parses each list as a u16 count.
-    blocks[1:3] = [b"\x00\x00", b"\x00\x00"]
+    from wakfu_server.maps.protector_ecosystem import message_records
+
+    records = message_records(map_id)
+    blocks[1] = struct.pack(">H", len(records)) + b"".join(
+        struct.pack(">H", len(record)) + record for record in records
+    )
+    blocks[2] = b"\x00\x00"
     blocks = [identity(block, character["account_id"], character) for block in blocks]
     return b"".join(struct.pack(">H", len(block)) + block for block in blocks)
 
@@ -169,6 +175,11 @@ class HavenBagSession:
             "z": 0,
         }
 
+    @property
+    def exterior_actor_id(self):
+        """Stable published owner's registry key; guests own no exterior entry."""
+        return self.owner["id"] if self.is_owner else None
+
     def owns(self, character):
         return (
             character["id"] == self.character_id
@@ -176,6 +187,41 @@ class HavenBagSession:
             and character["map_id"] == 9
             and character["instance_id"] == self.bag_instance_id
         )
+
+    def rebind(self, character, saved):
+        """Select an owned hero without leaving the current private interior.
+
+        The caller validates the selected session and attaches position buffering
+        to saved exterior storage, never to this transient map9 projection.
+        Per-actor chest/occupation tokens must be cleared by the dispatcher.
+        """
+        from wakfu_server.haven_bag_store import instance_id
+
+        if (
+            not self.owns(character)
+            or type(saved.get("id")) is not int
+            or saved["id"] <= 0
+            or saved.get("account_id") != self.outside["account_id"]
+            or any(
+                type(saved.get(key)) is not int
+                for key in ("map_id", "instance_id", "x", "y", "z")
+            )
+            or saved["map_id"] == 9
+            or (self.is_owner and instance_id(saved) != self.bag_instance_id)
+        ):
+            raise ValueError("Hero cannot adopt this haven bag session")
+        inside = {
+            **saved,
+            **{key: character[key] for key in ("map_id", "instance_id", "x", "y", "z")},
+            "haven_bag": character.get(
+                "haven_bag", self.owner.get("haven_bag", saved.get("haven_bag"))
+            ),
+            "haven_bag_visitor": not self.is_owner,
+        }
+        self.character_id = saved["id"]
+        self.outside = dict(saved)
+        self.inside = inside
+        return dict(inside)
 
     def move(self, character, end):
         if not self.owns(character):

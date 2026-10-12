@@ -74,6 +74,9 @@ def build(output):
     sources["OpenPlantingAgent.java"] = (
         ROOT / "client-tools/java/OpenPlantingAgent.java"
     )
+    sources["OpenPlantingAgentRecovery.java"] = (
+        ROOT / "client-tools/java/OpenPlantingAgentRecovery.java"
+    )
     for name, path in sources.items():
         add("sources/" + name, path.read_bytes())
     with tempfile.TemporaryDirectory() as temp:

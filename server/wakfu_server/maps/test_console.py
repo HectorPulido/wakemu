@@ -13,7 +13,7 @@ from .inventory_move import STACKS
 from .monsters import owned_instance, statistics, reference as monster_reference
 from .combat_monster_world import spawn_group
 
-HELP = "!help | !position | !level level [target] | !teleport map x y z [target] | !item reference quantity [target] | !monster reference level quantity [target] | !kamas amount [target] | !buscar [item|mob] name [--pagina N] | !checkpoint [receipt] | !resultado receipt | !perfil [informe|estado|iniciar seconds|detener|reiniciar] | !equip uid slot | !unequip slot | !exitdungeon | !winfight | !losefight"
+HELP = "!help | !position | !level level [target] | !teleport map x y z [target] | !item reference quantity [target] | !monster reference level quantity [target] | !kamas amount [target] | !buscar [item|mob] name [--pagina N] | !checkpoint [receipt] | !resultado receipt | !perfil [informe|estado|iniciar seconds|detener|reiniciar] | !equip uid slot | !unequip slot | !exitdungeon | !winfight | !losefight | !nuke | !nuke-all | !genesis | !genesis-all | !eco-status | !nuke-all-flora | !genesis-all-flora"
 
 TARGET_ARITY = {"!nivel": 1, "!tp": 4, "!item": 2, "!mob": 3, "!kamas": 1}
 
@@ -46,7 +46,20 @@ def parse_target(text):
     return " ".join([command, *args]), target
 
 
-def execute(store, groups, account, generation, character, text, *, authorized_by=None):
+def execute(
+    store,
+    groups,
+    account,
+    generation,
+    character,
+    text,
+    *,
+    authorized_by=None,
+    ecology_players=(),
+    ecology_coordination=None,
+    ecology_publish=None,
+    private_scene=None,
+):
     if not isinstance(text, str) or not text.startswith("!"):
         return None
     from .command_permissions import authorize_command, canonical_command
@@ -74,6 +87,18 @@ def execute(store, groups, account, generation, character, text, *, authorized_b
         "!mob": 3,
         "!equip": 2,
         "!unequip": 1,
+        **{
+            name: 0
+            for name in (
+                "!nuke",
+                "!nuke-all",
+                "!genesis",
+                "!genesis-all",
+                "!eco-status",
+                "!nuke-all-flora",
+                "!genesis-all-flora",
+            )
+        },
     }
     if command not in expected or len(args) != expected[command]:
         raise ValueError(HELP)
@@ -84,6 +109,15 @@ def execute(store, groups, account, generation, character, text, *, authorized_b
     with store.connection() as db:
         _lease(store, db, account, generation, character["id"])
         current = store.character(account, character["id"], db)
+        if command == "!mob" and private_scene is not None:
+            from .haven_ranch import RanchSession
+
+            if not isinstance(private_scene, RanchSession) or not private_scene.owns(
+                character
+            ):
+                raise ValueError("Monster creation requires its live ranch session")
+            private_scene.validate_lease(generation)
+            current = private_scene.refresh(character, current)
         if command == "!mob" and current["instance_id"] != 0:
             run = db.execute(
                 "SELECT 1 FROM dungeon_room_runs WHERE instance_id=%s AND status='active'",
@@ -95,7 +129,32 @@ def execute(store, groups, account, generation, character, text, *, authorized_b
                     "Usa !exitdungeon antes de crear monstruos de prueba."
                 )
     result = dict(character=current, packets=[], action=command[1:])
-    if command == "!ayuda":
+    if command in (
+        "!nuke",
+        "!nuke-all",
+        "!genesis",
+        "!genesis-all",
+        "!eco-status",
+        "!nuke-all-flora",
+        "!genesis-all-flora",
+    ):
+        if command.endswith("-flora"):
+            from .ecology_flora_admin import execute as execute_ecology
+        else:
+            from .ecology_admin import execute as execute_ecology
+
+        result.update(
+            execute_ecology(
+                store,
+                groups,
+                current,
+                command,
+                players=ecology_players,
+                coordination=ecology_coordination,
+                publish=ecology_publish,
+            )
+        )
+    elif command == "!ayuda":
         result["message"] = HELP
     elif command == "!pos":
         result[
@@ -278,9 +337,11 @@ def execute(store, groups, account, generation, character, text, *, authorized_b
         statistics(reference, level)
         if not 1 <= quantity <= 8:
             raise ValueError("El grupo local admite entre 1 y 8 monstruos")
-        if current["instance_id"] != 0:
+        if current["map_id"] == 9 or (
+            current["instance_id"] != 0 and private_scene is None
+        ):
             raise ValueError(
-                "El codec de monstruos locales todavía requiere instancia 0"
+                "La creación de monstruos requiere el mundo público o una sesión válida del merkalugar"
             )
         origin = (current["x"], current["y"], current["z"])
         geometry = published_geometry(current["map_id"])
@@ -288,7 +349,7 @@ def execute(store, groups, account, generation, character, text, *, authorized_b
             raise ValueError("Posición del personaje fuera de la geometría nativa")
         occupied = {
             tuple(m[k] for k in ("x", "y", "z"))
-            for group in groups.available(current["map_id"], 0)
+            for group in groups.available(current["map_id"], current["instance_id"])
             for m in group["members"]
         }
         seen, queue, cells = {origin}, [origin], []
@@ -317,11 +378,14 @@ def execute(store, groups, account, generation, character, text, *, authorized_b
                 x=cell[0],
                 y=cell[1],
                 z=cell[2],
+                instance_id=current["instance_id"],
             )
             for index, cell in enumerate(cells[:quantity])
         ]
         packet = (12608, spawn_group(members, group_id=group_id))
-        key = groups.register(current["map_id"], 0, group_id, members)
+        key = groups.register(
+            current["map_id"], current["instance_id"], group_id, members
+        )
         result.update(
             group_key=key,
             members=members,

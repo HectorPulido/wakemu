@@ -46,8 +46,11 @@ class EcologyWorldBridgeTests(unittest.TestCase):
             plantings=self.plantings,
             token="secret-token",
             mode="external",
-            record=lambda **fields: self.records.append(fields),
+            record=lambda **fields: self.records.append(fields)
+            if fields["event"] not in ("ecology_handler_started", "ecology_apply_batch")
+            else None,
             clock=lambda: 123.456,
+            background_limit=16,
         )
 
     def test_snapshot_is_scalar_only_detached_epoch_scoped_and_does_no_http(self):

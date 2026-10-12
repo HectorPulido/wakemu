@@ -2,6 +2,17 @@
 
 PUBLIC_COMMANDS_SETTING = "player_allowed_commands"
 DEFAULT_PLAYER_COMMANDS = ("!ayuda", "!pos")
+ADMIN_ONLY_COMMANDS = frozenset(
+    {
+        "!nuke",
+        "!nuke-all",
+        "!genesis",
+        "!genesis-all",
+        "!eco-status",
+        "!nuke-all-flora",
+        "!genesis-all-flora",
+    }
+)
 COMMAND_ALIASES = {
     "!help": "!ayuda",
     "!position": "!pos",
@@ -42,6 +53,10 @@ def authorize_command(store, account_id, text):
         raise PermissionError("Cuenta desconocida")
     if row["is_admin"]:
         return
+    if command in ADMIN_ONLY_COMMANDS:
+        raise PermissionError(
+            "Este comando de ecología requiere una cuenta administradora"
+        )
     allowed = setting["value"] if setting else []
     if not isinstance(allowed, list) or any(
         not isinstance(c, str) or not c.startswith("!") or len(c.split()) != 1

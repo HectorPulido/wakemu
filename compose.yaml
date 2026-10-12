@@ -12,8 +12,8 @@ services:
       - postgres-data:/var/lib/postgresql/data
       # Official PostgreSQL entrypoint restores only when the volume is empty.
       - ./database/docker/20-restore-runtime.sh:/docker-entrypoint-initdb.d/20-restore-runtime.sh:ro
-      - ./database/backups/wakemu-runtime-20261008-native-catalogs.dump:/bootstrap/wakemu-runtime.dump:ro
-      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./database/backups:/bootstrap:ro
+      - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
     networks: [isolated, client-access]
     healthcheck:
       test: [CMD-SHELL, 'pg_isready -h 127.0.0.1 -U wakemu -d wakemu_runtime']
@@ -42,12 +42,12 @@ services:
       WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
       # Listen on the container network; published host ports stay localhost.
       WAKFU_BIND_HOST: ${WAKFU_BIND_HOST:-0.0.0.0}
-      WAKFU_DATABASE_PASSWORD_FILE: /data/secrets/postgres-password
+      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
       WAKFU_AI_URL: ${WAKFU_AI_URL:-http://ai:8090}
       WAKFU_REDIS_URL: ${WAKFU_REDIS_URL:-redis://redis:6379/0}
       WAKFU_EXTERNAL_SCHEDULER: '1'
       WAKFU_ECOLOGY_MODE: ${WAKFU_ECOLOGY_MODE:-external}
-      WAKFU_ECOLOGY_TOKEN_FILE: /data/secrets/ecology-token
+      WAKFU_ECOLOGY_TOKEN_FILE: /run/secrets/ecology-token
       #
       WAKFU_ALL_ZAAPS: ${WAKFU_ALL_ZAAPS:-1}
       WAKFU_ADVERTISE_HOST: ${WAKFU_ADVERTISE_HOST:-127.0.0.1}
@@ -80,8 +80,8 @@ services:
       # Runtime code, protocol and migrations come from the validated image.
       # Source edits remain isolated until the next tested image is deployed.
       - ./.runtime/local:/data
+      - ./.database/secrets:/run/secrets:ro
       - ./server/ai-service:/app/ai-service:ro
-      - ./.runtime/captures/2026-10-03T03-40-46.413625Z-fe2520f4/decoded/frames.jsonl:/fixtures/frames.jsonl:ro
     networks: [isolated, client-access]
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18081/health',timeout=2)"]
@@ -106,8 +106,8 @@ services:
       SHOP_ASSETS_DIR: /shop-assets
       SHOP_PUBLIC_URL: http://127.0.0.1:18083
     volumes:
-      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
-      - ./.runtime/local/shop-assets:/shop-assets:ro
+      - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./.database/shop-assets:/shop-assets:ro
     ports:
       - '127.0.0.1:18083:18083'
     networks: [isolated, client-access]
@@ -138,9 +138,9 @@ services:
       WAKFU_WORLD_URL: http://world:18081
       WAKFU_SHOP_URL: http://shop:18083
     volumes:
-      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
-      - ./.runtime/local/admin:/data
-      - ./.runtime/local/secrets/admin-control-token:/run/secrets/admin-control-token:ro
+      - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./.database/secrets/admin:/data
+      - ./.database/secrets/admin-control-token:/run/secrets/admin-control-token:ro
       - ./.runtime/local/logs/profiles:/metrics:ro
     ports:
       - '127.0.0.1:18084:18084'
@@ -168,9 +168,9 @@ services:
       - ./server:${PWD}/server:ro
       - ./compose.yaml:${PWD}/compose.yaml:ro
       - ./compose.profiler.yaml:${PWD}/compose.profiler.yaml:ro
-      - ./.runtime/local/admin-control:/data
-      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
-      - ./.runtime/local/secrets/admin-control-token:/run/secrets/admin-control-token:ro
+      - ./.database/secrets/admin-control:/data
+      - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./.database/secrets/admin-control-token:/run/secrets/admin-control-token:ro
     networks: [isolated]
     read_only: true
     tmpfs:
@@ -213,8 +213,8 @@ services:
       WAKFU_RUNTIME: /data
       WAKFU_PLANT_GROWTH_SECONDS: ${WAKFU_PLANT_GROWTH_SECONDS:-30}
     volumes:
-      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
-      - ./.runtime/local/secrets/ecology-token:/run/secrets/ecology-token:ro
+      - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./.database/secrets/ecology-token:/run/secrets/ecology-token:ro
     networks: [isolated]
     read_only: true
     tmpfs:
@@ -237,18 +237,22 @@ services:
       dockerfile: cron-service/Dockerfile
     init: true
     depends_on:
+      postgres:
+        condition: service_healthy
       world:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
+      WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
+      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
       WAKFU_REDIS_URL: redis://redis:6379/0
       WAKFU_CRON_API_TOKEN_FILE: /run/secrets/wakfu-scheduler-token
     volumes:
-      - ./.runtime/local/secrets/scheduler-token:/run/secrets/wakfu-scheduler-token:ro
+      - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./.database/secrets/scheduler-token:/run/secrets/wakfu-scheduler-token:ro
       - ./server/wakfu_server:/app/wakfu_server:ro
       - ./server/cron-service/service.py:/app/service.py:ro
-      - ./server/cron-service/config.json:/app/config.json:ro
     networks: [isolated]
   ai:
     build:
@@ -267,7 +271,7 @@ services:
       WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
       WAKFU_REDIS_URL: redis://redis:6379/0
     volumes:
-      - ./.runtime/local/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
       - ai-context-data:/var/lib/wakfu-ai-context
     networks: [isolated]
     healthcheck:

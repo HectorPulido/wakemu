@@ -1,9 +1,0 @@
-IsCarrying — condición nativa común
-
-Token eQb258 crea eNw. Sin argumentos selecciona caster. Un string exactamente target (ignorando mayúsculas) selecciona target; cualquier otro string conserva caster. Cero o un string son las variantes nativas. eNw obtiene eGj mediante eII.a y consulta frA: campo pGV distinto de null. IsCarried consulta buX/pGW; ambas relaciones son distintas.
-
-ConditionActor y NativeActorAuthority incorporan is_carrying explícito; el adaptador usa la autoridad del mismo preview. Autoridad ordinaria acredita pGV null en creación propia y rechaza native_carried_actor_id actualizado, al igual que relaciones de master/carrier no soportadas. No infiere carrying desde carried, equipo o identidad. Ausencia de autoridad permanece UnknownCondition.
-
-Pruebas:3 casos incluyen selección, target rebindeado, separación de carried y argumentos inválidos. ProbeNativeIsCarrying ejecuta biB/eNw/eGj reales offline con pGV configurado explícitamente, demuestra separación pGW y selectores, exit0. Regresiones:6 adapter y25 condiciones PASS. Sin reinicios ni GUI.
-
-Focal posterior con entrada común Ready y evento inicial:26 casos Eca originalmente bloqueados por949 avanzan más allá de949/IsCarrying. Todos alcanzan413114 clase330 y rechazan Unsupported native numeric expression; ancestors317352→374562→374563→359839→413114. Rollback26/26; hash de fuente estable. No se acredita Ready completo. Informe docs/reports/combat-inventory/ready-eca-carrying-focal.json.

@@ -65,23 +65,46 @@ def validate_policy(value):
     return value
 
 
-def birth_probability(reference, configuration):
-    """Explicit local adult-tier decay with native level-gap weighting."""
+def birth_probability(reference, configuration, *, group_size=1):
+    """All ordinary stages establish groups, with a bounded per-group rate."""
     from .monster_maturation import STAGES
 
     stage = STAGES.get(reference)
-    if stage is None or stage[1] == 0:
+    if stage is None:
         return 0.0
-    family, rank = stage
-    tiers = family["tiers"]
-    first_adult = tiers[1]["min_level"]
-    next_level = tiers[min(rank + 1, len(tiers) - 1)]["min_level"]
-    return (
-        configuration["birth_probability"]
-        * configuration["birth_stage_decay"] ** (rank - 1)
-        * first_adult
-        / next_level
+    candidate = next(
+        c
+        for c in stage[0]["tiers"][stage[1]]["candidates"]
+        if c["reference"] == reference
     )
+    from .monster_group_balance import reproduction_factor, SPECIAL
+
+    if candidate.get("boss_classification") in SPECIAL:
+        return 0.0
+    return min(
+        1.0,
+        configuration["birth_probability"]
+        * reproduction_factor(group_size)
+        * configuration["birth_stage_decay"] ** (stage[1] / 2)
+        / max(1, group_size),
+    )
+
+
+def new_group_probability(group_size, configuration):
+    """A soft carrying size, independent of ecological equilibrium targets."""
+    baseline = configuration["new_group_probability"]
+    odds = (
+        0.08
+        if group_size < 4
+        else 0.55
+        if group_size == 4
+        else 0.90
+        if group_size == 5
+        else 0.98
+    )
+    if baseline in (0, 1):
+        return float(baseline)
+    return odds * baseline / (odds * baseline + (1 - odds) * (1 - baseline))
 
 
 def allocate_identity(db):
@@ -119,6 +142,7 @@ def attempt(
     from .monster_maturation import STAGES
     from .monsters import owned_instance
     from .combat_monster_world import spawn_group
+    from .monster_habitat_cells import habitat_destination_allowed
 
     configuration = (
         policy(store) if configuration is None else validate_policy(configuration)
@@ -140,6 +164,12 @@ def attempt(
             "AND group_id=%s FOR UPDATE",
             group_key,
         ).fetchone()
+        from .monster_life_plans import fence
+
+        if not fence(
+            db, ticket, "reproduction", configuration=configuration, draw=draw
+        ):
+            return None
         old = db.execute(
             "SELECT * FROM monster_reproduction_receipts WHERE map_id=%s "
             "AND instance_id=%s AND monster_id=%s AND cycle=%s",
@@ -161,12 +191,12 @@ def attempt(
             return None
         parent = next((m for m in group["members"] if m["id"] == key[2]), None)
         stage = STAGES.get(ticket["reference"])
-        if (
-            parent is None
-            or parent["ref"] != ticket["reference"]
-            or stage is None
-            or stage[1] == 0
-        ):
+        if parent is None or parent["ref"] != ticket["reference"] or stage is None:
+            return None
+        from .monster_family_stages import initial_candidates
+
+        birth_pool = initial_candidates(stage[0]["family_id"])
+        if not birth_pool:
             return None
         timer = db.execute(
             "SELECT * FROM monster_reproduction_timers WHERE map_id=%s "
@@ -181,20 +211,17 @@ def attempt(
         ):
             return None
         if prepared is None:
-            living_groups = db.execute(
-                "SELECT members FROM combat_groups WHERE map_id=%s "
-                "AND instance_id=%s AND status!='defeated'",
-                key[:2],
-            ).fetchall()
-            population = sum(len(row["members"]) for row in living_groups)
-            group_count = len(living_groups)
+            from .monster_population_capacity import snapshot
+
+            capacity = snapshot(db, *key[:2])
+            living_groups = capacity["groups"]
+            population, group_count = capacity["members"], capacity["group_count"]
         else:
-            counts = db.execute(
-                "SELECT count(*) AS groups,COALESCE(sum(jsonb_array_length(members)),0) AS members "
-                "FROM combat_groups WHERE map_id=%s AND instance_id=%s AND status!='defeated'",
-                key[:2],
-            ).fetchone()
-            population, group_count = counts["members"], counts["groups"]
+            from .monster_population_capacity import snapshot
+
+            capacity = snapshot(db, *key[:2])
+            living_groups = capacity["groups"]
+            population, group_count = capacity["members"], capacity["group_count"]
             destination = tuple(prepared["destination"])
             if db.execute(
                 "SELECT 1 FROM combat_groups g CROSS JOIN LATERAL jsonb_array_elements(g.members) m "
@@ -203,10 +230,25 @@ def attempt(
                 (*key[:2], *destination[:2]),
             ).fetchone():
                 return None
-        if population >= configuration["max_zone_members"]:
+            if any(
+                (member["x"], member["y"]) == destination[:2]
+                for reservation in capacity["reservations"]
+                for member in reservation["members"]
+            ):
+                return None
+        # Seeded probability policy is immutable; administrative hard limits
+        # remain live authority and may defer this same event without redrawing.
+        capacity_policy = configuration
+        if "plan_incarnation" in ticket:
+            capacity_policy = validate_policy(
+                db.execute(
+                    "SELECT value FROM settings WHERE name='monster_reproduction'"
+                ).fetchone()["value"]
+            )
+        if population >= capacity_policy["max_zone_members"]:
             return None
-        can_append = len(group["members"]) < configuration["max_members"]
-        can_separate = group_count < configuration["max_zone_groups"]
+        can_append = len(group["members"]) < capacity_policy["max_members"]
+        can_separate = group_count < capacity_policy["max_zone_groups"]
         if not can_append and not can_separate:
             return None
         blocked = {
@@ -217,6 +259,11 @@ def attempt(
         if prepared is None:
             for row in living_groups:
                 blocked.update((m["x"], m["y"]) for m in row["members"])
+            blocked.update(
+                (m["x"], m["y"])
+                for reservation in capacity["reservations"]
+                for m in reservation["members"]
+            )
             blocked.update(
                 (r["x"], r["y"])
                 for r in db.execute(
@@ -229,6 +276,9 @@ def attempt(
                 p
                 for p in indexed[1].get(tuple(parent[k] for k in ("x", "y", "z")), ())
                 if p[:2] not in blocked
+                and habitat_destination_allowed(
+                    key[0], key[1], p, parent=parent, family_id=stage[0]["family_id"]
+                )
             ]
             if not candidates:
                 return None
@@ -237,6 +287,18 @@ def attempt(
             destination = tuple(prepared["destination"])
             if destination[:2] in blocked:
                 return None
+        # Direct durable callers may omit the shared immutable edge index.
+        if indexed is None:
+            from .ecology_mobs import _edges
+
+            indexed = _edges(key[0])
+        # Prepared messages carry a proposal, not authority over native terrain.
+        if destination not in indexed[1].get(
+            tuple(parent[k] for k in ("x", "y", "z")), ()
+        ) or not habitat_destination_allowed(
+            key[0], key[1], destination, parent=parent, family_id=stage[0]["family_id"]
+        ):
+            return None
         cell = (*key[:2], *destination[:2])
         db.execute(
             "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
@@ -256,7 +318,17 @@ def attempt(
         ):
             raise ValueError("Invalid reproduction draw")
         child_id = child_group = child = None
-        probability = birth_probability(parent["ref"], configuration)
+        probability = birth_probability(
+            parent["ref"], configuration, group_size=len(group["members"])
+        )
+        # A full map of groups must not redirect attempted external births
+        # into rapid internal saturation. Preserve the local growth pressure.
+        if not can_separate:
+            probability *= 1 - new_group_probability(
+                len(group["members"]), configuration
+            )
+        elif not can_append:
+            probability *= new_group_probability(len(group["members"]), configuration)
         if sample < probability:
             second = (
                 secrets.randbelow(1 << 53) / (1 << 53)
@@ -270,11 +342,14 @@ def attempt(
             ):
                 raise ValueError("Invalid reproduction group draw")
             separate = can_separate and (
-                not can_append or second < configuration["new_group_probability"]
+                not can_append
+                or second < new_group_probability(len(group["members"]), configuration)
             )
             if prepared is None:
                 magnitude, child_id = allocate_identity(db)
-                seed = choose(stage[0]["tiers"][0]["candidates"])
+                from .monster_family_stages import initial_candidates
+
+                seed = choose(birth_pool)
                 child = owned_instance(
                     seed["reference"],
                     seed["min_level"],
@@ -291,6 +366,31 @@ def attempt(
                 magnitude, child_id = -child["id"], child["id"]
                 if tuple(child[k] for k in ("x", "y", "z")) != destination:
                     raise ValueError("Prepared birth position differs")
+            from .monster_family_stages import initial_candidates
+
+            candidate = next(
+                (
+                    c
+                    for c in initial_candidates(stage[0]["family_id"])
+                    if c["reference"] == child["ref"]
+                ),
+                None,
+            )
+            if candidate is None:
+                raise ValueError("Invalid prepared offspring reference")
+            native = owned_instance(
+                candidate["reference"],
+                candidate["min_level"],
+                child_id,
+                map_id=key[0],
+                x=destination[0],
+                y=destination[1],
+                z=destination[2],
+                team=parent["team"],
+                instance_id=key[1],
+            )
+            if child != native:
+                raise ValueError("Invalid prepared offspring native snapshot")
             child_group = magnitude if separate else ticket["group_id"]
             members = [child] if separate else [*group["members"], child]
             spawn_group(members, group_id=child_group)
@@ -357,7 +457,15 @@ def observe(
 
     if dungeon_population(store, instance_id):
         return []
-    adults = {reference for reference, (_, rank) in STAGES.items() if rank > 0}
+    adults = {
+        reference
+        for reference, (family, rank) in STAGES.items()
+        if any(
+            candidate["reference"] == reference
+            and candidate["boss_classification"] == "regular"
+            for candidate in family["tiers"][rank]["candidates"]
+        )
+    }
     return observe_clocks(
         store,
         map_id,
@@ -383,8 +491,9 @@ def pending(store, map_id, instance_id):
             for row in db.execute(
                 "SELECT t.map_id,t.instance_id,t.monster_id,t.reference,t.cycle,m.group_id "
                 "FROM monster_reproduction_timers t JOIN combat_group_members m "
-                "USING(map_id,instance_id,monster_id) WHERE t.map_id=%s AND t.instance_id=%s "
-                "AND t.due ORDER BY t.monster_id",
+                "USING(map_id,instance_id,monster_id) JOIN combat_groups g "
+                "USING(map_id,instance_id,group_id) "
+                "WHERE t.map_id=%s AND t.instance_id=%s AND t.due AND g.status!='defeated' ORDER BY t.monster_id",
                 (map_id, instance_id),
             )
         ]
@@ -552,7 +661,7 @@ def tick(
 
 def expanded_seeds(store, key, seeds, persisted):
     """Authorize appended seed-group members only by durable birth snapshots."""
-    from .monster_maturation import STAGES
+    from .monster_maturation import STAGES, ORIGINAL_STAGES
     from .monsters import owned_instance
     from .npc_actor_identity_repair import actor_aliases, aliased_members
 
@@ -600,7 +709,12 @@ def expanded_seeds(store, key, seeds, persisted):
             next(
                 (
                     row
-                    for row in parent_stage[0]["tiers"][0]["candidates"]
+                    for row in (
+                        parent_stage[0]["tiers"][0]["candidates"]
+                        + ORIGINAL_STAGES.get(birth["parent_reference"], parent_stage)[
+                            0
+                        ]["tiers"][0]["candidates"]
+                    )
                     if row["reference"] == child["ref"]
                 ),
                 None,

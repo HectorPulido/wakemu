@@ -386,13 +386,23 @@ class Store:
             with self.connection() as connection:
                 return self.character(account_id, character_id, connection)
         row = db.execute(
-            "SELECT c.*,a.is_admin account_is_admin FROM characters c JOIN accounts a ON a.id=c.account_id "
+            "SELECT c.*,a.is_admin account_is_admin,ap.state AS achievement_progress,"
+            "aa.snapshot AS achievement_authority FROM characters c JOIN accounts a ON a.id=c.account_id "
+            "LEFT JOIN character_achievement_progress ap ON ap.character_id=c.id "
+            "LEFT JOIN character_achievement_authority aa ON aa.character_id=c.id "
             "WHERE c.account_id=%s AND c.id=%s AND c.deleted_at IS NULL",
             (account_id, character_id),
         ).fetchone()
         if row is None:
             raise ValueError("Personaje no encontrado.")
         result = dict(row)
+        from wakfu_server.achievements.service import project_section
+
+        result["achievement_section"] = project_section(
+            result.pop("achievement_progress"),
+            result.pop("achievement_authority"),
+            db=db,
+        )
         from wakfu_server.characters.nation_state import load as load_nation
 
         result["nation_id"] = load_nation(db, character_id)
@@ -684,6 +694,13 @@ class Store:
             )
             from wakfu_server.characters.guild_character import record_presence
 
+            character = self.character(account_id, character_id, db)
+            from wakfu_server.achievements.service import drain_rewards
+
+            # Selection publishes a fresh absolute bootstrap. Retry earned
+            # entitlements first, then reload XP, inventory and account unlocks;
+            # incremental grant packets must not double-apply that snapshot.
+            drain_rewards(db, self, character)
             character = self.character(account_id, character_id, db)
             from wakfu_server.characters.cosmetic_store import load as load_cosmetics
             from psycopg.types.json import Jsonb

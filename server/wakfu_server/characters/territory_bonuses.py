@@ -117,20 +117,21 @@ def current_region(db, character: dict) -> dict | None:
         or type(y) is not int
     ):
         return None
-    from wakfu_server import ecology_population, territory_cells
+    from wakfu_server import ecology_context, ecology_population, territory_cells
 
     try:
         territory_id = territory_cells.region_at(map_id, x, y)
     except (KeyError, ValueError):
         return None
 
-    def locate(entity_map_id, entity_x, entity_y, _z):
-        return {
-            "region_id": territory_cells.region_at(entity_map_id, entity_x, entity_y)
-        }
-
     try:
-        population = ecology_population.snapshot(db, map_id, instance_id, locate=locate)
+        population = ecology_population.snapshot(
+            db,
+            map_id,
+            instance_id,
+            locate=ecology_context.population_region,
+            exclude_unassigned=True,
+        )
         if not population["complete"]:
             return None
         counts = population["regions"].get(territory_id, {"plant": {}, "monster": {}})
@@ -167,8 +168,32 @@ def profession_xp_percent(region: dict | None, category: str) -> int:
     return int(value)
 
 
-def stat_bonuses(region: dict | None) -> dict[int, int]:
-    """Return native characteristic additions for Wisdom and Prospection."""
+def control_health_policy(db=None):
+    """Load the native tooltip health policy exclusively from PostgreSQL."""
+    if db is None:
+        with protocol_catalog._database().connection() as connection:
+            return control_health_policy(connection)
+    row = db.execute(
+        "SELECT value FROM settings WHERE name='territory_control_health_policy'"
+    ).fetchone()
+    policy = None if row is None else row["value"]
+    if (
+        not isinstance(policy, dict)
+        or set(policy) != {"schema_version", "states"}
+        or policy["schema_version"] != 1
+        or not isinstance(policy["states"], dict)
+        or set(policy["states"]) != {"1915", "1916", "1917"}
+        or any(
+            type(value) is not int or not -1000 <= value <= 1000
+            for value in policy["states"].values()
+        )
+    ):
+        raise ValueError("Missing or invalid territory control health policy")
+    return policy["states"]
+
+
+def stat_bonuses(region: dict | None, *, health_policy=None) -> dict[int, int]:
+    """Return temporary health, Wisdom and Prospection contributions."""
     if region is None or region.get("state_id") is None:
         return {}
     mappings = {166: (36, 1), 167: (36, -1), 162: (33, 1), 163: (33, -1)}
@@ -189,14 +214,25 @@ def stat_bonuses(region: dict | None) -> dict[int, int]:
         ):
             return {}
         result[identity] = sign * int(values[0])
+    policy = control_health_policy() if health_policy is None else health_policy
+    state = str(region["state_id"])
+    if state not in policy:
+        raise ValueError("Unknown territory control health state")
+    result[1] = policy[state]
     return result
 
 
 def attach_character(db, character: dict) -> dict:
     """Return a detached actor input with fresh nonpersistent regional stats."""
     result = dict(character)
-    result["territory_stat_bonuses"] = stat_bonuses(current_region(db, character))
-    return result
+    result["territory_stat_bonuses"] = stat_bonuses(
+        current_region(db, character), health_policy=control_health_policy(db)
+    )
+    from wakfu_server.equipment_stats import effective_character
+
+    # Actor construction and its native snapshot must share the same maximum.
+    # Recompute from the owned build; do not increment an already derived HP.
+    return effective_character(result)
 
 
 def refresh_world(store, character: dict) -> list[tuple[int, bytes]]:
@@ -225,30 +261,16 @@ def refresh_world(store, character: dict) -> list[tuple[int, bytes]]:
 
 
 def world_packet(character: dict) -> tuple[int, bytes]:
-    """Use owned public characteristic defaults to explicitly remove bonuses.
+    """Refresh exploration statistics without replacing movement or fight state.
 
-    The ordinary progression serializer omits zero stats. That is unsuitable
-    for removing a regional modifier from an already installed client actor.
+    Native eHf.PUBLIC_CHARACTERISTICS (39) contains only eHe.pLO, the same
+    owned ``pl`` public-characteristics section used by the full actor codec.
+    eHd.ew reads only the sections selected by this format. In particular it
+    does not deserialize POSITION, FIGHT_PROPERTIES or XP during a local walk.
+    Explicit native defaults still clear removed regional contributions.
     """
-    import struct
-
     from wakfu_server import wire
-    from wakfu_server.combat_actor import actor_stats
     from wakfu_server.combat_world_refresh import actor_refresh
-    from wakfu_server.equipment_stats import combat_resources, effective_character
 
-    owned = effective_character(character)
-    resources = combat_resources(owned)
-    blob = actor_stats(
-        owned,
-        1,
-        wp=resources["wp"],
-        ap=resources["ap"],
-        mp=resources["mp"],
-        initiative=resources["initiative"],
-        direction=character.get("direction", 0),
-        characteristics_payload=wire.owned_public_characteristics(character),
-    )
-    offset = 1 + 8 + struct.calcsize(">iihqBB")
-    blob = blob[:offset] + struct.pack(">i", -1) + blob[offset + 4 :]
+    blob = b"\x27" + wire.owned_public_characteristics(character)
     return actor_refresh(character["id"], blob)

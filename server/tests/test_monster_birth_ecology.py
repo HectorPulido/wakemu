@@ -1,5 +1,6 @@
 import threading
 import unittest
+from unittest.mock import patch
 from concurrent.futures import ThreadPoolExecutor
 
 from postgres_case import PostgresCase
@@ -10,6 +11,7 @@ from wakfu_server.combat_group_store import PersistentGroups
 from wakfu_server.monsters import owned_instance
 from wakfu_server.monster_maturation import attempt as mature_attempt
 from wakfu_server.monster_birth_ecology import activate
+from wakfu_server import monster_birth_ecology
 from wakfu_server.planting_cells import cells
 from wakfu_server.planting_runtime import Plantings
 from wakfu_server.combat_monster_world import spawn_group
@@ -18,6 +20,19 @@ from wakfu_server.combat_monster_world import spawn_group
 class MonsterBirthEcologyTests(PostgresCase):
     def setUp(self):
         super().setUp()
+        self.native_wish = dict(family_id=316, minimum=1, maximum=128)
+        self.native_catalog = {
+            "territories": {
+                "79001": dict(
+                    map_id=1134, plant_wishes=[], monster_wishes=[self.native_wish]
+                )
+            }
+        }
+        native = patch(
+            "wakfu_server.ecology_equilibrium.catalog", return_value=self.native_catalog
+        )
+        native.start()
+        self.addCleanup(native.stop)
         self.groups = PersistentGroups(self.store)
         self.map_id = 1134
         self.instance_id = 17
@@ -213,6 +228,33 @@ class MonsterBirthEcologyTests(PostgresCase):
                 ).fetchone()["count"],
             )
 
+    def test_unrelated_unassigned_native_monster_does_not_suppress_birth_affinity(self):
+        birth = self._new_birth("outside")
+        outside = owned_instance(
+            4724,
+            119,
+            -799999,
+            map_id=self.map_id,
+            instance_id=self.instance_id,
+            x=2_000_000,
+            y=2_000_000,
+            z=0,
+        )
+        self.groups.register(self.map_id, self.instance_id, 879999, [outside])
+        native_surface = monster_birth_ecology.surface
+
+        def surface(map_id, x, y, z):
+            if (x, y, z) == (2_000_000, 2_000_000, 0):
+                return {"region_id": -1}
+            return native_surface(map_id, x, y, z)
+
+        with patch.object(monster_birth_ecology, "surface", side_effect=surface):
+            with self.store.connection() as db, db.transaction():
+                result = activate(db, self.groups, birth["resource_uid"])
+        self.assertEqual("applied", result["reason"])
+        self.assertEqual(1, len(result["packets"]))
+        self.assertEqual(1, self._ecology(birth["character_id"])["ecology_revision"])
+
     def test_offline_or_relocated_owner_still_receives_persistent_birth_credit(self):
         birth = self._new_birth("offline-relocated", relocate_owner=True)
         with self.store.connection() as db, db.transaction():
@@ -261,6 +303,7 @@ class MonsterBirthEcologyTests(PostgresCase):
         )
 
     def test_concurrent_births_serialize_at_family_population_limit(self):
+        self.native_wish.update(minimum=0, maximum=0)
         births = [self._new_birth("race-a"), self._new_birth("race-b")]
         with self.store.connection() as db:
             db.execute(
@@ -292,6 +335,7 @@ class MonsterBirthEcologyTests(PostgresCase):
         self.assertEqual([0, 1], before_counts)
 
     def test_birth_population_snapshot_serializes_with_cross_region_group_move(self):
+        self.native_wish.update(minimum=0, maximum=0)
         birth = self._new_birth("move-race")
         source = self.points[0]
         other_region_point = next(

@@ -38,6 +38,7 @@ def prepare_finish(
     groups=None,
     group_lease=None,
     group_settlement=None,
+    progression_resolver=None,
 ):
     """Commit fight, victory reward and group outcome before returning a report.
 
@@ -52,6 +53,8 @@ def prepare_finish(
         raise ValueError("Reward policy resolver must be callable")
     if loot_resolver is not None and not callable(loot_resolver):
         raise ValueError("Loot resolver must be callable")
+    if progression_resolver is not None and not callable(progression_resolver):
+        raise ValueError("Progression resolver must be callable")
     fight = runtime.fight
     # Validate required report identity before committing a reward transaction.
     combat_results.fight_report(
@@ -146,6 +149,21 @@ def prepare_finish(
                     saved = store.character(account_id, character["id"], db)
                 if not applied and reward is not None and reward["awarded"]:
                     raise ValueError("Group fight lease changed before settlement")
+            progression_packets = {}
+            if progression_resolver is not None:
+                progression_packets = progression_resolver(
+                    db,
+                    [
+                        {
+                            "account_id": account_id,
+                            "character_id": character["id"],
+                            "session_generation": generation,
+                        }
+                    ],
+                    fight,
+                )
+                _validate_progression_packets(progression_packets, {account_id})
+                saved = store.character(account_id, character["id"], db)
             packets = combat_results.finish_messages(
                 runtime,
                 metadata,
@@ -155,6 +173,7 @@ def prepare_finish(
                 fight_model=fight_model,
             )
             packets.extend(loot_packets)
+            packets.extend(progression_packets.get(account_id, ()))
             if reward is not None:
                 from .combat_xp_gain import notification
 
@@ -191,6 +210,7 @@ def prepare_finish_shared(
     policy_resolver,
     loot_resolver=None,
     group_settlement=None,
+    progression_resolver=None,
     expected_accounts=None,
     owner_character_ids=None,
     trace=None,
@@ -205,6 +225,7 @@ def prepare_finish_shared(
         not callable(policy_resolver)
         or (loot_resolver is not None and not callable(loot_resolver))
         or (group_settlement is not None and not callable(group_settlement))
+        or (progression_resolver is not None and not callable(progression_resolver))
     ):
         raise ValueError("Invalid shared fight settlement resolver")
     if expected_accounts is not None and (
@@ -329,6 +350,14 @@ def prepare_finish_shared(
             if not ecology["applied"]:
                 raise ValueError("Shared group lease changed before settlement")
 
+        progression_packets = {}
+        if progression_resolver is not None:
+            progression_packets = observe(
+                "progression", progression_resolver, db, members, candidate
+            )
+            _validate_progression_packets(
+                progression_packets, {member["account_id"] for member in members}
+            )
         packets_by_owner = {}
         original_ack, original_pending = runtime.awaiting_ack, runtime.pending
         try:
@@ -410,6 +439,7 @@ def prepare_finish_shared(
                     packets.extend(delivery["packets"])
                 if ecology is not None and actor_id == character_id:
                     packets.extend(ecology.get("packets", ()))
+                packets.extend(progression_packets.get(owner, ()))
                 packets_by_owner[owner] = tuple(packets)
         finally:
             runtime.awaiting_ack, runtime.pending = original_ack, original_pending
@@ -579,3 +609,23 @@ def recover_settled_world(
         applied=health_exit["applied"],
         recovered=True,
     )
+
+
+def _validate_progression_packets(packets_by_owner, owners):
+    """Reject malformed private progression output before settlement commits."""
+    if not isinstance(packets_by_owner, dict) or any(
+        type(owner) is not int
+        or owner not in owners
+        or not isinstance(packets, (list, tuple))
+        or any(
+            not isinstance(packet, tuple)
+            or len(packet) != 2
+            or type(packet[0]) is not int
+            or not 0 <= packet[0] <= 0xFFFF
+            or not isinstance(packet[1], bytes)
+            or len(packet[1]) > 0xFFFFFFFF - 6
+            for packet in packets
+        )
+        for owner, packets in packets_by_owner.items()
+    ):
+        raise ValueError("Invalid private progression packets")

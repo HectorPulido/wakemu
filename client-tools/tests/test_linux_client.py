@@ -32,7 +32,10 @@ class LinuxClientTests(unittest.TestCase):
                 (agents / agent).touch()
             (runtime / "logs").mkdir(parents=True)
             cfg = dict(
-                server_name="127.0.0.1", server_host="127.0.0.1", open_planting=True
+                server_name="127.0.0.1",
+                server_host="127.0.0.1",
+                open_planting=True,
+                open_dungeon_missions=False,
             )
             env = dict(
                 WAKFU_AGENT_ROOT=str(agents),

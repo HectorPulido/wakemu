@@ -7,6 +7,8 @@ import urllib.request
 from pathlib import Path
 import redis
 from wakfu_server.world_scheduler import RedisBackend, Scheduler
+from wakfu_server.storage.postgres import Database
+from wakfu_server.storage.cron_policy import load_policy
 
 
 def http_action(task):
@@ -63,21 +65,39 @@ def http_action(task):
     return action
 
 
-def main():
-    config = json.load(open(os.environ.get("WAKFU_CRON_CONFIG", "/app/config.json")))
-    client = redis.Redis.from_url(os.environ["WAKFU_REDIS_URL"], decode_responses=True)
-    tasks = {
-        name: dict(task, action=http_action(task))
-        for name, task in config["tasks"].items()
-    }
-    scheduler = Scheduler(RedisBackend(client), tasks)
+def run_scheduler(database, backend):
+    scheduler = Scheduler(backend, {})
+    poll_seconds = 1
     while True:
         try:
+            config = load_policy(database)
+            poll_seconds = config["poll_seconds"]
+            scheduler.tasks = {
+                name: dict(task, action=http_action(task))
+                for name, task in config["tasks"].items()
+            }
             for result in scheduler.tick():
                 print(json.dumps(result), flush=True)
         except Exception as error:
+            # Invalid or unavailable DB policy must never execute stale jobs.
             print(json.dumps({"scheduler_error": str(error)}), flush=True)
-        time.sleep(config.get("poll_seconds", 1))
+        time.sleep(poll_seconds)
+
+
+def main():
+    database = Database(
+        os.environ["WAKFU_DATABASE_URL"],
+        password_file=os.environ.get("WAKFU_DATABASE_PASSWORD_FILE"),
+        min_size=1,
+        max_size=2,
+    )
+    try:
+        client = redis.Redis.from_url(
+            os.environ["WAKFU_REDIS_URL"], decode_responses=True
+        )
+        run_scheduler(database, RedisBackend(client))
+    finally:
+        database.close()
 
 
 if __name__ == "__main__":

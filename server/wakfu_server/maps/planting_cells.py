@@ -29,6 +29,90 @@ def cells(map_id):
     return result
 
 
+@lru_cache(maxsize=1)
+def _ranch_cells():
+    """Intersect exact planting heights with the installed native walk mesh."""
+    map_id = 1440
+    surfaces = cells(map_id)
+    from .combat_terrain import map_geometry
+
+    geometry = map_geometry(map_id)
+    native = {tuple(cell) for cell in geometry.get("cells", ())}
+    return {
+        point: tuple(
+            dict(row) for row in rows if (point[0], point[1], row["z"]) in native
+        )
+        for point, rows in surfaces.items()
+    }
+
+
+def private_surfaces(map_id, x, y):
+    """Return exact native-height planting cells for private Ranch map1440."""
+    if map_id != 1440 or any(type(value) is not int for value in (x, y)):
+        raise ValueError("Invalid private Ranch planting cell")
+    matches = _ranch_cells().get((x, y), ())
+    if not matches:
+        raise ValueError("Absent native Ranch planting surface")
+    return [dict(row) for row in matches]
+
+
+def assert_private_furniture_unoccupied(db, character, request, *, lock_owner=False):
+    """Share furniture custody serialization with the final planting commit."""
+    if character.get("map_id") != 1440:
+        raise ValueError("Private Ranch furniture occupancy requires map1440")
+    owner_id = character.get("instance_id")
+    if type(owner_id) is not int or owner_id <= 0:
+        raise ValueError("Private Ranch requires its canonical host instance")
+    if (
+        lock_owner
+        and db.execute(
+            "SELECT character_id FROM haven_bags WHERE character_id=%s FOR UPDATE",
+            (owner_id,),
+        ).fetchone()
+        is None
+    ):
+        raise ValueError("Private Ranch host no longer exists")
+    if db.execute(
+        "SELECT 1 FROM haven_ranch_furniture WHERE owner_character_id=%s "
+        "AND map_id=1440 AND x=%s AND y=%s",
+        (owner_id, request["x"], request["y"]),
+    ).fetchone():
+        raise ValueError("Planting surface contains Ranch furniture")
+
+
+def assert_private_cell_unoccupied(store, character, request):
+    """Keep Ranch planting inside native terrain and existing resource fences."""
+    if character.get("map_id") != 1440:
+        raise ValueError("Private Ranch planting requires map1440")
+    private_surfaces(1440, request["x"], request["y"])
+    cell = (
+        character["map_id"],
+        character["instance_id"],
+        request["x"],
+        request["y"],
+    )
+    with store.connection() as db:
+        assert_private_furniture_unoccupied(db, character, request)
+        if db.execute(
+            "SELECT 1 FROM mining_vein_slots "
+            "WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s AND enabled",
+            cell,
+        ).fetchone():
+            raise ValueError("Planting surface is reserved for a mineral vein")
+        if db.execute(
+            "SELECT 1 FROM fishing_spot_slots "
+            "WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s AND enabled",
+            cell,
+        ).fetchone():
+            raise ValueError("Planting surface is reserved for a fishing spot")
+        if db.execute(
+            "SELECT 1 FROM planted_resources "
+            "WHERE map_id=%s AND instance_id=%s AND x=%s AND y=%s",
+            cell,
+        ).fetchone():
+            raise ValueError("Planting surface is occupied")
+
+
 def surface(map_id, x, y, z):
     match = next((c for c in cells(map_id).get((x, y), []) if c["z"] == z), None)
     if match is None:
@@ -93,6 +177,17 @@ def region_context(
 
 
 def authorize(store, character, request, seed, resource, *, open_test_policy=False):
+    if character.get("map_id") == 1440:
+        from wakfu_server.haven_bag_garden import (
+            is_private_garden,
+            validate_target,
+        )
+
+        if not is_private_garden(character):
+            raise ValueError("Merkalugar planting requires an active private Ranch")
+        z = validate_target(character, request["x"], request["y"])
+        assert_private_cell_unoccupied(store, character, request)
+        return z
     # Request has no z. A unique suitable native surface is mandatory: never
     # guess upstairs/downstairs from the actor's present height.
     candidates = [

@@ -82,6 +82,10 @@ class NativeAreaEventRuntime:
         return value
 
     def _activate(self, row, definition, target, *, trigger=None):
+        from .combat_observation_scope import area_is_unobserved
+
+        if area_is_unobserved(row["uid"]):
+            return False
         if row.get("executing"):
             return False
         if definition["type"] == "TRAP":
@@ -155,7 +159,14 @@ class NativeAreaEventRuntime:
                     EffectInvocation(
                         reference,
                         row["level"],
-                        row["uid"] if border or environment else row["owner_id"],
+                        # fbc roots select SELF (the trap) or its Qq owner.
+                        # Starting with the owner fighter makes SELF push that
+                        # fighter and prevents Qq-owner selectors from matching.
+                        row["uid"]
+                        if border
+                        or environment
+                        or row.get("native_area_contract") == "fbc"
+                        else row["owner_id"],
                         None if target is None else target.id,
                         tuple(row["cell"])
                         if row.get("native_area_contract") == "fbc"
@@ -227,6 +238,10 @@ class NativeAreaEventRuntime:
         """faV.a calls Qq callbacks first, then rLR -> Qf.q or Qs.b."""
         if not removal_mask_matches(definition, event_ids):
             return False
+        return self.remove_parent(row)
+
+    def remove_parent(self, row):
+        """Unapply an owned area's actual runner, including its client removal."""
         uid = row["effect_uid"]
         owned = getattr(self.fight, "native_owned_area_effects", {})
         if uid in owned:
@@ -236,7 +251,7 @@ class NativeAreaEventRuntime:
             retention.synchronize()
             if uid not in self.fight.native_retained_records:
                 raise ValueError("Missing actual faV parent eYQ in Qf")
-            retention.removal(retention.view()).remove(uid)
+            retention.removal(retention.view()).remove((uid,))
             retention.synchronize()
         else:
             from .combat_effect_area import remove_owned_hour_area
@@ -279,6 +294,10 @@ class NativeAreaEventRuntime:
         return tuple(result)
 
     def _deliver_event(self, row, definition, target, event_id):
+        from .combat_observation_scope import area_is_unobserved
+
+        if area_is_unobserved(row["uid"]):
+            return ()
         if row.get("native_area_contract") == "fbc":
             from .combat_trap_area import trap_owner_movement_allowed
 

@@ -61,6 +61,92 @@ class EffectRemovalTests(unittest.TestCase):
             )
             self.assertEqual(quiet[18:-16], original)
 
+    def test_configured_area_removal_forces_native_retirement_and_preserves_full_proto(
+        self,
+    ):
+        from wakfu_server.combat_effect_area_codec import area_payload
+        from wakfu_server.combat_delivery_owners import owner_catalog
+        from wakfu_server.combat_effect_removal import state_unapplication_payload
+        from wakfu_server.wire import proto_fields
+
+        original = area_payload(
+            uid=1234,
+            base_uid=1230,
+            effect_reference=160582,
+            area_reference=778,
+            area_uid=901,
+            level=60,
+            keep_after=False,
+            direction=3,
+            caster_id=-33,
+            cell=(2, -3, 4),
+            timing_payload=b"\x08\x00",
+            container_type=3,
+            container_id=456,
+            context_payload=b"\x08\x01",
+        )
+        families = [
+            int(key)
+            for key, contract in owner_catalog()["effects"].items()
+            if contract.get("bbA_owner") == "eYQ"
+            and contract.get("bbB_owner") == "eYQ"
+            and contract.get("bbB") is True
+        ]
+        self.assertIn(308, families)
+        self.assertIn(315, families)
+        before = dict(proto_fields(original))
+        for family in families:
+            with self.subTest(family=family):
+                packet = self.removal(
+                    effect_class=family, running_effect_payload=original
+                )
+                actual = dict(proto_fields(packet[18:-16]))
+                self.assertEqual(dict(proto_fields(actual[90]))[8], 1)
+                self.assertEqual(
+                    {k: v for k, v in actual.items() if k != 90},
+                    {k: v for k, v in before.items() if k != 90},
+                )
+                self.assertEqual(packet[18:-16], state_unapplication_payload(original))
+                self.assertEqual(struct.unpack(">qq", packet[-16:]), (-33, 1234))
+                quiet = self.removal(
+                    effect_class=family,
+                    running_effect_payload=original,
+                    notify_unapplication=False,
+                )
+                self.assertEqual(quiet[18:-16], original)
+
+    def test_actor_aura_retirement_preserves_persistent_area_keep_policy(self):
+        from wakfu_server.combat_effect_area_codec import area_payload
+        from wakfu_server.combat_effect_removal import state_unapplication_payload
+        from wakfu_server.wire import proto_fields
+
+        for keep_after in (False, True):
+            with self.subTest(keep_after=keep_after):
+                original = area_payload(
+                    uid=1234,
+                    base_uid=1230,
+                    effect_reference=160582,
+                    area_reference=778,
+                    area_uid=901,
+                    level=60,
+                    keep_after=keep_after,
+                    direction=3,
+                    caster_id=22,
+                    target_id=-33,
+                    cell=(2, -3, 4),
+                    timing_payload=b"\x08\x00",
+                    container_type=3,
+                    container_id=456,
+                    context_payload=b"\x08\x01",
+                )
+                packet = self.removal(effect_class=314, running_effect_payload=original)
+                payload = packet[18:-16]
+                self.assertEqual(payload, state_unapplication_payload(original))
+                additional = dict(proto_fields(dict(proto_fields(payload))[66]))
+                self.assertEqual(additional[136], int(keep_after))
+                self.assertEqual(additional[168], 901)
+                self.assertEqual(struct.unpack(">qq", packet[-16:]), (-33, 1234))
+
     def test_refuses_changed_identity_and_incomplete_proto(self):
         for args in [
             dict(uid=1235),
@@ -159,7 +245,9 @@ class EffectRemovalTests(unittest.TestCase):
         body = self.removal(
             effect_class=339, target_id=22, running_effect_payload=original
         )
-        self.assertEqual(body[18:-16], original)
+        from wakfu_server.combat_effect_removal import state_unapplication_payload
+
+        self.assertEqual(body[18:-16], state_unapplication_payload(original))
         self.assertEqual(struct.unpack(">qq", body[-16:]), (22, 1234))
         # Configured class339 is cell-only. A forged explicit actor recipient
         # cannot be admitted merely because the protobuf contains field7.
@@ -173,3 +261,53 @@ class EffectRemovalTests(unittest.TestCase):
             self.removal(
                 effect_class=339, target_id=23, running_effect_payload=original
             )
+
+    def test_configured_area_subclasses_preserve_cell_payload_for_replay(self):
+        from wakfu_server.combat_effect_area_codec import area_payload
+        from wakfu_server.combat_effects import _integer
+        from wakfu_server.combat_stat_effects import owned_effect_delivery
+
+        original = area_payload(
+            uid=1234,
+            base_uid=None,
+            effect_reference=160582,
+            area_reference=778,
+            area_uid=1233,
+            level=50,
+            keep_after=False,
+            direction=None,
+            caster_id=22,
+            cell=(-217, -70, 0),
+            timing_payload=b"\x08\x00",
+        )
+        # eYW/eYK/eYL/eYU/eYS inherit both recipient guards from eYQ.
+        # Their concrete runner name must not turn an area into an actor effect.
+        for family in (308, 313, 317, 813, 1008):
+            with self.subTest(family=family):
+                body = self.removal(
+                    effect_class=family,
+                    target_id=22,
+                    running_effect_payload=original,
+                )
+                from wakfu_server.combat_effect_removal import (
+                    state_unapplication_payload,
+                )
+
+                self.assertEqual(body[18:-16], state_unapplication_payload(original))
+                opcode, replay = owned_effect_delivery(
+                    1,
+                    2,
+                    native_opcode=12613,
+                    effect_class=family,
+                    target_id=22,
+                    uid=1234,
+                    running_effect_payload=original,
+                )
+                self.assertEqual(opcode, 12613)
+                self.assertEqual(replay[12], 0)
+                with self.assertRaisesRegex(ValueError, "owner flags"):
+                    self.removal(
+                        effect_class=family,
+                        target_id=-33,
+                        running_effect_payload=original + _integer(7, -33),
+                    )

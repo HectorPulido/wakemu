@@ -1,0 +1,2428 @@
+{
+  "schema_version": 1,
+  "policy": "reviewed_local_native_identity_v1",
+  "source_sha256": {
+    "docs/reports/achievements/installed-definition-ledger.json": "be72ff00ba36765ee365b489444ed5756a5c1249e43d07be6d73dd0dfe055051",
+    "docs/reports/dungeons/inventory.json": "e16b0cfd377b098fc25afcbd0aa40fbfa70dc816ca3c764bc9853101aea7ee65",
+    ".runtime/local/item-pricing-20261011/monster-metadata-source.json": "3c85bb9f77f9c1a2a3d6d053169d10c9591150f2e9f460446c0e14ad9c3f6998",
+    ".runtime/local/item-pricing-20261011/monster-source.json": "b3fef4fbb5000f1b0b0d0d686823fc3edf84e8f942f1da2f547076099293897d"
+  },
+  "variable_bindings": [
+    {
+      "variable_id": 51,
+      "breed_id": 39,
+      "native_family_id": 68,
+      "native_species_pool_dungeon_id": 90,
+      "native_name_es": "Jalat\u00edn blanco",
+      "authority": "proposed_explicit_local_policy",
+      "exclusions": "No fuzzy aliases, no Neo variants, no summons/duplicates; original authoritative victory roster only."
+    },
+    {
+      "variable_id": 52,
+      "breed_id": 2,
+      "native_family_id": 68,
+      "native_species_pool_dungeon_id": 90,
+      "native_name_es": "Jalat\u00edn negro",
+      "authority": "proposed_explicit_local_policy",
+      "exclusions": "No fuzzy aliases, no Neo variants, no summons/duplicates; original authoritative victory roster only."
+    },
+    {
+      "variable_id": 53,
+      "breed_id": 1,
+      "native_family_id": 68,
+      "native_species_pool_dungeon_id": 90,
+      "native_name_es": "Jalat\u00f3",
+      "authority": "proposed_explicit_local_policy",
+      "exclusions": "No fuzzy aliases, no Neo variants, no summons/duplicates; original authoritative victory roster only."
+    },
+    {
+      "variable_id": 54,
+      "breed_id": 41,
+      "native_family_id": 68,
+      "native_species_pool_dungeon_id": 90,
+      "native_name_es": "Jalal\u00ednea",
+      "authority": "proposed_explicit_local_policy",
+      "exclusions": "No fuzzy aliases, no Neo variants, no summons/duplicates; original authoritative victory roster only."
+    },
+    {
+      "variable_id": 55,
+      "breed_id": 3,
+      "native_family_id": 68,
+      "native_species_pool_dungeon_id": 90,
+      "native_name_es": "Jefe de guerra jalat\u00f3",
+      "authority": "proposed_explicit_local_policy",
+      "exclusions": "No fuzzy aliases, no Neo variants, no summons/duplicates; original authoritative victory roster only."
+    },
+    {
+      "variable_id": 109,
+      "breed_id": 44,
+      "native_family_id": 68,
+      "native_species_pool_dungeon_id": 90,
+      "native_name_es": "Jalat\u00f3 Real",
+      "authority": "proposed_explicit_local_policy",
+      "exclusions": "No fuzzy aliases, no Neo variants, no summons/duplicates; original authoritative victory roster only."
+    },
+    {
+      "variable_id": 56,
+      "breed_id": 6,
+      "native_family_id": 81,
+      "native_species_pool_dungeon_id": 27,
+      "native_name_es": "Beb\u00e9 tofu",
+      "authority": "proposed_explicit_local_policy",
+      "exclusions": "No fuzzy aliases, no Neo variants, no summons/duplicates; original authoritative victory roster only."
+    },
+    {
+      "variable_id": 57,
+      "breed_id": 4,
+      "native_family_id": 81,
+      "native_species_pool_dungeon_id": 27,
+      "native_name_es": "Tofu",
+      "authority": "proposed_explicit_local_policy",
+      "exclusions": "No fuzzy aliases, no Neo variants, no summons/duplicates; original authoritative victory roster only."
+    },
+    {
+      "variable_id": 58,
+      "breed_id": 5,
+      "native_family_id": 81,
+      "native_species_pool_dungeon_id": 27,
+      "native_name_es": "Tofona",
+      "authority": "proposed_explicit_local_policy",
+      "exclusions": "No fuzzy aliases, no Neo variants, no summons/duplicates; original authoritative victory roster only."
+    },
+    {
+      "variable_id": 59,
+      "breed_id": 704,
+      "native_family_id": 81,
+      "native_species_pool_dungeon_id": 27,
+      "native_name_es": "Gorditofu",
+      "authority": "proposed_explicit_local_policy",
+      "exclusions": "No fuzzy aliases, no Neo variants, no summons/duplicates; original authoritative victory roster only."
+    },
+    {
+      "variable_id": 108,
+      "breed_id": 1259,
+      "native_family_id": 81,
+      "native_species_pool_dungeon_id": 27,
+      "native_name_es": "Tofu Real",
+      "authority": "proposed_explicit_local_policy",
+      "exclusions": "No fuzzy aliases, no Neo variants, no summons/duplicates; original authoritative victory roster only."
+    },
+    {
+      "variable_id": 254,
+      "breed_id": 2201,
+      "native_family_id": 481,
+      "native_names": {
+        "fr": "Paquet Cadeau",
+        "en": "Gift Package",
+        "es": "Regalo"
+      },
+      "native_family_names": {
+        "fr": "Cadeaux de Nowel",
+        "en": "Kwismas Gifts",
+        "es": "Regalos de Nawidad"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 254,
+      "breed_id": 2224,
+      "native_family_id": 481,
+      "native_names": {
+        "fr": "Paquet Cadeau",
+        "en": "Gift Package",
+        "es": "Regalo"
+      },
+      "native_family_names": {
+        "fr": "Cadeaux de Nowel",
+        "en": "Kwismas Gifts",
+        "es": "Regalos de Nawidad"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 254,
+      "breed_id": 2231,
+      "native_family_id": 481,
+      "native_names": {
+        "fr": "Paquet Cadeau",
+        "en": "Gift Package",
+        "es": "Regalo"
+      },
+      "native_family_names": {
+        "fr": "Cadeaux de Nowel",
+        "en": "Kwismas Gifts",
+        "es": "Regalos de Nawidad"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 254,
+      "breed_id": 2232,
+      "native_family_id": 481,
+      "native_names": {
+        "fr": "Paquet Cadeau",
+        "en": "Gift Package",
+        "es": "Regalo"
+      },
+      "native_family_names": {
+        "fr": "Cadeaux de Nowel",
+        "en": "Kwismas Gifts",
+        "es": "Regalos de Nawidad"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 254,
+      "breed_id": 2233,
+      "native_family_id": 481,
+      "native_names": {
+        "fr": "Paquet Cadeau",
+        "en": "Gift Package",
+        "es": "Regalo"
+      },
+      "native_family_names": {
+        "fr": "Cadeaux de Nowel",
+        "en": "Kwismas Gifts",
+        "es": "Regalos de Nawidad"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 254,
+      "breed_id": 2234,
+      "native_family_id": 481,
+      "native_names": {
+        "fr": "Paquet Cadeau",
+        "en": "Gift Package",
+        "es": "Regalo"
+      },
+      "native_family_names": {
+        "fr": "Cadeaux de Nowel",
+        "en": "Kwismas Gifts",
+        "es": "Regalos de Nawidad"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 254,
+      "breed_id": 2874,
+      "native_family_id": 481,
+      "native_names": {
+        "fr": "Paquet Cadeau",
+        "en": "Gift Package",
+        "es": "Regalo"
+      },
+      "native_family_names": {
+        "fr": "Cadeaux de Nowel",
+        "en": "Kwismas Gifts",
+        "es": "Regalos de Nawidad"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 254,
+      "breed_id": 2875,
+      "native_family_id": 481,
+      "native_names": {
+        "fr": "Paquet Cadeau",
+        "en": "Gift Package",
+        "es": "Regalo"
+      },
+      "native_family_names": {
+        "fr": "Cadeaux de Nowel",
+        "en": "Kwismas Gifts",
+        "es": "Regalos de Nawidad"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 362,
+      "breed_id": 2754,
+      "native_family_id": 839,
+      "native_names": {
+        "fr": "Goule d'Halouine",
+        "en": "Al Howin Ghoul",
+        "es": "Ghul de Halu\u00edn"
+      },
+      "native_family_names": {
+        "fr": "Halouine",
+        "en": "Al Howin",
+        "es": "Halu\u00edn"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 224,
+      "breed_id": 2048,
+      "native_family_id": 839,
+      "native_names": {
+        "fr": "Bouftou d'Halouine",
+        "en": "Al Howin Gobball",
+        "es": "Jalat\u00f3 de Halu\u00edn"
+      },
+      "native_family_names": {
+        "fr": "Halouine",
+        "en": "Al Howin",
+        "es": "Halu\u00edn"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 224,
+      "breed_id": 2092,
+      "native_family_id": 839,
+      "native_names": {
+        "fr": "Bouftou d'Halouine",
+        "en": "Al Howin Gobball",
+        "es": "Jalat\u00f3 de Halu\u00edn"
+      },
+      "native_family_names": {
+        "fr": "Halouine",
+        "en": "Al Howin",
+        "es": "Halu\u00edn"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 224,
+      "breed_id": 2104,
+      "native_family_id": 839,
+      "native_names": {
+        "fr": "Bouftou d'Halouine",
+        "en": "Al Howin Gobball",
+        "es": "Jalat\u00f3 de Halu\u00edn"
+      },
+      "native_family_names": {
+        "fr": "Halouine",
+        "en": "Al Howin",
+        "es": "Halu\u00edn"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 559,
+      "breed_id": 3644,
+      "native_family_id": 745,
+      "native_names": {
+        "fr": "Mama Wapin",
+        "en": "Mama Wodent",
+        "es": "Mam\u00e1 wonejo"
+      },
+      "native_family_names": {
+        "fr": "Pwak",
+        "en": "Fleaster",
+        "es": "Pazcuak"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 559,
+      "breed_id": 3645,
+      "native_family_id": 745,
+      "native_names": {
+        "fr": "Ti Wapin",
+        "en": "Tiwodent",
+        "es": "Pekewonejo"
+      },
+      "native_family_names": {
+        "fr": "Pwak",
+        "en": "Fleaster",
+        "es": "Pazcuak"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 559,
+      "breed_id": 3646,
+      "native_family_id": 745,
+      "native_names": {
+        "fr": "Wapin",
+        "en": "Wodent",
+        "es": "Wonejo"
+      },
+      "native_family_names": {
+        "fr": "Pwak",
+        "en": "Fleaster",
+        "es": "Pazcuak"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 540,
+      "breed_id": 4018,
+      "native_family_id": 817,
+      "native_names": {
+        "fr": "Mimi P\u00e2ti",
+        "en": "Mimi Sk\u00e4te",
+        "es": "Torrejill\u00e4 de \u00e4ren\u00e4"
+      },
+      "native_family_names": {
+        "fr": "La M\u00e2dr\u00e2gue",
+        "en": "La M\u00e4drague",
+        "es": "La \u00c4lm\u00e4dr\u00e4b\u00e4"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 540,
+      "breed_id": 4019,
+      "native_family_id": 817,
+      "native_names": {
+        "fr": "P\u00e2ti Bulleur",
+        "en": "Bubble Sk\u00e4te",
+        "es": "M\u00e4gd\u00e4ren\u00e4"
+      },
+      "native_family_names": {
+        "fr": "La M\u00e2dr\u00e2gue",
+        "en": "La M\u00e4drague",
+        "es": "La \u00c4lm\u00e4dr\u00e4b\u00e4"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 540,
+      "breed_id": 4020,
+      "native_family_id": 817,
+      "native_names": {
+        "fr": "P\u00e2ti Imp\u00e9ri\u00e2l",
+        "en": "Imperi\u00e4l Sk\u00e4te",
+        "es": "Torrej\u00e4 imperi\u00e4l"
+      },
+      "native_family_names": {
+        "fr": "La M\u00e2dr\u00e2gue",
+        "en": "La M\u00e4drague",
+        "es": "La \u00c4lm\u00e4dr\u00e4b\u00e4"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 540,
+      "breed_id": 4022,
+      "native_family_id": 817,
+      "native_names": {
+        "fr": "P\u00e2ti Noir",
+        "en": "Bl\u00e4ck Sk\u00e4te",
+        "es": "P\u00e4tinoj\u00e4ldre"
+      },
+      "native_family_names": {
+        "fr": "La M\u00e2dr\u00e2gue",
+        "en": "La M\u00e4drague",
+        "es": "La \u00c4lm\u00e4dr\u00e4b\u00e4"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 554,
+      "breed_id": 4212,
+      "native_family_id": 880,
+      "native_names": {
+        "fr": "Bouftou Patraque",
+        "en": "Potrick Gobball",
+        "es": "Jalat\u00f3 de San Pat\u00edrico"
+      },
+      "native_family_names": {
+        "fr": "Fin Patraque",
+        "en": "Saint Potrick",
+        "es": "San Pat\u00edrico"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    },
+    {
+      "variable_id": 697,
+      "breed_id": 4852,
+      "native_family_id": 839,
+      "native_names": {
+        "fr": "Yokai",
+        "en": "Yokai",
+        "es": "Yokai"
+      },
+      "native_family_names": {
+        "fr": "Halouine",
+        "en": "Al Howin",
+        "es": "Halu\u00edn"
+      },
+      "authority": "reviewed_explicit_local_policy",
+      "exclusions": []
+    }
+  ],
+  "definitions": [
+    {
+      "definition_id": 232,
+      "event": {
+        "kind": "owned_final_dungeon_victory",
+        "native_dungeon_id": 26
+      },
+      "objectives": [
+        {
+          "objective_id": 1013,
+          "dungeon_id": 26
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20672,
+            10
+          ],
+          "d": 4608,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 238,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          51,
+          52,
+          53
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 617,
+          "variable_id": 51,
+          "breed_id": 39,
+          "operator": "==",
+          "threshold": 1
+        },
+        {
+          "objective_id": 618,
+          "variable_id": 52,
+          "breed_id": 2,
+          "operator": "==",
+          "threshold": 1
+        },
+        {
+          "objective_id": 619,
+          "variable_id": 53,
+          "breed_id": 1,
+          "operator": "==",
+          "threshold": 1
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            7361,
+            5
+          ],
+          "d": 284,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 239,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          51,
+          52,
+          53,
+          54,
+          55
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 620,
+          "variable_id": 51,
+          "breed_id": 39,
+          "operator": "==",
+          "threshold": 5
+        },
+        {
+          "objective_id": 621,
+          "variable_id": 52,
+          "breed_id": 2,
+          "operator": "==",
+          "threshold": 5
+        },
+        {
+          "objective_id": 622,
+          "variable_id": 53,
+          "breed_id": 1,
+          "operator": "==",
+          "threshold": 5
+        },
+        {
+          "objective_id": 623,
+          "variable_id": 54,
+          "breed_id": 41,
+          "operator": "==",
+          "threshold": 5
+        },
+        {
+          "objective_id": 624,
+          "variable_id": 55,
+          "breed_id": 3,
+          "operator": "==",
+          "threshold": 1
+        }
+      ],
+      "prerequisites": [
+        238
+      ],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            2021,
+            1
+          ],
+          "d": 285,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "IsAchievementComplete(238)",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 240,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          51,
+          52,
+          53,
+          54,
+          55
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 625,
+          "variable_id": 51,
+          "breed_id": 39,
+          "operator": "==",
+          "threshold": 10
+        },
+        {
+          "objective_id": 626,
+          "variable_id": 52,
+          "breed_id": 2,
+          "operator": "==",
+          "threshold": 10
+        },
+        {
+          "objective_id": 627,
+          "variable_id": 53,
+          "breed_id": 1,
+          "operator": "==",
+          "threshold": 10
+        },
+        {
+          "objective_id": 628,
+          "variable_id": 54,
+          "breed_id": 41,
+          "operator": "==",
+          "threshold": 10
+        },
+        {
+          "objective_id": 629,
+          "variable_id": 55,
+          "breed_id": 3,
+          "operator": "==",
+          "threshold": 10
+        }
+      ],
+      "prerequisites": [
+        239
+      ],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            2024,
+            1
+          ],
+          "d": 286,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "IsAchievementComplete(239)",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 241,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          51,
+          52,
+          53,
+          54,
+          55
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 630,
+          "variable_id": 51,
+          "breed_id": 39,
+          "operator": "==",
+          "threshold": 50
+        },
+        {
+          "objective_id": 631,
+          "variable_id": 52,
+          "breed_id": 2,
+          "operator": "==",
+          "threshold": 50
+        },
+        {
+          "objective_id": 632,
+          "variable_id": 53,
+          "breed_id": 1,
+          "operator": "==",
+          "threshold": 50
+        },
+        {
+          "objective_id": 633,
+          "variable_id": 54,
+          "breed_id": 41,
+          "operator": "==",
+          "threshold": 50
+        },
+        {
+          "objective_id": 634,
+          "variable_id": 55,
+          "breed_id": 3,
+          "operator": "==",
+          "threshold": 50
+        }
+      ],
+      "prerequisites": [
+        240
+      ],
+      "rewards": [
+        {
+          "aeV": 2,
+          "ckk": false,
+          "ckl": [
+            98
+          ],
+          "d": 287,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_TITLE"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            9812,
+            1
+          ],
+          "d": 288,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "IsAchievementComplete(240)",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 242,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          51,
+          52,
+          53,
+          54,
+          55,
+          109
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 635,
+          "variable_id": 51,
+          "breed_id": 39,
+          "operator": "==",
+          "threshold": 100
+        },
+        {
+          "objective_id": 636,
+          "variable_id": 52,
+          "breed_id": 2,
+          "operator": "==",
+          "threshold": 100
+        },
+        {
+          "objective_id": 637,
+          "variable_id": 53,
+          "breed_id": 1,
+          "operator": "==",
+          "threshold": 100
+        },
+        {
+          "objective_id": 638,
+          "variable_id": 54,
+          "breed_id": 41,
+          "operator": "==",
+          "threshold": 100
+        },
+        {
+          "objective_id": 639,
+          "variable_id": 55,
+          "breed_id": 3,
+          "operator": "==",
+          "threshold": 100
+        },
+        {
+          "objective_id": 817,
+          "variable_id": 109,
+          "breed_id": 44,
+          "operator": "==",
+          "threshold": 1
+        }
+      ],
+      "prerequisites": [
+        241
+      ],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            10309,
+            1
+          ],
+          "d": 290,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "IsAchievementComplete(241)",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 243,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          56,
+          57
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 640,
+          "variable_id": 56,
+          "breed_id": 6,
+          "operator": "==",
+          "threshold": 1
+        },
+        {
+          "objective_id": 641,
+          "variable_id": 57,
+          "breed_id": 4,
+          "operator": "==",
+          "threshold": 1
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            7358,
+            5
+          ],
+          "d": 291,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 244,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          56,
+          57,
+          58,
+          59
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 643,
+          "variable_id": 56,
+          "breed_id": 6,
+          "operator": "==",
+          "threshold": 5
+        },
+        {
+          "objective_id": 644,
+          "variable_id": 57,
+          "breed_id": 4,
+          "operator": "==",
+          "threshold": 5
+        },
+        {
+          "objective_id": 645,
+          "variable_id": 58,
+          "breed_id": 5,
+          "operator": "==",
+          "threshold": 5
+        },
+        {
+          "objective_id": 646,
+          "variable_id": 59,
+          "breed_id": 704,
+          "operator": "==",
+          "threshold": 1
+        }
+      ],
+      "prerequisites": [
+        243
+      ],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            2038,
+            1
+          ],
+          "d": 292,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "IsAchievementComplete(243)",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 245,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          56,
+          57,
+          58,
+          59
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 647,
+          "variable_id": 56,
+          "breed_id": 6,
+          "operator": "==",
+          "threshold": 10
+        },
+        {
+          "objective_id": 648,
+          "variable_id": 57,
+          "breed_id": 4,
+          "operator": "==",
+          "threshold": 10
+        },
+        {
+          "objective_id": 649,
+          "variable_id": 58,
+          "breed_id": 5,
+          "operator": "==",
+          "threshold": 10
+        },
+        {
+          "objective_id": 650,
+          "variable_id": 59,
+          "breed_id": 704,
+          "operator": "==",
+          "threshold": 10
+        }
+      ],
+      "prerequisites": [
+        244
+      ],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            2089,
+            1
+          ],
+          "d": 293,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "IsAchievementComplete(244)",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 246,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          56,
+          57,
+          58,
+          59
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 651,
+          "variable_id": 56,
+          "breed_id": 6,
+          "operator": "==",
+          "threshold": 50
+        },
+        {
+          "objective_id": 652,
+          "variable_id": 57,
+          "breed_id": 4,
+          "operator": "==",
+          "threshold": 50
+        },
+        {
+          "objective_id": 653,
+          "variable_id": 58,
+          "breed_id": 5,
+          "operator": "==",
+          "threshold": 50
+        },
+        {
+          "objective_id": 654,
+          "variable_id": 59,
+          "breed_id": 704,
+          "operator": "==",
+          "threshold": 50
+        }
+      ],
+      "prerequisites": [
+        245
+      ],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            9812,
+            1
+          ],
+          "d": 295,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        },
+        {
+          "aeV": 2,
+          "ckk": false,
+          "ckl": [
+            99
+          ],
+          "d": 294,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_TITLE"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "IsAchievementComplete(245)",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 247,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          56,
+          57,
+          58,
+          59,
+          108
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 656,
+          "variable_id": 56,
+          "breed_id": 6,
+          "operator": "==",
+          "threshold": 100
+        },
+        {
+          "objective_id": 658,
+          "variable_id": 57,
+          "breed_id": 4,
+          "operator": "==",
+          "threshold": 100
+        },
+        {
+          "objective_id": 659,
+          "variable_id": 58,
+          "breed_id": 5,
+          "operator": "==",
+          "threshold": 100
+        },
+        {
+          "objective_id": 660,
+          "variable_id": 59,
+          "breed_id": 704,
+          "operator": "==",
+          "threshold": 100
+        },
+        {
+          "objective_id": 816,
+          "variable_id": 108,
+          "breed_id": 1259,
+          "operator": "==",
+          "threshold": 1
+        }
+      ],
+      "prerequisites": [
+        246
+      ],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            10310,
+            1
+          ],
+          "d": 296,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "IsAchievementComplete(246)",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 818,
+      "event": {
+        "kind": "owned_final_dungeon_victory",
+        "native_dungeon_id": 65
+      },
+      "objectives": [
+        {
+          "objective_id": 1638,
+          "dungeon_id": 65
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            12686,
+            10
+          ],
+          "d": 4603,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 840,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          254
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 1684,
+          "variable_id": 254,
+          "operator": ">=",
+          "threshold": 40
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 2,
+          "ckk": false,
+          "ckl": [
+            200
+          ],
+          "d": 1199,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_TITLE"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 2198,
+      "event": {
+        "kind": "owned_final_dungeon_victory",
+        "native_dungeon_id": 89
+      },
+      "objectives": [
+        {
+          "objective_id": 4339,
+          "dungeon_id": 89
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20672,
+            10
+          ],
+          "d": 4612,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 2204,
+      "event": {
+        "kind": "owned_final_dungeon_victory",
+        "native_dungeon_id": 90
+      },
+      "objectives": [
+        {
+          "objective_id": 4347,
+          "dungeon_id": 90
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            12686,
+            10
+          ],
+          "d": 4606,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 2209,
+      "event": {
+        "kind": "owned_final_dungeon_victory",
+        "native_dungeon_id": 27
+      },
+      "objectives": [
+        {
+          "objective_id": 4354,
+          "dungeon_id": 27
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            12686,
+            10
+          ],
+          "d": 4600,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 2382,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          362
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 4685,
+          "variable_id": 362,
+          "operator": ">=",
+          "threshold": 666
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 2,
+          "ckk": false,
+          "ckl": [
+            260
+          ],
+          "d": 3873,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_TITLE"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            19009,
+            30
+          ],
+          "d": 3874,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 2383,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          224
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 4686,
+          "variable_id": 224,
+          "operator": ">=",
+          "threshold": 666
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 2,
+          "ckk": false,
+          "ckl": [
+            176
+          ],
+          "d": 3875,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_TITLE"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            19009,
+            30
+          ],
+          "d": 3876,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 2384,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          362
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 4687,
+          "variable_id": 362,
+          "operator": ">=",
+          "threshold": 66
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            19009,
+            10
+          ],
+          "d": 3877,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 2385,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          224
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 4688,
+          "variable_id": 224,
+          "operator": ">=",
+          "threshold": 66
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            19009,
+            10
+          ],
+          "d": 3878,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 2611,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          559
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 5177,
+          "variable_id": 559,
+          "operator": ">=",
+          "threshold": 30
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 2,
+          "ckk": false,
+          "ckl": [
+            134
+          ],
+          "d": 4156,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_TITLE"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 2917,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          540
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 5991,
+          "variable_id": 540,
+          "operator": ">",
+          "threshold": 59
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20392,
+            1
+          ],
+          "d": 4517,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        },
+        {
+          "aeV": 2,
+          "ckk": false,
+          "ckl": [
+            414
+          ],
+          "d": 4516,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_TITLE"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 2980,
+      "event": {
+        "kind": "owned_original_breed_victory"
+      },
+      "objectives": [
+        {
+          "objective_id": 6222,
+          "breed_id": 4086,
+          "required_kills": 1
+        },
+        {
+          "objective_id": 6223,
+          "breed_id": 4101,
+          "required_kills": 1
+        },
+        {
+          "objective_id": 6224,
+          "breed_id": 4097,
+          "required_kills": 1
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            37220
+          ],
+          "d": 4665,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_XP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            12686,
+            20
+          ],
+          "d": 4664,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false,
+      "native_identity_proof": [
+        {
+          "definition_id": 2980,
+          "objective_id": 6222,
+          "required_kills": 1,
+          "breed_ref": 4086,
+          "family_id": 68,
+          "family_names": {
+            "fr": "Bouftous",
+            "en": "Gobballs",
+            "es": "Jalat\u00f3s"
+          },
+          "names": {
+            "fr": "Bouchtrou l'Esseul\u00e9",
+            "en": "Filholl the Forsaken",
+            "es": "Jalabujero el Abandonado"
+          },
+          "native_role_id": 2,
+          "native_role_name": "ARCHMONSTER",
+          "min_level": 23,
+          "max_level": 28,
+          "objective": {
+            "definition_id": 2980,
+            "objective_id": 6222,
+            "text_en": "Defeat the Archmonster \"Filholl the Forsaken\"",
+            "text_es": "Vencer al archimonstruo Jalabujero el Abandonado",
+            "criterion_ckc": "",
+            "criterion_cke": "",
+            "variable_rules": [],
+            "markers": [],
+            "raw_flag_ckb": true
+          },
+          "category_chain": [
+            642,
+            939
+          ],
+          "authority": "explicit_local_policy_with_exact_native_archmonster_identity",
+          "confidence": "high",
+          "exclusions": []
+        },
+        {
+          "definition_id": 2980,
+          "objective_id": 6223,
+          "required_kills": 1,
+          "breed_ref": 4101,
+          "family_id": 81,
+          "family_names": {
+            "fr": "Tofus",
+            "en": "Tofus",
+            "es": "Tofus"
+          },
+          "names": {
+            "fr": "Griffu l'Ac\u00e9r\u00e9",
+            "en": "Claud Sharpe",
+            "es": "Ganchudo el Acerado"
+          },
+          "native_role_id": 2,
+          "native_role_name": "ARCHMONSTER",
+          "min_level": 23,
+          "max_level": 28,
+          "objective": {
+            "definition_id": 2980,
+            "objective_id": 6223,
+            "text_en": "Defeat the Archmonster \"Claud Sharpe\"",
+            "text_es": "Vencer al archimonstruo Ganchudo el Acerado",
+            "criterion_ckc": "",
+            "criterion_cke": "",
+            "variable_rules": [],
+            "markers": [],
+            "raw_flag_ckb": true
+          },
+          "category_chain": [
+            642,
+            939
+          ],
+          "authority": "explicit_local_policy_with_exact_native_archmonster_identity",
+          "confidence": "high",
+          "exclusions": []
+        },
+        {
+          "definition_id": 2980,
+          "objective_id": 6224,
+          "required_kills": 1,
+          "breed_ref": 4097,
+          "family_id": 147,
+          "family_names": {
+            "fr": "Larves",
+            "en": "Larvae",
+            "es": "Larvas"
+          },
+          "names": {
+            "fr": "Lartifice l'Explosive",
+            "en": "Explosive Larvawork",
+            "es": "Lartificia la Explosiva"
+          },
+          "native_role_id": 2,
+          "native_role_name": "ARCHMONSTER",
+          "min_level": 23,
+          "max_level": 28,
+          "objective": {
+            "definition_id": 2980,
+            "objective_id": 6224,
+            "text_en": "Defeat the Archmonster \"Explosive Larvawork\"",
+            "text_es": "Vencer al archimonstruo Lartificia la Explosiva",
+            "criterion_ckc": "",
+            "criterion_cke": "",
+            "variable_rules": [],
+            "markers": [],
+            "raw_flag_ckb": true
+          },
+          "category_chain": [
+            642,
+            939
+          ],
+          "authority": "explicit_local_policy_with_exact_native_archmonster_identity",
+          "confidence": "high",
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "definition_id": 2981,
+      "event": {
+        "kind": "owned_original_breed_victory"
+      },
+      "objectives": [
+        {
+          "objective_id": 6225,
+          "breed_id": 4100,
+          "required_kills": 1
+        },
+        {
+          "objective_id": 6226,
+          "breed_id": 4098,
+          "required_kills": 1
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            131500
+          ],
+          "d": 4698,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_XP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20672,
+            20
+          ],
+          "d": 4697,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false,
+      "native_identity_proof": [
+        {
+          "definition_id": 2981,
+          "objective_id": 6225,
+          "required_kills": 1,
+          "breed_ref": 4100,
+          "family_id": 79,
+          "family_names": {
+            "fr": "Pious",
+            "en": "Piwis",
+            "es": "P\u00edos"
+          },
+          "names": {
+            "fr": "Pewpew l'Artilleur",
+            "en": "Gunner Pewpew",
+            "es": "Piupiu, el Artillero"
+          },
+          "native_role_id": 2,
+          "native_role_name": "ARCHMONSTER",
+          "min_level": 38,
+          "max_level": 43,
+          "objective": {
+            "definition_id": 2981,
+            "objective_id": 6225,
+            "text_en": "Defeat the Archmonster \"Gunner Pewpew\"",
+            "text_es": "Vencer al archimonstruo Piupiu, el Artillero",
+            "criterion_ckc": "",
+            "criterion_cke": "",
+            "variable_rules": [],
+            "markers": [],
+            "raw_flag_ckb": true
+          },
+          "category_chain": [
+            643,
+            939
+          ],
+          "authority": "explicit_local_policy_with_exact_native_archmonster_identity",
+          "confidence": "high",
+          "exclusions": []
+        },
+        {
+          "definition_id": 2981,
+          "objective_id": 6226,
+          "required_kills": 1,
+          "breed_ref": 4098,
+          "family_id": 829,
+          "family_names": {
+            "fr": "Abraknes",
+            "en": "Treechnees",
+            "es": "Abraknos"
+          },
+          "names": {
+            "fr": "Abribus le Protecteur",
+            "en": "Abribus the Protector",
+            "es": "Marquesino, el Protector"
+          },
+          "native_role_id": 2,
+          "native_role_name": "ARCHMONSTER",
+          "min_level": 38,
+          "max_level": 43,
+          "objective": {
+            "definition_id": 2981,
+            "objective_id": 6226,
+            "text_en": "Defeat the Archmonster \"Abribus the Protector\"",
+            "text_es": "Vencer al archimonstruo Marquesino, el Protector",
+            "criterion_ckc": "",
+            "criterion_cke": "",
+            "variable_rules": [],
+            "markers": [],
+            "raw_flag_ckb": true
+          },
+          "category_chain": [
+            643,
+            939
+          ],
+          "authority": "explicit_local_policy_with_exact_native_archmonster_identity",
+          "confidence": "high",
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "definition_id": 3107,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          554
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 6507,
+          "variable_id": 554,
+          "operator": ">=",
+          "threshold": 20
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 2,
+          "ckk": false,
+          "ckl": [
+            133
+          ],
+          "d": 4879,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_TITLE"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 3299,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          559
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 6973,
+          "variable_id": 559,
+          "operator": ">=",
+          "threshold": 200
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 2,
+          "ckk": false,
+          "ckl": [
+            464
+          ],
+          "d": 5585,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_TITLE"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 3629,
+      "event": {
+        "kind": "owned_final_dungeon_victory",
+        "native_dungeon_id": 125
+      },
+      "objectives": [
+        {
+          "objective_id": 7491,
+          "dungeon_id": 125
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20672,
+            10
+          ],
+          "d": 6387,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false,
+      "native_identity_proof": {
+        "definition_id": 125,
+        "map_id": 1091,
+        "native_species_pool": [
+          4076,
+          4077,
+          4078,
+          4079,
+          4107
+        ],
+        "configuration_slug": "donjon-des-abraknes",
+        "original_objective_fr": "Terminer le Donjon \"Donjon des Abraknes\""
+      }
+    },
+    {
+      "definition_id": 3800,
+      "event": {
+        "kind": "owned_original_breed_victory"
+      },
+      "objectives": [
+        {
+          "objective_id": 7851,
+          "breed_id": 4368,
+          "required_kills": 1
+        },
+        {
+          "objective_id": 11502,
+          "breed_id": 1632,
+          "required_kills": 1
+        },
+        {
+          "objective_id": 11503,
+          "breed_id": 5005,
+          "required_kills": 1
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            378100
+          ],
+          "d": 6754,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_XP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20968,
+            20
+          ],
+          "d": 6755,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false,
+      "native_identity_proof": [
+        {
+          "definition_id": 3800,
+          "objective_id": 7851,
+          "required_kills": 1,
+          "breed_ref": 4368,
+          "family_id": 291,
+          "family_names": {
+            "fr": "Craqueleurs",
+            "en": "Cracklers",
+            "es": "Crujidores"
+          },
+          "names": {
+            "fr": "Craqnoix le G\u00eaneur",
+            "en": "Cracknut the Nuisance",
+            "es": "Crujenueces el Molesto"
+          },
+          "native_role_id": 2,
+          "native_role_name": "ARCHMONSTER",
+          "min_level": 53,
+          "max_level": 58,
+          "objective": {
+            "definition_id": 3800,
+            "objective_id": 7851,
+            "text_en": "Defeat the Archmonster \"Cracknut the Nuisance\"",
+            "text_es": "Vencer al archimonstruo Crujenueces el Molesto",
+            "criterion_ckc": "",
+            "criterion_cke": "",
+            "variable_rules": [],
+            "markers": [],
+            "raw_flag_ckb": true
+          },
+          "category_chain": [
+            644,
+            939
+          ],
+          "authority": "explicit_local_policy_with_exact_native_archmonster_identity",
+          "confidence": "high",
+          "exclusions": []
+        },
+        {
+          "definition_id": 3800,
+          "objective_id": 11502,
+          "required_kills": 1,
+          "breed_ref": 1632,
+          "family_id": 219,
+          "family_names": {
+            "fr": "Moogrr",
+            "en": "Moogrr",
+            "es": "Muuugresa"
+          },
+          "names": {
+            "fr": "Moumoute la Postiche",
+            "en": "Moothane the Gas",
+            "es": "Pacmuuungr la Hambrienta"
+          },
+          "native_role_id": 2,
+          "native_role_name": "ARCHMONSTER",
+          "min_level": 53,
+          "max_level": 58,
+          "objective": {
+            "definition_id": 3800,
+            "objective_id": 11502,
+            "text_en": "Defeat the Archmonster \"Moothane the Gas\"",
+            "text_es": "Vencer al archimonstruo Pacmuuungr la Hambrienta",
+            "criterion_ckc": "",
+            "criterion_cke": "",
+            "variable_rules": [],
+            "markers": [],
+            "raw_flag_ckb": true
+          },
+          "category_chain": [
+            644,
+            939
+          ],
+          "authority": "explicit_local_policy_with_exact_native_archmonster_identity",
+          "confidence": "high",
+          "exclusions": []
+        },
+        {
+          "definition_id": 3800,
+          "objective_id": 11503,
+          "required_kills": 1,
+          "breed_ref": 5005,
+          "family_id": 113,
+          "family_names": {
+            "fr": "Plantes des Champs",
+            "en": "Field Plants",
+            "es": "Plantas de los campos"
+          },
+          "names": {
+            "fr": "Ros\u00e9e la matinale",
+            "en": "Dew the Early Riser",
+            "es": "Roc\u00edo la Matinal"
+          },
+          "native_role_id": 2,
+          "native_role_name": "ARCHMONSTER",
+          "min_level": 53,
+          "max_level": 58,
+          "objective": {
+            "definition_id": 3800,
+            "objective_id": 11503,
+            "text_en": "Defeat the Archmonster \"Dew the Early Riser\"",
+            "text_es": "Vencer al archimonstruo Roc\u00edo la Matinal",
+            "criterion_ckc": "",
+            "criterion_cke": "",
+            "variable_rules": [],
+            "markers": [],
+            "raw_flag_ckb": true
+          },
+          "category_chain": [
+            644,
+            939
+          ],
+          "authority": "explicit_local_policy_with_exact_native_archmonster_identity",
+          "confidence": "high",
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "definition_id": 4291,
+      "event": {
+        "kind": "original_breed_kill",
+        "variable_ids": [
+          697
+        ]
+      },
+      "objectives": [
+        {
+          "objective_id": 8921,
+          "variable_id": 697,
+          "operator": ">=",
+          "threshold": 444
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            26360,
+            1
+          ],
+          "d": 8040,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_ITEM"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false
+    },
+    {
+      "definition_id": 5164,
+      "event": {
+        "kind": "owned_original_breed_victory"
+      },
+      "objectives": [
+        {
+          "objective_id": 10631,
+          "breed_id": 5526,
+          "required_kills": 1
+        },
+        {
+          "objective_id": 10632,
+          "breed_id": 5527,
+          "required_kills": 1
+        }
+      ],
+      "prerequisites": [],
+      "rewards": [
+        {
+          "aeV": 2,
+          "ckk": false,
+          "ckl": [
+            761
+          ],
+          "d": 9720,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_TITLE"
+        },
+        {
+          "aeV": 3,
+          "ckk": false,
+          "ckl": [
+            20011
+          ],
+          "d": 9721,
+          "native_class": "aJP",
+          "native_type_name": "GIVE_PLAYER_EMOTE"
+        }
+      ],
+      "authority": "proposed_explicit_local_policy_not_activated",
+      "source_criteria": {
+        "aHe": "",
+        "cjI": ""
+      },
+      "native_repeatable": false,
+      "native_period": 0,
+      "mission_dependency": false,
+      "native_identity_proof": [
+        {
+          "definition_id": 5164,
+          "objective_id": 10631,
+          "required_kills": 1,
+          "breed_ref": 5526,
+          "family_id": 1115,
+          "family_names": {
+            "fr": "Extra Incarnam",
+            "en": "Extra Incarnam",
+            "es": "Extra Incarnam"
+          },
+          "names": {
+            "fr": "Bouftou c\u00e9leste",
+            "en": "Celestial Gobball",
+            "es": "Jalat\u00f3 celestial"
+          },
+          "native_role_id": 2,
+          "native_role_name": "ARCHMONSTER",
+          "min_level": 8,
+          "max_level": 8,
+          "objective": {
+            "definition_id": 5164,
+            "objective_id": 10631,
+            "text_en": "Defeat the Celestial Gobball",
+            "text_es": "Vencer al Jalat\u00f3 Celestial",
+            "criterion_ckc": "",
+            "criterion_cke": "",
+            "variable_rules": [],
+            "markers": [],
+            "raw_flag_ckb": true
+          },
+          "category_chain": [
+            431,
+            68
+          ],
+          "authority": "explicit_local_policy_with_exact_native_archmonster_identity",
+          "confidence": "high",
+          "exclusions": [
+            5891
+          ]
+        },
+        {
+          "definition_id": 5164,
+          "objective_id": 10632,
+          "required_kills": 1,
+          "breed_ref": 5527,
+          "family_id": 1115,
+          "family_names": {
+            "fr": "Extra Incarnam",
+            "en": "Extra Incarnam",
+            "es": "Extra Incarnam"
+          },
+          "names": {
+            "fr": "Dark Wapin",
+            "en": "Darth Wodent",
+            "es": "Dark wonejo"
+          },
+          "native_role_id": 2,
+          "native_role_name": "ARCHMONSTER",
+          "min_level": 8,
+          "max_level": 8,
+          "objective": {
+            "definition_id": 5164,
+            "objective_id": 10632,
+            "text_en": "Defeat Darth Wodent",
+            "text_es": "Vencer a Dark Wonejo",
+            "criterion_ckc": "",
+            "criterion_cke": "",
+            "variable_rules": [],
+            "markers": [],
+            "raw_flag_ckb": true
+          },
+          "category_chain": [
+            431,
+            68
+          ],
+          "authority": "explicit_local_policy_with_exact_native_archmonster_identity",
+          "confidence": "high",
+          "exclusions": [
+            4674
+          ]
+        }
+      ]
+    }
+  ],
+  "expanded_binding_provenance": {
+    "source_sha256": "3c85bb9f77f9c1a2a3d6d053169d10c9591150f2e9f460446c0e14ad9c3f6998",
+    "i18n_sha256": {
+      "fr": "12cab5e8b0959cf4cbafa0b675a77da4305a3a45777454239c1cee53f0ba3530",
+      "en": "a9a077c6805fbfc9caa28d1b398b1c1ec95e3df035f7f3853ace9d82e2d11830",
+      "es": "7a1e3247388f5e771e31f2ea1e4db7a2c7dc48d4108b71dae04789e7966ce7c8"
+    }
+  }
+}

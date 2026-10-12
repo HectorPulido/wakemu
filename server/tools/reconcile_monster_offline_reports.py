@@ -236,6 +236,29 @@ def reconcile(
     return result
 
 
+def catalog_reference_binding(report, wrapper):
+    """A completed catalog receipt must belong to the same actual report batch."""
+    try:
+        label = str(wrapper["reference"])
+        references = [int(value) for value in label.removeprefix("batch-").split("-")]
+    except (KeyError, ValueError):
+        return False
+    rows = [row["ref"] for row in report.get("monsters", [])]
+    return bool(rows) and len(rows) == len(set(rows)) and set(references) == set(rows)
+
+
+def passive_reference_proven(case, reference, npc, sources):
+    """Pass this reference's native descriptor to the existing final proof gate."""
+    from finalize_monster_spell_activation import final_passive_case_proven
+
+    authority = (
+        npc.get("activation_policy", {}).get("enabled_monsters", {}).get(str(reference))
+    )
+    if authority is None:
+        return False
+    return final_passive_case_proven(case, reference, authority, npc, sources)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("scope", "ledger", "candidate", "output"):
@@ -246,6 +269,12 @@ def main():
     root = Path(__file__).resolve().parents[2]
     if (root / ".runtime").resolve() not in args.output.resolve().parents:
         parser.error("Reconciled ledgers must stay beneath .runtime")
+    if args.output.resolve() in {
+        args.scope.resolve(),
+        args.ledger.resolve(),
+        (args.candidate / "manifest.json").resolve(),
+    }:
+        parser.error("Reconciliation requires a separate output artifact")
     load = lambda path: json.loads(path.read_text())
     manifest_path = args.candidate / "manifest.json"
     manifest = load(manifest_path)
@@ -259,6 +288,8 @@ def main():
         report = load(path)
         wrapper_path = path.with_name(path.stem + "-catalog-receipt.json")
         wrapper = load(wrapper_path) if wrapper_path.exists() else {}
+        if not catalog_reference_binding(report, wrapper):
+            wrapper = dict(wrapper, status="report_catalog_reference_binding_missing")
         # Actual source reads are checked; declared receipt hashes alone cannot qualify.
         for record in wrapper.get("catalog", {}).get("verified_documents", {}).values():
             source = Path(record["source"])
@@ -311,13 +342,7 @@ def main():
             for report, _, _ in evidence:
                 try:
                     sources = load_passive_source_authorities(manifest, report)
-                    return final_passive_case_proven(
-                        case,
-                        reference,
-                        npc["activation_policy"]["enabled_monsters"],
-                        npc,
-                        sources,
-                    )
+                    return passive_reference_proven(case, reference, npc, sources)
                 except (KeyError, OSError, ValueError, TypeError):
                     continue
             return False

@@ -2,6 +2,7 @@
 import ast
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+import importlib
 from types import SimpleNamespace
 import struct
 import unittest
@@ -141,7 +142,9 @@ class EnvironmentDispatchTests(unittest.TestCase):
         far = (12344, struct.pack(">q", 20) + b"lit")
         with patch.object(
             environment_interactions, "snapshots", return_value=(nearby, far)
-        ), patch("wakfu_server.environment_seats.snapshots", return_value=()):
+        ), patch("wakfu_server.environment_seats.snapshots", return_value=()), patch(
+            "wakfu_server.environment_doors.snapshots", return_value=()
+        ):
             self.scope["publish_environment_scene"](force=True)
             self.scope["publish_environment_scene"](force=True)
             self.scope["publish_environment_scene"]()
@@ -150,6 +153,32 @@ class EnvironmentDispatchTests(unittest.TestCase):
         with patch.object(environment_interactions, "snapshots") as snapshots:
             self.scope["publish_environment_scene"](force=True)
             snapshots.assert_not_called()
+
+    def test_overlay_combines_tuple_list_and_generator_snapshots(self):
+        interaction = (12344, struct.pack(">q", 10) + b"light")
+        seat = (12344, struct.pack(">q", 11) + b"seat")
+        door = (12344, struct.pack(">q", 12) + b"door")
+        far = (12344, struct.pack(">q", 20) + b"far")
+        self.namespace["world_static"].objects = lambda map_id: (
+            dict(id=10, x=1, y=1),
+            dict(id=11, x=1, y=1),
+            dict(id=12, x=1, y=1),
+            dict(id=20, x=1000, y=1000),
+        )
+        with patch.object(
+            environment_interactions, "snapshots", return_value=(interaction,)
+        ), patch.object(
+            importlib.import_module("wakfu_server.environment_seats"),
+            "snapshots",
+            return_value=[seat],
+        ), patch.object(
+            importlib.import_module("wakfu_server.environment_doors"),
+            "snapshots",
+            return_value=(packet for packet in (door, far)),
+        ):
+            self.scope["publish_environment_scene"](force=True)
+
+        self.assertEqual(self.sent, [interaction, seat, door])
 
     def test_wire_and_logout_cancellation_are_explicit(self):
         source = SERVER_SOURCE.read_text()

@@ -12,14 +12,18 @@ __pycache__/
 # Generated artifacts
 javac.*.args
 .env
-.env.*
 *.key
 *.pem
-docs/reports/combat-inventory/inventory.json
-
-#docs/reports/
-#docs/soluciones-wakemu/
+agents_docs/
 deleteme_*
+cache/
+AGENTS.md
 
 # Private client endpoint settings
 /client-tools/.env
+
+# Local agent coordination
+/WORLD_COORDINATION.md
+
+# Private persistent data and service credentials
+/.database/

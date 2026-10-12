@@ -191,7 +191,7 @@ def bonuses(character, *, build_index=None):
     territory_stats = character.get("territory_stat_bonuses", {})
     if not isinstance(territory_stats, dict) or any(
         type(stat) is not int
-        or stat not in (33, 36)
+        or stat not in (1, 33, 36)
         or type(delta) is not int
         or not -1000 <= delta <= 1000
         for stat, delta in territory_stats.items()

@@ -250,10 +250,11 @@ class AdminService(AdminActions, AdminSettings, AdminOperations, AccountBans):
 
     def maps(self, q="", limit=50, offset=0):
         with self.store.connection() as db:
+            names = admin_map_catalog.load(db)
             query = str(q)[:100]
             native_ids = [
                 int(key)
-                for key, name in admin_map_catalog.MAP_NAMES.items()
+                for key, name in names.items()
                 if query.casefold() in name.casefold()
             ]
             result = self._list(
@@ -264,7 +265,9 @@ class AdminService(AdminActions, AdminSettings, AdminOperations, AccountBans):
                 limit,
                 offset,
             )
-            result["items"] = [admin_map_catalog.label(row) for row in result["items"]]
+            result["items"] = [
+                admin_map_catalog.label(row, names) for row in result["items"]
+            ]
             return result
 
     def map(self, map_id):
@@ -280,7 +283,7 @@ class AdminService(AdminActions, AdminSettings, AdminOperations, AccountBans):
                     (map_id,),
                 )
             ]
-            result = admin_map_catalog.label(result)
+            result = admin_map_catalog.label(result, admin_map_catalog.load(db))
             result.update(admin_map_catalog.details(db, map_id))
             return result
 

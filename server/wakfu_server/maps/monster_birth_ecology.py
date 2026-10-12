@@ -83,7 +83,13 @@ def activate(db, groups, resource_uid):
         "unattributed_birth" if character_id is None else "native_region_unavailable"
     )
     if character_id is not None:
-        population = snapshot(db, *key[:2], kinds=("monster",), locate=surface)
+        population = snapshot(
+            db,
+            *key[:2],
+            kinds=("monster",),
+            locate=surface,
+            exclude_unassigned=True,
+        )
         try:
             regions = [
                 surface(key[0], member["x"], member["y"], member["z"])["region_id"]

@@ -10,11 +10,13 @@ from .ecology_population import snapshot
 from .ecology_policy import decision
 from .ecology_feedback import describe, information
 from .personal_ecology import apply
-from .planting_cells import surface
+from .ecology_context import population_region
 from .monsters import reference
 
 
-def finish(store, groups, lease, *, character_id, defeated, locate=surface, db=None):
+def finish(
+    store, groups, lease, *, character_id, defeated, locate=population_region, db=None
+):
     if type(character_id) is not int or not 0 < character_id < 2**63:
         raise ValueError("Invalid ecological outcome owner")
     if type(defeated) is not bool:
@@ -57,13 +59,23 @@ def finish(store, groups, lease, *, character_id, defeated, locate=surface, db=N
     evaluations = []
     unresolved = False
     if defeated:
-        population = snapshot(db, *key[:2], kinds=("monster",), locate=locate)
+        population = snapshot(
+            db,
+            *key[:2],
+            kinds=("monster",),
+            locate=locate,
+            exclude_unassigned=True,
+        )
         removals = Counter()
         if population["complete"]:
             for member in row["members"]:
                 region = locate(key[0], *(member[k] for k in ("x", "y", "z")))[
                     "region_id"
                 ]
+                # An exact native unassigned surface has no ecological owner.
+                # It contributes neither to regional population nor affinity.
+                if type(region) is int and region == -1:
+                    continue
                 removals[region, reference(member["ref"])["family_id"]] += 1
             for (region, family), amount in sorted(removals.items()):
                 before = population["regions"][region]["monster"][family]

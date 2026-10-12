@@ -251,7 +251,7 @@ class DockerControl:
             "wakemu_runtime",
         }:
             raise RuntimeError("An isolated test database must be configured")
-        secret_host = str(self.root / ".runtime/local/secrets/postgres-password")
+        secret_host = str(self.root / ".database/secrets/postgres-password")
         command = [
             "docker",
             "run",

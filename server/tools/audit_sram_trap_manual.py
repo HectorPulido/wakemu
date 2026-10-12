@@ -56,6 +56,33 @@ def run(output, *, level=200, spell=5182, mover="owner"):
         kwargs["monster_reference"], kwargs["monster_level"] = 5574, 133
         return original_fixture(*args, **kwargs)
 
+    def separated_owner_geometry(geometry, origin, target, breed, level, passive):
+        # Keep the native exported topology and register both placements before
+        # Ready. Owner activation should test traps rather than disengagement.
+        from audit_ready_start import bounded_arena
+
+        terrain = bounded_arena(geometry, origin, [target], radius=12)
+        cells = set(map(tuple, terrain["cells"]))
+        candidates = [
+            cell
+            for cell in cells
+            if cell[2] == origin[2]
+            and max(abs(cell[0] - origin[0]), abs(cell[1] - origin[1])) >= 6
+        ]
+        if not candidates:
+            raise ValueError("Owner trap audit needs a separated native NPC placement")
+        selected = min(
+            candidates,
+            key=lambda cell: (
+                abs(cell[0] - origin[0]) + abs(cell[1] - origin[1]),
+                cell,
+            ),
+        )
+        details["preplacement"] = dict(
+            owner=origin, enemy=selected, policy="native-separated-owner-trap-v1"
+        )
+        return origin, selected, terrain
+
     def on_runtime(runtime, character, monster, deck, packets, stats):
         source = runtime.fight
         caster = source.actors[character["id"]]
@@ -244,7 +271,7 @@ def run(output, *, level=200, spell=5182, mover="owner"):
                         )
                     else:
 
-                        def server_path(candidate_runtime):
+                        def server_path(candidate_runtime, step_callback):
                             from wakfu_server.combat_carrying import (
                                 set_registered_direction,
                             )
@@ -255,7 +282,9 @@ def run(output, *, level=200, spell=5182, mover="owner"):
                             facing = direction_after_path(
                                 actor.position, path, actor.direction
                             )
-                            event = candidate_runtime.fight.server_move(actor.id, path)
+                            event = candidate_runtime.fight.server_move(
+                                actor.id, path, step_callback=step_callback
+                            )
                             set_registered_direction(
                                 candidate_runtime.fight, actor, facing
                             )
@@ -281,12 +310,20 @@ def run(output, *, level=200, spell=5182, mover="owner"):
                 movement_trace=movement_trace,
                 movement_event=event,
                 final_position=tuple(live.actors[mover_id].position),
+                owner_final_position=tuple(live.actors[caster.id].position),
                 packet_count=len(movement_packets),
                 active_area_uids=sorted(live.native_effect_areas),
                 retired_manager_uids=sorted(
                     getattr(live, "native_retired_area_managers", {})
                 ),
             )
+            if mover == "enemy":
+                if details["owner_final_position"] != details["caster_origin"]:
+                    raise AssertionError("Enemy trap activation moved the Sram owner")
+                if details["final_position"] == details["mover_origin"]:
+                    raise AssertionError(
+                        "Enemy trap activation did not displace the NPC"
+                    )
             assert (
                 row["uid"] not in live.native_effect_areas
             ), "Finite trap survived successful activation"
@@ -303,6 +340,9 @@ def run(output, *, level=200, spell=5182, mover="owner"):
             on_runtime=on_runtime,
             turn_cycle=True,
             turn_steps=1,
+            preplacement_geometry_provider=(
+                separated_owner_geometry if mover == "owner" else None
+            ),
         )
     report["sram_trap_manual"] = details
     report["audit_tool_sha256"] = tool_hash

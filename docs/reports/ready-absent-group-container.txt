@@ -1,7 +1,0 @@
-Contenedor ausente de grupos nativos — corrección offline
-
-Causa: group_payload codificaba siempre campos protobuf 9 y 10. El grupo1020 activado durante Ready puede no tener PL; intentar codificar None provocaba TypeError. Qe.a(iP) escribe ambos campos únicamente si bfq no es null. Se omiten ambos para ausencia completa; una ausencia parcial se rechaza, sin inventar identidad cero.
-
-Verificación: ProbeNativeAbsentGroupContainer compara serialización eYg/eYw/eYm del JAR; bytes idénticos al helper propio. Dos pruebas de codec pasan y diez regresiones de grupos retenidos pasan. Focal Ready Feca6991 niveles20/200: el error desaparece en ambos, rollback se conserva, fuente estable durante la corrida posterior. Nuevo bloqueo común:304963 clase400, Subscribed effect requires native event delivery. Esto no acredita Ready completo ni todas las clases.
-
-Informes antes/después: docs/reports/combat-inventory/ready-null-container-before.json y ready-null-container-after.json. El hash global previo cambió solo porque se agregó un JSON de auditoría no consumido; no cambió código ejecutable. No se reiniciaron servicios ni se operó la GUI.

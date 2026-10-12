@@ -241,10 +241,10 @@ def complete(
             current[k] != character[k] for k in ("map_id", "instance_id", "x", "y", "z")
         ):
             raise ValueError("Planting origin changed")
-        if current["map_id"] == 9:
-            from .haven_bag_garden import room_at
+        from .haven_bag_garden import is_private_garden, validate_target
 
-            room_at(current, request["x"], request["y"])
+        if is_private_garden(current):
+            validate_target(current, request["x"], request["y"], z=prepared["z"])
         item = db.execute(
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (request["item_uid"], character["id"]),
@@ -252,6 +252,12 @@ def complete(
         if item is None or item["reference"] != prepared["seed"]["item_reference"]:
             raise ValueError("Seed no longer owned")
         cell = tuple(resource[key] for key in ("map_id", "instance_id", "x", "y"))
+        if current["map_id"] == 1440:
+            from .planting_cells import assert_private_furniture_unoccupied
+
+            # Furniture deployment holds this same canonical host lock before
+            # checking plants. Retain it through the resource insert transaction.
+            assert_private_furniture_unoccupied(db, current, request, lock_owner=True)
         db.execute(
             "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
             ("planting-cell:" + ":".join(map(str, cell)),),
@@ -337,6 +343,7 @@ def complete(
         from .profession_store import award
         from hashlib import sha256
 
+        custom_task_update = None
         if success:
             from wakfu_server.territory_bonuses import (
                 current_region,
@@ -356,6 +363,20 @@ def complete(
                 operation="planting:" + sha256(operation_id.encode()).hexdigest(),
                 territory_percent=territory_percent,
             )
+            if definition["monster_resource"]:
+                from wakfu_server.custom_tasks.adapters import monster_planting
+
+                custom_task_update = monster_planting(
+                    db,
+                    account,
+                    character["id"],
+                    operation_id,
+                    request=request,
+                    resource=resource,
+                    seed=prepared["seed"],
+                    definition=definition,
+                    actual_seed_reference=item["reference"],
+                )
         else:
             progress = dict(packets=[])
     # cgN12954 calls bJt.d/e, which only displays item.selfDrop; it does not
@@ -374,6 +395,7 @@ def complete(
         + progress["packets"]
         + ecology["packets"],
         ecology=ecology,
+        custom_task_update=custom_task_update,
         character=(
             location_context(store.character(account, character["id"]))
             if location_context is not None

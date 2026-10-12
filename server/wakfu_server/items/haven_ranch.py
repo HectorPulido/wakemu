@@ -30,8 +30,8 @@ class RanchSession:
     """A child private scene with a separate, strictly map9 parent capability."""
 
     def __init__(self, bag, character, target, *, lease, now_ms):
-        if not bag.owns(character) or not bag.is_owner:
-            raise ValueError("Ranch entry requires the owned live bag")
+        if not bag.owns(character):
+            raise ValueError("Ranch entry requires the live host bag")
         if lease is None or now_ms <= 0:
             raise ValueError("Ranch entry requires a live actor lease and clock")
         biome = target.get("biome_id")
@@ -51,16 +51,21 @@ class RanchSession:
             **character,
             **{k: target[k] for k in ("map_id", "x", "y", "z")},
             "instance_id": bag.bag_instance_id,
+            "haven_ranch_session": True,
         }
 
     def owns(self, character):
-        return not self.closed and all(
-            character.get(k) == self.inside[k]
-            for k in ("id", "account_id", "map_id", "instance_id")
+        return (
+            not self.closed
+            and self.parent.owns(self.return_point)
+            and all(
+                character.get(k) == self.inside[k]
+                for k in ("id", "account_id", "map_id", "instance_id")
+            )
         )
 
     def validate_lease(self, lease):
-        if self.closed or lease != self.lease:
+        if not self.owns(self.inside) or lease != self.lease:
             raise ValueError("Expired ranch actor lease")
 
     def move(self, character, end):
@@ -70,6 +75,20 @@ class RanchSession:
             raise ValueError("Invalid private ranch movement")
         self.inside = {**character, **end}
         return dict(self.inside)
+
+    def rebind(self, character, saved):
+        """Change selected hero while retaining the host ranch and parent bag."""
+        if not self.owns(character):
+            raise ValueError("Character is outside its ranch")
+        returned = self.parent.rebind(self.return_point, saved)
+        inside = {
+            **returned,
+            **{key: character[key] for key in POSITION},
+            "haven_ranch_session": True,
+        }
+        self.return_point = returned
+        self.inside = inside
+        return dict(inside)
 
     def refresh(self, character, saved):
         if (
@@ -81,7 +100,11 @@ class RanchSession:
         # Let the parent update its authoritative exterior metadata while
         # retaining the immediate bag return location and visitor policy.
         self.return_point = self.parent.refresh(self.return_point, saved)
-        self.inside = {**self.return_point, **{k: character[k] for k in POSITION}}
+        self.inside = {
+            **self.return_point,
+            **{k: character[k] for k in POSITION},
+            "haven_ranch_session": True,
+        }
         return dict(self.inside)
 
     def leave(self, character):
@@ -104,12 +127,15 @@ class RanchSession:
             self.snapshot_ms,
         )
 
-    def entry_messages(self, template, character):
+    def entry_messages(self, template, character, *, clear_bag_role=True):
         from wakfu_server.haven_bag import map_transition
 
         if not self.owns(character):
             raise ValueError("Character is outside its ranch")
-        return [
+        # cyV requires an active bag model. Ranch-to-Ranch transitions already
+        # cleared it and must not invoke that consumer a second time.
+        role_cleanup = [(13019, b"")] if clear_bag_role else []
+        return role_cleanup + [
             (13256, b""),
             (13864, self.context()),
             (13974, map_transition(template, character, character["map_id"])),
@@ -118,13 +144,21 @@ class RanchSession:
 
 
 def leave_messages(template, character, bag):
-    from wakfu_server.haven_bag import map_transition
+    from wakfu_server.haven_bag import map_transition, entry_result
 
     if not bag.owns(character):
         raise ValueError("Ranch return requires its parent bag")
     # 13256 clears ceK; sending an empty13864 would reinstall a ranch model.
     return [
         (13256, b""),
+        (
+            13307,
+            entry_result(
+                success=True,
+                own=bag.is_owner,
+                owner=None if bag.is_owner else bag.owner,
+            ),
+        ),
         (13974, map_transition(template, character, 9)),
         (12318, struct.pack(">ii", character["x"], character["y"])),
     ]

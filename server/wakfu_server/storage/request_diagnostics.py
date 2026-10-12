@@ -224,7 +224,8 @@ class RequestTrace:
         action=None,
         clock=time.monotonic,
         effect_scope=None,
-        flush=None
+        flush=None,
+        activity_scope=None,
     ):
         self.id = uuid.uuid4().hex
         self.connection_id = connection_id
@@ -236,16 +237,32 @@ class RequestTrace:
         self.clock = clock
         self.started = clock()
         self.cpu_started = time.thread_time()
-        self.before = safe_snapshot(snapshot)
+        self.activity_scope = activity_scope
+        if self.activity_scope is not None:
+            self.activity_scope.__enter__()
+        try:
+            self.before = safe_snapshot(snapshot)
+        except BaseException:
+            if self.activity_scope is not None:
+                self.activity_scope.__exit__(None, None, None)
+                self.activity_scope = None
+            raise
         self.rejections = []
         self.closed = False
         self.records = []
         self.flush_callback = flush
         self.scope = effect_scope
         self.token = _current.set(self)
-        if self.scope is not None:
-            self.scope.__enter__()
-        sink(event="request_started", service=service, state_before=self.before)
+        try:
+            if self.scope is not None:
+                self.scope.__enter__()
+            sink(event="request_started", service=service, state_before=self.before)
+        except BaseException:
+            if self.activity_scope is not None:
+                self.activity_scope.__exit__(None, None, None)
+                self.activity_scope = None
+            _current.reset(self.token)
+            raise
 
     def append(self, record):
         self.records.append(record)
@@ -276,6 +293,9 @@ class RequestTrace:
                 rejections=self.rejections[:16],
             )
         finally:
+            if self.activity_scope is not None:
+                self.activity_scope.__exit__(None, None, None)
+                self.activity_scope = None
             self.flush()
             self.closed = True
             try:

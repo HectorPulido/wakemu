@@ -45,7 +45,12 @@ def observe(
         ).fetchall()
         from psycopg.types.json import Jsonb
 
-        roster = [(group, member) for group in groups for member in group["members"]]
+        roster = [
+            (group, member)
+            for group in groups
+            if group["status"] != "defeated"
+            for member in group["members"]
+        ]
         terminal_ids = [
             member["id"] for _, member in roster if member["ref"] not in eligible_refs
         ]
@@ -144,5 +149,15 @@ def observe(
             "due boolean,cycle bigint) WHERE t.map_id=%s AND t.instance_id=%s "
             "AND t.monster_id=x.monster_id",
             (Jsonb(updates), map_id, instance_id),
+        )
+        from .monster_life_plans import load
+
+        load(
+            db,
+            map_id,
+            instance_id,
+            table.removeprefix("monster_").removesuffix("_timers"),
+            updates,
+            configuration,
         )
         return due

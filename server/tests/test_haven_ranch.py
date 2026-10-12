@@ -61,23 +61,33 @@ class RanchLifecycleTests(unittest.TestCase):
         ):
             messages = self.session.entry_messages(b"template", self.session.inside)
             self.assertEqual(
-                [message for message, _ in messages], [13256, 13864, 13974, 12318]
+                [message for message, _ in messages],
+                [13019, 13256, 13864, 13974, 12318],
             )
+            repeated = self.session.entry_messages(
+                b"template", self.session.inside, clear_bag_role=False
+            )
+            self.assertNotIn(13019, [message for message, _ in repeated])
             returned = self.session.leave(self.session.inside)
             messages = ranch.leave_messages(b"template", returned, self.bag)
             self.assertEqual(
-                [message for message, _ in messages], [13256, 13974, 12318]
+                [message for message, _ in messages], [13256, 13307, 13974, 12318]
             )
             self.assertNotIn(13864, [message for message, _ in messages])
 
-    def test_guests_foreign_actors_and_position_forgery_rejected(self):
+    def test_public_guests_keep_host_instance_and_foreign_actors_reject(self):
         visitor = HavenBagSession(
             {**self.saved, "id": 11, "account_id": 3}, owner=self.saved
         )
-        with self.assertRaises(ValueError):
-            ranch.RanchSession(
-                visitor, visitor.inside, self.target, lease="x", now_ms=1000
-            )
+        child = ranch.RanchSession(
+            visitor, visitor.inside, self.target, lease="x", now_ms=1000
+        )
+        self.assertTrue(child.inside["haven_bag_visitor"])
+        self.assertEqual(child.inside["instance_id"], self.bag.bag_instance_id)
+        self.assertFalse(visitor.is_owner)
+        self.assertEqual(
+            struct.unpack(">q", child.context()[:8])[0], self.saved["account_id"]
+        )
         for key, value in (
             ("id", 99),
             ("account_id", 99),

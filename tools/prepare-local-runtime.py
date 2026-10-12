@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create private local runtime directories and secrets without overwriting state."""
+"""Prepare generated runtime files and private persistent service credentials."""
 import argparse
 import os
 from pathlib import Path
@@ -8,16 +8,31 @@ import secrets
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def prepare(runtime):
+def prepare(runtime, database):
     runtime = Path(runtime)
-    for name in ("logs", "secrets"):
-        directory = runtime / name
+    database = Path(database)
+    for root in (runtime, database):
+        if root.is_symlink():
+            raise ValueError("Data roots must not be symbolic links")
+    for directory in (
+        runtime / "logs",
+        database / "secrets",
+        database / "secrets/admin",
+        database / "secrets/admin-control",
+        database / "shop-assets",
+        database / "backups",
+    ):
         if directory.is_symlink():
             raise ValueError("Runtime directories must not be symbolic links")
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     created = []
-    for name in ("postgres-password", "scheduler-token"):
-        path = runtime / "secrets" / name
+    for name in (
+        "postgres-password",
+        "scheduler-token",
+        "ecology-token",
+        "admin-control-token",
+    ):
+        path = database / "secrets" / name
         if path.is_symlink():
             raise ValueError("Secret files must not be symbolic links")
         try:
@@ -35,9 +50,12 @@ def prepare(runtime):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runtime-root", type=Path, default=ROOT / ".runtime/local")
+    parser.add_argument("--database-root", type=Path, default=ROOT / ".database")
     args = parser.parse_args()
-    created = prepare(args.runtime_root)
-    print("Private runtime prepared; existing state preserved.")
+    created = prepare(args.runtime_root, args.database_root)
+    print(
+        "Runtime directories and persistent credentials prepared; existing state preserved."
+    )
     print("New secret files: " + (", ".join(created) if created else "none"))
     print(
         "This prepares directories and credentials only; native catalogs and protocol templates are still required."

@@ -1,9 +1,0 @@
-# Resource923 actual lifecycle follow-up
-
-The actual native Iop grant8405 is produced by effect397463/family649, guarded by `not HasEffectWithActionId("caster",933)`, instance not862 and level at least36. The source effect397441 uses family923/eXm, empty local criterion and parameters `[1,0,0,0]`; these select at most one current AP and zero current MP for the nested eWf payment. Parent spell cost remains separate. Existing level36/200 evidence committed the original branch, summoned profile3793 and area889/2042 with real AP6→3 and20 packets. It did not establish next-turn behavior.
-
-`audit_class_resource923.py` now extends that exact prepared/committed branch on an isolated copy of its actual Ready runtime. It attempts the same owned grant again within the turn, advances through original end/ACK/start boundaries until the owner's next turn, then attempts the grant and one legitimate original deck action. Actual current grant UIDs, common permission/cost/target validation, original effect roots and native usage counters determine the outcome. It never replenishes AP directly, deletes a state/counter or overrides a guard. Missing legal target, rejected recast or blocked timeline is preserved in the report.
-
-Each stage records actual AP/MP/WP, complete fighter/active-area/retired-area state ledgers, roster/profile references, area references and native spell usage. Follow-up commits capture native execution diagnostics and packet counts. The original independent Ready baseline remains unchanged. Reaching the next owned turn is distinguished from verifying a resource-replenishment formula or certifying every class interaction.
-
-The tool is frozen and queued for the serial validation agent. No lifecycle success is claimed before that execution's stable-source report is inspected.

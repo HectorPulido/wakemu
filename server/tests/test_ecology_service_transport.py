@@ -4,7 +4,7 @@ import io
 import json
 from pathlib import Path
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from wakfu_server.ecology.client import EcologyClient
 from wakfu_server.ecology.protocol import MAX_BODY_BYTES, MAX_PROPOSALS
@@ -126,12 +126,85 @@ class WorkerTests(unittest.TestCase):
             client,
         )
 
+    def test_population_identity_coalesces_scope_but_preserves_authoritative_version(
+        self,
+    ):
+        payload = {
+            "kind": "initial_population",
+            "plan": {"map_id": 527, "instance_id": 0, "region_id": 1},
+            "scope_digest": "a",
+            "policy": {},
+            "catalog_revision": 7,
+        }
+        first = service.proposal_identity(proposal("population", payload, "boot"))
+        random_plan = dict(payload, plan=dict(payload["plan"], draw=0.9))
+        self.assertEqual(
+            first,
+            service.proposal_identity(proposal("population", random_plan, "boot")),
+        )
+        changed = service.proposal_identity(
+            proposal("population", dict(payload, scope_digest="b"), "boot")
+        )
+        self.assertEqual(first[0], changed[0])
+        self.assertNotEqual(first[1], changed[1])
+        corpse = proposal(
+            "population",
+            {"kind": "corpse_expiry", "actor_id": -1, "revision": 1},
+            "boot",
+        )
+        newer = proposal(
+            "population",
+            {"kind": "corpse_expiry", "actor_id": -1, "revision": 2},
+            "boot",
+        )
+        self.assertEqual(
+            service.proposal_identity(corpse)[0], service.proposal_identity(newer)[0]
+        )
+        self.assertNotEqual(
+            service.proposal_identity(corpse)[1], service.proposal_identity(newer)[1]
+        )
+
+    def test_drain_processes_distinct_batches_and_bounds_persistent_producer(self):
+        worker, repository, client = self.create({"plants": lambda *_a, **_kw: []})
+        batches = [[proposal("mobs", {"sequence": i}, "boot")] for i in range(20)]
+        repository.pending.side_effect = batches
+        client.apply.side_effect = lambda rows: [
+            {"id": row["id"], "status": "applied"} for row in rows
+        ]
+        with patch.object(service.time, "monotonic", return_value=0):
+            worker.drain()
+        self.assertEqual(client.apply.call_count, 16)
+        self.assertEqual(repository.acknowledge.call_count, 16)
+
+    def test_drain_stops_on_admission_delay_retry_and_repeated_ids(self):
+        for status in ("deferred", "retry", "applied"):
+            with self.subTest(status=status):
+                worker, repository, client = self.create(
+                    {"plants": lambda *_a, **_kw: []}
+                )
+                row = proposal("mobs", {"sequence": 1}, "boot")
+                repository.pending.return_value = [row]
+                client.apply.return_value = [{"id": row["id"], "status": status}]
+                worker.drain()
+                client.apply.assert_called_once()
+                self.assertLessEqual(repository.pending.call_count, 2)
+
+    def test_drain_checks_time_budget_before_second_network_call(self):
+        worker, repository, client = self.create({"plants": lambda *_a, **_kw: []})
+        row = proposal("mobs", {"sequence": 1}, "boot")
+        repository.pending.return_value = [row]
+        client.apply.return_value = [{"id": row["id"], "status": "applied"}]
+        with patch.object(service.time, "monotonic", side_effect=[0, 0, 0.201]):
+            worker.drain()
+        client.apply.assert_called_once()
+        repository.pending.assert_called_once()
+
     def test_durable_delivery_precedes_new_planning(self):
         worker, repository, client = self.create(
             {"plants": lambda *_args, **_kwargs: [{"uid": 1}]}
         )
         pending = proposal("plants", {"uid": 2}, "boot-1")
-        repository.pending.side_effect = [[pending], []]
+        repository.pending.side_effect = [[pending], [], []]
         client.apply.return_value = [{"id": pending["id"], "status": "duplicate"}]
         worker.tick()
         client.apply.assert_called_once_with([pending])
@@ -210,8 +283,87 @@ class WorkerTests(unittest.TestCase):
         repository.acknowledge.assert_called_once_with(
             [{"id": repository.pending.return_value[0]["id"], "status": "retry"}]
         )
-        repository.save.assert_not_called()
+        repository.save.assert_called_once_with([], [])
         prepare.assert_not_called()
+
+    def test_saturated_background_queue_still_plans_and_delivers_reserved_seed_growth(
+        self,
+    ):
+        ambient = Mock(return_value=[])
+        worker, repository, client = self.create({"plants": ambient})
+        repository.pending_count.return_value = service.MAX_PENDING
+        repository.growth_pending_count.return_value = 0
+        growth = {
+            "kind": "resource_growth",
+            "world_epoch": "boot-1",
+            "expected": {"resource_uid": 7, "stage": 1},
+            "member": {"id": -7},
+        }
+        worker.growth_prepare = Mock(return_value=[growth])
+        row = proposal("plants", growth, "boot-1")
+        repository.pending.side_effect = [[], [row]]
+        client.apply.return_value = [{"id": row["id"], "status": "applied"}]
+        worker.tick()
+        worker.growth_prepare.assert_called_once()
+        self.assertEqual(worker.growth_prepare.call_args.kwargs["limit"], 4)
+        self.assertTrue(worker.growth_prepare.call_args.args[1]["skip_interactive"])
+        client.apply.assert_called_once_with([row])
+        ambient.assert_not_called()
+
+    def test_reserved_birth_lane_preserves_ambient_flora_planning(self):
+        ambient = Mock(return_value=[])
+        worker, repository, client = self.create({"plants": ambient})
+        repository.growth_pending_count.return_value = 16
+        worker.growth_prepare = Mock(return_value=[])
+        worker.tick()
+        worker.growth_prepare.assert_not_called()
+        ambient.assert_called_once()
+        self.assertTrue(ambient.call_args.args[1]["skip_monster_births"])
+
+    def test_reserved_seed_growth_lane_stops_at_its_own_pending_limit(self):
+        ambient = Mock(return_value=[])
+        worker, repository, client = self.create({"plants": ambient})
+        repository.pending_count.return_value = service.MAX_PENDING
+        repository.growth_pending_count.return_value = 16
+        worker.growth_prepare = Mock(return_value=[])
+        worker.tick()
+        worker.growth_prepare.assert_not_called()
+        ambient.assert_not_called()
+
+    def test_saturated_background_queue_still_admits_reserved_player_planting(self):
+        background = Mock(return_value=[])
+        worker, repository, client = self.create({"plants": background})
+        repository.pending_count.return_value = service.MAX_PENDING
+        interactive = {
+            "kind": "planting_begin",
+            "world_epoch": "boot-1",
+            "intent_id": "player",
+        }
+        worker.interactive_prepare = Mock(return_value=[interactive])
+        repository.pending.side_effect = [
+            [],
+            [proposal("plants", interactive, "boot-1")],
+        ]
+        client.apply.side_effect = lambda rows: [
+            {"id": row["id"], "status": "applied"} for row in rows
+        ]
+        worker.tick()
+        worker.interactive_prepare.assert_called_once()
+        self.assertEqual(worker.interactive_prepare.call_args.kwargs["limit"], 4)
+        saved = repository.save.call_args.args[0]
+        self.assertEqual(saved[0]["payload"], interactive)
+        client.apply.assert_called_once_with(saved)
+        repository.acknowledge.assert_called_once()
+        background.assert_not_called()
+
+    def test_reserved_interactive_lane_suppresses_duplicate_background_intent_preparation(
+        self,
+    ):
+        background = Mock(return_value=[])
+        worker, repository, client = self.create({"plants": background})
+        worker.interactive_prepare = Mock(return_value=[])
+        worker.tick()
+        self.assertTrue(background.call_args.args[1]["skip_interactive"])
 
     def test_pending_cap_and_pause_skip_planning(self):
         prepare = Mock(return_value=[])
@@ -295,9 +447,9 @@ class WorkerTests(unittest.TestCase):
             {"plants": lambda *_a, **_kw: [{"uid": 1}]}
         )
         prepared = proposal("plants", {"uid": 1}, "boot-1")
-        repository.pending.side_effect = [[], [prepared]]
+        repository.pending.side_effect = [[], [prepared], []]
         client.apply.side_effect = lambda rows: (
-            repository.save.assert_called_once()
+            self.assertEqual(repository.save.call_args.args[0], [prepared])
             or [{"id": rows[0]["id"], "status": "applied"}]
         )
         worker.tick()

@@ -120,8 +120,18 @@ class MonsterReproductionAttemptTests(PostgresCase):
         )
 
     def test_birth_appends_tier_zero_child_at_native_indexed_neighbor(self):
+        account = self.store.register("natural-affinity-owner", "test-password")["id"]
+        observer = self.store.create_character(account, "Natural Observer")
+        with self.store.connection() as db:
+            before_affinity = db.execute(
+                "SELECT ecology_value FROM characters WHERE id=%s", (observer["id"],)
+            ).fetchone()["ecology_value"]
         self._set_policy(birth=1.0, new_group=0.0, max_members=8)
-        result = self._attempt(draw=0.0, group_draw=0.99)
+        with patch(
+            "wakfu_server.monster_habitat_cells.habitat_destination_allowed",
+            return_value=True,
+        ):
+            result = self._attempt(draw=0.0, group_draw=0.99)
         child_id = result["child_id"]
         self.assertLess(child_id, 0)
         self.assertEqual(self.group_id, result["child_group_id"])
@@ -152,6 +162,21 @@ class MonsterReproductionAttemptTests(PostgresCase):
         self.assertEqual(1, len(outbox))
         self.assertEqual(self.group_id, outbox[0]["group_id"])
         self.assertFalse(outbox[0]["new_group"])
+
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM personal_ecology_receipts"
+                ).fetchone()["n"],
+                0,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT ecology_value FROM characters WHERE id=%s",
+                    (observer["id"],),
+                ).fetchone()["ecology_value"],
+                before_affinity,
+            )
 
     def test_full_eight_member_roster_creates_separate_group(self):
         members = [self._member(4, -77100 - index, index * 2, 0) for index in range(8)]

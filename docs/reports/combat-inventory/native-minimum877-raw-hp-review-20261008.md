@@ -1,5 +1,0 @@
-# Minimum-resource877 and hidden raw HP
-
-Original eWV.c reads effective PA.aYW, invokes PA.os(requested minimum), then stores the effective minimum delta; removal invokes PA.os(effective minimum minus stored delta). It never writes HP current. Sources: `.runtime/local/native-minimum-eWV-20261008.txt` and `.runtime/local/native-fff-minimum.txt`, fff.os/ae. The native minimum setter clamps against raw maximum and raises raw current only if unfrozen and below the new effective minimum. Hidden over-maximum fZB HP therefore survives both application and removal.
-
-The shared877 handler now uses the verified `set_hp_raw_minimum` when raw HP authority exists. Legacy snapshots retain their previous path. It does not replace hidden raw current with effective HP. A regression uses the existing source-typed copied PA pool (raw125), reduces effective maximum to60, applies/removes minimum10, and confirms raw125/effective60 survive. Four tests pass with `PYTHONPATH=server python3 -m unittest discover -s server/tests -p test_combat_minimum_resource.py`.

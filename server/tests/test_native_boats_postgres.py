@@ -1,6 +1,7 @@
 """Owned SQL source authority for native boats, in an isolated schema."""
 import struct
 import unittest
+from unittest.mock import patch
 
 from postgres_case import PostgresCase
 from wakfu_server import native_boats
@@ -9,6 +10,19 @@ from wakfu_server import native_boats
 class NativeBoatAuthorityTests(PostgresCase):
     def setUp(self):
         super().setUp()
+        with self.store.connection() as db:
+            document = native_boats.load(db)
+        endpoints = {row["id"]: row for row in document["endpoints"]}
+        links = {}
+        for row in document["routes"]:
+            links.setdefault(frozenset((row["source"], row["destination"])), []).append(
+                row
+            )
+        indexes = patch.object(
+            native_boats, "_indexes", return_value=(endpoints, links)
+        )
+        indexes.start()
+        self.addCleanup(indexes.stop)
         self.store.clock = lambda: 1000.0
         self.account = self.store.register("boat-owner", "local-password")["id"]
         self.character = self.store.create_character(self.account, "Boat Owner")

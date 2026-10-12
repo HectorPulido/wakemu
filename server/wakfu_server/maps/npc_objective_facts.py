@@ -5,20 +5,14 @@ not incomplete: native bdM.Bd raises, and our evaluator rejects them too.
 GetInstanceId reads the POSITION world identity, represented by map_id here.
 """
 from functools import lru_cache
-import gzip
-import json
-from pathlib import Path
 import re
 
 
 @lru_cache(maxsize=1)
 def definitions():
-    path = (
-        Path(__file__).resolve().parents[2]
-        / "protocol/npc-objective-definitions.json.gz"
-    )
-    with gzip.open(path, "rt", encoding="utf-8") as source:
-        return frozenset(map(int, json.load(source)["objectives"]))
+    from .npc_catalog import document
+
+    return frozenset(map(int, document("npc_objective_definitions")["objectives"]))
 
 
 def load(db, account_id, character_id):

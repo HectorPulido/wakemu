@@ -4,8 +4,9 @@ from copy import deepcopy
 from pathlib import Path
 import struct
 import time
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from wakfu_server.haven_bag import HavenBagSession
 
@@ -207,7 +208,7 @@ class RanchDispatcherTests(unittest.TestCase):
             self.assertIsNotNone(ranch)
             self.assertIs(bag, self.bag)
             self.assertEqual(
-                [opcode for opcode, _ in self.sent], [13256, 13864, 13974, 12318]
+                [opcode for opcode, _ in self.sent], [13019, 13256, 13864, 13974, 12318]
             )
             self.assertEqual(
                 self.events[:2],
@@ -239,7 +240,7 @@ class RanchDispatcherTests(unittest.TestCase):
             (9, self.bag.bag_instance_id, -8, 5),
         )
         self.assertEqual(
-            [opcode for opcode, _ in self.sent], [13256, 13974, 12318, 12187]
+            [opcode for opcode, _ in self.sent], [13256, 13307, 13974, 12318, 12187]
         )
         self.assertNotIn(13864, [opcode for opcode, _ in self.sent])
         self.assertEqual(
@@ -362,27 +363,122 @@ class RanchDispatcherTests(unittest.TestCase):
                 context["STORE"], 2, "new-generation", context["character"]
             )
 
-    def test_real_dispatch_guard_blocks_planting_and_actor_mutations_during_ranch(self):
-        guard = _branch(
-            lambda text: "ranch_session is not None" in text and "13578" in text
-        )
-        self.assertIn("Leave the ranch before this action", ast.unparse(guard))
-        for opcode in (13220, 12995, 13578):
-            with self.subTest(opcode=opcode):
-                before = len(self.sent)
-                result = _execute_branch(
-                    guard,
-                    globals_=self.globals,
-                    locals_={
-                        "loaded": True,
-                        "ranch_session": object(),
-                        "opcode": opcode,
-                        "connection": self.globals["connection"],
-                        "service": "world",
-                    },
+    def test_ranch_planting_executes_original_external_handler(self):
+        branch = deepcopy(_branch(lambda text: text == "opcode == 13220 and loaded"))
+        branch.orelse = []
+        module = ast.Module(
+            body=[
+                ast.For(
+                    target=ast.Name(id="_once", ctx=ast.Store()),
+                    iter=ast.Tuple(elts=[ast.Constant(1)], ctx=ast.Load()),
+                    body=[branch],
+                    orelse=[],
                 )
-                self.assertEqual(len(self.sent), before + 1)
-                self.assertTrue(result["loaded"])
+            ],
+            type_ignores=[],
+        )
+        plantings, harvests = Mock(), Mock()
+        character = dict(self.actor, map_id=1440)
+        context = dict(
+            self.globals,
+            opcode=13220,
+            loaded=True,
+            fight=None,
+            ranch_session=object(),
+            character=character,
+            account_id=2,
+            generation="lease",
+            body=b"seed",
+            ECOLOGY_MODE="external",
+            PLANTINGS=plantings,
+            HARVESTS=harvests,
+        )
+        exec(
+            compile(ast.fix_missing_locations(module), str(SERVER_SOURCE), "exec"),
+            context,
+        )
+        plantings.ecology_intents.enqueue.assert_called_once_with(
+            2, "lease", character, b"seed"
+        )
+        self.assertEqual(self.sent, [])
+
+    def test_ranch_harvest_executes_original_collection_handler(self):
+        branch = _branch(lambda text: text == "opcode == 12995 and loaded")
+        character = dict(self.actor, map_id=1440)
+        prepared = dict(character=character, resource={}, rule={})
+        world, harvests = Mock(), Mock()
+        with patch(
+            "wakfu_server.resource_collect.prepare", return_value=prepared
+        ) as prepare, patch(
+            "wakfu_server.resource_collect.reserve",
+            return_value={"resource_uid": 1, "action_id": 2},
+        ), patch(
+            "wakfu_server.resource_collect.start_packet",
+            return_value=(12230, b"occupation"),
+        ):
+            _execute_branch(
+                branch,
+                globals_=dict(
+                    self.globals,
+                    WORLD=world,
+                    HARVESTS=harvests,
+                    PLANTINGS=Mock(),
+                    cancel_flora=Mock(),
+                    active_garden_character=Mock(),
+                ),
+                locals_=dict(
+                    opcode=12995,
+                    loaded=True,
+                    fight=None,
+                    ranch_session=object(),
+                    character=character,
+                    account_id=2,
+                    generation="lease",
+                    body=b"harvest",
+                ),
+            )
+        prepare.assert_called_once()
+        world.emit_location.assert_called_once_with(
+            1440, character["instance_id"], 12230, b"occupation"
+        )
+        self.assertEqual(self.sent, [])
+
+    def test_nested_bag_entry_inside_ranch_returns_native_failure(self):
+        guard = deepcopy(
+            _branch(
+                lambda text: text
+                == "character['map_id'] == 9 or ranch_session is not None"
+            )
+        )
+        guard.orelse = []
+        module = ast.Module(
+            body=[
+                ast.For(
+                    target=ast.Name(id="_once", ctx=ast.Store()),
+                    iter=ast.Tuple(elts=[ast.Constant(1)], ctx=ast.Load()),
+                    body=[guard],
+                    orelse=[],
+                )
+            ],
+            type_ignores=[],
+        )
+        from wakfu_server.haven_bag import entry_result
+
+        context = dict(
+            self.globals,
+            character=dict(self.actor, map_id=1440),
+            ranch_session=object(),
+            target_id=0,
+            entry_result=entry_result,
+        )
+        exec(
+            compile(ast.fix_missing_locations(module), str(SERVER_SOURCE), "exec"),
+            context,
+        )
+        self.assertEqual(self.sent, [(13307, entry_result(success=False, own=True))])
+        self.assertNotIn(
+            "Leave the ranch before this action", SERVER_SOURCE.read_text()
+        )
 
     def test_actual_hero_add_and_switch_branches_reject_active_ranch(self):
         for predicate, opcode, body, extra in (
@@ -404,7 +500,7 @@ class RanchDispatcherTests(unittest.TestCase):
                 "opcode": opcode,
                 "loaded": True,
                 "body": body,
-                "ranch_session": object(),
+                "ranch_session": SimpleNamespace(owns=lambda _character: False),
                 "fight": None,
                 "combat_session": None,
                 "account_id": 2,
@@ -412,6 +508,8 @@ class RanchDispatcherTests(unittest.TestCase):
                 "character": dict(self.actor),
                 **extra,
             }
+            active_ranch = locals_["ranch_session"]
+            locals_["active_private_session"] = lambda: active_ranch
             before = len(self.sent)
             _execute_branch(branch, globals_=self.globals, locals_=locals_)
             self.assertGreaterEqual(len(self.sent), before + 2)

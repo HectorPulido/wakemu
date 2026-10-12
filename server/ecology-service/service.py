@@ -1,5 +1,7 @@
 """Independent ecology planner with durable bounded delivery and no inline fallback."""
 import hmac
+import hashlib
+from copy import deepcopy
 import importlib
 import json
 import os
@@ -29,8 +31,245 @@ from wakfu_server.ecology.protocol import (
     validate_query,
 )
 
-MAX_PENDING = 256
+from wakfu_server.ecology.proposal_identity import identity as _proposal_identity
+
+MAX_PENDING = 4096
+SOFT_PENDING = 512
+DRAIN_BUDGET_SECONDS = 0.2
+MAX_DRAIN_BATCHES = 16
+
+
+BULK_FIELDS = {
+    "resource_growth_bulk": ("resources", 64),
+    "lifecycle_bulk": ("operations", 16),
+}
+
+
+def bulk_entry_key(entry):
+    if entry.get("kind") == "resource_growth":
+        return [
+            entry["expected"]["resource_uid"],
+            entry["expected"]["stage"],
+            entry["expected"].get("resource_reference"),
+        ]
+    ticket = entry.get("ticket")
+    if ticket is not None:
+        return [
+            entry["kind"],
+            {
+                key: ticket.get(key)
+                for key in (
+                    "map_id",
+                    "instance_id",
+                    "group_id",
+                    "monster_id",
+                    "reference",
+                    "cycle",
+                    "plan_incarnation",
+                )
+            },
+        ]
+    return entry
+
+
+def bulk_failure_identity(domain, epoch, entry):
+    identity = [epoch, domain, bulk_entry_key(entry)]
+    if entry.get("kind") == "resource_growth":
+        identity.append(entry["expected"].get("resource_reference"))
+    return hashlib.sha256(b"bulk_failure_guard:" + json_bytes(identity)).hexdigest()
+
+
+def filter_failed_bulk(row, exhausted):
+    specification = BULK_FIELDS.get(row["payload"].get("kind"))
+    if specification is None:
+        return row
+    field, _ = specification
+    entries = [
+        entry
+        for entry in row["payload"][field]
+        if bulk_failure_identity(row["domain"], row["world_epoch"], entry)
+        not in exhausted
+    ]
+    if not entries:
+        return None
+    if len(entries) == len(row["payload"][field]):
+        return row
+    return proposal(
+        row["domain"], dict(row["payload"], **{field: entries}), row["world_epoch"]
+    )
+
+
+def split_bulk_proposals(rows):
+    result = []
+    for row in rows:
+        payload = row["payload"]
+        specification = BULK_FIELDS.get(payload.get("kind"))
+        if specification is None:
+            result.append(row)
+            continue
+        field, _ = specification
+        scopes = {}
+        for entry in payload[field]:
+            source = entry.get("expected", entry.get("ticket", {}))
+            scope = entry.get(
+                "scope", [source.get("map_id"), source.get("instance_id")]
+            )
+            scopes.setdefault(tuple(scope), []).append(entry)
+        for scope, entries in scopes.items():
+            result.append(
+                proposal(
+                    row["domain"],
+                    dict(payload, **{field: entries, "scope": list(scope)}),
+                    row["world_epoch"],
+                )
+            )
+    return result
+
+
+def merge_bulk_payload(original, fresh):
+    field, limit = BULK_FIELDS[fresh["kind"]]
+    merged = dict(fresh)
+    entries = {}
+    for entry in original[field] + fresh[field]:
+        key = json_bytes(bulk_entry_key(entry))
+        if key in entries:
+            updated = deepcopy(entry)
+            original_entry = entries[key]
+            for outcome in ("draw", "group_draw", "child", "member", "grown"):
+                if outcome in original_entry:
+                    updated[outcome] = deepcopy(original_entry[outcome])
+            if isinstance(updated.get("plan"), dict) and isinstance(
+                original_entry.get("plan"), dict
+            ):
+                for outcome in (
+                    "draw",
+                    "group_draw",
+                    "destination_draw",
+                    "variant_order",
+                ):
+                    if outcome in original_entry["plan"]:
+                        updated["plan"][outcome] = deepcopy(
+                            original_entry["plan"][outcome]
+                        )
+            entries[key] = updated
+        else:
+            candidate = dict(merged, **{field: list(entries.values()) + [entry]})
+            if len(entries) >= limit or len(json_bytes(candidate)) > 224 * 1024:
+                continue
+            entries[key] = entry
+    merged[field] = list(entries.values())
+    return merged
+
+
+def proposal_identity(row):
+    # Legacy or malformed rows must still reach domain validation instead of
+    # preventing unrelated valid work from draining after an upgrade.
+    try:
+        payload = row["payload"]
+        specification = BULK_FIELDS.get(payload.get("kind"))
+        if specification is not None:
+            field, _ = specification
+            scope = payload.get("scope")
+            if scope is None:
+                entry = payload[field][0]
+                source = entry.get("expected", entry.get("ticket", {}))
+                scope = entry.get(
+                    "scope", [source.get("map_id"), source.get("instance_id")]
+                )
+            slot = json_bytes(
+                [row["world_epoch"], row["domain"], payload["kind"], scope]
+            ).decode()
+            version = json_bytes(
+                [
+                    [
+                        bulk_entry_key(entry),
+                        entry.get("expected_members"),
+                        entry.get("configuration"),
+                        entry.get("expected"),
+                    ]
+                    for entry in payload[field]
+                ]
+            ).decode()
+            durable_id = hashlib.sha256((slot + version).encode()).hexdigest()
+            return slot, version, durable_id
+        if (
+            row["domain"] == "population"
+            and payload.get("kind") == "initial_population"
+        ):
+            plan = payload["plan"]
+            slot = json_bytes(
+                [
+                    row["world_epoch"],
+                    "initial_population",
+                    plan["map_id"],
+                    plan["instance_id"],
+                    plan["region_id"],
+                ]
+            ).decode()
+            version = json_bytes(
+                [
+                    payload["scope_digest"],
+                    payload["policy"],
+                    payload["catalog_revision"],
+                ]
+            ).decode()
+            return slot, version, None
+        if row["domain"] == "population" and payload.get("kind") == "corpse_expiry":
+            slot = json_bytes(
+                [row["world_epoch"], "corpse_expiry", payload["actor_id"]]
+            ).decode()
+            return slot, row["id"], None
+        return _proposal_identity(row)
+    except (KeyError, TypeError, ValueError):
+        return row["id"], row["id"], None
+
+
 OWNER_LOCK = 5790545566
+
+
+def refresh_stale_decision(original, fresh):
+    """Refresh live CAS inputs while retaining the first cycle's random draws."""
+    refreshed = deepcopy(fresh)
+    for key in ("draw", "group_draw", "child", "member"):
+        if key in original:
+            refreshed[key] = deepcopy(original[key])
+    if fresh.get("kind") == "maturation" and "configuration" in fresh:
+        from wakfu_server import monster_maturation as maturation
+        from wakfu_server.monsters import owned_instance
+
+        parent = next(
+            member
+            for member in fresh["expected_members"]
+            if member["id"] == fresh["ticket"]["monster_id"]
+        )
+        candidate = maturation.choose_next(
+            parent["ref"],
+            fresh["configuration"],
+            draw=refreshed["draw"],
+            members=fresh["expected_members"],
+        )
+        refreshed["grown"] = (
+            None
+            if candidate is None
+            else owned_instance(
+                candidate["reference"],
+                candidate["min_level"],
+                parent["id"],
+                map_id=fresh["scope"][0],
+                instance_id=fresh["scope"][1],
+                team=parent["team"],
+                **{key: parent[key] for key in ("x", "y", "z")},
+            )
+        )
+    elif "grown" in original:
+        refreshed["grown"] = deepcopy(original["grown"])
+    if refreshed.get("child") is not None and "destination" in fresh:
+        refreshed["child"].update(zip(("x", "y", "z"), fresh["destination"]))
+    if refreshed.get("member") is not None and "expected" in fresh:
+        refreshed["member"].update(
+            {key: fresh["expected"][key] for key in ("x", "y", "z")}
+        )
+    return refreshed
 
 
 class OwnershipLost(RuntimeError):
@@ -74,7 +313,7 @@ class Repository:
             database.conninfo,
             **database.connection_kwargs,
             autocommit=True,
-            connect_timeout=2
+            connect_timeout=2,
         )
         try:
             connection.execute("SET statement_timeout='1s'")
@@ -137,11 +376,152 @@ class Repository:
             )
 
     def save(self, proposals, dirty):
+        proposals = split_bulk_proposals(proposals)
+        statistics = dict(
+            incoming=len(proposals),
+            inserted=0,
+            deduplicated=0,
+            superseded=0,
+            capacity_deferred=0,
+            refreshed=0,
+        )
         with self.connection() as db:
-            for row in proposals:
-                db.execute(
-                    "INSERT INTO ecology_service_proposals(id,domain,payload,world_epoch) "
-                    "VALUES(%s,%s,%s,%s) ON CONFLICT(id) DO UPDATE SET "
+            pending = db.execute(
+                "SELECT id,domain,payload,world_epoch,attempts FROM ecology_service_proposals "
+                "WHERE delivered_at IS NULL ORDER BY created_at,id FOR UPDATE"
+            ).fetchall()
+            guard_ids = [
+                bulk_failure_identity(row["domain"], row["world_epoch"], entry)
+                for row in list(pending) + proposals
+                if row["payload"].get("kind") in BULK_FIELDS
+                for entry in row["payload"][BULK_FIELDS[row["payload"]["kind"]][0]]
+            ]
+            exhausted = set()
+            if guard_ids:
+                exhausted = {
+                    row["id"]
+                    for row in db.execute(
+                        "SELECT id FROM ecology_service_proposals WHERE id=ANY(%s) AND attempts>=%s",
+                        (list(set(guard_ids)), self.max_attempts),
+                    ).fetchall()
+                }
+            slots = {}
+            superseded = []
+            retained = []
+            for existing in pending:
+                filtered = filter_failed_bulk(existing, exhausted)
+                if filtered is None or filtered["id"] != existing["id"]:
+                    superseded.append(existing["id"])
+                    if filtered is not None:
+                        filtered["attempts"] = existing.get("attempts", 0)
+                        proposals.insert(0, filtered)
+                else:
+                    retained.append(existing)
+            pending = retained
+            proposals = [
+                filtered
+                for row in proposals
+                if (filtered := filter_failed_bulk(row, exhausted)) is not None
+            ]
+            proposals = [
+                dict(row)
+                for row in pending
+                if row["payload"].get("kind") in BULK_FIELDS
+            ] + proposals
+            for existing in pending:
+                slot, version, _ = proposal_identity(existing)
+                previous = slots.get(slot)
+                if previous is not None:
+                    if previous[1] == version:
+                        superseded.append(existing["id"])
+                        statistics["deduplicated"] += 1
+                        continue
+                    superseded.append(previous[0]["id"])
+                slots[slot] = (existing, version)
+            for supplied in proposals:
+                row = dict(supplied)
+                slot, version, decision_id = proposal_identity(row)
+                previous = slots.get(slot)
+                inherited_attempts = row.get("attempts", 0)
+                if previous is not None and row["payload"].get("kind") in BULK_FIELDS:
+                    merged = merge_bulk_payload(previous[0]["payload"], row["payload"])
+                    row = proposal(row["domain"], merged, row["world_epoch"])
+                    slot, version, decision_id = proposal_identity(row)
+                    inherited_attempts = previous[0].get("attempts", 0)
+                if previous is not None:
+                    if previous[1] == version:
+                        statistics["deduplicated"] += 1
+                        continue
+                    # Out-of-order observations cannot replace a newer regional revision.
+                    if row["domain"] == "bonuses" and row["payload"].get(
+                        "revision", 0
+                    ) < previous[0]["payload"].get("revision", 0):
+                        statistics["deduplicated"] += 1
+                        continue
+                    superseded.append(previous[0]["id"])
+                elif len(slots) >= MAX_PENDING:
+                    statistics["capacity_deferred"] += 1
+                    continue
+                if decision_id is not None:
+                    row["id"] = decision_id
+                    history = db.execute(
+                        "SELECT payload,attempts,last_error_code,delivered_at, "
+                        "next_attempt_at<=CURRENT_TIMESTAMP AS due FROM ecology_service_proposals "
+                        "WHERE id=%s AND world_epoch=%s FOR UPDATE",
+                        (row["id"], row["world_epoch"]),
+                    ).fetchone()
+                    if history is not None:
+                        bulk_kind = row["payload"].get("kind") in BULK_FIELDS
+                        pass_complete = history["last_error_code"] in (
+                            None,
+                            "bulk_pass_complete",
+                        )
+                        normal_wait_due = (
+                            history["last_error_code"] == "normal_wait"
+                            and history["due"]
+                        )
+                        if (
+                            bulk_kind
+                            and history["delivered_at"] is not None
+                            and history["attempts"] < self.max_attempts
+                            and (pass_complete or normal_wait_due)
+                        ):
+                            row["payload"] = merge_bulk_payload(
+                                history["payload"], row["payload"]
+                            )
+                            db.execute(
+                                "UPDATE ecology_service_proposals SET payload=%s,delivered_at=NULL, "
+                                "last_error_code=NULL,next_attempt_at=CURRENT_TIMESTAMP,created_at=CURRENT_TIMESTAMP WHERE id=%s",
+                                (Jsonb(row["payload"]), row["id"]),
+                            )
+                            row["attempts"] = history["attempts"]
+                            slots[slot] = (row, version)
+                            statistics["refreshed"] += 1
+                            continue
+                        changed = history["payload"].get("expected_members") != row[
+                            "payload"
+                        ].get("expected_members")
+                        if (
+                            history["last_error_code"] == "stale"
+                            and history["attempts"] < self.max_attempts
+                            and (changed or history["due"])
+                        ):
+                            row["payload"] = refresh_stale_decision(
+                                history["payload"], row["payload"]
+                            )
+                            db.execute(
+                                "UPDATE ecology_service_proposals SET payload=%s,delivered_at=NULL, "
+                                "last_error_code=NULL,next_attempt_at=CURRENT_TIMESTAMP WHERE id=%s",
+                                (Jsonb(row["payload"]), row["id"]),
+                            )
+                            slots[slot] = (row, version)
+                            statistics["refreshed"] += 1
+                        else:
+                            statistics["deduplicated"] += 1
+                        continue
+                inserted = db.execute(
+                    "INSERT INTO ecology_service_proposals(id,domain,payload,world_epoch,attempts) "
+                    "VALUES(%s,%s,%s,%s,%s) ON CONFLICT(id) DO UPDATE SET "
                     "world_epoch=EXCLUDED.world_epoch,delivered_at=NULL,attempts=0,last_error_code=NULL,next_attempt_at=CURRENT_TIMESTAMP "
                     "WHERE ecology_service_proposals.world_epoch<>EXCLUDED.world_epoch",
                     (
@@ -149,9 +529,24 @@ class Repository:
                         row["domain"],
                         Jsonb(row["payload"]),
                         row["world_epoch"],
+                        inherited_attempts,
                     ),
                 )
-            if dirty:
+                row["attempts"] = inherited_attempts
+                statistics["inserted"] += inserted.rowcount
+                slots[slot] = (row, version)
+            active_ids = {value[0]["id"] for value in slots.values()}
+            superseded = [
+                identifier for identifier in superseded if identifier not in active_ids
+            ]
+            if superseded:
+                statistics["superseded"] = len(set(superseded))
+                db.execute(
+                    "UPDATE ecology_service_proposals SET delivered_at=CURRENT_TIMESTAMP, "
+                    "last_error_code='superseded' WHERE id=ANY(%s) AND delivered_at IS NULL",
+                    (list(dict.fromkeys(superseded)),),
+                )
+            if dirty and not statistics["capacity_deferred"]:
                 db.execute(
                     "UPDATE ecology_dirty_scopes d SET processed_revision=GREATEST(d.processed_revision,x.revision) "
                     "FROM unnest(%s::bigint[],%s::bigint[],%s::bigint[]) AS x(map_id,instance_id,revision) "
@@ -163,11 +558,41 @@ class Repository:
                     ),
                 )
 
+        if any(
+            statistics[key] for key in ("incoming", "superseded", "capacity_deferred")
+        ):
+            print(
+                json.dumps(dict(event="ecology_queue_admission", **statistics)),
+                flush=True,
+            )
+        return statistics
+
     def pending_count(self):
         with self.connection() as db:
             return db.execute(
                 "SELECT count(*) AS count FROM ecology_service_proposals WHERE delivered_at IS NULL"
             ).fetchone()["count"]
+
+    def growth_pending_count(self):
+        with self.connection() as db:
+            return db.execute(
+                "SELECT count(*) AS count FROM ecology_service_proposals WHERE delivered_at IS NULL "
+                "AND domain='plants' AND ((payload->>'kind'='resource_growth' "
+                "AND jsonb_typeof(payload->'member')='object') OR payload->>'kind'='resource_growth_bulk')"
+            ).fetchone()["count"]
+
+    def queue_summary(self):
+        with self.connection() as db:
+            return [
+                dict(row)
+                for row in db.execute(
+                    "SELECT domain,COALESCE(payload->>'kind','context') AS kind,count(*) AS pending, "
+                    "round(extract(epoch FROM CURRENT_TIMESTAMP-min(created_at)))::bigint AS oldest_age_seconds, "
+                    "min(attempts) AS min_attempts,max(attempts) AS max_attempts "
+                    "FROM ecology_service_proposals WHERE delivered_at IS NULL "
+                    "GROUP BY domain,payload->>'kind' ORDER BY min(created_at)"
+                )
+            ]
 
     def pending(self):
         with self.connection() as db:
@@ -176,7 +601,11 @@ class Repository:
                 for row in db.execute(
                     "SELECT id,domain,payload,world_epoch FROM ecology_service_proposals "
                     "WHERE delivered_at IS NULL AND next_attempt_at<=CURRENT_TIMESTAMP "
-                    "ORDER BY attempts,created_at,id LIMIT %s",
+                    "ORDER BY CASE WHEN domain='plants' AND payload->>'kind' IN "
+                    "('planting_begin','planting_rejected') THEN 0 "
+                    "WHEN domain='plants' AND ((payload->>'kind'='resource_growth' "
+                    "AND jsonb_typeof(payload->'member')='object') OR payload->>'kind'='resource_growth_bulk') THEN 1 ELSE 2 END, "
+                    "attempts,created_at,id LIMIT %s",
                     (MAX_PROPOSALS,),
                 ).fetchall()
             ]
@@ -194,8 +623,51 @@ class Repository:
     def acknowledge(self, results):
         with self.connection() as db:
             for row in results:
+                # A normal bulk pass is not a failed delivery. Native timers,
+                # life plans and seed rows decide whether any operation remains due.
+                if row["status"] in ("deferred", "applied", "duplicate", "stale"):
+                    outcome = db.execute(
+                        "SELECT payload->>'kind' AS kind FROM ecology_service_proposals "
+                        "WHERE id=%s AND delivered_at IS NULL FOR UPDATE",
+                        (row["id"],),
+                    ).fetchone()
+                    kind = None if outcome is None else outcome["kind"]
+                    if kind in BULK_FIELDS and (
+                        row["status"] != "deferred" or kind == "resource_growth_bulk"
+                    ):
+                        normal_wait = (
+                            kind == "resource_growth_bulk"
+                            and row["status"] == "deferred"
+                        )
+                        db.execute(
+                            "UPDATE ecology_service_proposals SET delivered_at=CURRENT_TIMESTAMP, "
+                            "last_error_code=%s,next_attempt_at=CURRENT_TIMESTAMP+%s*interval '1 second' "
+                            "WHERE id=%s AND delivered_at IS NULL",
+                            (
+                                "normal_wait" if normal_wait else "bulk_pass_complete",
+                                5 if normal_wait else 0,
+                                row["id"],
+                            ),
+                        )
+                        continue
+                if row["status"] == "deferred":
+                    # Admission delay is not a failed delivery attempt.
+                    db.execute(
+                        "UPDATE ecology_service_proposals SET next_attempt_at="
+                        "CURRENT_TIMESTAMP+interval '1 second' "
+                        "WHERE id=%s AND delivered_at IS NULL",
+                        (row["id"],),
+                    )
+                    continue
+                failed_bulk = None
+                if row["status"] == "retry":
+                    failed_bulk = db.execute(
+                        "SELECT domain,payload,world_epoch FROM ecology_service_proposals "
+                        "WHERE id=%s AND delivered_at IS NULL FOR UPDATE",
+                        (row["id"],),
+                    ).fetchone()
                 terminal = row["status"] in TERMINAL_STATUSES
-                db.execute(
+                acknowledged = db.execute(
                     "UPDATE ecology_service_proposals SET attempts=attempts+1,last_error_code="
                     "CASE WHEN %s THEN NULL WHEN attempts+1>=%s THEN 'retry_exhausted' ELSE 'retry' END, "
                     "delivered_at=CASE WHEN %s OR attempts+1>=%s THEN CURRENT_TIMESTAMP ELSE delivered_at END, "
@@ -211,11 +683,47 @@ class Repository:
                         row["id"],
                     ),
                 )
+                if acknowledged.rowcount and failed_bulk is not None:
+                    specification = BULK_FIELDS.get(failed_bulk["payload"].get("kind"))
+                    if specification is not None:
+                        field, _ = specification
+                        for entry in failed_bulk["payload"][field]:
+                            guard_id = bulk_failure_identity(
+                                failed_bulk["domain"], failed_bulk["world_epoch"], entry
+                            )
+                            db.execute(
+                                "INSERT INTO ecology_service_proposals(id,domain,payload,world_epoch,attempts,"
+                                "delivered_at,last_error_code) VALUES(%s,%s,%s,%s,1,CURRENT_TIMESTAMP,'bulk_entry_retry') "
+                                "ON CONFLICT(id) DO UPDATE SET attempts=LEAST(%s,ecology_service_proposals.attempts+1),"
+                                "delivered_at=CURRENT_TIMESTAMP,last_error_code='bulk_entry_retry'",
+                                (
+                                    guard_id,
+                                    failed_bulk["domain"],
+                                    Jsonb(
+                                        dict(
+                                            kind="bulk_failure_guard",
+                                            entry_key=bulk_entry_key(entry),
+                                        )
+                                    ),
+                                    failed_bulk["world_epoch"],
+                                    self.max_attempts,
+                                ),
+                            )
+                if row["status"] == "stale" and acknowledged.rowcount:
+                    db.execute(
+                        "UPDATE ecology_service_proposals SET last_error_code="
+                        "CASE WHEN attempts>=%s THEN 'retry_exhausted' ELSE 'stale' END, "
+                        "next_attempt_at=CURRENT_TIMESTAMP+interval '1 second' WHERE id=%s "
+                        "AND delivered_at IS NOT NULL",
+                        (self.max_attempts, row["id"]),
+                    )
             db.execute(
                 "DELETE FROM ecology_service_proposals WHERE id IN (SELECT id FROM ("
                 "(SELECT id FROM ecology_service_proposals WHERE delivered_at<CURRENT_TIMESTAMP-interval '7 days' "
+                "AND COALESCE(payload->>'kind','') NOT IN ('maturation','reproduction','resource_growth','planting_begin','planting_rejected','mineral_refill','fishing_refill','bulk_failure_guard') "
                 "ORDER BY delivered_at,id LIMIT 256) UNION "
                 "(SELECT id FROM ecology_service_proposals WHERE delivered_at IS NOT NULL "
+                "AND COALESCE(payload->>'kind','') NOT IN ('maturation','reproduction','resource_growth','planting_begin','planting_rejected','mineral_refill','fishing_refill','bulk_failure_guard') "
                 "ORDER BY delivered_at DESC,id OFFSET 4096 LIMIT 256)) obsolete LIMIT 256)"
             )
 
@@ -282,7 +790,9 @@ class Worker:
         *,
         interval=1.0,
         clock=time.monotonic,
-        wander_interval=None
+        wander_interval=None,
+        interactive_prepare=None,
+        growth_prepare=None,
     ):
         if (
             not domains
@@ -292,7 +802,13 @@ class Worker:
             raise ValueError("Invalid ecology domain registry")
         if not 0.1 <= interval <= 60:
             raise ValueError("Invalid ecology poll interval")
+        if interactive_prepare is not None and not callable(interactive_prepare):
+            raise ValueError("Invalid interactive ecology planner")
+        if growth_prepare is not None and not callable(growth_prepare):
+            raise ValueError("Invalid reserved growth planner")
         self.repository, self.client, self.domains = repository, client, dict(domains)
+        self.growth_prepare = growth_prepare
+        self.interactive_prepare = interactive_prepare
         self.interval, self.clock = interval, clock
         self.stop = threading.Event()
         self.lock = threading.Lock()
@@ -310,12 +826,15 @@ class Worker:
             "delivered": 0,
             "stale": 0,
             "retries": 0,
+            "deferred": 0,
         }
         self.pending = 0
         self.retry_totals = {"attempts": 0, "exhausted": 0}
         self.last_tick_seconds = 0
+        self.last_queue_log = float("-inf")
         self.last_locations = []
         self.last_wander = None
+        self.last_reserved_growth = float("-inf")
         self.last_mobs_now_ms = None
         self.last_epoch = None
         self.wander_interval = wander_interval or self._configured_wander_interval
@@ -343,7 +862,24 @@ class Worker:
 
     def tick(self):
         started = self.clock()
+        self.delivery_deadline = time.monotonic() + DRAIN_BUDGET_SECONDS
         self.repository.assert_owner()
+        if self.clock() - self.last_queue_log >= 30 and hasattr(
+            self.repository, "queue_summary"
+        ):
+            summary = self.repository.queue_summary()
+            if isinstance(summary, list):
+                print(
+                    json.dumps(
+                        dict(
+                            event="ecology_queue_summary",
+                            queues=summary,
+                            counters=dict(self.counters),
+                        )
+                    ),
+                    flush=True,
+                )
+            self.last_queue_log = self.clock()
         self.enabled = self.repository.enabled()
         if not self.enabled:
             self.domain_errors = {}
@@ -351,11 +887,14 @@ class Worker:
         self.repository.expire_exhausted()
         self.retry_totals = self.repository.retry_stats()
         # Retry committed proposals before generating more work during an outage.
-        pending = self.repository.pending()
-        if pending:
-            self.deliver(pending)
+        self.repository.save([], [])
+        self.drain()
         self.pending = self.repository.pending_count()
-        if self.pending >= MAX_PENDING:
+        if (
+            self.pending >= MAX_PENDING
+            and self.interactive_prepare is None
+            and self.growth_prepare is None
+        ):
             return
         snapshot = self.client.snapshot()
         if snapshot.get("mode", "external") != "external":
@@ -367,6 +906,56 @@ class Worker:
             planning_tick=self.counters["ticks"],
         )
         epoch = snapshot.get("world_epoch", snapshot.get("epoch"))
+        if self.interactive_prepare is not None:
+            # Player planting has reserved admission independent of background
+            # backlog. The authoritative intent table bounds active requests.
+            interactive = self.interactive_prepare(
+                self.repository.store, snapshot, limit=4
+            )
+            if not isinstance(interactive, list) or len(interactive) > 4:
+                raise ValueError("Interactive ecology planner exceeded budget")
+            interactive_rows = [
+                proposal("plants", payload, epoch) for payload in interactive
+            ]
+            if interactive_rows:
+                self.repository.save(interactive_rows, [])
+                ready = self.repository.pending()
+                if ready:
+                    self.deliver(ready)
+                self.counters["planned"] += len(interactive_rows)
+            snapshot["skip_interactive"] = True
+            self.pending = self.repository.pending_count()
+        if (
+            self.growth_prepare is not None
+            and self.clock() - self.last_reserved_growth >= 5
+        ):
+            self.last_reserved_growth = self.clock()
+            # Seed growth must remain plannable when ambient proposals fill their
+            # own backlog. A separate bounded lane reserves sixteen monster births.
+            growth_pending = (
+                self.repository.growth_pending_count()
+                if hasattr(self.repository, "growth_pending_count")
+                else 0
+            )
+            capacity = min(4, max(0, 16 - growth_pending))
+            if capacity:
+                growth = self.growth_prepare(
+                    self.repository.store,
+                    dict(snapshot, skip_interactive=True, reserve_monster_births=True),
+                    limit=capacity,
+                )
+                if not isinstance(growth, list) or len(growth) > capacity:
+                    raise ValueError("Reserved ecology growth planner exceeded budget")
+                growth_rows = [proposal("plants", payload, epoch) for payload in growth]
+                if growth_rows:
+                    self.repository.save(growth_rows, [])
+                    self.counters["planned"] += len(growth_rows)
+                    ready = self.repository.pending()
+                    if ready:
+                        self.deliver(ready)
+            self.pending = self.repository.pending_count()
+        if self.pending >= SOFT_PENDING:
+            return
         if epoch != self.last_epoch:
             self.last_locations, self.last_wander, self.last_mobs_now_ms = (
                 [],
@@ -394,7 +983,7 @@ class Worker:
         failures = {}
         mobs_prepared = False
         domains = list(self.domains.items())
-        offset = self.counters["ticks"] % len(domains)
+        offset = self.counters["ticks"] % len(domains) if domains else 0
         domains = domains[offset:] + domains[:offset]
         visited = 0
         for name, prepare in domains:
@@ -406,7 +995,13 @@ class Worker:
                 self.domain_planning_ticks[name] = domain_tick + 1
                 prepared = prepare(
                     self.repository.store,
-                    dict(snapshot, domain_planning_tick=domain_tick),
+                    dict(
+                        snapshot,
+                        domain_planning_tick=domain_tick,
+                        skip_monster_births=(
+                            name == "plants" and self.growth_prepare is not None
+                        ),
+                    ),
                     limit=available - len(rows),
                 )
                 if not isinstance(prepared, list) or len(prepared) > available - len(
@@ -436,11 +1031,31 @@ class Worker:
         self.last_snapshot, self.snapshot_at = snapshot, self.clock()
         if rows:
             self.repository.assert_owner()
-            ready = self.repository.pending()
-            if ready:
-                self.deliver(ready)
+            self.drain()
         self.pending = self.repository.pending_count()
         self.last_tick_seconds = self.clock() - started
+
+    def drain(self):
+        """Drain bounded batches while World admits them, without busy spinning."""
+        deadline = getattr(self, "delivery_deadline", None)
+        if deadline is None:
+            deadline = time.monotonic() + DRAIN_BUDGET_SECONDS
+        seen = set()
+        for _ in range(MAX_DRAIN_BATCHES):
+            if time.monotonic() >= deadline:
+                break
+            ready = self.repository.pending()
+            if not ready:
+                break
+            identities = frozenset(row["id"] for row in ready)
+            if identities & seen:
+                break
+            seen.update(identities)
+            results = self.deliver(ready)
+            if not results or any(
+                row["status"] in ("deferred", "retry") for row in results
+            ):
+                break
 
     def deliver(self, rows):
         self.repository.assert_owner()
@@ -474,8 +1089,11 @@ class Worker:
                 if row["status"] == "stale"
                 else "retries"
                 if row["status"] == "retry"
+                else "deferred"
+                if row["status"] == "deferred"
                 else "delivered"
             ] += 1
+        return results
 
     def run(self):
         while not self.stop.is_set():
@@ -627,6 +1245,10 @@ def main():
         EcologyClient(os.environ.get("WAKFU_WORLD_URL", "http://world:18081"), token),
         domains,
         interval=float(os.environ.get("WAKFU_ECOLOGY_POLL_SECONDS", "1")),
+        growth_prepare=domains["plants"],
+        interactive_prepare=importlib.import_module(
+            "wakfu_server.ecology_planting_intents"
+        ).prepare_intents,
     )
     Handler.worker, Handler.token = worker, token
     server = ThreadingHTTPServer(

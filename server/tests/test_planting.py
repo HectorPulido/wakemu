@@ -726,7 +726,7 @@ class PlantingTests(PostgresCase):
             self.account,
             self.generation,
             p,
-            operation_id="monster-1",
+            operation_id="12345678123456789234123456789abc",
             stage=1,
             creation_time=123,
             result_prefix=(0, 1),

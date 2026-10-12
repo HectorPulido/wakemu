@@ -251,6 +251,31 @@ class MonsterInitialPopulationTests(PostgresCase):
             ).fetchone()
         self.assertFalse(sequence["is_called"])
 
+    def test_existing_unassigned_native_member_does_not_block_region_seed(self):
+        member = owned_instance(
+            5008,
+            REFERENCES[5008]["min_level"],
+            -699999,
+            map_id=self.map_id,
+            instance_id=self.instance_id,
+            x=99,
+            y=7,
+            z=0,
+        )
+        self.groups.register(self.map_id, self.instance_id, 98999, [member])
+
+        def locate(map_id, x, y, z):
+            if x == 99:
+                return {"region_id": -1}
+            return self._locate(map_id, x, y, z)
+
+        self.locate = locate
+        seeded = self._seed()
+        self.assertFalse(seeded["duplicate"])
+        self.assertEqual(2, len(seeded["members"]))
+        self.assertEqual(self.region_id, self._markers()[0]["region_id"])
+        self.assertEqual(2, len(self._groups()))
+
     def test_planted_resource_occupancy_blocks_seed_before_identity_allocation(self):
         with self.store.connection() as db:
             db.execute(

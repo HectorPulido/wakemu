@@ -33,6 +33,16 @@ class FixedRng:
 
 
 class WanderTests(PostgresCase):
+    def setUp(self):
+        super().setUp()
+        # These fixtures isolate movement/locking behavior on synthetic cells.
+        habitat = patch(
+            "wakfu_server.monster_habitat_cells.habitat_destination_allowed",
+            return_value=True,
+        )
+        habitat.start()
+        self.addCleanup(habitat.stop)
+
     def test_nearness_edges_and_occupancy(self):
         members = [owned_instance(5525, 1, -200, map_id=1134, x=0, y=0, z=0)]
         edges = [((0, 0, 0), (1, 0, 1))]
@@ -551,3 +561,84 @@ class WanderTests(PostgresCase):
         persisted = groups.available(1134, 0)[0]
         self.assertEqual(persisted["key"], key)
         self.assertEqual(list(persisted["members"]), members)
+
+
+class WanderTerritoryTests(unittest.TestCase):
+    def test_each_path_step_checks_destination_before_entering_unassigned_cell(self):
+        member = dict(id=-200, x=0, y=0, z=0)
+        checked = []
+
+        def allowed(cell):
+            checked.append(cell)
+            return cell == (1, 0, 0)
+
+        result = plan_path(
+            [member],
+            [dict(x=10, y=0, z=0)],
+            [((0, 0, 0), (1, 0, 0)), ((1, 0, 0), (2, 0, 0))],
+            rng=FixedRng(steps=3),
+            min_steps=1,
+            max_steps=3,
+            destination_allowed=allowed,
+        )
+        self.assertEqual(result["members"][0]["x"], 1)
+        self.assertEqual(checked, [(1, 0, 0), (2, 0, 0)])
+        self.assertEqual(
+            decode_body("in", 13852, result["packets"][0][1])["step_count"], 1
+        )
+
+    def test_live_wander_rejects_destination_without_persisting_or_publishing(self):
+        from threading import RLock
+        from unittest.mock import Mock
+
+        groups = Mock()
+        groups.lock = RLock()
+        groups.snapshot.return_value = [
+            dict(
+                key=(527, 0, 1),
+                status="available",
+                members=[dict(id=-200, x=0, y=0, z=0)],
+            )
+        ]
+        emitted = []
+        with patch(
+            "wakfu_server.monster_habitat_cells.habitat_destination_allowed",
+            return_value=False,
+        ) as allowed:
+            moved = wander_location(
+                groups,
+                527,
+                0,
+                [dict(map_id=527, instance_id=0, x=10, y=0, z=0)],
+                [((0, 0, 0), (1, 0, 0))],
+                lambda *packet: emitted.append(packet),
+                rng=FixedRng(rolls=(0.0,), steps=1),
+                move_probability=1,
+                min_steps=1,
+                max_steps=1,
+            )
+        allowed.assert_called_once_with(527, 0, (1, 0, 0))
+        self.assertEqual(moved, [])
+        groups.move_members.assert_not_called()
+        self.assertEqual(emitted, [])
+
+    def test_native_path_stops_before_returning_to_its_start(self):
+        member = dict(id=-201, x=0, y=0, z=0)
+        edges = [
+            ((0, 0, 0), (1, 0, 0)),
+            ((1, 0, 0), (1, 1, 0)),
+            ((1, 1, 0), (0, 1, 0)),
+            ((0, 1, 0), (0, 0, 0)),
+        ]
+        result = plan_path(
+            [member],
+            [dict(x=10, y=10, z=0)],
+            edges,
+            rng=FixedRng(steps=4),
+            min_steps=4,
+            max_steps=4,
+        )
+        decoded = decode_body("in", 13852, result["packets"][0][1])
+        self.assertEqual(decoded["step_count"], 3)
+        self.assertEqual(decoded["start_position"], {"x": 0, "y": 0, "z": 0})
+        self.assertEqual(decoded["end_position"], {"x": 0, "y": 1, "z": 0})

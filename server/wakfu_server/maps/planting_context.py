@@ -56,6 +56,8 @@ def bootstrap(
     """12789/cuE → chl → bRR.Jo + bRT.dT/bRU.dT.
 
     Absent counts mean an empty LOCAL population, never official population.
+    Equilibrium ranges come from the installed native chief wish catalog;
+    this packet carries counts only, never emulator-generated thresholds.
     Family rows must remain present even when population is zero; dev.am uses
     bRT.Jp(family) existence as a planting gate. Open planting permissions must
     never append display rows: the native receiver has only three typed slots.

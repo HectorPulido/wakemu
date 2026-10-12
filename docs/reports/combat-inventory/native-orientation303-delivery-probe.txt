@@ -1,6 +1,0 @@
-before Ty=false aZN=false bbW=false
-opcode=13497 decodedDirection=5 actualDirection=0 gameplayEnabled=true
-before Ty=false aZN=false bbW=false
-native eWF.c value=5 target=-7
-opcode=12613 decodedDirection=5 actualDirection=5 gameplayEnabled=true
-PASS original eWF delivery:13497 leaves facing unchanged;12613 applies decoded facing

@@ -13,6 +13,13 @@ from wakfu_server.monster_wander import edge_index
 class MonsterReproductionTickTests(PostgresCase):
     def setUp(self):
         super().setUp()
+        # These tests intentionally exercise clocks/publication on synthetic cells.
+        habitat = patch(
+            "wakfu_server.monster_habitat_cells.habitat_destination_allowed",
+            return_value=True,
+        )
+        habitat.start()
+        self.addCleanup(habitat.stop)
         self.map_id, self.instance_id, self.group_id = 1134, 0, 78101
         self.location = (self.map_id, self.instance_id)
         self.groups = PersistentGroups(self.store)
@@ -212,9 +219,16 @@ class MonsterReproductionTickTests(PostgresCase):
             self._tick(530000, packets, generation="new-restart")
         self.assertEqual([12304, 12608], [row[2] for row in packets])
 
-        # After birth, newborn tier-zero members are excluded from clock seeding.
-        babies = [member for member in self._group()["members"] if member["ref"] == 6]
-        self.assertTrue(babies)
+        # Initial-form offspring enter the ordinary reproduction clock too,
+        # allowing a newly established group to grow from a singleton.
+        with self.store.connection() as db:
+            births = db.execute(
+                "SELECT child_id,child FROM monster_reproduction_receipts "
+                "WHERE map_id=%s AND instance_id=%s AND child_id IS NOT NULL",
+                self.location,
+            ).fetchall()
+        self.assertTrue(births)
+        children = {row["child_id"]: row["child"] for row in births}
         monster_reproduction.observe(
             self.store,
             *self.location,
@@ -223,12 +237,16 @@ class MonsterReproductionTickTests(PostgresCase):
             now_ms=590000
         )
         with self.store.connection() as db:
-            baby_timers = db.execute(
-                "SELECT count(*) AS count FROM monster_reproduction_timers "
+            child_timers = db.execute(
+                "SELECT monster_id,reference FROM monster_reproduction_timers "
                 "WHERE map_id=%s AND instance_id=%s AND monster_id=ANY(%s)",
-                (*self.location, [baby["id"] for baby in babies]),
-            ).fetchone()["count"]
-        self.assertEqual(0, baby_timers)
+                (*self.location, list(children)),
+            ).fetchall()
+        self.assertEqual(set(children), {row["monster_id"] for row in child_timers})
+        self.assertEqual(
+            {actor_id: child["ref"] for actor_id, child in children.items()},
+            {row["monster_id"]: row["reference"] for row in child_timers},
+        )
 
     def test_emission_failure_retains_outbox_for_exact_packet_retry(self):
         packets = []

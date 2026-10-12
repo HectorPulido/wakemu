@@ -4,18 +4,37 @@ Labels are exported from installed texts_en.properties content.77.<map_id>.
 Unknown labels remain explicit technical identifiers rather than invented names.
 """
 import json
-from pathlib import Path
 
-MAP_NAMES = json.loads(Path(__file__).with_name("admin_map_names.json").read_text())
+SETTING = "admin_map_names"
+
+
+def load(db):
+    row = db.execute("SELECT value FROM settings WHERE name=%s", (SETTING,)).fetchone()
+    names = None if row is None else row["value"]
+    if type(names) is not dict or any(
+        type(key) is not str
+        or not key.isascii()
+        or not key.isdigit()
+        or str(int(key)) != key
+        or not 0 <= int(key) < 2**31
+        or type(value) is not str
+        or not value
+        or "\0" in value
+        for key, value in names.items()
+    ):
+        raise ValueError("Invalid database native map labels")
+    return names
+
+
 ACTIVE = "(SELECT revision FROM native_catalog_active WHERE id=1)"
 
 
-def label(row):
+def label(row, names):
     result = dict(row)
     if result.get("name"):
         result["name_source"] = "operator"
-    elif str(result["id"]) in MAP_NAMES:
-        result["name"] = MAP_NAMES[str(result["id"])]
+    elif str(result["id"]) in names:
+        result["name"] = names[str(result["id"])]
         result["name_source"] = "native"
     else:
         result["name"] = f"Map #{result['id']}"

@@ -1,9 +1,0 @@
-# Native graph traversal deadline enforcement
-
-A live repertoire request around 07:10 UTC spent 15,547.897 ms of thread CPU and 15,703.049 ms wall time. Continuous samples show `world_bridge._query_unmeasured` -> `encode(metadata)` -> recursive dictionary/sequence visits. The prerequisite query took only about 7.8 ms across three calls; no target-envelope measurement was present for that request. Individual installed casting records inspected offline were at most approximately 121 KB, so a whole-catalog leak or a garbage-collection pause is not established by this evidence.
-
-The encoder previously checked deadlines only when allocating every 1,024th graph node. Primitive values and memoized references returned before that check, allowing large scalar arrays or highly aliased graphs to bypass cooperative deadlines. Traversal now checks every 256 visits, including primitive values and existing references. NativeGraph validation counts references independently of node count, and plain projections carry a shared reference counter through recursion. These changes enforce bounded cooperative work without dropping graph contents or weakening validation.
-
-Repertoire transport now uses the existing lossless byte encoder and byte transport when supported, avoiding construction of a complete mutable Python graph followed by a second complete JSON traversal. Custom transports exposing only the historical graph interface retain that interface. Exact graph content, shared references, cycles and authority fields remain intact.
-
-Five focused regressions pass: long primitive encoding, repeated-reference encoding, complete graph/alias parity, single-node primitive-reference validation, and plain-projection interruption. The existing 18 native-context tests also pass. Broader bridge, graph-parts and turn regression validation is delegated. Graph-parts internal loops were not changed in this task.

@@ -1,4 +1,4 @@
-"""Database-configured equilibrium rules requested for this emulator."""
+"""Score ecology actions against the same native regional chief wishes as UI."""
 
 
 def bounds(value):
@@ -58,18 +58,13 @@ def decision(db, *, map_id, region_id, kind, family_id, action, before, amount=1
             raise ValueError("Invalid personal ecology delta")
     for population_kind in ("plant", "monster"):
         bounds(policy[population_kind])
-    limit = db.execute(
-        "SELECT minimum,maximum,source,revision FROM ecology_family_limits "
-        "WHERE map_id=%s AND region_id=%s AND kind=%s AND family_id=%s",
-        (map_id, region_id, kind, family_id),
-    ).fetchone()
-    minimum, maximum = bounds(
-        policy[kind]
-        if limit is None
-        else {key: limit[key] for key in ("minimum", "maximum")}
-    )
-    distance_before = max(minimum - before, before - maximum, 0)
-    distance_after = max(minimum - after, after - maximum, 0)
+    from .ecology_equilibrium import limits
+
+    limit = limits(map_id, region_id, kind, family_id)
+    minimum, maximum = limit["minimum"], limit["maximum"]
+    managed = minimum is not None
+    distance_before = max(minimum - before, before - maximum, 0) if managed else 0
+    distance_after = max(minimum - after, after - maximum, 0) if managed else 0
     delta = (
         policy["balance_delta"]
         if distance_after < distance_before
@@ -91,8 +86,9 @@ def decision(db, *, map_id, region_id, kind, family_id, action, before, amount=1
             "distance_after": distance_after,
             "minimum": minimum,
             "maximum": maximum,
-            "limit_source": "local_fallback" if limit is None else limit["source"],
-            "limit_revision": None if limit is None else limit["revision"],
+            "limit_source": limit["source"],
+            "limit_revision": limit["revision"],
+            "managed_equilibrium": managed,
             "policy": policy,
         },
     }

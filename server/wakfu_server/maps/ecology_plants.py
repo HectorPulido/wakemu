@@ -1,6 +1,8 @@
 """Read-only ecology growth planning and bounded world-side authoritative apply."""
 from datetime import datetime
 import math
+import json
+import time
 
 from wakfu_server import planting
 from wakfu_server.planting_runtime import monster_growth_member
@@ -20,6 +22,77 @@ RESOURCE_KEYS = (
 
 # Advisory read cursors only: restarting them cannot replay a durable mutation.
 _CURSORS = {}
+_SEED_LOG_STATES = {}
+MAX_BIRTH_BATCH = 64
+MAX_BIRTH_BATCH_BYTES = 224 * 1024
+
+
+def _prepare_birth_batch(store, snapshot, refs, delay, occupied):
+    """One ordered read gathers ready seeds into one bounded durable proposal."""
+    from wakfu_server.ecology.protocol import json_bytes
+
+    epoch = snapshot["world_epoch"]
+    cursor = _CURSORS.setdefault(epoch, {}).get("monster_bulk", 0)
+    with store.connection() as db:
+        rows = db.execute(
+            "SELECT * FROM planted_resources WHERE stage=1 AND creation_time<=%s "
+            "AND resource_reference=ANY(%s) ORDER BY (resource_uid<=%s),resource_uid LIMIT %s",
+            (snapshot["now_ms"] - int(delay * 1000), refs, cursor, MAX_BIRTH_BATCH),
+        ).fetchall()
+    bulk = dict(kind="resource_growth_bulk", world_epoch=epoch, resources=[])
+    for row in rows:
+        resource = {key: row[key] for key in RESOURCE_KEYS}
+        _CURSORS[epoch]["monster_bulk"] = resource["resource_uid"]
+        if (
+            tuple(resource[k] for k in ("map_id", "instance_id", "x", "y", "z"))
+            in occupied
+        ):
+            continue
+        member = monster_growth_member(
+            resource,
+            planting.RESOURCES[resource["resource_reference"]],
+            decision_seed=f"seed-birth:{resource['resource_uid']}:{resource['resource_reference']}:{resource['stage']}",
+        )
+        candidate = dict(
+            kind="resource_growth",
+            world_epoch=epoch,
+            expected=resource,
+            transition=None,
+            member=member,
+        )
+        bulk["resources"].append(candidate)
+        try:
+            json_bytes(bulk, limit=MAX_BIRTH_BATCH_BYTES)
+        except ValueError:
+            bulk["resources"].pop()
+            break
+    return [bulk] if bulk["resources"] else []
+
+
+def _seed_log(resource, state, **details):
+    """Log state transitions immediately; repeat unchanged diagnostics every 30s."""
+    identity = resource["resource_uid"]
+    now = time.monotonic()
+    previous = _SEED_LOG_STATES.get(identity)
+    if previous is not None and previous[0] == state and now - previous[1] < 30:
+        return
+    if len(_SEED_LOG_STATES) >= 1024 and identity not in _SEED_LOG_STATES:
+        _SEED_LOG_STATES.pop(next(iter(_SEED_LOG_STATES)))
+    _SEED_LOG_STATES[identity] = (state, now)
+    print(
+        json.dumps(
+            dict(
+                event="ecology_seed_growth",
+                state=state,
+                resource_uid=identity,
+                map_id=resource["map_id"],
+                instance_id=resource["instance_id"],
+                position=[resource[key] for key in ("x", "y", "z")],
+                **details,
+            )
+        ),
+        flush=True,
+    )
 
 
 def prepare(store, snapshot, *, limit=16):
@@ -56,6 +129,8 @@ def prepare(store, snapshot, *, limit=16):
         (p["map_id"], p.get("instance_id", 0), p["x"], p["y"], p["z"])
         for p in snapshot.get("players", ())
     }
+    if snapshot.get("reserve_monster_births", False):
+        return _prepare_birth_batch(store, snapshot, refs, delay, occupied)
     queries = {
         "monster": (
             "SELECT p.* FROM planted_resources p WHERE p.stage=1 "
@@ -91,13 +166,25 @@ def prepare(store, snapshot, *, limit=16):
             "resource_uid",
         ),
     }
+    if snapshot.get("reserve_monster_births", False):
+        queries = {"monster": queries["monster"]}
+    elif snapshot.get("skip_monster_births", False):
+        queries.pop("monster")
     categories = list(queries)
     categories = (
         categories[tick % len(categories) :] + categories[: tick % len(categories)]
     )
     from wakfu_server.ecology_planting_intents import prepare_intents
 
-    plans = prepare_intents(store, snapshot, limit=min(4, limit))
+    plans = (
+        []
+        if snapshot.get("skip_interactive", False)
+        else prepare_intents(store, snapshot, limit=min(4, limit))
+    )
+    if not snapshot.get("reserve_monster_births", False) and len(plans) < limit:
+        from .ecology_affinity_reconciliation import prepare as prepare_reconciliation
+
+        plans.extend(prepare_reconciliation(store, snapshot, limit=1))
     growth_limit = limit - len(plans)
     with store.connection() as db:
         for index, category in enumerate(categories):
@@ -150,8 +237,20 @@ def prepare(store, snapshot, *, limit=16):
                             )
                             in occupied
                         ):
+                            _seed_log(
+                                resource,
+                                "blocked",
+                                reason="player_occupied",
+                                age_ms=now_ms - resource["creation_time"],
+                            )
                             continue
                         member = monster_growth_member(resource, definition)
+                        _seed_log(
+                            resource,
+                            "prepared",
+                            age_ms=now_ms - resource["creation_time"],
+                            offspring_reference=member["ref"],
+                        )
                     else:
                         if row["to_stage"] not in definition["stages"]:
                             raise ValueError(
@@ -174,7 +273,7 @@ def prepare(store, snapshot, *, limit=16):
     return plans
 
 
-def apply(plantings, groups, proposal, *, authorize_spawn, publish):
+def apply(plantings, groups, proposal, *, authorize_spawn, publish, _collect=None):
     """Commit one plan under caller's live fence; never scan all due resources."""
     if not isinstance(proposal, dict):
         raise ValueError("Invalid ecology growth proposal")
@@ -184,6 +283,14 @@ def apply(plantings, groups, proposal, *, authorize_spawn, publish):
     current_epoch = getattr(plantings, "ecology_world_epoch", epoch)
     if epoch != current_epoch:
         return dict(applied=False, reason="stale_world_epoch", publications=[])
+    if proposal.get("kind") == "resource_growth_bulk":
+        return _apply_birth_batch(
+            plantings,
+            groups,
+            proposal,
+            authorize_spawn=authorize_spawn,
+            publish=publish,
+        )
     if proposal.get("kind") == "growth_publish":
         uid = proposal.get("resource_uid")
         if type(uid) is not int or not 0 < uid < 2**63:
@@ -234,11 +341,17 @@ def apply(plantings, groups, proposal, *, authorize_spawn, publish):
         if transition is not None or resource["stage"] != 1:
             raise ValueError("Invalid ecology monster transition")
         if not authorize_spawn(resource):
-            return dict(applied=False, reason="occupied", publications=[])
+            _seed_log(resource, "blocked", reason="world_occupied")
+            return dict(
+                status="deferred", applied=False, reason="occupied", publications=[]
+            )
         if int(plantings.store.clock() * 1000) < (
             resource["creation_time"] + plantings.growth_seconds * 1000
         ):
-            return dict(applied=False, reason="not_due", publications=[])
+            _seed_log(resource, "blocked", reason="not_due")
+            return dict(
+                status="deferred", applied=False, reason="not_due", publications=[]
+            )
         member = proposal.get("member")
         if not isinstance(member, dict) or any(
             member.get(key) != resource[key]
@@ -272,14 +385,101 @@ def apply(plantings, groups, proposal, *, authorize_spawn, publish):
             int(plantings.store.clock() * 1000)
             < resource["creation_time"] + transition[1]
         ):
-            return dict(applied=False, reason="not_due", publications=[])
+            return dict(
+                status="deferred", applied=False, reason="not_due", publications=[]
+            )
         transition = tuple(transition)
     # The complete row, live harvest occupation and current transition policy
     # are compared again inside the existing atomic mutation transaction.
-    plantings.apply_growth_candidates(
+    if _collect is not None:
+        if members is None:
+            raise ValueError("Bulk birth contains a non-monster resource")
+        _collect.append(
+            (resource, definition, transition, members[resource["resource_uid"]])
+        )
+        return dict(applied=False, publications=[])
+    if members is not None:
+        _seed_log(resource, "committing", offspring_reference=member["ref"])
+    growth = plantings.apply_growth_candidates(
         [(resource, definition, transition)], prepared_members=members
     )
+    if resource["resource_uid"] in growth.get("capacity_skipped", ()):
+        _seed_log(resource, "blocked", reason="capacity")
+        return dict(
+            status="deferred",
+            applied=False,
+            reason="capacity",
+            publications=[],
+        )
+    if members is not None:
+        _seed_log(resource, "commit_checked")
     deliveries = plantings.publish_growth(
         groups, publish=publish, resource_uid=resource["resource_uid"], limit=1
     )
+    if members is not None:
+        _seed_log(
+            resource,
+            "published" if deliveries else "publication_pending",
+            publications=len(deliveries),
+        )
     return dict(applied=bool(deliveries), publications=deliveries)
+
+
+def _apply_birth_batch(plantings, groups, proposal, *, authorize_spawn, publish):
+    """Validate the whole batch before one transactional per-seed CAS pass."""
+    from wakfu_server.ecology.protocol import json_bytes
+
+    rows = proposal.get("resources")
+    if not isinstance(rows, list) or not 1 <= len(rows) <= MAX_BIRTH_BATCH:
+        raise ValueError("Invalid ecology birth batch size")
+    json_bytes(proposal, limit=MAX_BIRTH_BATCH_BYTES)
+    candidates, identities, waiting = [], set(), []
+    for row in rows:
+        if (
+            not isinstance(row, dict)
+            or row.get("kind") != "resource_growth"
+            or row.get("world_epoch") != proposal["world_epoch"]
+        ):
+            raise ValueError("Invalid ecology birth batch member")
+        resource = row.get("expected")
+        uid = resource.get("resource_uid") if isinstance(resource, dict) else None
+        if type(uid) is not int or uid in identities:
+            raise ValueError("Invalid ecology birth batch identity")
+        identities.add(uid)
+        result = apply(
+            plantings,
+            groups,
+            row,
+            authorize_spawn=authorize_spawn,
+            publish=publish,
+            _collect=candidates,
+        )
+        if result.get("status") == "deferred":
+            waiting.append(result["reason"])
+    if not candidates:
+        return dict(
+            status="deferred",
+            applied=False,
+            reason=waiting[0] if waiting else "not_due",
+            publications=[],
+        )
+    prepared = {
+        resource["resource_uid"]: member for resource, _, _, member in candidates
+    }
+    growth = plantings.apply_growth_candidates(
+        [
+            (resource, definition, transition)
+            for resource, definition, transition, _ in candidates
+        ],
+        prepared_members=prepared,
+    )
+    deliveries = plantings.publish_growth(
+        groups, publish=publish, resource_uids=sorted(identities), limit=MAX_BIRTH_BATCH
+    )
+    if not growth.get("applied") and not deliveries and growth.get("capacity_skipped"):
+        return dict(
+            status="deferred", applied=False, reason="capacity", publications=[]
+        )
+    return dict(
+        applied=bool(growth.get("applied") or deliveries), publications=deliveries
+    )

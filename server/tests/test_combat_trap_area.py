@@ -52,21 +52,20 @@ class NativeTrapAreaTests(unittest.TestCase):
 
     def test_exhaustion_policy_requires_actual_inactive_zero_charge_row(self):
         from types import SimpleNamespace
-        from unittest.mock import patch
+        from unittest.mock import Mock
 
         row = dict(
             uid=91, native_area_contract="fbc", remaining_activations=0, executing=True
         )
         fight = SimpleNamespace(native_effect_areas={91: row})
-        callbacks = object()
-        with patch("wakfu_server.combat_effect_area.remove_owned_hour_area") as remove:
-            self.assertFalse(retire_exhausted_trap(fight, row, callbacks=callbacks))
-            row["executing"] = False
-            row["remaining_activations"] = -1
-            self.assertFalse(retire_exhausted_trap(fight, row, callbacks=callbacks))
-            row["remaining_activations"] = 0
-            self.assertTrue(retire_exhausted_trap(fight, row, callbacks=callbacks))
-            remove.assert_called_once_with(fight, 91, callbacks=callbacks)
+        callbacks = SimpleNamespace(remove_parent=Mock())
+        self.assertFalse(retire_exhausted_trap(fight, row, callbacks=callbacks))
+        row["executing"] = False
+        row["remaining_activations"] = -1
+        self.assertFalse(retire_exhausted_trap(fight, row, callbacks=callbacks))
+        row["remaining_activations"] = 0
+        self.assertTrue(retire_exhausted_trap(fight, row, callbacks=callbacks))
+        callbacks.remove_parent.assert_called_once_with(row)
         fight.native_effect_areas.clear()
         self.assertFalse(retire_exhausted_trap(fight, row, callbacks=callbacks))
 

@@ -27,17 +27,22 @@ def resolver(store, *, profession_bonus, open_test_policy=False):
         raise ValueError("Invalid open planting probability policy")
 
     def resolve(prepared):
-        if prepared["character"]["map_id"] == 9:
-            from .haven_bag_garden import room_at
+        character, request = prepared["character"], prepared["request"]
+        if character["map_id"] == 1440:
+            from .haven_bag_garden import is_private_garden, validate_target
 
-            room_at(
-                prepared["character"],
-                prepared["request"]["x"],
-                prepared["request"]["y"],
-            )
+            if not is_private_garden(character):
+                raise ValueError("Merkalugar planting requires an active private Ranch")
+            validate_target(character, request["x"], request["y"], z=prepared["z"])
+            # A Ranch retains native terrain and the configured world planting
+            # policy; ground28 is synthesized only for map9 garden gem rooms.
+        if character["map_id"] == 9:
+            from .haven_bag_garden import validate_target
+
+            validate_target(character, request["x"], request["y"], z=prepared["z"])
             if prepared["definition"]["monster_resource"]:
                 raise ValueError(
-                    "Monster reproduction is unavailable inside Haven Bags"
+                    "Monster reproduction is unavailable inside private gardens"
                 )
             from .planting_cells import GROUNDS
 
@@ -68,7 +73,6 @@ def resolver(store, *, profession_bonus, open_test_policy=False):
             return probability
         from .territory_weather import context
 
-        character, request = prepared["character"], prepared["request"]
         weather = context(
             store, character, x=request["x"], y=request["y"], z=prepared["z"]
         )

@@ -4,9 +4,6 @@ Native node IDs never imply graph edges. Graphs must come from verified server
 contracts. This module does not execute client Lua or grant quest rewards.
 """
 from functools import lru_cache
-import gzip
-import json
-from pathlib import Path
 import struct
 
 OPEN_REQUEST = 12535
@@ -18,9 +15,9 @@ NPC_SPEAKER = 2
 
 @lru_cache(maxsize=1)
 def catalog():
-    path = Path(__file__).resolve().parents[2] / "protocol/npc-dialogues.json.gz"
-    with gzip.open(path, "rt", encoding="utf-8") as source:
-        data = json.load(source)
+    from .npc_catalog import document
+
+    data = document("npc_dialogues")
     data["node_index"] = {int(node["id"]): node for node in data["nodes"]}
     return data
 

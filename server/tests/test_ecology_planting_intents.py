@@ -78,6 +78,90 @@ class EcologyPlantingIntentTests(PostgresCase):
             db=db,
         )
 
+    def test_ranch_monster_worker_reconstructs_authority_before_scalar_proposal(self):
+        from wakfu_server import haven_bag_garden as garden
+        from wakfu_server.planting import RESOURCES
+
+        seed = SEEDS[7361]
+        self.assertTrue(RESOURCES[seed["resource_reference"]]["monster_resource"])
+        ensure_learned(
+            self.store, self.account, self.gen, self.char["id"], [seed["profession_id"]]
+        )
+        item = self.grant_monster_seed_for_ranch(seed)
+        body = struct.pack(">iqii", seed["action_id"], item["uid"], 10, 11)
+        live = dict(
+            self.char, map_id=1440, instance_id=self.char["id"], x=10, y=10, z=0
+        )
+        self.repo.enqueue(self.account, self.gen, live, body)
+        scalar = {
+            key: live[key]
+            for key in ("id", "account_id", "map_id", "instance_id", "x", "y", "z")
+        }
+        with patch.object(
+            garden, "authorize", return_value=0
+        ) as authorize, patch.object(garden, "validate_target", return_value=0):
+            proposal = prepare_intents(
+                self.store, dict(self.snapshot, players=[scalar])
+            )[0]
+        self.assertEqual(proposal["kind"], "planting_begin")
+        actor = authorize.call_args.args[1]
+        self.assertTrue(actor["haven_ranch_session"])
+        self.assertTrue(garden.is_private_garden(actor))
+        self.assertEqual(
+            proposal["prepared"]["character"]["instance_id"], self.char["id"]
+        )
+        self.assertNotIn("inventory_items", proposal["prepared"]["character"])
+        self.assertTrue(proposal["prepared"]["definition"]["monster_resource"])
+        self.runtime.location_context = lambda stored: garden.active_character(
+            stored, [scalar], store=self.store
+        )
+        current = self.runtime.location_context(self.char)
+
+        def accept(db, accepted):
+            return self.runtime.begin_prepared(
+                self.account,
+                self.gen,
+                current,
+                body,
+                accepted["prepared"],
+                lambda *args: 0,
+                db=db,
+            )
+
+        self.assertTrue(self.repo.apply(proposal, accept)["applied"])
+        self.now[0] += 3
+        with patch.object(garden, "validate_target", return_value=0):
+            result = self.runtime.complete(
+                self.account, self.gen, current, b"\x02\x00\x02"
+            )
+        self.assertTrue(result["applied"])
+        self.assertTrue(result["success"])
+        with self.store.connection() as db:
+            resource = db.execute(
+                "SELECT map_id,instance_id,resource_reference FROM planted_resources"
+            ).fetchone()
+            remaining = db.execute(
+                "SELECT quantity FROM inventory_items WHERE uid=%s", (item["uid"],)
+            ).fetchone()
+        self.assertEqual(
+            (resource["map_id"], resource["instance_id"]), (1440, self.char["id"])
+        )
+        self.assertEqual(resource["resource_reference"], seed["resource_reference"])
+        self.assertEqual(remaining["quantity"], 1)
+
+    def grant_monster_seed_for_ranch(self, seed):
+        return grant(
+            self.store,
+            self.account,
+            self.gen,
+            self.char["id"],
+            reference=seed["item_reference"],
+            quantity=2,
+            container=self.char["inventory_containers"][0]["uid"],
+            slot=1,
+            allowed_references=SEEDS,
+        )
+
     def test_readonly_prepare_accept_and_complete_debits_once(self):
         self.repo.enqueue(self.account, self.gen, self.char, self.body)
         plan = self.prepare()

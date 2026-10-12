@@ -255,15 +255,20 @@ def _snapshot(db, item):
 
 
 def _equipped(character):
+    return set(_equipment_positions(character))
+
+
+def _equipment_positions(character):
     from wakfu_server.wire import proto_fields
 
-    result = set()
-    for build in character["builds"].values():
+    result = {}
+    for index, build in character["builds"].items():
         for tag, value in proto_fields(bytes.fromhex(build["equipment"])):
             if tag == 10:
-                uid = dict(proto_fields(value)).get(8)
+                fields = dict(proto_fields(value))
+                uid = fields.get(8)
                 if uid is not None:
-                    result.add(uid)
+                    result.setdefault(uid, []).append((index, fields.get(16)))
     return result
 
 
@@ -321,6 +326,7 @@ def transfer(
     *,
     opening_token,
     location,
+    ranch_session=None,
 ):
     """Commit item custody and receipt together, then return owned snapshots.
 
@@ -351,8 +357,21 @@ def transfer(
     with store.connection() as db:
         _lease(store, db, account_id, generation, character_id)
         bag_id = owner_id(db, character_id)
-        if location.get("map_id") != 9 or location.get("instance_id") != bag_id:
-            raise ValueError("Chest requires the account-owned active haven bag")
+        if (
+            location.get("id") != character_id
+            or location.get("account_id") != account_id
+        ):
+            raise ValueError("Foreign account chest location owner")
+        if ranch_session is None:
+            allowed = location.get("map_id") == 9
+        else:
+            allowed = can_access_location(
+                location, getattr(ranch_session, "parent", None), ranch_session
+            )
+            if allowed:
+                ranch_session.validate_lease(generation)
+        if not allowed or location.get("instance_id") != bag_id:
+            raise ValueError("Chest requires the account-owned active private scene")
         chest = _ensure(db, account_id)
         now = store.now()
         receipt = db.execute(
@@ -391,9 +410,16 @@ def transfer(
                     raise ValueError(
                         "Stored binding does not permit account chest custody"
                     )
-            equipped = _equipped(character)
-            if any(request["uid"] in equipped for request in requests):
-                raise ValueError("Unequip the chest item from every build first")
+            equipped = _equipment_positions(character)
+            for request in requests:
+                if request["uid"] in equipped:
+                    positions = ", ".join(
+                        f"build {index}, slot {slot}"
+                        for index, slot in equipped[request["uid"]]
+                    )
+                    raise ValueError(
+                        f"Unequip item {request['uid']} from {positions} before depositing it"
+                    )
         planned, updated = plan(
             inventory,
             chest,
@@ -424,7 +450,37 @@ def transfer(
         )
 
 
-def validate_open(character, bag_session, body, objects, *, fight_active):
+def can_access_location(character, bag_session, ranch_session=None):
+    """Authorize a live owned bag or its exact owned ranch child capability.
+
+    This does not replace the selected SQL lease or canonical bag-instance fence.
+    Callers must invalidate their opening token when this capability is lost.
+    """
+    if bag_session is None:
+        return False
+    if ranch_session is None:
+        return (
+            bag_session.is_owner is True
+            and character.get("map_id") == 9
+            and bag_session.owns(character)
+        )
+    try:
+        parent = ranch_session.parent
+        return (
+            parent is bag_session
+            and parent.is_owner is True
+            and parent.owner["account_id"] == character["account_id"]
+            and ranch_session.owns(character)
+            and parent.owns(ranch_session.return_point)
+            and character["instance_id"] == parent.bag_instance_id
+        )
+    except (AttributeError, KeyError, TypeError):
+        return False
+
+
+def validate_open(
+    character, bag_session, body, objects, *, fight_active, ranch_session=None
+):
     """Authorize only the installed account chest in this owner's interior."""
     import struct
 
@@ -433,13 +489,7 @@ def validate_open(character, bag_session, body, objects, *, fight_active):
     identity, action, parameter = struct.unpack(">qHH", body)
     if action != 12 or parameter != 0:
         raise ValueError("Unsupported native chest action")
-    if (
-        fight_active
-        or bag_session is None
-        or not bag_session.is_owner
-        or not bag_session.owns(character)
-        or character.get("map_id") != 9
-    ):
+    if fight_active or not can_access_location(character, bag_session, ranch_session):
         raise ValueError("Chest requires its owner outside combat")
     obj = next(
         (
@@ -449,7 +499,7 @@ def validate_open(character, bag_session, body, objects, *, fight_active):
         ),
         None,
     )
-    if obj is None or obj["map_id"] != 9:
+    if obj is None or obj["map_id"] != character["map_id"]:
         raise ValueError("Foreign or unknown account chest")
     if (
         abs(character["x"] - obj["x"]) + abs(character["y"] - obj["y"]) > 4

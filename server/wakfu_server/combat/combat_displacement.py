@@ -591,7 +591,6 @@ class NativeDisplacementHandler:
                 return False
         if self.event_lifecycle is not None:
             self.event_lifecycle.phase(effect, invocation, uid=uid, value=0, channel=2)
-        source = self.fight.actors[invocation.caster_id]
         if kind in ("push", "pull"):
             recipient = self.fight.actors.get(invocation.target_id)
             if recipient is None:
@@ -612,6 +611,22 @@ class NativeDisplacementHandler:
             if self.authority(self.fight, recipient).is_carried:
                 self._finish_events(effect, invocation, uid, 0)
                 return False
+        source = self.fight.actors.get(invocation.caster_id)
+        if source is None and kind in ("push", "pull"):
+            from .combat_area_authority import area_guards
+            from .combat_effect_area_targets import area_targets
+
+            area_guards(self.fight, invocation.caster_id)
+            source = next(
+                (
+                    area
+                    for area in area_targets(self.fight)
+                    if area.id == invocation.caster_id
+                ),
+                None,
+            )
+        if source is None:
+            raise ValueError("Missing native displacement source PV")
         # eXp/eXq.fOr -> eXD.fOS reads caster fax.buX before path calculation.
         if (
             kind in ("move_away_cell", "approach_cell")
@@ -620,7 +635,11 @@ class NativeDisplacementHandler:
             self._finish_events(effect, invocation, uid, 0)
             return False
         # eXD only tests mobility of fOt(), not its possibly carried caster.
-        source_props = self.authority.properties(self.fight, source)
+        source_props = (
+            self.authority.properties(self.fight, source)
+            if source.id in self.fight.actors
+            else ()
+        )
         target = self.fight.actors.get(invocation.target_id)
         geometry = teleport_geometry or displacement_geometry(
             effect, invocation.level, source=source, target=target, cell=invocation.cell

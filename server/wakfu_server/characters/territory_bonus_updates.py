@@ -6,7 +6,12 @@ import time
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from wakfu_server import ecology_population, territory_bonuses, territory_cells
+from wakfu_server import (
+    ecology_context,
+    ecology_population,
+    territory_bonuses,
+    territory_cells,
+)
 
 
 def _revision(db, scope):
@@ -46,16 +51,20 @@ def prepare(store, world_snapshot, limit=16):
     ) % len(scopes)
     scopes = (scopes[offset:] + scopes[:offset])[:limit]
     catalog = territory_bonuses._catalog()["territories"]
+    with store.connection() as db:
+        health_policy = territory_bonuses.control_health_policy(db)
     proposals = []
     for scope in scopes:
         observed_at = time.time()
 
-        def locate(map_id, x, y, z):
-            return {"region_id": territory_cells.region_at(map_id, x, y)}
-
         with store.connection() as db:
             before = _revision(db, scope)
-            population = ecology_population.snapshot(db, *scope, locate=locate)
+            population = ecology_population.snapshot(
+                db,
+                *scope,
+                locate=ecology_context.population_region,
+                exclude_unassigned=True,
+            )
             after = _revision(db, scope)
         if before != after:
             continue  # A concurrent ecology commit needs a fresh population read.
@@ -75,7 +84,9 @@ def prepare(store, world_snapshot, limit=16):
             )
             regions[region_id] = {
                 str(key): value
-                for key, value in territory_bonuses.stat_bonuses(region).items()
+                for key, value in territory_bonuses.stat_bonuses(
+                    region, health_policy=health_policy
+                ).items()
             }
         proposals.append(
             dict(
@@ -142,7 +153,7 @@ class RegionalBonusUpdates:
             ):
                 raise ValueError("Invalid regional bonus region")
             if not isinstance(values, dict) or any(
-                key not in ("33", "36")
+                key not in ("1", "33", "36")
                 or type(value) is not int
                 or not -1000 <= value <= 1000
                 for key, value in values.items()

@@ -359,6 +359,7 @@ class AdminSettings:
                 "value",
             ),
             "monster_maturation": ("monster_maturation", "validate_policy", "value"),
+            "monster_genesis": ("ecology_admin", "validate_genesis_policy", "value"),
             "fight_placement_policy": ("combat_placement_policy", "_policy", "value"),
             "rift_policy": ("rift_policy", "validate", "value"),
             "rift_reward_policy": ("rift_rewards", "validate_policy", "value"),

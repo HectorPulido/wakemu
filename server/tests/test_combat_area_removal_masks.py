@@ -31,7 +31,7 @@ class RemovalMaskTests(unittest.TestCase):
         retention = runtime.dispatcher.native_retention
         retention.remove = Mock()
         self.assertTrue(runtime._remove_on_masks(row, definition, (10010,)))
-        retention.remove.assert_called_once_with(9010)
+        retention.remove.assert_called_once_with((9010,))
         runtime.fight.native_owned_area_effects[9010]["removing"] = True
         self.assertFalse(runtime._remove_on_masks(row, definition, (10010,)))
         self.assertEqual(retention.remove.call_count, 1)

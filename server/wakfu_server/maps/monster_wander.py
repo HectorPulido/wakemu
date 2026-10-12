@@ -15,6 +15,25 @@ def point(actor):
     return tuple(actor[k] for k in ("x", "y", "z"))
 
 
+def visible_groups(groups, players, *, radius, tick, batch_size):
+    """Rotate eligible visible groups before spending native pathfinding time."""
+    nearby = [
+        group
+        for group in groups
+        if group["status"] == "available"
+        and any(
+            max(abs(member["x"] - player["x"]), abs(member["y"] - player["y"]))
+            <= radius
+            for member in group["members"]
+            for player in players
+        )
+    ]
+    if not nearby:
+        return []
+    start = (tick * batch_size) % len(nearby)
+    return nearby[start:] + nearby[:start]
+
+
 def movement_packet(actor_id, origin, destination):
     dx, dy, dz = tuple(b - a for a, b in zip(origin, destination))
     direction = next(
@@ -68,7 +87,15 @@ def policy(store):
 
 
 def plan(
-    members, players, valid_edges, *, occupied=(), radius=20, rng=None, indexed=None
+    members,
+    players,
+    valid_edges,
+    *,
+    occupied=(),
+    radius=20,
+    rng=None,
+    indexed=None,
+    destination_allowed=None,
 ):
     if not members or radius <= 0:
         return None
@@ -88,6 +115,10 @@ def plan(
         destinations = [tuple(x + d for x, d in zip(o, delta)) for o in origins]
         if len(set(destinations)) != len(destinations) or any(
             d in blocked for d in destinations
+        ):
+            continue
+        if destination_allowed is not None and any(
+            not destination_allowed(destination) for destination in destinations
         ):
             continue
         if any((o, d) not in edges for o, d in zip(origins, destinations)):
@@ -116,21 +147,27 @@ def plan_path(
     min_steps=1,
     max_steps=3,
     rng=None,
-    indexed=None
+    indexed=None,
+    destination_allowed=None,
 ):
     rng = rng or random
     indexed = edge_index(valid_edges) if indexed is None else indexed
     moved = members
     paths = [[point(member)] for member in members]
+    base_occupied = set(occupied)
     for _ in range(rng.randint(min_steps, max_steps)):
+        # Do not let a multi-step wander path loop back through a cell it already
+        # crossed. A short back-and-forth path looks stationary to the client.
+        visited = {cell for path in paths for cell in path[:-1]}
         result = plan(
             moved,
             players,
             (),
-            occupied=occupied,
+            occupied=base_occupied | visited,
             radius=radius,
             rng=rng,
             indexed=indexed,
+            destination_allowed=destination_allowed,
         )
         if result is None:
             break
@@ -165,7 +202,7 @@ def wander_location(
     move_probability=0.25,
     min_steps=1,
     max_steps=3,
-    indexed=None
+    indexed=None,
 ):
     """Serialize claim/move/broadcast using the same registry lock.
 
@@ -177,6 +214,8 @@ def wander_location(
     ]
     if not players:
         return []
+    from .monster_habitat_cells import habitat_destination_allowed
+
     rng = rng or random
     indexed = edge_index(valid_edges) if indexed is None else indexed
     moved_keys = []
@@ -219,6 +258,9 @@ def wander_location(
                     indexed=indexed,
                     min_steps=min_steps,
                     max_steps=max_steps,
+                    destination_allowed=lambda cell: habitat_destination_allowed(
+                        map_id, instance_id, cell
+                    ),
                 )
                 if result is not None:
                     candidate[index] = result["members"][0]

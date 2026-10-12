@@ -1,0 +1,40 @@
+{
+  "database": "wakemu_runtime",
+  "snapshot_transaction_started_at": "2026-10-12 06:27:39.275327+00",
+  "format": "PostgreSQL 17 custom archive",
+  "compression": "zstd level 3",
+  "compressed_bytes": 773917699,
+  "archive_sha256": "49d260998537a5aff6742504f63bf98dfebcbc5c89d0078418a6175adca005a3",
+  "part_limit_bytes": 450000000,
+  "parts": [
+    {
+      "file": "wakemu-runtime-20261012.dump.part-000",
+      "bytes": 450000000,
+      "sha256": "40123bebe91959adb4d56a1751ca9c68d5cb4b9204cd63ac4865fa1a9905aa8a"
+    },
+    {
+      "file": "wakemu-runtime-20261012.dump.part-001",
+      "bytes": 323917699,
+      "sha256": "3c5f07fe9926d17a7cee9146bff7b8a452fbdd2c24dd119352881715d41867f8"
+    }
+  ],
+  "catalog_releases_retained": {
+    "active": "c3e0726bdd058b480e06f283c3d28cdedd3e1dad8610abd35bbad3c5490d5890",
+    "mining": "14b63a5b28014e455fd9910c99fe037e6d957ac9b40508335bfe130c2ee54518",
+    "fishing": "20f2731c921701c025af2d8416696e5b01c7346fc9393408b47533c092cab5fa",
+    "dungeon_launcher": "a1f84ebac9f26181f558e3adced85252d7892685f6a051f2b05f6a4b8d3e9b38"
+  },
+  "obsolete_releases_removed": 16,
+  "obsolete_records_removed": 18369041,
+  "obsolete_documents_removed": 112293,
+  "includes": "All other database schema and data retained; global roles, Redis and filesystem state excluded.",
+  "validation": {
+    "archive_read_decompression": "passed",
+    "part_checksums_and_reassembled_sha256": "passed",
+    "full_restore_into_disposable_database": "pg_restore --exit-on-error: exit 0; temporary database removed",
+    "live_catalog_retention": "four retained manifests and complete catalog FK checks passed before commit",
+    "multipart_bootstrap_fixtures": "passed: valid, missing, modified and extra part cases",
+    "validated_at_utc": "2026-10-12T06:40:37.281401+00:00",
+    "archived_catalog_pins_and_counts": "passed: active c3e=7484, mining 14b=7531, fishing 20f=41, dungeon launcher a1f=7483; filtered multipart restore exit 0; temporary database removed"
+  }
+}

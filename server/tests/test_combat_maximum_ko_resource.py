@@ -1,5 +1,6 @@
 """Original eVi991/eWN PC14 oracle and shared maximum handler integration."""
 import unittest
+from unittest.mock import patch
 from dataclasses import replace
 from wakfu_server.combat_stat_handler import NativeStatHandler
 
@@ -134,10 +135,20 @@ class MaximumKOResourceTests(unittest.TestCase):
             native_effect_flags=[],
             target_masks=[None] * 7,
         )
-        invocation = f.handler.prepare(
-            effect, (), replace(f.invocation, reference=87039)
-        )
-        self.assertTrue(f.handler(effect, (), invocation))
+        # Actual ProbeNativeKOMaximum: eVi991/eWN PC14, bbx events [0].
+        # This isolated event-phase test supplies its source authority directly;
+        # published catalog completeness is a separate integration requirement.
+        authority = {
+            "991": dict(runner="eWN", fixed_stat_id=14, events=[0], bbA=True, bbB=False)
+        }
+        with patch(
+            "wakfu_server.combat_maximum_resource.maximum_event_catalog",
+            return_value=authority,
+        ):
+            invocation = f.handler.prepare(
+                effect, (), replace(f.invocation, reference=87039)
+            )
+            self.assertTrue(f.handler(effect, (), invocation))
         self.assertEqual(phases, [(1, (0,)), (2, (0,)), (3, (0,)), (4, (0,))])
 
 
