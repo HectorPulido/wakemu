@@ -1,75 +1,69 @@
-# Experimento local de Wakfu
+# Wakemu — a Wakfu experiment
 
-## Carpetas
+A personal experiment in understanding game protocols and building a Python server emulator. This is a work in progress; implemented systems have varying levels of coverage and testing.
 
-- `client/`: carpeta excluida íntegramente de Git. Cada usuario debe aportar su propia copia del cliente y sus assets; este repositorio no los distribuye.
-- `client-tools/`: herramientas propias de lanzamiento, autenticación, diagnóstico y parches; usan el cliente de la carpeta hermana `client/`.
-- `sniffer/`: captura y decodificación. `java/` contiene los agentes y exportadores; `tools/`, las comparaciones externas.
-- `server/`: servidor Python, servicio de IA, catálogos del protocolo, pruebas y Dockerfile.
-- `docs/`: documentación, informes y evidencia del protocolo. El historial completo está en `docs/reports/progress.txt`.
-- `.runtime/`: datos privados y generados: SQLite, certificados, perfiles, registros y capturas. Se conserva fuera de código y documentación.
+## Features
 
-## Requisitos y archivos externos
+- **Accounts and characters:** local login, character creation, saved progression, and multiple client profiles.
+- **World exploration:** map movement, interactive objects, and transport between supported locations.
+- **Turn-based combat:** placement, movement, spells, states, summons, and monster AI.
+- **Multiplayer:** player groups, trading, joining fights, and combat spectating.
+- **Inventory and builds:** bags, equipment, spell decks, and saved build selection.
+- **Professions:** harvesting, planting, crafting, and profession experience.
+- **Ecology:** plant growth, monster maturation and reproduction, and Wakfu/Stasis progression.
+- **Progression and rewards:** combat experience, leveling, and supported loot and currency rules.
+- **Local administration:** a web panel for accounts, maps, sessions, settings, and shop catalogs.
+- **Developer tools:** protocol inspection, client diagnostics, automated tests, and Docker services.
 
-Prepara las carpetas y credenciales privadas con `python3 tools/prepare-local-runtime.py`. No reemplaza secretos existentes. El [informe de portabilidad](docs/reports/runtime-portability-audit.md) detalla las dependencias privadas que todavía impiden arrancar desde un clon vacío.
+## Screenshots
 
+**Combat with heroes**
 
-Coloca tu propia copia del cliente en `client/`. Ningún archivo de esa carpeta se distribuye en este repositorio. Las herramientas propias están en `client-tools/` y se incluyen por separado. El cliente debe contener directamente `config.properties`, `classpath`, `contents/`, `lib/` y `jre/`.
+<a href="screenshots/combatwithheroes.png"><img src="screenshots/combatwithheroes.png" alt="Turn-based combat with heroes" width="720"></a>
 
-Compose también requiere la captura externa indicada en su volumen `/fixtures/frames.jsonl`; `.runtime/` no se distribuye. El informe grande `docs/reports/combat-inventory/inventory.json` se incluye comprimido como `inventory.json.gz`.
+**Planting**
 
-Client tools usage and requirements: [client-tools/README.md](client-tools/README.md).
+<a href="screenshots/planting.png"><img src="screenshots/planting.png" alt="Planting resources in the world" width="720"></a>
 
-## Arranque local
+**Shop**
 
-Desde esta carpeta:
+<a href="screenshots/shop.png"><img src="screenshots/shop.png" alt="Local shop interface" width="720"></a>
 
-```bash
-git lfs pull
-python3 tools/prepare-local-runtime.py
-bash tools/build-local.sh
-docker compose up -d
-docker compose ps
-bash client-tools/client.sh play
-```
+## What's missing
 
-Para abrir otra instancia: `bash client-tools/client.sh play --profile nombre`.
+- **Combat coverage:** validate all classes, spells, summons, and monster mechanics through complete gameplay tests.
+- **Dungeons and rewards:** finish compatibility and verify encounter rules, difficulty, drops, and currency end to end.
+- **NPCs and quests:** expand playable dialogue, story progression, and quest rewards beyond supported interactions.
+- **Social features:** finish validation of duels, private messaging, and specialized chat channels.
+- **Performance and reliability:** reduce combat latency and resolve remaining synchronization and client presentation issues.
+- **Fresh-clone setup:** replace private capture dependencies and automate the remaining runtime preparation.
+- **Broader compatibility:** extend supported content; only client version 1.93.1+79 is currently targeted.
 
-```bash
-docker compose logs -f world
-PYTHONPATH=server python3 -m unittest discover -s server/tests
-```
+Developers and testers are welcome—report reproducible bugs, contribute fixes, or help make a fresh clone easier to run.
 
-El servidor usa PostgreSQL en el servicio `postgres`, base `wakemu_runtime`, con volumen persistente `postgres-data`. El entrypoint aplica las migraciones de `server/migrations/` antes de arrancar; las credenciales se leen desde el archivo privado configurado por `WAKFU_DATABASE_PASSWORD_FILE`. El archivo `.runtime/local/world.sqlite3` es histórico y no se usa como fallback ni se importa automáticamente. Los eventos detallados están en `.runtime/local/logs/game-server.jsonl`.
+For more information, explore the [documentation](docs/README.md): follow the [setup guide](docs/getting-started.md), learn about the [architecture](docs/architecture.md), [protocol and server internals](docs/protocol/README.md), [combat and AI](docs/combat-and-ai.md), [world and ecology](docs/world-and-ecology.md), and [characters and items](docs/characters-and-items.md), or read about [administration](docs/administration.md), [known limitations](docs/limitations.md), and [contributing](docs/contributing.md).
 
-## Organización del servidor
+## Run locally
 
-The local [administration panel](docs/reports/admin-panel/README.md) is available
-at <http://127.0.0.1:18084> for accounts, map inspection, server sessions, and shop
-catalogue management. Its private credentials are generated separately from
-game accounts. The linked guide includes access instructions and acceptance steps.
+Requires Docker Compose, Git LFS, Python 3 with Tk, JDK 21+, and macOS or Linux with a graphical session.
 
-`server/local_game_server.py` conecta el protocolo con los servicios. Los módulos están en `server/wakfu_server/`:
+1. Supply your own lawfully obtained **Wakfu 1.93.1+79** client in `client/`, with `config.properties`, `classpath`, `contents/`, `lib/`, and `jre/` directly inside it. Other versions are unsupported.
+2. **Setup is not yet self-contained:** world requires catalogs and verified bootstrap records in PostgreSQL, plus matching private credentials at the configured service mounts. Follow the [setup prerequisites](docs/getting-started.md#current-setup-requirements) and [database guide](database/README.md) before starting. Runtime preparation alone does not supply all inputs.
+3. From the repository root:
 
-- `combat/`: turnos, movimiento, ataques, IA, muerte y recompensas.
-- `items/`: inventario, bolsas, equipamiento, builds y merkasacos.
-- `maps/`: jugadores en el mundo, desplazamiento, transportes y objetos.
-- `storage/`: PostgreSQL, posiciones por lotes y journal Redis de posiciones.
-- `characters/`: creación, vida, experiencia, hechizos y datos sociales.
+   ```sh
+   git lfs pull
+   python3 tools/prepare-local-runtime.py
+   bash tools/build-local.sh
+   docker compose up -d --build
+   docker compose ps
+   bash client-tools/client.sh play
+   ```
 
-`server/ai-service/` es un proceso HTTP independiente. Compose mantiene IA y Redis en una red interna; el servidor publica los puertos del cliente solo en localhost.
+The launcher requests local login when needed. See [client tools](client-tools/README.md) for launcher options and additional profiles. Inspect failures with `docker compose logs -f world`.
 
-El objetivo completo del emulador sigue en desarrollo. La separación de carpetas no implica que todos los sistemas del juego estén implementados.
+## Client and third-party material
 
+This is an independent educational experiment, unaffiliated with Ankama. I have no interest in distributing the official client or its assets; users must supply their own copy. The entire `client/`, private `.database/`, and generated `.runtime/` directories are excluded through [`.gitignore`](.gitignore). Wakfu and related marks belong to their respective owners.
 
-Client version: 1.93.1+79 <- no other version compatible
-
-
-## Iop repair delivery update
-
-The shared Iop context, Preparation and voluntary-movement repairs are delivered in the complete r47 image. Current code and catalogs were verified before restart; actual Iop/Cra regressions and summon retirement checks passed. See the [delivery and validation record](docs/reports/combat-inventory/iop-shared-repair-delivery-20261009.md). Manual whole-class acceptance remains pending.
-
-
-## Aniripsa local verification — 2026-10-09
-
-Provisional manual acceptance remains **3/18** (Cra, Iop and Sacrier). Aniripsa implementation passed the final local gate: **134 tests, zero failures or skips**, including prior-class regressions. No restart or deployment was performed by this workstream. See the [implementation evidence](docs/reports/combat-inventory/aniripsa-implementation-review-20261009.md) and [complete manual acceptance test](docs/reports/combat-inventory/aniripsa-manual-acceptance-20261009.md). Aniripsa awaits manual acceptance.
+My goal is to learn and experiment, with respect for Ankama's work and intellectual property—not to infringe anyone's rights or compete with the official game. If a rights holder has concerns, please open an issue so I can address them promptly. Please contribute original code and synthetic tests; do not submit client binaries or game assets.

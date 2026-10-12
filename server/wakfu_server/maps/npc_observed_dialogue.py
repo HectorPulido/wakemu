@@ -1,8 +1,5 @@
 """Exact observed continuation edges, bound to their original capture identity."""
 from functools import lru_cache
-import gzip
-import json
-from pathlib import Path
 
 from .npc_capture_contracts import authorized_identity
 from .npc_protectors import speaker
@@ -10,12 +7,9 @@ from .npc_protectors import speaker
 
 @lru_cache(maxsize=1)
 def ledger():
-    path = (
-        Path(__file__).resolve().parents[2]
-        / "protocol/npc-observed-dialogue-edges.json.gz"
-    )
-    with gzip.open(path, "rt", encoding="utf-8") as source:
-        value = json.load(source)
+    from .npc_catalog import document
+
+    value = document("npc_observed_dialogue_edges")
     if value.get("schema") != "native-observed-dialogue-edges-v1":
         raise ValueError("Unsupported observed dialogue ledger")
     return value

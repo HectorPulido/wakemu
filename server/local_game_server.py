@@ -70,21 +70,23 @@ PROJECT_ROOT = ROOT.parent if ROOT.name == "server" else ROOT
 RUNTIME = Path(os.environ.get("WAKFU_RUNTIME", PROJECT_ROOT / ".runtime/local"))
 RUNTIME.mkdir(parents=True, exist_ok=True)
 (RUNTIME / "logs").mkdir(exist_ok=True)
-SOURCE = Path(
-    os.environ.get(
-        "WAKFU_CAPTURE_PATH",
-        PROJECT_ROOT
-        / ".runtime/captures/2026-10-03T03-40-46.413625Z-fe2520f4/decoded/frames.jsonl",
-    )
-)
-FRAMES = [json.loads(line) for line in SOURCE.read_text().splitlines()]
 LOCK = threading.Lock()
 STORE = Store(
     os.environ["WAKFU_DATABASE_URL"],
     password_file=os.environ.get("WAKFU_DATABASE_PASSWORD_FILE"),
 )
 STORE.database.acquire_runtime_lock()
+from wakfu_server.storage.bootstrap_capture import (
+    load as load_bootstrap_capture,
+    DEFAULT_KEY as BOOTSTRAP_CAPTURE_KEY,
+)
+
 with STORE.connection() as _startup_db:
+    FRAMES = load_bootstrap_capture(
+        _startup_db,
+        os.environ.get("WAKFU_BOOTSTRAP_CAPTURE_KEY", BOOTSTRAP_CAPTURE_KEY),
+        expected_source_sha256=os.environ.get("WAKFU_BOOTSTRAP_SOURCE_SHA256"),
+    )
     DUNGEON_TRANSITION_OUTBOX_AVAILABLE = _startup_db.execute(
         "SELECT to_regclass('dungeon_transition_outbox') IS NOT NULL AS available"
     ).fetchone()["available"]
@@ -847,6 +849,13 @@ def join_world(generation, connection, character, *, hydrate_heroes=True):
     # Snapshot and publishes use the same lock as group claims.
     with COMBAT_GROUPS.lock:
         WORLD.join(generation, connection, character)
+        from wakfu_server.ecology_admin import admin_removed_packets
+
+        with STORE.connection() as db:
+            for packet in admin_removed_packets(
+                db, character["map_id"], character["instance_id"]
+            ):
+                send(connection, "world", *packet)
         for packet in monster_corpse_snapshot(
             character["map_id"], character["instance_id"], peer=connection
         ):
@@ -991,6 +1000,8 @@ def owned_haven_leave(body, character):
 
 
 def replay(connection, start, end, account_id, character=None, *, generation=None):
+    from wakfu_server.haven_chest_wire import CAPTURE_STATE_OPCODES
+
     account_characters = None
     registry_actor_ids = ()
     if character is not None:
@@ -1018,6 +1029,13 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
 
     for frame in FRAMES[start:end]:
         if frame["direction"] == "in":
+            if frame["opcode"] in CAPTURE_STATE_OPCODES:
+                # Account chest compartments and updates belong exclusively
+                # to PostgreSQL-owned custody, never the reference account.
+                continue
+            if frame["opcode"] == 13369:
+                # Authoritative owned task/gift publication replaces fixture state.
+                continue
             if frame["opcode"] in (12789, 13948):
                 # Ecology comes from the current native region and our own
                 # population; weather is published from exact territory state.
@@ -1312,6 +1330,57 @@ def session(raw, peer, service, context):
     def active_private_session():
         return ranch_session or bag_session
 
+    def refresh_owned_character(saved):
+        """Merge durable rewards/health without persisting a private scene location."""
+        session = active_private_session()
+        if session is None:
+            return saved
+        if not session.owns(character):
+            raise ValueError("Combat return requires its current private scene")
+        if ranch_session is not None:
+            ranch_session.validate_lease(generation)
+        return session.refresh(character, saved)
+
+    def attach_combat_return_position():
+        # Private coordinates never replace the durable exterior position.
+        saved = (
+            STORE.character(account_id, character["id"])
+            if active_private_session() is not None
+            else character
+        )
+        return POSITIONS.attach(account_id, generation, saved)
+
+    def combat_return_bootstrap():
+        session = active_private_session()
+        if session is None:
+            return owned_native_bootstrap(character)
+        if not session.owns(character):
+            raise ValueError("Combat return lost its private scene capability")
+        if ranch_session is not None:
+            packets = ranch_session.entry_messages(
+                fixture(13974), character, clear_bag_role=False
+            )
+            if character["map_id"] == 1440:
+                from wakfu_server.haven_ranch_furniture import snapshot
+
+                restored = snapshot(
+                    STORE,
+                    account_id,
+                    generation,
+                    character,
+                    session=ranch_session,
+                    now_ms=int(time.time() * 1000),
+                )
+                packets = [restored["packet"] if p[0] == 13864 else p for p in packets]
+            return packets
+        from wakfu_server.haven_bag import entry_messages
+
+        return entry_messages(
+            fixture(13974),
+            character,
+            owner=None if bag_session.is_owner else bag_session.owner,
+        )
+
     def validate_ranch_lease():
         if not STORE.current_character_session(account_id, generation, character["id"]):
             raise ValueError("Expired ranch actor lease")
@@ -1322,10 +1391,17 @@ def session(raw, peer, service, context):
         require_owned_entitlement(STORE, account_id, generation, character)
 
     def cancel_private_scene_activity():
+        nonlocal chest_opening
+
         PLANTINGS.cancel(character["id"], generation)
         HARVESTS.cancel(character["id"], generation=generation)
         cancel_flora()
         cancel_crafting()
+        if chest_opening is not None:
+            from wakfu_server.haven_chest_wire import close_packet as close_chest
+
+            send(connection, service, *close_chest(character["id"]))
+            chest_opening = None
         WORLD.leave(character["id"], generation)
 
     @PROFILER.profile("world.static_sync")
@@ -1345,13 +1421,35 @@ def session(raw, peer, service, context):
             or not STORE.current_session(account_id, generation)
         ):
             return
+        if active_private_session() is not None:
+            from wakfu_server.haven_ranch_portal import (
+                config_message as ranch_portal_config,
+            )
+
+            send(connection, service, *ranch_portal_config())
+        ranch_furniture_scene = []
         if ranch_session is not None and ranch_session.owns(character):
-            send(connection, service, 13864, ranch_session.context())
+            from wakfu_server.haven_ranch_furniture import (
+                snapshot as ranch_furniture_snapshot,
+            )
+
+            furniture_snapshot = ranch_furniture_snapshot(
+                STORE,
+                account_id,
+                generation,
+                character,
+                session=ranch_session,
+                now_ms=int(STORE.now().timestamp() * 1000),
+            )
+            send(connection, service, *furniture_snapshot["packet"])
+            ranch_furniture_scene = furniture_snapshot["scene_packets"]
         if character["map_id"] != 9:
             for message_body in world_static.snapshots(
                 character["map_id"], position=character
             ):
                 send(connection, service, 13984, message_body)
+            for packet in ranch_furniture_scene:
+                send(connection, service, *packet)
             publish_environment_scene(force=True)
             # The asset baseline also belongs to private dungeon scenes. Replay
             # its dynamic state first, then restore the run-owned door policy;
@@ -1609,6 +1707,131 @@ def session(raw, peer, service, context):
         )
         record(event="rift_map_transition", actor_id=character["id"], **destination)
         return True
+
+    from wakfu_server.custom_tasks.hooks import SelectedTaskCards
+    from wakfu_server.custom_tasks.gift_source import current_local_gifts
+
+    custom_task_cards = SelectedTaskCards()
+
+    def deliver_custom_task_rewards(*, bootstrap=False):
+        """Separate committed selected-character grant; never inside gameplay TX."""
+        nonlocal character
+        from wakfu_server.custom_tasks.reward_delivery import deliver
+
+        if bootstrap:
+            with STORE.connection() as db:
+                active = db.execute(
+                    "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f "
+                    "ON f.id=p.fight_id WHERE p.account_id=%s AND p.character_id=%s "
+                    "AND f.status IN ('placement','active') LIMIT 1",
+                    (account_id, character["id"]),
+                ).fetchone()
+            if active is not None:
+                return {
+                    "deferred": True,
+                    "packets": [],
+                    "delivered": [],
+                    "capacity_pending": [],
+                    "character": character,
+                }
+        previous_level = character.get("level")
+        try:
+            result = deliver(STORE, account_id, generation, character["id"])
+        except ValueError as error:
+            if not STORE.current_character_session(
+                account_id, generation, character["id"]
+            ):
+                raise
+            record(
+                event="custom_task_rewards_pending",
+                actor_id=character["id"],
+                reason=str(error),
+            )
+            return {
+                "deferred": True,
+                "packets": [],
+                "delivered": [],
+                "capacity_pending": [],
+                "character": character,
+            }
+        saved = result["character"]
+        if not bootstrap and saved.get("level") != previous_level:
+            # Durable XP reconciliation pauses regeneration; resume world policy.
+            # initialize itself keeps coefficient zero for a dead character.
+            saved = health_store.initialize(
+                STORE,
+                account_id,
+                generation,
+                saved["id"],
+                coefficient=1,
+            )
+            result["character"] = saved
+        private = active_private_session()
+        character = (
+            private.refresh(character, saved)
+            if private is not None and private.owns(character)
+            else saved
+        )
+        if bootstrap:
+            # Only absolute account unlock snapshots are safe before bootstrap.
+            # Suppress additive XP, item insertions and unlock notifications.
+            for packet in result["packets"]:
+                if packet[0] == 13873:
+                    send(connection, service, *packet)
+            return result
+        if result["delivered"]:
+            from wakfu_server.combat_lifecycle import outside_progression
+
+            send_batch(connection, service, result["packets"])
+            if character.get("level") != previous_level:
+                WORLD.update(
+                    generation,
+                    character,
+                    *wire.refresh_player(PLAYER_TEMPLATE, character),
+                )
+                from wakfu_server.level_publication import refresh
+
+                # Refresh owned spellbook and roster level/build availability.
+                send_batch(
+                    connection,
+                    service,
+                    refresh(
+                        character,
+                        STORE.characters(account_id),
+                        entity_template=OWNED_HERO_TEMPLATE,
+                        roster_template=CHARACTERS,
+                    ),
+                )
+                send_native_planting_bonus(connection, character)
+            send(
+                connection, service, *outside_progression(character, wp=COMBAT_TEST_WP)
+            )
+            send(connection, service, *rich_inventory_packet(character))
+        return result
+
+    def publish_custom_task_cards():
+        ready = (
+            loaded
+            and fight is None
+            and combat_session is None
+            and hero_switch_pending is None
+            and spectator_session is None
+        )
+        if not ready or not custom_task_cards.needs_refresh(
+            account_id, generation, character["id"]
+        ):
+            return False
+        gifts = current_local_gifts()
+        return custom_task_cards.refresh(
+            STORE,
+            WORLD,
+            account_id,
+            generation,
+            character["id"],
+            ready=ready,
+            existing_packages=gifts.packages,
+            cap_reached=gifts.cap_reached,
+        )
 
     def publish_heroes(roster):
         from wakfu_server.characters import hero_wire
@@ -1951,6 +2174,8 @@ def session(raw, peer, service, context):
         return current(STORE, account_id, generation, character["id"]) is not None
 
     def publish_environment_scene(*, force=False):
+        import itertools
+
         nonlocal environment_scene_identity, environment_scene_states
         nonlocal last_environment_refresh
         if (
@@ -1987,12 +2212,12 @@ def session(raw, peer, service, context):
 
         from wakfu_server.environment_doors import snapshots as door_snapshots
 
-        for packet in (
-            snapshots(STORE, character["map_id"])
-            + seat_snapshots(STORE, character["map_id"])
-            + door_snapshots(
+        for packet in itertools.chain(
+            snapshots(STORE, character["map_id"]),
+            seat_snapshots(STORE, character["map_id"]),
+            door_snapshots(
                 STORE, character["map_id"], character.get("instance_id", 0), nearby
-            )
+            ),
         ):
             object_id = struct.unpack_from(">q", packet[1])[0]
             if object_id not in nearby:
@@ -2195,6 +2420,29 @@ def session(raw, peer, service, context):
         from wakfu_server.combat_death import death_messages
         from wakfu_server.combat_lifecycle import prepare_finish
 
+        committed_task_candidates = []
+
+        def mark_committed_custom_tasks():
+            custom_task_cards.changed(
+                character["id"],
+                tuple(
+                    update["character_id"]
+                    for update in committed_task_candidates
+                    if update["account_id"] == account_id
+                    and update["result"]["updated"]
+                ),
+            )
+
+        def settle_achievements(db, members, candidate):
+            from wakfu_server.achievements.combat_adapter import settle_participants
+
+            delivery = settle_participants(db, STORE, candidate, members, TEST_MONSTERS)
+            # Collect metadata only; mark dirty after the enclosing commit.
+            committed_task_candidates.extend(delivery.get("custom_task_updates", ()))
+            # Durable notification keys remain pending until a complete native
+            # bootstrap covers their state; disconnect never loses progress.
+            return delivery["packets_by_owner"]
+
         if combat_session is not None:
             from wakfu_server.combat_lifecycle import prepare_finish_shared
             from wakfu_server.monster_removal_ecology import (
@@ -2273,7 +2521,11 @@ def session(raw, peer, service, context):
                 refresh_shared_combat()
                 drain_shared_combat()
                 checkpoint_fight("ended")
-                character.update(STORE.character(account_id, character["id"]))
+                character.update(
+                    refresh_owned_character(
+                        STORE.character(account_id, character["id"])
+                    )
+                )
                 record(
                     event="friendly_duel_finished",
                     actor_id=combat_session.character_id,
@@ -2464,7 +2716,7 @@ def session(raw, peer, service, context):
                 return outcome
 
             def prepare_shared_packets(current_shared):
-                return prepare_finish_shared(
+                prepared = prepare_finish_shared(
                     STORE,
                     combat_session.account_id,
                     combat_session.generation,
@@ -2475,6 +2727,7 @@ def session(raw, peer, service, context):
                     fight_instance_id=fight.id,
                     policy_resolver=shared_policy,
                     loot_resolver=shared_loot,
+                    progression_resolver=settle_achievements,
                     expected_accounts=set(current_shared.participants),
                     owner_character_ids={
                         owner: session.character_id
@@ -2493,6 +2746,9 @@ def session(raw, peer, service, context):
                         else None
                     ),
                 )
+
+                mark_committed_custom_tasks()
+                return prepared
 
             if group_lease is None:
                 COMBAT_SESSIONS.settle_finished(
@@ -2522,7 +2778,9 @@ def session(raw, peer, service, context):
             refresh_shared_combat()
             drain_shared_combat()
             checkpoint_fight("ended")
-            character.update(STORE.character(account_id, character["id"]))
+            character.update(
+                refresh_owned_character(STORE.character(account_id, character["id"]))
+            )
             record(
                 event="combat_shared_finished",
                 actor_id=combat_session.character_id,
@@ -2629,10 +2887,12 @@ def session(raw, peer, service, context):
                 fight_instance_id=fight.id,
                 policy_resolver=resolve_fight_reward,
                 loot_resolver=resolve_fight_loot,
+                progression_resolver=settle_achievements,
                 groups=COMBAT_GROUPS,
                 group_lease=group_lease,
                 group_settlement=settle_individual_group,
             )
+        mark_committed_custom_tasks()
         # A terminal checkpoint must not precede the reward transaction.
         checkpoint_fight("ended")
         character.update(
@@ -2981,7 +3241,9 @@ def session(raw, peer, service, context):
                 raise ValueError(
                     "Termina el combate antes de modificar el mundo o el inventario."
                 )
-            if command in ("!tp", "!mob") and bag_session is not None:
+            if bag_session is not None and (
+                command == "!tp" or (command == "!mob" and ranch_session is None)
+            ):
                 raise ValueError(
                     "Sal del combate o del merkasaco antes de usar este comando."
                 )
@@ -2990,6 +3252,91 @@ def session(raw, peer, service, context):
                 generation=generation,
                 character_id=character["id"],
             )
+            from contextlib import contextmanager
+
+            ecology_command = command in (
+                "!nuke",
+                "!nuke-all",
+                "!genesis",
+                "!genesis-all",
+                "!eco-status",
+                "!nuke-all-flora",
+                "!genesis-all-flora",
+            )
+
+            @contextmanager
+            def ecology_coordination(scope):
+                # Match creature/harvest ownership. Geometry preparation occurs
+                # before this bounded per-region mutation/publication window.
+                if not COMBAT_TEST:
+                    raise ValueError("Persistent ecology administration is unavailable")
+                with (
+                    COMBAT_GROUPS.lock,
+                    HARVESTS.lock,
+                    PLANTINGS.publisher_lock,
+                    PLANTINGS.lock,
+                    PLANTINGS.growth_lock,
+                ):
+                    yield
+
+            def publish_ecology_admin(outcome):
+                if command in ("!nuke", "!nuke-all", "!nuke-all-flora"):
+                    from wakfu_server.ecology_admin_runtime import cancel_plantings
+
+                    cancel_plantings(PLANTINGS, outcome)
+                for map_id, instance_id, opcode, payload in outcome.get(
+                    "location_packets", ()
+                ):
+                    WORLD.emit_location(map_id, instance_id, opcode, payload)
+                from wakfu_server.ecology_context import packet as ecology_packet
+                from wakfu_server.territory_cells import region_at
+
+                with WORLD.lock:
+                    recipients = tuple(WORLD.players.values())
+                for player_generation, peer, player in recipients:
+                    for map_id, instance_id, region_id in outcome.get("scopes", ()):
+                        if (player["map_id"], player.get("instance_id", 0)) != (
+                            map_id,
+                            instance_id,
+                        ):
+                            continue
+                        if (
+                            region_id is not None
+                            and region_at(map_id, player["x"], player["y"]) != region_id
+                        ):
+                            continue
+                        try:
+                            packet = ecology_packet(
+                                STORE, player, open_test_policy=OPEN_PLANTING
+                            )
+                        except ValueError as error:
+                            record(
+                                event="ecology_admin_context_unavailable",
+                                actor_id=player["id"],
+                                reason=str(error),
+                            )
+                        else:
+                            with WORLD.lock:
+                                active = WORLD.players.get(player["id"])
+                                if (
+                                    active is not None
+                                    and active[0] == player_generation
+                                    and all(
+                                        active[2].get(key) == player.get(key)
+                                        for key in (
+                                            "map_id",
+                                            "instance_id",
+                                            "x",
+                                            "y",
+                                            "z",
+                                        )
+                                    )
+                                ):
+                                    WORLD.send_to(
+                                        player["id"], player_generation, *packet
+                                    )
+                        break
+
             result = execute(
                 STORE,
                 COMBAT_GROUPS if COMBAT_TEST else None,
@@ -2998,6 +3345,10 @@ def session(raw, peer, service, context):
                 character,
                 text,
                 authorized_by=issuer,
+                ecology_players=WORLD.ecology_snapshot if ecology_command else (),
+                ecology_coordination=ecology_coordination if ecology_command else None,
+                ecology_publish=publish_ecology_admin if ecology_command else None,
+                private_scene=ranch_session,
             )
             if result["action"] == "tp":
                 cancel_crafting()
@@ -3058,8 +3409,15 @@ def session(raw, peer, service, context):
             connection,
             service,
             674,
-            wire.chat(dict(character, name="Consola local"), answer),
+            wire.chat(dict(character, name="Consola local"), answer.splitlines()[0]),
         )
+        for line in answer.splitlines()[1:]:
+            send(
+                connection,
+                service,
+                674,
+                wire.chat(dict(character, name="Consola local"), line),
+            )
         if failure is not None:
             raise failure
         summary = {"message": answer}
@@ -4182,6 +4540,9 @@ def session(raw, peer, service, context):
                     if fight is not None or opcode in (13130, 12523, 13260)
                     else None,
                     flush=write_records,
+                    activity_scope=ECOLOGY_BRIDGE.interactive()
+                    if ECOLOGY_BRIDGE is not None and service == "world"
+                    else None,
                 )
                 record(
                     service=service,
@@ -4229,12 +4590,15 @@ def session(raw, peer, service, context):
                 ):
                     guild_chest_session.close(clear=True)
                     guild_chest_session = None
+                from wakfu_server.haven_chest import (
+                    can_access_location as chest_location_allowed,
+                )
+
                 if chest_opening is not None and (
                     fight is not None
                     or spectator_session is not None
                     or bag_session is None
-                    or not bag_session.is_owner
-                    or not bag_session.owns(character)
+                    or not chest_location_allowed(character, bag_session, ranch_session)
                     or opcode == 13331
                 ):
                     chest_opening = None
@@ -4416,6 +4780,7 @@ def session(raw, peer, service, context):
                         )
                     join_world(generation, connection, character)
                     resume_settled_shared_combat()
+                    publish_custom_task_cards()
                     # Bootstrap can arrive before the client finishes loading its
                     # scene. Initial login needs the same complete post-load replay
                     # as map transitions, even when no movement request follows.
@@ -4487,26 +4852,21 @@ def session(raw, peer, service, context):
                         continue
                     # coK's boolean is acceptance; coU's boolean is autoLock.
                     opcode, body = 13241, accepted_body
+                if opcode == 13175 and loaded and character is not None:
+                    from wakfu_server.achievements.service import tracking_request
+
+                    try:
+                        packets = tracking_request(
+                            STORE, account_id, generation, character["id"], body
+                        )
+                    except ValueError as error:
+                        record(event="achievement_tracking_rejected", reason=str(error))
+                        continue
+                    send_batch(connection, service, packets)
+                    continue
                 if opcode == 33:
                     send(connection, service, 23, b"\x01" + body)
                     send(connection, service, 309, struct.pack(">I", 12345))
-                elif (
-                    loaded
-                    and ranch_session is not None
-                    and opcode
-                    in (
-                        13578,
-                        13220,
-                        12995,
-                    )
-                ):
-                    from wakfu_server.ecology_feedback import information
-
-                    send(
-                        connection,
-                        service,
-                        *information("Leave the ranch before this action"),
-                    )
                 elif opcode == 574:
                     send(
                         connection,
@@ -4648,7 +5008,11 @@ def session(raw, peer, service, context):
                             pve_withdrawal_pending = COMBAT_SESSIONS.withdraw_pve(
                                 combat_session, character, b""
                             )
-                            character.update(pve_withdrawal_pending["character"])
+                            character.update(
+                                refresh_owned_character(
+                                    pve_withdrawal_pending["character"]
+                                )
+                            )
                             fight = fight_messages = None
                             combat_session = group_lease = None
                         elif (
@@ -4674,7 +5038,11 @@ def session(raw, peer, service, context):
                                     b"",
                                 )
                                 shared_selection.runtime = selection_runtime
-                                character.update(abandoned_selection["character"])
+                                character.update(
+                                    refresh_owned_character(
+                                        abandoned_selection["character"]
+                                    )
+                                )
                                 return_selection_abandon(
                                     STORE,
                                     account_id,
@@ -4726,7 +5094,10 @@ def session(raw, peer, service, context):
                     STORE.clear_character(account_id, generation)
                     if character is not None:
                         exterior = HAVEN_BAG_EXTERIORS.discard(
-                            generation, character["id"]
+                            generation,
+                            bag_session.exterior_actor_id
+                            if bag_session is not None
+                            else character["id"],
                         )
                         if exterior is not None:
                             outside, packet = exterior
@@ -4793,6 +5164,7 @@ def session(raw, peer, service, context):
                         character = STORE.select_character(
                             account_id, generation, created["id"]
                         )
+                        deliver_custom_task_rewards(bootstrap=True)
                         character = health_store.initialize(
                             STORE,
                             account_id,
@@ -4955,6 +5327,7 @@ def session(raw, peer, service, context):
                     )
                     if recovered is not None:
                         character.update(recovered)
+                    deliver_custom_task_rewards(bootstrap=True)
                     character = health_store.initialize(
                         STORE,
                         account_id,
@@ -5373,7 +5746,9 @@ def session(raw, peer, service, context):
                                 from wakfu_server.fishing_navigation import reachable
 
                                 return reachable(current, resource)
-                            if current["map_id"] == 9:
+                            from wakfu_server.haven_bag_garden import is_private_garden
+
+                            if is_private_garden(current):
                                 from wakfu_server.haven_bag_garden import reachable
 
                                 return reachable(current, resource)
@@ -5580,7 +5955,9 @@ def session(raw, peer, service, context):
                         from wakfu_server.combat_terrain import map_geometry
 
                         def authorize_planting(current, request, seed, resource):
-                            if current["map_id"] == 9:
+                            from wakfu_server.haven_bag_garden import is_private_garden
+
+                            if is_private_garden(current):
                                 from wakfu_server.haven_bag_garden import (
                                     authorize as authorize_garden,
                                 )
@@ -5595,7 +5972,7 @@ def session(raw, peer, service, context):
                                         player["x"],
                                         player["y"],
                                     ) == (
-                                        9,
+                                        current["map_id"],
                                         current["instance_id"],
                                         request["x"],
                                         request["y"],
@@ -5793,6 +6170,13 @@ def session(raw, peer, service, context):
                                     else saved
                                 )
                                 send_planting_context(connection, character)
+                            custom_tasks = result.get("custom_task_update") or {}
+                            if custom_tasks.get("updated"):
+                                deliver_custom_task_rewards()
+                                custom_task_cards.changed(
+                                    character["id"], (character["id"],)
+                                )
+                                publish_custom_task_cards()
                             record(
                                 event="planting_completed",
                                 actor_id=character["id"],
@@ -6224,7 +6608,11 @@ def session(raw, peer, service, context):
                         target = x = y = z = auto_lock = None
                     if (
                         fight is not None
-                        or bag_session is not None
+                        or (bag_session is not None and ranch_session is None)
+                        or (
+                            ranch_session is not None
+                            and not ranch_session.owns(character)
+                        )
                         or spectator_session is not None
                     ):
                         record(
@@ -6523,6 +6911,7 @@ def session(raw, peer, service, context):
                                 STORE,
                                 combat_session,
                                 candidate,
+                                private_scene=ranch_session,
                                 frozen_members=(
                                     rift_start_run["members"]
                                     if rift_start_run is not None
@@ -7797,7 +8186,9 @@ def session(raw, peer, service, context):
                                         body,
                                     )
                                     fight_messages = shared.runtime = abandon_messages
-                                    character.update(abandoned["character"])
+                                    character.update(
+                                        refresh_owned_character(abandoned["character"])
+                                    )
                                     if abandoned["applied"]:
                                         checkpoint_fight("aborted")
                                 for (
@@ -7826,7 +8217,9 @@ def session(raw, peer, service, context):
                             body,
                         )
                         fight_messages = abandon_messages
-                        character.update(abandoned["character"])
+                        character.update(
+                            refresh_owned_character(abandoned["character"])
+                        )
                         if abandoned["applied"]:
                             checkpoint_fight("aborted")
                         for message_id, payload in fight_messages.prepare_delivery(
@@ -7872,14 +8265,14 @@ def session(raw, peer, service, context):
                             wp=COMBAT_TEST_WP,
                             pending=pending,
                         )
-                        character.update(returned["character"])
+                        character.update(refresh_owned_character(returned["character"]))
                         for packet in returned["packets"]:
                             send(connection, service, *packet)
-                        POSITIONS.attach(account_id, generation, character)
+                        attach_combat_return_position()
                         position = {key: character[key] for key in ("x", "y", "z")}
                         movement_state = Movement(position)
                         WORLD.leave(character["id"], generation)
-                        for packet in owned_native_bootstrap(character):
+                        for packet in combat_return_bootstrap():
                             send(connection, service, *packet)
                         join_world(generation, connection, character)
                         loaded = True
@@ -8024,7 +8417,7 @@ def session(raw, peer, service, context):
                                     body,
                                     wp=COMBAT_TEST_WP,
                                 )
-                        character.update(returned["character"])
+                        character.update(refresh_owned_character(returned["character"]))
                         for message_id, payload in returned["packets"]:
                             send(connection, service, message_id, payload)
                         if not abandoned and not duel_return:
@@ -8050,11 +8443,11 @@ def session(raw, peer, service, context):
                             generation=generation,
                             character_id=character["id"],
                         )
-                        POSITIONS.attach(account_id, generation, character)
+                        attach_combat_return_position()
                         position = {key: character[key] for key in ("x", "y", "z")}
                         movement_state = Movement(position)
                         WORLD.leave(character["id"], generation)
-                        for message_id, payload in owned_native_bootstrap(character):
+                        for message_id, payload in combat_return_bootstrap():
                             send(connection, service, message_id, payload)
                         from wakfu_server.combat_monster_world import spawn_group
 
@@ -8069,25 +8462,35 @@ def session(raw, peer, service, context):
                                     group_lease, defeated=defeated
                                 )
                                 if restored and not defeated:
-                                    map_id, instance_id, group_id = group_lease[0]
-                                    WORLD.emit_location(
-                                        map_id,
-                                        instance_id,
-                                        12608,
-                                        spawn_group(TEST_MONSTERS, group_id=group_id),
-                                        exclude_generation=generation,
+                                    from wakfu_server.ecology_admin import (
+                                        current_available,
                                     )
-                                    for packet in HARVESTS.availability_for(
-                                        map_id,
-                                        instance_id,
-                                        [m["id"] for m in TEST_MONSTERS],
-                                    ):
+
+                                    map_id, instance_id, group_id = group_lease[0]
+                                    restored_members = current_available(
+                                        STORE, group_lease[0]
+                                    )
+                                    if restored_members:
                                         WORLD.emit_location(
                                             map_id,
                                             instance_id,
-                                            *packet,
+                                            12608,
+                                            spawn_group(
+                                                restored_members, group_id=group_id
+                                            ),
                                             exclude_generation=generation,
                                         )
+                                        for packet in HARVESTS.availability_for(
+                                            map_id,
+                                            instance_id,
+                                            [m["id"] for m in restored_members],
+                                        ):
+                                            WORLD.emit_location(
+                                                map_id,
+                                                instance_id,
+                                                *packet,
+                                                exclude_generation=generation,
+                                            )
                         join_world(generation, connection, character)
                         mark_static_sync_pending()
                         if shared_return and abandoned:
@@ -8115,6 +8518,9 @@ def session(raw, peer, service, context):
                         group_lease = None
                         fight = fight_messages = None
                         combat_session = None
+                        deliver_custom_task_rewards()
+                        custom_task_cards.changed(character["id"], (character["id"],))
+                        publish_custom_task_cards()
                     except ValueError as error:
                         record(
                             event="combat_return_rejected",
@@ -8978,6 +9384,7 @@ def session(raw, peer, service, context):
                 elif opcode == 13686 and loaded:
                     try:
                         from wakfu_server import native_boats
+                        from wakfu_server.maps import transport_criteria
 
                         if native_boats.source(character, body) is not None:
                             from wakfu_server.combat_terrain import map_geometry
@@ -8994,6 +9401,9 @@ def session(raw, peer, service, context):
                                     blocked=environment_blocked(),
                                 ),
                                 geometry=map_geometry,
+                                criterion_evaluator=transport_criteria.evaluator(
+                                    STORE, character
+                                ),
                             )
                         else:
                             destination_route = native_transports.resolve(
@@ -9638,7 +10048,7 @@ def session(raw, peer, service, context):
                     if len(body) != 8:
                         raise ValueError("Invalid haven bag entry request")
                     target_id = struct.unpack(">q", body)[0]
-                    if character["map_id"] == 9:
+                    if character["map_id"] == 9 or ranch_session is not None:
                         send(
                             connection,
                             service,
@@ -9781,6 +10191,7 @@ def session(raw, peer, service, context):
                 elif opcode in (12038, 12551) and loaded:
                     from wakfu_server.haven_chest import transfer as transfer_chest
                     from wakfu_server.haven_chest_wire import (
+                        action_result as chest_action_result,
                         bootstrap as chest_bootstrap,
                     )
                     from wakfu_server.inventory_move import (
@@ -9802,6 +10213,7 @@ def session(raw, peer, service, context):
                             body,
                             opening_token=chest_opening,
                             location=character,
+                            ranch_session=ranch_session,
                         )
                         character = active_private_session().refresh(
                             character, result["character"]
@@ -9814,6 +10226,7 @@ def session(raw, peer, service, context):
                             sync_chest_inventory(character),
                             chest_registry(character),
                             chest_bootstrap(result["chest"]),
+                            chest_action_result(),
                         ):
                             send(connection, service, *packet)
                         record(
@@ -9830,6 +10243,10 @@ def session(raw, peer, service, context):
                             opcode=opcode,
                             reason=str(error),
                         )
+                        send(connection, service, *chest_action_result(rejected=True))
+                        from wakfu_server.ecology_feedback import information
+
+                        send(connection, service, *information(str(error)))
                         if chest_opening is not None:
                             from wakfu_server.haven_chest import load as load_chest
 
@@ -9873,7 +10290,13 @@ def session(raw, peer, service, context):
                     or (
                         opcode == 12870
                         and len(body) == 12
-                        and struct.unpack_from(">q", body)[0] == 36028
+                        and (
+                            struct.unpack_from(">q", body)[0] == 36028
+                            or (
+                                ranch_session is not None
+                                and struct.unpack_from(">H", body, 8)[0] == 18
+                            )
+                        )
                     )
                 ):
                     from wakfu_server.haven_ranch import (
@@ -9893,13 +10316,28 @@ def session(raw, peer, service, context):
                             raise ValueError(
                                 "Ranch travel is unavailable during combat"
                             )
-                        if opcode == 13982:
-                            validate_return(
-                                character,
-                                ranch_session,
-                                body,
-                                validate_lease=validate_ranch_lease,
-                            )
+                        if opcode == 13982 or (
+                            opcode == 12870
+                            and struct.unpack_from(">H", body, 8)[0] == 18
+                        ):
+                            if opcode == 13982:
+                                validate_return(
+                                    character,
+                                    ranch_session,
+                                    body,
+                                    validate_lease=validate_ranch_lease,
+                                )
+                            else:
+                                from wakfu_server.haven_ranch_portal import (
+                                    validate_exit,
+                                )
+
+                                validate_exit(
+                                    character,
+                                    ranch_session,
+                                    body,
+                                    validate_lease=validate_ranch_lease,
+                                )
                             cancel_private_scene_activity()
                             character = ranch_session.leave(character)
                             ranch_session = None
@@ -9943,9 +10381,34 @@ def session(raw, peer, service, context):
                                     now_ms=int(time.time() * 1000),
                                 )
                             cancel_private_scene_activity()
+                            clear_bag_role = ranch_session is None
                             ranch_session = child
                             character = dict(child.inside)
-                            packets = child.entry_messages(fixture(13974), character)
+                            packets = child.entry_messages(
+                                fixture(13974),
+                                character,
+                                clear_bag_role=clear_bag_role,
+                            )
+                            if character["map_id"] == 1440:
+                                from wakfu_server.haven_ranch_furniture import (
+                                    snapshot as ranch_furniture_snapshot,
+                                )
+
+                                initial_ranch = ranch_furniture_snapshot(
+                                    STORE,
+                                    account_id,
+                                    generation,
+                                    character,
+                                    session=child,
+                                    now_ms=int(time.time() * 1000),
+                                )
+                                # Native scene geometry is built during map transition.
+                                packets = [
+                                    initial_ranch["packet"]
+                                    if packet[0] == 13864
+                                    else packet
+                                    for packet in packets
+                                ]
                         position = {key: character[key] for key in ("x", "y", "z")}
                         movement_state = Movement(position)
                         for packet in packets:
@@ -9981,6 +10444,121 @@ def session(raw, peer, service, context):
                             actor_id=character["id"],
                             reason=str(error),
                         )
+                elif (
+                    loaded
+                    and ranch_session is not None
+                    and opcode == 12870
+                    and (
+                        len(body) == 12
+                        and struct.unpack_from(">q", body)[0] in (36068, 36069)
+                    )
+                ):
+                    from wakfu_server.haven_ranch_bridges import (
+                        activate as activate_ranch_bridge,
+                    )
+                    from wakfu_server.inventory_move import synchronization
+                    from wakfu_server.inventory_items import equipment_inventory
+                    from wakfu_server.ecology_feedback import information
+
+                    try:
+                        if fight is not None or spectator_session is not None:
+                            raise ValueError(
+                                "Ranch bridges are unavailable during combat"
+                            )
+                        result = activate_ranch_bridge(
+                            STORE,
+                            account_id,
+                            generation,
+                            character,
+                            body,
+                            session=ranch_session,
+                        )
+                        character = ranch_session.refresh(
+                            character, result["character"]
+                        )
+                        for packet in result.get("private_packets", []):
+                            send(connection, service, *packet)
+                        for packet in (
+                            synchronization(character),
+                            equipment_inventory(character),
+                        ):
+                            send(connection, service, *packet)
+                        for packet in result["scene_packets"]:
+                            WORLD.emit_location(
+                                character["map_id"], character["instance_id"], *packet
+                            )
+                        record(
+                            event="haven_ranch_bridge_activated",
+                            actor_id=character["id"],
+                            applied=result["applied"],
+                        )
+                    except ValueError as error:
+                        record(
+                            event="haven_ranch_bridge_rejected",
+                            actor_id=character["id"],
+                            reason=str(error),
+                        )
+                        send(connection, service, *information(str(error)))
+                elif (
+                    loaded
+                    and ranch_session is not None
+                    and (
+                        opcode == 12766
+                        or opcode == 12363
+                        or (
+                            opcode == 12870
+                            and len(body) == 12
+                            and struct.unpack_from(">H", body, 8)[0] in (23, 29)
+                        )
+                    )
+                ):
+                    from wakfu_server import haven_ranch_furniture
+                    from wakfu_server.ecology_feedback import information
+
+                    try:
+                        if fight is not None or spectator_session is not None:
+                            raise ValueError(
+                                "Ranch furniture is unavailable during combat"
+                            )
+                        cancel_crafting()
+                        if opcode == 12766:
+                            result = haven_ranch_furniture.deploy(
+                                STORE,
+                                account_id,
+                                generation,
+                                character,
+                                body,
+                                session=ranch_session,
+                                geometry=map_geometry(1440),
+                            )
+                        else:
+                            result = haven_ranch_furniture.edit(
+                                STORE,
+                                account_id,
+                                generation,
+                                character,
+                                opcode,
+                                body,
+                                session=ranch_session,
+                                geometry=map_geometry(1440),
+                            )
+                        for packet in result["packets"]:
+                            WORLD.emit_location(
+                                character["map_id"], character["instance_id"], *packet
+                            )
+                        record(
+                            event="haven_ranch_furniture_changed",
+                            actor_id=character["id"],
+                            opcode=opcode,
+                        )
+                    except ValueError as error:
+                        record(
+                            event="haven_ranch_furniture_rejected",
+                            actor_id=character["id"],
+                            opcode=opcode,
+                            reason=str(error),
+                        )
+                        send(connection, service, *information(str(error)))
                 elif opcode in (12870, 12363) and loaded:
                     from wakfu_server.haven_bag_furniture_transfer import (
                         edit as edit_bag_furniture,
@@ -10206,9 +10784,10 @@ def session(raw, peer, service, context):
                                 character,
                                 bag_session,
                                 body,
-                                world_static.objects(9),
+                                world_static.objects(character["map_id"]),
                                 fight_active=fight is not None
                                 or spectator_session is not None,
+                                ranch_session=ranch_session,
                             )
                             cancel_crafting()
                             current_chest = load_chest(
@@ -10740,7 +11319,12 @@ def session(raw, peer, service, context):
                     cancel_flora()
                     cancel_crafting()
                     WORLD.leave(character["id"], generation)
-                    exterior = HAVEN_BAG_EXTERIORS.discard(generation, character["id"])
+                    exterior = HAVEN_BAG_EXTERIORS.discard(
+                        generation,
+                        bag_session.exterior_actor_id
+                        if bag_session is not None
+                        else character["id"],
+                    )
                     if exterior is not None:
                         outside, packet = exterior
                         WORLD.emit_location(
@@ -10807,8 +11391,6 @@ def session(raw, peer, service, context):
                     switch_target = None
                     try:
                         switch_target = hero_wire.switch_request(body)
-                        if ranch_session is not None:
-                            raise ValueError("Leave the ranch before switching heroes")
                         if hero_switch_pending is not None:
                             raise ValueError("A native hero switch is already pending")
                         if fight is not None or combat_session is not None:
@@ -10816,7 +11398,25 @@ def session(raw, peer, service, context):
                                 "Native hero switching is unavailable during combat"
                             )
                         target = switch_target
+                        private_session = active_private_session()
+                        if private_session is not None and not private_session.owns(
+                            character
+                        ):
+                            raise ValueError(
+                                "Hero switch requires the current private scene session"
+                            )
+                        previous_character = character
+                        PLANTINGS.cancel(character["id"], generation)
+                        HARVESTS.cancel(character["id"], generation=generation)
+                        cancel_flora()
                         cancel_crafting()
+                        if chest_opening is not None:
+                            from wakfu_server.haven_chest_wire import (
+                                close_packet as close_chest,
+                            )
+
+                            send(connection, service, *close_chest(character["id"]))
+                        chest_opening = None
                         with POSITIONS.account_barrier(account_id):
                             flush_positions(account_id=account_id)
                             roster = heroes.switch_main(
@@ -10826,6 +11426,10 @@ def session(raw, peer, service, context):
                             WORLD.leave(previous_character_id, generation)
                             character = roster["leader"]
                             POSITIONS.attach(account_id, generation, character)
+                            if private_session is not None:
+                                character = private_session.rebind(
+                                    previous_character, character
+                                )
                         position = {key: character[key] for key in ("x", "y", "z")}
                         movement_state = Movement(position)
                         send(
@@ -10897,6 +11501,14 @@ def session(raw, peer, service, context):
                             15548,
                             wire.adapt(15548, fixture(15548), account_id, character),
                         )
+                        from wakfu_server.characters.private_scene_heroes import (
+                            messages as private_hero_messages,
+                        )
+
+                        for packet in private_hero_messages(
+                            active_private_session(), character, generation=generation
+                        ):
+                            send(connection, service, *packet)
                         join_world(
                             generation, connection, character, hydrate_heroes=False
                         )
@@ -10905,6 +11517,7 @@ def session(raw, peer, service, context):
 
                         send(connection, service, *synchronization(character))
                         hero_switch_pending = None
+                        publish_custom_task_cards()
                         record(event="hero_main_switched", actor_id=character["id"])
                     except ValueError as error:
                         send(connection, service, *information(str(error)))
@@ -10913,6 +11526,8 @@ def session(raw, peer, service, context):
                             actor_id=character["id"],
                             reason=str(error),
                         )
+                    else:
+                        deliver_custom_task_rewards()
                 elif opcode == 13498 and loaded:
                     from wakfu_server.characters.emotes import prepare_play
 
@@ -10988,6 +11603,21 @@ def session(raw, peer, service, context):
                     end = movement["end_position"]
                     try:
                         approved = movement_state.validate(movement)
+                        if ranch_session is not None and ranch_session.owns(character):
+                            from wakfu_server.haven_ranch_bridges import blocked_cells
+
+                            with STORE.connection() as bridge_db:
+                                bridge_blockers = blocked_cells(
+                                    bridge_db, character["instance_id"]
+                                )
+                            start_cell = movement_state.key(movement["start_position"])
+                            if any(
+                                (x, y) in bridge_blockers
+                                for x, y, _ in approved - {start_cell}
+                            ):
+                                raise ValueError(
+                                    "Build the Ranch bridge before crossing"
+                                )
                         from wakfu_server import environment_doors
 
                         environment_doors.validate_movement(STORE, character, movement)
@@ -11979,16 +12609,13 @@ def session(raw, peer, service, context):
                     )
                     if shared_abort.group_lease is not None:
                         context = shared_abort.join_context or {}
-                        members = context.get("monsters")
+                        from wakfu_server.ecology_admin import current_available
+
+                        key = shared_abort.group_lease[0]
+                        members = current_available(STORE, key)
                         if members:
                             from wakfu_server.combat_monster_world import spawn_group
 
-                            key = shared_abort.group_lease[0]
-                            members = (
-                                tuple(members.values())
-                                if isinstance(members, dict)
-                                else tuple(members)
-                            )
                             WORLD.emit_location(
                                 key[0],
                                 key[1],
@@ -12070,7 +12697,12 @@ def session(raw, peer, service, context):
                 logout_barrier("group_release", lambda: release_groups(generation))
         if service == "world" and account_id is not None:
             if character is not None:
-                exterior = HAVEN_BAG_EXTERIORS.discard(generation, character["id"])
+                exterior = HAVEN_BAG_EXTERIORS.discard(
+                    generation,
+                    bag_session.exterior_actor_id
+                    if bag_session is not None
+                    else character["id"],
+                )
                 if exterior is not None:
                     outside, packet = exterior
                     logout_barrier(

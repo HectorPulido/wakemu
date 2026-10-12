@@ -129,6 +129,13 @@ def minimal_entity(body, character):
             from wakfu_server.characters.cosmetics import actor_component
 
             replacement = actor_component(character)
+        elif (
+            section["name"] == "ACHIEVEMENTS"
+            and character.get("achievement_section") is not None
+        ):
+            replacement = character["achievement_section"]
+            if not isinstance(replacement, bytes):
+                raise ValueError("Invalid owned achievement section")
         elif section["name"] == "ACCOUNT_INFORMATION":
             from wakfu_server.maps.admin_chat_rights import project_account_information
 

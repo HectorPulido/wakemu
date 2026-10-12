@@ -33,7 +33,10 @@ def configure_domains(bridge, *, regional_bonuses=None):
 
     def planting_intent(proposal):
         from wakfu_server import wire
-        from wakfu_server.haven_bag_garden import authorize as authorize_garden
+        from wakfu_server.haven_bag_garden import (
+            authorize as authorize_garden,
+            is_private_garden,
+        )
 
         identity, generation = proposal["character_id"], proposal["generation"]
         with bridge.world.lock:
@@ -53,7 +56,7 @@ def configure_domains(bridge, *, regional_bonuses=None):
 
         def authorize_cell(current, request, seed, resource):
             z = proposal["prepared"]["z"]
-            if current["map_id"] == 9:
+            if is_private_garden(current):
                 z = authorize_garden(bridge.store, current, request, seed, resource)
             if not authorize_spawn(
                 dict(
@@ -114,6 +117,16 @@ def configure_domains(bridge, *, regional_bonuses=None):
         return result
 
     def plants(proposal):
+        if proposal.get("kind") == "affinity_reconcile":
+            if proposal.get("world_epoch") != bridge.epoch:
+                return {"applied": False, "reason": "stale_world_epoch"}
+            from wakfu_server.ecology_affinity_reconciliation import (
+                apply as reconcile_affinity,
+            )
+
+            # Character-ledger work and account hydration stay outside all
+            # population, combat, harvest and garden critical sections.
+            return reconcile_affinity(bridge.store, bridge.world, proposal)
         if proposal.get("kind") in ("planting_begin", "planting_rejected"):
             return planting_intent(proposal)
         feedback = []

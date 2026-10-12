@@ -108,16 +108,27 @@ class MonsterMaturationAttemptTests(PostgresCase):
             ).fetchone()
 
     def test_success_transforms_only_member_and_commits_receipt_outbox_together(self):
+        account = self.store.register("natural-affinity-owner", "test-password")["id"]
+        observer = self.store.create_character(account, "Natural Observer")
+        with self.store.connection() as db:
+            before_affinity = db.execute(
+                "SELECT ecology_value FROM characters WHERE id=%s", (observer["id"],)
+            ).fetchone()["ecology_value"]
         ticket = self._ticket()
         before = self._group()
         old_by_id = {row["id"]: row for row in before["members"]}
-        result = monster_maturation.attempt(
-            self.store,
-            ticket,
-            present=True,
-            draw=0.1,
-            choose=lambda candidates: candidates[0],
-        )
+        with patch.object(
+            monster_maturation,
+            "choose_next",
+            return_value=dict(reference=1, min_level=REFERENCES[1]["min_level"]),
+        ):
+            result = monster_maturation.attempt(
+                self.store,
+                ticket,
+                present=True,
+                draw=0.0,
+                choose=lambda candidates: candidates[0],
+            )
         self.assertEqual(1, result["to_reference"])
         self.assertEqual(2, result["from_reference"])
         after = self._group()
@@ -133,7 +144,7 @@ class MonsterMaturationAttemptTests(PostgresCase):
         outbox = self._outbox(ticket)
         self.assertIsNotNone(receipt)
         self.assertEqual(1, receipt["to_reference"])
-        self.assertEqual(0.1, receipt["draw"])
+        self.assertEqual(0.0, receipt["draw"])
         self.assertEqual(receipt["cycle"], outbox["cycle"])
         self.assertEqual(after["revision"], outbox["revision"])
         self.assertFalse(outbox["published"])
@@ -141,6 +152,21 @@ class MonsterMaturationAttemptTests(PostgresCase):
         self.assertEqual(1, timer["reference"])
         self.assertEqual(60000, timer["remaining_ms"])
         self.assertFalse(timer["due"])
+
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM personal_ecology_receipts"
+                ).fetchone()["n"],
+                0,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT ecology_value FROM characters WHERE id=%s",
+                    (observer["id"],),
+                ).fetchone()["ecology_value"],
+                before_affinity,
+            )
 
     def test_nonadvancing_outcome_records_cycle_but_has_no_outbox(self):
         ticket = self._ticket()

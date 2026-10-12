@@ -279,7 +279,8 @@ class TerritoryWeatherPublicationTests(unittest.TestCase):
             self.assertEqual(
                 "territory_weather_tick" in namespace["callbacks"], mode == "inline"
             )
-        config = json.loads((server_root / "cron-service/config.json").read_text())
+        seed = (server_root / "migrations/151_cron_scheduler_policy.sql").read_text()
+        config = json.loads(seed.split("$cron_policy$")[1])
         task = config["tasks"]["territory_weather_tick"]
         # Compose delegates ecology to the external worker; a simultaneous cron
         # weather loop must stay disabled. Inline still registers its callback.

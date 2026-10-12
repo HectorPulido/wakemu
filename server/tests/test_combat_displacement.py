@@ -227,6 +227,31 @@ class NativeDisplacementTests(unittest.TestCase):
         self.assertEqual(self.preview.actors[-7].position, (5, 0, 0))
         self.assertEqual(self.preview.actors[-7].ap, 6)
 
+    def test_registered_area_push_uses_area_center_and_preserves_owner(self):
+        from wakfu_server.combat_effect_area_targets import NativeAreaTarget
+
+        owner = self.preview.actors[7]
+        owner.position = (0, 4, 0)
+        self.preview.actors[-7].position = (0, 1, 0)
+        install_synthetic_qi_occupancy(self.preview)
+        area = NativeAreaTarget(901, (0, 0, 0), owner.team, owner.id)
+        invocation = EffectInvocation(358000, 1, area.id, -7, area.position)
+        with patch("wakfu_server.combat_area_authority.area_guards") as guards, patch(
+            "wakfu_server.combat_effect_area_targets.area_targets", return_value=(area,)
+        ):
+            self.handler(self.effects["358000"], None, invocation)
+        guards.assert_called_once_with(self.preview, area.id)
+        self.assertEqual(self.preview.actors[-7].position, (0, 2, 0))
+        self.assertEqual(owner.position, (0, 4, 0))
+
+    def test_registered_area_recipient_cancels_before_area_source_lookup(self):
+        self.preview.native_effect_areas = {901: {}}
+        invocation = EffectInvocation(358000, 1, 901, 901, (0, 0, 0))
+        with patch("wakfu_server.combat_area_authority.area_guards") as guards:
+            self.assertFalse(self.handler(self.effects["358000"], None, invocation))
+        guards.assert_called_once_with(self.preview, 901)
+        self.assertEqual(self.packets, [])
+
     def test_resolver_order_flags_preserve_displacement_and_unknown_rejection(self):
         effect = deepcopy(self.effects["358000"])
         for flag in (3, 5, 14, 26):

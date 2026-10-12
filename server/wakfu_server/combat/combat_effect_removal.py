@@ -197,7 +197,9 @@ def running_effect_removal(
 
     owner_contract = owner_catalog()["effects"].get(str(effect_class))
     configured_area = (
-        isinstance(owner_contract, dict) and owner_contract.get("runner") == "eYQ"
+        isinstance(owner_contract, dict)
+        and owner_contract.get("bbA_owner") == "eYQ"
+        and owner_contract.get("bbB_owner") == "eYQ"
     )
     if configured_area:
         actor_mode, cell_mode = owner_contract.get("bbA"), owner_contract.get("bbB")
@@ -255,9 +257,13 @@ def running_effect_removal(
         generic_valid = True  # eZR.bcc -> eVJ(-1) for a standalone native carrier.
     if not generic_valid or fields[6] == 0:
         raise ValueError("Missing owned effect/caster identity in original payload")
-    if effect_class in (STATE_CARRIER_EFFECT_CLASS, 649, 933) and notify_unapplication:
+    if (
+        configured_area or effect_class in (STATE_CARRIER_EFFECT_CLASS, 649, 933)
+    ) and notify_unapplication:
         # aVz requires fMV before Qf.q. These authoritative book/carrier
         # removals must carry iB1 even when PK has no subscriptions or delay.
+        # Configured eYQ areas share this gate: without it, aVz skips Qf.q
+        # and eYQ.bbR never reaches Qs.b / buH.g to unregister the visual.
         running_effect_payload = state_unapplication_payload(running_effect_payload)
     return (
         struct.pack(

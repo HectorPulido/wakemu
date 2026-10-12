@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from wakfu_server import native_boats
+from test_native_boat_catalog import seeded_indexes
 
 
 SERVER = Path(__file__).resolve().parents[1] / "local_game_server.py"
@@ -32,6 +33,9 @@ def dispatch_code():
 
 class NativeBoatDispatchTests(unittest.TestCase):
     def setUp(self):
+        indexes = patch.object(native_boats, "_indexes", return_value=seeded_indexes())
+        indexes.start()
+        self.addCleanup(indexes.stop)
         self.character = dict(
             id=7, account_id=9, map_id=504, instance_id=0, x=4, y=3, z=9, level=50
         )
@@ -39,6 +43,7 @@ class NativeBoatDispatchTests(unittest.TestCase):
         self.destination = dict(map_id=794, instance_id=0, x=-3, y=-4, z=6)
         self.saved = dict(self.character, **self.destination)
         self.store = Mock()
+        self.store.clock.return_value = 1791763200.0
         self.store.transition_map.return_value = self.saved
         self.namespace = dict(
             character=self.character,

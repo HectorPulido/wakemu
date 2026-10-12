@@ -74,8 +74,8 @@ class MonsterReproductionTests(PostgresCase):
                 "birth_stage_decay": 0.5,
                 "new_group_probability": 0.5,
                 "max_members": 8,
-                "max_zone_members": 128,
-                "max_zone_groups": 32,
+                "max_zone_members": 5000,
+                "max_zone_groups": 1000,
             },
             monster_reproduction.policy(self.store),
         )
@@ -172,22 +172,18 @@ class MonsterReproductionTests(PostgresCase):
         with self.assertRaises(ValueError):
             monster_reproduction.policy(self.store)
 
-    def test_probability_decay_uses_adult_levels_and_zeroes_babies_or_unknown_refs(
+    def test_birth_probability_includes_base_forms_and_softly_decays_by_group_size(
         self,
     ):
         configuration = monster_reproduction.policy(self.store)
-        self.assertAlmostEqual(
-            0.04, monster_reproduction.birth_probability(4, configuration)
-        )
-        self.assertAlmostEqual(
-            0.05 * 0.5 * 8 / 14,
-            monster_reproduction.birth_probability(5, configuration),
-        )
-        self.assertLess(
-            monster_reproduction.birth_probability(704, configuration),
-            monster_reproduction.birth_probability(5, configuration),
-        )
-        self.assertEqual(0.0, monster_reproduction.birth_probability(6, configuration))
+        base = monster_reproduction.birth_probability(2, configuration, group_size=1)
+        small = monster_reproduction.birth_probability(4, configuration, group_size=1)
+        crowded = monster_reproduction.birth_probability(4, configuration, group_size=8)
+        self.assertGreater(base, 0.0)
+        self.assertGreater(small, 0.0)
+        self.assertGreater(crowded, 0.0)
+        self.assertLess(crowded, small)
+        self.assertEqual(0.0, monster_reproduction.birth_probability(44, configuration))
         self.assertEqual(
             0.0, monster_reproduction.birth_probability(999999, configuration)
         )

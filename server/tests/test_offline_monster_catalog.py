@@ -113,3 +113,22 @@ class OfflineMonsterCatalogTests(unittest.TestCase):
             self.assertTrue(
                 snapshot.receipt()["verified_documents"]["proof.json"]["gzip"]
             )
+
+    def test_actual_snapshot_receipt_must_match_declared_base(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            candidate = self.fixture(root)
+            manifest = json.loads((candidate / "manifest.json").read_text())
+            proof = dict(
+                revision="offline-test",
+                authority="read_only_database_snapshot",
+                document_hashes=manifest["base_document_hashes"],
+                exported_document_hashes={},
+            )
+            (root / "snapshot-receipt.json").write_text(json.dumps(proof))
+            snapshot = OfflineMonsterCatalog(candidate, [root])
+            self.assertEqual(len(snapshot.receipt()["actual_snapshot_provenance"]), 1)
+            proof["revision"] = "another-release"
+            (root / "snapshot-receipt.json").write_text(json.dumps(proof))
+            with self.assertRaisesRegex(ValueError, "differs from candidate base"):
+                OfflineMonsterCatalog(candidate, [root])

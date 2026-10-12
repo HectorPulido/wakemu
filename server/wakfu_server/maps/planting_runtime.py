@@ -332,12 +332,20 @@ class Plantings:
         random_draw=lambda: secrets.randbelow(1 << 53) / (1 << 53),
     ):
         """Apply bounded prepared candidates after authoritative row comparison."""
+        applied = []
+        capacity_skipped = []
         with self.growth_lock, self.store.connection() as db:
             for resource, definition, transition in candidates:
                 from .resource_domains import is_fixed_resource
 
                 if is_fixed_resource(resource["resource_reference"]):
                     continue
+                if definition["monster_resource"]:
+                    map_id, instance_id = resource["map_id"], resource["instance_id"]
+                    db.execute(
+                        "SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                        (f"monster-population:{map_id}:{instance_id}",),
+                    )
                 current = db.execute(
                     "SELECT * FROM planted_resources WHERE resource_uid=%s FOR UPDATE",
                     (resource["resource_uid"],),
@@ -351,6 +359,28 @@ class Plantings:
                 ).fetchone():
                     continue
                 if definition["monster_resource"]:
+                    # Serialize every producer against the same map population
+                    # budget. The resource row and reservation are committed in
+                    # this transaction while the advisory lock remains held.
+                    from .monster_population_capacity import has_capacity, snapshot
+                    from .monster_reproduction import validate_policy
+
+                    setting = db.execute(
+                        "SELECT value FROM settings WHERE name='monster_reproduction'"
+                    ).fetchone()
+                    if setting is None:
+                        raise ValueError("Monster population policy is missing")
+                    policy = validate_policy(setting["value"])
+                    counts = snapshot(db, map_id, instance_id)
+                    if not has_capacity(
+                        counts,
+                        add_members=1,
+                        add_groups=1,
+                        max_members=policy["max_zone_members"],
+                        max_groups=policy["max_zone_groups"],
+                    ):
+                        capacity_skipped.append(resource["resource_uid"])
+                        continue
                     member = (prepared_members or {}).get(resource["resource_uid"])
                     if member is None:
                         member = monster_growth_member(resource, definition)
@@ -374,6 +404,7 @@ class Plantings:
                         "DELETE FROM planted_resources WHERE resource_uid=%s",
                         (resource["resource_uid"],),
                     )
+                    applied.append(resource["resource_uid"])
                 elif transition is not None:
                     policy = db.execute(
                         "SELECT to_stage,delay_ms,probability FROM resource_growth_transitions "
@@ -427,10 +458,20 @@ class Plantings:
                             ),
                         ),
                     )
+                    applied.append(resource["resource_uid"])
+        return {"applied": applied, "capacity_skipped": capacity_skipped}
 
-    def publish_growth(self, groups, *, publish, resource_uid=None, limit=None):
+    def publish_growth(
+        self, groups, *, publish, resource_uid=None, resource_uids=None, limit=None
+    ):
         from .combat_monster_world import spawn_group
 
+        if resource_uid is not None and resource_uids is not None:
+            raise ValueError("Choose one growth resource filter")
+        if resource_uids is not None:
+            resource_uids = tuple(dict.fromkeys(resource_uids))
+            if not resource_uids:
+                return []
         published = []
         with self.publisher_lock:
             with self.store.connection() as db:
@@ -439,9 +480,15 @@ class Plantings:
                     for row in db.execute(
                         "SELECT * FROM planting_growth_outbox WHERE published=FALSE "
                         + ("AND resource_uid=%s " if resource_uid is not None else "")
+                        + (
+                            "AND resource_uid=ANY(%s) "
+                            if resource_uids is not None
+                            else ""
+                        )
                         + "ORDER BY resource_uid"
                         + (" LIMIT %s" if limit is not None else ""),
                         (() if resource_uid is None else (resource_uid,))
+                        + (() if resource_uids is None else (list(resource_uids),))
                         + (() if limit is None else (limit,)),
                     )
                 ]
@@ -467,7 +514,11 @@ class Plantings:
                 else:
                     packets = [
                         planting.resource_packet(resource)
-                        if resource.get("mining_spawn") or resource.get("fishing_spawn")
+                        if (
+                            resource.get("mining_spawn")
+                            or resource.get("fishing_spawn")
+                            or resource.get("flora_spawn")
+                        )
                         else state_packet(resource, resource["stage"])
                     ]
                 delivery = dict(
@@ -513,12 +564,13 @@ def state_packet(resource, stage):
     )
 
 
-def monster_growth_member(resource, definition):
-    """Explicit local population selection: minimum native level, then reference.
+def monster_growth_member(resource, definition, *, decision_seed=None):
+    """Choose uniformly among this seed's native initial family alternatives.
 
-    Prefer family members whose native collection action returns this seed, so
-    tutorial creatures without harvesting do not break the farming loop. This
-    is a local rule, not the official species distribution or maturity timing.
+    Selection happens once before the durable growth payload is recorded;
+    publication retries reuse that payload and never draw a new identity/form.
+    A decision seed preserves the preference across periodic batch reshuffling.
+    The real actor identity is allocated transactionally when growth commits.
     """
     from .monsters import REFERENCES, owned_instance
     from .monster_collect import _actions
@@ -559,9 +611,32 @@ def monster_growth_member(resource, definition):
         raise ValueError(
             "Native seed family has no valid local monster growth template"
         )
-    ref = min(choices)[1]
+    from .monster_family_stages import initial_candidates
+
+    allowed = {ref for _, ref in choices}
+    candidates = [
+        candidate
+        for family_id in definition["monster_family_ids"]
+        for candidate in initial_candidates(family_id, eligible_references=allowed)
+    ]
+    if not candidates:
+        raise ValueError("Native seed family has no eligible initial monster form")
+    if decision_seed is None:
+        ref = secrets.choice(candidates)["reference"]
+        group_id = secrets.randbits(62) + 1
+    else:
+        import hashlib
+
+        def rank(label):
+            return hashlib.sha256(f"{decision_seed}:{label}".encode()).digest()
+
+        ref = min(candidates, key=lambda c: rank(f"variant:{c['reference']}"))[
+            "reference"
+        ]
+        group_id = (
+            int.from_bytes(rank("preview_identity")[:8], "big") % ((1 << 62) - 1)
+        ) + 1
     template = REFERENCES[ref]
-    group_id = secrets.randbits(62) + 1
     member = owned_instance(
         ref,
         template["min_level"],

@@ -8,7 +8,7 @@ PYTHONPATH=server python3 server/tools/build_dungeon_entry_overrides.py
 cp client-tools/runtime/dungeon-entry-overrides.properties .runtime/local/open-planting-classes/
 "$planting_jdk/bin/javac" -proc:none -source 21 -target 21 \
  --add-exports java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED \
- -d .runtime/local/open-planting-classes client-tools/java/OpenPlantingAgent.java
+ -d .runtime/local/open-planting-classes client-tools/java/OpenPlantingAgent.java client-tools/java/OpenPlantingAgentRecovery.java
 printf 'Manifest-Version: 1.0\nPremain-Class: OpenPlantingAgent\n\n' > .runtime/local/open-planting-manifest.mf
 "$planting_jdk/bin/jar" cfm .runtime/local/open-planting.jar \
  .runtime/local/open-planting-manifest.mf -C .runtime/local/open-planting-classes .

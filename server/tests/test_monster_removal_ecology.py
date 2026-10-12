@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 import unittest
+from unittest.mock import patch
 
 from postgres_case import PostgresCase
 from psycopg.errors import RaiseException
@@ -15,6 +16,12 @@ from wakfu_server.planting_cells import cells
 class MonsterRemovalEcologyTests(PostgresCase):
     def setUp(self):
         super().setUp()
+        self.native_catalog = {"territories": {}}
+        native = patch(
+            "wakfu_server.ecology_equilibrium.catalog", return_value=self.native_catalog
+        )
+        native.start()
+        self.addCleanup(native.stop)
         self.map_id = 1134
         self.instance_id = 37
         self.region_id = 79001
@@ -56,6 +63,14 @@ class MonsterRemovalEcologyTests(PostgresCase):
         return self.groups.claim(key, generation, fight_id)[0]
 
     def _limit(self, family, minimum, maximum, *, region=None):
+        native_region = self.region_id if region is None else region
+        territory = self.native_catalog["territories"].setdefault(
+            str(native_region),
+            dict(map_id=self.map_id, plant_wishes=[], monster_wishes=[]),
+        )
+        territory["monster_wishes"] = [
+            wish for wish in territory["monster_wishes"] if wish["family_id"] != family
+        ] + [dict(family_id=family, minimum=minimum, maximum=maximum)]
         with self.store.connection() as db:
             db.execute(
                 "INSERT INTO ecology_family_limits(map_id,region_id,kind,family_id,minimum,maximum,source) "
@@ -238,6 +253,50 @@ class MonsterRemovalEcologyTests(PostgresCase):
             result["packets"][0][1].decode("utf-8", errors="ignore").lower(),
         )
         self.assertEqual([], self._receipts())
+        self.assertEqual(
+            {"ecology_value": 0, "ecology_revision": 0}, dict(self._state())
+        )
+
+    def test_unrelated_native_unassigned_member_does_not_suppress_regional_receipt(
+        self,
+    ):
+        key = self._single_family_setup(target_members=1, extra_members=1)
+        lease = self._lease(key)
+
+        def locate(map_id, x, y, z):
+            return {"region_id": -1 if x == 100 else self.region_id}
+
+        result = self._finish(lease, locate=locate)
+        self.assertTrue(result["applied"])
+        self.assertEqual("defeated", self._status(key))
+        self.assertEqual(1, len(result["receipts"]))
+        self.assertEqual(-25, result["receipts"][0]["requested_delta"])
+        self.assertEqual(1, self._state()["ecology_revision"])
+
+    def test_mixed_defeated_group_excludes_unassigned_member_from_regional_removal(
+        self,
+    ):
+        key = self._single_family_setup(target_members=2, minimum=1, maximum=1)
+        lease = self._lease(key)
+
+        def locate(map_id, x, y, z):
+            return {"region_id": -1 if x == 1 else self.region_id}
+
+        result = self._finish(lease, locate=locate)
+        self.assertTrue(result["applied"])
+        self.assertEqual("defeated", self._status(key))
+        self.assertEqual(1, len(result["receipts"]))
+        self.assertEqual(-25, result["receipts"][0]["requested_delta"])
+        self.assertEqual(1, self._state()["ecology_revision"])
+
+    def test_defeated_group_entirely_on_native_unassigned_terrain_has_no_affinity(self):
+        key = self._single_family_setup(target_members=2)
+        lease = self._lease(key)
+        result = self._finish(lease, locate=lambda *args: {"region_id": -1})
+        self.assertTrue(result["applied"])
+        self.assertEqual("defeated", self._status(key))
+        self.assertEqual([], result["receipts"])
+        self.assertEqual([], result["packets"])
         self.assertEqual(
             {"ecology_value": 0, "ecology_revision": 0}, dict(self._state())
         )

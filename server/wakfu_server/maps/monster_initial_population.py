@@ -95,7 +95,12 @@ def seed_zone(store, groups, map_id, instance_id, region_id, plan, *, locate=sur
         ):
             raise ValueError("Initial monster plan violates population policy")
         population = snapshot(
-            db, map_id, instance_id, locate=locate, kinds=("monster",)
+            db,
+            map_id,
+            instance_id,
+            locate=locate,
+            kinds=("monster",),
+            exclude_unassigned=True,
         )
         if not population["complete"]:
             raise ValueError("Initial monster population has unresolved native regions")
@@ -346,7 +351,9 @@ def prepare_zone(store, plan):
         members = plan["members"]
         if len(members) != policy["members_per_zone"]:
             raise ValueError("Initial monster plan violates population policy")
-        population = snapshot(db, map_id, instance_id, kinds=("monster",))
+        population = snapshot(
+            db, map_id, instance_id, kinds=("monster",), exclude_unassigned=True
+        )
         if not population["complete"]:
             raise ValueError("Initial monster population has unresolved native regions")
         count = sum(

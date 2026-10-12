@@ -78,75 +78,118 @@ class DungeonEntryOverrideProjectionTests(unittest.TestCase):
                 )
             )
 
-    def test_generated_resource_is_version_bound_and_contains_five_native_entries(self):
-        rows = build(
-            json.loads((ROOT / "docs/reports/dungeons/inventory.json").read_text())
-        )
-        self.assertEqual(set(rows), {720, 4578, 4689, 4714, 4751})
-        with tempfile.TemporaryDirectory() as temp:
-            output = Path(temp) / "overrides.properties"
-            subprocess.run(
-                [
-                    sys.executable,
-                    str(ROOT / "server/tools/build_dungeon_entry_overrides.py"),
-                    "--output",
-                    str(output),
-                ],
-                cwd=ROOT,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            content = output.read_text()
-        digest = hashlib.sha256(
-            (ROOT / "client/lib/wakfu-client.jar").read_bytes()
-        ).hexdigest()
-        self.assertIn("native_sha256=" + digest, content)
-        for identity in rows:
-            self.assertRegex(content, rf"(?m)^{identity}=.+$")
-        self.assertNotIn("26873=", content)  # Internal Tofu door is not an entrance.
 
-    def test_cli_rejects_stale_source_pin_before_writing(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            native_jar = root / "client.jar"
-            native_jar.write_bytes(b"test native client")
-            digest = hashlib.sha256(native_jar.read_bytes()).hexdigest()
-            inventory_path = root / "inventory.json"
-            inventory_path.write_text(
-                json.dumps({"live_catalog_release": "release-b", "records": []})
+class DungeonEntryDatabaseExportTests(unittest.TestCase):
+    def setUp(self):
+        from tools.build_dungeon_entry_overrides import (
+            validate_setting,
+            load_database_rows,
+            render_properties,
+            read_local_database_rows,
+        )
+
+        self.validate = validate_setting
+        self.load = load_database_rows
+        self.render = render_properties
+        self.local = read_local_database_rows
+        sql = (
+            ROOT / "server/migrations/149_dungeon_entry_client_overrides.sql"
+        ).read_text()
+        self.value = json.loads(sql.split("$reviewed$")[1])
+        self.digest = self.value["native_client_sha256"]
+
+    def test_reviewed_db_seed_exports_exact_five_entries_and_client_identity(self):
+        rows = self.validate(self.value, self.digest)
+        self.assertEqual(set(rows), {720, 4578, 4689, 4714, 4751})
+        self.assertNotIn(26873, rows)
+        expected = (
+            "native_sha256="
+            + self.digest
+            + "\n# Generated from native entrance routes; never internal doors.\n"
+            "720=(not IsNeoServer())\n4578=(not IsNeoServer())\n4689=(IsNeoServer() or not IsNeoServer())\n"
+            "4714=(IsNeoServer() or not IsNeoServer())\n"
+            '4751=(not ((not IsNeoServer()) or (not (GetGlobalVariable("NEO_BOSS_UNLOCKED") >= 8))))\n'
+        )
+        self.assertEqual(self.render(rows, self.digest), expected)
+
+    def test_missing_malformed_hash_version_duplicate_identity_fail_closed(self):
+        import copy
+
+        bad = [
+            None,
+            {},
+            {**self.value, "version": True},
+            {**self.value, "version": 2},
+            {**self.value, "native_client_sha256": "x"},
+            {**self.value, "source_catalog_revision": "x"},
+            {**self.value, "projection_sha256": "0" * 64},
+        ]
+        for identity in (True, 0, -1, 2**31):
+            value = copy.deepcopy(self.value)
+            value["entrances"][0]["destination_id"] = identity
+            bad.append(value)
+        value = copy.deepcopy(self.value)
+        value["entrances"].append(value["entrances"][0])
+        bad.append(value)
+        value = copy.deepcopy(self.value)
+        value["entrances"][0]["criterion"] = "True\n720=False"
+        bad.append(value)
+        for value in bad:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                self.validate(value, self.digest)
+        with self.assertRaisesRegex(ValueError, "version mismatch"):
+            self.validate(self.value, "0" * 64)
+
+    def test_database_missing_or_incomplete_source_rejected(self):
+        class Result:
+            def __init__(self, value):
+                self.value = value
+
+            def fetchone(self):
+                return self.value
+
+        class DB:
+            def __init__(self, values):
+                self.values = iter(values)
+
+            def execute(self, *args):
+                return Result(next(self.values))
+
+        with self.assertRaises(ValueError):
+            self.load(DB([None]), self.digest)
+        for source in (None, {"complete": False}):
+            with self.assertRaises(ValueError):
+                self.load(DB([{"value": self.value}, source]), self.digest)
+        self.assertEqual(
+            len(
+                self.load(DB([{"value": self.value}, {"complete": True}]), self.digest)
+            ),
+            5,
+        )
+
+    def test_host_without_driver_queries_only_postgresql_and_fails_closed(self):
+        from types import SimpleNamespace
+
+        calls = []
+
+        def run(argv, **kwargs):
+            calls.append(argv)
+            return SimpleNamespace(
+                returncode=0, stdout=json.dumps({"value": self.value, "complete": True})
             )
-            pin_path = root / "source-version.json"
-            pin_path.write_text(
-                json.dumps(
-                    {
-                        "version": 1,
-                        "native_client_sha256": digest,
-                        "native_catalog_release": "release-a",
-                    }
-                )
-            )
-            output = root / "overrides.properties"
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    str(ROOT / "server/tools/build_dungeon_entry_overrides.py"),
-                    "--inventory",
-                    str(inventory_path),
-                    "--client-jar",
-                    str(native_jar),
-                    "--source-version",
-                    str(pin_path),
-                    "--output",
-                    str(output),
-                ],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-            )
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("version mismatch", result.stderr)
-            self.assertFalse(output.exists())
+
+        self.assertEqual(len(self.local(self.digest, run=run)), 5)
+        self.assertEqual(
+            calls[0][:6], ["docker", "compose", "exec", "-T", "postgres", "psql"]
+        )
+        self.assertNotIn("inventory.json", " ".join(calls[0]))
+        for result in (
+            SimpleNamespace(returncode=1, stdout=""),
+            SimpleNamespace(returncode=0, stdout=""),
+            SimpleNamespace(returncode=0, stdout="{}"),
+        ):
+            with self.assertRaises(ValueError):
+                self.local(self.digest, run=lambda *a, **k: result)
 
 
 if __name__ == "__main__":

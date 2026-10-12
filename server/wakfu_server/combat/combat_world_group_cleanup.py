@@ -39,7 +39,10 @@ def defeated_snapshot(db, map_id, instance_id, *, lease=None):
             ):
                 raise ValueError("Defeated group contains a foreign world actor")
             identities.append(member["id"])
-    return tuple(
+    packets = tuple(
         remove_message(identities[offset : offset + 255])
         for offset in range(0, len(identities), 255)
     )
+    from wakfu_server.ecology_admin import admin_removed_packets
+
+    return packets + tuple(admin_removed_packets(db, map_id, instance_id))

@@ -3,21 +3,127 @@
 Native aKq has arrival XY and map, but no altitude. Never treat clx (label ID)
 as altitude. Require one authoritative walkable surface at the original XY.
 """
-import gzip
 import json
 import re
 import struct
-from pathlib import Path
+from functools import lru_cache
 
-_CONTRACTS = json.loads(
-    gzip.decompress(
-        Path(__file__).with_name("native_boat_contracts.json.gz").read_bytes()
-    )
-)
-_ENDPOINTS = {row["id"]: row for row in _CONTRACTS["endpoints"]}
-_LINKS = {}
-for _row in _CONTRACTS["routes"]:
-    _LINKS.setdefault(frozenset((_row["source"], _row["destination"])), []).append(_row)
+SETTING = "native_boat_contracts"
+
+
+def load(db):
+    """Read the complete boat authority from PostgreSQL; never use local files."""
+    row = db.execute("SELECT value FROM settings WHERE name=%s", (SETTING,)).fetchone()
+    if row is None:
+        raise ValueError("Missing PostgreSQL native boat contracts")
+    return validate(row["value"])
+
+
+def validate(document):
+    """Reject incomplete or ambiguous authority before exposing any route."""
+
+    def integer(value, minimum=-(2**31), maximum=2**31 - 1):
+        if type(value) is not int or not minimum <= value <= maximum:
+            raise ValueError("Invalid native boat contract integer")
+
+    if type(document) is not dict or set(document) != {
+        "endpoints",
+        "routes",
+        "provenance",
+    }:
+        raise ValueError("Invalid native boat contract document")
+    if type(document["provenance"]) is not dict:
+        raise ValueError("Missing native boat provenance")
+    endpoints, links, route_ids = {}, {}, set()
+    for collection in ("endpoints", "routes"):
+        if type(document[collection]) is not list or not document[collection]:
+            raise ValueError("Missing native boat contract collection")
+    for endpoint in document["endpoints"]:
+        if type(endpoint) is not dict or set(endpoint) != {
+            "id",
+            "label_id",
+            "map_id",
+            "native_kind",
+            "parameter",
+            "source_position",
+            "x",
+            "y",
+        }:
+            raise ValueError("Invalid native boat endpoint")
+        for key in ("id", "map_id", "label_id", "parameter"):
+            integer(
+                endpoint[key], -(2**31) if key in ("label_id", "parameter") else 1
+            )
+        for key in ("native_kind", "x", "y"):
+            integer(endpoint[key])
+        position = endpoint["source_position"]
+        if type(position) is not dict or set(position) != {"x", "y", "z"}:
+            raise ValueError("Invalid native boat source position")
+        for coordinate in position.values():
+            integer(coordinate)
+        if endpoint["id"] in endpoints:
+            raise ValueError("Duplicate native boat endpoint")
+        endpoints[endpoint["id"]] = endpoint
+    for route in document["routes"]:
+        if type(route) is not dict or set(route) != {
+            "id",
+            "source",
+            "destination",
+            "source_criterion",
+            "destination_criterion",
+            "native_clV",
+            "animation",
+        }:
+            raise ValueError("Invalid native boat route")
+        integer(route["id"], 1)
+        for key in ("source", "destination"):
+            integer(route[key], 1)
+            if route[key] not in endpoints:
+                raise ValueError("Native boat route references missing endpoint")
+        if (
+            route["id"] in route_ids
+            or route["source"] == route["destination"]
+            or type(route["native_clV"]) is not bool
+        ):
+            raise ValueError("Duplicate or invalid native boat route")
+        route_ids.add(route["id"])
+        for key in ("source_criterion", "destination_criterion"):
+            if type(route[key]) is not str or "\0" in route[key]:
+                raise ValueError("Invalid native boat criterion")
+        animation = route["animation"]
+        if type(animation) is not dict or set(animation) != {
+            "name",
+            "duration_ms",
+            "fade_in_ms",
+            "fade_out_ms",
+        }:
+            raise ValueError("Invalid native boat animation")
+        if (
+            type(animation["name"]) is not str
+            or not animation["name"]
+            or "\0" in animation["name"]
+        ):
+            raise ValueError("Invalid native boat animation name")
+        for key in ("duration_ms", "fade_in_ms", "fade_out_ms"):
+            integer(animation[key], 0)
+        links.setdefault(frozenset((route["source"], route["destination"])), []).append(
+            route
+        )
+    # Detach authority from the connection's mutable JSON representation.
+    return json.loads(json.dumps(document))
+
+
+@lru_cache(maxsize=1)
+def _indexes():
+    from wakfu_server.storage.native_catalog import _database
+
+    with _database().connection() as db:
+        contracts = load(db)
+    endpoints = {row["id"]: row for row in contracts["endpoints"]}
+    links = {}
+    for row in contracts["routes"]:
+        links.setdefault(frozenset((row["source"], row["destination"])), []).append(row)
+    return endpoints, links
 
 
 def source(character, body):
@@ -25,7 +131,8 @@ def source(character, body):
     if len(body) != 16:
         raise ValueError("Invalid native boat request")
     identity, _ = struct.unpack(">qq", body)
-    row = _ENDPOINTS.get(identity)
+    endpoints, _ = _indexes()
+    row = endpoints.get(identity)
     if row is None or row["map_id"] != character["map_id"]:
         return None
     return json.loads(json.dumps(row))
@@ -43,7 +150,7 @@ def criterion_allowed(expression, character):
     return type(level) is int and level >= int(match[1])
 
 
-def resolve(character, body, *, source_allowed, geometry):
+def resolve(character, body, *, source_allowed, geometry, criterion_evaluator=None):
     """Resolve native csO13686 with mandatory source authority and map geometry.
 
     source_allowed(character, original_endpoint) validates authoritative live
@@ -55,17 +162,19 @@ def resolve(character, body, *, source_allowed, geometry):
     if origin is None or character.get("instance_id", 0) != 0:
         raise ValueError("Unknown native boat in current public map")
     source_id, destination_id = struct.unpack(">qq", body)
-    destination = _ENDPOINTS.get(destination_id)
-    links = _LINKS.get(frozenset((source_id, destination_id)), ())
+    endpoints, all_links = _indexes()
+    destination = endpoints.get(destination_id)
+    links = all_links.get(frozenset((source_id, destination_id)), ())
     if destination is None or source_id == destination_id or not links:
         raise ValueError("No native boat link between these endpoints")
     if not source_allowed(character, origin):
         raise ValueError("Native boat source authority denied")
+    allowed = criterion_allowed if criterion_evaluator is None else criterion_evaluator
     eligible = [
         row
         for row in links
         if all(
-            criterion_allowed(row[key], character)
+            allowed(row[key], character)
             for key in ("source_criterion", "destination_criterion")
         )
     ]
@@ -112,7 +221,8 @@ def admit_source(store, account_id, generation, character, origin, *, blocked=Fa
 
     if blocked:
         raise ValueError("Boat travel is unavailable during an occupation")
-    original = _ENDPOINTS.get(origin.get("id"))
+    endpoints, _ = _indexes()
+    original = endpoints.get(origin.get("id"))
     if original is None or origin != original:
         raise ValueError("Boat source differs from installed native definition")
     for axis in ("x", "y", "z"):

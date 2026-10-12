@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 from postgres_case import PostgresCase
 from wakfu_server.ecology.protocol import proposal
+from wakfu_server.ecology.proposal_identity import identity as proposal_identity
 
 spec = importlib.util.spec_from_file_location(
     "ecology_service_sql",
@@ -13,6 +14,339 @@ spec.loader.exec_module(service)
 
 
 class EcologyServicePostgresTests(PostgresCase):
+    def test_exhausted_semantic_decision_survives_history_pruning_and_cannot_resurrect(
+        self,
+    ):
+        repository = service.Repository(self.store)
+        payload = {
+            "kind": "resource_growth",
+            "expected": {"resource_uid": 991, "stage": 1},
+            "member": {"id": -991},
+        }
+        repository.save([proposal("plants", payload, "boot")], [])
+        durable_id = repository.pending()[0]["id"]
+        for _ in range(5):
+            repository.acknowledge([{"id": durable_id, "status": "retry"}])
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE ecology_service_proposals SET delivered_at=CURRENT_TIMESTAMP-interval '8 days' WHERE id=%s",
+                (durable_id,),
+            )
+            db.execute(
+                "INSERT INTO ecology_service_proposals(id,domain,payload,world_epoch,delivered_at) SELECT 'history-'||i,'weather','{}'::jsonb,'boot',CURRENT_TIMESTAMP FROM generate_series(1,4400) AS i"
+            )
+        repository.acknowledge([])
+        repository.save(
+            [proposal("plants", dict(payload, member={"id": -992}), "boot")], []
+        )
+        with self.store.connection() as db:
+            saved = db.execute(
+                "SELECT attempts,last_error_code FROM ecology_service_proposals WHERE id=%s",
+                (durable_id,),
+            ).fetchone()
+            ordinary = db.execute(
+                "SELECT count(*) AS count FROM ecology_service_proposals WHERE domain='weather'"
+            ).fetchone()["count"]
+        self.assertEqual(saved["attempts"], 5)
+        self.assertEqual(saved["last_error_code"], "retry_exhausted")
+        self.assertLess(ordinary, 4400)
+        self.assertEqual(repository.pending_count(), 0)
+
+    def test_late_stale_ack_cannot_reclassify_successful_semantic_decision(self):
+        repository = service.Repository(self.store)
+        payload = {
+            "kind": "resource_growth",
+            "expected": {"resource_uid": 991, "stage": 1},
+            "member": {"id": -991},
+        }
+        repository.save([proposal("plants", payload, "boot")], [])
+        durable_id = repository.pending()[0]["id"]
+        repository.acknowledge([{"id": durable_id, "status": "applied"}])
+        repository.acknowledge([{"id": durable_id, "status": "stale"}])
+        repository.save([proposal("plants", payload, "boot")], [])
+        with self.store.connection() as db:
+            saved = db.execute(
+                "SELECT attempts,last_error_code FROM ecology_service_proposals WHERE id=%s",
+                (durable_id,),
+            ).fetchone()
+        self.assertEqual(saved["attempts"], 1)
+        self.assertIsNone(saved["last_error_code"])
+        self.assertEqual(repository.pending_count(), 0)
+
+    def test_successful_random_decision_is_not_rearmed_by_fresh_random_output(self):
+        repository = service.Repository(self.store)
+        payload = {
+            "kind": "resource_growth",
+            "expected": {"resource_uid": 99, "stage": 1},
+            "member": {"id": -99, "ref": 10},
+            "draw": 0.1,
+        }
+        repository.save([proposal("plants", payload, "boot")], [])
+        durable_id = repository.pending()[0]["id"]
+        repository.acknowledge([{"id": durable_id, "status": "applied"}])
+        repository.save(
+            [
+                proposal(
+                    "plants",
+                    dict(payload, member={"id": -100, "ref": 11}, draw=0.9),
+                    "boot",
+                )
+            ],
+            [],
+        )
+        self.assertEqual(repository.pending_count(), 0)
+        with self.store.connection() as db:
+            saved = db.execute(
+                "SELECT payload,attempts FROM ecology_service_proposals WHERE id=%s",
+                (durable_id,),
+            ).fetchone()
+        self.assertEqual(saved["payload"]["member"], payload["member"])
+        self.assertEqual(saved["attempts"], 1)
+
+    def test_stale_reproduction_refreshes_roster_without_rerolling_or_resetting_retry_limit(
+        self,
+    ):
+        repository = service.Repository(self.store)
+        payload = {
+            "kind": "reproduction",
+            "world_epoch": "boot",
+            "scope": [527, 0],
+            "ticket": {
+                "map_id": 527,
+                "instance_id": 0,
+                "group_id": 7,
+                "monster_id": -71,
+                "reference": 10,
+                "cycle": 3,
+            },
+            "expected_members": [{"id": -71, "ref": 10}],
+            "draw": 0.2,
+            "group_draw": 0.3,
+            "destination": [1, 2, 0],
+            "child": {"id": -900, "ref": 11, "x": 1, "y": 2, "z": 0},
+        }
+        repository.save([proposal("mobs", payload, "boot")], [])
+        durable_id = repository.pending()[0]["id"]
+        for attempt in range(1, 6):
+            repository.acknowledge([{"id": durable_id, "status": "stale"}])
+            if attempt == 1:
+                repository.save(
+                    [proposal("mobs", dict(payload, draw=0.97), "boot")], []
+                )
+                self.assertEqual(repository.pending_count(), 0)
+            fresh = dict(
+                payload,
+                expected_members=[
+                    {"id": -71, "ref": 10},
+                    {"id": -72 - attempt, "ref": 10},
+                ],
+                draw=0.99,
+                group_draw=0.98,
+                destination=[3, 4, 0],
+                child={"id": -999, "ref": 12, "x": 3, "y": 4, "z": 0},
+            )
+            repository.save([proposal("mobs", fresh, "boot")], [])
+            with self.store.connection() as db:
+                saved = db.execute(
+                    "SELECT id,payload,attempts,delivered_at FROM ecology_service_proposals WHERE id=%s",
+                    (durable_id,),
+                ).fetchone()
+            self.assertEqual(saved["attempts"], attempt)
+            self.assertEqual(saved["payload"]["draw"], 0.2)
+            self.assertEqual(saved["payload"]["group_draw"], 0.3)
+            self.assertEqual(saved["payload"]["child"]["id"], -900)
+            self.assertEqual(saved["payload"]["child"]["ref"], 11)
+            if attempt < 5:
+                self.assertIsNone(saved["delivered_at"])
+                self.assertEqual(
+                    saved["payload"]["expected_members"], fresh["expected_members"]
+                )
+                self.assertEqual(saved["payload"]["destination"], [3, 4, 0])
+            else:
+                self.assertIsNotNone(saved["delivered_at"])
+        self.assertEqual(repository.pending_count(), 0)
+
+    def test_maximum_population_repeated_random_cycles_keep_one_durable_entry_each(
+        self,
+    ):
+        repository = service.Repository(self.store)
+        for tick in range(100):
+            rows = []
+            for identity in range(500):
+                rows.append(
+                    proposal(
+                        "mobs",
+                        {
+                            "kind": "maturation",
+                            "world_epoch": "load",
+                            "scope": [527, 0],
+                            "ticket": {
+                                "map_id": 527,
+                                "instance_id": 0,
+                                "group_id": identity // 5,
+                                "monster_id": -identity - 1,
+                                "reference": 10,
+                                "cycle": 7,
+                                "due_at": 1000,
+                            },
+                            "expected_members": [{"id": -identity - 1, "ref": 10}],
+                            "draw": (tick * 500 + identity) / 50000,
+                            "grown": {"ref": 11 + tick % 2},
+                        },
+                        "load",
+                    )
+                )
+            repository.save(rows, [])
+        self.assertEqual(repository.pending_count(), 500)
+        with self.store.connection() as db:
+            counts = db.execute(
+                "SELECT count(*) AS total, count(DISTINCT payload->'ticket'->>'group_id') AS groups FROM ecology_service_proposals"
+            ).fetchone()
+        self.assertEqual(counts["total"], 500)
+        self.assertEqual(counts["groups"], 100)
+
+    def test_default_five_failures_exhaust_once_and_replanning_cannot_resurrect(self):
+        repository = service.Repository(self.store)
+        self.assertEqual(repository.max_attempts, 5)
+        row = proposal(
+            "mobs",
+            {
+                "kind": "wander",
+                "world_epoch": "boot",
+                "scope": [527, 0],
+                "group_id": 1,
+                "expected_members": [],
+            },
+            "boot",
+        )
+        repository.save([row], [])
+        for attempt in range(5):
+            repository.acknowledge([{"id": row["id"], "status": "retry"}])
+            self.assertEqual(repository.pending_count(), int(attempt < 4))
+        repository.save([row], [])
+        self.assertEqual(repository.pending_count(), 0)
+        with self.store.connection() as db:
+            saved = db.execute(
+                "SELECT attempts,last_error_code FROM ecology_service_proposals WHERE id=%s",
+                (row["id"],),
+            ).fetchone()
+        self.assertEqual(saved["attempts"], 5)
+        self.assertEqual(saved["last_error_code"], "retry_exhausted")
+
+    def test_pending_flora_growth_does_not_consume_reserved_monster_birth_capacity(
+        self,
+    ):
+        repository = service.Repository(self.store)
+        flora = [
+            proposal(
+                "plants",
+                {
+                    "kind": "resource_growth",
+                    "expected": {"resource_uid": uid, "stage": 1},
+                    "resource": {"resource_uid": uid},
+                    "member": None,
+                },
+                "boot",
+            )
+            for uid in range(16)
+        ]
+        repository.save(flora, [])
+        self.assertEqual(repository.growth_pending_count(), 0)
+        birth = proposal(
+            "plants",
+            {
+                "kind": "resource_growth",
+                "expected": {"resource_uid": 99, "stage": 1},
+                "member": {"id": -99},
+            },
+            "boot",
+        )
+        repository.save([birth], [])
+        self.assertEqual(repository.growth_pending_count(), 1)
+        self.assertEqual(repository.pending_count(), 17)
+
+    def test_seed_growth_precedes_ambient_and_deduplicates_random_offspring(self):
+        repository = service.Repository(self.store)
+        ambient = proposal("mobs", {"kind": "ambient_test"}, "boot")
+        growth = proposal(
+            "plants",
+            {
+                "kind": "resource_growth",
+                "expected": {"resource_uid": 7, "stage": 1},
+                "member": {"id": -7, "ref": 2},
+            },
+            "boot",
+        )
+        duplicate = proposal(
+            "plants",
+            {
+                "kind": "resource_growth",
+                "expected": {"resource_uid": 7, "stage": 1},
+                "member": {"id": -8, "ref": 39},
+            },
+            "boot",
+        )
+        repository.save([ambient, growth, duplicate], [])
+        rows = repository.pending()
+        self.assertEqual(
+            [row["id"] for row in rows], [proposal_identity(growth)[2], ambient["id"]]
+        )
+        self.assertEqual(repository.growth_pending_count(), 1)
+        self.assertEqual(rows[0]["payload"]["member"]["ref"], 2)
+
+    def test_reserved_player_proposals_are_read_before_older_background_backlog(self):
+        repository = service.Repository(self.store)
+        background = proposal(
+            "mobs",
+            {
+                "kind": "wander",
+                "scope": [527, 0],
+                "group_id": 1,
+                "expected_members": [],
+            },
+            "boot",
+        )
+        player = proposal("plants", {"kind": "planting_begin", "intent_id": 71}, "boot")
+        rejection = proposal(
+            "plants", {"kind": "planting_rejected", "intent_id": 72}, "boot"
+        )
+        repository.save([background], [])
+        repository.save([player, rejection], [])
+        rows = repository.pending()
+        self.assertEqual(
+            {row["id"] for row in rows[:2]},
+            {proposal_identity(player)[2], proposal_identity(rejection)[2]},
+        )
+        self.assertEqual(rows[2]["id"], background["id"])
+
+    def test_background_deferrals_never_consume_retry_budget_or_drop_work(self):
+        repository = service.Repository(self.store, max_attempts=2)
+        row = proposal(
+            "mobs",
+            {
+                "kind": "wander",
+                "world_epoch": "boot",
+                "scope": [527, 0],
+                "group_id": 1,
+                "expected_members": [],
+            },
+            "boot",
+        )
+        repository.save([row], [])
+        for _ in range(8):
+            repository.acknowledge([{"id": row["id"], "status": "deferred"}])
+        self.assertEqual(repository.pending_count(), 1)
+        with self.store.connection() as db:
+            saved = db.execute(
+                "SELECT attempts,delivered_at,last_error_code,next_attempt_at>CURRENT_TIMESTAMP AS delayed FROM ecology_service_proposals WHERE id=%s",
+                (row["id"],),
+            ).fetchone()
+        self.assertEqual(saved["attempts"], 0)
+        self.assertIsNone(saved["delivered_at"])
+        self.assertTrue(saved["delayed"])
+        repository.acknowledge([{"id": row["id"], "status": "applied"}])
+        self.assertEqual(repository.pending_count(), 0)
+
     def test_retry_exhaustion_persists_without_resurrection_and_final_attempt_can_succeed(
         self,
     ):

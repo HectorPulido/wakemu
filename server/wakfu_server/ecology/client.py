@@ -74,7 +74,8 @@ class EcologyClient:
                 not isinstance(row, dict)
                 or row.get("id") not in expected
                 or row["id"] in seen
-                or row.get("status") not in ("applied", "duplicate", "stale", "retry")
+                or row.get("status")
+                not in ("applied", "duplicate", "stale", "retry", "deferred")
             ):
                 raise ValueError("Invalid ecology acknowledgement")
             seen.add(row["id"])

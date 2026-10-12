@@ -1,9 +1,0 @@
-# Native ordered groups with a null target
-
-The normal-cast bulk audit exposed family 330 spell 5042 failing with `Target class330 requires a target actor`. This was a shared helper mismatch, not evidence that an ordinary actor should be fabricated at the selected cell.
-
-Original `eYg.a(Iterator,eVt)` checks `bbA()` and then `bfs`: when its target branch has a null PV, it logs and returns without executing a child (bytecode offsets 62–94, inspected in `/tmp/carry-eYg.txt`). Original `fPP()` preserves the actors when a requested target rebind lacks `bfs`; it does not throw. Its cell branch can still run using the original caster and selected cells. A non-null target is a `PV`, with position obtained through `PV.bcz/bcA/bcB`; the code has no ordinary-fighter type requirement. The production factory already resolves registered area positions through `area_targets`.
-
-`execute_ordered_group` now preserves these rules: a target branch with null target returns an empty child-call sequence; null-target rebinding preserves the caster; cell branches retain their audited cell enumeration. Non-null target identities continue through existing authority providers. No fake actor, weakened area registration guard, or spell-ID runtime exception was added.
-
-Validation: `PYTHONPATH=server:server/tests python3 -m unittest test_combat_effect_groups test_combat_effect_dispatch.EffectDispatchTests.test_native_null_target_group_dispatches_no_children test_combat_effect_dispatch.EffectDispatchTests.test_native_actor_group_passes_target_coordinates_preserving_selector` — 11 tests passed. This includes actual dispatcher control flow with no child execution, both null rebind modes, existing target order and counts, cell expansion and a nonordinary PV identity at the pure group boundary. The focused real spell-5042 normal transaction rerun remains pending; these tests do not certify an entire class.

@@ -96,6 +96,13 @@ class HeroSwitchDispatchTests(unittest.TestCase):
             "service": "world",
             "fight": None,
             "combat_session": None,
+            "ranch_session": None,
+            "bag_session": None,
+            "chest_opening": None,
+            "active_private_session": lambda: None,
+            "PLANTINGS": types.SimpleNamespace(cancel=lambda *_args: None),
+            "HARVESTS": types.SimpleNamespace(cancel=lambda *_args, **_kwargs: None),
+            "cancel_flora": lambda: None,
             "STORE": Store(),
             "POSITIONS": Positions(),
             "WORLD": World(),
@@ -113,6 +120,10 @@ class HeroSwitchDispatchTests(unittest.TestCase):
                 ("join_world", args, kwargs)
             ),
             "rich_inventory_packet": lambda _character: (13220, b"inventory"),
+            "publish_custom_task_cards": lambda: events.append(("publish_tasks",)),
+            "deliver_custom_task_rewards": lambda: events.append(
+                ("deliver_task_rewards",)
+            ),
         }
         synchronization_module = types.ModuleType("wakfu_server.inventory_move")
         synchronization_module.synchronization = lambda _character: (13221, b"sync")

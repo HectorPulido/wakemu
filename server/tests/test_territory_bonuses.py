@@ -11,6 +11,15 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class TerritoryBonusesTests(unittest.TestCase):
+    def setUp(self):
+        policy = patch.object(
+            territory_bonuses,
+            "control_health_policy",
+            return_value={"1915": 1, "1916": 2, "1917": -1},
+        )
+        policy.start()
+        self.addCleanup(policy.stop)
+
     def test_native_status_edges_and_intermediate_counts(self):
         self.assertIsNone(territory_bonuses.state_id(0, 0))
         self.assertEqual(territory_bonuses.state_id(0, 3), 1917)
@@ -198,7 +207,7 @@ class TerritoryBonusesTests(unittest.TestCase):
             territory_bonuses.stat_bonuses(
                 territory_bonuses.evaluate_population(56601, {}, {})
             ),
-            {36: -10, 33: -10},
+            {36: -10, 33: -10, 1: -1},
         )
         self.assertEqual(
             territory_bonuses.stat_bonuses(
@@ -206,12 +215,23 @@ class TerritoryBonusesTests(unittest.TestCase):
                     56601, {406: 266, 772: 200}, {1: 20}
                 )
             ),
-            {36: 60, 33: 60},
+            {36: 60, 33: 60, 1: 2},
         )
         self.assertEqual(territory_bonuses.stat_bonuses(None), {})
 
     def test_attached_character_recomputes_bonus_and_return_to_baseline(self):
-        character = {"id": 99, "map_id": 327, "instance_id": 2, "x": 0, "y": 0}
+        character = {
+            "id": 99,
+            "map_id": 327,
+            "instance_id": 2,
+            "x": 0,
+            "y": 0,
+            "breed": 8,
+            "level": 6,
+            "hp": 41,
+            "inventory_items": [],
+            "builds": {0: {"equipment": "", "sheet": "18ffffffffffffffffff01"}},
+        }
         partial = {
             "state_id": 1915,
             "effects": territory_bonuses.state_effects(1, 2)["effects"],
@@ -221,7 +241,7 @@ class TerritoryBonusesTests(unittest.TestCase):
         ):
             entered = territory_bonuses.attach_character(object(), character)
             exited = territory_bonuses.attach_character(object(), character)
-        self.assertEqual(entered["territory_stat_bonuses"], {36: 30, 33: 30})
+        self.assertEqual(entered["territory_stat_bonuses"], {36: 30, 33: 30, 1: 1})
         self.assertEqual(exited["territory_stat_bonuses"], {})
         self.assertNotIn("territory_stat_bonuses", character)
 
@@ -257,7 +277,15 @@ class TerritoryBonusesTests(unittest.TestCase):
         from unittest.mock import MagicMock
 
         store = MagicMock()
-        character = {"id": 99, "hp": 420, "active_build_index": 2}
+        character = {
+            "id": 99,
+            "hp": 420,
+            "active_build_index": 2,
+            "breed": 8,
+            "level": 50,
+            "inventory_items": [],
+            "builds": {2: {"equipment": "", "sheet": "18ffffffffffffffffff01"}},
+        }
         regional = {
             "state_id": 1915,
             "effects": territory_bonuses.state_effects(1, 2)["effects"],
@@ -275,7 +303,9 @@ class TerritoryBonusesTests(unittest.TestCase):
             self.assertEqual(
                 territory_bonuses.refresh_world(store, character), [(13046, b"owned")]
             )
-            self.assertEqual(character["territory_stat_bonuses"], {36: 30, 33: 30})
+            self.assertEqual(
+                character["territory_stat_bonuses"], {36: 30, 33: 30, 1: 1}
+            )
             self.assertEqual(serialize.call_args.args[0]["active_build_index"], 2)
             self.assertEqual(serialize.call_args.args[0]["hp"], 420)
             self.assertEqual(territory_bonuses.refresh_world(store, character), [])
@@ -289,7 +319,14 @@ class TerritoryBonusesTests(unittest.TestCase):
     def test_world_refresh_retries_if_serialization_fails(self):
         from unittest.mock import MagicMock
 
-        character = {"id": 99}
+        character = {
+            "id": 99,
+            "breed": 8,
+            "level": 6,
+            "hp": 41,
+            "inventory_items": [],
+            "builds": {0: {"equipment": "", "sheet": "18ffffffffffffffffff01"}},
+        }
         with (
             patch.object(territory_bonuses, "current_region", return_value=None),
             patch.object(
@@ -302,36 +339,21 @@ class TerritoryBonusesTests(unittest.TestCase):
             territory_bonuses.refresh_world(MagicMock(), character)
         self.assertNotIn("_published_territory_stat_bonuses", character)
 
-    def test_world_packet_sends_complete_characteristics_without_fight_or_direction_reset(
-        self,
-    ):
+    def test_world_packet_updates_only_owned_public_characteristics(self):
         import struct
 
-        character = {"id": 99, "direction": 6}
-        position_end = 1 + 8 + struct.calcsize(">iihqBB")
-        blob = bytes(position_end) + struct.pack(">i", 1) + b"tail"
-        complete = struct.pack(">HBiiii", 1, 36, 0, -1000, 1000, 0)
-        with (
-            patch(
-                "wakfu_server.equipment_stats.effective_character",
-                return_value=character,
-            ),
-            patch(
-                "wakfu_server.equipment_stats.combat_resources",
-                return_value={"wp": 6, "ap": 6, "mp": 3, "initiative": 0},
-            ),
-            patch(
-                "wakfu_server.wire.owned_public_characteristics", return_value=complete
-            ),
-            patch("wakfu_server.combat_actor.actor_stats", return_value=blob) as codec,
-        ):
+        character = {"id": 99, "direction": 6, "x": 123, "y": 456}
+        complete = struct.pack(">HBiiii", 1, 36, 30, -1000, 1000, 0)
+        with patch(
+            "wakfu_server.wire.owned_public_characteristics", return_value=complete
+        ) as public:
             opcode, body = territory_bonuses.world_packet(character)
         self.assertEqual(opcode, 13046)
-        self.assertEqual(struct.unpack_from(">qh", body), (99, len(blob)))
-        self.assertEqual(struct.unpack_from(">i", body, 10 + position_end)[0], -1)
-        self.assertEqual(body[-4:], b"tail")
-        self.assertEqual(codec.call_args.kwargs["direction"], 6)
-        self.assertEqual(codec.call_args.kwargs["characteristics_payload"], complete)
+        self.assertEqual(struct.unpack_from(">qh", body), (99, 1 + len(complete)))
+        self.assertEqual(body[10:], b"\x27" + complete)
+        public.assert_called_once_with(character)
+        # No position, direction, fight or experience fields follow this format.
+        self.assertEqual(len(body), 10 + 1 + len(complete))
 
 
 if __name__ == "__main__":

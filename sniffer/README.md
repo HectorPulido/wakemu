@@ -1,16 +1,22 @@
-# Captura y análisis
+# Capture and analysis
 
-Ejecutar desde la raíz del proyecto:
+Run from the repository root:
 
 ```bash
 bash sniffer/build-capture-agent.sh
-bash sniffer/decode-session.sh .runtime/captures/ID_DE_CAPTURA
+bash sniffer/decode-session.sh .runtime/captures/CAPTURE_ID
 python3 sniffer/audit-capture.py --help
 ```
 
-Las capturas permanecen en `.runtime/` porque contienen datos privados y algunas son fixtures necesarias para arrancar el servidor. Los exportadores Java leen el cliente instalado en `client/` y generan catálogos en `server/protocol/`. No realizan peticiones al juego.
+Raw captures stay in `.runtime/` because they contain private session data.
+World loads its imported bootstrap records from PostgreSQL; it does not read
+raw captures at runtime. Java exporters read the supplied client in `client/`
+and write to their configured destinations. Use private `.runtime/` locations
+for generated exports. The exporters do not request data from the official game
+servers.
 
-Los scripts de autenticación y captura del launcher son herramientas históricas: no ejecutarlos como parte del arranque del servidor local.
+The launcher's historical authentication and capture scripts are research tools;
+do not run them as part of normal local-server startup.
 
 ## Reusable sources recovered from local research
 
@@ -28,4 +34,4 @@ java -cp '.runtime/native-export-classes:client/lib/*' ExportSpellCosts \
   client .runtime/native-exports/spell-costs.tsv
 ```
 
-These exports support research and catalog reconstruction; they do not replace the complete database catalog import pipeline. See [runtime portability audit](../docs/reports/runtime-portability-audit.md).
+These exports support research and catalog reconstruction; they do not replace the complete database catalog import pipeline. See [protocol investigation and testing](../docs/protocol/investigation-and-testing.md).

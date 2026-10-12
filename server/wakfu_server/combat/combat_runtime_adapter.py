@@ -1341,11 +1341,13 @@ class NativeServerRuntimeAdapter:
                     if key in null_aliases:
                         return None
                     raise ValueError(f"Missing native eHg state-query actor: {key}")
-                if selected.is_native_fighter is False:
-                    return None  # eII casts non-eHg PVs to null before eME/eMF.
-                if selected.is_native_fighter is not True:
-                    raise ValueError(f"Missing native eHg state-query type: {key}")
-                return selected
+                # eME/eMF select eHg, not the narrower eGj fighter type.
+                # Actual faV areas implement eHg and may own a state ledger.
+                if selected.is_native_ehg is True or selected.is_native_fighter is True:
+                    return selected
+                if selected.is_native_ehg is False:
+                    return None
+                raise ValueError(f"Missing native eHg state-query type: {key}")
             if key in ("triggeringcaster", "triggeringtarget"):
                 if trigger_source is None:
                     return None  # Ready/turn external boundary has no source Qe.
@@ -1370,7 +1372,20 @@ class NativeServerRuntimeAdapter:
                 ) or identity in getattr(preview, "native_retired_area_managers", {}):
                     area = registered_area_pv(preview, identity)
                     if area is not None:
-                        return None  # faV/Qq is not eHg, even with a Qf ledger.
+                        if area.state_ledger is not None:
+                            return area.state_ledger.condition_actor(
+                                is_native_fighter=False, is_native_ehg=True
+                            )
+                        from .combat_conditions import ConditionActor
+
+                        return ConditionActor(
+                            actor_id=identity,
+                            state_ids=frozenset(),
+                            state_levels=(),
+                            state_sources=(),
+                            is_native_fighter=False,
+                            is_native_ehg=True,
+                        )
                 raise ValueError("Unregistered native triggering state-query actor")
             raise ValueError("Unsupported native state-query relationship")
 

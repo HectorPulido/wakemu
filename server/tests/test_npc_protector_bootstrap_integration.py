@@ -22,7 +22,11 @@ def _native_bootstrap():
         for item in tree.body
         if isinstance(item, ast.FunctionDef) and item.name == "bootstrap"
     )
-    namespace = {"struct": struct}
+    namespace = {
+        "struct": struct,
+        "__name__": "wakfu_server.maps.native_transports",
+        "__package__": "wakfu_server.maps",
+    }
     exec(
         compile(
             ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
@@ -52,6 +56,16 @@ def blocks(payload):
 
 class ProtectorBootstrapIntegrationTests(unittest.TestCase):
     def setUp(self):
+        # These tests pin native block framing and transport boundaries. The
+        # tax policy/territory enrichment contract has its own focused suite.
+        self.message_records = patch(
+            "wakfu_server.maps.protector_ecosystem.message_records",
+            side_effect=lambda _map_id, records=(), *, instance_id=0: (
+                records if records is None else tuple(records)
+            ),
+        )
+        self.message_records.start()
+        self.addCleanup(self.message_records.stop)
         self.character = dict(
             id=701, account_id=19, map_id=1385, instance_id=0, x=20, y=17, z=1
         )

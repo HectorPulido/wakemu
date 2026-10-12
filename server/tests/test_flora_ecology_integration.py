@@ -1,6 +1,7 @@
 import struct
 import threading
 import unittest
+from unittest.mock import patch
 from concurrent.futures import ThreadPoolExecutor
 
 from postgres_case import PostgresCase
@@ -22,6 +23,19 @@ from wakfu_server.ecology_feedback import information
 class FloraEcologyIntegrationTests(PostgresCase):
     def setUp(self):
         super().setUp()
+        self.native_wish = dict(family_id=10, minimum=300, maximum=300)
+        self.native_catalog = {
+            "territories": {
+                "79001": dict(
+                    map_id=1134, plant_wishes=[self.native_wish], monster_wishes=[]
+                )
+            }
+        }
+        native = patch(
+            "wakfu_server.ecology_equilibrium.catalog", return_value=self.native_catalog
+        )
+        native.start()
+        self.addCleanup(native.stop)
         self.clock = [1_700_000_000.0]
         self.store.clock = lambda: self.clock[0]
         self.account = self.store.register("flora-ecology", "test-password")["id"]
@@ -345,7 +359,7 @@ class FloraEcologyIntegrationTests(PostgresCase):
         )
         metadata = result["outcome"]["ecology"]
         receipt = metadata["receipt"]
-        self.assertEqual("native", receipt["evidence"]["limit_source"])
+        self.assertEqual("native_chief_wish", receipt["evidence"]["limit_source"])
         self.assertEqual(
             (299, 298, 300),
             tuple(

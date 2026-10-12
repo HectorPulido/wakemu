@@ -456,7 +456,7 @@ class ServerAdapterTests(unittest.TestCase):
         ):
             evaluate_condition('HasState(8200, "triggeringTarget")', missing)
 
-    def test_has_state_treats_registered_area_pv_as_non_ehg(self):
+    def test_has_state_on_null_qf_area_has_no_states(self):
         from wakfu_server.combat_conditions import evaluate_condition
         from wakfu_server.combat_effect_area import NativeEffectAreaHandler
         from wakfu_server.combat_stat_handler import StatExecutionContext
@@ -494,6 +494,66 @@ class ServerAdapterTests(unittest.TestCase):
         self.assertFalse(
             evaluate_condition('HasState(8200, "triggeringTarget")', context)
         )
+
+    def test_has_state_accepts_state_bearing_area_ehg_without_fighter_capability(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from wakfu_server.combat_conditions import evaluate_condition
+        from wakfu_server.combat_state_ledger import StateLedger, RunningState
+
+        ledger = StateLedger(901)
+        # Typed ledger fixture: native faV implements eHg but is not an eGj.
+        ledger._entries = (
+            RunningState(902, 9141, 1, 7, 901, -1, "target", False, (), 0, True, None),
+        )
+        area = SimpleNamespace(
+            id=901,
+            position=(2, 3, 0),
+            native_running_effect_manager=True,
+            native_fight_properties=frozenset(),
+            state_ledger=ledger,
+        )
+        self.preview.native_effect_areas = {
+            901: dict(
+                uid=901,
+                reference=778,
+                owner_id=7,
+                cell=(2, 3, 0),
+                direction=7,
+                native_area_contract="fbc",
+                native_running_effect_manager=True,
+                state_ledger=ledger,
+            )
+        }
+        with patch(
+            "wakfu_server.combat_state_managers.registered_area_pv", return_value=area
+        ):
+            for selector, invocation in (
+                ("caster", EffectInvocation(339526, 1, 901, 7, (2, 3, 0))),
+                (
+                    "triggeringTarget",
+                    EffectInvocation(
+                        339526,
+                        1,
+                        7,
+                        7,
+                        (2, 3, 0),
+                        native_trigger_context={"caster_id": 7, "target_id": 901},
+                    ),
+                ),
+            ):
+                with self.subTest(selector=selector):
+                    context = self.adapter.condition(self.preview, {}, None, invocation)
+                    self.assertTrue(
+                        evaluate_condition(
+                            'HasState(9141, "' + selector + '")', context
+                        )
+                    )
+                    self.assertFalse(
+                        evaluate_condition(
+                            'HasState(9999, "' + selector + '")', context
+                        )
+                    )
 
     def test_trigger_identity_reads_source_not_rebound_listener(self):
         from wakfu_server.combat_conditions import evaluate_condition, UnknownCondition

@@ -80,19 +80,34 @@ class PersistentGroups:
         key = validator.register(map_id, instance_id, group_id, members)
         with self.store.connection() as db:
             row = db.execute(
-                "SELECT members FROM combat_groups WHERE map_id=%s AND instance_id=%s AND group_id=%s",
+                "SELECT members,ecology_admin_removed_ids FROM combat_groups WHERE map_id=%s AND instance_id=%s AND group_id=%s",
                 key,
             ).fetchone()
         if row is None:
             return self.register(*key, members)
 
+        persisted = row["members"]
+        removed = set(row.get("ecology_admin_removed_ids", ()))
+        if removed:
+            from wakfu_server.npc_actor_identity_repair import (
+                actor_aliases,
+                aliased_members,
+            )
+
+            with self.store.connection() as db:
+                members = aliased_members(members, actor_aliases(db, key))
+            # Administrative tombstones authorize omissions, while surviving
+            # seeds and offspring still require their original native receipts.
+            members = [member for member in members if member["id"] not in removed]
+            persisted = [member for member in persisted if member["id"] not in removed]
+
         def identity(member):
             return {k: v for k, v in member.items() if k not in ("x", "y", "z")}
 
-        if [identity(m) for m in row["members"]] != [identity(m) for m in members]:
+        if [identity(m) for m in persisted] != [identity(m) for m in members]:
             from wakfu_server.monster_maturation import reconcile_seed
 
-            return reconcile_seed(self.store, key, members, row["members"])
+            return reconcile_seed(self.store, key, members, persisted)
         return key
 
     def move_members(self, key, expected_members, moved_members):
@@ -219,13 +234,17 @@ class PersistentGroups:
                 "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,revision=revision+1 WHERE status='fighting' AND generation=%s",
                 (generation,),
             )
-            return [
-                dict(
-                    key=(r["map_id"], r["instance_id"], r["group_id"]),
-                    members=self._members(r),
-                )
-                for r in rows
-            ]
+            released = []
+            for prior in rows:
+                key = (prior["map_id"], prior["instance_id"], prior["group_id"])
+                current = db.execute(
+                    "SELECT members,status FROM combat_groups WHERE map_id=%s "
+                    "AND instance_id=%s AND group_id=%s",
+                    key,
+                ).fetchone()
+                if current["status"] == "available":
+                    released.append(dict(key=key, members=self._members(current)))
+            return released
 
     def respawn(self, key):
         with self.lock, self.store.connection() as db:
@@ -235,6 +254,8 @@ class PersistentGroups:
             ).fetchone()
             if row is None:
                 raise ValueError("Only defeated groups can respawn")
+            if row.get("ecology_admin_removed_ids"):
+                raise ValueError("Administratively removed groups cannot respawn")
             db.execute(
                 "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,revision=revision+1,defeated_at=NULL WHERE map_id=%s AND instance_id=%s AND group_id=%s",
                 key,

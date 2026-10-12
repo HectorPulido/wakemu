@@ -11,11 +11,22 @@ from contextlib import nullcontext
 from .paths import DATA_ROOT
 
 CATALOG = protocol_catalog.load(DATA_ROOT / "monster-growth-catalog.json")
+ORIGINAL_STAGES = {
+    candidate["reference"]: (family, tier["rank"])
+    for family in CATALOG["families"]
+    for tier in family["tiers"]
+    for candidate in tier["candidates"]
+}
+from .monster_family_stages import normalize_catalog
+
+CATALOG = normalize_catalog(CATALOG)
+
 GROWABLE = {
     candidate["reference"]
     for family in CATALOG["families"]
-    for tier in family["tiers"][:-1]
+    for tier in family["tiers"]
     for candidate in tier["candidates"]
+    if candidate["boss_classification"] == "regular"
 }
 STAGES = {
     candidate["reference"]: (family, tier["rank"])
@@ -56,38 +67,26 @@ def validate_policy(value):
     return value
 
 
-def choose_next(reference, configuration, *, draw, choose=secrets.choice):
-    """One categorical draw; a boss is never a uniform ordinary alternative.
+def choose_next(reference, configuration, *, draw, choose=secrets.choice, members=None):
+    """One reversible roster-aware draw; omitted rosters represent one member.
 
-    Boss probability is per attempt for the whole next-tier boss set, rather
-    than multiplied by the number of boss references. No skipped level tiers.
+    Special bosses retain their independent rare probability. Historical
+    upward-only semantics survive exclusively in receipt reconciliation.
     """
     if type(draw) not in (int, float) or not 0 <= draw < 1 or not math.isfinite(draw):
         raise ValueError("Invalid monster maturation draw")
-    stage = STAGES.get(reference)
-    if stage is None:
+    if reference not in STAGES:
         return None
-    family, rank = stage
-    if rank + 1 >= len(family["tiers"]):
-        return None
-    candidates = family["tiers"][rank + 1]["candidates"]
-    bosses = [
-        row
-        for row in candidates
-        if row["boss_classification"] in ("boss", "ultimate_boss", "raid_boss")
-    ]
-    ordinary = [row for row in candidates if row not in bosses]
-    boss_probability = configuration["boss_probability"] if bosses else 0
-    ordinary_probability = (
-        configuration["base_probability"] * configuration["stage_decay"] ** rank
-        if ordinary
-        else 0
+    from .monster_group_balance import choose_transition
+
+    return choose_transition(
+        reference,
+        STAGES,
+        configuration,
+        [{"ref": reference}] if members is None else members,
+        draw,
+        choose,
     )
-    if draw < boss_probability:
-        return choose(bosses)
-    if draw < boss_probability + ordinary_probability:
-        return choose(ordinary)
-    return None
 
 
 def observe(
@@ -163,6 +162,10 @@ def attempt(
             "AND group_id=%s FOR UPDATE",
             group_key,
         ).fetchone()
+        from .monster_life_plans import fence
+
+        if not fence(db, ticket, "maturation", configuration=configuration, draw=draw):
+            return None
         old = db.execute(
             "SELECT * FROM monster_maturation_receipts WHERE map_id=%s "
             "AND instance_id=%s AND monster_id=%s AND cycle=%s",
@@ -210,9 +213,19 @@ def attempt(
         ):
             return None
         sample = secrets.randbelow(1 << 53) / (1 << 53) if draw is None else draw
+        if (
+            type(sample) not in (int, float)
+            or not math.isfinite(sample)
+            or not 0 <= sample < 1
+        ):
+            raise ValueError("Invalid monster maturation draw")
         if prepared is None:
             candidate = choose_next(
-                ticket["reference"], configuration, draw=sample, choose=choose
+                ticket["reference"],
+                configuration,
+                draw=sample,
+                choose=choose,
+                members=members,
             )
             grown = None
             if candidate is not None:
@@ -232,6 +245,56 @@ def attempt(
             grown = prepared["grown"]
         to_reference = None
         if grown is not None:
+            source_stage = STAGES.get(ticket["reference"])
+            target_stage = STAGES.get(grown["ref"])
+            from .monster_group_balance import valid_transition
+
+            if not valid_transition(ticket["reference"], grown["ref"], STAGES):
+                raise ValueError("Invalid prepared maturation transition")
+            candidate = next(
+                c
+                for c in target_stage[0]["tiers"][target_stage[1]]["candidates"]
+                if c["reference"] == grown["ref"]
+            )
+            classification = candidate.get("boss_classification")
+            bosses = (
+                source_stage[0]["tiers"][source_stage[1] + 1]["candidates"]
+                if source_stage[1] + 1 < len(source_stage[0]["tiers"])
+                else []
+            )
+            boss_mass = (
+                configuration["boss_probability"]
+                if any(
+                    c.get("boss_classification")
+                    in ("boss", "ultimate_boss", "raid_boss")
+                    for c in bosses
+                )
+                else 0.0
+            )
+            speed = 1.8 if len(members) < 4 else 1.0 if len(members) == 4 else 0.45
+            ordinary_mass = min(
+                1 - boss_mass, configuration["base_probability"] * speed
+            )
+            if classification in ("boss", "ultimate_boss", "raid_boss"):
+                authorized_draw = sample < boss_mass
+            else:
+                authorized_draw = boss_mass <= sample < boss_mass + ordinary_mass
+            if not authorized_draw:
+                raise ValueError("Prepared maturation differs from draw")
+            member = members[index]
+            native = owned_instance(
+                candidate["reference"],
+                candidate["min_level"],
+                member["id"],
+                map_id=member["map_id"],
+                x=member["x"],
+                y=member["y"],
+                z=member["z"],
+                team=member["team"],
+                instance_id=ticket["instance_id"],
+            )
+            if native != grown:
+                raise ValueError("Invalid prepared maturation native snapshot")
             members[index] = grown
             # Validate complete native roster before changing durable state.
             spawn_group(members, group_id=ticket["group_id"])
@@ -251,7 +314,7 @@ def attempt(
                 ticket["reference"],
                 to_reference,
                 sample,
-                Jsonb(configuration),
+                Jsonb(dict(configuration, composition_model=1)),
             ),
         ).fetchone()
         if to_reference is not None:
@@ -280,8 +343,9 @@ def pending(store, map_id, instance_id):
             for row in db.execute(
                 "SELECT t.map_id,t.instance_id,t.monster_id,t.reference,t.cycle,m.group_id "
                 "FROM monster_maturation_timers t JOIN combat_group_members m "
-                "USING(map_id,instance_id,monster_id) "
-                "WHERE t.map_id=%s AND t.instance_id=%s AND t.due ORDER BY t.monster_id",
+                "USING(map_id,instance_id,monster_id) JOIN combat_groups g "
+                "USING(map_id,instance_id,group_id) "
+                "WHERE t.map_id=%s AND t.instance_id=%s AND t.due AND g.status!='defeated' ORDER BY t.monster_id",
                 (map_id, instance_id),
             )
         ]
@@ -374,19 +438,28 @@ def reconcile_seed(store, key, seeds, persisted):
             target = receipt["to_reference"]
             if target is None:
                 continue
-            stage = STAGES.get(expected["ref"])
-            if stage is None or stage[1] + 1 >= len(stage[0]["tiers"]):
+            source_stages = (
+                STAGES
+                if receipt["policy"].get("composition_model") == 1
+                else ORIGINAL_STAGES
+            )
+            stage = source_stages.get(expected["ref"])
+            target_stage = source_stages.get(target)
+            if stage is None or target_stage is None or stage[0] is not target_stage[0]:
+                raise ValueError("Invalid monster maturation receipt transition")
+            if receipt["policy"].get("composition_model") == 1:
+                from .monster_group_balance import valid_transition
+
+                legal = valid_transition(expected["ref"], target, STAGES)
+            else:
+                legal = target_stage[1] == stage[1] + 1
+            if not legal:
                 raise ValueError("Invalid monster maturation receipt transition")
             candidate = next(
-                (
-                    row
-                    for row in stage[0]["tiers"][stage[1] + 1]["candidates"]
-                    if row["reference"] == target
-                ),
-                None,
+                row
+                for row in target_stage[0]["tiers"][target_stage[1]]["candidates"]
+                if row["reference"] == target
             )
-            if candidate is None:
-                raise ValueError("Invalid monster maturation receipt transition")
             expected = owned_instance(
                 target,
                 candidate["min_level"],

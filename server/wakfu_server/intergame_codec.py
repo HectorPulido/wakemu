@@ -1,18 +1,77 @@
 """Bounded protobuf/Spin codec derived from the installed intergame descriptors."""
-import json
 import struct
-from pathlib import Path
+from collections.abc import Mapping
+from functools import lru_cache
 
 
-SCHEMA = json.loads(
-    (
-        Path(__file__).resolve().parents[1]
-        / "protocol/native_intergame_descriptors.json"
-    ).read_text()
-)
-MESSAGES = SCHEMA["messages"]
-IDS = {row["message"]: row["id"] for row in SCHEMA["identifiers"]}
-NAMES = {value: key for key, value in IDS.items()}
+@lru_cache(maxsize=1)
+def _schema():
+    from wakfu_server.native_catalog import _database
+
+    with _database().connection() as db:
+        row = db.execute(
+            "SELECT value FROM settings WHERE name='native_intergame_descriptors'"
+        ).fetchone()
+    if row is None or type(row["value"]) is not dict:
+        raise ValueError("Missing PostgreSQL intergame descriptors")
+    document = row["value"]
+    messages = document.get("messages")
+    identifiers = document.get("identifiers")
+    if type(messages) is not dict or not messages or type(identifiers) is not list:
+        raise ValueError("Invalid PostgreSQL intergame descriptors")
+    ids = {}
+    for entry in identifiers:
+        if (
+            type(entry) is not dict
+            or type(entry.get("message")) is not str
+            or entry["message"] not in messages
+            or type(entry.get("id")) is not int
+            or not -(1 << 31) <= entry["id"] < (1 << 31)
+            or entry["message"] in ids
+            or entry["id"] in ids.values()
+        ):
+            raise ValueError("Invalid native intergame identifier")
+        ids[entry["message"]] = entry["id"]
+    for fields in messages.values():
+        if type(fields) is not list:
+            raise ValueError("Invalid native intergame fields")
+        numbers = set()
+        names = set()
+        for field in fields:
+            if (
+                type(field) is not dict
+                or type(field.get("number")) is not int
+                or not 1 <= field["number"] < (1 << 29)
+                or type(field.get("name")) is not str
+                or field["number"] in numbers
+                or field["name"] in names
+            ):
+                raise ValueError("Invalid native intergame field")
+            numbers.add(field["number"])
+            names.add(field["name"])
+    return document, messages, ids, {value: key for key, value in ids.items()}
+
+
+class _DatabaseMapping(Mapping):
+    """Load immutable process-pinned schema on first use, after migrations."""
+
+    def __init__(self, index):
+        self.index = index
+
+    def __getitem__(self, key):
+        return _schema()[self.index][key]
+
+    def __iter__(self):
+        return iter(_schema()[self.index])
+
+    def __len__(self):
+        return len(_schema()[self.index])
+
+
+SCHEMA = _DatabaseMapping(0)
+MESSAGES = _DatabaseMapping(1)
+IDS = _DatabaseMapping(2)
+NAMES = _DatabaseMapping(3)
 MAX_FRAME = 1048576
 
 

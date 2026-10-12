@@ -23,8 +23,8 @@ def portal_target(
     if len(body) != 12:
         raise ValueError("Invalid native ranch interaction length")
     source_id, action, parameter = struct.unpack(">qHH", body)
-    if bag is None or not bag.owns(character) or not bag.is_owner:
-        raise ValueError("Ranch choices require the owned live haven bag")
+    if bag is None or not bag.owns(character):
+        raise ValueError("Ranch choices require the live haven bag")
     validate_lease()
     sources = [
         row
@@ -44,6 +44,11 @@ def portal_target(
         or abs(character["x"] - source["x"]) + abs(character["y"] - source["y"]) > 1
     ):
         raise ValueError("Ranch entrance is out of reach")
+    if not bag.is_owner:
+        # Native cXN visitors use ACTIVATE(0), distinct from an owner's biome2.
+        if action != 0:
+            raise ValueError("Visitors may only enter the host ranch")
+        return destination(35, installed)
     target = destination(action, installed)
     validate_entitlement()
     return target
@@ -53,7 +58,12 @@ def biome_target(
     character, session, body, *, validate_lease, validate_entitlement, installed=None
 ):
     """Native12380 may switch only an already authorized owned ranch scene."""
-    if len(body) != 4 or session is None or not session.owns(character):
+    if (
+        len(body) != 4
+        or session is None
+        or not session.owns(character)
+        or not session.parent.is_owner
+    ):
         raise ValueError("Ranch biome change requires an active owned ranch")
     validate_lease()
     (biome,) = struct.unpack(">i", body)

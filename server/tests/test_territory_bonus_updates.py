@@ -55,6 +55,13 @@ class World:
 
 class RegionalBonusUpdatesTests(unittest.TestCase):
     def setUp(self):
+        policy = patch.object(
+            updates.territory_bonuses,
+            "control_health_policy",
+            return_value={"1915": 1, "1916": 2, "1917": -1},
+        )
+        policy.start()
+        self.addCleanup(policy.stop)
         self.peer = object()
         self.character = dict(
             id=10,

@@ -15,7 +15,9 @@ def change(db, character_id, resource, *, operation, action):
         return {"packets": [], "reason": "fish_not_ecological"}
     if is_mineral(resource["resource_reference"]):
         return {"packets": [], "reason": "mineral_not_ecological"}
-    if resource["map_id"] == 9:
+    if resource["map_id"] == 9 or (
+        resource["map_id"] == 1440 and resource["instance_id"] > 0
+    ):
         # Private gardens never modify exterior ecology or personal affinity.
         return {"packets": [], "reason": "private_haven_bag_garden"}
     definition = RESOURCES[resource["resource_reference"]]
@@ -52,7 +54,16 @@ def change(db, character_id, resource, *, operation, action):
             ],
             "reason": "native_region_unavailable",
         }
-    population = snapshot(db, map_id, instance_id, kinds=("plant",), locate=surface)
+    if type(region_id) is int and region_id == -1:
+        return {"packets": [], "reason": "native_unassigned_terrain"}
+    population = snapshot(
+        db,
+        map_id,
+        instance_id,
+        kinds=("plant",),
+        locate=surface,
+        exclude_unassigned=True,
+    )
     if not population["complete"] or not region_id:
         return {
             "packets": [

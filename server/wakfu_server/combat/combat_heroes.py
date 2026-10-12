@@ -77,7 +77,9 @@ def player_actor(character, team):
     return actor
 
 
-def admit_owned_heroes(db, store, session, fight, *, frozen_members=None):
+def admit_owned_heroes(
+    db, store, session, fight, *, frozen_members=None, private_scene=None
+):
     """Return an unpublished candidate; caller publishes only after DB commit.
 
     Main membership must already exist in this transaction. Savepoint rollback
@@ -124,6 +126,24 @@ def admit_owned_heroes(db, store, session, fight, *, frozen_members=None):
         ):
             raise ValueError("Hero admission requires the actual owning main actor")
         roster = load_roster(db, store, session.account_id, session.character_id)
+        durable_leader = roster["leader"]
+        if private_scene is not None:
+            from wakfu_server.haven_ranch import RanchSession
+
+            if not isinstance(private_scene, RanchSession):
+                raise ValueError("Combat admission requires a trusted Ranch session")
+            private_scene.validate_lease(session.generation)
+            live = private_scene.inside
+            if (
+                live["id"] != session.character_id
+                or live["account_id"] != session.account_id
+                or (live["map_id"], live["instance_id"])
+                != (session.map_id, session.instance_id)
+            ):
+                raise ValueError(
+                    "Ranch combat admission differs from its selected main"
+                )
+            roster["leader"] = private_scene.refresh(live, durable_leader)
         if (roster["leader"]["map_id"], roster["leader"].get("instance_id", 0)) != (
             session.map_id,
             session.instance_id,
@@ -158,7 +178,7 @@ def admit_owned_heroes(db, store, session, fight, *, frozen_members=None):
             if baseline[0] <= 0 or baseline[3] or identity in candidate.actors:
                 raise ValueError("Hero is dead or already admitted")
             if any(
-                character[k] != roster["leader"][k] for k in ("map_id", "instance_id")
+                character[k] != durable_leader[k] for k in ("map_id", "instance_id")
             ):
                 raise ValueError("Hero is outside the main world instance")
             if db.execute(
@@ -169,6 +189,14 @@ def admit_owned_heroes(db, store, session, fight, *, frozen_members=None):
                 (identity,),
             ).fetchone():
                 raise ValueError("Hero already has durable combat membership")
+            if private_scene is not None:
+                character = {
+                    **character,
+                    **{
+                        key: roster["leader"][key]
+                        for key in ("map_id", "instance_id", "x", "y", "z")
+                    },
+                }
             character = territory_bonuses.attach_character(db, character)
             actor = player_actor(character, team)
             register_joined_fighter(candidate, actor, position)

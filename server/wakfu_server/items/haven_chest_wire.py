@@ -4,6 +4,12 @@ No official account identity or inventory contents are reused.
 """
 import struct
 
+# Original ciB..ciI/ciK mutate account compartment/PvP inventory state.
+# Capture templates must never publish another account's compartments or resets.
+CAPTURE_STATE_OPCODES = frozenset(
+    {318, 12224, 13223, 13301, 13364, 13430, 13716, 13929, 23627}
+)
+
 
 class _Reader:
     def __init__(self, body):
@@ -49,9 +55,11 @@ def decode_deposit(body):
             raise ValueError("Invalid deposit item count")
         for _ in range(rows):
             uid, slot, quantity = reader.number("qhh")
-            if uid <= 0 or uid in used or slot < -1 or quantity <= 0:
+            # Native quick transfer splits one UID across explicit target slots.
+            target = (compartment, slot, uid if slot == -1 else None)
+            if uid <= 0 or target in used or slot < -1 or quantity <= 0:
                 raise ValueError("Invalid or duplicate chest deposit")
-            used.add(uid)
+            used.add(target)
             result.append(
                 dict(compartment=compartment, uid=uid, slot=slot, quantity=quantity)
             )
@@ -148,7 +156,10 @@ def bootstrap(chest):
 
 
 def contents(chest):
-    """13929/cxn supplies the complete occupied positions in one compartment."""
+    """13929/cxn adds item quantities; never send this after a full318 snapshot.
+
+    This is a delta codec. Use action_result() to acknowledge snapshot responses.
+    """
     identity = chest["id"].encode("ascii")
     blob = item_list(chest["items"])
     return (
@@ -160,11 +171,25 @@ def contents(chest):
     )
 
 
+def action_result(*, rejected=False):
+    """13301/cxu: acknowledge pending action, optionally show GENERIC_ERROR."""
+    if type(rejected) is not bool:
+        raise ValueError("Invalid chest action result")
+    return 13301, bytes([2 if rejected else 0])
+
+
 def open_packet(character_id):
     """12088/cyN: captured chest occupation type31, empty extension data."""
     if type(character_id) is not int or character_id <= 0:
         raise ValueError("Invalid chest actor")
     return 12088, struct.pack(">BhqI", 1, 31, character_id, 0)
+
+
+def close_packet(character_id):
+    """End the old actor's chest occupation without clearing account custody."""
+    if type(character_id) is not int or character_id <= 0:
+        raise ValueError("Invalid chest actor")
+    return 12088, struct.pack(">BhqI", 2, 31, character_id, 0)
 
 
 def scene_packet(identity):

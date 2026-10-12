@@ -9,7 +9,7 @@ import struct
 from .haven_bag_furniture_catalog import resolve_item
 
 
-def _record(owner_id, item):
+def _record(owner_id, item, *, ranch=False):
     definition = resolve_item(item["item_ref"])
     if definition is None or definition["template_id"] != item["template_id"]:
         raise ValueError("Unknown native furniture mapping")
@@ -27,8 +27,8 @@ def _record(owner_id, item):
         or type(item["item_uid"]) is not int
         or item["item_uid"] <= 0
         or not 0 <= item["direction"] <= 7
-        or not 0 <= item["x"] < 18
-        or not 0 <= item["y"] < 18
+        or not (-131071 <= item["x"] <= 131072 if ranch else 0 <= item["x"] < 18)
+        or not (-131071 <= item["y"] <= 131072 if ranch else 0 <= item["y"] < 18)
         or not -511 <= item["z"] <= 512
     ):
         raise ValueError("Invalid native furniture scene identity or position")
@@ -72,3 +72,10 @@ def remove(item):
     if type(identity) is not int or identity <= 0:
         raise ValueError("Invalid furniture instance identity")
     return 13082, struct.pack(">hq", 1, identity)
+
+
+def ranch_upsert(owner_character_id, item):
+    """Render a separately authorized Ranch fBM; never broaden bag geometry."""
+    if not item.get("deployed") or not item.get("virtual"):
+        raise ValueError("Ranch scene requires an installed learned decoration")
+    return 13664, struct.pack(">h", 1) + _record(owner_character_id, item, ranch=True)

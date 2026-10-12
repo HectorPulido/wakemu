@@ -251,12 +251,29 @@ class MonsterMaturationTests(PostgresCase):
             now_ms=900000,
         )
         ticket = next(row for row in due if row["monster_id"] == monster_id)
+        configuration = monster_maturation.policy(self.store)
+        draw = next(
+            sample / 10000
+            for sample in range(10000)
+            if (
+                lambda candidate: candidate is not None
+                and candidate["reference"] == 2598
+            )(
+                monster_maturation.choose_next(
+                    2616,
+                    configuration,
+                    draw=sample / 10000,
+                    members=[{"ref": 2616}],
+                    choose=lambda candidates: candidates[-1],
+                )
+            )
+        )
         grown = monster_maturation.attempt(
             self.store,
             ticket,
             present=True,
-            draw=0.5,
-            choose=lambda candidates: candidates[0],
+            draw=draw,
+            choose=lambda candidates: candidates[-1],
         )
         self.assertEqual((2616, 2598), (grown["from_reference"], grown["to_reference"]))
         timer_row = timer()
@@ -339,11 +356,28 @@ class MonsterMaturationTests(PostgresCase):
             now_ms=10600000,
         )
         ticket = next(row for row in due if row["monster_id"] == monster_id)
+        configuration = monster_maturation.policy(reopened)
+        draw = next(
+            sample / 10000
+            for sample in range(10000)
+            if (
+                lambda candidate: candidate is not None
+                and candidate["reference"] == 1816
+            )(
+                monster_maturation.choose_next(
+                    2598,
+                    configuration,
+                    draw=sample / 10000,
+                    members=[{"ref": 2598}],
+                    choose=lambda candidates: candidates[0],
+                )
+            )
+        )
         grown = monster_maturation.attempt(
             reopened,
             ticket,
             present=True,
-            draw=0.5,
+            draw=draw,
             choose=lambda candidates: candidates[0],
         )
         self.assertEqual((2598, 1816), (grown["from_reference"], grown["to_reference"]))
@@ -690,7 +724,38 @@ class MonsterMaturationTests(PostgresCase):
         self.assertIsNone(self._timer(-87003))
         self.assertIsNone(self._timer(-87004))
 
-    def test_next_tier_uses_single_boss_draw_then_ordinary_weight(self):
+    def test_fertile_maturation_pool_excludes_tutorial_and_allows_legacy_exit(self):
+        configuration = {
+            "interval_ms": 60000,
+            "base_probability": 1.0,
+            "stage_decay": 1.0,
+            "boss_probability": 0.0,
+        }
+        for source, expected in ((5455, 5456), (5456, 5455)):
+            with self.subTest(source=source):
+                transition = monster_maturation.choose_next(
+                    source,
+                    configuration,
+                    draw=0.5,
+                    members=[{"ref": source}],
+                    choose=lambda rows: rows[-1] if source == 5455 else rows[0],
+                )
+                self.assertIsNotNone(transition)
+                self.assertEqual(expected, transition["reference"])
+                self.assertNotEqual(5525, transition["reference"])
+
+        # Existing tutorial reference5525 remains migratable into the native
+        # fertile pool, while fertile forms never regress into the tutorial.
+        legacy_exit = monster_maturation.choose_next(
+            5525,
+            configuration,
+            draw=0.5,
+            members=[{"ref": 5525}],
+            choose=lambda rows: rows[0],
+        )
+        self.assertIn(legacy_exit["reference"], {5455, 5456})
+
+    def test_special_arch_is_excluded_and_boss_draw_stays_rare(self):
         configuration = {
             "interval_ms": 60000,
             "base_probability": 0.25,
@@ -701,31 +766,49 @@ class MonsterMaturationTests(PostgresCase):
 
         def choose(candidates):
             chosen_sets.append([row["reference"] for row in candidates])
-            return candidates[0]["reference"]
+            return candidates[0]
 
         # Family 68 at rank four has one boss (44) and one arch (4086).
         self.assertEqual(
             44,
             monster_maturation.choose_next(
-                4085, configuration, draw=0.000009, choose=choose
-            ),
+                4085,
+                configuration,
+                draw=0.000009,
+                members=[{"ref": 4085}],
+                choose=choose,
+            )["reference"],
         )
         self.assertEqual([44], chosen_sets[-1])
-        self.assertEqual(
-            4086,
-            monster_maturation.choose_next(
-                4085, configuration, draw=0.00001, choose=choose
-            ),
+        # The next catalog entry is an archmonster special form. It is not
+        # an ordinary growth outcome and must not absorb probability mass.
+        chosen_sets.clear()
+        result = monster_maturation.choose_next(
+            4085, configuration, draw=0.00001, members=[{"ref": 4085}], choose=choose
         )
-        self.assertEqual([4086], chosen_sets[-1])
+        self.assertIsNotNone(result)
+        self.assertNotEqual(4086, result["reference"])
+        legacy_api_result = monster_maturation.choose_next(
+            4085, configuration, draw=0.00001, choose=choose
+        )
+        self.assertNotEqual(4086, legacy_api_result["reference"])
+        self.assertLessEqual(
+            abs(
+                monster_maturation.STAGES[result["reference"]][1]
+                - monster_maturation.STAGES[4085][1]
+            ),
+            1,
+        )
         self.assertIsNone(
             monster_maturation.choose_next(
-                4085, configuration, draw=0.015635, choose=choose
+                4085, configuration, draw=0.99, members=[{"ref": 4085}], choose=choose
             )
         )
         # The final tier does not start an additional clock/transition.
         self.assertIsNone(
-            monster_maturation.choose_next(44, configuration, draw=0.0, choose=choose)
+            monster_maturation.choose_next(
+                44, configuration, draw=0.0, members=[{"ref": 44}], choose=choose
+            )
         )
         with self.store.connection() as db:
             db.execute(

@@ -90,7 +90,7 @@ def main():
         "--selection", default="docs/reports/item-pricing-20261011/prices.csv"
     )
     parser.add_argument("--archive", default="client/contents/gui_jar/gui.jar")
-    parser.add_argument("--output", default=".runtime/local/shop-assets")
+    parser.add_argument("--output", default=".database/shop-assets")
     parser.add_argument("--format", choices=("jpeg", "png"), default="jpeg")
     args = parser.parse_args()
     result = export_icons(

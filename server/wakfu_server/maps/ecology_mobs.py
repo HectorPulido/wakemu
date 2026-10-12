@@ -8,6 +8,17 @@ from copy import deepcopy
 from functools import lru_cache
 import random
 import secrets
+import json
+import struct
+import time
+from .monster_habitat_cells import habitat_destination_allowed
+
+
+MAX_WANDER_BATCH_GROUPS = 8
+MAX_WANDER_BATCH_MOVED_MEMBERS = 40
+MAX_WANDER_BATCH_PACKET_BYTES = 64 * 1024
+MAX_WANDER_BATCH_JSON_BYTES = 224 * 1024
+MAX_WANDER_BATCH_SECONDS = 0.025
 
 
 @lru_cache(maxsize=16)
@@ -51,9 +62,37 @@ def _path_cells(packets):
     return cells
 
 
+def _path_cells_by_actor(packets):
+    """Decode every native step while retaining the actor that traverses it."""
+    import struct
+    from protocol_codec import DIRECTIONS
+
+    result = {}
+    for opcode, encoded in packets:
+        if opcode != 13852:
+            raise ValueError("Invalid ecology movement opcode")
+        payload = bytes.fromhex(encoded)
+        if len(payload) < 19:
+            raise ValueError("Invalid ecology movement header")
+        actor_id, x, y, z, count = struct.unpack(">qiihB", payload[:19])
+        if len(payload) != 19 + count:
+            raise ValueError("Invalid ecology movement length")
+        cells = []
+        for delta in payload[19:]:
+            _, dx, dy = DIRECTIONS[delta >> 5]
+            dz = delta & 31
+            if dz >= 16:
+                dz -= 32
+            x, y, z = x + dx, y + dy, z + dz
+            cells.append((x, y, z))
+        result[actor_id] = cells
+    return result
+
+
 def prepare(store, snapshot, limit=16):
     """Run geometry, native construction and policy decisions outside world."""
     from . import monster_maturation as maturation
+    from . import monster_life_plans as life_plans
     from . import monster_reproduction as reproduction
     from . import monster_wander as wander
     from .monsters import owned_instance
@@ -68,7 +107,27 @@ def prepare(store, snapshot, limit=16):
     excluded = set(snapshot["excluded_ids"])
     locations = {tuple(scope) for scope in snapshot["locations"]}
     locations &= {(p["map_id"], p.get("instance_id", 0)) for p in players}
-    proposals = []
+    allow_wander = bool(snapshot.get("allow_wander", True))
+    scopes = sorted(locations)
+    domain_tick = snapshot.get("domain_planning_tick", 0)
+    if type(domain_tick) is not int or domain_tick < 0:
+        domain_tick = 0
+    if scopes:
+        scope_start = domain_tick % len(scopes)
+        scopes = scopes[scope_start:] + scopes[:scope_start]
+    from .monster_population_cleanup import prepare as prepare_cleanup
+
+    # The worker advances wander cadence after a successful planning pass. Reserve
+    # one scope-batch slot so publications or lifecycle tickets cannot fill the
+    # whole budget before movement gets examined.
+    wander_slots = min(1, len(scopes)) if allow_wander else 0
+    background_limit = limit - wander_slots
+    proposals = (
+        prepare_cleanup(store, snapshot, limit=background_limit)
+        if background_limit
+        else []
+    )
+    noops = []
     policies = dict(
         maturation=maturation.policy(store),
         reproduction=reproduction.policy(store),
@@ -84,7 +143,7 @@ def prepare(store, snapshot, limit=16):
                 generation=epoch,
                 now_ms=snapshot["now_ms"]
             )
-    for scope in sorted(locations):
+    for scope in scopes:
         if reproduction.dungeon_population(store, scope[1]):
             continue
         scoped = _scoped_players(players, scope)
@@ -104,15 +163,21 @@ def prepare(store, snapshot, limit=16):
                 )
             }
         by_id = {g["group_id"]: g for g in groups}
-        for domain_name, domain in (
-            ("maturation", maturation),
-            ("reproduction", reproduction),
-        ):
+        living_groups = [g for g in groups if g["status"] != "defeated"]
+        zone_members = sum(len(g["members"]) for g in living_groups)
+        ordered_domains = [("maturation", maturation), ("reproduction", reproduction)]
+        category_offset = domain_tick % len(ordered_domains)
+        ordered_domains = (
+            ordered_domains[category_offset:] + ordered_domains[:category_offset]
+        )
+        for domain_name, domain in ordered_domains if background_limit else ():
+            if _proposal_slots(proposals) >= background_limit:
+                break
             for group_id in dict.fromkeys(
                 e["group_id"] for e in domain.unpublished(store, *scope)
             ):
-                if len(proposals) >= limit:
-                    return proposals
+                if _proposal_slots(proposals) >= background_limit:
+                    break
                 group = by_id.get(group_id)
                 if group is not None and group["status"] == "available":
                     proposals.append(
@@ -125,10 +190,9 @@ def prepare(store, snapshot, limit=16):
                         )
                     )
         indexed = None
-        for kind, domain in (
-            ("maturation", maturation),
-            ("reproduction", reproduction),
-        ):
+        for kind, domain in ordered_domains if background_limit else ():
+            if _proposal_slots(proposals) >= background_limit:
+                break
             domain.observe(
                 store,
                 *scope,
@@ -138,9 +202,12 @@ def prepare(store, snapshot, limit=16):
                 excluded_ids=excluded,
                 configuration=policies[kind]
             )
-            for ticket in domain.pending(store, *scope):
-                if len(proposals) >= limit:
-                    return proposals
+            tickets = life_plans.attach(
+                store, scope, kind, domain.pending(store, *scope), policies[kind]
+            )
+            for ticket in tickets:
+                if _proposal_slots(proposals) >= background_limit:
+                    break
                 group = by_id.get(ticket["group_id"])
                 if (
                     group is None
@@ -149,6 +216,16 @@ def prepare(store, snapshot, limit=16):
                 ):
                     continue
                 members = list(group["members"])
+                if kind == "reproduction" and (
+                    zone_members >= policies[kind]["max_zone_members"]
+                    or (
+                        len(living_groups) >= policies[kind]["max_zone_groups"]
+                        and len(members) >= policies[kind]["max_members"]
+                    )
+                ):
+                    # Keep the due timer intact, but do not enqueue work that the
+                    # authoritative apply path must reject at these live counts.
+                    continue
                 parent = next(
                     (m for m in members if m["id"] == ticket["monster_id"]), None
                 )
@@ -159,13 +236,31 @@ def prepare(store, snapshot, limit=16):
                     world_epoch=epoch,
                     scope=list(scope),
                     ticket=ticket,
-                    configuration=policies[kind],
+                    configuration=ticket["plan_policy"],
                     expected_members=deepcopy(members),
-                    draw=_sample(),
+                    draw=ticket["decision"]["draw"],
                 )
+                if kind == "reproduction" and proposal[
+                    "draw"
+                ] >= reproduction.birth_probability(
+                    parent["ref"], proposal["configuration"], group_size=len(members)
+                ):
+                    proposal.update(
+                        child=None,
+                        group_draw=ticket["decision"]["group_draw"],
+                        noop=True,
+                    )
+                    noops.append(proposal)
+                    continue
                 if kind == "maturation":
                     candidate = maturation.choose_next(
-                        parent["ref"], policies[kind], draw=proposal["draw"]
+                        parent["ref"],
+                        proposal["configuration"],
+                        draw=proposal["draw"],
+                        choose=lambda candidates: life_plans.choose(
+                            candidates, ticket["decision"]
+                        ),
+                        members=members,
                     )
                     grown = (
                         None
@@ -181,6 +276,10 @@ def prepare(store, snapshot, limit=16):
                         )
                     )
                     proposal["grown"] = grown
+                    if grown is None:
+                        proposal["noop"] = True
+                        noops.append(proposal)
+                        continue
                     if grown is not None:
                         replaced = [
                             grown if m["id"] == grown["id"] else m for m in members
@@ -200,18 +299,36 @@ def prepare(store, snapshot, limit=16):
                         p
                         for p in indexed[1].get(wander.point(parent), ())
                         if p[:2] not in blocked
+                        and habitat_destination_allowed(
+                            scope[0],
+                            scope[1],
+                            p,
+                            parent=parent,
+                            family_id=maturation.STAGES[parent["ref"]][0]["family_id"],
+                        )
                     ]
                     if not candidates:
                         continue
-                    destination = secrets.choice(candidates)
+                    destination = life_plans.choose_destination(
+                        candidates, ticket["decision"]
+                    )
                     proposal.update(
-                        destination=list(destination), group_draw=_sample(), child=None
+                        destination=list(destination),
+                        group_draw=ticket["decision"]["group_draw"],
+                        child=None,
                     )
                     if proposal["draw"] < reproduction.birth_probability(
-                        parent["ref"], policies[kind]
+                        parent["ref"],
+                        proposal["configuration"],
+                        group_size=len(members),
                     ):
                         stage = maturation.STAGES[parent["ref"]]
-                        candidate = secrets.choice(stage[0]["tiers"][0]["candidates"])
+                        from .monster_family_stages import initial_candidates
+
+                        birth_pool = initial_candidates(stage[0]["family_id"])
+                        if not birth_pool:
+                            continue
+                        candidate = life_plans.choose(birth_pool, ticket["decision"])
                         with store.connection() as db:
                             _, identity = reproduction.allocate_identity(db)
                         child = owned_instance(
@@ -231,28 +348,45 @@ def prepare(store, snapshot, limit=16):
         if indexed is None:
             indexed = _edges(scope[0])
         configuration = policies["wander"]
-        for group in groups if snapshot.get("allow_wander", True) else ():
-            if len(proposals) >= limit:
-                return proposals
+        if not allow_wander or _proposal_slots(proposals) >= limit:
+            continue
+        wander_groups = wander.visible_groups(
+            groups,
+            scoped,
+            radius=configuration["radius"],
+            tick=domain_tick,
+            batch_size=MAX_WANDER_BATCH_GROUPS,
+        )
+        moves = []
+        # Build the live occupancy once per scope. Rewalking every member in
+        # every other group for each candidate costs O(population * moved).
+        scope_occupied = {
+            wander.point(member) for group in groups for member in group["members"]
+        }
+        moved_member_count = 0
+        packet_bytes = 0
+        plan_deadline = time.monotonic() + MAX_WANDER_BATCH_SECONDS
+        for group in wander_groups:
+            if time.monotonic() >= plan_deadline:
+                break
             members = list(group["members"])
-            if group["status"] != "available" or any(
-                m["id"] in excluded for m in members
+            if (
+                group["status"] != "available"
+                or not members
+                or any(m["id"] in excluded for m in members)
             ):
                 continue
             candidate = deepcopy(members)
             packets = []
+            blocked = set(scope_occupied)
+            blocked.update(wander.point(member) for member in candidate)
             for i, member in enumerate(candidate):
+                if time.monotonic() >= plan_deadline:
+                    break
+                if moved_member_count + len(packets) >= MAX_WANDER_BATCH_MOVED_MEMBERS:
+                    break
                 if random.random() >= configuration["move_probability"]:
                     continue
-                blocked = {
-                    wander.point(m)
-                    for g in groups
-                    for m in g["members"]
-                    if m["id"] != member["id"]
-                }
-                blocked |= {
-                    wander.point(m) for m in candidate if m["id"] != member["id"]
-                }
                 result = wander.plan_path(
                     [member],
                     scoped,
@@ -262,26 +396,295 @@ def prepare(store, snapshot, limit=16):
                     min_steps=configuration["min_steps"],
                     max_steps=configuration["max_steps"],
                     indexed=indexed,
+                    destination_allowed=lambda cell: habitat_destination_allowed(
+                        scope[0], scope[1], cell
+                    ),
                 )
                 if result is not None:
                     candidate[i] = result["members"][0]
+                    blocked.add(wander.point(candidate[i]))
                     packets.extend(result["packets"])
+                    if (
+                        sum(len(payload) + 6 for _, payload in packets)
+                        > MAX_WANDER_BATCH_PACKET_BYTES - packet_bytes
+                    ):
+                        packets.pop()
+                        candidate[i] = members[i]
+                        break
             if packets:
-                proposals.append(
-                    dict(
-                        kind="wander",
-                        world_epoch=epoch,
-                        scope=list(scope),
-                        group_id=group["group_id"],
-                        expected_members=members,
-                        moved_members=candidate,
-                        packets=[
-                            [opcode, payload.hex()] for opcode, payload in packets
-                        ],
-                        configuration=configuration,
-                    )
+                count = sum(
+                    wander.point(before) != wander.point(after)
+                    for before, after in zip(members, candidate)
                 )
-    return proposals
+                group_packet_bytes = sum(len(payload) + 6 for _, payload in packets)
+                if (
+                    moved_member_count + count > MAX_WANDER_BATCH_MOVED_MEMBERS
+                    or packet_bytes + group_packet_bytes > MAX_WANDER_BATCH_PACKET_BYTES
+                ):
+                    continue
+                move = dict(
+                    group_id=group["group_id"],
+                    expected_members=members,
+                    moved_members=candidate,
+                    packets=[[opcode, payload.hex()] for opcode, payload in packets],
+                )
+                batch = dict(
+                    kind="wander_bulk",
+                    world_epoch=epoch,
+                    scope=list(scope),
+                    configuration=configuration,
+                    moves=moves + [move],
+                )
+                if (
+                    len(json.dumps(batch, separators=(",", ":")).encode("utf-8"))
+                    > MAX_WANDER_BATCH_JSON_BYTES
+                ):
+                    continue
+                moves.append(move)
+                moved_member_count += count
+                packet_bytes += group_packet_bytes
+                if len(moves) >= MAX_WANDER_BATCH_GROUPS:
+                    break
+        if moves:
+            proposals.append(
+                dict(
+                    kind="wander_bulk",
+                    world_epoch=epoch,
+                    scope=list(scope),
+                    configuration=configuration,
+                    moves=moves,
+                )
+            )
+    return _pack_lifecycle(life_plans.resolve_noops(store, proposals + noops))
+
+
+def _validate_bulk_wander_move(move):
+    """Return decoded per-group movement data, or reject just this group."""
+    from protocol_codec import decode_body
+
+    if not isinstance(move, dict) or set(move) != {
+        "group_id",
+        "expected_members",
+        "moved_members",
+        "packets",
+    }:
+        raise ValueError("Invalid bulk wander group fields")
+    group_id = move["group_id"]
+    expected = move["expected_members"]
+    moved = move["moved_members"]
+    encoded_packets = move["packets"]
+    if (
+        type(group_id) is not int
+        or not isinstance(expected, list)
+        or not isinstance(moved, list)
+        or not expected
+        or len(expected) != len(moved)
+        or not isinstance(encoded_packets, list)
+        or not encoded_packets
+    ):
+        raise ValueError("Invalid bulk wander group roster")
+    if any(
+        not isinstance(member, dict) or type(member.get("id")) is not int
+        for member in expected + moved
+    ):
+        raise ValueError("Invalid bulk wander actor identity")
+    expected_ids = [member["id"] for member in expected]
+    moved_ids = [member["id"] for member in moved]
+    if len(set(expected_ids)) != len(expected_ids) or expected_ids != moved_ids:
+        raise ValueError("Bulk wander changed group identity")
+    moved_by_id = {member["id"]: member for member in moved}
+    expected_by_id = {member["id"]: member for member in expected}
+    changed_ids = {
+        actor_id
+        for actor_id, before in expected_by_id.items()
+        if tuple(before.get(key) for key in ("x", "y", "z"))
+        != tuple(moved_by_id[actor_id].get(key) for key in ("x", "y", "z"))
+    }
+    if not changed_ids or len(changed_ids) > MAX_WANDER_BATCH_MOVED_MEMBERS:
+        raise ValueError("Invalid bulk wander moved-member count")
+    packets = []
+    packet_ids = set()
+    packet_bytes = 0
+    for packet in encoded_packets:
+        if (
+            not isinstance(packet, list)
+            or len(packet) != 2
+            or type(packet[0]) is not int
+            or packet[0] != 13852
+            or not isinstance(packet[1], str)
+        ):
+            raise ValueError("Invalid bulk wander movement packet")
+        body = bytes.fromhex(packet[1])
+        decoded = decode_body("in", packet[0], body)
+        actor_id = decoded["actor_id"]
+        if (
+            actor_id not in changed_ids
+            or actor_id in packet_ids
+            or decoded["start_position"]
+            != {key: expected_by_id[actor_id][key] for key in ("x", "y", "z")}
+            or decoded["end_position"]
+            != {key: moved_by_id[actor_id][key] for key in ("x", "y", "z")}
+        ):
+            raise ValueError("Bulk wander packet does not match its group CAS")
+        packet_ids.add(actor_id)
+        packet_bytes += len(body) + 6
+        packets.append((packet[0], body))
+    if packet_ids != changed_ids or packet_bytes > MAX_WANDER_BATCH_PACKET_BYTES:
+        raise ValueError("Bulk wander packet set is incomplete or oversized")
+    # Keep the existing path parser as the occupancy authority for every step.
+    cells = _path_cells([[opcode, payload.hex()] for opcode, payload in packets])
+    if not cells:
+        raise ValueError("Bulk wander path is empty")
+    return group_id, expected, moved, packets, cells, len(changed_ids), packet_bytes
+
+
+def _apply_wander_bulk(store, groups, harvests, world, proposal, *, world_epoch):
+    from . import monster_maturation as maturation
+    from . import monster_wander as wander
+
+    scope = proposal.get("scope")
+    moves = proposal.get("moves")
+    configuration = proposal.get("configuration")
+    if (
+        not isinstance(scope, list)
+        or len(scope) != 2
+        or any(type(value) is not int for value in scope)
+        or not isinstance(moves, list)
+        or not 1 <= len(moves) <= MAX_WANDER_BATCH_GROUPS
+        or not isinstance(configuration, dict)
+        or len(json.dumps(proposal, separators=(",", ":")).encode("utf-8"))
+        > MAX_WANDER_BATCH_JSON_BYTES
+    ):
+        raise ValueError("Invalid bulk wander envelope")
+    if wander.policy(store) != configuration:
+        return {"status": "stale_policy"}
+    decoded_moves = []
+    seen_group_ids = set()
+    moved_members = 0
+    packet_bytes = 0
+    invalid_groups = 0
+    for move in moves:
+        try:
+            decoded = _validate_bulk_wander_move(move)
+        except (TypeError, ValueError, struct.error):
+            invalid_groups += 1
+            continue
+        if (
+            decoded[0] in seen_group_ids
+            or moved_members + decoded[5] > MAX_WANDER_BATCH_MOVED_MEMBERS
+            or packet_bytes + decoded[6] > MAX_WANDER_BATCH_PACKET_BYTES
+        ):
+            invalid_groups += 1
+            continue
+        expected_by_id = {member["id"]: member for member in decoded[1]}
+        try:
+            paths_by_actor = _path_cells_by_actor(
+                [[opcode, payload.hex()] for opcode, payload in decoded[3]]
+            )
+            family_ids = {
+                actor_id: maturation.STAGES[member["ref"]][0]["family_id"]
+                if member["ref"] in maturation.STAGES
+                else None
+                for actor_id, member in expected_by_id.items()
+            }
+            habitat_valid = not any(
+                not habitat_destination_allowed(
+                    scope[0],
+                    scope[1],
+                    cell,
+                    parent=expected_by_id[actor_id],
+                    family_id=family_ids[actor_id],
+                )
+                for actor_id, path in paths_by_actor.items()
+                for cell in path
+            )
+        except (KeyError, TypeError, ValueError):
+            habitat_valid = False
+        seen_group_ids.add(decoded[0])
+        moved_members += decoded[5]
+        packet_bytes += decoded[6]
+        decoded_moves.append((*decoded, habitat_valid))
+
+    with groups.lock, harvests.lock:
+        players = _scoped_players(world.snapshot(), tuple(scope))
+        if not players:
+            return {"status": "absent"}
+        excluded = set(harvests.targets)
+        published_packets = []
+        applied_groups = 0
+        skipped_groups = invalid_groups
+        deadline = time.monotonic() + MAX_WANDER_BATCH_SECONDS
+        budget_exhausted = False
+        for index, (
+            group_id,
+            expected,
+            moved,
+            packets,
+            cells,
+            _count,
+            _size,
+            habitat_valid,
+        ) in enumerate(decoded_moves):
+            if time.monotonic() >= deadline:
+                skipped_groups += len(decoded_moves) - index
+                budget_exhausted = True
+                break
+            expected_ids = {member["id"] for member in expected}
+            if expected_ids & excluded:
+                skipped_groups += 1
+                continue
+            current_groups = groups.snapshot(*scope)
+            current = next(
+                (
+                    group
+                    for group in current_groups
+                    if group.get("group_id", group.get("key", (None, None, None))[2])
+                    == group_id
+                ),
+                None,
+            )
+            if current is None or current["status"] != "available":
+                skipped_groups += 1
+                continue
+            if not habitat_valid:
+                skipped_groups += 1
+                continue
+            occupied = {wander.point(player) for player in players}
+            occupied |= {
+                wander.point(member)
+                for group in current_groups
+                if group["status"] != "defeated"
+                for member in group["members"]
+                if member["id"] not in expected_ids
+            }
+            if cells & occupied:
+                skipped_groups += 1
+                continue
+            if not groups.move_members((*scope, group_id), expected, moved):
+                skipped_groups += 1
+                continue
+            applied_groups += 1
+            published_packets.extend(packets)
+        if published_packets:
+            world.emit_location_batch(scope[0], scope[1], published_packets)
+        if not applied_groups:
+            return {
+                "status": "applied" if budget_exhausted else "stale_group",
+                "skipped_groups": skipped_groups,
+                "skip_reason": "budget" if budget_exhausted else "cas_or_guard",
+            }
+        return {
+            "status": "applied",
+            "applied_groups": applied_groups,
+            "skipped_groups": skipped_groups,
+            "skip_reason": (
+                "budget"
+                if budget_exhausted
+                else "cas_or_guard"
+                if skipped_groups
+                else None
+            ),
+        }
 
 
 def apply(store, groups, harvests, world, proposal, *, world_epoch):
@@ -293,15 +696,37 @@ def apply(store, groups, harvests, world, proposal, *, world_epoch):
 
     if proposal["world_epoch"] != world_epoch:
         return {"status": "stale_epoch"}
+    if proposal["kind"] == "cleanup_unassigned":
+        from .monster_population_cleanup import apply as apply_cleanup
+
+        return apply_cleanup(
+            store, groups, harvests, world, proposal, world_epoch=world_epoch
+        )
+    if proposal["kind"] == "lifecycle_bulk":
+        return _apply_lifecycle_bulk(
+            store, groups, harvests, world, proposal, world_epoch=world_epoch
+        )
+    if proposal["kind"] == "wander_bulk":
+        return _apply_wander_bulk(
+            store, groups, harvests, world, proposal, world_epoch=world_epoch
+        )
     publication = proposal["kind"].startswith("publish_")
     kind = proposal["kind"][8:] if publication else proposal["kind"]
     domains = dict(maturation=maturation, reproduction=reproduction, wander=wander)
     if kind not in domains or (publication and kind == "wander"):
         raise ValueError("Unknown monster ecology proposal")
     # Policy IO occurs before live registry locks; the received plan must match.
-    if not publication and domains[kind].policy(store) != proposal["configuration"]:
+    if (
+        not publication
+        and "plan_incarnation" not in proposal.get("ticket", {})
+        and domains[kind].policy(store) != proposal["configuration"]
+    ):
         return {"status": "stale_policy"}
     scope = tuple(proposal["scope"])
+    # Geometry stays outside the world registry locks even for prepared births.
+    birth_edges = (
+        _edges(scope[0]) if kind == "reproduction" and not publication else None
+    )
     with groups.lock, harvests.lock:
         players = _scoped_players(world.snapshot(), scope)
         if not players:
@@ -344,7 +769,9 @@ def apply(store, groups, harvests, world, proposal, *, world_epoch):
             )
             if kind == "reproduction":
                 kwargs.update(
-                    indexed=None, players=players, group_draw=proposal["group_draw"]
+                    indexed=birth_edges,
+                    players=players,
+                    group_draw=proposal["group_draw"],
                 )
             receipt = domains[kind].attempt(store, proposal["ticket"], **kwargs)
             if receipt is None:
@@ -377,3 +804,158 @@ def apply(store, groups, harvests, world, proposal, *, world_epoch):
             if receipt is not None and receipt["duplicate"]
             else "applied"
         }
+
+
+def _pack_lifecycle(proposals):
+    """Bound lifecycle envelopes while preserving original operation order."""
+    result = []
+    for proposal in proposals:
+        if proposal["kind"] not in ("maturation", "reproduction"):
+            result.append(proposal)
+            continue
+        batch = (
+            result[-1] if result and result[-1]["kind"] == "lifecycle_bulk" else None
+        )
+        if (
+            batch is None
+            or batch["scope"] != proposal["scope"]
+            or len(batch["operations"]) >= 16
+        ):
+            batch = dict(
+                kind="lifecycle_bulk",
+                scope=proposal["scope"],
+                world_epoch=proposal["world_epoch"],
+                operations=[],
+            )
+            result.append(batch)
+        candidate = dict(batch, operations=batch["operations"] + [proposal])
+        if len(json.dumps(candidate, separators=(",", ":")).encode()) > 224 * 1024:
+            batch = dict(
+                kind="lifecycle_bulk",
+                scope=proposal["scope"],
+                world_epoch=proposal["world_epoch"],
+                operations=[],
+            )
+            result.append(batch)
+        batch["operations"].append(proposal)
+    return result
+
+
+def _apply_lifecycle_bulk(store, groups, harvests, world, proposal, *, world_epoch):
+    from .monster_life_plans import failure
+
+    operations = proposal.get("operations")
+    scope = proposal.get("scope")
+    if (
+        not isinstance(scope, list)
+        or len(scope) != 2
+        or any(type(value) is not int for value in scope)
+        or not isinstance(operations, list)
+        or not 1 <= len(operations) <= 16
+        or len(json.dumps(proposal, separators=(",", ":")).encode()) > 224 * 1024
+    ):
+        raise ValueError("Invalid lifecycle bulk envelope")
+    seen = set()
+    for operation in operations:
+        if (
+            not isinstance(operation, dict)
+            or operation.get("kind") not in ("maturation", "reproduction")
+            or operation.get("scope") != scope
+            or operation.get("world_epoch") != proposal.get("world_epoch")
+            or not isinstance(operation.get("configuration"), dict)
+            or not isinstance(operation.get("expected_members"), list)
+            or not operation["expected_members"]
+            or any(
+                not isinstance(member, dict) or type(member.get("id")) is not int
+                for member in operation["expected_members"]
+            )
+            or type(operation.get("draw")) not in (int, float)
+            or not 0 <= operation["draw"] < 1
+        ):
+            raise ValueError("Invalid lifecycle bulk operation")
+        ticket = operation.get("ticket")
+        if (
+            not isinstance(ticket, dict)
+            or any(
+                type(ticket.get(key)) is not int
+                for key in (
+                    "map_id",
+                    "instance_id",
+                    "monster_id",
+                    "group_id",
+                    "reference",
+                    "cycle",
+                )
+            )
+            or [ticket["map_id"], ticket["instance_id"]] != scope
+            or ticket["cycle"] < 1
+            or not isinstance(ticket.get("plan_incarnation"), str)
+            or not isinstance(ticket.get("decision"), dict)
+        ):
+            raise ValueError("Invalid lifecycle bulk ticket")
+        identity = (
+            operation["kind"],
+            ticket["monster_id"],
+            ticket["cycle"],
+            ticket["plan_incarnation"],
+        )
+        if identity in seen:
+            raise ValueError("Duplicate lifecycle bulk event")
+        seen.add(identity)
+        if operation["kind"] == "maturation":
+            if "grown" not in operation or (
+                operation["grown"] is not None
+                and not isinstance(operation["grown"], dict)
+            ):
+                raise ValueError("Invalid lifecycle bulk maturation")
+            from .monster_maturation import validate_policy
+        else:
+            if (
+                not isinstance(operation.get("destination"), list)
+                or len(operation["destination"]) != 3
+                or any(type(value) is not int for value in operation["destination"])
+                or "child" not in operation
+                or (
+                    operation["child"] is not None
+                    and not isinstance(operation["child"], dict)
+                )
+                or type(operation.get("group_draw")) not in (int, float)
+                or not 0 <= operation["group_draw"] < 1
+            ):
+                raise ValueError("Invalid lifecycle bulk reproduction")
+            from .monster_reproduction import validate_policy
+        validate_policy(operation["configuration"])
+    results = []
+    deadline = time.monotonic() + MAX_WANDER_BATCH_SECONDS
+    for operation in operations:
+        if time.monotonic() >= deadline:
+            break
+        try:
+            results.append(
+                apply(
+                    store, groups, harvests, world, operation, world_epoch=world_epoch
+                )
+            )
+        except Exception:
+            failure(store, operation["ticket"], operation["kind"])
+            raise
+    return dict(
+        status="applied",
+        operations=results,
+        skipped_operations=len(operations) - len(results),
+        skip_reason="budget" if len(results) < len(operations) else None,
+    )
+
+
+def _proposal_slots(proposals):
+    counts = {}
+    other = 0
+    for p in proposals:
+        if p.get("noop"):
+            continue
+        if p["kind"] in ("maturation", "reproduction"):
+            key = tuple(p["scope"])
+            counts[key] = counts.get(key, 0) + 1
+        else:
+            other += 1
+    return other + sum((count + 15) // 16 for count in counts.values())

@@ -191,7 +191,7 @@ class HavenChestPersistenceTests(PostgresCase):
         )
         self.assertIn(item["uid"], _equipped(fake))
         with patch.object(self.store, "character", return_value=fake):
-            with self.assertRaisesRegex(ValueError, "every build"):
+            with self.assertRaisesRegex(ValueError, "build secondary-test"):
                 self.deposit(item["uid"], 1)
         self.assertEqual(
             self.store.character(self.account, self.char["id"])["inventory_items"][0][

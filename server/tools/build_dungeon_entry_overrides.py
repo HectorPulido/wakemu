@@ -149,19 +149,149 @@ def build(inventory):
     return rows
 
 
+SETTING = "dungeon_entry_client_overrides"
+
+
+def validate_setting(value, client_sha256):
+    """Validate reviewed DB identity and content before emitting any resource."""
+    keys = {
+        "version",
+        "native_client_sha256",
+        "source_catalog_revision",
+        "projection_sha256",
+        "entrances",
+    }
+    if (
+        not isinstance(value, dict)
+        or set(value) != keys
+        or type(value["version"]) is not int
+        or value["version"] != 1
+    ):
+        raise ValueError("Missing or malformed native entrance setting")
+    for name in (
+        "native_client_sha256",
+        "source_catalog_revision",
+        "projection_sha256",
+    ):
+        if not isinstance(value[name], str) or not re.fullmatch(
+            r"[0-9a-f]{64}", value[name]
+        ):
+            raise ValueError("Malformed native entrance hash identity")
+    if value["native_client_sha256"] != client_sha256:
+        raise ValueError("Native entrance/client version mismatch")
+    entrances = value["entrances"]
+    if not isinstance(entrances, list) or not entrances:
+        raise ValueError("Missing reviewed native entrances")
+    rows = {}
+    for row in entrances:
+        if not isinstance(row, dict) or set(row) != {"destination_id", "criterion"}:
+            raise ValueError("Malformed native entrance row")
+        identity, expression = row["destination_id"], row["criterion"]
+        if type(identity) is not int or not 0 < identity < 2**31 or identity in rows:
+            raise ValueError("Invalid or duplicate native entrance identity")
+        if (
+            not isinstance(expression, str)
+            or not expression
+            or len(expression) > 32768
+            or any(c in expression for c in "\r\n\x00")
+        ):
+            raise ValueError("Malformed native entrance expression")
+        parse_local_criterion(expression)
+        rows[identity] = expression
+    digest = hashlib.sha256(
+        json.dumps(entrances, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    if digest != value["projection_sha256"]:
+        raise ValueError("Native entrance projection hash mismatch")
+    return rows
+
+
+def load_database_rows(db, client_sha256):
+    row = db.execute("SELECT value FROM settings WHERE name=%s", (SETTING,)).fetchone()
+    value = None if row is None else row["value"]
+    rows = validate_setting(value, client_sha256)
+    source = db.execute(
+        "SELECT complete FROM native_catalog_releases WHERE revision=%s",
+        (value["source_catalog_revision"],),
+    ).fetchone()
+    if source is None or source["complete"] is not True:
+        raise ValueError(
+            "Reviewed native entrance source catalog is absent or incomplete"
+        )
+    return rows
+
+
+def render_properties(rows, digest):
+    return (
+        "native_sha256="
+        + digest
+        + "\n# Generated from native entrance routes; never internal doors.\n"
+        + "".join(
+            f"{identity}={expression.replace(chr(92), chr(92)*2)}\n"
+            for identity, expression in sorted(rows.items())
+        )
+    )
+
+
+def read_local_database_rows(client_sha256, *, run=None):
+    """DB-only local transport when the launcher's Python lacks psycopg."""
+    import subprocess
+
+    run = subprocess.run if run is None else run
+    query = (
+        "SELECT jsonb_build_object('value',s.value,'complete',r.complete) "
+        "FROM settings s LEFT JOIN native_catalog_releases r "
+        "ON r.revision=s.value->>'source_catalog_revision' "
+        "WHERE s.name='dungeon_entry_client_overrides'"
+    )
+    result = run(
+        [
+            "docker",
+            "compose",
+            "exec",
+            "-T",
+            "postgres",
+            "psql",
+            "-X",
+            "-A",
+            "-t",
+            "-U",
+            "wakemu",
+            "-d",
+            "wakemu_runtime",
+            "-c",
+            query,
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if result.returncode:
+        raise ValueError("PostgreSQL entrance export query failed")
+    try:
+        envelope = json.loads(result.stdout)
+    except (ValueError, TypeError):
+        raise ValueError(
+            "PostgreSQL entrance setting is missing or malformed"
+        ) from None
+    if not isinstance(envelope, dict) or set(envelope) != {"value", "complete"}:
+        raise ValueError("Malformed PostgreSQL entrance export")
+    rows = validate_setting(envelope["value"], client_sha256)
+    if envelope["complete"] is not True:
+        raise ValueError(
+            "Reviewed native entrance source catalog is absent or incomplete"
+        )
+    return rows
+
+
 def main():
+    import importlib.util
+    import os
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--inventory", type=Path, default=Path("docs/reports/dungeons/inventory.json")
-    )
-    parser.add_argument(
         "--client-jar", type=Path, default=Path("client/lib/wakfu-client.jar")
-    )
-    parser.add_argument(
-        "--source-version",
-        type=Path,
-        default=Path(__file__).resolve().parents[2]
-        / "client-tools/runtime/dungeon-entry-source-version.json",
     )
     parser.add_argument(
         "--output",
@@ -169,29 +299,42 @@ def main():
         default=Path("client-tools/runtime/dungeon-entry-overrides.properties"),
     )
     args = parser.parse_args()
-    inventory = json.loads(args.inventory.read_text())
-    pinned = json.loads(args.source_version.read_text())
     digest = hashlib.sha256(args.client_jar.read_bytes()).hexdigest()
-    if (
-        type(pinned.get("version")) is not int
-        or pinned.get("version") != 1
-        or pinned.get("native_client_sha256") != digest
-        or pinned.get("native_catalog_release") != inventory.get("live_catalog_release")
-    ):
-        raise ValueError(
-            "Native entrance inventory/client version mismatch; re-extract and review both before updating the source version pin"
+    if importlib.util.find_spec("psycopg") is None:
+        if os.environ.get("WAKFU_DATABASE_URL") or os.environ.get(
+            "WAKFU_DATABASE_PASSWORD_FILE"
+        ):
+            raise ValueError(
+                "Configured PostgreSQL connection requires psycopg; refusing a different local database"
+            )
+        rows = read_local_database_rows(digest)
+    else:
+        import psycopg
+        from psycopg.rows import dict_row
+
+        # Match compose.yaml's localhost publication; deployments may override both.
+        conninfo = os.environ.get(
+            "WAKFU_DATABASE_URL",
+            "host=127.0.0.1 port=15432 dbname=wakemu_runtime user=wakemu",
         )
-    rows = build(inventory)
-    # java.util.Properties requires escaped backslashes; expressions have no newlines.
-    args.output.write_text(
-        "native_sha256="
-        + digest
-        + "\n# Generated from native entrance routes; never internal doors.\n"
-        + "".join(
-            f"{identity}={expression.replace(chr(92), chr(92) * 2)}\n"
-            for identity, expression in sorted(rows.items())
+        password_file = Path(
+            os.environ.get(
+                "WAKFU_DATABASE_PASSWORD_FILE",
+                str(
+                    Path(__file__).resolve().parents[2]
+                    / ".runtime/local/secrets/postgres-password"
+                ),
+            )
         )
-    )
+        password = password_file.read_text().strip()
+        if not password:
+            raise ValueError("Empty PostgreSQL password file")
+        with psycopg.connect(
+            conninfo, password=password, row_factory=dict_row, connect_timeout=5
+        ) as db:
+            db.execute("SET TRANSACTION READ ONLY")
+            rows = load_database_rows(db, digest)
+    args.output.write_text(render_properties(rows, digest))
     print(f"Generated {len(rows)} scoped native entry overrides: {args.output}")
 
 

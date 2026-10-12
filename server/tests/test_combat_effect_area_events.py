@@ -4,6 +4,91 @@ from wakfu_server.combat_effect_area_events import NativeAreaEventRuntime
 
 
 class AreaEventTests(unittest.TestCase):
+    def test_parent_removal_uses_actual_retained_runner_once(self):
+        from unittest.mock import Mock
+
+        runtime, row, calls = self.fixture()
+        row["effect_uid"] = 67
+        runtime.fight.native_owned_area_effects = {67: {"area_uid": row["uid"]}}
+        runtime.fight.native_retained_records = {67: {}}
+        remove = Mock()
+
+        def retire(uids):
+            remove(uids)
+            for uid in uids:
+                runtime.fight.native_owned_area_effects.pop(uid)
+                runtime.fight.native_retained_records.pop(uid)
+                runtime.fight.native_effect_areas.pop(row["uid"])
+
+        runtime.dispatcher.native_retention.removal = lambda view: SimpleNamespace(
+            remove=retire
+        )
+        self.assertTrue(runtime.remove_parent(row))
+        remove.assert_called_once_with((67,))
+        self.assertEqual(runtime.fight.native_effect_areas, {})
+
+    def test_nonowned_parent_removal_keeps_area_manager_fallback(self):
+        from unittest.mock import patch
+
+        runtime, row, calls = self.fixture()
+        row["effect_uid"] = 67
+        with patch("wakfu_server.combat_effect_area.remove_owned_hour_area") as remove:
+            self.assertTrue(runtime.remove_parent(row))
+        remove.assert_called_once_with(runtime.fight, row["uid"], callbacks=runtime)
+
+    def test_trap_activation_uses_qq_source_and_keeps_entering_actor_recipient(self):
+        from unittest.mock import patch
+
+        runtime, row, calls = self.fixture("TRAP", entry=(10001,))
+        row.update(native_area_contract="fbc", remaining_activations=1)
+        # Match the reported placement: the owner is several cells from the
+        # trap and the entering NPC is adjacent to its center.
+        runtime.fight.actors[7].position = (-217, -66, 0)
+        runtime.fight.actors[8].position = (-217, -69, 0)
+        row["cell"] = (-217, -70, 0)
+        with patch(
+            "wakfu_server.combat_trap_area.verified_trap_characteristics"
+        ), patch("wakfu_server.combat_trap_area.retire_exhausted_trap") as retire:
+            self.assertTrue(
+                runtime._activate(
+                    row, runtime.definitions["1474"], runtime.fight.actors[8]
+                )
+            )
+        self.assertEqual(len(calls), 1)
+        self.assertEqual((calls[0].caster_id, calls[0].target_id), (901, 8))
+        self.assertEqual(calls[0].cell, (-217, -70, 0))
+        self.assertEqual(calls[0].native_retained_container["id"], 901)
+        self.assertEqual(row["remaining_activations"], 0)
+        retire.assert_called_once_with(runtime.fight, row, callbacks=runtime)
+
+    def test_unobserved_forecast_preserves_trap_then_real_activation_still_fires(self):
+        from unittest.mock import patch
+        from wakfu_server.combat_observation_scope import unobserved_area_forecast
+
+        runtime, row, calls = self.fixture("TRAP", entry=(10001,))
+        row.update(native_area_contract="fbc", remaining_activations=1)
+        definition = runtime.definitions["1474"]
+        target = runtime.fight.actors[8]
+        with unobserved_area_forecast({901}):
+            self.assertFalse(runtime._activate(row, definition, target))
+            self.assertEqual(runtime._deliver_event(row, definition, target, 10001), ())
+        self.assertEqual(calls, [])
+        self.assertEqual(row["remaining_activations"], 1)
+        self.assertIs(runtime.fight.native_effect_areas[901], row)
+        with patch(
+            "wakfu_server.combat_trap_area.verified_trap_characteristics"
+        ), patch("wakfu_server.combat_trap_area.retire_exhausted_trap"):
+            self.assertTrue(runtime._activate(row, definition, target))
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(row["remaining_activations"], 0)
+
+    def test_ordinary_glyph_keeps_owner_source(self):
+        runtime, row, calls = self.fixture()
+        self.assertTrue(
+            runtime._activate(row, runtime.definitions["1474"], runtime.fight.actors[8])
+        )
+        self.assertEqual((calls[0].caster_id, calls[0].target_id), (7, 8))
+
     def fixture(self, kind="GLYPH", entry=(10000,), exit=()):
         actors = {
             i: SimpleNamespace(

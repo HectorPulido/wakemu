@@ -1,5 +1,6 @@
 import math
 import unittest
+from unittest.mock import patch
 
 from postgres_case import PostgresCase
 from psycopg.errors import CheckViolation
@@ -9,6 +10,28 @@ from wakfu_server.planting_context import MAPS
 
 
 class EcologyPolicyTests(PostgresCase):
+    def setUp(self):
+        super().setUp()
+        # Scoring fixtures define native chief wishes explicitly; SQL fallback
+        # rows remain exercised as storage history, never equilibrium authority.
+        territories = {}
+        for region_id, low, high in (
+            (79301, 10, 100),
+            (79001, 300, 300),
+            (79201, 200, 200),
+        ):
+            territories[str(region_id)] = dict(
+                map_id=1134,
+                monster_wishes=[],
+                plant_wishes=[dict(family_id=10, minimum=low, maximum=high)],
+            )
+        native = patch(
+            "wakfu_server.ecology_equilibrium.catalog",
+            return_value={"territories": territories},
+        )
+        native.start()
+        self.addCleanup(native.stop)
+
     def _decision(self, **overrides):
         arguments = {
             "map_id": 1134,
@@ -63,7 +86,7 @@ class EcologyPolicyTests(PostgresCase):
         self.assertEqual(159, len(rows))
         self.assertEqual(0, monsters)
 
-    def test_zero_zero_native_family_uses_explicit_local_fallback(self):
+    def test_legacy_zero_zero_family_does_not_override_native_chief_wish(self):
         region = next(row for row in MAPS[1134]["regions"] if row["region_id"] == 79301)
         native_family = next(
             row for row in region["plant_families"] if row["family_id"] == 10
@@ -74,7 +97,7 @@ class EcologyPolicyTests(PostgresCase):
         result = self._decision()
         self.assertEqual(25, result["delta"])
         self.assertEqual(
-            (10, 100, "local_fallback", None),
+            (10, 100, "native_chief_wish", None),
             (
                 result["evidence"]["minimum"],
                 result["evidence"]["maximum"],
@@ -89,7 +112,7 @@ class EcologyPolicyTests(PostgresCase):
             before=128,
         )
         self.assertEqual(
-            (1, 128, "local_fallback"),
+            (0, 10, "no_native_wish"),
             tuple(
                 monster_fallback["evidence"][key]
                 for key in ("minimum", "maximum", "limit_source")
@@ -114,19 +137,22 @@ class EcologyPolicyTests(PostgresCase):
             before=101,
         )
         self.assertEqual(
-            (300, 300, "native"),
+            (300, 300, "native_chief_wish"),
             tuple(
                 first["evidence"][key] for key in ("minimum", "maximum", "limit_source")
             ),
         )
         self.assertEqual(
-            (200, 200, "native"),
+            (200, 200, "native_chief_wish"),
             tuple(
                 second["evidence"][key]
                 for key in ("minimum", "maximum", "limit_source")
             ),
         )
-        self.assertEqual("local_fallback", other_family["evidence"]["limit_source"])
+        self.assertEqual(
+            "unmanaged_native_family", other_family["evidence"]["limit_source"]
+        )
+        self.assertEqual(other_family["delta"], 0)
 
         with self.store.connection() as db:
             db.execute(
@@ -146,13 +172,13 @@ class EcologyPolicyTests(PostgresCase):
             before=9,
         )
         self.assertEqual(
-            (4, 9, "local", 2),
+            (0, 10, "no_native_wish", None),
             tuple(
                 local_override["evidence"][key]
                 for key in ("minimum", "maximum", "limit_source", "limit_revision")
             ),
         )
-        self.assertEqual("local_fallback", unoverridden["evidence"]["limit_source"])
+        self.assertEqual("no_native_wish", unoverridden["evidence"]["limit_source"])
 
     def test_only_actions_that_move_toward_the_band_earn_balance(self):
         at_boundary = self._decision(before=100)

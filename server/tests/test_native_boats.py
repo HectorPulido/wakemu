@@ -1,11 +1,16 @@
 import struct
 import unittest
+from unittest.mock import patch
+from test_native_boat_catalog import seeded_indexes
 
 from wakfu_server import native_boats
 
 
 class NativeBoatTests(unittest.TestCase):
     def setUp(self):
+        catalog = patch.object(native_boats, "_indexes", return_value=seeded_indexes())
+        catalog.start()
+        self.addCleanup(catalog.stop)
         self.character = dict(
             id=7, account_id=9, map_id=504, instance_id=0, x=4, y=3, z=9, level=50
         )
@@ -90,10 +95,10 @@ class NativeBoatTests(unittest.TestCase):
         )
 
     def test_catalog_contains_all_original_boats_and_links(self):
-        self.assertEqual(len(native_boats._ENDPOINTS), 87)
-        self.assertEqual(sum(map(len, native_boats._LINKS.values())), 393)
-        self.assertEqual(native_boats._ENDPOINTS[18259]["label_id"], 97)
-        self.assertEqual(native_boats._ENDPOINTS[18259]["map_id"], 504)
+        self.assertEqual(len(native_boats._indexes()[0]), 87)
+        self.assertEqual(sum(map(len, native_boats._indexes()[1].values())), 393)
+        self.assertEqual(native_boats._indexes()[0][18259]["label_id"], 97)
+        self.assertEqual(native_boats._indexes()[0][18259]["map_id"], 504)
 
     def test_returned_source_copy_cannot_modify_catalog(self):
         row = native_boats.source(self.character, self.body)

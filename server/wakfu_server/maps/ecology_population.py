@@ -10,7 +10,20 @@ from .monsters import reference
 from .resource_domains import is_fixed_resource
 
 
-def snapshot(db, map_id, instance_id, *, locate=surface, kinds=("plant", "monster")):
+def snapshot(
+    db,
+    map_id,
+    instance_id,
+    *,
+    locate=surface,
+    kinds=("plant", "monster"),
+    exclude_unassigned=False
+):
+    """Exclude native region -1 only when explicitly requested by a trusted locator.
+
+    Default strict behavior remains unchanged for reward/equilibrium consumers.
+    Zero, missing, malformed and unresolved regions never become empty counts.
+    """
     if type(map_id) is not int or not 0 < map_id < 2**31:
         raise ValueError("Invalid ecology map")
     if type(instance_id) is not int or not 0 <= instance_id < 2**63:
@@ -22,6 +35,8 @@ def snapshot(db, map_id, instance_id, *, locate=surface, kinds=("plant", "monste
         or any(kind not in ("plant", "monster") for kind in kinds)
     ):
         raise ValueError("Invalid ecology population kinds")
+    if type(exclude_unassigned) is not bool:
+        raise ValueError("Invalid unassigned ecology population policy")
     regions, unresolved = {}, []
 
     def add(kind, identity, family, position):
@@ -29,6 +44,8 @@ def snapshot(db, map_id, instance_id, *, locate=surface, kinds=("plant", "monste
             region_id = locate(map_id, *position)["region_id"]
         except ValueError:
             unresolved.append((kind, identity))
+            return
+        if exclude_unassigned and type(region_id) is int and region_id == -1:
             return
         if type(region_id) is not int or region_id <= 0:
             unresolved.append((kind, identity))

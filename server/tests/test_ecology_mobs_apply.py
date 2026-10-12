@@ -19,10 +19,11 @@ class LockProbe:
 
 
 class FakeGroups:
-    def __init__(self, rows=(), move_result=True):
+    def __init__(self, rows=(), move_result=True, move_results=None):
         self.lock = LockProbe()
         self.rows = list(rows)
         self.move_result = move_result
+        self.move_results = list(move_results or ())
         self.move_calls = []
 
     def snapshot(self, *_scope):
@@ -30,6 +31,8 @@ class FakeGroups:
 
     def move_members(self, key, expected, replacement):
         self.move_calls.append((key, expected, replacement))
+        if self.move_results:
+            return self.move_results.pop(0)
         return self.move_result
 
 
@@ -49,6 +52,9 @@ class FakeWorld:
 
     def emit_location(self, *event):
         self.emitted.append(event)
+
+    def emit_location_batch(self, map_id, instance_id, packets):
+        self.emitted.append((map_id, instance_id, tuple(packets)))
 
 
 class EcologyMobsApplyTests(unittest.TestCase):
@@ -103,7 +109,12 @@ class EcologyMobsApplyTests(unittest.TestCase):
                 }
             ]
         )
-        with patch.object(monster_wander, "policy", return_value=self.configuration):
+        with patch.object(
+            monster_wander, "policy", return_value=self.configuration
+        ), patch.object(ecology_mobs.time, "monotonic", return_value=0.0), patch(
+            "wakfu_server.ecology_mobs.habitat_destination_allowed",
+            return_value=True,
+        ):
             result = ecology_mobs.apply(
                 object(), groups, harvests, world, proposal, world_epoch="boot-a"
             )
@@ -242,6 +253,159 @@ class EcologyMobsApplyTests(unittest.TestCase):
             ):
                 self.apply(malformed, groups=groups)
             self.assertEqual(groups.move_calls, [])
+
+    def test_bulk_wander_keeps_per_group_cas_and_publishes_successes_in_one_batch(self):
+        first = {"id": -7001, "ref": 60, "team": 1, "x": 0, "y": 0, "z": 0}
+        first_after = dict(first, x=1)
+        second = {"id": -7002, "ref": 60, "team": 1, "x": 3, "y": 0, "z": 0}
+        second_after = dict(second, x=4)
+        first_packet = self.movement(-7001, (0, 0, 0), (1, 0, 0))
+        second_packet = self.movement(-7002, (3, 0, 0), (4, 0, 0))
+        proposal = {
+            "kind": "wander_bulk",
+            "world_epoch": "boot-a",
+            "scope": list(self.scope),
+            "configuration": self.configuration,
+            "moves": [
+                dict(
+                    group_id=17,
+                    expected_members=[first],
+                    moved_members=[first_after],
+                    packets=first_packet,
+                ),
+                dict(
+                    group_id=18,
+                    expected_members=[second],
+                    moved_members=[second_after],
+                    packets=second_packet,
+                ),
+            ],
+        }
+        groups = FakeGroups(
+            [
+                {"group_id": 17, "status": "available", "members": [first]},
+                {"group_id": 18, "status": "available", "members": [second]},
+            ],
+            move_results=[False, True],
+        )
+        result, _, _, world = self.apply(proposal, groups=groups)
+        self.assertEqual(
+            result,
+            {
+                "status": "applied",
+                "applied_groups": 1,
+                "skipped_groups": 1,
+                "skip_reason": "cas_or_guard",
+            },
+        )
+        self.assertEqual(len(groups.move_calls), 2)
+        self.assertEqual(len(world.emitted), 1)
+        map_id, instance_id, emitted = world.emitted[0]
+        self.assertEqual((map_id, instance_id), self.scope)
+        self.assertEqual(emitted, ((13852, bytes.fromhex(second_packet[0][1])),))
+
+    def test_bulk_wander_skips_invalid_actor_packet_without_blocking_valid_group(self):
+        first = {"id": -7001, "ref": 60, "team": 1, "x": 0, "y": 0, "z": 0}
+        first_after = dict(first, x=1)
+        second = {"id": -7002, "ref": 60, "team": 1, "x": 3, "y": 0, "z": 0}
+        second_after = dict(second, x=4)
+        valid_packet = self.movement(-7002, (3, 0, 0), (4, 0, 0))
+        proposal = {
+            "kind": "wander_bulk",
+            "world_epoch": "boot-a",
+            "scope": list(self.scope),
+            "configuration": self.configuration,
+            "moves": [
+                dict(
+                    group_id=17,
+                    expected_members=[first],
+                    moved_members=[first_after],
+                    packets=self.movement(-7999, (0, 0, 0), (1, 0, 0)),
+                ),
+                dict(
+                    group_id=18,
+                    expected_members=[second],
+                    moved_members=[second_after],
+                    packets=valid_packet,
+                ),
+            ],
+        }
+        groups = FakeGroups(
+            [
+                {"group_id": 17, "status": "available", "members": [first]},
+                {"group_id": 18, "status": "available", "members": [second]},
+            ]
+        )
+        result, _, _, world = self.apply(proposal, groups=groups)
+        self.assertEqual(result["status"], "applied", result)
+        self.assertEqual(result.get("applied_groups"), 1, result)
+        self.assertEqual(result["skipped_groups"], 1)
+        self.assertEqual([call[0] for call in groups.move_calls], [(1134, 0, 18)])
+        self.assertEqual(len(world.emitted), 1)
+
+    def test_bulk_wander_rechecks_habitat_per_group_without_blocking_valid_group(self):
+        first = {"id": -7001, "ref": 60, "team": 1, "x": 0, "y": 0, "z": 0}
+        first_after = dict(first, x=1)
+        second = {"id": -7002, "ref": 60, "team": 1, "x": 3, "y": 0, "z": 0}
+        second_after = dict(second, x=4)
+        first_packet = self.movement(-7001, (0, 0, 0), (1, 0, 0))
+        second_packet = self.movement(-7002, (3, 0, 0), (4, 0, 0))
+        proposal = {
+            "kind": "wander_bulk",
+            "world_epoch": "boot-a",
+            "scope": list(self.scope),
+            "configuration": self.configuration,
+            "moves": [
+                dict(
+                    group_id=17,
+                    expected_members=[first],
+                    moved_members=[first_after],
+                    packets=first_packet,
+                ),
+                dict(
+                    group_id=18,
+                    expected_members=[second],
+                    moved_members=[second_after],
+                    packets=second_packet,
+                ),
+            ],
+        }
+        groups = FakeGroups(
+            [
+                {"group_id": 17, "status": "available", "members": [first]},
+                {"group_id": 18, "status": "available", "members": [second]},
+            ]
+        )
+        allowed = lambda _map, _instance, cell, **_kwargs: cell[0] != 1
+        with patch.object(
+            monster_wander, "policy", return_value=self.configuration
+        ), patch.object(ecology_mobs.time, "monotonic", return_value=0.0), patch(
+            "wakfu_server.ecology_mobs.habitat_destination_allowed",
+            side_effect=allowed,
+        ):
+            result = ecology_mobs.apply(
+                object(),
+                groups,
+                FakeHarvests(),
+                FakeWorld(
+                    [
+                        {
+                            "id": 9001,
+                            "map_id": self.scope[0],
+                            "instance_id": 0,
+                            "x": 20,
+                            "y": 20,
+                            "z": 0,
+                        }
+                    ]
+                ),
+                proposal,
+                world_epoch="boot-a",
+            )
+        self.assertEqual(result["status"], "applied", result)
+        self.assertEqual(result["applied_groups"], 1)
+        self.assertEqual(result["skipped_groups"], 1)
+        self.assertEqual([call[0] for call in groups.move_calls], [(1134, 0, 18)])
 
 
 if __name__ == "__main__":

@@ -79,6 +79,13 @@ def resolve(character, body, *, known_ids, waive_criteria=False):
 
 
 def bootstrap(character, *, direction=None, dungeon_context=None, protector_records=()):
+    from .protector_ecosystem import message_records
+
+    protector_records = message_records(
+        character["map_id"],
+        protector_records,
+        instance_id=character.get("instance_id", 0),
+    )
     if direction is None:
         direction = character.get("direction", 3)
     if type(direction) is not int or not 0 <= direction <= 7:

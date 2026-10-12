@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime
 
 from .protocol import SCHEMA_VERSION, MAX_SCOPES, validate_proposals, validate_query
+from .priority import InteractivePriority, is_interactive
 
 STALE_DOMAIN_STATUSES = frozenset(
     {
@@ -41,7 +42,10 @@ class EcologyWorldBridge:
         record=lambda **fields: None,
         clock=time.time,
         combat_sessions=None,
-        ecology_client=None
+        ecology_client=None,
+        background_limit=16,
+        background_budget_seconds=0.025,
+        monotonic=time.monotonic,
     ):
         if mode not in ("inline", "external", "disabled"):
             raise ValueError("Invalid ecology execution mode")
@@ -55,8 +59,20 @@ class EcologyWorldBridge:
         self.epoch = uuid.uuid4().hex
         self.plantings.ecology_world_epoch = self.epoch
         self.gate = threading.Lock()
+        if type(background_limit) is not int or not 1 <= background_limit <= 16:
+            raise ValueError("Invalid ecology background limit")
+        if not 0 < background_budget_seconds <= 1:
+            raise ValueError("Invalid ecology background budget")
+        self.priority = InteractivePriority()
+        self.background_limit = background_limit
+        self.background_budget_seconds = background_budget_seconds
+        self.monotonic = monotonic
         self.scope_offset = 0
         self.handlers = {}
+
+    def interactive(self):
+        """Mark a player request before it waits for gameplay locks."""
+        return self.priority.interactive()
 
     def query(self, kind, map_id, instance_id, region=None):
         """Read current ecology on demand; never block a gameplay critical section."""
@@ -151,13 +167,46 @@ class EcologyWorldBridge:
     def apply(self, envelope):
         proposals = validate_proposals(envelope)
         if not self.gate.acquire(blocking=False):
+            self.record(event="ecology_admission_busy", proposals=len(proposals))
             raise EcologyBusy("Ecology commit worker is busy")
         try:
-            results = []
-            for row in proposals:
+            results = {}
+            diagnostics = []
+            batch_started = time.monotonic()
+            background_count = 0
+            background_started = self.monotonic()
+            ordered = sorted(proposals, key=lambda row: not is_interactive(row))
+            for row in ordered:
+                row_started = time.monotonic()
+                admission_reason = None
                 if self.mode != "external" or row["world_epoch"] != self.epoch:
                     result = {"status": "stale"}
+                elif (
+                    not is_interactive(row)
+                    and row["payload"].get("world_epoch") == self.epoch
+                    and (
+                        self.priority.interactive_active
+                        or background_count >= self.background_limit
+                        or (
+                            background_count
+                            and self.monotonic() - background_started
+                            >= self.background_budget_seconds
+                        )
+                    )
+                ):
+                    result = {"status": "deferred"}
+                    admission_reason = (
+                        "player_active"
+                        if self.priority.interactive_active
+                        else "background_count"
+                        if background_count >= self.background_limit
+                        else "background_time"
+                    )
                 else:
+                    if not is_interactive(row):
+                        if background_count == 0:
+                            background_started = self.monotonic()
+                        background_count += 1
                     try:
                         payload = row["payload"]
                         if payload.get("world_epoch") != self.epoch:
@@ -167,6 +216,24 @@ class EcologyWorldBridge:
                             if handler is None:
                                 result = {"status": "retry"}
                             else:
+                                self.record(
+                                    event="ecology_handler_started",
+                                    proposal_id=row["id"],
+                                    domain=row["domain"],
+                                    kind=payload.get("kind"),
+                                    scope=payload.get("scope"),
+                                    resource_uid=payload.get("resource_uid")
+                                    or (
+                                        payload["expected"].get("resource_uid")
+                                        if isinstance(payload.get("expected"), dict)
+                                        else None
+                                    )
+                                    or (
+                                        payload["resource"].get("resource_uid")
+                                        if isinstance(payload.get("resource"), dict)
+                                        else None
+                                    ),
+                                )
                                 result = handler(payload)
                         if not isinstance(result, dict):
                             raise ValueError("Invalid ecology domain result")
@@ -182,7 +249,20 @@ class EcologyWorldBridge:
                                 rejected_status=status,
                             )
                             status = "stale"
-                        if status not in ("applied", "duplicate", "stale", "retry"):
+                        waiting = (
+                            status == "deferred"
+                            and row["domain"] == "plants"
+                            and payload.get("kind")
+                            in ("resource_growth", "resource_growth_bulk")
+                            and result.get("reason")
+                            in ("occupied", "not_due", "capacity")
+                        )
+                        if waiting:
+                            admission_reason = result["reason"]
+                        if (
+                            status not in ("applied", "duplicate", "stale", "retry")
+                            and not waiting
+                        ):
                             self.record(
                                 event="ecology_domain_status_rejected",
                                 domain=row["domain"],
@@ -199,7 +279,25 @@ class EcologyWorldBridge:
                             error_type=type(error).__name__,
                         )
                         result = {"status": "retry"}
-                results.append({"id": row["id"], **result})
-            return {"schema_version": SCHEMA_VERSION, "results": results}
+                results[row["id"]] = {"id": row["id"], **result}
+                diagnostics.append(
+                    dict(
+                        proposal_id=row["id"],
+                        domain=row["domain"],
+                        kind=row["payload"].get("kind"),
+                        status=result["status"],
+                        admission_reason=admission_reason,
+                        elapsed_ms=round((time.monotonic() - row_started) * 1000, 3),
+                    )
+                )
+            self.record(
+                event="ecology_apply_batch",
+                results=diagnostics,
+                elapsed_ms=round((time.monotonic() - batch_started) * 1000, 3),
+            )
+            return {
+                "schema_version": SCHEMA_VERSION,
+                "results": [results[row["id"]] for row in proposals],
+            }
         finally:
             self.gate.release()

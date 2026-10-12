@@ -128,6 +128,7 @@ def prepare_intents(store, snapshot, *, limit=4):
     from wakfu_server.combat_geometry import published_geometry
     from wakfu_server.haven_bag_garden import (
         active_character,
+        is_private_garden,
         authorize as garden_authorize,
     )
     from wakfu_server.planting_probability import resolver
@@ -170,7 +171,7 @@ def prepare_intents(store, snapshot, *, limit=4):
                     for key in LOCATION_KEYS
                 ):
                     raise ValueError("Planting origin changed during preparation")
-                if current_actor["map_id"] == 9:
+                if is_private_garden(current_actor):
                     return garden_authorize(
                         store, current_actor, request, seed, resource
                     )

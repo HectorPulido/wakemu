@@ -33,6 +33,33 @@ class OfflineMonsterCatalog:
             ):
                 raise ValueError("Invalid offline base manifest seal")
         self.roots = tuple(Path(root).resolve() for root in roots)
+        self.snapshot_receipts = []
+        for root in self.roots:
+            receipt_path = root / "snapshot-receipt.json"
+            if not receipt_path.is_file():
+                continue
+            raw = receipt_path.read_bytes()
+            receipt = json.loads(raw)
+            declared = receipt.get("document_hashes")
+            if not isinstance(declared, dict):
+                raise ValueError("Missing actual snapshot document seals")
+            if receipt.get("revision") != self.revision or any(
+                declared.get(name) != expected for name, expected in self.hashes.items()
+            ):
+                raise ValueError(
+                    "Actual snapshot differs from candidate base declarations"
+                )
+            self.snapshot_receipts.append(
+                dict(
+                    source=str(receipt_path),
+                    sha256=hashlib.sha256(raw).hexdigest(),
+                    authority=receipt.get("authority"),
+                    revision=receipt["revision"],
+                    exported_document_count=len(
+                        receipt.get("exported_document_hashes", {})
+                    ),
+                )
+            )
         self.verified = {}
         self.failures = []
 
@@ -125,6 +152,7 @@ class OfflineMonsterCatalog:
                 (self.candidate / "manifest.json").read_bytes()
             ).hexdigest(),
             declared_document_count=len(self.hashes),
+            actual_snapshot_provenance=list(self.snapshot_receipts),
             verified_documents=dict(self.verified),
             failed_reads=list(self.failures),
             qualification="only_accessed_hash_verified_documents; deployment_requires_live_rebase",

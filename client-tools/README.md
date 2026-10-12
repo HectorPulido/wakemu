@@ -56,7 +56,7 @@ Combat observation requires an existing legitimate fight and capture/inspector d
 
 ## Private files and patches
 
-Game resources stay in `client/`. Isolated configuration, credentials, profiles, logs, compiled agents, packages and original patch backups stay in `.runtime/`. Both directories are ignored by Git. Never add game assets, patched archives, tokens or generated captures to `client-tools/`.
+Game resources stay in `client/`. Generated client configuration, session tokens, profiles, logs, compiled agents, packages and original patch backups stay in `.runtime/`. Persistent server credentials and administration state belong in `.database/`. All three directories are ignored by Git. Never add game assets, patched archives, tokens or generated captures to `client-tools/`.
 
 The particle patch validates the native script before editing the user-supplied `scripts.jar`, keeps the original in `.runtime/client-patches/`, and is safe to repeat. Restart the game client after applying it. An unknown archive layout is rejected without mutation.
 

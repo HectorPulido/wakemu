@@ -15,7 +15,7 @@ COPY tools/prepare_geometry_artifacts.py tools/prepare_los_artifacts.py ./tools/
 COPY docker-entrypoint.sh ./
 ENV WAKFU_RUNTIME=/data \
     WAKFU_CATALOG_REVISION=${CATALOG_REVISION} \
-    WAKFU_CAPTURE_PATH=/fixtures/frames.jsonl WAKFU_BIND_HOST=0.0.0.0 \
+    WAKFU_BIND_HOST=0.0.0.0 \
     PYTHONUNBUFFERED=1
 EXPOSE 15556 15558 16337 18081
 ENTRYPOINT ["/bin/sh", "/app/docker-entrypoint.sh"]

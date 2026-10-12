@@ -91,8 +91,9 @@ def retire_exhausted_trap(fight, row, *, callbacks):
         return False
     if getattr(fight, "native_effect_areas", {}).get(row["uid"]) is not row:
         return False  # An activation child already removed the actual area.
-    from .combat_effect_area import remove_owned_hour_area
-
     row["native_exhausted_retirement_policy"] = "wakemu.successful-activation.Qq.baD-v1"
-    remove_owned_hour_area(fight, row["uid"], callbacks=callbacks)
+    # Retiring only the Qs area leaves its eYW application on the owner's Qf
+    # and therefore leaves the trap drawn on every client. Unapply that actual
+    # parent through the shared retained removal path as mask removal does.
+    callbacks.remove_parent(row)
     return True

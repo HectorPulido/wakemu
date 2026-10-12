@@ -964,6 +964,40 @@ class NativeSession:
         self.request_id = uuid.uuid4().hex
         self.states = {}
         self.state_identities = {}
+        # Forecasts keep the complete native world for legality, but may not
+        # teach the planner where an unseen opponent is, or which guessed
+        # area attack would damage it. Freeze this observer scope for this
+        # decision: a real reveal is observed by the next decision session.
+        observer = getattr(oracle.runtime.fight, "current", None)
+        property_provider = getattr(oracle, "observation_properties", None)
+        observed_properties = (
+            property_provider(oracle.runtime)
+            if callable(property_provider)
+            else {
+                actor.id: getattr(actor, "native_fight_properties", None)
+                for actor in getattr(oracle.runtime.fight, "actors", {}).values()
+            }
+        )
+        if hasattr(oracle.runtime.fight, "native_global_pv_collections"):
+            for actor in oracle.runtime.fight.actors.values():
+                if actor.hp <= 0:
+                    continue
+                properties = observed_properties.get(actor.id)
+                if not isinstance(properties, frozenset) or any(
+                    type(value) is not int for value in properties
+                ):
+                    raise ValueError("Missing complete native AI visibility properties")
+        self.unobserved_actor_ids = frozenset(
+            actor.id
+            for actor in getattr(oracle.runtime.fight, "actors", {}).values()
+            if observer is not None
+            and actor.team != observer.team
+            and {5, 18}.intersection(observed_properties.get(actor.id) or ())
+        )
+        area_provider = getattr(oracle, "unobserved_areas", None)
+        self.unobserved_area_ids = (
+            area_provider(oracle.runtime) if callable(area_provider) else frozenset()
+        )
 
         def capture_source_baseline():
             components = self._source_components()
@@ -1124,6 +1158,8 @@ class NativeSession:
             raise ValueError("Unknown native oracle state")
         runtime, actors = self.states[key], []
         for actor in sorted(runtime.fight.actors.values(), key=lambda a: a.id):
+            if actor.id in getattr(self, "unobserved_actor_ids", ()):
+                continue
             # Public metrics are convenient views. The complete native fields
             # remain in the associated verified native snapshot, without loss.
             if not isinstance(actor.effect_stats, dict) or any(
@@ -1183,9 +1219,18 @@ class NativeSession:
                 actor_id=fight.current.id if fight.current is not None else None,
             )
         )
+        # Facings are also position information. They must follow exactly
+        # the same observation scope as topology and scoring actor metrics.
+        for identity in getattr(self, "unobserved_actor_ids", ()):
+            description["nativeFacings"].pop(str(identity), None)
         if hasattr(self.oracle, "outcome_features"):
             measurements = self.oracle.outcome_features(runtime)
-            if measurements is not None:
+            # Arbitrary feature providers operate on complete authority and
+            # have no visibility contract; do not expose their private deltas.
+            if measurements is not None and not (
+                getattr(self, "unobserved_actor_ids", ())
+                or getattr(self, "unobserved_area_ids", ())
+            ):
                 description["outcomeFeatures"] = measurements
         return description
 
@@ -1199,6 +1244,29 @@ class NativeSession:
 
         self.guard()
         root = self.describe(self.root)
+        coordination = team_context(
+            self.oracle.runtime.fight,
+            self.fight_instance_id,
+            self.oracle.runtime.fight.current.id,
+        )
+        if coordination.get("focusId") in self.unobserved_actor_ids:
+            coordination = dict(coordination, focusId=None)
+        if self.unobserved_actor_ids and "corridors" in coordination:
+            corridors = [
+                row
+                for row in coordination["corridors"]
+                if row.get("targetId") not in self.unobserved_actor_ids
+            ]
+            coordination = dict(
+                coordination,
+                corridors=corridors,
+                reservedCells=[
+                    list(cell)
+                    for cell in sorted(
+                        {tuple(cell) for row in corridors for cell in row["cells"]}
+                    )
+                ],
+            )
         return dict(
             protocol=3,
             requestId=self.request_id,
@@ -1214,11 +1282,7 @@ class NativeSession:
             policy=self.policy,
             rootState=self.root,
             root=root,
-            teamContext=team_context(
-                self.oracle.runtime.fight,
-                self.fight_instance_id,
-                self.oracle.runtime.fight.current.id,
-            ),
+            teamContext=coordination,
             operations=list(self.OPERATIONS),
             **self._budget_hint()
         )
@@ -1329,9 +1393,14 @@ class NativeSession:
         if operation == "preview" and isinstance(action, dict):
             kind = action.get("type")
             name += ":" + (kind if kind in ("cast", "move", "end_turn") else "other")
-        return self._measure_native_query(
-            name, lambda: self._query_unmeasured(operation, key, request)
-        )
+        from wakfu_server.combat_observation_scope import unobserved_area_forecast
+
+        # This encloses preview, fallback previews, and every projected turn
+        # boundary. The scope ends before certification or real publication.
+        with unobserved_area_forecast(getattr(self, "unobserved_area_ids", ())):
+            return self._measure_native_query(
+                name, lambda: self._query_unmeasured(operation, key, request)
+            )
 
     def _query_unmeasured(self, operation, key, request):
         runtime = self.states[key]
@@ -1370,7 +1439,18 @@ class NativeSession:
             result["transitionContext"] = result["nativeContext"]
             from ..native.native_damage_observer import evidence
 
-            result["damageContextEvidence"] = evidence(samples)
+            observed_damage = evidence(samples)
+            hidden = getattr(self, "unobserved_actor_ids", ())
+            result["damageContextEvidence"] = [
+                row
+                for row in observed_damage
+                if not hidden
+                or (
+                    not row.get("observationUnavailable")
+                    and row.get("casterId") not in hidden
+                    and row.get("targetId") not in hidden
+                )
+            ]
         elif operation == "line_of_sight":
             result = dict(
                 visible=self.oracle.visible(
@@ -1385,6 +1465,8 @@ class NativeSession:
             from wakfu_server.spells import SPELLS
 
             actor_id = request.get("actorId", runtime.fight.current.id)
+            if actor_id in getattr(self, "unobserved_actor_ids", ()):
+                raise ValueError("Unobserved actor cannot supply AI repertoire")
             owned = self.oracle.owned_spells(runtime.fight, actor_id)
             metadata = dict(
                 actorId=actor_id,
@@ -1455,6 +1537,7 @@ class NativeSession:
             maximum = request.get("maxTurns", len(runtime.fight.actors))
             if (
                 type(target) is not int
+                or target in getattr(self, "unobserved_actor_ids", ())
                 or target not in runtime.fight.actors
                 or runtime.fight.actors[target].hp <= 0
                 or type(maximum) is not int

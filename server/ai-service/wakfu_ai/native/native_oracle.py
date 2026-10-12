@@ -132,6 +132,47 @@ class NativeOracle:
         check()
         return checked
 
+    def unobserved_areas(self, runtime):
+        """Hidden fbc traps are unknown to hostile observers, not immune."""
+        from wakfu_server.combat_effect_area import native_effect_areas
+        from wakfu_server.combat_trap_area import verified_trap_characteristics
+
+        observer = runtime.fight.current
+        if observer is None:
+            return frozenset()
+        result = set()
+        definitions = None
+        for row in getattr(runtime.fight, "native_effect_areas", {}).values():
+            if row.get("native_area_contract") != "fbc":
+                continue
+            if definitions is None:
+                definitions = native_effect_areas()
+            definition = definitions.get(str(row["reference"]))
+            if definition is None:
+                raise ValueError("Missing native observer trap prototype")
+            verified_trap_characteristics(row, definition)
+            owner = runtime.fight.actors.get(row["owner_id"])
+            if row["native_trap_constructor"]["fqx"] and (
+                owner is None or owner.team != observer.team
+            ):
+                result.add(row["uid"])
+        return frozenset(result)
+
+    def observation_properties(self, runtime):
+        """Read current PB through the same profile/live authority as casting.
+
+        Fresh ordinary fighters legitimately have no live override: their
+        complete baseline is owned by OrdinaryActorAuthority's catalog.
+        """
+        _, adapter = self.factory(
+            runtime.fight, runtime.action_id + 1, random.Random(0)
+        )
+        return {
+            actor.id: adapter.actor_authority.properties(runtime.fight, actor)
+            for actor in runtime.fight.actors.values()
+            if actor.hp > 0
+        }
+
     def factory(self, fight, action_id, rng, *, critical=False, compiled=None):
         from wakfu_server.spells import validate_deck
         from wakfu_server.combat_ordinary_authority import (
