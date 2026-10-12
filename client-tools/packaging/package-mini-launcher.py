@@ -120,15 +120,8 @@ def build(output):
                     [
                         sys.executable,
                         str(ROOT / "server/tools/build_dungeon_entry_overrides.py"),
-                        "--inventory",
-                        str(ROOT / "docs/reports/dungeons/inventory.json"),
                         "--client-jar",
                         str(ROOT / "client/lib/wakfu-client.jar"),
-                        "--source-version",
-                        str(
-                            ROOT
-                            / "client-tools/runtime/dungeon-entry-source-version.json"
-                        ),
                         "--output",
                         str(policy_file),
                     ],
