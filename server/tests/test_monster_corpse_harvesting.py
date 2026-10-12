@@ -490,6 +490,148 @@ class MonsterCorpseHarvestTests(PostgresCase):
                 ).fetchone()["n"],
             )
 
+    def test_owned_ranch_corpse_harvest_preserves_exterior_and_rejects_foreign_scope(
+        self,
+    ):
+        from wakfu_server.haven_bag import HavenBagSession
+        from wakfu_server.haven_ranch import RanchSession
+
+        saved = self.store.character(self.account, self.character["id"])
+        exterior = tuple(saved[key] for key in ("map_id", "instance_id", "x", "y", "z"))
+        bag = HavenBagSession(saved)
+        session = RanchSession(
+            bag,
+            bag.inside,
+            dict(biome_id=1, map_id=1440, x=28, y=6, z=4),
+            lease=self.generation,
+            now_ms=1000000,
+        )
+        inside = dict(session.inside)
+        with self.store.connection() as db:
+            fight_id = db.execute(
+                "INSERT INTO combat_fights(status) VALUES('finished') RETURNING id"
+            ).fetchone()["id"]
+            member = owned_instance(
+                self.monster_ref,
+                REFERENCES[self.monster_ref]["min_level"],
+                -920002,
+                map_id=1440,
+                instance_id=inside["instance_id"],
+                x=28,
+                y=6,
+                z=4,
+            )
+            fight = SimpleNamespace(
+                id=fight_id,
+                phase="finished",
+                actors={member["id"]: SimpleNamespace(hp=0, controlled=False)},
+            )
+            self.assertEqual(monster_corpses.retain(db, fight, (member,)), 1)
+            corpse_id = db.execute(
+                "SELECT actor_id FROM monster_corpses WHERE fight_id=%s", (fight_id,)
+            ).fetchone()["actor_id"]
+        corpse = dict(member, id=corpse_id, hp=0, corpse=True)
+        request = proto_field(8, self.action_id) + proto_field(
+            16, corpse_id % (2**64)
+        )
+        projected = []
+
+        def project(fresh):
+            session.validate_lease(self.generation)
+            active = session.refresh(inside, fresh)
+            projected.append(active)
+            return active
+
+        foreign_account = self.store.register(
+            "foreign-ranch-harvester", "local-password"
+        )["id"]
+        foreign = self.store.create_character(foreign_account, "Foreign Ranch")
+        foreign_generation = self.store.begin_session(foreign_account)
+        self.store.select_character(foreign_account, foreign_generation, foreign["id"])
+        foreign_bag = HavenBagSession(foreign)
+        foreign_session = RanchSession(
+            foreign_bag,
+            foreign_bag.inside,
+            dict(biome_id=1, map_id=1440, x=28, y=6, z=4),
+            lease=foreign_generation,
+            now_ms=1000000,
+        )
+        with self.assertRaises(ValueError):
+            Harvests(self.store).begin(
+                foreign_account,
+                foreign_generation,
+                foreign["id"],
+                request,
+                corpse,
+                profession_level=0,
+                reachable=True,
+                location_context=lambda fresh: foreign_session.refresh(
+                    foreign_session.inside, fresh
+                ),
+            )
+        self.harvest.begin(
+            self.account,
+            self.generation,
+            saved["id"],
+            request,
+            corpse,
+            profession_level=0,
+            reachable=True,
+            location_context=project,
+        )
+        self.now[0] += self.rule["duration_ms"] / 1000
+        result = self.harvest.complete(
+            self.account,
+            self.generation,
+            saved["id"],
+            b"\x02\x00\x06",
+            monster=corpse,
+            profession_level=0,
+            location_context=project,
+        )
+        self.assertTrue(result["applied"])
+        self.assertEqual(len(projected), 2)
+        self.assertEqual(projected[-1]["map_id"], 1440)
+        self.assertEqual(projected[-1]["instance_id"], inside["instance_id"])
+        self.assertFalse(
+            self.harvest.complete(
+                self.account,
+                self.generation,
+                saved["id"],
+                b"\x02\x00\x06",
+                monster=corpse,
+                profession_level=0,
+                location_context=project,
+            )["applied"]
+        )
+        with self.store.connection() as db:
+            durable = self.store.character(self.account, saved["id"], db)
+            self.assertEqual(
+                tuple(durable[key] for key in ("map_id", "instance_id", "x", "y", "z")),
+                exterior,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM monster_harvest_receipts WHERE monster_id=%s",
+                    (corpse_id,),
+                ).fetchone()["n"],
+                1,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT sum(quantity) AS n FROM inventory_items WHERE character_id=%s AND reference=2731",
+                    (saved["id"],),
+                ).fetchone()["n"],
+                1,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM inventory_items WHERE character_id=%s AND reference=2731",
+                    (foreign["id"],),
+                ).fetchone()["n"],
+                0,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

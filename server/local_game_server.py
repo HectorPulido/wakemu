@@ -6060,10 +6060,14 @@ def session(raw, peer, service, context):
                     from wakfu_server.combat_terrain import map_geometry
 
                     try:
-                        if fight is not None or bag_session is not None:
+                        if fight is not None or (
+                            bag_session is not None and ranch_session is None
+                        ):
                             raise ValueError(
                                 "La recolección requiere estar fuera del combate y del merkasaco"
                             )
+                        if ranch_session is not None:
+                            ranch_session.validate_lease(generation)
                         request = decode_request(body)
                         with COMBAT_GROUPS.lock:
                             monster = harvest_target(character, request["monster_id"])
@@ -6088,6 +6092,7 @@ def session(raw, peer, service, context):
                                     rule["profession_id"],
                                 ),
                                 reachable=reachable,
+                                location_context=refresh_owned_character,
                             )
                         send(connection, service, *packet)
                         record(
@@ -6197,6 +6202,7 @@ def session(raw, peer, service, context):
                                 character["id"],
                                 body,
                                 monster=monster,
+                                location_context=refresh_owned_character,
                                 profession_level=profession_level(
                                     STORE,
                                     account_id,
@@ -6211,7 +6217,9 @@ def session(raw, peer, service, context):
                         for message_id, payload in result["packets"]:
                             send(connection, service, message_id, payload)
                         if result["applied"]:
-                            character = STORE.character(account_id, character["id"])
+                            character = refresh_owned_character(
+                                STORE.character(account_id, character["id"])
+                            )
                             send(connection, service, *equipment_inventory(character))
                             send_native_planting_bonus(connection, character)
                         record(
