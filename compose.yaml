@@ -13,14 +13,15 @@ services:
       # Official PostgreSQL entrypoint restores only when the volume is empty.
       - ./database/docker/20-restore-runtime.sh:/docker-entrypoint-initdb.d/20-restore-runtime.sh:ro
       - ./database/backups:/bootstrap:ro
-      - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
+      - ./.database/secrets:/run/secrets:ro
     networks: [isolated, client-access]
     healthcheck:
       test: [CMD-SHELL, 'pg_isready -h 127.0.0.1 -U wakemu -d wakemu_runtime']
       interval: 5s
       timeout: 3s
       retries: 30
-      start_period: 180s
+      # TCP readiness starts only after the entrypoint finishes initial restore.
+      start_period: ${WAKFU_POSTGRES_START_PERIOD:-30m}
   world:
     image: ${WAKFU_WORLD_IMAGE:-wakemu-world:systems-20261011}
     build:
@@ -193,6 +194,7 @@ services:
       dockerfile: ecology-service/Dockerfile
       args:
         CATALOG_REVISION: ${WAKFU_CATALOG_REVISION:-bd79c10d0f29de7a32fa29f5d91439388de9ace3f8c2b9ed73f8314856667ae1}
+    user: "${WAKFU_SERVICE_UID:-1000}:${WAKFU_SERVICE_GID:-1000}"
     init: true
     depends_on:
       world:
@@ -213,8 +215,7 @@ services:
       WAKFU_RUNTIME: /data
       WAKFU_PLANT_GROWTH_SECONDS: ${WAKFU_PLANT_GROWTH_SECONDS:-30}
     volumes:
-      - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
-      - ./.database/secrets/ecology-token:/run/secrets/ecology-token:ro
+      - ./.database/secrets:/run/secrets:ro
     networks: [isolated]
     read_only: true
     tmpfs:

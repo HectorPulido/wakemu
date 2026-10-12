@@ -322,7 +322,7 @@ def main():
                 "WAKFU_DATABASE_PASSWORD_FILE",
                 str(
                     Path(__file__).resolve().parents[2]
-                    / ".runtime/local/secrets/postgres-password"
+                    / ".database/secrets/postgres-password"
                 ),
             )
         )
