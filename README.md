@@ -19,15 +19,15 @@ A personal experiment in understanding game protocols and building a Python serv
 
 **Combat with heroes**
 
-<a href="screenshots/combatwithheroes.png"><img src="screenshots/combatwithheroes.png" alt="Turn-based combat with heroes" width="720"></a>
+<a href="screenshots/combatwithheroes.jpg"><img src="screenshots/combatwithheroes.jpg" alt="Turn-based combat with heroes" width="720"></a>
 
 **Planting**
 
-<a href="screenshots/planting.png"><img src="screenshots/planting.png" alt="Planting resources in the world" width="720"></a>
+<a href="screenshots/planting.jpg"><img src="screenshots/planting.jpg" alt="Planting resources in the world" width="720"></a>
 
 **Shop**
 
-<a href="screenshots/shop.png"><img src="screenshots/shop.png" alt="Local shop interface" width="720"></a>
+<a href="screenshots/shop.jpg"><img src="screenshots/shop.jpg" alt="Local shop interface" width="720"></a>
 
 ## What's missing
 
