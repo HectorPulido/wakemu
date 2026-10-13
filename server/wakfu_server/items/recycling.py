@@ -248,7 +248,9 @@ def _guard_item(store, db, character, item, state, disabled):
     from .inventory_move import STACKS
 
     stack = STACKS.get(reference)
-    if stack is None or not 1 <= item["quantity"] <= stack["maximum"]:
+    if stack is None or not 1 <= item["quantity"] <= stack.get(
+        "native_maximum", stack["maximum"]
+    ):
         raise ValueError("Unknown or oversized native recycling stack")
 
     offered = db.execute(
@@ -302,7 +304,7 @@ def _offered_uids(db, character_id):
 def _grant_products(db, character, products, *, offered_uids, equipped_uids):
     from .inventory_elements import masks
     from .inventory_items import insertion
-    from .inventory_move import STACKS
+    from .inventory_move import ACQUISITION_STACKS as STACKS
     from .inventory_uids import allocate
 
     packets = []
@@ -503,7 +505,7 @@ def recycle(store, account_id, generation, character_id, body, *, fight=None, rn
 
         # Prove every granted product fits before deleting a source item. Product
         # grants use the permanent bag only and may split across its native stacks.
-        from .inventory_move import STACKS
+        from .inventory_move import ACQUISITION_STACKS as STACKS
         from .inventory_elements import masks
 
         base = character["inventory_containers"][0]

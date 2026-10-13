@@ -378,8 +378,8 @@ def _consume(
     ).fetchone()
     if item is None:
         raise ValueError("Socket sacrifice item is unavailable or foreign")
-    if item["quantity"] < 1 or (item["quantity"] != 1 and not allow_stack):
-        raise ValueError("Socket sacrifice requires an unstacked item UID")
+    if item["quantity"] < 1:
+        raise ValueError("Socket sacrifice item is empty")
     if expected_reference is not None and item["reference"] != expected_reference:
         raise ValueError("Socket sacrifice reference is incompatible")
     if db.execute(
@@ -388,6 +388,10 @@ def _consume(
         raise ValueError("Socket sacrifice item is offered in an exchange")
     if _equipped(store, db, account_id, character_id, uid):
         raise ValueError("Unequip socket sacrifice before consuming it")
+    if not allow_stack:
+        from wakfu_server.equipment_stacks import ensure_singleton
+
+        item = ensure_singleton(db, character_id, uid)
     if item["quantity"] == 1:
         db.execute("DELETE FROM inventory_items WHERE uid=%s", (uid,))
     else:
@@ -434,8 +438,11 @@ def mutate(
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s FOR UPDATE",
             (uid, character_id),
         ).fetchone()
-        if item is None or item["quantity"] != 1:
-            raise ValueError("Socket mutation requires one owned unstacked item")
+        if item is None:
+            raise ValueError("Socket mutation requires one owned item")
+        from wakfu_server.equipment_stacks import ensure_singleton
+
+        item = ensure_singleton(db, character_id, uid)
         from .shard_identification import _catalog
         from .sublimation_eligibility import pattern, special_target
 
@@ -750,8 +757,11 @@ def install_bonus(store, account_id, generation, character_id, body):
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s FOR UPDATE",
             (target_uid, character_id),
         ).fetchone()
-        if item is None or item["quantity"] != 1:
+        if item is None:
             raise ValueError("Socket bonus target must be one owned item")
+        from wakfu_server.equipment_stacks import ensure_singleton
+
+        item = ensure_singleton(db, character_id, target_uid)
         from .shard_identification import _catalog as socket_catalog, _current_elements
 
         template = socket_catalog().get(item["reference"])

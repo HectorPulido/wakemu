@@ -31,3 +31,15 @@ def mark_restored_strategy(actor):
         raise ValueError("Missing actual eGz restore strategy component")
     # Native lD(true) only sets pHO. It neither clears dsA nor changes fdy/QI.
     snapshot["restored"] = True
+
+
+def has_been_raised_by_effect(actor):
+    """eMc queries eGj.frH/eGz.pHO, without consulting HP or death state."""
+    snapshot = getattr(actor, "native_restore_strategy", None)
+    if (
+        not isinstance(snapshot, dict)
+        or snapshot.get("source") != "fresh.eGz.pHO"
+        or type(snapshot.get("restored")) is not bool
+    ):
+        raise ValueError("Missing actual eGz restore strategy component")
+    return snapshot["restored"]

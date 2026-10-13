@@ -259,6 +259,15 @@ class OrdinaryActorAuthority:
             native_captured_roster=captured_roster,
             # eGj.aWs assigns dpV to asQ: bjo=0, bje=1.
             native_actor_type=0 if player else 1,
+            native_npc_prototype_ref=None if player else source["ref"],
+            native_copied_equipment_operand=None if player else 0,
+            # eGj constructor initializes ePn=0; ordinary NPC blobs do not
+            # replace it. Owned PC sources preserve the real account/selected
+            # primary; unavailable player primary remains unknown.
+            native_account_id=source.get("account_id") if player else 0,
+            native_primary_character_id=(
+                source.get("selected_character_id") if player else 0
+            ),
             native_sex=ordinary_native_sex(source, player),
             native_selected_cosmetics=selected_cosmetics,
             native_active_cosmetics=active_cosmetics,

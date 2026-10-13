@@ -72,6 +72,7 @@ class EcaflipSummonDeathPipelineTests(unittest.TestCase):
                 break
             self.end_current_turn(fight, data)
         self.assertEqual(fight.current.id, -7)
+        owner_hp_before = fight.actors[7].hp
         source = snapshot(fight)
         tx = prepare_npc_spell(
             fight,
@@ -91,6 +92,9 @@ class EcaflipSummonDeathPipelineTests(unittest.TestCase):
         self.assertEqual(snapshot(fight), source)
         dead = tx.fight.actors[summon.id]
         self.assertEqual(dead.hp, 0)
+        # Native Bow Meow life link copies incoming damage to its Ecaflip.
+        self.assertLess(tx.fight.actors[7].hp, owner_hp_before)
+        self.assertEqual(fight.actors[7].hp, owner_hp_before)
         self.assertEqual(dead.native_obstacle_id, -1)
         current_registry(tx.fight)
         from wakfu_server.combat_spell_grant import granted_spells

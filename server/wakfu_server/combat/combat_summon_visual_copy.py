@@ -12,6 +12,10 @@ def plan_summon_visual_copy(authority, fight, caster):
     from .combat_runtime_adapter import NativeActorAuthority
 
     metadata = authority(fight, caster)
+    if isinstance(metadata, NativeActorAuthority) and metadata.native_actor_type == 1:
+        from .combat_npc_visual_copy import npc_visual_copy_plan
+
+        return npc_visual_copy_plan(metadata, caster.id)
     if (
         not isinstance(metadata, NativeActorAuthority)
         or metadata.native_actor_type != 0
@@ -32,11 +36,13 @@ def plan_summon_visual_copy(authority, fight, caster):
 
 
 def install_summon_visual_copy(
-    fight, actor, caster, authority, *, equipment_apply=None
+    fight, actor, caster, authority, *, equipment_apply=None, after_common_factory=None
 ):
     plan = getattr(actor, "native_pending_summon_visual_copy", None)
     replication = getattr(actor, "native_pending_summon_equipment_replication", None)
     if plan is None and replication is None:
+        if after_common_factory is not None:
+            after_common_factory()
         return False
     registration = getattr(fight, "native_summon_registrations", {}).get(actor.id)
     if (
@@ -87,6 +93,8 @@ def install_summon_visual_copy(
         if callable(equipment_apply):
             equipment_apply(fight, actor, plan["equipment"])
         del actor.native_pending_summon_visual_copy
+    if after_common_factory is not None:
+        after_common_factory()
     if replication is not None:
         actor.native_summon_equipment_replication_source = deepcopy(replication)
         calls.append(dict(callsite="eZl.c.reference3251.PJ", **deepcopy(replication)))

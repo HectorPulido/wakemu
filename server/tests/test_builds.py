@@ -121,6 +121,8 @@ class BuildTests(PostgresCase):
             )
 
     def test_session_replacement_and_other_account_cannot_mutate_build(self):
+        before = self.store.character(self.account, self.character["id"])["builds"]
+        self.assertTrue(before[0]["deck"])
         other = self.store.register("second", "local-other-password")["id"]
         foreign = self.store.begin_session(other)
         with self.assertRaises(ValueError):
@@ -130,11 +132,13 @@ class BuildTests(PostgresCase):
             self.store.save_build(
                 self.account, self.generation, self.character["id"], 0, self.blobs
             )
-        self.assertFalse(
-            self.store.character(self.account, self.character["id"])["builds"]
+        self.assertEqual(
+            self.store.character(self.account, self.character["id"])["builds"], before
         )
 
     def test_unowned_equipment_and_aptitude_points_are_rejected(self):
+        before = self.store.character(self.account, self.character["id"])["builds"]
+        self.assertTrue(before[0]["deck"])
         for key, payload in [
             ("equipment", wire.proto_field(10, b"item id")),
             ("aptitudes", wire.proto_field(34, b"bonus")),
@@ -147,8 +151,8 @@ class BuildTests(PostgresCase):
                     0,
                     {**self.blobs, key: payload},
                 )
-        self.assertFalse(
-            self.store.character(self.account, self.character["id"])["builds"]
+        self.assertEqual(
+            self.store.character(self.account, self.character["id"])["builds"], before
         )
 
     def test_saved_build_replaces_reconnect_build_slot(self):

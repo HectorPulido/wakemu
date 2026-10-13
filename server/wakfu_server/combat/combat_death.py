@@ -41,6 +41,13 @@ def death_messages(runtime, actor_id, *, fighter_state=None):
     actor = runtime.fight.actors.get(actor_id)
     if actor is None or actor.hp != 0:
         raise ValueError("Death requires an owned zero-HP fight actor")
+    pending_restoration = False
+    if fighter_state is None and not actor.controlled:
+        from .combat_pending_restoration import pending_restoration_uids
+
+        pending_restoration = bool(pending_restoration_uids(runtime.fight, actor_id))
+    if pending_restoration:
+        fighter_state = 0
     if fighter_state is None:
         fighter_state = (
             0
@@ -101,6 +108,12 @@ def death_messages(runtime, actor_id, *, fighter_state=None):
 
     status_preview = deepcopy(actor)
     apply_native_fighter_state_transition(status_preview, fighter_state)
+    if fighter_state == 2:
+        status_preview.native_death_status.pop("pending_restoration", None)
+    if pending_restoration:
+        from .combat_pending_restoration import SOURCE
+
+        status_preview.native_death_status["pending_restoration"] = SOURCE
     from .combat_ordinary_qi_retirement import complete_ordinary_qi_death
 
     # Serialize every packet on a shallow runtime preview before committing.

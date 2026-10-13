@@ -375,6 +375,7 @@ def prepare(store, snapshot, limit=16):
         scope_occupied = {
             wander.point(member) for group in groups for member in group["members"]
         }
+        neighbors = wander.group_neighbor_index(groups)
         moved_member_count = 0
         packet_bytes = 0
         plan_deadline = time.monotonic() + MAX_WANDER_BATCH_SECONDS
@@ -401,6 +402,7 @@ def prepare(store, snapshot, limit=16):
                 scoped,
                 (),
                 occupied=scope_occupied - own_cells,
+                neighbor_index=neighbors,
                 radius=configuration["radius"],
                 min_steps=configuration["min_steps"],
                 max_steps=configuration["max_steps"],

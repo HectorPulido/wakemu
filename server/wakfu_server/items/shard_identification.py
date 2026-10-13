@@ -164,10 +164,10 @@ def identify(
     """Apply local 13787 policy once to one owned, unstacked inventory UID.
 
     `status` uses only the client-confirmed 13766 ordinals: 0 success and 2
-    too-high-level. The operation mutates an existing UID in place and
-    therefore does not allocate inventory capacity. Stacks are rejected until
-    a native split/result-UID contract is available; this adapter does not
-    fabricate status 1 or split behavior.
+    too-high-level. Successful operations separate one unit when necessary,
+    keeping the requested UID and publishing the remainder through the native
+    bag snapshot. Capacity failures raise a domain error without charging or
+    changing inventory.
     """
     if not isinstance(body, bytes) or len(body) != 8:
         raise ValueError("Invalid native socket identification request")
@@ -205,8 +205,6 @@ def identify(
         ).fetchone()
         if item is None:
             raise ValueError("Socket identification item is unavailable or foreign")
-        if item["quantity"] != 1:
-            raise ValueError("Socket identification requires one unstacked item UID")
         if (
             db.execute(
                 "SELECT 1 FROM player_exchange_items WHERE uid=%s LIMIT 1", (uid,)
@@ -239,6 +237,9 @@ def identify(
                     "Socket identification receipt has no current shard state"
                 )
             state = validate(bytes(shard_row["shard_state"]))
+            from wakfu_server.equipment_stacks import ensure_singleton
+
+            ensure_singleton(db, character_id, uid)
             return dict(
                 uid=uid,
                 status=0,
@@ -257,6 +258,9 @@ def identify(
             # Already identified state may arrive from an exchange or a legacy
             # owner. Return it unchanged rather than generating or charging.
             state = validate(bytes(existing["shard_state"]))
+            from wakfu_server.equipment_stacks import ensure_singleton
+
+            ensure_singleton(db, character_id, uid)
             return dict(
                 uid=uid,
                 status=0,
@@ -299,6 +303,9 @@ def identify(
             # 13766 status 1 is named NO_ENOUGH_SPACE, not insufficient funds;
             # do not mislabel an economic failure with that native status.
             raise ValueError("Insufficient local-policy kamas")
+        from wakfu_server.equipment_stacks import ensure_singleton
+
+        item = ensure_singleton(db, character_id, uid)
         state = _shard_state(template, policy, randbelow)
         if cost:
             db.execute(

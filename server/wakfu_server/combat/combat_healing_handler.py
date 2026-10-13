@@ -47,6 +47,7 @@ class NativeHealingHandler:
         if emit_events is not None and not callable(emit_events):
             raise ValueError("Native healing event emitter must be callable")
         self.emit_events = emit_events
+        self.retention = None
         self.event_lifecycle = None
         self.prepared = {}
         self.final_modifiers = {}
@@ -130,6 +131,13 @@ class NativeHealingHandler:
             allowed_flags.add(
                 29
             )  # LIFE_STEAL_HEAL_EFFECT marker; no arithmetic consumer.
+        if 8 in flags:
+            # faK/faI owns rwE target ordering and the signed target cap;
+            # eXs/fat healing arithmetic does not consume this flag.
+            from .combat_target_ordering import validate_native_target_ordering_identity
+
+            validate_native_target_ordering_identity(effect, invocation.reference)
+            allowed_flags.add(8)
         if any(type(flag) is not int for flag in flags) or flags - allowed_flags:
             raise ValueError("Unhandled native healing flags")
         if 15 in flags:
@@ -351,6 +359,23 @@ class NativeHealingHandler:
             minimum=context.resistance_minimum,
             maximum=context.resistance_maximum,
         )
+        pending_retained = None
+        from .combat_native_timing_context import native_definition_timing
+
+        # eXs inherits eZR.Ty and Qe.bbR. Own the actual applied runner;
+        # expiry removes that runner without reversing its healing.
+        if (
+            "native_execution_mode" in effect
+            and native_definition_timing(effect, invocation.level)["retained"]
+        ):
+            if self.retention is None:
+                raise ValueError("Missing retained native healing owner")
+            pending_retained = self.retention.begin_healing(
+                effect,
+                values,
+                replace(invocation, native_running_uid=uid),
+                initial_value=result["value"],
+            )
         packet = direct_healing(
             self.fight.id,
             self.action_id,
@@ -400,6 +425,9 @@ class NativeHealingHandler:
             )
         elif self.emit_events is not None:
             self.emit_events(effect, invocation, packet)
+        if pending_retained is not None:
+            self.retention.finish_group(pending_retained, notify=False)
+
         from .combat_runner_callbacks import notify_runner_value
 
         notify_runner_value(invocation, runner.value)

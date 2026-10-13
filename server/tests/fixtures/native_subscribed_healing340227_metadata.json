@@ -1,0 +1,30 @@
+{
+  "source": ".runtime/monster-activation-recovery-20261012/unchanged-assets-r2/native-retained-effect-metadata.json",
+  "source_sha256": "faf761441eae5c4b3261b99ca46ecf7478b21e673cd9f8e64a9e2d45b8b78757",
+  "row": {
+    "definition_dispellable": false,
+    "definition_type": 2,
+    "effect_class": 25,
+    "event_caster_code": 2,
+    "event_execution_count": 1,
+    "event_execution_count_per_level": 0.0,
+    "event_global_subscription": true,
+    "event_priority": 0,
+    "event_reverse_subscription": false,
+    "event_suppresses_level_one": false,
+    "event_target_code": 2,
+    "maximum_level": 32767,
+    "minimum_level": 0,
+    "owner_on_caster": false,
+    "parameters": [
+      100.0,
+      0.0,
+      0.0,
+      0.0,
+      4.0,
+      0.0
+    ],
+    "subscription": true,
+    "variant": 0
+  }
+}

@@ -612,7 +612,7 @@ def abort(
         params.append(expected_generation)
     applied = db.execute(query, tuple(params)).rowcount == 1
     if applied:
-        from .rift_runtime import abort_bound_fight
+        from wakfu_server.rift_runtime import abort_bound_fight
 
         abort_bound_fight(db, fight_id)
         if on_aborted is not None:

@@ -369,6 +369,7 @@ class NativeEffectRuntimeFactory:
             if provider.damage_block is not None
             else None,
         )
+        damage.retention = retention
         from .combat_random_earth_damage import (
             NativeRandomEarthDamageHandler,
             initialized_handler_type,
@@ -412,6 +413,7 @@ class NativeEffectRuntimeFactory:
             context=contextual("healing"),
             rng=rng,
         )
+        healing.retention = retention
         stat = NativeStatHandler(
             preview,
             packets,
@@ -2083,4 +2085,14 @@ class NativeEffectRuntimeFactory:
                 area_removal.events = dispatcher.native_area_events
                 area_reference_removal.events = dispatcher.native_area_events
                 retention.area_events = dispatcher.native_area_events
+        if (
+            retention is not None
+            and hasattr(preview, "native_delay_queue")
+            and getattr(dispatcher, "native_clone_authority", None) is not None
+        ):
+            from .combat_native_delayed_effects import NativeDelayedEffects
+
+            dispatcher.native_delays = NativeDelayedEffects(
+                dispatcher, retention, healing.event_lifecycle
+            )
         return dispatcher, packets

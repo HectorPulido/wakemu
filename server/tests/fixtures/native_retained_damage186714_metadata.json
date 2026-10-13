@@ -1,0 +1,22 @@
+{
+  "definition_dispellable": false,
+  "definition_type": 2,
+  "effect_class": 1083,
+  "event_caster_code": 0,
+  "event_execution_count": -1,
+  "event_execution_count_per_level": 0.0,
+  "event_global_subscription": false,
+  "event_priority": 0,
+  "event_reverse_subscription": false,
+  "event_suppresses_level_one": false,
+  "event_target_code": 0,
+  "maximum_level": 32767,
+  "minimum_level": 0,
+  "owner_on_caster": false,
+  "parameters": [
+    4.0,
+    0.45
+  ],
+  "subscription": false,
+  "variant": 0
+}

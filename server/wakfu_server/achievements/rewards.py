@@ -51,7 +51,7 @@ def grant(db, store, character, reward):
 
 
 def _item(db, store, character, reference, quantity):
-    from wakfu_server.inventory_move import STACKS
+    from wakfu_server.inventory_move import ACQUISITION_STACKS as STACKS
     from wakfu_server.inventory_items import insertion
     from wakfu_server.inventory_uids import allocate
     from wakfu_server.inventory_elements import create, save

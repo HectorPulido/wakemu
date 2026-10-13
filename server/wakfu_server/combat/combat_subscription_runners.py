@@ -25,6 +25,7 @@ GROUP_SUBSCRIPTION_FAMILIES = (
 )
 DEFERRED_RUNNERS = {
     1: "eXt",  # Fresh damage C()/resources wait for the subscribed event.
+    25: "eXs",  # Fresh inherited eZR wire; healing waits for its event.
     28: "eXc",  # Fresh inherited eZR wire; HP assignment waits for its event.
     304: "eWu",
     314: "eYQ",

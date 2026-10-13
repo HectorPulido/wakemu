@@ -28,3 +28,38 @@ def refresh(character, characters, *, entity_template, roster_template):
             wire.character_list(roster_template, character["account_id"], roster),
         ),
     ]
+
+
+def combat_return(
+    character, characters, *, participant_ids, entity_template, roster_template
+):
+    """Refresh the selected actor and loaded owned heroes after world restore."""
+    from wakfu_server.characters import hero_wire
+
+    roster = list(characters)
+    packets = refresh(
+        character,
+        roster,
+        entity_template=entity_template,
+        roster_template=roster_template,
+    )
+    participants = set(participant_ids)
+    for hero in roster:
+        if hero["id"] != character["id"] and hero["id"] in participants:
+            # Private scene positions are projections, not durable exterior rows.
+            if "map_id" in character and (
+                hero.get("map_id"),
+                hero.get("instance_id", 0),
+            ) != (character["map_id"], character.get("instance_id", 0)):
+                hero = dict(
+                    hero,
+                    **{
+                        key: character[key]
+                        for key in ("map_id", "instance_id", "x", "y", "z")
+                    }
+                )
+            # csZ updates an existing hero; it never activates it as main.
+            packets.extend(
+                (hero_wire.refresh(entity_template, hero), hero_wire.statistics(hero))
+            )
+    return packets

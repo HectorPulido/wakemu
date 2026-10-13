@@ -86,6 +86,56 @@ def policy(store):
     return value
 
 
+DISPERSION_RADIUS = 12
+
+
+def group_neighbor_index(groups):
+    """Index one leader per group once per map/instance planning batch."""
+    buckets = {}
+    for group in groups:
+        if group["members"]:
+            cell = point(group["members"][0])
+            buckets.setdefault(
+                (cell[0] // DISPERSION_RADIUS, cell[1] // DISPERSION_RADIUS), []
+            ).append(cell)
+    return buckets
+
+
+def nearest_group(origin, buckets):
+    bx, by = origin[0] // DISPERSION_RADIUS, origin[1] // DISPERSION_RADIUS
+    candidates = (
+        cell
+        for x in range(bx - 1, bx + 2)
+        for y in range(by - 1, by + 2)
+        for cell in buckets.get((x, y), ())
+        if cell != origin
+        and max(abs(cell[0] - origin[0]), abs(cell[1] - origin[1])) <= DISPERSION_RADIUS
+    )
+    return min(
+        candidates,
+        key=lambda cell: (cell[0] - origin[0]) ** 2 + (cell[1] - origin[1]) ** 2,
+        default=None,
+    )
+
+
+def choose_step(candidates, rng, away_from=None, origin=None):
+    if not candidates:
+        return None
+    if away_from is not None:
+
+        def distance(cell):
+            return (cell[0] - away_from[0]) ** 2 + (cell[1] - away_from[1]) ** 2
+
+        farther = [
+            candidate
+            for candidate in candidates
+            if distance(point(candidate["members"][0])) > distance(origin)
+        ]
+        if farther:
+            candidates = farther
+    return rng.choice(candidates)
+
+
 def plan(
     members,
     players,
@@ -96,6 +146,7 @@ def plan(
     rng=None,
     indexed=None,
     destination_allowed=None,
+    away_from=None,
 ):
     if not members or radius <= 0:
         return None
@@ -134,7 +185,7 @@ def plan(
         for m, d in zip(moved, destinations):
             m.update(zip(("x", "y", "z"), d))
         candidates.append(dict(members=moved, packets=packets))
-    return (rng or random).choice(candidates) if candidates else None
+    return choose_step(candidates, rng or random, away_from, origins[0])
 
 
 def plan_path(
@@ -149,6 +200,7 @@ def plan_path(
     rng=None,
     indexed=None,
     destination_allowed=None,
+    away_from=None,
 ):
     rng = rng or random
     indexed = edge_index(valid_edges) if indexed is None else indexed
@@ -168,6 +220,7 @@ def plan_path(
             rng=rng,
             indexed=indexed,
             destination_allowed=destination_allowed,
+            away_from=away_from,
         )
         if result is None:
             break
@@ -190,6 +243,59 @@ def plan_path(
 COHESION_RADIUS = 4
 
 
+def _flexible_group_step(members, players, indexed, options):
+    """Try the leader's directions once, letting blocked companions hold.
+
+    This bounded fallback keeps a crowded formation from becoming a permanent
+    wall. It adds no actor path searches or independent movement decisions.
+    """
+    edges, adjacent = indexed
+    origins = [point(member) for member in members]
+    blocked = set(options.get("occupied", ()))
+    blocked.update(point(player) for player in players)
+    # Conservatively disallow crossing an original companion cell, including
+    # companions that might move: sequential client animations remain safe.
+    blocked.update(origins)
+    allowed = options.get("destination_allowed")
+    candidates = []
+    for leader_destination in adjacent.get(origins[0], ()):
+        delta = tuple(b - a for a, b in zip(origins[0], leader_destination))
+        destinations = []
+        packets = []
+        for member, origin in zip(members, origins):
+            destination = tuple(a + b for a, b in zip(origin, delta))
+            if (
+                destination in blocked
+                or (origin, destination) not in edges
+                or (allowed is not None and not allowed(destination))
+            ):
+                destination = origin
+            if destination != origin:
+                try:
+                    packets.append(movement_packet(member["id"], origin, destination))
+                except ValueError:
+                    destination = origin
+            destinations.append(destination)
+        if destinations[0] != leader_destination or not packets:
+            continue
+        if len(set(destinations)) != len(destinations) or any(
+            max(
+                abs(cell[0] - leader_destination[0]),
+                abs(cell[1] - leader_destination[1]),
+            )
+            > COHESION_RADIUS
+            for cell in destinations
+        ):
+            continue
+        moved = deepcopy(list(members))
+        for member, destination in zip(moved, destinations):
+            member.update(zip(("x", "y", "z"), destination))
+        candidates.append(dict(members=moved, packets=packets))
+    return choose_step(
+        candidates, options.get("rng") or random, options.get("away_from"), origins[0]
+    )
+
+
 def plan_group_path(members, players, valid_edges, **options):
     """Translate compact groups; safely draw distant companions to their leader.
 
@@ -197,15 +303,37 @@ def plan_group_path(members, players, valid_edges, **options):
     a native directed edge that strictly reduces its distance; blocked routes
     wait for a later cadence rather than teleporting or detaching companions.
     """
-    if not members:
+    if not members or not players or options.get("radius", 20) <= 0:
         return None
     anchor = point(members[0])
+    options = dict(options)
+    neighbors = options.pop("neighbor_index", None)
+    # Movement probability is decided by the caller BEFORE this conditional mix.
+    if neighbors is not None and (options.get("rng") or random).random() < 0.5:
+        options["away_from"] = nearest_group(anchor, neighbors)
 
     def distance(cell):
         return max(abs(cell[0] - anchor[0]), abs(cell[1] - anchor[1]))
 
     if all(distance(point(member)) <= COHESION_RADIUS for member in members):
-        return plan_path(members, players, valid_edges, **options)
+        indexed = options.get("indexed")
+        if indexed is None:
+            indexed = edge_index(valid_edges)
+        path_options = dict(options, indexed=indexed)
+        result = plan_path(members, players, (), **path_options)
+        if result is not None:
+            return result
+        if len(members) == 1:
+            return None
+        radius = options.get("radius", 20)
+        if not any(
+            max(abs(player["x"] - member["x"]), abs(player["y"] - member["y"]))
+            <= radius
+            for player in players
+            for member in members
+        ):
+            return None
+        return _flexible_group_step(members, players, indexed, options)
     radius = options.get("radius", 20)
     if not any(
         max(abs(player["x"] - member["x"]), abs(player["y"] - member["y"])) <= radius
@@ -291,6 +419,7 @@ def wander_location(
             for member in group["members"]
             if group["status"] == "fighting" or member["id"] in excluded_ids
         )
+        neighbors = group_neighbor_index(local)
         for group in roster:
             members = list(group["members"])
             if not members or any(m["id"] in excluded_ids for m in members):
@@ -308,6 +437,7 @@ def wander_location(
                 players,
                 valid_edges,
                 occupied=blocked | others,
+                neighbor_index=neighbors,
                 radius=radius,
                 rng=rng,
                 indexed=indexed,

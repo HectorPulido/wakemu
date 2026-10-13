@@ -114,7 +114,7 @@ class StoreTests(PostgresCase):
             self.store.register("Alice", "another-password")
         char = self.store.create_character(self.a, "Alpha")
         self.assertEqual(
-            (char["level"], char["hp"], char["map_id"]), (1, char["max_hp"], 1134)
+            (char["level"], char["hp"], char["map_id"]), (1, char["max_hp"], 527)
         )
         with self.assertRaises(ValueError):
             self.store.character(self.b, char["id"])

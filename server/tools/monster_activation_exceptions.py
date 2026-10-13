@@ -404,6 +404,11 @@ IGNORED_INCOMPLETE_REFERENCES = frozenset({3118})
 
 
 def exception_reason(reference):
+    from wakfu_server.maps.monster_minigame_policy import exclusion_reason
+
+    minigame = exclusion_reason(reference)
+    if minigame is not None:
+        return minigame
     if reference in IGNORED_NO_BOOK_REFERENCES:
         return "user_ignored_no_native_owned_spellbook"
     if reference in IGNORED_INCOMPLETE_REFERENCES:
@@ -412,6 +417,13 @@ def exception_reason(reference):
 
 
 def exclusion_status(reference):
+    from wakfu_server.maps.monster_minigame_policy import exclusion_reason
+
+    reason = exclusion_reason(reference)
+    if reason == "minigame_requires_encounter":
+        return "blocked_minigame"
+    if reason == "class_summon_implemented":
+        return "blocked_class_summon"
     if reference in IGNORED_NO_BOOK_REFERENCES:
         return "excluded_no_owned_spells"
     if reference in IGNORED_INCOMPLETE_REFERENCES:

@@ -248,10 +248,22 @@ class NativeProvider:
             )
         return result
 
+    def _registered_ai_summon(self, fight):
+        actor = fight.current
+        return (
+            actor is not None
+            and getattr(actor, "native_summon_source", None) is not None
+            and getattr(actor, "native_controlled_by_ai", None) is True
+        )
+
     def capabilities(self, fight):
         from .combat_ai_capabilities import spell_capabilities
 
-        if fight.current is not None and fight.current.controlled:
+        if (
+            fight.current is not None
+            and fight.current.controlled
+            and not self._registered_ai_summon(fight)
+        ):
             from .combat_class_ai_spell import class_ai_capabilities
 
             character = (self.player_characters or {}).get(fight.current.id)
@@ -259,6 +271,21 @@ class NativeProvider:
             if character is None or deck is None:
                 raise ValueError("Missing actual class AI participant book")
             return class_ai_capabilities(fight, character, deck)
+        if self._registered_ai_summon(fight):
+            from .combat_npc_summon_actions import registered_server_summon_book
+            from .combat_ai_capabilities import describe_spell
+
+            _, spells = registered_server_summon_book(
+                fight,
+                fight.current,
+                self.monsters,
+                character=self.character,
+                player_characters=self.player_characters,
+            )
+            return [
+                deepcopy(describe_spell(spell, level))
+                for spell, level in sorted(spells.items())
+            ]
         return spell_capabilities(fight, self.monsters)
 
     def _useful_targets(self, fight, capability):
@@ -489,7 +516,11 @@ class NativeProvider:
             # Independent deterministic forecast draws; real execution receives
             # a fresh RNG and is re-evaluated after every commit.
             seed = int(_hash(dict(state=state_key(fight), action=action)), 16)
-            if fight.current is not None and fight.current.controlled:
+            if (
+                fight.current is not None
+                and fight.current.controlled
+                and not self._registered_ai_summon(fight)
+            ):
                 from .combat_class_ai_spell import prepare_class_ai_spell
                 from .combat_los import authoritative_visible
                 from .combat_obstacle_condition import footprint
@@ -695,11 +726,19 @@ def build_request(runtime, provider, *, max_previews=48, budget_ms=150, depth=2)
     states, private, frontier = {}, {root: fight}, [root]
 
     def register(key, state):
+        # Native effects may construct actors on occupied cells. Such a preview
+        # cannot satisfy the planner's roster contract; reject this candidate
+        # before it can invalidate the complete forecast graph.
+        roster = provider.roster(state)
+        occupied = set()
+        for actor in roster:
+            if actor["hp"] > 0:
+                position = tuple(actor["position"])
+                if position in occupied:
+                    raise ValueError("Living forecast actors overlap")
+                occupied.add(position)
         states[key] = dict(
-            key=key,
-            actors=provider.roster(state),
-            transitions=[],
-            **provider.outcome_features(state)
+            key=key, actors=roster, transitions=[], **provider.outcome_features(state)
         )
 
     register(root, fight)

@@ -94,10 +94,12 @@ class ShardIdentificationTests(PostgresCase):
                 0,
             )
 
-    def test_unknown_template_and_stack_fail_closed_without_mutation(self):
+    def test_unknown_template_fails_without_splitting_and_valid_stack_identifies_one(
+        self,
+    ):
         with self.store.connection() as db:
             db.execute(
-                "UPDATE inventory_items SET reference=1 WHERE uid=%s",
+                "UPDATE inventory_items SET reference=1,quantity=3 WHERE uid=%s",
                 (self.item["uid"],),
             )
         with self.assertRaisesRegex(ValueError, "not eligible"):
@@ -109,11 +111,65 @@ class ShardIdentificationTests(PostgresCase):
                 struct.pack(">q", self.item["uid"]),
             )
         with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT quantity FROM inventory_items WHERE uid=%s",
+                    (self.item["uid"],),
+                ).fetchone()["quantity"],
+                3,
+            )
             db.execute(
-                "UPDATE inventory_items SET reference=2869,quantity=2 WHERE uid=%s",
+                "UPDATE inventory_items SET reference=2869 WHERE uid=%s",
                 (self.item["uid"],),
             )
-        with self.assertRaisesRegex(ValueError, "unstacked"):
+        result = identify(
+            self.store,
+            self.account,
+            self.generation,
+            self.char["id"],
+            struct.pack(">q", self.item["uid"]),
+        )
+        self.assertEqual(result["status"], 0)
+        with self.store.connection() as db:
+            rows = db.execute(
+                "SELECT uid,quantity FROM inventory_items WHERE character_id=%s "
+                "AND reference=2869 ORDER BY uid",
+                (self.char["id"],),
+            ).fetchall()
+            self.assertEqual(sum(row["quantity"] for row in rows), 3)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(
+                next(row["quantity"] for row in rows if row["uid"] == self.item["uid"]),
+                1,
+            )
+            shards = db.execute("SELECT uid FROM inventory_item_shards").fetchall()
+            self.assertEqual([row["uid"] for row in shards], [self.item["uid"]])
+
+    def test_identification_full_bag_preserves_stack_wallet_and_receipts(self):
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE inventory_items SET quantity=3 WHERE uid=%s",
+                (self.item["uid"],),
+            )
+            db.execute(
+                "UPDATE inventory_containers SET capacity=1 WHERE character_id=%s",
+                (self.char["id"],),
+            )
+            other_bag = self.char["inventory_containers"][1]["uid"]
+            db.execute(
+                "INSERT INTO inventory_items(character_id,reference,quantity,container,slot) "
+                "VALUES(%s,100,1,%s,0)",
+                (self.char["id"], other_bag),
+            )
+            db.execute(
+                "UPDATE account_wallets SET kamas=20 WHERE account_id=%s",
+                (self.account,),
+            )
+            db.execute(
+                "UPDATE settings SET value=jsonb_set(value,'{cost_kamas}','7') "
+                "WHERE name='socket_identification_policy'"
+            )
+        with self.assertRaisesRegex(ValueError, "free slot"):
             identify(
                 self.store,
                 self.account,
@@ -124,13 +180,27 @@ class ShardIdentificationTests(PostgresCase):
         with self.store.connection() as db:
             self.assertEqual(
                 db.execute(
-                    "SELECT count(*) AS n FROM inventory_item_shards"
+                    "SELECT quantity FROM inventory_items WHERE uid=%s",
+                    (self.item["uid"],),
+                ).fetchone()["quantity"],
+                3,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT kamas FROM account_wallets WHERE account_id=%s",
+                    (self.account,),
+                ).fetchone()["kamas"],
+                20,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM inventory_item_shards",
                 ).fetchone()["n"],
                 0,
             )
             self.assertEqual(
                 db.execute(
-                    "SELECT count(*) AS n FROM inventory_socket_identification_receipts"
+                    "SELECT count(*) AS n FROM inventory_socket_identification_receipts",
                 ).fetchone()["n"],
                 0,
             )

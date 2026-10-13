@@ -8571,6 +8571,25 @@ def session(raw, peer, service, context):
                         WORLD.leave(character["id"], generation)
                         for message_id, payload in combat_return_bootstrap():
                             send(connection, service, message_id, payload)
+                        from wakfu_server.level_publication import (
+                            combat_return as refresh_return_spells,
+                        )
+
+                        send_batch(
+                            connection,
+                            service,
+                            refresh_return_spells(
+                                character,
+                                STORE.characters(account_id),
+                                participant_ids=tuple(
+                                    actor.id
+                                    for actor in fight.actors.values()
+                                    if actor.controlled and actor.owner_id == account_id
+                                ),
+                                entity_template=OWNED_HERO_TEMPLATE,
+                                roster_template=CHARACTERS,
+                            ),
+                        )
                         from wakfu_server.combat_monster_world import spawn_group
 
                         if group_lease is not None and (not shared_return or abandoned):
@@ -9058,7 +9077,10 @@ def session(raw, peer, service, context):
                     from psycopg_pool import PoolTimeout
                     from wakfu_server.shard_identification import identify
                     from wakfu_server.shard_identification_wire import response
-                    from wakfu_server.inventory_move import reload_inventory
+                    from wakfu_server.inventory_move import (
+                        reload_inventory,
+                        synchronization,
+                    )
                     from wakfu_server.ecology_feedback import information
 
                     try:
@@ -9069,7 +9091,10 @@ def session(raw, peer, service, context):
                         result = identify(
                             STORE, account_id, generation, character["id"], body
                         )
+                        previous_items = character.get("inventory_items", [])
                         character = reload_inventory(STORE, account_id, character)
+                        if previous_items != character["inventory_items"]:
+                            send(connection, service, *synchronization(character))
                         send(connection, service, *response(result))
                         if result["status"] == 0:
                             send(connection, service, *equipment_inventory(character))
@@ -9104,7 +9129,10 @@ def session(raw, peer, service, context):
                     from psycopg import Error as DatabaseError
                     from psycopg_pool import PoolTimeout
                     from wakfu_server.element_selection import select as select_elements
-                    from wakfu_server.inventory_move import reload_inventory
+                    from wakfu_server.inventory_move import (
+                        reload_inventory,
+                        synchronization,
+                    )
                     from wakfu_server.ecology_feedback import information
 
                     try:
@@ -9115,7 +9143,10 @@ def session(raw, peer, service, context):
                         result = select_elements(
                             STORE, account_id, generation, character["id"], body
                         )
+                        previous_items = character.get("inventory_items", [])
                         character = reload_inventory(STORE, account_id, character)
+                        if previous_items != character["inventory_items"]:
+                            send(connection, service, *synchronization(character))
                         send(connection, service, *result["packet"])
                         send(connection, service, *equipment_inventory(character))
                         if result.get("cost_kamas", 0) > 0:
@@ -10096,12 +10127,32 @@ def session(raw, peer, service, context):
                         )
                 elif opcode == 12772 and loaded:
                     previous_mount_character = character
-                    request_id, index, blobs = builds.decode(body)
-                    if request_id != character["id"]:
-                        raise ValueError(
-                            "Build character does not belong to this session"
-                        )
                     try:
+                        request_id, index, blobs = builds.decode(body)
+                        if request_id <= 0:
+                            raise ValueError("Invalid build character identity")
+                        if not builds.valid_index(index):
+                            raise ValueError("Invalid build index")
+                    except (ValueError, UnicodeError) as error:
+                        # A stale hero editor must not terminate the world session.
+                        record(
+                            event="build_rejected",
+                            actor_id=character["id"],
+                            reason=str(error),
+                        )
+                        send(connection, service, *builds.capacity_message(character))
+                        for message_id, message_body in builds.rejection_messages(
+                            character,
+                            character["active_build_index"],
+                            wp=COMBAT_TEST_WP,
+                            status=2,
+                        ):
+                            send(connection, service, message_id, message_body)
+                        continue
+                    build_character = character
+                    try:
+                        build_character = STORE.character(account_id, request_id)
+                        previous_build_character = build_character
                         record(
                             event="persistence_stage",
                             domain="build",
@@ -10118,12 +10169,15 @@ def session(raw, peer, service, context):
                             stage="postgresql_committed",
                             build_index=index,
                         )
-                        character = (
-                            active_private_session().refresh(character, saved)
-                            if active_private_session() is not None
-                            and active_private_session().owns(character)
-                            else saved
-                        )
+                        build_character = saved
+                        if request_id == character["id"]:
+                            character = (
+                                active_private_session().refresh(character, saved)
+                                if active_private_session() is not None
+                                and active_private_session().owns(character)
+                                else saved
+                            )
+                            build_character = character
                     except (ValueError, UnicodeError) as error:
                         reason = str(error)
                         status = (
@@ -10135,17 +10189,36 @@ def session(raw, peer, service, context):
                             if "spell" in reason.lower() or "deck" in reason.lower()
                             else 2
                         )
-                        saved = STORE.character(account_id, request_id)
-                        character = (
-                            active_private_session().refresh(character, saved)
-                            if active_private_session() is not None
-                            and active_private_session().owns(character)
-                            else saved
+                        saved = STORE.character(account_id, build_character["id"])
+                        build_character = saved
+                        if request_id == character["id"]:
+                            character = (
+                                active_private_session().refresh(character, saved)
+                                if active_private_session() is not None
+                                and active_private_session().owns(character)
+                                else saved
+                            )
+                            build_character = character
+                        send(
+                            connection,
+                            service,
+                            *builds.capacity_message(build_character),
                         )
-                        send(connection, service, *builds.capacity_message(character))
-                        for message_id, message_body in builds.rejection_messages(
-                            character, index, wp=COMBAT_TEST_WP, status=status
-                        ):
+                        messages = (
+                            builds.rejection_messages(
+                                build_character, index, wp=COMBAT_TEST_WP, status=status
+                            )
+                            if request_id == character["id"]
+                            else [
+                                (
+                                    12284,
+                                    builds.rejection_response(
+                                        build_character, index, status=status
+                                    ),
+                                )
+                            ]
+                        )
+                        for message_id, message_body in messages:
                             send(connection, service, message_id, message_body)
                         record(
                             event="build_rejected",
@@ -10154,12 +10227,40 @@ def session(raw, peer, service, context):
                             reason=str(error),
                         )
                     else:
-                        send(connection, service, *builds.capacity_message(character))
-                        for message_id, message_body in builds.response_messages(
-                            character, index, wp=COMBAT_TEST_WP
-                        ):
+                        if previous_build_character.get(
+                            "inventory_items"
+                        ) != build_character.get("inventory_items"):
+                            from wakfu_server.inventory_move import synchronization
+                            from wakfu_server.inventory_items import equipment_inventory
+
+                            send(connection, service, *synchronization(build_character))
+                            send(
+                                connection,
+                                service,
+                                *equipment_inventory(build_character),
+                            )
+                        send(
+                            connection,
+                            service,
+                            *builds.capacity_message(build_character),
+                        )
+                        if request_id == character["id"]:
+                            messages = builds.response_messages(
+                                build_character, index, wp=COMBAT_TEST_WP
+                            )
+                        else:
+                            from wakfu_server.characters import hero_wire
+
+                            messages = [
+                                (12284, builds.response(build_character, index)),
+                                hero_wire.refresh(OWNED_HERO_TEMPLATE, build_character),
+                                hero_wire.statistics(build_character),
+                            ]
+                        for message_id, message_body in messages:
                             send(connection, service, message_id, message_body)
-                        publish_mount_equipment(previous_mount_character, character)
+                        publish_mount_equipment(
+                            previous_build_character, build_character
+                        )
                         record(
                             event="build_saved", actor_id=request_id, build_index=index
                         )
@@ -11919,6 +12020,17 @@ def session(raw, peer, service, context):
                     )
                 elif opcode in (13222, 12058, 12535) and loaded:
                     from wakfu_server.maps import npc_dialogue, npc_world
+
+                    if not npc_dialogue.interactions_enabled():
+                        if npc_dialogue_session is not None or opcode in (12058, 12535):
+                            send(
+                                connection,
+                                service,
+                                *npc_dialogue.disabled_response(npc_dialogue_session),
+                            )
+                        npc_dialogue_session = None
+                        continue
+
                     from wakfu_server.maps import npc_objective_facts
                     from wakfu_server.ecology_feedback import information
                     from psycopg import Error as DatabaseError

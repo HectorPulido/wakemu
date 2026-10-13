@@ -17,6 +17,30 @@ def private_recipes(reference, level, capability, criterion, roots):
     if allied is not None:
         recipes.insert(0, allied)
     population = required_enemy_population(criterion)
+    if population and population["minimum_enemies"] == 1:
+        minimum, maximum = capability.get("minimum"), capability.get("maximum")
+        if (
+            type(minimum) is int
+            and type(maximum) is int
+            and 0 <= minimum <= maximum
+            and maximum >= 1
+        ):
+            if (
+                type(level) is not int
+                or not profile["min_level"] <= level <= profile["max_level"]
+            ):
+                raise ValueError("Missing actual population descriptor authority")
+            recipes.insert(
+                0,
+                dict(
+                    kind="native_opponent",
+                    opponent=dict(reference=reference, level=level, team=1),
+                    discovery="native_one_enemy_allied_target_v1",
+                    population=population,
+                    target_minimum=minimum,
+                    target_maximum=maximum,
+                ),
+            )
     # Existing native_opponent adds one monster and retains the real player:
     # exactly two actual enemies. Larger populations need another constructor.
     if population and population["minimum_enemies"] == 2:
@@ -41,6 +65,16 @@ def private_spare_eligible(scenario, source, enemy, spare):
         from allied_population_witness import allied_spare_eligible
 
         return allied_spare_eligible(scenario, source, enemy, spare)
+    if scenario.get("discovery") == "native_one_enemy_allied_target_v1":
+        _one_enemy_requirement(scenario)
+        distance = abs(spare[0] - source[0]) + abs(spare[1] - source[1])
+        return (
+            tuple(spare) not in (tuple(source), tuple(enemy))
+            and spare[2] == source[2]
+            and max(1, scenario["target_minimum"])
+            <= distance
+            <= scenario["target_maximum"]
+        )
     if scenario.get("discovery") != "native_two_enemy_population_private_v1":
         return True
     p = scenario["population"]
@@ -51,3 +85,50 @@ def private_spare_eligible(scenario, source, enemy, spare):
         and 0 < abs(c[0] - source[0]) + abs(c[1] - source[1]) <= p["radius"]
     )
     return close(enemy) and close(spare) and tuple(enemy) != tuple(spare)
+
+
+def _one_enemy_requirement(scenario):
+    population = scenario.get("population")
+    if (
+        scenario.get("discovery") != "native_one_enemy_allied_target_v1"
+        or not isinstance(population, dict)
+        or population.get("minimum_enemies") != 1
+        or type(population.get("radius")) is not int
+        or not 1 <= population["radius"] <= 3
+        or scenario.get("opponent", {}).get("team") != 1
+        or type(scenario.get("target_minimum")) is not int
+        or type(scenario.get("target_maximum")) is not int
+        or not 0 <= scenario["target_minimum"] <= scenario["target_maximum"]
+        or scenario["target_maximum"] < 1
+    ):
+        raise ValueError("Invalid actual one-enemy allied-target recipe")
+    return population
+
+
+def private_population_scene_cells(scenario, source, enemy, spare, native_cells):
+    """Relocate the real player only; keep the genuine native allied constructor."""
+    if scenario.get("discovery") != "native_one_enemy_allied_target_v1":
+        return tuple(enemy), tuple(spare)
+    population = _one_enemy_requirement(scenario)
+    cells = {tuple(cell) for cell in native_cells}
+    if (
+        tuple(source) not in cells
+        or tuple(spare) not in cells
+        or not private_spare_eligible(scenario, source, enemy, spare)
+    ):
+        raise ValueError("Missing actual native allied target scene cell")
+    nearby = sorted(
+        (
+            cell
+            for cell in cells
+            if cell not in (tuple(source), tuple(spare))
+            and cell[2] == source[2]
+            and 0
+            < abs(cell[0] - source[0]) + abs(cell[1] - source[1])
+            <= population["radius"]
+        ),
+        key=lambda cell: (abs(cell[0] - source[0]) + abs(cell[1] - source[1]), cell),
+    )
+    if not nearby:
+        raise ValueError("Missing actual native close enemy scene cell")
+    return nearby[0], tuple(spare)

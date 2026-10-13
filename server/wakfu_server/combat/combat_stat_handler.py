@@ -281,7 +281,13 @@ class NativeStatHandler:
         clone = invocation.native_running_uid is not None
         if clone and row["runner"] != "eXE":
             raise ValueError("Unaudited current-stat event clone runner")
-        uid = invocation.native_running_uid if clone else self.allocate_uid()
+        uid = (
+            invocation.native_delayed_uid
+            if invocation.native_delayed_uid is not None
+            else invocation.native_running_uid
+            if clone
+            else self.allocate_uid()
+        )
         if area_target is not None:
             for channel in (1, 2):
                 if self.event_lifecycle is not None:
@@ -300,7 +306,9 @@ class NativeStatHandler:
                         effect, invocation, uid=uid, value=actual, channel=channel
                     )
         elif row["runner"] == "eXE" and self.event_lifecycle is not None:
-            for channel in (1, 2):
+            for channel in (
+                (2,) if invocation.native_delayed_uid is not None else (1, 2)
+            ):
                 self.event_lifecycle.phase(
                     effect,
                     invocation,

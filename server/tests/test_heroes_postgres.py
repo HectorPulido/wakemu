@@ -124,11 +124,31 @@ class HeroesPostgresTests(PostgresCase):
             "hp",
             "max_hp",
             "appearance",
-            "builds",
             "active_build_index",
         ):
             if key in before:
                 self.assertEqual(before[key], after[key], key)
+        from wakfu_server import builds, spells, wire
+
+        self.assertEqual(before["builds"], {})
+        expected_sheet = next(
+            value
+            for tag, value in wire.proto_fields(builds.build_set(before, b""))
+            if tag == 18
+        )
+        self.assertEqual(
+            after["builds"],
+            {
+                0: {
+                    "sheet": expected_sheet.hex(),
+                    "equipment": "",
+                    "aptitudes": "",
+                    "deck": spells.default_deck(
+                        dict(before, effective_level=before["level"])
+                    ).hex(),
+                }
+            },
+        )
         reopened = self.reopen()
         with reopened.connection() as db:
             restored = heroes.load_roster(db, reopened, self.account, self.main["id"])

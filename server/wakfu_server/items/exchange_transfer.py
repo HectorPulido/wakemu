@@ -74,7 +74,9 @@ def plan(items, containers, offers, *, allocate, excluded_uids=()):
     movements = []
     for source_uid, unit in incoming:
         rule = STACKS.get(unit["reference"])
-        if rule is None or not 1 <= unit["quantity"] <= rule["maximum"]:
+        if rule is None or not 1 <= unit["quantity"] <= rule.get(
+            "native_maximum", rule["maximum"]
+        ):
             raise ValueError("Unsupported incoming exchange stack")
         remaining = unit["quantity"]
         for target in sorted(final.values(), key=lambda entry: entry["uid"]):
