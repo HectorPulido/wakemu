@@ -608,7 +608,7 @@ class WanderTerritoryTests(unittest.TestCase):
                 [dict(map_id=527, instance_id=0, x=10, y=0, z=0)],
                 [((0, 0, 0), (1, 0, 0))],
                 lambda *packet: emitted.append(packet),
-                rng=FixedRng(rolls=(0.0,), steps=1),
+                rng=FixedRng(rolls=(0.0, 0.0), steps=1),
                 move_probability=1,
                 min_steps=1,
                 max_steps=1,

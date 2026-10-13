@@ -337,6 +337,9 @@ def execute(
                 "Los grupos de prueba no están habilitados en este servidor"
             )
         reference, level, quantity = values
+        from .monster_minigame_policy import require_ordinary_spawn
+
+        require_ordinary_spawn(reference)
         statistics(reference, level)
         if not 1 <= quantity <= 8:
             raise ValueError("El grupo local admite entre 1 y 8 monstruos")

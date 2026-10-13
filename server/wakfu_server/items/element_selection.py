@@ -115,8 +115,6 @@ def select(store, account_id, generation, character_id, body):
         ).fetchone()
         if item is None:
             raise ValueError("Elemental selection item is unavailable or foreign")
-        if item["quantity"] != 1:
-            raise ValueError("Elemental selection requires one unstacked item UID")
         _validate_selection(item["reference"], damage, resistance)
 
         # Exchange membership blocks concurrent changes even if this item has
@@ -163,6 +161,10 @@ def select(store, account_id, generation, character_id, body):
                     resistance_elements=resistance,
                     shard_state=None,
                 )
+
+        from wakfu_server.equipment_stacks import ensure_singleton
+
+        item = ensure_singleton(db, character_id, uid)
 
         prior = db.execute(
             "SELECT damage_elements,resistance_elements FROM inventory_element_selection_receipts "

@@ -693,7 +693,9 @@ class Store:
                 db, account_id, generation, character_id, selected=False
             )
             from wakfu_server.characters.guild_character import record_presence
+            from wakfu_server.equipment_stacks import normalize
 
+            normalize(db, character_id)
             character = self.character(account_id, character_id, db)
             from wakfu_server.achievements.service import drain_rewards
 
@@ -718,6 +720,12 @@ class Store:
                     (account_id, Jsonb(cosmetics.to_record())),
                 )
                 character = self.character(account_id, character_id, db)
+            from wakfu_server.characters.starter_decks import (
+                initialize as initialize_decks,
+            )
+
+            initialize_decks(db, character)
+            character = self.character(account_id, character_id, db)
             record_presence(db, account_id, generation)
             db.execute(
                 "UPDATE sessions SET character_id=%s WHERE account_id=%s AND generation=%s",
@@ -844,13 +852,47 @@ class Store:
 
     def save_build(self, account_id, generation, character_id, build_index, blobs):
         with self.connection() as db:
-            self.lock_character(db, account_id, generation, character_id)
+            db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
+            lease = db.execute(
+                "SELECT character_id FROM sessions WHERE account_id=%s AND generation=%s "
+                "AND expires_at>%s FOR UPDATE",
+                (account_id, generation, self.now()),
+            ).fetchone()
+            if lease is None:
+                raise ValueError("Invalid build session")
+            db.execute(
+                "SELECT account_id FROM account_hero_rosters WHERE account_id=%s FOR UPDATE",
+                (account_id,),
+            )
+            from wakfu_server.characters.heroes import session_authorized
+
+            if not session_authorized(
+                db,
+                {
+                    "account_id": account_id,
+                    "id": character_id,
+                    "selected_character_id": lease["character_id"],
+                },
+            ):
+                raise ValueError("Build character is not an active owned hero")
+            self.lock_character(
+                db, account_id, generation, character_id, selected=False
+            )
+            if db.execute(
+                "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+                "WHERE p.character_id=%s AND f.status IN ('placement','active') LIMIT 1",
+                (character_id,),
+            ).fetchone():
+                raise ValueError("Build cannot be saved during combat")
             character = self.character(account_id, character_id, db)
             modulation = character.get("dungeon_modulation")
             if modulation is not None and build_index == modulation["build_index"]:
                 raise ValueError("Temporary automatic build is read-only")
             from wakfu_server.builds import validated_saved_blobs
+            from wakfu_server.equipment_stacks import for_sheet
 
+            if for_sheet(db, character_id, blobs["equipment"]):
+                character = self.character(account_id, character_id, db)
             merged = validated_saved_blobs(character, build_index, blobs)
             values = [
                 merged[key] for key in ("sheet", "equipment", "deck", "aptitudes")

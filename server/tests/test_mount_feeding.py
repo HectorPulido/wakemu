@@ -114,6 +114,30 @@ class MountFeedingTests(PostgresCase):
             ).fetchall()
         return mount, food, receipts
 
+    def test_stack_separation_rolls_back_if_pet_has_no_authoritative_state(self):
+        with self.store.connection() as db:
+            raw = db.execute(
+                "INSERT INTO inventory_items(character_id,reference,quantity,container,slot) "
+                "VALUES(%s,18682,3,%s,2) RETURNING *",
+                (self.character["id"], self.container),
+            ).fetchone()
+            before = list(
+                db.execute(
+                    "SELECT * FROM inventory_items WHERE character_id=%s ORDER BY uid",
+                    (self.character["id"],),
+                )
+            )
+        with self.assertRaisesRegex(ValueError, "authoritative mount state"):
+            self._feed(pet=raw["uid"])
+        with self.store.connection() as db:
+            after = list(
+                db.execute(
+                    "SELECT * FROM inventory_items WHERE character_id=%s ORDER BY uid",
+                    (self.character["id"],),
+                )
+            )
+        self.assertEqual(after, before)
+
     def test_seeded_food_policy_matches_every_model_native_catalog_entry(self):
         catalog = json.loads(
             native_catalog.read_text(

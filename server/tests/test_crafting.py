@@ -43,7 +43,7 @@ class CraftingAuthorityTests(PostgresCase):
         )
         with self.store.connection() as db:
             db.execute(
-                "UPDATE characters SET x=-22,y=38,z=-8 WHERE id=%s",
+                "UPDATE characters SET map_id=1134,x=-22,y=38,z=-8 WHERE id=%s",
                 (self.character["id"],),
             )
         ensure_learned(

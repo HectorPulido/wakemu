@@ -51,6 +51,14 @@ def final_passive_case_proven(case, reference, policy, npc, sources):
 
 def finalize(candidate, validation, output):
     manifest = json.loads((candidate / "manifest.json").read_text())
+    selected = set(manifest["selected_references"])
+    from monster_activation_exceptions import exception_reason
+
+    blocked = {ref: exception_reason(ref) for ref in selected if exception_reason(ref)}
+    if blocked:
+        raise ValueError(
+            f"Activation contains explicitly blocked references: {blocked}"
+        )
     audit = json.loads(validation.read_text())
     for name, checksum in manifest["changed_documents"].items():
         if digest(candidate / name) != checksum:

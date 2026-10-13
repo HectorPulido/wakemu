@@ -34,6 +34,10 @@ class InventoryElementsTests(PostgresCase):
             slot=0,
             allowed_references={2869},
         )
+        with store.connection() as db:
+            db.execute(
+                "UPDATE inventory_items SET quantity=3 WHERE uid=%s", (item["uid"],)
+            )
         result = select_elements(
             store,
             account,
@@ -58,6 +62,7 @@ class InventoryElementsTests(PostgresCase):
             )
         reopened = self.reopen().character(account, char["id"])["inventory_items"][0]
         self.assertEqual(masks(reopened), (0, 0))
+        self.assertEqual(reopened["quantity"], 3)
         with store.connection() as db:
             self.assertEqual(
                 db.execute(
@@ -199,14 +204,23 @@ class InventoryElementsTests(PostgresCase):
             slot=1,
             allowed_references={2869},
         )
-        with self.assertRaisesRegex(ValueError, "one unstacked item UID"):
-            select_elements(
-                store,
-                account,
-                generation,
-                char["id"],
-                struct.pack(">qBB", stacked["uid"], 22, 0),
-            )
+        selected_stack = select_elements(
+            store,
+            account,
+            generation,
+            char["id"],
+            struct.pack(">qBB", stacked["uid"], 22, 0),
+        )
+        self.assertTrue(selected_stack["applied"])
+        with store.connection() as db:
+            rows = db.execute(
+                "SELECT uid,quantity FROM inventory_items WHERE character_id=%s "
+                "AND reference=2869",
+                (char["id"],),
+            ).fetchall()
+            self.assertEqual(sum(row["quantity"] for row in rows), 3)
+            self.assertEqual(len(rows), 3)
+            self.assertTrue(all(row["quantity"] == 1 for row in rows))
         with self.assertRaisesRegex(ValueError, "unavailable or foreign"):
             select_elements(
                 store,

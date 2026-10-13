@@ -173,7 +173,8 @@ def plan(
             ]
             slot, capacity = request["destination"], container["capacity"]
             position = lambda entry: entry["item"]["slot"]
-        maximum = rules.get(source["item"]["reference"], {}).get("maximum")
+        rule = rules.get(source["item"]["reference"], {})
+        maximum = rule.get("native_maximum", rule.get("maximum"))
         if maximum is None:
             raise ValueError("Missing native stack rule for chest item")
         if slot == -1:

@@ -133,6 +133,9 @@ def _prepare_spell_transaction(
         caster, plan["costs"]["extra_resource_deltas"], fight=preview
     )
     mirror_cast_facing(caster, plan, fight=preview)
+    from .combat_ai_cast_history import record_authorized_cast
+
+    record_authorized_cast(preview, caster.id, plan["spell_id"])
     dispatcher, effect_packets = runtime_factory(preview, plan)
     if not isinstance(dispatcher, EffectDispatcher) or not isinstance(
         effect_packets, list

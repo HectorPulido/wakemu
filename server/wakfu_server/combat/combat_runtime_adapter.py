@@ -61,10 +61,14 @@ class NativeActorAuthority:
     native_actor_type: int | None = (
         None  # Actual eGj.asQ/aGJ byte, not breed or control.
     )
+    native_account_id: int | None = None  # Actual eGj.ePn/Xi creation account.
+    native_primary_character_id: int | None = None  # Owned fkJ.sS snapshot.
     native_sex: int | None = None  # Actual eGj.aXz, never inferred from actor type.
     native_selected_cosmetics: dict | None = (
         None  # eSU selected values, explicit component snapshot.
     )
+    native_npc_prototype_ref: int | None = None  # Actual bje.lJL/blj identity.
+    native_copied_equipment_operand: int | None = None  # Actual inherited eGj.dsK.
     native_active_cosmetics: dict | None = (
         None  # eSP lists; {} is known empty, None is unknown.
     )
@@ -967,6 +971,36 @@ class NativeServerRuntimeAdapter:
                 ),
             )
 
+        def nearest_ally_beacon_query():
+            from .combat_nearest_ally_beacon import nearest_ally_beacon_distance
+
+            caster = aliases.get("caster")
+            if caster is None:
+                if "caster" in null_aliases:
+                    return -1
+                raise ValueError("Missing native nearest-beacon caster eHg")
+            if caster.is_native_fighter is False and caster.is_native_ehg is False:
+                return -1
+            if (
+                caster.is_native_fighter is not True
+                and caster.is_native_ehg is not True
+            ):
+                raise ValueError("Missing native nearest-beacon caster eHg type")
+            from .combat_summon_initialization import detached_actor
+            from .combat_nearest_ally_beacon import require_beacon_combat_context
+
+            require_beacon_combat_context(
+                detached=source is not None
+                and detached_actor(preview, source.id) is not None
+            )
+            return nearest_ally_beacon_distance(
+                preview,
+                caster_affiliation=caster.fight_affiliation,
+                target_position=invocation.cell
+                if native_cell_argument or target is None
+                else target.position,
+            )
+
         def closest_specific_area_query(selector, reference, use_path, owner_selector):
             from .combat_effect_area_queries import closest_specific_area_distance
 
@@ -1593,31 +1627,112 @@ class NativeServerRuntimeAdapter:
                 raise ValueError("Missing native eGj.fqL authority")
             return value
 
-        def glyph_count_query(selector):
+        def owned_area_count_query(selector, count_query):
             from .combat_effect_area_queries import _rows
-            from .combat_glyph_count import native_glyph_count
             from .combat_global_pv_collections import global_area_order
 
             # A missing manager must not be mistaken for an empty Qs.
             global_area_order(preview)
             if selector is None:
-                return native_glyph_count(_rows(preview))
+                return count_query(_rows(preview))
             selector = selector.lower()
             if selector == "target" and native_cell_argument:
                 raise ValueError("Missing native NbGlyphs cell-to-eGj resolution")
             selected = state_actor_query(selector)
             if selected is None:
-                return native_glyph_count(_rows(preview), filter_owner=True)
+                return count_query(_rows(preview), filter_owner=True)
             if selected.is_native_fighter is False:
-                return native_glyph_count(_rows(preview), filter_owner=True)
+                return count_query(_rows(preview), filter_owner=True)
             if (
                 selected.is_native_fighter is not True
                 or type(selected.actor_id) is not int
             ):
                 raise ValueError("Missing native NbGlyphs eHg identity")
-            return native_glyph_count(
+            return count_query(
                 _rows(preview), actor_id=selected.actor_id, filter_owner=True
             )
+
+        def condition_cell_fighter():
+            # Shared eII.b(true,aBn,...) source: first actual eGj in QI.U,
+            # identical to the existing life_actor_query cell resolver.
+            if invocation.cell is None:
+                return None
+            from .combat_qi_fight import current_registry
+
+            registry = current_registry(preview)
+            for slot in registry.ordered_U(*invocation.cell[:2]):
+                row = registry.slots[slot]
+                if row is None or row["identity"][0] != "actor":
+                    continue
+                actor = native_actor(preview, row["identity"][1])
+                if actor is None:
+                    raise ValueError("Missing actual native QI condition actor")
+                kind = self._actor(preview, actor).targeting.get("is_eGj")
+                if type(kind) is not bool:
+                    raise ValueError("Missing native QI condition fighter type")
+                if kind:
+                    return actor
+            return None
+
+        def enemy_line_of_sight_query(selector):
+            from .combat_enemy_condition_los import enemy_condition_los
+            from .combat_summon_initialization import detached_actor
+
+            key = "target" if selector.lower() == "target" else "caster"
+            if key == "target" and native_cell_argument:
+                actor = condition_cell_fighter()
+                if actor is None:
+                    return False
+                identity = actor.id
+                affiliation = getattr(actor, "native_fight_affiliation", actor.team)
+            else:
+                selected = state_actor_query(key)
+                if selected is None:
+                    return False
+                identity = selected.actor_id
+                affiliation = selected.fight_affiliation
+            if source is not None and detached_actor(preview, source.id) is not None:
+                return False  # eMs eII.aS has no fbX in fresh eZQ.
+            return enemy_condition_los(
+                preview,
+                self.actor_authority,
+                affiliation=affiliation,
+                target_id=identity,
+                target_position=(
+                    invocation.cell
+                    if native_cell_argument or target is None
+                    else target.position
+                ),
+            )
+
+        def has_been_raised_query(selector):
+            from .combat_restore_strategy import has_been_raised_by_effect
+
+            # eMc compares the literal string with "target" ignoring case;
+            # every other string selects the caster through eII.b(false,...).
+            key = "target" if selector.lower() == "target" else "caster"
+            if key == "target" and native_cell_argument:
+                actor = condition_cell_fighter()
+                return False if actor is None else has_been_raised_by_effect(actor)
+            selected = state_actor_query(key)
+            if selected is None or selected.is_native_fighter is False:
+                return False
+            if selected.is_native_fighter is not True:
+                raise ValueError("Missing native raised-by-effect eGj type")
+            actor = native_actor(preview, selected.actor_id)
+            if actor is None:
+                raise ValueError("Missing actual raised-by-effect fighter")
+            return has_been_raised_by_effect(actor)
+
+        def glyph_count_query(selector):
+            from .combat_glyph_count import native_glyph_count
+
+            return owned_area_count_query(selector, native_glyph_count)
+
+        def wall_count_query(selector):
+            from .combat_wall_count import native_wall_count
+
+            return owned_area_count_query(selector, native_wall_count)
 
         def gate_count_query(selector, mode):
             from .combat_effect_area_queries import _rows
@@ -1728,6 +1843,23 @@ class NativeServerRuntimeAdapter:
                 self, preview, invocation.caster_id, invocation.cell
             )
 
+        def is_hero_query():
+            from .combat_native_ai_hero_predicates import registered_is_hero
+
+            # Effect-context eII.n selects ePy.fyI (the current caster).
+            if caster_actor is None:
+                raise ValueError("Missing native IsHero current fighter")
+            return registered_is_hero(
+                preview, caster_actor, self._actor(preview, caster_actor)
+            )
+
+        def ai_has_cast_spell_query(spell_id):
+            from .combat_ai_cast_history import has_cast_spell
+
+            # Explicit Wakemu policy: the actual effect caster owns this
+            # fight's authorized-cast ledger. Native ffb lifetime is unknown.
+            return has_cast_spell(preview, invocation.caster_id, spell_id)
+
         return ConditionContext(
             aliases,
             cell,
@@ -1740,6 +1872,10 @@ class NativeServerRuntimeAdapter:
                     preview, plan, limit, exclusions
                 )
             ),
+            is_hero_query=is_hero_query,
+            enemy_line_of_sight_query=enemy_line_of_sight_query,
+            has_been_raised_query=has_been_raised_query,
+            ai_has_cast_spell_query=ai_has_cast_spell_query,
             world_property_now_ms=time.time_ns() // 1_000_000,
             current_fighter_id=preview.current.id if preview.current is not None else 0,
             item_quantity_query=(
@@ -1764,6 +1900,7 @@ class NativeServerRuntimeAdapter:
             state_range_query=state_range_query,
             own_team_state_range_query=own_team_state_range_query,
             specific_area_range_query=specific_area_range_query,
+            nearest_ally_beacon_query=nearest_ally_beacon_query,
             closest_specific_area_query=closest_specific_area_query,
             valid_gate_for_tp_query=valid_gate_for_tp_query,
             use_gate_effect_query=use_gate_effect_query,
@@ -1782,6 +1919,7 @@ class NativeServerRuntimeAdapter:
             behind_target_free_query=behind_target_free_query,
             free_surrounding_cell_query=free_surrounding_cell_query,
             gate_count_query=gate_count_query,
+            wall_count_query=wall_count_query,
             glyph_count_query=glyph_count_query,
             own_specific_area_query=own_specific_area_query,
             area_identity_query=lambda name, value: self._area_identity_query(

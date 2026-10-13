@@ -12,7 +12,11 @@ def effective_server_controlled(fight, actor):
     value = getattr(actor, "native_controlled_by_ai", None)
     if type(value) is not bool:
         raise ValueError("Missing actual native eGj.fqL control flag")
-    return value
+    if value:
+        return True
+    from .combat_npc_controller_policy import npc_controller_routes_ai
+
+    return npc_controller_routes_ai(fight, actor)
 
 
 def effective_input_owner(fight, actor):

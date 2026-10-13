@@ -115,6 +115,16 @@ def prepare_timed_expiration(
             raise ValueError("Expiration callbacks belong to another preview")
         packets = runtime_packets
         handler = retention.stat_handler
+        delayed = getattr(dispatcher, "native_delays", None)
+        if delayed is not None:
+            delayed.boundary(
+                actor_id=actor_id,
+                round_number=round_number,
+                phase=phase,
+                round_cleanup=round_cleanup,
+            )
+    elif getattr(fight, "native_delay_queue", {}).get("entries"):
+        raise ValueError("Delayed Qe boundary requires actual runtime factory")
     due = []
     for actor in state_managers(preview):
         for entry in actor.state_ledger.entries:

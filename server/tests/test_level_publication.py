@@ -57,3 +57,71 @@ class LevelPublicationTests(unittest.TestCase):
             level_publication.refresh(
                 {}, [], entity_template=b"\x0b", roster_template=b""
             )
+
+
+class CombatReturnLevelPublicationTests(unittest.TestCase):
+    def test_only_loaded_owned_combat_heroes_refresh_without_activation(self):
+        from wakfu_server.characters import hero_wire
+
+        main = {"id": 3, "account_id": 7, "level": 14}
+        hero = {"id": 4, "account_id": 7, "level": 11}
+        unused = {"id": 5, "account_id": 7, "level": 1}
+        with patch.object(
+            level_publication, "refresh", return_value=[(15548, b"main")]
+        ), patch.object(
+            hero_wire, "refresh", return_value=(13046, b"hero")
+        ) as refresh_hero, patch.object(
+            hero_wire, "statistics", return_value=(15548, b"stats")
+        ):
+            packets = level_publication.combat_return(
+                main,
+                [main, hero, unused],
+                participant_ids=(3, 4, 999),
+                entity_template=b"template",
+                roster_template=b"roster",
+            )
+        self.assertEqual(
+            packets, [(15548, b"main"), (13046, b"hero"), (15548, b"stats")]
+        )
+        refresh_hero.assert_called_once_with(b"template", hero)
+
+    def test_private_scene_hero_refresh_retains_selected_scene_projection(self):
+        from wakfu_server.characters import hero_wire
+
+        main = {
+            "id": 3,
+            "account_id": 7,
+            "level": 14,
+            "map_id": 1440,
+            "instance_id": 123,
+            "x": 2,
+            "y": 3,
+            "z": 0,
+        }
+        hero = {
+            "id": 4,
+            "account_id": 7,
+            "level": 11,
+            "map_id": 527,
+            "instance_id": 0,
+            "x": 99,
+            "y": 99,
+            "z": 0,
+        }
+        with patch.object(level_publication, "refresh", return_value=[]), patch.object(
+            hero_wire, "refresh", return_value=(13046, b"hero")
+        ) as refresh_hero, patch.object(
+            hero_wire, "statistics", return_value=(15548, b"stats")
+        ):
+            level_publication.combat_return(
+                main,
+                [main, hero],
+                participant_ids=(3, 4),
+                entity_template=b"t",
+                roster_template=b"r",
+            )
+        projected = refresh_hero.call_args.args[1]
+        for key in ("map_id", "instance_id", "x", "y", "z"):
+            self.assertEqual(projected[key], main[key])
+        self.assertEqual(projected["id"], hero["id"])
+        self.assertEqual(hero["map_id"], 527)

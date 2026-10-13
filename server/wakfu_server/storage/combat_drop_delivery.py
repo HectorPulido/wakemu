@@ -10,7 +10,7 @@ from hashlib import sha256
 
 from psycopg.pq import TransactionStatus
 
-from wakfu_server.inventory_move import STACKS
+from wakfu_server.inventory_move import ACQUISITION_STACKS as STACKS
 
 
 def _integer(value, name, minimum=0, maximum=(1 << 63) - 1):

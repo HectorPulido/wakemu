@@ -180,7 +180,7 @@ class AdaptiveArenaTests(unittest.TestCase):
         self.assertTrue((zones[0] | zones[1]) & raw_perimeter)
         self.assertFalse((zones[0] | zones[1]) & result["native_border_cells"])
 
-    def test_native_wall_does_not_hide_an_avoidable_interior_entry(self):
+    def test_relocated_encounter_stays_on_local_side_of_native_wall(self):
         from wakfu_server.combat_terrain import local_arena
 
         cells = {(x, y, 0) for x in range(20) for y in range(20) if x != 10 or y == 10}
@@ -197,7 +197,8 @@ class AdaptiveArenaTests(unittest.TestCase):
         zones = result["placement_cells"]
         self.assertEqual(len(zones[0]), 12)
         self.assertEqual(len(zones[1]), 12)
-        self.assertIn((12, 10, 0), zones[1])
+        self.assertTrue(all(cell[0] < 10 for cell in result["validated_cells"]))
+        self.assertNotIn((12, 10, 0), zones[1])
         self.assertFalse(zones[0] & zones[1])
         self.assertFalse(
             (zones[0] | zones[1]) & cardinal_border_cells(result["validated_cells"])

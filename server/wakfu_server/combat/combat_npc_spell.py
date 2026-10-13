@@ -7,19 +7,32 @@ from copy import deepcopy
 import random
 
 
-def owned_spells(fight, monsters):
+def owned_spells(fight, monsters, *, character=None, player_characters=None):
     from wakfu_server.monsters import native_abilities
 
     actor = fight.current
-    if actor is None or actor.controlled or actor.hp <= 0 or actor.id not in monsters:
+    if actor is None or actor.hp <= 0:
         raise ValueError("Missing current owned NPC")
-    monster = monsters[actor.id]
-    if monster["id"] != actor.id:
-        raise ValueError("NPC source identity mismatch")
-    spells = {
-        entry["spell_id"]: entry["spell_level"]
-        for entry in native_abilities(monster["ref"], actor.effective_level)
-    }
+    from .combat_npc_summon_actions import registered_server_summon_book
+
+    if getattr(actor, "native_summon_source", None) is not None:
+        _, spells = registered_server_summon_book(
+            fight,
+            actor,
+            monsters,
+            character=character,
+            player_characters=player_characters,
+        )
+    else:
+        if actor.controlled or actor.id not in monsters:
+            raise ValueError("Missing current owned NPC")
+        monster = monsters[actor.id]
+        if monster["id"] != actor.id:
+            raise ValueError("NPC source identity mismatch")
+        spells = {
+            entry["spell_id"]: entry["spell_level"]
+            for entry in native_abilities(monster["ref"], actor.effective_level)
+        }
     from .combat_spell_grant import granted_spells
 
     for spell, record in granted_spells(fight, actor.id).items():
@@ -48,7 +61,9 @@ def prepare_npc_spell(
 
     if type(action_id) is not int or not 0 < action_id < 1 << 31:
         raise ValueError("Invalid NPC action sequence")
-    spells = owned_spells(fight, monsters)
+    spells = owned_spells(
+        fight, monsters, character=character, player_characters=player_characters
+    )
     spell = action.get("spellId")
     if (
         action.get("type") != "cast"
@@ -76,14 +91,31 @@ def prepare_npc_spell(
     from .combat_npc_activation import imports_enabled
     from .combat_npc_attack import npc_spell_catalog
 
-    compiled = npc_runtime_catalog(
-        imported=imports_enabled(
-            npc_spell_catalog().get("activation_policy"),
-            monsters[actor.id]["ref"],
-            actor.effective_level,
-            spell,
+    summon_context = None
+    if getattr(actor, "native_summon_source", None) is not None:
+        from .combat_npc_summon_actions import registered_server_summon_book
+
+        summon_context, _ = registered_server_summon_book(
+            fight,
+            actor,
+            monsters,
+            character=character,
+            player_characters=player_characters,
         )
+    # Registered construction supplies its exact book independently of wild
+    # activation. Ordinary NPCs retain their existing import policy.
+    imported = summon_context is not None or imports_enabled(
+        npc_spell_catalog().get("activation_policy"),
+        monsters[actor.id]["ref"],
+        actor.effective_level,
+        spell,
     )
+    map_id = (
+        summon_context["map_id"]
+        if summon_context is not None
+        else monsters[actor.id]["map_id"]
+    )
+    compiled = npc_runtime_catalog(imported=imported)
     casting, index = native_casting_table(spell, spells[spell])
     roots = casting["levels"][index][2]
     missing = [root for root in roots if str(root) not in compiled.effects]
@@ -110,12 +142,7 @@ def prepare_npc_spell(
         fight,
         request,
         factory=factory,
-        enabled=imports_enabled(
-            npc_spell_catalog().get("activation_policy"),
-            monsters[actor.id]["ref"],
-            actor.effective_level,
-            spell,
-        ),
+        enabled=imported,
     )
     rule = definition(spell, spells[spell], context, actor.spell_ap_cost_modifiers)
     from .combat_los import authoritative_visible
@@ -131,7 +158,7 @@ def prepare_npc_spell(
         rule["roots"],
         spells[spell],
         lambda source, destination, state: authoritative_visible(
-            monsters[actor.id]["map_id"],
+            map_id,
             source,
             destination,
             state,
@@ -165,7 +192,9 @@ def prepare_npc_spell(
         fight,
         plan,
         rule,
-        monsters[actor.id],
+        # The wire encoders consume only this actual registered actor ID;
+        # no independent encounter descriptor, stats or book is synthesized.
+        {"id": actor.id} if summon_context is not None else monsters[actor.id],
         factory=factory,
         action_id=action_id,
     )
@@ -204,6 +233,9 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
     caster.effect_stats[4] -= rule["costs"]["wp"]
     preview._sync_resources(caster)
     mirror_cast_facing(caster, plan, fight=preview)
+    from .combat_ai_cast_history import record_authorized_cast
+
+    record_authorized_cast(preview, caster.id, spell)
     dispatcher, effect_packets = factory(preview, plan)
     with active_spell_scope(preview, spell), preview.effect_resolution():
         outcomes = tuple(

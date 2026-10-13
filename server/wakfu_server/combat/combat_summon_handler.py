@@ -218,12 +218,17 @@ class NativeSummonHandler:
         )
         from .combat_summon_visual_copy import install_summon_visual_copy
 
+        from .combat_ai_control import set_native_ai_control
+
+        # eZl.c calls lx(true) after the common factory and before reference3251
+        # PJ. Later ordered parent effects may change that current flag again.
         install_summon_visual_copy(
             self.fight,
             actor,
             caster,
             self.authority,
             equipment_apply=getattr(self, "initialize_equipment", None),
+            after_common_factory=lambda: set_native_ai_control(actor, True),
         )
         # The descriptor packet introduces this PV on the client. Ready captures
         # existing actors before innates, so newly created actors must retain

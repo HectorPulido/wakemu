@@ -89,6 +89,10 @@ class RuntimeMessages:
         """
         from .combat_native_action_ids import prepare_native_delivery
 
+        from .combat_pending_restoration import settle_pending_restoration_deaths
+
+        packets = tuple(packets) + settle_pending_restoration_deaths(self)
+
         delivery, last = prepare_native_delivery(
             packets, fight_id=self.fight.id, previous_id=self.native_action_id
         )
@@ -166,7 +170,8 @@ class RuntimeMessages:
         from .combat_state_managers import state_managers
 
         if not (
-            any(
+            bool(getattr(self.fight, "native_delay_queue", {}).get("entries"))
+            or any(
                 entry.timer is not None
                 for actor in state_managers(self.fight)
                 for entry in actor.state_ledger.entries

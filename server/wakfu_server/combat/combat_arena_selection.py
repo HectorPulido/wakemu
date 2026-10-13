@@ -312,7 +312,14 @@ def _select_compact_encounter(
     memoize,
 ):
     selected, ambiguous = encounter_component(geometry, origin, memoize=memoize)
-    preferred = _preferred_originals(origin, originals, selected, cell_budget)
+    # Relocated opponents belong to the local encounter, not their former
+    # world positions. Keeping those positions can force a long native detour
+    # around walls or bridges and split the visible fight into distant wings.
+    preferred = (
+        {origin}
+        if automatic_size and spread_opponents
+        else _preferred_originals(origin, originals, selected, cell_budget)
+    )
     target_cells = max(minimum_cells, 12 + max(12, len(originals)) + 12)
     rectangle = None
     if automatic_size:
@@ -325,6 +332,11 @@ def _select_compact_encounter(
             target_cells,
             cell_budget,
         )
+    # A narrow native walkway may only offer interior capacity after a long
+    # detour into another region. Prefer the local connected fallback rather
+    # than inflating a small encounter beyond twice its playable target.
+    if spread_opponents and rectangle is not None and len(rectangle) > 2 * target_cells:
+        rectangle = None
     # The requested map budget includes blocked rectangle holes, not only
     # playable cells. Both the selected count and rectangle are capped.
     # Narrow native corridors remain valid without invented floor cells.

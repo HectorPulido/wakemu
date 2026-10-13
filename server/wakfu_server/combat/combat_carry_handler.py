@@ -80,11 +80,6 @@ class NativeCarryHandler:
             raise ValueError("Missing complete native Qs area population")
         if areas and self.area_events is None:
             raise ValueError("Carrying requires actual Qs movement callback")
-        if family == 334:
-            # fbX.aE removes unattached faY presentation zones of this target.
-            # Their creation/removal authority is not part of this producer.
-            if any(row.get("native_area_contract") == "faY" for row in areas.values()):
-                raise ValueError("Carrying requires actual faY cleanup authority")
         context = self.context(effect, invocation)
         if (
             not isinstance(context, StatExecutionContext)
@@ -300,6 +295,10 @@ class NativeCarryHandler:
             self.area_events.movement(
                 carried.id, from_cell=before, to_cell=carried.position
             )
+        if effect["effect_class"] == 334:
+            from .combat_carry_glyph_cleanup import cleanup_carried_glyphs
+
+            cleanup_carried_glyphs(self.fight, carried, callbacks=self.area_events)
         self.runners[uid].finish_application()
         self._phase(effect, invocation, uid, 3)
         self._phase(effect, invocation, uid, 4)

@@ -1,5 +1,6 @@
 """Persisted central fresh-cast retention registry, including native groups."""
 from wakfu_server import native_catalog as protocol_catalog
+from .combat_damage_healing import DAMAGE_FAMILIES
 from .combat_state_managers import state_manager, state_managers
 from dataclasses import asdict
 from contextlib import contextmanager
@@ -696,6 +697,10 @@ class NativeRetainedRuntime:
                         )
                     )
                     or effect["effect_class"] in _set_current_families()
+                    or (
+                        getattr(handler, "retention", None) is self
+                        and effect["effect_class"] in DAMAGE_FAMILIES + (25,)
+                    )
                     or str(effect["effect_class"]) in self.stat_handler.registry
                 ):
                     raise ValueError(
@@ -1155,7 +1160,52 @@ class NativeRetainedRuntime:
             context = trigger_value_context(effect, invocation, context)
         return context
 
-    def begin_group(self, effect, values, invocation, *, initial_value=0):
+    def begin_damage(self, effect, values, invocation, *, initial_value):
+        from .combat_damage_healing import DAMAGE_FAMILIES
+
+        if (
+            effect.get("effect_class") not in DAMAGE_FAMILIES
+            or type(invocation.native_running_uid) is not int
+            or invocation.native_running_uid <= 0
+            or type(initial_value) is not int
+            or initial_value < 0
+        ):
+            raise ValueError("Missing actual applied native damage runner")
+        return self.begin_group(
+            effect,
+            values,
+            invocation,
+            initial_value=initial_value,
+            _damage_uid=invocation.native_running_uid,
+        )
+
+    def begin_healing(self, effect, values, invocation, *, initial_value):
+        if (
+            effect.get("effect_class") != 25
+            or type(invocation.native_running_uid) is not int
+            or invocation.native_running_uid <= 0
+            or type(initial_value) is not int
+            or initial_value < 0
+        ):
+            raise ValueError("Missing actual applied native healing runner")
+        return self.begin_group(
+            effect,
+            values,
+            invocation,
+            initial_value=initial_value,
+            _healing_uid=invocation.native_running_uid,
+        )
+
+    def begin_group(
+        self,
+        effect,
+        values,
+        invocation,
+        *,
+        initial_value=0,
+        _damage_uid=None,
+        _healing_uid=None,
+    ):
         definition = self.definition(effect, invocation)
         for uid in self.fight.state_wire_payloads:
             if (
@@ -1171,20 +1221,21 @@ class NativeRetainedRuntime:
         from .combat_summon_initialization import detached_actor
 
         constructor = detached_actor(self.fight, invocation.caster_id)
-        validate_group_registration_flags(
-            effect["native_effect_flags"],
-            effect=effect,
-            reference=invocation.reference,
-            active=self.fight.phase == "active",
-            constructor=(
-                constructor is not None
-                and invocation.target_id
-                in (
-                    None,
-                    constructor.id,
-                )
-            ),
-        )
+        if _damage_uid is None and _healing_uid is None:
+            validate_group_registration_flags(
+                effect["native_effect_flags"],
+                effect=effect,
+                reference=invocation.reference,
+                active=self.fight.phase == "active",
+                constructor=(
+                    constructor is not None
+                    and invocation.target_id
+                    in (
+                        None,
+                        constructor.id,
+                    )
+                ),
+            )
         if not native["retained"]:
             return None
         if (
@@ -1251,10 +1302,18 @@ class NativeRetainedRuntime:
                 replay_container = {"present": False}
         context = self.timing.stat(self.fight, self.plan, effect, invocation)
         uid = (
-            invocation.native_running_uid
-            if effect["effect_class"] == 1080
-            and invocation.native_running_uid is not None
-            else self.fight.allocate_effect_uid()
+            _healing_uid
+            if _healing_uid is not None
+            else _damage_uid
+            if _damage_uid is not None
+            else (
+                invocation.native_delayed_uid
+                if invocation.native_delayed_uid is not None
+                else invocation.native_running_uid
+                if effect["effect_class"] == 1080
+                and invocation.native_running_uid is not None
+                else self.fight.allocate_effect_uid()
+            )
         )
         payload = group_payload(
             uid=uid,
@@ -1265,13 +1324,19 @@ class NativeRetainedRuntime:
             cell=invocation.cell,
             container_type=container["container_type"],
             container_id=identity,
-            timing_payload=context.timing_payload,
+            # Applied eXs QH carries status0/executedtrue; a deferred eXs
+            # remains the original status-1/unexecuted base payload below.
+            timing_payload=(
+                context.timing_payload + _integer(2, 0) + _integer(5, 1)
+                if _healing_uid is not None
+                else context.timing_payload
+            ),
             initial_value=initial_value,
             context_payload=None
             if invocation.native_context_hex is None
             else bytes.fromhex(invocation.native_context_hex),
         )
-        if effect["effect_class"] in DEFERRED_RUNNERS:
+        if effect["effect_class"] in DEFERRED_RUNNERS and _healing_uid is None:
             payload = deferred_payload(
                 family=effect["effect_class"],
                 uid=uid,
@@ -1477,7 +1542,9 @@ class NativeRetainedRuntime:
         )
         from .combat_subscription_runners import SUBSCRIPTION_FAMILIES
 
-        for family in SUBSCRIPTION_FAMILIES + (307,):
+        from .combat_damage_healing import DAMAGE_FAMILIES
+
+        for family in dict.fromkeys(SUBSCRIPTION_FAMILIES + (307,) + DAMAGE_FAMILIES):
             previous = removal.families.pop(family, None)
 
             def validate(entry):
@@ -1530,6 +1597,10 @@ def remove_owned_group(fight, packets, *, action_id, uid):
     )
     manager = entry.manager_id if entry.manager_id is not None else entry.target_id
     packets.append((13560, payload[:-16] + struct.pack(">qq", manager, uid)))
+    from .combat_native_delay_queue import cancel
+
+    if hasattr(fight, "native_delay_queue"):
+        cancel(fight.native_delay_queue, uid)
     del fight.native_owned_group_effects[uid]
     del fight.native_retained_records[uid]
     fight.native_retained_order.remove(uid)

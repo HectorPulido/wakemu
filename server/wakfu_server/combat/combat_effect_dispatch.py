@@ -44,6 +44,9 @@ class EffectInvocation:
     )
     native_turn_boundary_context: dict | None = None  # Owned turn policy, never a Qe.
     native_movement_boundary_context: dict | None = None  # Committed step, never a Qe.
+    native_delayed_uid: int | None = (
+        None  # Same Qe UID, admitted only by actual Tu delivery.
+    )
     native_running_uid: int | None = None
     native_value_scope: object | None = (
         None  # Ephemeral identity of the PS/eVt observer.
@@ -287,9 +290,20 @@ class EffectDispatcher:
         )
         # Resolving per effect also supplies native eligibility for critical
         # branches, event triggers and target overrides. Never default to all.
+        from .combat_native_delayed_effects import scope_for
+
+        delayed = scope_for(effect)
+        if invocation.native_delayed_uid is not None and (
+            delayed is None
+            or delayed["mode"] != "delivery"
+            or delayed["uid"] != invocation.native_delayed_uid
+        ):
+            raise UnsupportedEffectExecution(
+                "Missing verified native Tu delivery scope"
+            )
         population = tuple(
             (invocation,)
-            if activation is not None
+            if activation is not None or invocation.native_delayed_uid is not None
             else self.resolve(effect, invocation)
         )
         # Native selection holds actual PV pointers for the complete traversal,
@@ -349,6 +363,14 @@ class EffectDispatcher:
             ):
                 self._diagnose(selected, status="skipped_native_eligibility")
                 continue
+            delayed_runtime = getattr(self, "native_delays", None)
+            if (
+                activation is None
+                and delayed_runtime is not None
+                and delayed_runtime.schedule(effect, values, selected)
+            ):
+                success = True
+                continue
             if activation is None and self.prepare_effect is not None:
                 selected = self.prepare_effect(effect, values, selected)
                 if self._prepared_scopes:
@@ -371,8 +393,20 @@ class EffectDispatcher:
                     else self.condition_context(selected)
                 )
             )
-            if not candidate_filter and not evaluate_condition(
-                effect["criteria"], condition
+            from .combat_native_delayed_effects import scope_for
+
+            delayed_scope = scope_for(effect)
+            delayed_preflight = (
+                selected.native_delayed_uid is not None
+                and delayed_scope is not None
+                and delayed_scope["mode"] == "delivery"
+                and delayed_scope["uid"] == selected.native_delayed_uid
+                and delayed_scope["preflight_accepted"]
+            )
+            if (
+                not delayed_preflight
+                and not candidate_filter
+                and not evaluate_condition(effect["criteria"], condition)
             ):
                 self._diagnose(
                     selected, status="skipped_condition", criteria=effect["criteria"]
@@ -387,9 +421,12 @@ class EffectDispatcher:
                 raise UnsupportedEffectExecution("Recursive immediate effect tree")
             accepted = (
                 True
-                if activation is None
-                and self.group_retention is not None
-                and self.group_retention.probability_bypassed(selected)
+                if delayed_preflight
+                or (
+                    activation is None
+                    and self.group_retention is not None
+                    and self.group_retention.probability_bypassed(selected)
+                )
                 else self.probability_accepts(values["probability"], selected)
             )
             if type(accepted) is not bool:
@@ -733,7 +770,9 @@ class EffectDispatcher:
                         continue  # eYA.bbH requires a valid transformed center.
                 pending_group = (
                     None
-                    if activation is not None or self.group_retention is None
+                    if activation is not None
+                    or self.group_retention is None
+                    or selected.native_delayed_uid is not None
                     else self.group_retention.begin_group(effect, values, selected)
                 )
                 parameters = values["parameters"]
@@ -853,6 +892,7 @@ class EffectDispatcher:
                         replace(
                             selected,
                             reference=child.child_id,
+                            native_delayed_uid=None,
                             level=child_level,
                             caster_id=child.caster_id,
                             target_id=child.target_id,

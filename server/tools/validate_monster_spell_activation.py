@@ -128,6 +128,11 @@ def digest(path):
 
 def validate_receipt_context(previous, current):
     """Reject reuse after a change in executable or native test authority."""
+    if any(
+        previous.get(field) != current.get(field)
+        for field in ("maximum_descriptor_level", "minimum_descriptor_level")
+    ):
+        raise ValueError("Native descriptor proof bounds differ")
     for field in (
         "candidate_manifest_sha256",
         "changed_document_hashes",
@@ -452,7 +457,7 @@ def install_overlay(candidate, *, overlay=True):
     return manifest
 
 
-def fixture(reference, level, enemy_cell, *, scenario=None):
+def fixture(reference, level, enemy_cell, *, scenario=None, native_lifecycle=False):
     from wakfu_server.combat_state import Actor, Fight
     from wakfu_server.combat_terrain import local_arena
     from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
@@ -585,6 +590,7 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
             placements = {0: {source, enemy_cell}, 1: {hostile_cell}}
         elif scenario.get("kind") == "native_opponent":
             from private_population_harness import private_spare_eligible
+            from ranged_ally_anchor import eligible as ranged_ally_eligible
 
             descriptor = scenario["opponent"]
             spare = next(
@@ -599,6 +605,7 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
                     )
                     if cell not in {source, enemy_cell}
                     and private_spare_eligible(scenario, source, enemy_cell, cell)
+                    and ranged_ally_eligible(scenario, source, cell)
                 ),
                 None,
             )
@@ -610,6 +617,20 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
             if dependency_team not in (0, 1):
                 raise ValueError("Invalid native encounter dependency team")
             dependency_cell = spare if dependency_team == 1 else enemy_cell
+            from wounded_caster_preparation import (
+                DISCOVERY as HP_DISCOVERY,
+                scene_cells as hp_scene_cells,
+            )
+
+            hp_prerequisite_scene = scenario.get("discovery") == HP_DISCOVERY
+            if hp_prerequisite_scene:
+                if dependency_team != 0:
+                    raise ValueError(
+                        "Incoming HP prerequisite requires actual opposing native team"
+                    )
+                dependency_cell, spare = hp_scene_cells(
+                    source, enemy_cell, terrain["validated_cells"]
+                )
             from external_owned_area_preparation import DISCOVERY, producer_scene_cells
 
             external_area_scene = scenario.get("discovery") == DISCOVERY
@@ -640,6 +661,14 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
                     spare = dependency_cell
                 else:
                     spare = player_cell
+            if scenario.get("discovery") == "native_one_enemy_allied_target_v1":
+                from private_population_harness import private_population_scene_cells
+
+                enemy_cell, dependency_cell = private_population_scene_cells(
+                    scenario, source, enemy_cell, spare, terrain["validated_cells"]
+                )
+                player.position = enemy_cell
+                character.update(x=enemy_cell[0], y=enemy_cell[1], z=enemy_cell[2])
             if dependency_team == 0:
                 player.position = spare
                 character.update(x=spare[0], y=spare[1], z=spare[2])
@@ -672,6 +701,8 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
                 if dependency_team == 1
                 else {0: {spare, enemy_cell}, 1: {source}}
             )
+            if hp_prerequisite_scene:
+                placements = {0: {spare, dependency_cell}, 1: {source}}
             if external_area_scene:
                 placements = (
                     {0: {player_cell}, 1: {source, dependency_cell}}
@@ -820,6 +851,12 @@ def fixture(reference, level, enemy_cell, *, scenario=None):
     deck = encode_deck([buff_recipe["spell_id"]]) if buff_recipe else encode_deck()
     from monster_spell_scenarios import advance_to, wound_ally
 
+    if type(native_lifecycle) is not bool:
+        raise ValueError("Explicit native fixture lifecycle mode must be boolean")
+    if native_lifecycle:
+        from native_monster_creator_witness import initialize_native_creator_lifecycle
+
+        fight = initialize_native_creator_lifecycle(fight, character, monsters, deck)
     if isinstance(scenario, dict):
         if buff_recipe:
             from monster_class_buff_scenarios import buff_ally
@@ -982,7 +1019,20 @@ def passive_case_qualification(case):
     )
 
 
+def zero_amount_inputs():
+    from wakfu_server.combat_npc_attack import npc_spell_catalog
+    from wakfu_server import native_catalog
+
+    return npc_spell_catalog(), native_catalog.load(
+        native_catalog.DATA_ROOT / "effect-characteristic-registry.json"
+    )
+
+
 def case_qualification_complete(case):
+    if case.get("status") == "native_zero_amount_unavailable":
+        from native_zero_amount import proven
+
+        return proven(case, *zero_amount_inputs())
     return case.get("status") == "validated" or passive_case_qualification(case)
 
 
@@ -1135,6 +1185,32 @@ def evaluate_reference_cases(
     return cases
 
 
+def bounded_reference_rows(rows, selected, maximum_level=None, minimum_level=None):
+    """Restrict proof coverage without changing any native descriptor level."""
+    for name, bound in (("maximum", maximum_level), ("minimum", minimum_level)):
+        if bound is not None and (type(bound) is not int or bound < 1):
+            raise ValueError(f"Invalid {name} descriptor level")
+    if (
+        maximum_level is not None
+        and minimum_level is not None
+        and minimum_level > maximum_level
+    ):
+        raise ValueError("Minimum descriptor level exceeds maximum")
+    result = []
+    for row in rows:
+        if row["ref"] not in selected:
+            continue
+        bounded = dict(row)
+        if maximum_level is not None:
+            bounded["max_level"] = min(row["max_level"], maximum_level)
+        if minimum_level is not None:
+            bounded["min_level"] = max(row["min_level"], minimum_level)
+        if bounded["min_level"] > bounded["max_level"]:
+            continue
+        result.append(bounded)
+    return result
+
+
 def run_case(
     reference,
     level,
@@ -1240,6 +1316,9 @@ def run_case(
         criterion = (
             native_casting_catalog().get(str(spell), {}).get("cast_criterion_raw")
         )
+        from wounded_caster_preparation import recipes as incoming_hp_recipes
+
+        scenarios = incoming_hp_recipes(criterion, spell) + scenarios
         from monster_pending_scenarios import native_ko_ally_recipe
 
         ko_ally = native_ko_ally_recipe(criterion)
@@ -1255,6 +1334,35 @@ def run_case(
         scene_roots = native_ally_scene_roots(
             spell, spell_level, native_casting_catalog(), root_records
         )
+        from caster_empty_anchor import (
+            caster_empty_root_policy,
+            caster_centered_enemy_cells,
+        )
+        from native_scene_casting import native_scene_casting_row
+        from wakfu_server.combat_casting_context import casting_root_catalog
+
+        native_minimum, native_maximum, native_root_ids = native_scene_casting_row(
+            spell, spell_level, native_casting_catalog()
+        )
+        native_casting = native_casting_catalog().get(str(spell), {})
+        if caster_empty_root_policy(
+            native_minimum,
+            native_maximum,
+            native_casting,
+            native_root_ids,
+            root_records,
+            casting_root_catalog()["roots"],
+        ):
+            centered_recipients = caster_centered_enemy_cells(
+                source,
+                3,
+                native_root_ids,
+                root_records,
+                destinations,
+            )
+            enemies = centered_recipients + [
+                cell for cell in enemies if cell not in centered_recipients
+            ]
         from private_population_harness import private_recipes
 
         for private_recipe in private_recipes(
@@ -1273,6 +1381,10 @@ def run_case(
             # Keep explicit preparations first; all suggested allies still
             # require normal initialization, eligibility and effect commits.
             scenarios.insert(len(scenarios) - 1, ally)
+        from owned_effect_marker import recipes as marker_recipes
+
+        marker_scenarios = marker_recipes(reference, level, spell, criterion)
+        scenarios = marker_scenarios + scenarios
         if criterion:
             from monster_pending_scenarios import recovery_owned_state_recipes
 
@@ -1281,11 +1393,9 @@ def run_case(
             )
             # Try real newly discovered conditional producers before generic
             # targets consume the unchanged recovery attempt/scene caps.
-            conditional = [
-                r
-                for r in state_recipes
-                if r.get("discovery") == "owned_conditional_self_state_v1"
-            ]
+            from owned_state_movement import prioritized_owned_preparations
+
+            conditional = prioritized_owned_preparations(state_recipes)
             scenarios = conditional + [s for s in scenarios if s not in conditional]
             scenarios.extend(r for r in state_recipes if r not in conditional)
             from monster_pending_scenarios import recovery_native_opponent_recipes
@@ -1330,6 +1440,14 @@ def run_case(
         )
         recipients = point_recipients + freecell_recipients
         enemies = recipients + [cell for cell in enemies if cell not in recipients]
+    if recovery_search:
+        from native_scene_plan import plan_existing_native_scenes
+        from wakfu_server.combat_native_spell_casting import native_casting_table
+
+        scene_record, scene_index = native_casting_table(spell, spell_level)
+        scenarios = plan_existing_native_scenes(
+            scene_record, scene_index, criterion, scenarios
+        )
     scenes = (
         [(scenario, enemy) for enemy in enemies for scenario in scenarios]
         if recovery_search
@@ -1458,7 +1576,28 @@ def run_case(
                 casting,
                 ordinary_empty,
             )
-            targets.extend((cell, None) for cell in ordinary_empty)
+            preferred = None
+            if recovery_search:
+                from caster_empty_anchor import prefer_caster_empty_anchors
+                from native_scene_casting import native_scene_casting_row
+                from wakfu_server.combat_casting_context import casting_root_catalog
+
+                preferred = prefer_caster_empty_anchors(
+                    fight,
+                    source,
+                    native_minimum,
+                    native_maximum,
+                    casting,
+                    native_scene_casting_row(
+                        spell, spell_level, native_casting_catalog()
+                    )[2],
+                    root_records,
+                    casting_root_catalog()["roots"],
+                )
+            if preferred is None:
+                targets.extend((cell, None) for cell in ordinary_empty)
+            else:
+                targets = [(cell, None) for cell in preferred] + targets
         if work.resumed:
             targets = work.targets
         for target_index, (target, identity) in enumerate(targets):
@@ -1502,6 +1641,8 @@ def run_case(
                         target_id=identity,
                         enemy_cell=list(enemy),
                         effectful=effectful,
+                        native_preview_source_unchanged=source_snapshot(fight)
+                        == before,
                         scenario=scenario,
                         scenario_receipt=getattr(
                             fight, "validation_scenario_receipt", None
@@ -1552,6 +1693,10 @@ def run_case(
         if result["status"] == "validated":
             break
     result["errors"] = dict(errors)
+    if result["status"] == "pending":
+        from native_zero_amount import classify
+
+        result = classify(result, *zero_amount_inputs())
     return result
 
 
@@ -1845,6 +1990,8 @@ def main():
     parser.add_argument("--recovery-attempt-cap", type=int)
     parser.add_argument("--recovery-scene-cap", type=int)
     parser.add_argument("--only-ref", type=int, action="append")
+    parser.add_argument("--max-descriptor-level", type=int)
+    parser.add_argument("--min-descriptor-level", type=int)
     parser.add_argument("--skip-class-tests", action="store_true")
     parser.add_argument(
         "--fail-fast-reference",
@@ -1869,6 +2016,16 @@ def main():
         )
     except ValueError as error:
         parser.error(str(error))
+    if (
+        args.min_descriptor_level is not None
+        and args.min_descriptor_level < 1
+        or args.max_descriptor_level is not None
+        and args.max_descriptor_level < 1
+        or args.min_descriptor_level is not None
+        and args.max_descriptor_level is not None
+        and args.min_descriptor_level > args.max_descriptor_level
+    ):
+        parser.error("Invalid native descriptor proof bounds")
     if (ROOT / ".runtime").resolve() not in args.output.resolve().parents:
         parser.error("Validation artifacts must stay beneath .runtime")
     os.environ.setdefault("PGOPTIONS", "-c default_transaction_read_only=on")
@@ -1885,6 +2042,9 @@ def main():
     selected = set(manifest["selected_references"])
     if args.only_ref:
         selected &= set(args.only_ref)
+    rows = bounded_reference_rows(
+        rows, selected, args.max_descriptor_level, args.min_descriptor_level
+    )
     result = dict(
         schema="native-npc-activation-validation-v1",
         activated=False,
@@ -1904,6 +2064,10 @@ def main():
         monsters=[],
         class_tests=None,
     )
+    if args.max_descriptor_level is not None:
+        result["maximum_descriptor_level"] = args.max_descriptor_level
+    if args.min_descriptor_level is not None:
+        result["minimum_descriptor_level"] = args.min_descriptor_level
     if args.resume:
         previous = json.loads(args.resume.read_text())
         validate_receipt_context(previous, result)

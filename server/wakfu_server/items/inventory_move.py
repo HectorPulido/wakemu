@@ -1,6 +1,6 @@
 """Native12804 minimal-item transfer; client performs the visual move first."""
 from wakfu_server import native_catalog as protocol_catalog
-from .paths import DATA_ROOT
+from wakfu_server.paths import DATA_ROOT
 import struct
 import json
 from pathlib import Path
@@ -9,6 +9,17 @@ from .inventory_items import _lease
 STACKS = {
     entry["reference"]: entry
     for entry in protocol_catalog.load(DATA_ROOT / "item-stack-rules.json")["items"]
+}
+
+# Equipment must reach the native build editor as individual owned units.
+# Resources keep their native maximum; all acquisition writers share STACKS.
+from wakfu_server.equipment import RULES as EQUIPMENT_RULES
+
+ACQUISITION_STACKS = {
+    reference: dict(rule, maximum=1, native_maximum=rule["maximum"])
+    if reference in EQUIPMENT_RULES
+    else rule
+    for reference, rule in STACKS.items()
 }
 
 
@@ -83,7 +94,9 @@ def transfer(store, account_id, generation, character_id, body):
         ):
             raise ValueError("Foreign item/container or unsupported container type")
         rule = STACKS.get(item["reference"])
-        if rule is None or not 1 <= item["quantity"] <= rule["maximum"]:
+        if rule is None or not 1 <= item["quantity"] <= rule.get(
+            "native_maximum", rule["maximum"]
+        ):
             raise ValueError(
                 "Unknown native item stack rule or oversized owned quantity"
             )

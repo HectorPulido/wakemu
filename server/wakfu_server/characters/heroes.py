@@ -161,6 +161,9 @@ def add(store, account_id, generation, main_character_id, hero_id):
             raise ValueError("Hero character unavailable or foreign")
         if hero["hp"] <= 0:
             raise ValueError("Dead characters cannot join as heroes")
+        from wakfu_server.characters.starter_decks import initialize as initialize_decks
+
+        initialize_decks(db, store.character(account_id, hero_id, db))
         roster = load_roster(db, store, account_id, main_character_id)
         identities = [main_character_id, hero_id] + [r["id"] for r in roster["heroes"]]
         _idle(db, identities)

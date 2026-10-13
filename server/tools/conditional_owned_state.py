@@ -3,7 +3,13 @@ from collections import ChainMap
 
 
 def discover_conditional_owned_state_recipes(
-    abilities, required_states, document, *, limit=4
+    abilities,
+    required_states,
+    document,
+    *,
+    limit=4,
+    casting=None,
+    companion_recipes=None
 ):
     from wakfu_server.combat_effect_targets import native_selector_policy
 
@@ -26,8 +32,16 @@ def discover_conditional_owned_state_recipes(
         ):
             continue
         minimum, maximum, roots = record["levels"][level - 1]
-        if (minimum, maximum) != (0, 0):
-            continue
+        ranged = (minimum, maximum) != (0, 0)
+        companion_options = []
+        if ranged:
+            if companion_recipes is None or casting is None:
+                continue
+            companion_options = companion_recipes(
+                casting.get(str(spell), {}).get("cast_criterion_raw", "")
+            )
+            if not companion_options:
+                continue
         paths = []
         todo = [(str(r), (), ()) for r in roots]
         visited = 0
@@ -44,6 +58,10 @@ def discover_conditional_owned_state_recipes(
             except ValueError:
                 continue
             if "self" not in policy["relations"]:
+                continue
+            if ranged and (
+                policy["relations"] != frozenset({"self"}) or policy["in_area"]
+            ):
                 continue
             # These producer paths preserve literal point/self selection.
             if (effect.get("area_class"), effect.get("area_native")) != (
@@ -93,21 +111,37 @@ def discover_conditional_owned_state_recipes(
             p["criteria"] or p["native_selector"].get("mask") != 1 for p in paths
         ):
             continue
-        for next_turn in (False, True):
-            recipes.append(
-                {
-                    "kind": "owned_spell_sequence",
-                    "actions": [
-                        {"spell_id": spell, "target": "caster", "next_turn": next_turn}
+        contexts = companion_options if ranged else [None]
+        for companion in contexts:
+            for next_turn in (False, True):
+                recipe = (
+                    dict(companion)
+                    if companion is not None
+                    else {"kind": "owned_spell_sequence"}
+                )
+                recipe.update(
+                    actions=[
+                        {
+                            "spell_id": spell,
+                            "target": "native_opponent" if ranged else "caster",
+                            "next_turn": next_turn,
+                        }
                     ],
-                    "discovered_required_states": sorted(states),
-                    "discovery": "owned_conditional_self_state_v1",
-                    "native_producer_spell_level": level,
-                    "native_producer_paths": paths,
-                }
-            )
-            if len(recipes) >= limit:
-                return recipes
+                    discovered_required_states=sorted(states),
+                    discovery="owned_conditional_self_state_v1",
+                    native_producer_spell_level=level,
+                    native_producer_paths=paths,
+                )
+                if not ranged and casting is not None:
+                    from owned_state_movement import requires_zero_mp_branch
+
+                    if requires_zero_mp_branch(
+                        casting.get(str(spell), {}).get("cast_criterion_raw", "")
+                    ):
+                        recipe["actions"][0]["prepare_zero_mp"] = True
+                recipes.append(recipe)
+                if len(recipes) >= limit:
+                    return recipes
     return recipes
 
 
@@ -116,7 +150,12 @@ def verify_state_transaction(source_fight, preview, recipe, action, caster_id):
     if (
         recipe.get("discovery") != "owned_conditional_self_state_v1"
         or action.get("type") != "cast"
-        or action.get("targetId") != caster_id
+        or action.get("targetId")
+        != (
+            -201
+            if recipe["actions"][0].get("target") == "native_opponent"
+            else caster_id
+        )
         or action.get("spellId") != recipe["actions"][0]["spell_id"]
         or action.get("level") != recipe["native_producer_spell_level"]
     ):

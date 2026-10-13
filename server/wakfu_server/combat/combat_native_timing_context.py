@@ -64,7 +64,20 @@ def native_definition_timing(effect, level):
         duration = amount("ryE", "ryF", True)
         delay = amount("ryH", "ryI", True)
         if delay > 0:
-            raise ValueError("Delayed effect execution requires a verified queue")
+            from .combat_native_delayed_effects import scope_for
+
+            scope = scope_for(effect)
+            if scope is None:
+                raise ValueError("Delayed effect execution requires a verified queue")
+            if duration > 0:
+                raise ValueError(
+                    "Combined delayed duration requires native bbT/fRX support"
+                )
+            return {
+                "retained": duration != 0 or scope["mode"] == "registration",
+                "delay": delay,
+                "duration": duration,
+            }
         return {"retained": duration != 0, "delay": False, "duration": duration}
     if mode == 1 and effect.get("native_definition_class") == "eVH":
         duration = amount("rzv", "rzw", False)

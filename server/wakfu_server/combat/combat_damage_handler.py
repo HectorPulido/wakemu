@@ -141,6 +141,7 @@ class NativeDamageHandler:
         self.prepared = {}
         self.final_modifiers = {}
         self.runner_modifiers = {}
+        self.retention = None
 
     def _damage_parameters(
         self, effect, invocation, *, source, target_hp, target_max_hp
@@ -265,6 +266,14 @@ class NativeDamageHandler:
             24,
             31,
         }
+        if 8 in unknown:
+            # faK selects faI before the target cap. The resolver already
+            # supplies actual PA operands; eXt has no rwE arithmetic branch.
+            # Retain the same exported identity guard used by group runners.
+            from .combat_target_ordering import validate_native_target_ordering_identity
+
+            validate_native_target_ordering_identity(effect, invocation.reference)
+            unknown.remove(8)
         if unknown:
             raise ValueError(f"Unsupported native damage flags: {sorted(unknown)}")
         if not context.executable:
@@ -452,6 +461,13 @@ class NativeDamageHandler:
 
             if not area_damage_has_no_resources(self.fight, invocation.target_id):
                 raise ValueError("Changed native partial PV damage resource authority")
+            if "native_execution_mode" in effect:
+                from .combat_native_timing_context import native_definition_timing
+
+                if native_definition_timing(effect, invocation.level)["retained"]:
+                    raise ValueError(
+                        "Retained no-resource damage PV ownership is unaudited"
+                    )
             # eXt.c calls mu(true): suppress PR notification, leave aSg/status
             # unchanged, and preserve the surrounding actual Qe L phases.
             runner.notification_suppressed = True
@@ -504,6 +520,23 @@ class NativeDamageHandler:
                 else tuple(("target", k) for k in target.effect_frozen)
             ),
         )
+        pending_retained = None
+        from .combat_native_timing_context import native_definition_timing
+
+        # eXt inherits eZR.Ty and Qe.bbR (no resource reversal). Retain the
+        # applied runner, not a second damage application or a fabricated stat.
+        if (
+            "native_execution_mode" in effect
+            and native_definition_timing(effect, invocation.level)["retained"]
+        ):
+            if self.retention is None:
+                raise ValueError("Missing retained native damage owner")
+            pending_retained = self.retention.begin_damage(
+                effect,
+                values,
+                replace(invocation, native_running_uid=uid),
+                initial_value=result["value"],
+            )
         packet = direct_damage(
             self.fight.id,
             self.action_id,
@@ -516,6 +549,9 @@ class NativeDamageHandler:
             base_uid=invocation.base_uid,
             armor_absorbed=result["armor_absorbed"],
             barrier_absorbed=result["barrier_absorbed"],
+            retained_payload=None
+            if pending_retained is None
+            else bytes.fromhex(pending_retained["payload"]),
         )
         if wall is None:
             from .combat_hp_raw import hp_raw_present
@@ -593,5 +629,10 @@ class NativeDamageHandler:
             )
         from .combat_runner_callbacks import notify_runner_value
 
+        if pending_retained is not None:
+            # Qe.d inserts the applied runner in Qf after its L3/L4 phases.
+            # Store the exact eXt iN payload, including absorbed resources.
+            pending_retained["payload"] = packet[19:].hex()
+            self.retention.finish_group(pending_retained, notify=False)
         notify_runner_value(invocation, runner.value)
         return True

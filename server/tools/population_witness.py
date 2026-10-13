@@ -45,7 +45,7 @@ def required_enemy_population(criterion):
             type(radius) is int
             and 1 <= radius <= 3
             and count is not None
-            and 2 <= count <= 3
+            and 1 <= count <= 3
         ):
             candidates.append(dict(radius=radius, minimum_enemies=count))
     return max(candidates, key=lambda c: c["minimum_enemies"], default=None)

@@ -202,6 +202,7 @@ class ConditionContext:
     behind_target_free_query: object = None  # eNA actual bcy offset and default eOV.
     free_surrounding_cell_query: object = None  # eMp cardinal QI.V/Q/R.
     gate_count_query: object = None  # ePn actual Qs type19 population.
+    wall_count_query: object = None  # ePu/ePi actual Qs type7/owner.
     glyph_count_query: object = None  # ePo/ePi actual Qs type0 and Qq.bch owner.
     own_specific_area_query: object = None  # eOF Qz/owner criterion.
     area_identity_query: object = None  # eNm/eOQ/eOC actual Qz/aBn/null target.
@@ -216,6 +217,7 @@ class ConditionContext:
     selected_creature_available_query: object = None  # eON actual eHP.drI status.
     breed_in_symbiot_query: object = None  # eMd evaluated profile + eII.a selector.
     space_in_symbiot_query: object = None  # eLm/eHR.fxp actual ten-slot component.
+    nearest_ally_beacon_query: object = None  # eJS complete Qq BEACON population.
     closest_specific_area_query: object = None  # eJT/eIw positive distance minimum.
     specific_area_range_query: object = None  # eLn/eJW complete Qs authority.
     coordinate_query: object = None  # eLT/eLU/eLW eHg or explicit aBn target.
@@ -266,6 +268,10 @@ class ConditionContext:
     boolean_system_configuration_query: object = (
         None  # eJs eEL/eEI actual defaults/overrides.
     )
+    is_hero_query: object = None  # eNT/eII.n selected fighter + fkJ primary map.
+    enemy_line_of_sight_query: object = None  # eMs actual enemy IN_PLAY/fcr.
+    has_been_raised_query: object = None  # eMc/eGj.frH actual eGz.pHO.
+    ai_has_cast_spell_query: object = None  # eIu actual ffc.fZk()->ffb.TY.
     active_cosmetic_id_query: object = None  # eJi eSU/eSP selected cosmetic id.
     has_active_cosmetic_query: object = None  # eLX eSP list membership.
 
@@ -414,7 +420,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         if name == "GetSpaceInSymbiot":
             # eLm does not call alS.s(parameters): parsed arguments are ignored.
             return
-        if name == "NbGlyphs":
+        if name in ("NbGlyphs", "NbWalls"):
             if len(args) > 1 or (args and not is_state_actor_selector(args[0])):
                 raise UnknownCondition("Unsupported native NbGlyphs selector")
             return
@@ -424,6 +430,12 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 for arg in args
             ):
                 raise UnknownCondition("Native NbGates requires two literal strings")
+            return
+        if name == "GetDistanceBetweenTargetAndNearestAllyBeacon":
+            if args:
+                raise UnknownCondition(
+                    "Native nearest-ally-beacon distance takes no arguments"
+                )
             return
         if name == "GetDistanceToClosestSpecificArea":
             if (
@@ -870,6 +882,16 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if type(result) is not int or not -1 <= result <= 10:
                 raise UnknownCondition("Invalid native symbiot space count")
             return result
+        if name == "NbWalls":
+            if not callable(context.wall_count_query):
+                raise UnknownCondition("Missing native wall-count authority")
+            try:
+                result = context.wall_count_query(args[0].value if args else None)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(result) is not int or result < 0:
+                raise UnknownCondition("Invalid native wall count")
+            return result
         if name == "NbGlyphs":
             if not callable(context.glyph_count_query):
                 raise UnknownCondition("Missing native glyph-count authority")
@@ -953,6 +975,13 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             )
             try:
                 return context.random_number_query(limit, exclusions)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "GetDistanceBetweenTargetAndNearestAllyBeacon":
+            if not callable(context.nearest_ally_beacon_query):
+                raise UnknownCondition("Missing native nearest-ally-beacon authority")
+            try:
+                return context.nearest_ally_beacon_query()
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
         if name == "GetDistanceToClosestSpecificArea":
@@ -1596,6 +1625,8 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "IsInFight",
                     "IsCharacter",
                     "IsPlayer",
+                    "IsHero",
+                    "AIHasCastSpell",
                     "IsChallenger",
                     "IsObstacle",
                     "IsOnEffectAreaType",
@@ -1611,6 +1642,8 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "IsCasterFacingFighter",
                     "HasFreeSurroundingCell",
                     "IsControlledByAI",
+                    "HasBeenRaisedByEffect",
+                    "HasLineOfSightFromEnemy",
                     "HasSurroundingCellWithOwnSummon",
                     "IsOnSpecificEffectArea",
                     "IsTriggeredByMeleeEffect",
@@ -1663,7 +1696,11 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                         "Native free-surrounding predicate requires literal booleans"
                     )
                 return
-            if name == "IsControlledByAI":
+            if name in (
+                "IsControlledByAI",
+                "HasBeenRaisedByEffect",
+                "HasLineOfSightFromEnemy",
+            ):
                 if (
                     len(args) != 1
                     or not isinstance(args[0], ast.Constant)
@@ -1736,6 +1773,15 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             ):
                 if args:
                     raise UnknownCondition("Native zone trigger takes no arguments")
+                return
+            if name == "IsHero":
+                if args:
+                    raise UnknownCondition("Native IsHero takes no arguments")
+                return
+            if name == "AIHasCastSpell":
+                if len(args) != 1:
+                    raise UnknownCondition("Native AIHasCastSpell requires one long")
+                check_number(args[0])
                 return
             if name == "IsPlayer":
                 if (
@@ -2299,6 +2345,31 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if type(actor.is_summon) is not bool:
                 raise UnknownCondition(f"Missing native dTE summon status: {selector}")
             return actor.is_summon
+        if name in ("IsHero", "AIHasCastSpell"):
+            query = (
+                context.is_hero_query
+                if name == "IsHero"
+                else context.ai_has_cast_spell_query
+            )
+            if not callable(query):
+                raise UnknownCondition(f"Missing native {name} authority")
+            try:
+                if name == "IsHero":
+                    result = query()
+                else:
+                    # eIu.ayn only evaluates constant numeric operands; a
+                    # dynamic expression is deliberately queried as -1.
+                    constant = not any(
+                        isinstance(n, ast.Call) for n in ast.walk(node.args[0])
+                    )
+                    value = number(node.args[0]) if constant else -1
+                    value = ((int(value) + (1 << 31)) % (1 << 32)) - (1 << 31)
+                    result = query(value)
+                if type(result) is not bool:
+                    raise ValueError(f"Invalid native {name} result")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
         if name == "IsPlayer":
             selector = node.args[0].value.lower() if node.args else "target"
             if selector not in (
@@ -2437,6 +2508,26 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 )
                 if type(result) is not bool:
                     raise ValueError("Missing native neighborhood boolean")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "HasLineOfSightFromEnemy":
+            if not callable(context.enemy_line_of_sight_query):
+                raise UnknownCondition("Missing native enemy LOS authority")
+            try:
+                result = context.enemy_line_of_sight_query(node.args[0].value)
+                if type(result) is not bool:
+                    raise ValueError("Missing native enemy LOS boolean")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "HasBeenRaisedByEffect":
+            if not callable(context.has_been_raised_query):
+                raise UnknownCondition("Missing native raised-by-effect authority")
+            try:
+                result = context.has_been_raised_query(node.args[0].value)
+                if type(result) is not bool:
+                    raise ValueError("Missing native raised-by-effect boolean")
                 return result
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error

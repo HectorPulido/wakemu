@@ -6,7 +6,7 @@ Conversational actors are never registered as attackable monster groups.
 """
 import struct
 
-from .npc_dialogue import DialogueSession, catalog
+from .npc_dialogue import DialogueSession, catalog, interactions_enabled
 from .npc_capture_contracts import authorized_identity
 from . import npc_objective_facts, npc_protectors, npc_observed_dialogue
 
@@ -132,7 +132,14 @@ def spawn(row, native=None, language="es"):
     out += b"\x00" + struct.pack(">iBBBBbB", -1, 0, 0, 0, 0, -1, 0)
     out += b"\x00"  # no world property overrides
     out += struct.pack(">qHhh", -row["actor_id"], 1, row["reference_id"], level)
-    out += struct.pack(">hhH", -1, -1, 0)  # aggro defaults; no disabled actions
+    disabled_actions = (
+        ()
+        if interactions_enabled()
+        else tuple(action["id"] for action in speaker["actions"])
+    )
+    out += struct.pack(">hhH", -1, -1, len(disabled_actions)) + b"".join(
+        struct.pack(">i", action_id) for action_id in disabled_actions
+    )
     out += bytes(2) + bytes(16) + bytes(3)  # movement, controller, scale, hero
     return 12608, b"\x00\x01" + struct.pack(">BqH", 1, row["actor_id"], len(out)) + out
 

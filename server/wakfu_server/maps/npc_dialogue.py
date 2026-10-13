@@ -13,6 +13,18 @@ NODE_RESPONSE = 12218
 NPC_SPEAKER = 2
 
 
+def interactions_enabled():
+    """Keep NPC appearance while unqualified conversations remain disabled."""
+    return False
+
+
+def disabled_response(session=None):
+    """Release a stale native conversation using its terminal node response."""
+    if session is not None:
+        session.close()
+    return NODE_RESPONSE, struct.pack(">i", 0)
+
+
 @lru_cache(maxsize=1)
 def catalog():
     from .npc_catalog import document

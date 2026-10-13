@@ -75,6 +75,40 @@ class SocketEnchantmentTests(PostgresCase):
                 "UPDATE characters SET level=100 WHERE id=%s", (self.char["id"],)
             )
 
+    def test_socket_mutation_splits_target_and_preserves_remainder_state(self):
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE inventory_items SET quantity=4 WHERE uid=%s",
+                (self.target["uid"],),
+            )
+        result = mutate(
+            self.store,
+            self.account,
+            self.generation,
+            self.char["id"],
+            12365,
+            struct.pack(">qBq", self.target["uid"], 0, self.sacrifice["uid"]),
+        )
+        self.assertTrue(result["applied"])
+        with self.store.connection() as db:
+            rows = db.execute(
+                "SELECT i.uid,i.quantity,s.shard_state FROM inventory_items i "
+                "LEFT JOIN inventory_item_shards s ON s.uid=i.uid "
+                "WHERE i.character_id=%s AND i.reference=2869",
+                (self.char["id"],),
+            ).fetchall()
+            self.assertEqual(sum(row["quantity"] for row in rows), 4)
+            self.assertEqual(len(rows), 2)
+            remainder = next(row for row in rows if row["uid"] != self.target["uid"])
+            self.assertEqual(remainder["quantity"], 3)
+            self.assertEqual(bytes(remainder["shard_state"]), socket_blob())
+            self.assertEqual(
+                next(
+                    row["quantity"] for row in rows if row["uid"] == self.target["uid"]
+                ),
+                1,
+            )
+
     def test_bonus_response_failure_rolls_back_shards_state_fee_and_receipt(self):
         from unittest.mock import patch
 
@@ -903,11 +937,11 @@ class SocketEnchantmentTests(PostgresCase):
                 0,
             )
 
-    def test_sacrifice_must_match_target_reference_and_be_unstacked(self):
+    def test_sacrifice_must_match_reference_and_automatically_splits_one(self):
         body = struct.pack(">qBq", self.target["uid"], 0, self.sacrifice["uid"])
         with self.store.connection() as db:
             db.execute(
-                "UPDATE inventory_items SET reference=9001 WHERE uid=%s",
+                "UPDATE inventory_items SET reference=9001,quantity=3 WHERE uid=%s",
                 (self.sacrifice["uid"],),
             )
         with self.assertRaisesRegex(ValueError, "reference is incompatible"):
@@ -915,21 +949,36 @@ class SocketEnchantmentTests(PostgresCase):
                 self.store, self.account, self.generation, self.char["id"], 12365, body
             )
         with self.store.connection() as db:
-            db.execute(
-                "UPDATE inventory_items SET reference=2869,quantity=2 WHERE uid=%s",
-                (self.sacrifice["uid"],),
-            )
-        with self.assertRaisesRegex(ValueError, "unstacked"):
-            mutate(
-                self.store, self.account, self.generation, self.char["id"], 12365, body
-            )
-        with self.store.connection() as db:
             self.assertEqual(
                 db.execute(
-                    "SELECT count(*) AS n FROM inventory_socket_enchantment_receipts"
-                ).fetchone()["n"],
-                0,
+                    "SELECT quantity FROM inventory_items WHERE uid=%s",
+                    (self.sacrifice["uid"],),
+                ).fetchone()["quantity"],
+                3,
             )
+            db.execute(
+                "UPDATE inventory_items SET reference=2869 WHERE uid=%s",
+                (self.sacrifice["uid"],),
+            )
+        result = mutate(
+            self.store, self.account, self.generation, self.char["id"], 12365, body
+        )
+        self.assertTrue(result["applied"])
+        with self.store.connection() as db:
+            self.assertIsNone(
+                db.execute(
+                    "SELECT 1 FROM inventory_items WHERE uid=%s",
+                    (self.sacrifice["uid"],),
+                ).fetchone()
+            )
+            rows = db.execute(
+                "SELECT uid,quantity FROM inventory_items WHERE character_id=%s "
+                "AND reference=2869",
+                (self.char["id"],),
+            ).fetchall()
+            self.assertEqual(sum(row["quantity"] for row in rows), 3)
+            self.assertEqual(len(rows), 2)
+            self.assertIn(2, [row["quantity"] for row in rows])
 
     def test_sacrifice_retry_after_commit_is_idempotent_and_old_owner_cannot_replay(
         self,

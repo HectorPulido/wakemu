@@ -38,7 +38,8 @@ def direct_damage(
     sequence=-1,
     base_uid=None,
     armor_absorbed=0,
-    barrier_absorbed=0
+    barrier_absorbed=0,
+    retained_payload=None,
 ):
     """12613/cvX with iN ProtoRunningEffect for eXt classes1..5.
 
@@ -83,9 +84,34 @@ def direct_damage(
     )
     # eXt.b/f: ij.getValue (10) is armor; ij.Mg (19) is barrier.
     additional = _integer(10, armor_absorbed) + _integer(19, barrier_absorbed)
+    if retained_payload is not None:
+        from .combat_effect_removal import _identity_fields
+
+        if not isinstance(retained_payload, bytes):
+            raise ValueError("Missing retained native damage payload")
+        fields = _identity_fields(retained_payload)
+        expected = {
+            1: uid,
+            2: base_uid,
+            3: generic_effect,
+            4: damage,
+            6: caster_id & ((1 << 64) - 1),
+            7: target_id & ((1 << 64) - 1),
+        }
+        if any(fields.get(key) != value for key, value in expected.items()):
+            raise ValueError("Retained damage payload identity differs")
+        payload = retained_payload
     payload += _varint((8 << 3) | 2) + _varint(len(additional)) + additional
     return (
-        struct.pack(">iiiBih", fight_id, action_id, sequence, 0, element, len(payload))
+        struct.pack(
+            ">iiiBih",
+            fight_id,
+            action_id,
+            sequence,
+            int(retained_payload is not None),
+            element,
+            len(payload),
+        )
         + payload
     )
 

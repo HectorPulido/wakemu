@@ -87,12 +87,38 @@ class CarryRuntimeTests(unittest.TestCase):
             preview.actors[-7].position,
             native_context_hex=context_hex,
         )
+        # Real fights contain an ownerless environmental faY. It must not
+        # reject carrying, nor be removed by the target-owned cleanup branch.
+        from wakfu_server.combat_environment_glyphs import (
+            ensure_environment_glyphs,
+            POLICY,
+            SOURCE,
+        )
+
+        preview.native_environment_glyph_constructors = [
+            dict(
+                uid=-99999,
+                reference=910,
+                cell=(10, 10, 0),
+                policy=POLICY,
+                source=SOURCE,
+            )
+        ]
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+        )
+
+        initialize_global_pv_collections(preview, (7, 8, -7))
+        preview.native_environment_glyphs_installed = False
+        ensure_environment_glyphs(preview)
         self.assertTrue(raw(combined[str(carry.reference)], {}, carry))
+        self.assertIn(-99999, preview.native_effect_areas)
         self.assertEqual(preview.actors[7].native_carried_actor_id, -7)
         throw = EffectInvocation(
             definitions[333], 1, 7, None, (2, 1, 0), native_context_hex=context_hex
         )
         self.assertTrue(raw(combined[str(throw.reference)], {}, throw))
+        self.assertIn(-99999, preview.native_effect_areas)
         self.assertIsNone(preview.actors[7].native_carried_actor_id)
         self.assertEqual(preview.actors[-7].position, (2, 1, 0))
         self.assertEqual(

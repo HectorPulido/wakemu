@@ -132,6 +132,9 @@ class Fight:
         self.edges = None if valid_edges is None else set(valid_edges)
         self.phase = "placement"
         self.native_spell_usage = {}
+        from .combat_ai_cast_history import fresh_history
+
+        self.wakemu_ai_cast_history = fresh_history()
         self.native_start_event_delivered = False
         self.native_turn_event_deliveries = {}
         self.native_table_turn = (
@@ -162,6 +165,9 @@ class Fight:
         # policy. Native actor identity and fdt membership remain intact.
         self.native_summon_retirements = {}
         self.native_owned_group_effects = {}
+        from .combat_native_delay_queue import fresh_queue
+
+        self.native_delay_queue = fresh_queue()  # Actual fresh SU/TC constructor.
         self.native_retained_records = {}
         self.native_owned_state_containers = (
             {}

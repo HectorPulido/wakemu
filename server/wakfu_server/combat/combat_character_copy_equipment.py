@@ -20,6 +20,22 @@ def copied_equipment_source(authority, source_actor_id):
 
     if not isinstance(authority, NativeActorAuthority):
         raise ValueError("Missing typed copied source actor authority")
+    if authority.native_npc_prototype_ref is not None:
+        if (
+            authority.native_actor_type != 1
+            or authority.is_player is not False
+            or authority.native_npc_prototype_ref != authority.breed_id
+            or type(authority.native_copied_equipment_operand) is not int
+            or authority.native_copied_equipment_operand != 0
+        ):
+            raise ValueError("Missing actual bje inherited eGj.dsK authority")
+        # bje/big inherit eGj.dsK(): literal zero. This is independent of the
+        # player eSU component and PJ(0) returns without installing equipment.
+        return dict(
+            producer="big.copy.eGj.PJ.zero_return",
+            source_actor_id=source_actor_id,
+            dsK=0,
+        )
     selected = authority.native_selected_cosmetics
     if not isinstance(selected, dict) or type(selected.get(7)) is not int:
         raise ValueError("Missing actual copied source eSU.dzQ operand")

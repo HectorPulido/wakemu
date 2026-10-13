@@ -198,6 +198,12 @@ def admit_owned_heroes(
                 (identity,),
             ).fetchone():
                 raise ValueError("Hero already has durable combat membership")
+            from wakfu_server.characters.starter_decks import (
+                initialize as initialize_decks,
+            )
+
+            initialize_decks(db, character)
+            character = store.character(session.account_id, identity, db)
             if private_scene is not None:
                 character = {
                     **character,

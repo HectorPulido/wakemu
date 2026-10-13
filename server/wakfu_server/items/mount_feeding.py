@@ -55,8 +55,11 @@ def feed(store, account_id, generation, character_id, body, *, in_fight):
         if pet_row is None:
             raise ValueError("Pet item is unavailable or foreign")
         pet_item = dict(pet_row)
-        if pet_item["quantity"] != 1:
-            raise ValueError("Pet item must be an unstacked unit")
+        separated_pet = pet_item["quantity"] != 1
+        if separated_pet:
+            from wakfu_server.equipment_stacks import ensure_singleton
+
+            pet_item = dict(ensure_singleton(db, character_id, pet_item["uid"]))
 
         mount = db.execute(
             "SELECT m.*,model.reference AS model_reference,model.maximum_health,"
@@ -218,6 +221,12 @@ def feed(store, account_id, generation, character_id, body, *, in_fight):
         packets = mount_feeding_wire.publication_packets(
             food, updated_pet, request["quantity"]
         )
+        if separated_pet:
+            # The full snapshot also publishes the new remainder UID. Never
+            # combine it with additive deltas that would consume food twice.
+            from wakfu_server.inventory_move import synchronization
+
+            packets = [synchronization(character)]
         # Equipped pet panels resolve a separate rich item registry. Physical
         # bag replacement alone leaves that registry's ProtoPet stale.
         from .inventory_items import equipment_inventory

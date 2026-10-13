@@ -60,6 +60,10 @@ def native_fresh_summon_authority(actor, reference):
         # Fresh bjm.pHM is null until eHD.a after aQc; eGz.dTC is false.
         native_summoned_from_symbiot=False,
         native_actor_type=1,  # Actual bje.dpV -> eGj.aWs.asQ.
+        native_npc_prototype_ref=reference,
+        native_copied_equipment_operand=0,
+        native_account_id=0,  # Actual fresh eGj.ePn constructor value.
+        native_primary_character_id=0,  # fkJ.sS native absent-account value.
         native_sex=0,  # eGj.aWs resets bao before descriptor hydration.
     )
 
@@ -360,6 +364,10 @@ class NativeSummonBuilder:
             native_controlled_by_ai=actor.native_controlled_by_ai,
             native_summoned_from_symbiot=actor.native_summoned_from_symbiot,
             native_actor_type=1,  # Actual constructed bje.dpV, not controller type.
+            native_npc_prototype_ref=specification.reference,
+            native_copied_equipment_operand=0,
+            native_account_id=0,  # eHD does not replace fresh bje.ePn.
+            native_primary_character_id=0,  # Ordinary registry has no account0.
             native_sex=0,  # eHD.aXz is literal zero for fresh/captured descriptors.
         )
         actor.native_summon_source = dict(

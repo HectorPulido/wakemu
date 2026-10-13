@@ -235,8 +235,10 @@ def plan(
         (bag for bag in bag_by_uid.values() if bag["kind"] in _BAG_KINDS),
         key=lambda bag: (bag["kind"], bag["uid"]),
     )
+    from wakfu_server.inventory_move import ACQUISITION_STACKS
+
     for reference, total in sorted(product_totals.items()):
-        rule = STACKS.get(reference)
+        rule = ACQUISITION_STACKS.get(reference)
         if rule is None or type(rule.get("maximum")) is not int or rule["maximum"] <= 0:
             raise ValueError("Unknown native crafting product stack rule")
         remaining = total
