@@ -281,6 +281,45 @@ class DungeonStelePersistenceTests(PostgresCase):
                     (fight_id,),
                 )
 
+    def test_legacy_room_without_native_difficulty_can_bind_without_steles(self):
+        with self.store.connection() as db:
+            # Miaubuelita's configured route 1000312 has no native catalog
+            # entry. Other legacy routes must retain the same playable fallback.
+            db.execute(
+                "UPDATE settings SET value=jsonb_set(value,'{definitions}','{}'::jsonb) "
+                "WHERE name='dungeon_difficulty_catalog'"
+            )
+        fight_id = self.bind_fight()
+        with self.store.connection() as db:
+            self.assertIsNone(dungeon_stele.encounter_snapshot(db, fight_id))
+            self.assertIsNotNone(
+                db.execute(
+                    "SELECT 1 FROM dungeon_room_encounters WHERE fight_id=%s AND status='active'",
+                    (fight_id,),
+                ).fetchone()
+            )
+            self.assertIsNone(
+                db.execute(
+                    "SELECT 1 FROM dungeon_encounter_difficulties WHERE fight_id=%s",
+                    (fight_id,),
+                ).fetchone()
+            )
+
+    def test_native_non_stasis_room_can_bind_without_stele_receipt(self):
+        with self.store.connection() as db:
+            definition_id = db.execute(
+                "SELECT definition_id FROM dungeon_instances WHERE instance_id=%s",
+                (self.instance_id,),
+            ).fetchone()["definition_id"]
+            db.execute(
+                "UPDATE settings SET value=jsonb_set(value,%s,'false'::jsonb) "
+                "WHERE name='dungeon_difficulty_catalog'",
+                (["definitions", str(definition_id), "difficulty_available"],),
+            )
+        fight_id = self.bind_fight()
+        with self.store.connection() as db:
+            self.assertIsNone(dungeon_stele.encounter_snapshot(db, fight_id))
+
     def test_binding_rejects_stale_difficulty_revision_atomically(self):
         from wakfu_server.maps.dungeon_fight_binding import bind_room_group
 

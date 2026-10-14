@@ -12,6 +12,7 @@ from sram_trap_audit_config import (
     MAXIMUM_ELIGIBLE,
     validate_configuration,
 )
+from sram_trap_audit_outcomes import qualify_outcome
 
 import audit_ready_start as ready_audit
 from audit_feca_glyph_manual import path_to
@@ -37,7 +38,11 @@ def run(output, *, level=200, spell=5182, mover="owner"):
     tool_hash = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     dependency_paths = [
         Path(__file__).with_name(name)
-        for name in ("sram_trap_audit_config.py", "audit_feca_glyph_manual.py")
+        for name in (
+            "sram_trap_audit_config.py",
+            "sram_trap_audit_outcomes.py",
+            "audit_feca_glyph_manual.py",
+        )
     ]
     dependency_hashes = {
         path.name: hashlib.sha256(path.read_bytes()).hexdigest()
@@ -257,6 +262,8 @@ def run(output, *, level=200, spell=5182, mover="owner"):
                 struct.pack(">iih", *cell) for cell in path
             )
             movement_before = snapshot(runtime.fight)
+            mover_hp_before = runtime.fight.actors[mover_id].hp
+            mover_armor_before = runtime.fight.actors[mover_id].effect_stats.get(97, 0)
             try:
                 with combat_diagnostic_scope(
                     lambda **event: movement_trace.append(event), limit=8192
@@ -311,6 +318,11 @@ def run(output, *, level=200, spell=5182, mover="owner"):
                 movement_event=event,
                 final_position=tuple(live.actors[mover_id].position),
                 owner_final_position=tuple(live.actors[caster.id].position),
+                requested_endpoint=tuple(path[-1]),
+                mover_hp_before=mover_hp_before,
+                mover_hp_after=live.actors[mover_id].hp,
+                mover_armor_before=mover_armor_before,
+                mover_armor_after=live.actors[mover_id].effect_stats.get(97, 0),
                 packet_count=len(movement_packets),
                 active_area_uids=sorted(live.native_effect_areas),
                 retired_manager_uids=sorted(
@@ -320,10 +332,13 @@ def run(output, *, level=200, spell=5182, mover="owner"):
             if mover == "enemy":
                 if details["owner_final_position"] != details["caster_origin"]:
                     raise AssertionError("Enemy trap activation moved the Sram owner")
-                if details["final_position"] == details["mover_origin"]:
-                    raise AssertionError(
-                        "Enemy trap activation did not displace the NPC"
-                    )
+            # Ordinary walking already changes mover_origin. Compare against
+            # the requested endpoint to distinguish Repulsion from walking.
+            # A single teleport trap only qualifies lifetime, without an
+            # independently established paired destination.
+            verified, outcome = qualify_outcome(spell, details)
+            details["gameplay_outcome_verified"] = verified
+            details["gameplay_outcome"] = outcome
             assert (
                 row["uid"] not in live.native_effect_areas
             ), "Finite trap survived successful activation"

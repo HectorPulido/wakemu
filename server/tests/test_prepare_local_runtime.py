@@ -27,7 +27,6 @@ class PrepareRuntimeTests(unittest.TestCase):
             self.assertEqual(
                 {
                     "postgres-password",
-                    "scheduler-token",
                     "ecology-token",
                     "admin-control-token",
                 },
@@ -133,7 +132,6 @@ class PrepareRuntimeTests(unittest.TestCase):
             self.assertEqual(
                 {
                     "postgres-password",
-                    "scheduler-token",
                     "ecology-token",
                     "admin-control-token",
                 },
@@ -165,6 +163,7 @@ class PrepareRuntimeTests(unittest.TestCase):
         )
         config = json.loads(completed.stdout)
         mounted_secret_sources = set()
+        mounted_secret_directories = set()
         for service in config["services"].values():
             for volume in service.get("volumes", []):
                 target = volume.get("target", "")
@@ -173,15 +172,23 @@ class PrepareRuntimeTests(unittest.TestCase):
                     source = Path(volume["source"])
                     self.assertTrue(source.is_relative_to(_ROOT / ".database"))
                     mounted_secret_sources.add(source)
+                    if target == "/run/secrets":
+                        mounted_secret_directories.add(source)
 
         expected = {
             _ROOT / ".database/secrets/postgres-password",
-            _ROOT / ".database/secrets/scheduler-token",
             _ROOT / ".database/secrets/ecology-token",
             _ROOT / ".database/secrets/admin-control-token",
             _ROOT / ".database/secrets",
         }
-        self.assertTrue(expected.issubset(mounted_secret_sources))
+        for source in expected:
+            self.assertTrue(
+                source in mounted_secret_sources
+                or source.parent in mounted_secret_directories,
+                "Secret is not available through a file or directory mount: "
+                + str(source),
+            )
+        self.assertNotIn("cron", config["services"])
 
 
 if __name__ == "__main__":

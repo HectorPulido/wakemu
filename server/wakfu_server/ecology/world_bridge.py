@@ -281,7 +281,20 @@ class EcologyWorldBridge:
                                 else type(status).__name__,
                             )
                             raise ValueError("Invalid ecology domain status")
+                        failures = result.get("resource_failures", [])
+                        if (
+                            not isinstance(failures, list)
+                            or len(failures) > 64
+                            or any(
+                                type(uid) is not int or not 0 < uid < 2**63
+                                for uid in failures
+                            )
+                            or len(set(failures)) != len(failures)
+                        ):
+                            raise ValueError("Invalid ecology resource failures")
                         result = {"status": status}
+                        if failures:
+                            result["resource_failures"] = failures
                     except Exception as error:
                         self.record(
                             event="ecology_apply_failed",

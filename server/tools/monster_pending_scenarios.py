@@ -129,6 +129,17 @@ def native_ally_recipe(
     return recipe
 
 
+def refresh_native_actor_targets(fight, targets):
+    """Refresh moved live actors' cells without changing target identity/order."""
+    result = []
+    for cell, identity in targets:
+        actor = fight.actors.get(identity)
+        if actor is not None and actor.hp > 0:
+            cell = tuple(actor.position)
+        result.append((cell, identity))
+    return result
+
+
 def additional_native_actor_targets(fight, existing):
     """Include actual living companions omitted by the primary target pair."""
     present = {identity for _, identity in existing if identity is not None}
@@ -141,6 +152,24 @@ def additional_native_actor_targets(fight, existing):
 
 def prepare_scenario(fight, character, monsters, deck, *, caster_id=-200, recipe):
     """Replay a recipe using normal ownership, eligibility and commit paths."""
+    from owned_target_state_wounded import (
+        DISCOVERY as TARGET_DISCOVERY,
+        prepare as prepare_target,
+    )
+
+    if recipe.get("discovery") == TARGET_DISCOVERY:
+        return prepare_target(
+            fight, character, monsters, deck, recipe=recipe, caster_id=caster_id
+        )
+    from initial_subscription_preparation import (
+        DISCOVERY as SUBSCRIPTION_DISCOVERY,
+        prepare as prepare_subscription,
+    )
+
+    if recipe.get("discovery") == SUBSCRIPTION_DISCOVERY:
+        return prepare_subscription(
+            fight, character, monsters, deck, recipe=recipe, caster_id=caster_id
+        )
     from wounded_caster_preparation import (
         DISCOVERY as HP_DISCOVERY,
         prepare as prepare_hp,
@@ -231,11 +260,27 @@ def prepare_scenario(fight, character, monsters, deck, *, caster_id=-200, recipe
         preparations.append(
             dict(native_movement_preparation_proof=proof, turn_id=fight.turn_id)
         )
+    producer_movement = None
+    if recipe.get("native_producer_target_id") is not None:
+        from owned_state_stack import approach_native_producer_target
+        from owned_state_movement import bind_owned_movement_authority
+
+        bind_owned_movement_authority(fight, character, monsters, deck)
+        producer_movement = approach_native_producer_target(
+            fight,
+            caster_id,
+            recipe["native_producer_target_id"],
+            recipe["native_producer_range"],
+            NativeProvider(character, monsters, deck),
+            RuntimeMessages,
+            serialize,
+        )
+        preparations.append(dict(native_producer_movement=producer_movement))
     for step in recipe.get("actions", ()):
-        if step.get("target") not in ("caster", "native_opponent"):
+        if step.get("target") not in ("caster", "native_opponent", "player"):
             raise ValueError("Unsupported native preparation target")
         if (
-            step.get("target") == "native_opponent"
+            step.get("target") in ("native_opponent", "player")
             and recipe.get("discovery") != "owned_conditional_self_state_v1"
         ):
             raise ValueError(
@@ -273,13 +318,46 @@ def prepare_scenario(fight, character, monsters, deck, *, caster_id=-200, recipe
             spellId=spell_id,
             level=owned["spell_level"],
             target=list(
-                fight.actors[-201].position
+                fight.actors[7].position
+                if step.get("target") == "player"
+                else fight.actors[-201].position
                 if step.get("target") == "native_opponent"
                 else actor.position
             ),
-            targetId=-201 if step.get("target") == "native_opponent" else caster_id,
+            targetId=7
+            if step.get("target") == "player"
+            else -201
+            if step.get("target") == "native_opponent"
+            else caster_id,
         )
-        packets = provider.commit(RuntimeMessages(fight), action, serialize)
+        base_costs = recipe.get("native_producer_base_costs")
+        if (
+            base_costs is not None
+            and recipe.get("native_producer_target_id") is not None
+        ):
+            from owned_state_stack import ensure_native_producer_resources
+
+            resource_proof = ensure_native_producer_resources(
+                fight, caster_id, base_costs
+            )
+            preparations.append(
+                dict(native_producer_resource_preparation=resource_proof)
+            )
+        try:
+            packets = provider.commit(RuntimeMessages(fight), action, serialize)
+        except ValueError as exc:
+            if recipe.get("discovery") != "owned_conditional_self_state_v1":
+                raise
+            actor = fight.actors[caster_id]
+            ledger = getattr(actor, "state_ledger", None)
+            grades = (
+                []
+                if ledger is None
+                else [(e.reference, e.level, e.uid) for e in ledger.entries]
+            )
+            raise ValueError(
+                f"{exc}; owned producer spell={spell_id} AP={actor.ap} MP={actor.mp} WP={actor.effect_stats[4]} state_grades={grades}"
+            ) from exc
         if not packets:
             raise ValueError("Native preparation cast delivered no packets")
         state_proof = None
@@ -316,6 +394,39 @@ def prepare_scenario(fight, character, monsters, deck, *, caster_id=-200, recipe
             from owned_effect_marker import verify_committed
 
             verify_committed(fight, marker_proof, caster_id)
+    if producer_movement is not None:
+        from owned_state_stack import restore_native_producer_position
+
+        preparations.append(
+            dict(
+                native_producer_return=restore_native_producer_position(
+                    fight,
+                    caster_id,
+                    producer_movement,
+                    NativeProvider(character, monsters, deck),
+                    RuntimeMessages,
+                    serialize,
+                )
+            )
+        )
+    requirements = recipe.get("required_state_levels", {})
+    if requirements:
+        entries = getattr(fight.actors[caster_id], "state_ledger", None)
+        if entries is None or any(
+            not any(
+                e.reference == state
+                and e.target_id == caster_id
+                and e.caster_id == caster_id
+                and e.level >= grade
+                for e in entries.entries
+            )
+            for state, grade in __import__(
+                "owned_state_stack", fromlist=["state_requirement_items"]
+            ).state_requirement_items(requirements)
+        ):
+            raise ValueError(
+                "Actual owned state sequence did not reach required native grade"
+            )
     return dict(
         schema="native-monster-scenario-v1",
         kind=recipe["kind"],
@@ -336,7 +447,7 @@ def bounded_empty_targets(
     limit=12,
     caster_id=-200,
     prefer_linear=False,
-    prefer_diagonal=False
+    prefer_diagonal=False,
 ):
     """Enumerate real empty walkable cells, prioritizing hostile proximity.
 
@@ -407,6 +518,13 @@ def effect_search_envelope(effects, roots, casting_maximum):
         if effect is None:
             continue
         shape = native_area_shape(effect)
+        if shape is None:
+            from wakfu_server.combat_effect_targets import area_offsets
+
+            try:
+                shape = (area_offsets(effect), True)
+            except ValueError:
+                pass
         if shape is not None:
             points, _ = shape
             radius = max(radius, max((abs(x) + abs(y) for x, y in points), default=0))
@@ -539,7 +657,10 @@ def simple_required_caster_states(criterion):
 
 def recovery_owned_state_recipes(reference, level, spell, criterion):
     """Discover preparations only for a conservatively recognized criterion."""
-    states = simple_required_caster_states(criterion)
+    from owned_state_stack import required_caster_state_levels
+
+    requirements = required_caster_state_levels(criterion)
+    states = sorted(requirements)
     if not states:
         from owned_state_movement import requires_zero_mp_branch
 
@@ -565,6 +686,26 @@ def recovery_owned_state_recipes(reference, level, spell, criterion):
 
     document = npc_spell_catalog()
     from wakfu_server.combat_native_spell_casting import catalog as casting_catalog
+    from owned_target_state_wounded import (
+        target_requirements,
+        recipes as target_recipes,
+    )
+
+    if target_requirements(criterion) is not None:
+        from owned_state_stack import native_state_definitions
+
+        compound = target_recipes(
+            reference,
+            level,
+            spell,
+            criterion,
+            native_abilities(reference, level),
+            document,
+            casting_catalog(),
+            native_state_definitions(),
+        )
+        if compound:
+            return compound
 
     conditional = discover_conditional_owned_state_recipes(
         abilities,
@@ -572,12 +713,35 @@ def recovery_owned_state_recipes(reference, level, spell, criterion):
         document,
         limit=4,
         casting=casting_catalog() if abilities else {},
+        required_levels=requirements,
+        state_definitions=__import__(
+            "owned_state_stack", fromlist=["native_state_definitions"]
+        ).native_state_definitions()
+        if any(grade > 1 for grade in requirements.values())
+        else {},
         companion_recipes=lambda producer_criterion: recovery_native_opponent_recipes(
             reference, level, spell, producer_criterion
+        )
+        or (
+            [
+                dict(
+                    kind="native_opponent",
+                    opponent=dict(reference=reference, level=level, team=0),
+                    discovery="ordinary_same_species_enemy_state_recipient_v1",
+                )
+            ]
+            if any(grade > 1 for grade in requirements.values())
+            and producer_criterion.strip() in ("", "IsEnnemy()", "IsEnemy()")
+            else []
         ),
     )
     return (
-        conditional + discover_owned_state_recipes(abilities, states, document, limit=4)
+        conditional
+        + (
+            discover_owned_state_recipes(abilities, states, document, limit=4)
+            if all(v == 1 for v in requirements.values())
+            else []
+        )
     )[:4]
 
 
@@ -691,17 +855,30 @@ def discover_native_opponent_recipes(criterion, monsters, initial_profiles, *, l
 
 def recovery_native_opponent_recipes(reference, level, spell, criterion):
     """Use only native roster records and imported initialization authorities."""
+    criteria = [criterion]
     if required_native_target_identity(criterion) is None:
-        return []
+        from native_target_identity_choices import positive_target_breed_choices
+
+        criteria = [
+            'IsBreedId("target", ' + str(breed) + ")"
+            for breed in positive_target_breed_choices(criterion)
+        ]
+        if not criteria:
+            return []
     from wakfu_server.monsters import REFERENCES
     from wakfu_server.combat_summon_initial_states import native_initial_states
 
-    return discover_native_opponent_recipes(
-        criterion,
-        REFERENCES.values(),
-        {
-            key: row["initial_state_triples"]
-            for key, row in native_initial_states().items()
-        },
-        limit=4,
-    )
+    profiles = {
+        key: row["initial_state_triples"]
+        for key, row in native_initial_states().items()
+    }
+    recipes = []
+    for alternative in criteria:
+        for recipe in discover_native_opponent_recipes(
+            alternative, REFERENCES.values(), profiles, limit=4
+        ):
+            if recipe not in recipes:
+                recipes.append(recipe)
+                if len(recipes) == 4:
+                    return recipes
+    return recipes

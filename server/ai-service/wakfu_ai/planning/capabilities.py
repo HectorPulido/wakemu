@@ -11,7 +11,7 @@ def validate_capabilities(raw):
             raise ValueError("Invalid spell capability")
         for field, lower, upper in (
             ("spellId", 1, 2**31 - 1),
-            ("level", 1, 32767),
+            ("level", 0, 32767),
             ("minimum", 0, 32767),
             ("maximum", 0, 32767),
         ):

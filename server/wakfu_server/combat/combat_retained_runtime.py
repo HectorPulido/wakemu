@@ -624,6 +624,8 @@ class NativeRetainedRuntime:
                     effect["effect_class"]
                     in (
                         20,
+                        21,  # eWO_HP owns its applied PA delta and native removal.
+                        250,  # eWM owns its applied HP maximum and native removal.
                         28,
                         31,
                         41,
@@ -1046,6 +1048,14 @@ class NativeRetainedRuntime:
             if type(native_override) is not int:
                 raise ValueError("Native eYx child context requires calculated value")
             override = native_override
+        elif effect["effect_class"] == 1101:
+            from .combat_polynomial_level_group import (
+                runtime_child_level as polynomial_level,
+            )
+
+            override = polynomial_level(
+                effect, values, invocation, return_native_override=True
+            )
         elif effect["effect_class"] == 1100:
             from .combat_instance_level_group import (
                 runtime_child_level as instance_level,
@@ -1336,7 +1346,11 @@ class NativeRetainedRuntime:
             if invocation.native_context_hex is None
             else bytes.fromhex(invocation.native_context_hex),
         )
-        if effect["effect_class"] in DEFERRED_RUNNERS and _healing_uid is None:
+        if (
+            effect["effect_class"] in DEFERRED_RUNNERS
+            and _healing_uid is None
+            and _damage_uid is None
+        ):
             payload = deferred_payload(
                 family=effect["effect_class"],
                 uid=uid,

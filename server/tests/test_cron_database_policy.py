@@ -80,7 +80,9 @@ class CronDatabasePolicyTests(unittest.TestCase):
         scheduler.tick.side_effect = (
             lambda: seen.append(scheduler.tasks["positions_flush"]["enabled"]) or []
         )
-        with patch.object(service, "Scheduler", return_value=scheduler), patch.object(
+        with patch.object(service, "provision"), patch.dict(
+            service.os.environ, {"WAKFU_CRON_API_TOKEN_FILE": "/private/test-token"}
+        ), patch.object(service, "Scheduler", return_value=scheduler), patch.object(
             service,
             "load_policy",
             side_effect=[first, ValueError("missing policy"), disabled],

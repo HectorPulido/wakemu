@@ -256,6 +256,9 @@ class NativeControllerTransferHandler:
             self.fight.native_controller_action_books[target.id] = dict(
                 producer="eWD207.eZd.fQM.actual",
                 running_uid=uid,
+                effect_reference=invocation.reference,
+                caster_id=caster.id,
+                applied_team=receipt.applied_team,
                 controller_id=receipt.applied_controller,
                 actions=receipt.controller_book,
             )

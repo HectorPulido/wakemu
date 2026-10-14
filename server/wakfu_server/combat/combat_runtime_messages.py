@@ -343,6 +343,11 @@ class RuntimeMessages:
             if not arm_deadline:
                 self.native_timeline_restore_pending_turn = self.fight.turn_id
             if arm_deadline:
+                from .combat_skip_turn import skip_turn_packets
+
+                skipped = skip_turn_packets(self)
+                if skipped is not None:
+                    return packets + skipped
                 self._arm_turn()
             return packets
         for opcode in (13337, 13482):
@@ -361,6 +366,11 @@ class RuntimeMessages:
             )
             packets.append(self._flush())
         if arm_deadline:
+            from .combat_skip_turn import skip_turn_packets
+
+            skipped = skip_turn_packets(self)
+            if skipped is not None:
+                return packets + skipped
             self._arm_turn()
         return packets
 
@@ -568,6 +578,11 @@ class RuntimeMessages:
                 for opcode, payload in packets
             ]
             self.native_timeline_restore_pending_turn = None
+        from .combat_skip_turn import skip_turn_packets
+
+        skipped = skip_turn_packets(self)
+        if skipped is not None:
+            return packets + skipped
         self._arm_turn()
         return packets
 

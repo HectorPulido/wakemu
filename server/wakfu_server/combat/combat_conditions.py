@@ -217,6 +217,7 @@ class ConditionContext:
     selected_creature_available_query: object = None  # eON actual eHP.drI status.
     breed_in_symbiot_query: object = None  # eMd evaluated profile + eII.a selector.
     space_in_symbiot_query: object = None  # eLm/eHR.fxp actual ten-slot component.
+    has_summon_query: object = None  # eIF any occupied actual captured-roster slot.
     nearest_ally_beacon_query: object = None  # eJS complete Qq BEACON population.
     closest_specific_area_query: object = None  # eJT/eIw positive distance minimum.
     specific_area_range_query: object = None  # eLn/eJW complete Qs authority.
@@ -242,8 +243,14 @@ class ConditionContext:
     cell_specific_area_query: object = None
     cell_area_type_query: object = None  # eID Qq.d native geometry.
     line_of_sight_query: object = None  # eMr/eII.aR/fcr exact runtime authority.
+    valid_path_query: object = (
+        None  # Explicit Wakemu movement witness, not Sn equivalence.
+    )
+    dungeon_difficulty_query: object = None  # eJV current eGj.drG optional GN.
     random_number_query: object = None  # eLb transaction-owned uniform index.
     fighters_breed_range_query: object = None  # eKt/eKn complete fUQ breed roster.
+    fighters_max_level_query: object = None  # eKr native type/in-play/114 filters.
+    player_max_level_query: object = None  # eKW global eEL.pab configuration.
     human_allies_range_query: object = None  # eKz exact aGJ 0/5 filter.
     human_enemies_range_query: object = None  # eKe exact aGJ 0/5 filter.
     allies_count_query: object = None  # eJo actual IN_PLAY same-affiliation roster.
@@ -256,6 +263,7 @@ class ConditionContext:
     allies_range_query: object = None  # eJp affiliation/inPlay/114 filters.
     team_id_query: object = None  # eLx/eII.a actual selector relationship.
     own_team_state_range_query: object = None  # eKS filters state caster affiliation.
+    state_max_level_query: object = None  # eLt FIRST-PV-level maximum over fUQ/Qs.
     state_range_query: object = None  # eLr complete actor + Qq carrier population.
     item_quantity_query: object = None  # eKE current source actor inventory.
     null_actor_aliases: frozenset[str] = frozenset()  # Proven selected eHg null.
@@ -511,6 +519,14 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             ):
                 raise UnknownCondition("Native total HP percentage requires one string")
             return
+        if name == "GetDungeonDifficulty":
+            if args:
+                raise UnknownCondition("Native dungeon difficulty takes no arguments")
+            if not callable(context.dungeon_difficulty_query):
+                raise UnknownCondition(
+                    "Missing current native dungeon difficulty authority"
+                )
+            return
         if name == "GetRandomNumber":
             if not callable(context.random_number_query):
                 raise UnknownCondition(
@@ -660,6 +676,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 "GetTriggererEffectCaster",
                 "GetTriggeringEffectCaster",
                 "GetTriggeringEffectTarget",
+                "GetTriggeringEffectTargetBreedId",
                 "GetEffectTarget",
                 "GetEffectTargetOriginalController",
                 "GetEffectCasterOriginalController",
@@ -731,6 +748,32 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             ):
                 raise UnknownCondition("Unsupported GetRealLevel selector")
             return
+        if name == "GetFightersMaxLevel":
+            if (
+                len(args) > 2
+                or (
+                    args
+                    and (
+                        not isinstance(args[0], ast.Constant)
+                        or type(args[0].value) is not str
+                    )
+                )
+                or (
+                    len(args) == 2
+                    and (
+                        not isinstance(args[1], ast.Constant)
+                        or type(args[1].value) is not bool
+                    )
+                )
+            ):
+                raise UnknownCondition(
+                    "Unsupported native maximum fighter-level arguments"
+                )
+            return
+        if name == "GetPlayerMaxLevel":
+            if args:
+                raise UnknownCondition("GetPlayerMaxLevel takes no arguments")
+            return
         if name == "GetTeamId":
             if len(args) > 1 or (
                 args
@@ -744,6 +787,26 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         if name == "GetLevel":
             if len(args) > 1 or (args and not is_selector(args[0])):
                 raise UnknownCondition(f"Unsupported {name} selector")
+            return
+        if name == "GetStateMaxLevelCountInRange":
+            if (
+                len(args) not in (4, 5)
+                or not isinstance(args[2], ast.Constant)
+                or type(args[2].value) is not str
+                or (
+                    len(args) == 5
+                    and (
+                        not isinstance(args[4], ast.Constant)
+                        or type(args[4].value) is not str
+                    )
+                )
+            ):
+                raise UnknownCondition(
+                    "Unsupported native state-level maximum signature"
+                )
+            check_number(args[0])
+            check_number(args[1])
+            literal_long(args[3])
             return
         if name == "GetStateLevel":
             if (
@@ -962,6 +1025,14 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 raise UnknownCondition("Missing native owned inventory authority")
             try:
                 return context.item_quantity_query(tuple(number(arg) for arg in args))
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "GetDungeonDifficulty":
+            try:
+                value = context.dungeon_difficulty_query()
+                if type(value) is not int or not -(1 << 31) <= value < (1 << 31):
+                    raise ValueError("Invalid native dungeon difficulty GN")
+                return value
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
         if name == "GetRandomNumber":
@@ -1311,6 +1382,26 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "Missing authoritative native arM instance property"
                 )
             return actor.native_instance_id
+        if name == "GetTriggeringEffectTargetBreedId":
+            # Native eLO: eII.aV(source), null/non-eGj -> -1, eGj.aXA -> short.
+            if args:
+                raise UnknownCondition(
+                    "Native triggering breed predicate takes no arguments"
+                )
+            if "triggeringtarget" in context.null_actor_aliases:
+                return -1
+            actor = context.actors.get("triggeringtarget")
+            if actor is None or type(actor.is_native_fighter) is not bool:
+                raise UnknownCondition(
+                    "Missing native triggering target fighter authority"
+                )
+            if not actor.is_native_fighter:
+                return -1
+            if type(actor.breed_id) is not int or not -32768 <= actor.breed_id <= 32767:
+                raise UnknownCondition(
+                    "Missing native triggering target signed-short breed"
+                )
+            return actor.breed_id
         if name in ("GetTriggeringEffectCaster", "GetTriggeringEffectTarget"):
             if context.triggering_effect_present is False:
                 return -1
@@ -1381,6 +1472,30 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 raise UnknownCondition(str(error)) from error
             if type(value) is not int or not -32768 <= value <= 32767:
                 raise UnknownCondition("Invalid native current eZR.fRR short")
+            return value
+        if name in ("GetFightersMaxLevel", "GetPlayerMaxLevel"):
+            query = (
+                context.fighters_max_level_query
+                if name == "GetFightersMaxLevel"
+                else context.player_max_level_query
+            )
+            if not callable(query):
+                raise UnknownCondition(
+                    "Missing native maximum-level authority: " + name
+                )
+            try:
+                value = (
+                    query(
+                        args[0].value if args else "player",
+                        args[1].value if len(args) == 2 else True,
+                    )
+                    if name == "GetFightersMaxLevel"
+                    else query()
+                )
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            if type(value) is not int:
+                raise UnknownCondition("Invalid native maximum-level result")
             return value
         if name == "GetRealLevel":
             from .combat_real_level import native_real_level
@@ -1456,6 +1571,22 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if actor.effective_level is None:
                 raise UnknownCondition("Missing authoritative eGj.cmZ actor level")
             return actor.effective_level
+        if name == "GetStateMaxLevelCountInRange":
+            if not callable(context.state_max_level_query):
+                raise UnknownCondition("Missing native state-level maximum authority")
+            try:
+                result = context.state_max_level_query(
+                    number(args[0]),
+                    number(args[1]),
+                    args[2].value,
+                    literal_long(args[3]),
+                    args[4].value if len(args) == 5 else "",
+                )
+                if type(result) is not int:
+                    raise ValueError("Missing native state-level maximum long")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
         if name == "GetStateLevel":
             if actor.state_levels is None:
                 raise UnknownCondition("Missing native ordered state levels")
@@ -1620,6 +1751,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "IsSummon",
                     "IsSummonedFromSymbiot",
                     "HasSummonWithBreed",
+                    "HasSummon",
                     "HasEffectWithSpecificId",
                     "HasEffectWithActionId",
                     "IsInFight",
@@ -1644,6 +1776,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "IsControlledByAI",
                     "HasBeenRaisedByEffect",
                     "HasLineOfSightFromEnemy",
+                    "HasValidPathToTarget",
                     "HasSurroundingCellWithOwnSummon",
                     "IsOnSpecificEffectArea",
                     "IsTriggeredByMeleeEffect",
@@ -1656,6 +1789,32 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 or node.keywords
             ):
                 raise UnknownCondition(f"Unsupported native predicate: {name}")
+            if name == "HasSummon":
+                if len(args) > 1 or (
+                    args
+                    and not (
+                        isinstance(args[0], ast.Constant) and type(args[0].value) is str
+                    )
+                ):
+                    raise UnknownCondition(
+                        "Native HasSummon takes optional literal string"
+                    )
+                return
+            if name == "HasValidPathToTarget":
+                if len(args) > 2 or (
+                    len(args) == 2
+                    and not (
+                        isinstance(args[0], ast.Constant) and type(args[0].value) is str
+                    )
+                ):
+                    raise UnknownCondition("Unsupported native valid-path signature")
+                if args:
+                    if isinstance(args[0], ast.Constant) and type(args[0].value) is str:
+                        if len(args) == 2:
+                            literal_long(args[1])
+                    else:
+                        literal_long(args[0])
+                return
             if name == "HasSurroundingCellWithOwnSummon":
                 if (
                     len(args) not in (2, 3)
@@ -1801,7 +1960,20 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 if len(args) > 1 or args and not is_state_actor_selector(args[0]):
                     raise UnknownCondition("Unsupported native IsChallenger selector")
                 return
-            if name in ("IsInFight", "IsCharacter"):
+            if name == "IsCharacter":
+                # eND stores only equalsIgnoreCase("target"); every other
+                # literal string selects the current caster, not eII.a aliases.
+                if (
+                    len(args) > 1
+                    or args
+                    and (
+                        not isinstance(args[0], ast.Constant)
+                        or type(args[0].value) is not str
+                    )
+                ):
+                    raise UnknownCondition("Unsupported native IsCharacter selector")
+                return
+            if name == "IsInFight":
                 if len(args) > 1 or args and not is_selector(args[0]):
                     raise UnknownCondition(f"Unsupported native {name} selector")
                 return
@@ -2402,7 +2574,11 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 context, node.args[0].value.lower() if node.args else "target"
             )
         if name == "IsCharacter":
-            selector = node.args[0].value.lower() if node.args else "caster"
+            selector = (
+                "target"
+                if node.args and node.args[0].value.lower() == "target"
+                else "caster"
+            )
             actor = context.actors.get(selector)
             if actor is None and selector in context.null_actor_aliases:
                 return False  # eND selected eHg null -> -1.
@@ -2508,6 +2684,47 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 )
                 if type(result) is not bool:
                     raise ValueError("Missing native neighborhood boolean")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+        if name == "HasSummon":
+            if not callable(context.has_summon_query):
+                raise UnknownCondition(
+                    "Missing native HasSummon captured-roster authority"
+                )
+            selector = (
+                "target"
+                if node.args and node.args[0].value.strip().lower() == "target"
+                else "caster"
+            )
+            try:
+                result = context.has_summon_query(selector)
+                if type(result) is not bool:
+                    raise ValueError("Missing native HasSummon boolean")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+
+        if name == "HasValidPathToTarget":
+            if not callable(context.valid_path_query):
+                raise UnknownCondition("Missing Wakemu actual movement path authority")
+            args = node.args
+            options = (
+                args[0].value
+                if args
+                and isinstance(args[0], ast.Constant)
+                and type(args[0].value) is str
+                else None
+            )
+            limit = (
+                literal_long(args[-1])
+                if args and (options is None or len(args) == 2)
+                else None
+            )
+            try:
+                result = context.valid_path_query(options, limit)
+                if type(result) is not bool:
+                    raise ValueError("Missing path-witness boolean")
                 return result
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error

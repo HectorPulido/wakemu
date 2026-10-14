@@ -1,6 +1,7 @@
 """Qq targets for the resolver, distinct from fighters and their resources."""
 from dataclasses import dataclass
 from .combat_effect_area_queries import _rows
+from .combat_area_affiliation import area_affiliation
 
 
 @dataclass(frozen=True)
@@ -48,9 +49,7 @@ def area_targets(fight):
             NativeAreaTarget(
                 row["uid"],
                 tuple(row["cell"]),
-                -1
-                if border or environment
-                else getattr(owner, "native_fight_affiliation", owner.team),
+                -1 if border or environment else area_affiliation(fight, row),
                 row["owner_id"],
                 direction=row["direction"],
                 native_obstacle_id=row.get("native_obstacle_id", -1),
@@ -82,12 +81,7 @@ def retained_area_source_target(fight, identity):
     if pv is None:
         return None
     row = retained_area_pv_row(fight, identity)
-    owner = fight.actors.get(row.get("owner_id"))
-    affiliation = row.get("native_fight_affiliation")
-    if affiliation is None:
-        if owner is None:
-            raise ValueError("Missing selected area source affiliation")
-        affiliation = getattr(owner, "native_fight_affiliation", owner.team)
+    affiliation = area_affiliation(fight, row)
     return NativeAreaTarget(
         identity,
         pv.position,

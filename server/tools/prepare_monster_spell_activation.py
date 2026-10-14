@@ -274,6 +274,11 @@ def main():
         type=Path,
         help="Source-qualified eYW spell element PCs to append when absent; never replace shared data",
     )
+    parser.add_argument(
+        "--morph-supplement",
+        type=Path,
+        help="Source-bound append-only native morphology bundle preserving existing class definitions",
+    )
     args = parser.parse_args()
     output = args.output.resolve()
     if (ROOT / ".runtime").resolve() not in output.parents:
@@ -418,6 +423,12 @@ def main():
 
             additional_documents.update(
                 package_element_pcs(args.spell_element_damage_pcs, manifest, root=ROOT)
+            )
+        if args.morph_supplement is not None:
+            from export_monster_morph_profiles import package_document as package_morph
+
+            additional_documents.update(
+                package_morph(args.morph_supplement, manifest, root=ROOT)
             )
         active_monsters = {
             int(key): row

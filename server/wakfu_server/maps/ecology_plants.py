@@ -340,17 +340,21 @@ def apply(plantings, groups, proposal, *, authorize_spawn, publish, _collect=Non
     if definition["monster_resource"]:
         if transition is not None or resource["stage"] != 1:
             raise ValueError("Invalid ecology monster transition")
-        if not authorize_spawn(resource):
-            _seed_log(resource, "blocked", reason="world_occupied")
-            return dict(
-                status="deferred", applied=False, reason="occupied", publications=[]
-            )
         if int(plantings.store.clock() * 1000) < (
             resource["creation_time"] + plantings.growth_seconds * 1000
         ):
             _seed_log(resource, "blocked", reason="not_due")
             return dict(
                 status="deferred", applied=False, reason="not_due", publications=[]
+            )
+        if not authorize_spawn(resource):
+            _seed_log(resource, "blocked", reason="world_occupied")
+            return dict(
+                status="deferred",
+                applied=False,
+                reason="occupied",
+                publications=[],
+                resource_failures=[resource["resource_uid"]],
             )
         member = proposal.get("member")
         if not isinstance(member, dict) or any(
@@ -410,6 +414,7 @@ def apply(plantings, groups, proposal, *, authorize_spawn, publish, _collect=Non
             applied=False,
             reason="capacity",
             publications=[],
+            resource_failures=[resource["resource_uid"]],
         )
     if members is not None:
         _seed_log(resource, "commit_checked")
@@ -433,7 +438,7 @@ def _apply_birth_batch(plantings, groups, proposal, *, authorize_spawn, publish)
     if not isinstance(rows, list) or not 1 <= len(rows) <= MAX_BIRTH_BATCH:
         raise ValueError("Invalid ecology birth batch size")
     json_bytes(proposal, limit=MAX_BIRTH_BATCH_BYTES)
-    candidates, identities, waiting = [], set(), []
+    candidates, identities, waiting, failures = [], set(), [], []
     for row in rows:
         if (
             not isinstance(row, dict)
@@ -454,6 +459,7 @@ def _apply_birth_batch(plantings, groups, proposal, *, authorize_spawn, publish)
             publish=publish,
             _collect=candidates,
         )
+        failures.extend(result.get("resource_failures", []))
         if result.get("status") == "deferred":
             waiting.append(result["reason"])
     if not candidates:
@@ -462,6 +468,7 @@ def _apply_birth_batch(plantings, groups, proposal, *, authorize_spawn, publish)
             applied=False,
             reason=waiting[0] if waiting else "not_due",
             publications=[],
+            resource_failures=failures,
         )
     prepared = {
         resource["resource_uid"]: member for resource, _, _, member in candidates
@@ -476,10 +483,18 @@ def _apply_birth_batch(plantings, groups, proposal, *, authorize_spawn, publish)
     deliveries = plantings.publish_growth(
         groups, publish=publish, resource_uids=sorted(identities), limit=MAX_BIRTH_BATCH
     )
+    failures.extend(growth.get("capacity_skipped", ()))
+    failures = list(dict.fromkeys(failures))
     if not growth.get("applied") and not deliveries and growth.get("capacity_skipped"):
         return dict(
-            status="deferred", applied=False, reason="capacity", publications=[]
+            status="deferred",
+            applied=False,
+            reason="capacity",
+            publications=[],
+            resource_failures=failures,
         )
     return dict(
-        applied=bool(growth.get("applied") or deliveries), publications=deliveries
+        applied=bool(growth.get("applied") or deliveries),
+        publications=deliveries,
+        resource_failures=failures,
     )

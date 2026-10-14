@@ -357,6 +357,16 @@ def freeze_encounter(db, instance_id, fight_id):
         "SELECT snapshot FROM dungeon_encounter_difficulties WHERE fight_id=%s",
         (fight_id,),
     ).fetchone()
+    if frozen_difficulty is None:
+        # Legacy and native non-Stasis rooms have no scaling receipt. They also
+        # have no stele reward authority; do not require or invent one to fight.
+        scaling = dungeon_difficulty.encounter_scaling(db, instance_id)
+        selected = db.execute(
+            "SELECT 1 FROM dungeon_stele_selections WHERE instance_id=%s LIMIT 1",
+            (instance_id,),
+        ).fetchone()
+        if scaling is None and selected is None:
+            return None
     if (
         frozen_difficulty is None
         or frozen_difficulty["snapshot"]["selection_revision"] != difficulty["revision"]

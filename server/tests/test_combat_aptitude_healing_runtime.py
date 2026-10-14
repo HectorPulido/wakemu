@@ -58,9 +58,11 @@ class AptitudeHealingRuntimeTests(unittest.TestCase):
             1134,
             78,
             positions[7],
-            positions[-7],
+            [positions[8], positions[9], positions[-7]],
             compact=compact_arena,
-            relocate_monsters=compact_arena,
+            # All real participants must belong to the selected terrain, and
+            # allied spell tests require the requested relative positions.
+            relocate_monsters=False,
         )
         characters = {
             7: effective_character(

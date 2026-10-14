@@ -145,6 +145,8 @@ class PositionBufferContentionTests(unittest.TestCase):
         first, second = _character(101), _character(202)
         _install(buffer, 1, "g1", first)
         _install(buffer, 2, "g2", second)
+        # Exercise connection contention with actual work; clean flushes skip SQL.
+        self._move(buffer, 1, "g1", first)
         errors = []
         worker = threading.Thread(
             target=self._run_flush, args=(buffer, errors), daemon=True

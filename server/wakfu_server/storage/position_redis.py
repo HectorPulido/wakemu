@@ -240,7 +240,34 @@ class RedisPositions(Positions):
                 if self.mirrors.get(key) == encoded:
                     self.mirrors.pop(key, None)
 
+    def registered_accounts(self):
+        with self.lock:
+            return (
+                super().registered_accounts()
+                | {key[0] for key in self.pending_acks}
+                | {key[0] for key in self.mirrors}
+            )
+
+    def background_accounts(self):
+        with self.lock:
+            return (
+                super().background_accounts()
+                | {key[0] for key in self.pending_acks}
+                | {key[0] for key in self.mirrors}
+            )
+
     def _flush_one(self, **scope):
+        # Redis ACK recovery remains work even after PostgreSQL committed and
+        # cleared dirty state. Clean mirrors need Redis only, never a DB slot.
+        with self.flush_barrier(**scope) as accounts:
+            if not self.has_dirty(**scope):
+                with self.lock:
+                    for key, encoded in self.mirrors.items():
+                        entry = self.entries.get(key)
+                        if key[0] in accounts and (entry is None or not entry["dirty"]):
+                            self.pending_acks[key] = encoded
+                self._ack_pending(accounts)
+                return 0
         # Acquire scarce DB capacity before holding any account barrier.
         started = time.monotonic()
         with ExitStack() as transaction:

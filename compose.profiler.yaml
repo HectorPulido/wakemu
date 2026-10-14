@@ -1,7 +1,11 @@
 services:
   profiler:
     profiles: [observability]
+    image: ${WAKFU_PROFILER_IMAGE:-wakemu-profiler:local}
     build: ./server/profiler-service
+    environment:
+      PROFILER_RETENTION_SECONDS: ${WAKFU_PROFILER_RETENTION_SECONDS:-3600}
+      PROFILER_MAX_BYTES: ${WAKFU_PROFILER_MAX_BYTES:-1073741824}
     init: true
     pid: service:world
     depends_on:

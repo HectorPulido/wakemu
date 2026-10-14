@@ -1,5 +1,6 @@
 """Generic Qe local phases must reach real area managers without fighter stats."""
 import unittest
+from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import patch
 from wakfu_server.combat_ordinary_events import OrdinaryHealingEvents
@@ -168,13 +169,35 @@ class AreaEventPhaseTests(unittest.TestCase):
 
     def test_unregistered_area_rejects(self):
         del self.preview.native_effect_areas[91]
-        with self.assertRaisesRegex(ValueError, "actor absent"):
+        with self.assertRaisesRegex(ValueError, "recipient absent: identity=91"):
             self.phase(_event_ids=(0,))
 
-    def test_healing_still_requires_authoritative_fighter(self):
+    def test_life_steal_phases_use_registered_area_manager_without_fighter_hp(self):
+        # eXv/24 overrides C but inherits eXs.c's no-HP application guard.
+        # Local Qe delivery therefore addresses the actual area PV/Qf; it must
+        # not fabricate a fighter or mutate any resource during phase delivery.
         self.effect["effect_class"] = 24
-        with self.assertRaisesRegex(ValueError, "actor absent"):
-            self.phase()
+        before = deepcopy(self.preview.native_effect_areas)
+        for channel in (1, 2, 3, 4):
+            self.phase(channel=channel)
+        self.assertEqual(
+            [(source.manager_actor_id, source.channel) for source in self.sources],
+            [(7, 10), (91, 1), (7, 20), (91, 2), (7, 30), (91, 3), (7, 40), (91, 4)],
+        )
+        self.assertEqual(set(self.preview.actors), {7})
+        self.assertFalse(hasattr(self.actor, "hp"))
+        self.assertEqual(
+            {
+                key: value
+                for key, value in self.preview.native_effect_areas[91].items()
+                if key != "state_ledger"
+            },
+            {key: value for key, value in before[91].items() if key != "state_ledger"},
+        )
+        self.assertEqual(
+            self.preview.native_effect_areas[91]["state_ledger"].entries, ()
+        )
+        self.assertNotIn("hp", self.preview.native_effect_areas[91])
 
 
 if __name__ == "__main__":

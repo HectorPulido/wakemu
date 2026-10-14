@@ -42,6 +42,30 @@ class ForecastOverlapTests(unittest.TestCase):
         self.assertEqual([t["action"]["type"] for t in root["transitions"]], ["move"])
         self.assertEqual(len(request["states"]), 2)
 
+    def test_outside_arena_summon_candidate_does_not_poison_valid_movement(self):
+        runtime, _ = original.TacticalBridgeTests().make_runtime()
+        before = original.fight_snapshot(runtime.fight)
+
+        class Provider(original.FakeNativeProvider):
+            def actions(self, fight):
+                yield {"type": "cast", "spellId": 2923, "target": [0, 0, 0]}
+                yield from super().actions(fight)
+
+            def preview(self, fight, action, action_id, *, forecast):
+                if action["type"] != "cast":
+                    return super().preview(fight, action, action_id, forecast=forecast)
+                summon = copy.deepcopy(fight.actors[7])
+                summon.id = 17
+                summon.position = (-17, -14, 1)
+                fight.actors[17] = summon
+                return Preview(fight, ())
+
+        request = module.build_request(runtime, Provider(), max_previews=2, depth=1)
+        root = next(s for s in request["states"] if s["key"] == request["rootState"])
+        self.assertEqual([t["action"]["type"] for t in root["transitions"]], ["move"])
+        self.assertEqual(original.fight_snapshot(runtime.fight), before)
+        self.assertEqual(len(request["states"]), 2)
+
     def test_dead_actor_overlap_remains_allowed(self):
         request = self.request(dead=True)
         root = next(s for s in request["states"] if s["key"] == request["rootState"])

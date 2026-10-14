@@ -266,14 +266,15 @@ class NativeDamageHandler:
             24,
             31,
         }
-        if 8 in unknown:
-            # faK selects faI before the target cap. The resolver already
-            # supplies actual PA operands; eXt has no rwE arithmetic branch.
+        ordering_flags = unknown.intersection({8, 14})
+        if ordering_flags:
+            # faK selects faI (8) or faF (14) before the target cap.
+            # The resolver supplies actual PA/XY operands; eXt owns neither sort.
             # Retain the same exported identity guard used by group runners.
             from .combat_target_ordering import validate_native_target_ordering_identity
 
             validate_native_target_ordering_identity(effect, invocation.reference)
-            unknown.remove(8)
+            unknown.difference_update(ordering_flags)
         if unknown:
             raise ValueError(f"Unsupported native damage flags: {sorted(unknown)}")
         if not context.executable:

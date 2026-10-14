@@ -758,6 +758,7 @@ class EffectDispatcher:
                 1047,
                 1103,
                 1100,
+                1101,
             ):
                 if effect["effect_class"] == 1103 and self.group_retention is None:
                     raise UnsupportedEffectExecution(
@@ -786,6 +787,7 @@ class EffectDispatcher:
                     1020,
                     1047,
                     1100,
+                    1101,
                 ):
                     if not callable(self.group_level):
                         raise UnsupportedEffectExecution(
@@ -798,7 +800,7 @@ class EffectDispatcher:
                     ):
                         raise ValueError("Native child level must be signed short")
 
-                if effect["effect_class"] == 1100:
+                if effect["effect_class"] in (1100, 1101):
                     from .combat_effect_groups import EffectGroupMode
 
                     mode = EffectGroupMode(on_target=True)

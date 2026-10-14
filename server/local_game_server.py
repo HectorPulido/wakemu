@@ -176,9 +176,6 @@ POSITIONS, POSITION_RECOVERY = create_positions(
 POSITIONS.observer = lambda details: record(
     event="position_checkpoint_stage", **details
 )
-POSITION_FLUSH_SECONDS = float(os.environ.get("WAKFU_POSITION_FLUSH_SECONDS", "2"))
-if not 0.1 <= POSITION_FLUSH_SECONDS <= 30:
-    raise ValueError("WAKFU_POSITION_FLUSH_SECONDS must be between 0.1 and 30")
 
 
 from wakfu_server.checkpoint_watchdog import CheckpointWatchdog
@@ -189,11 +186,16 @@ CHECKPOINT_WATCHDOG = CheckpointWatchdog(
 
 
 @PROFILER.profile("persistence.position_checkpoint")
-def flush_positions(**scope):
+def flush_positions(*, background_budget=None, **scope):
     started = time.monotonic()
     try:
         with CHECKPOINT_WATCHDOG.watch():
-            count = POSITIONS.flush(**scope)
+            result = (
+                POSITIONS.flush_background(**background_budget)
+                if background_budget is not None
+                else POSITIONS.flush(**scope)
+            )
+            count = result["characters"] if background_budget is not None else result
     except Exception as error:
         record(
             event="position_batch_timing",
@@ -203,13 +205,14 @@ def flush_positions(**scope):
             error_type=type(error).__name__,
         )
         raise
-    record(
-        event="position_batch_timing",
-        status="completed",
-        characters=count,
-        elapsed_ms=round((time.monotonic() - started) * 1000, 3),
-        account_id=scope.get("account_id"),
-    )
+    if background_budget is None or result["attempted"]:
+        record(
+            event="position_batch_timing",
+            status="completed",
+            characters=count,
+            elapsed_ms=round((time.monotonic() - started) * 1000, 3),
+            account_id=scope.get("account_id"),
+        )
     with POSITIONS.lock:
         evictions = tuple(POSITIONS.evictions)
         POSITIONS.evictions.clear()
@@ -221,20 +224,12 @@ def flush_positions(**scope):
         )
     if count:
         record(event="position_batch_flushed", characters=count)
-    return count
+    return result
 
 
 from wakfu_server.manual_checkpoint import ManualCheckpoint
 
 MANUAL_CHECKPOINT = ManualCheckpoint(flush_positions)
-
-
-def flush_position_batches():
-    while not STOPPING.wait(POSITION_FLUSH_SECONDS):
-        try:
-            flush_positions()
-        except Exception as error:
-            record(event="position_batch_flush_failed", reason=str(error))
 
 
 CLOCK_OFFSET_MS = int(os.environ.get("WAKFU_CLOCK_OFFSET_SECONDS", "0")) * 1000
@@ -13370,8 +13365,8 @@ def main():
     from wakfu_server.performance_monitor import start_monitor
 
     start_monitor(PROFILER, RUNTIME / "logs/profiles/performance-latest.json", STOPPING)
-    external_scheduler = os.environ.get("WAKFU_EXTERNAL_SCHEDULER", "0") == "1"
     from wakfu_server.global_tasks import GlobalTasks, SlowSaveAnnouncements
+    from wakfu_server.storage.position_checkpoint_worker import PositionCheckpointWorker
 
     def tick_territory_weather():
         from wakfu_server.territory_weather import tick_weather
@@ -13391,10 +13386,17 @@ def main():
     threading.Thread(
         target=refresh_player_exchanges, name="wakfu-player-exchanges", daemon=True
     ).start()
-    if not external_scheduler:
-        threading.Thread(
-            target=flush_position_batches, name="wakfu-position-flusher", daemon=True
-        ).start()
+    position_worker = PositionCheckpointWorker(
+        STORE,
+        POSITIONS,
+        STOPPING,
+        record=record,
+        checkpoint=lambda **budget: flush_positions(background_budget=budget),
+    )
+    record(event="position_checkpoint_worker_started", **position_worker.policy)
+    threading.Thread(
+        target=position_worker.run, name="wakfu-position-flusher", daemon=True
+    ).start()
     if COMBAT_TEST and ECOLOGY_MODE == "inline":
         threading.Thread(
             target=expire_monster_corpses, name="wakfu-monster-corpses", daemon=True

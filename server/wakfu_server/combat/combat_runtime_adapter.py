@@ -278,6 +278,8 @@ class NativeServerRuntimeAdapter:
                         retained_ids = frozenset(row[0] for row in retained_rows)
                         retained_actions = frozenset(row[1] for row in retained_rows)
                 typed = dict(
+                    # Registered faW/bcQ area PV is not a biB player.
+                    is_player=False,
                     is_native_fighter=False,
                     is_native_ehg=True,
                     is_character=False,
@@ -731,6 +733,23 @@ class NativeServerRuntimeAdapter:
                 cell=invocation.cell,
             )
 
+        def valid_path_query(options, limit):
+            from .combat_valid_path_policy import admitted_route
+            from .combat_summon_initialization import detached_actor
+
+            if options is not None or limit != 2:
+                raise ValueError("Unsupported Wakemu valid-path options or limit")
+            if source is None or detached_actor(preview, source.id) is not None:
+                raise ValueError("Missing owned combat path-witness caster")
+            if self._actor(preview, source).targeting.get("is_eGj") is not True:
+                raise ValueError("Path-witness source is not an actual fighter")
+            endpoint = (
+                invocation.cell
+                if native_cell_argument or target is None
+                else target.position
+            )
+            return admitted_route(preview, source.id, endpoint, limit=limit) is not None
+
         def line_of_sight_query():
             from .combat_condition_los import native_condition_los
 
@@ -802,6 +821,30 @@ class NativeServerRuntimeAdapter:
                 in_play=False,
                 breed_reference=reference,
             )
+
+        def fighters_max_level_query(kind, in_play_only):
+            from .combat_max_level_conditions import fighters_max_level
+            from .combat_summon_initialization import detached_actor
+
+            if source is not None and detached_actor(preview, source.id) is not None:
+                raise ValueError("Native fighter maximum requires actual fight context")
+            rows = []
+            for candidate in native_actor_population(preview):
+                metadata = self._actor(preview, candidate)
+                rows.append(
+                    (
+                        metadata.native_actor_type,
+                        metadata.native_in_play,
+                        self.actor_authority.properties(preview, candidate),
+                        candidate.effective_level,
+                    )
+                )
+            return fighters_max_level(rows, kind, in_play_only)
+
+        def player_max_level_query():
+            from .combat_max_level_conditions import player_max_level
+
+            return player_max_level(preview)
 
         def enemy_range_query(minimum, maximum, selector, aligned, los):
             return native_range_query(minimum, maximum, selector, aligned, los)
@@ -1398,6 +1441,74 @@ class NativeServerRuntimeAdapter:
                 raise ValueError("Missing native complete owned spellbook authority")
             return authority.native_spellbook.level(reference)
 
+        def state_max_level_query(
+            minimum, maximum, selector, reference, owner_selector
+        ):
+            from .combat_state_max_level_range import (
+                maximum_state_level,
+                state_level_population,
+            )
+            from .combat_summon_initialization import detached_actor
+            from .combat_native_criterion_failure import NativeCriterionRuntimeFailure
+            from .combat_state_managers import registered_area_pv
+
+            if source is not None and detached_actor(preview, source.id) is not None:
+                raise NativeCriterionRuntimeFailure(
+                    "Native eLt criterion has no constructor combat context"
+                )
+
+            def selected_identity(value):
+                key = value.lower()
+                if key not in (
+                    "caster",
+                    "target",
+                    "castercontroller",
+                    "triggeringcaster",
+                    "triggeringtarget",
+                ):
+                    return None  # Actual eII.a unknown selector is null.
+                if key == "target" and native_cell_argument:
+                    actor = condition_cell_fighter()
+                    return None if actor is None else actor.id
+                selected = state_actor_query(value)
+                return None if selected is None else selected.actor_id
+
+            if selector == "target" and native_cell_argument:
+                center = invocation.cell
+            else:
+                identity = selected_identity(selector)
+                selected = native_actor(preview, identity)
+                if selected is None and identity is not None:
+                    selected = registered_area_pv(preview, identity)
+                center = None if selected is None else selected.position
+            if center is None:
+                return 0  # Native eLt returns before scanning fUQ/Qs.
+            owner = selected_identity(owner_selector) if owner_selector else None
+            caster_present = True
+            if owner is not None:
+                caster = aliases.get("caster")
+                if caster is None:
+                    if "caster" not in null_aliases:
+                        raise ValueError("Missing native eLt source eHg nullability")
+                    caster_present = False
+                elif caster.is_native_ehg is True or caster.is_native_fighter is True:
+                    caster_present = True
+                elif (
+                    caster.is_native_ehg is False and caster.is_native_fighter is False
+                ):
+                    caster_present = False
+                else:
+                    raise ValueError("Missing native eLt source eHg type")
+            return maximum_state_level(
+                state_level_population(preview, self.actor_authority),
+                center=center,
+                minimum=minimum,
+                maximum=maximum,
+                reference=reference,
+                owner_id=owner,
+                native_caster_present=caster_present,
+            )
+
         def state_actor_query(selector):
             key = selector.lower()
             if key in ("caster", "target", "castercontroller"):
@@ -1817,6 +1928,36 @@ class NativeServerRuntimeAdapter:
                 return False  # Null/faV is not the actual eHP required by eMd.
             return breed_in_symbiot(self._actor(preview, actor), reference)
 
+        def has_summon_query(selector):
+            from .combat_captured_roster_condition import has_captured_summon
+
+            selected = (
+                condition_cell_fighter()
+                if selector == "target" and native_cell_argument
+                else (
+                    native_actor(preview, invocation.target_id)
+                    if selector == "target"
+                    else native_actor(preview, invocation.caster_id)
+                )
+            )
+            if selected is None:
+                identity = (
+                    invocation.target_id
+                    if selector == "target"
+                    else invocation.caster_id
+                )
+                if (
+                    not (selector == "target" and native_cell_argument)
+                    and identity is not None
+                    and identity not in getattr(preview, "native_effect_areas", {})
+                ):
+                    raise ValueError("Unregistered native HasSummon selector identity")
+                return False  # eII.a resolved no actual eGj; eIF returns-1.
+            metadata = self._actor(preview, selected)
+            if metadata.targeting.get("is_eGj") is not True:
+                raise ValueError("Missing actual eIF selected fighter type")
+            return has_captured_summon(metadata)
+
         def selected_creature_available_query():
             from .combat_captured_roster_condition import selected_creature_status
 
@@ -1860,11 +2001,22 @@ class NativeServerRuntimeAdapter:
             # fight's authorized-cast ledger. Native ffb lifetime is unknown.
             return has_cast_spell(preview, invocation.caster_id, spell_id)
 
+        def dungeon_difficulty_query():
+            from .combat_dungeon_difficulty_condition import runtime_difficulty
+
+            metadata = (
+                None
+                if caster_actor is None
+                else self.actor_authority(preview, caster_actor).targeting
+            )
+            return runtime_difficulty(preview, invocation.caster_id, metadata)
+
         return ConditionContext(
             aliases,
             cell,
             distance,
             alignment,
+            dungeon_difficulty_query=dungeon_difficulty_query,
             random_number_query=(
                 None
                 if not callable(self.cast.random_number)
@@ -1889,7 +2041,10 @@ class NativeServerRuntimeAdapter:
             ),
             is_in_diagonal=diagonal,
             line_of_sight_query=line_of_sight_query,
+            valid_path_query=valid_path_query,
             fighters_breed_range_query=fighters_breed_range_query,
+            fighters_max_level_query=fighters_max_level_query,
+            player_max_level_query=player_max_level_query,
             human_allies_range_query=human_allies_range_query,
             human_enemies_range_query=human_enemies_range_query,
             allies_count_query=allies_count_query,
@@ -1897,6 +2052,7 @@ class NativeServerRuntimeAdapter:
             has_summon_breed_query=has_summon_breed_query,
             enemy_range_query=enemy_range_query,
             allies_range_query=allies_range_query,
+            state_max_level_query=state_max_level_query,
             state_range_query=state_range_query,
             own_team_state_range_query=own_team_state_range_query,
             specific_area_range_query=specific_area_range_query,
@@ -1912,6 +2068,7 @@ class NativeServerRuntimeAdapter:
             selected_creature_available_query=selected_creature_available_query,
             breed_in_symbiot_query=breed_in_symbiot_query,
             space_in_symbiot_query=space_in_symbiot_query,
+            has_summon_query=has_summon_query,
             surrounding_own_summon_query=surrounding_own_summon_query,
             controlled_by_ai_query=controlled_by_ai_query,
             free_cell_query=free_cell_query,

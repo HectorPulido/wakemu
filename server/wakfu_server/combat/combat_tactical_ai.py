@@ -224,6 +224,8 @@ class NativeProvider:
         return catalog_version()
 
     def roster(self, fight):
+        from .combat_ai_controller_receipt import controller_forecast_receipt
+
         result = []
         for actor in sorted(fight.actors.values(), key=lambda a: a.id):
             stats = actor.effect_stats
@@ -235,6 +237,7 @@ class NativeProvider:
                 dict(
                     id=actor.id,
                     team=effective_affiliation(fight, actor),
+                    nativeControllerTransfer=controller_forecast_receipt(fight, actor),
                     controlled=actor.controlled,
                     position=list(actor.position),
                     hp=actor.hp,
@@ -313,6 +316,19 @@ class NativeProvider:
         return targets
 
     def outcome_features(self, fight):
+        result = self._position_features(fight)
+        actor = fight.current
+        if actor is not None and actor.hp > 0 and not actor.controlled:
+            from .combat_ai_state_progress import progress
+            from .combat_native_spell_casting import catalog
+
+            owned = [entry["spellId"] for entry in self.capabilities(fight)]
+            amount = progress(actor, owned, catalog())
+            if amount:
+                result["outcomeFeatures"] = {"owned_state_progress": amount}
+        return result
+
+    def _position_features(self, fight):
         # Advisory position value rewards proximity to useful capabilities.
         # Native previews still decide range/LOS/conditions and actual benefit.
         if (
@@ -377,6 +393,9 @@ class NativeProvider:
             return
         capabilities = self.capabilities(fight)
         targets = [a for a in fight.actors.values() if a.hp > 0]
+        # Retained off-play fighters remain possible native cast recipients.
+        # They do not become movement/LOS blockers; preview certifies the spell.
+        cast_targets = list(fight.actors.values())
         distances = _distances(fight, actor.position, actor.id, budget=actor.mp)
         useful = [(c, t) for c in capabilities for t in self._useful_targets(fight, c)]
         enemies = [
@@ -460,7 +479,7 @@ class NativeProvider:
         spell_groups = []
         for capability in capabilities:
             ordered = sorted(
-                targets,
+                cast_targets,
                 key=lambda t: target_affinity(capability, actor, t, fight=fight),
             )
             candidates = [
@@ -732,8 +751,10 @@ def build_request(runtime, provider, *, max_previews=48, budget_ms=150, depth=2)
         roster = provider.roster(state)
         occupied = set()
         for actor in roster:
+            position = tuple(actor["position"])
+            if position not in fight.walkable:
+                raise ValueError("Forecast geometry outside native arena")
             if actor["hp"] > 0:
-                position = tuple(actor["position"])
                 if position in occupied:
                     raise ValueError("Living forecast actors overlap")
                 occupied.add(position)

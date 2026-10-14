@@ -1,4 +1,4 @@
-"""Waiting for a seed cell or deadline is admission delay, not failure."""
+"""Timer waits stay deferred; occupied execution is reported per resource."""
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -42,7 +42,7 @@ class EcologyGrowthDeferralTests(unittest.TestCase):
             z=0,
             resource_reference=999,
             stage=1,
-            creation_time=1000000,
+            creation_time=0,
         )
         runtime = Mock()
         runtime.ecology_world_epoch = "boot"
@@ -54,6 +54,7 @@ class EcologyGrowthDeferralTests(unittest.TestCase):
             (False, True, "not_due"),
         ):
             with self.subTest(monster=monster, allowed=allowed):
+                resource["creation_time"] = 0 if reason == "occupied" else 1000000
                 definition = dict(monster_resource=monster, stages={1: {}, 2: {}})
                 plan = dict(
                     kind="resource_growth",
@@ -71,5 +72,9 @@ class EcologyGrowthDeferralTests(unittest.TestCase):
                     )
                 self.assertEqual(result["status"], "deferred")
                 self.assertEqual(result["reason"], reason)
+                self.assertEqual(
+                    result.get("resource_failures", []),
+                    [1] if reason == "occupied" else [],
+                )
         runtime.apply_growth_candidates.assert_not_called()
         runtime.publish_growth.assert_not_called()

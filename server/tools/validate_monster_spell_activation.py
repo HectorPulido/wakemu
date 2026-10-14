@@ -319,6 +319,16 @@ def preserve_copy_book(base, candidate):
             raise ValueError("Existing copy-book flags changed: " + reference)
 
 
+MORPH_NATIVE_CATALOGS = frozenset(
+    {
+        "native-class-morph-profiles.json",
+        "native-class-morph933-effect-closure.json",
+        "native-class-morph933-level-zero.json",
+        "native-class-morph933-casting-roots.json",
+    }
+)
+
+
 OPTIONAL_NATIVE_CATALOGS = frozenset(
     {
         "native-spell-element-damage-pcs.json",
@@ -338,6 +348,16 @@ def validate_optional_native_catalogs(candidate, manifest, hashes, *, root):
     from export_monster_health_target_ordering import (
         package_document as health_ordering,
     )
+
+    selected_morph = MORPH_NATIVE_CATALOGS & set(manifest["changed_documents"])
+    if selected_morph:
+        if selected_morph != MORPH_NATIVE_CATALOGS:
+            raise ValueError("Incomplete native morphology dependency bundle")
+        from export_monster_morph_profiles import package_document as package_morph
+
+        additions = package_morph(candidate, hashes, root=root)
+        if set(additions) != set(MORPH_NATIVE_CATALOGS):
+            raise ValueError("Unexpected native morphology package scope")
 
     validators = {
         "native-spell-element-damage-pcs.json": element_pc,
@@ -390,7 +410,8 @@ def install_overlay(candidate, *, overlay=True):
             CELL_PATH,
         }
         | set(SUMMON_PATHS)
-        | OPTIONAL_NATIVE_CATALOGS,
+        | OPTIONAL_NATIVE_CATALOGS
+        | MORPH_NATIVE_CATALOGS,
     )
 
     class NoRedis:
@@ -589,22 +610,29 @@ def fixture(reference, level, enemy_cell, *, scenario=None, native_lifecycle=Fal
             monsters[-201] = hostile
             placements = {0: {source, enemy_cell}, 1: {hostile_cell}}
         elif scenario.get("kind") == "native_opponent":
+            from owned_state_stack import producer_spare_eligible
             from private_population_harness import private_spare_eligible
             from ranged_ally_anchor import eligible as ranged_ally_eligible
 
             descriptor = scenario["opponent"]
+            from native_scene_geometry_priority import native_identity_spare_priority
+
             spare = next(
                 (
                     cell
                     for cell in sorted(
                         terrain["validated_cells"],
                         key=lambda cell: (
+                            native_identity_spare_priority(
+                                scenario, source, enemy_cell, cell
+                            ),
                             abs(cell[0] - source[0]) + abs(cell[1] - source[1]),
                             cell,
                         ),
                     )
                     if cell not in {source, enemy_cell}
                     and private_spare_eligible(scenario, source, enemy_cell, cell)
+                    and producer_spare_eligible(scenario, source, enemy_cell, cell)
                     and ranged_ally_eligible(scenario, source, cell)
                 ),
                 None,
@@ -622,7 +650,10 @@ def fixture(reference, level, enemy_cell, *, scenario=None, native_lifecycle=Fal
                 scene_cells as hp_scene_cells,
             )
 
-            hp_prerequisite_scene = scenario.get("discovery") == HP_DISCOVERY
+            hp_prerequisite_scene = scenario.get("discovery") in (
+                HP_DISCOVERY,
+                "native_initial_subscription_prerequisite_v1",
+            )
             if hp_prerequisite_scene:
                 if dependency_team != 0:
                     raise ValueError(
@@ -853,7 +884,10 @@ def fixture(reference, level, enemy_cell, *, scenario=None, native_lifecycle=Fal
 
     if type(native_lifecycle) is not bool:
         raise ValueError("Explicit native fixture lifecycle mode must be boolean")
-    if native_lifecycle:
+    if native_lifecycle or (
+        isinstance(scenario, dict)
+        and scenario.get("discovery") == "native_initial_subscription_prerequisite_v1"
+    ):
         from native_monster_creator_witness import initialize_native_creator_lifecycle
 
         fight = initialize_native_creator_lifecycle(fight, character, monsters, deck)
@@ -1334,6 +1368,11 @@ def run_case(
         scene_roots = native_ally_scene_roots(
             spell, spell_level, native_casting_catalog(), root_records
         )
+        from native_root_ko_scene import root_required_ko_ally_scene
+
+        root_ko_ally = root_required_ko_ally_scene(scene_roots)
+        if root_ko_ally is not None and root_ko_ally not in scenarios:
+            scenarios.insert(len(scenarios) - 1, root_ko_ally)
         from caster_empty_anchor import (
             caster_empty_root_policy,
             caster_centered_enemy_cells,
@@ -1388,6 +1427,14 @@ def run_case(
         if criterion:
             from monster_pending_scenarios import recovery_owned_state_recipes
 
+            from initial_subscription_preparation import (
+                recovery_recipes as initial_subscription_recipes,
+            )
+
+            subscriptions = initial_subscription_recipes(
+                reference, level, spell, criterion, NATIVE_SOURCE_MONSTERS
+            )
+            scenarios = subscriptions + [s for s in scenarios if s not in subscriptions]
             state_recipes = recovery_owned_state_recipes(
                 reference, level, spell, criterion
             )
@@ -1438,6 +1485,17 @@ def run_case(
             scene_roots,
             destinations,
         )
+        from freecell_area_scene import rank_recipients
+
+        enemies = rank_recipients(
+            source,
+            enemies,
+            destinations,
+            scene_roots,
+            native_casting_catalog().get(str(spell), {}),
+            capability["minimum"],
+            capability["maximum"],
+        )
         recipients = point_recipients + freecell_recipients
         enemies = recipients + [cell for cell in enemies if cell not in recipients]
     if recovery_search:
@@ -1447,6 +1505,19 @@ def run_case(
         scene_record, scene_index = native_casting_table(spell, spell_level)
         scenarios = plan_existing_native_scenes(
             scene_record, scene_index, criterion, scenarios
+        )
+    if recovery_search:
+        from freecell_area_scene import rank_scenarios
+
+        scenarios = rank_scenarios(
+            scenarios,
+            scene_roots,
+            native_casting_catalog().get(str(spell), {}),
+        )
+        from native_scene_geometry_priority import zero_range_hostile_scene_priority
+
+        scenarios = zero_range_hostile_scene_priority(
+            scenarios, scene_roots, capability["minimum"], capability["maximum"]
         )
     scenes = (
         [(scenario, enemy) for enemy in enemies for scenario in scenarios]
@@ -1496,12 +1567,16 @@ def run_case(
             # An overlapping harness placement cannot be a witness for the
             # requested enemy identity. Extend only this scenario with bounded
             # actual nonoverlapping placements; runtime QI remains unchanged.
-            for alternative in native_nonoverlapping_enemy_cells(
-                fight, -200, 7, destinations, enemy_maximum, limit=16
-            ):
-                if (scenario, alternative) not in scenes:
-                    scenes.append((scenario, alternative))
-                    scheduler.append((scenario, alternative))
+            replacements = [
+                (scenario, alternative)
+                for alternative in native_nonoverlapping_enemy_cells(
+                    fight, -200, 7, destinations, enemy_maximum, limit=16
+                )
+            ]
+            for replacement in replacements:
+                if replacement not in scenes:
+                    scenes.append(replacement)
+            scheduler.prioritize_scenes(replacements)
             continue
         receipt = getattr(fight, "native_npc_initialization_receipts", {}).get(-200)
         if receipt is not None and receipt not in result["initialization_receipts"]:
@@ -1513,6 +1588,12 @@ def run_case(
             and scenario["opponent"].get("team", 0) == 0
             else 7
         )
+        if (
+            isinstance(scenario, dict)
+            and scenario.get("discovery")
+            == "native_initial_subscription_prerequisite_v1"
+        ):
+            target_id = 7
         targets = [(enemy, target_id), (source, -200)]
         from external_owned_area_preparation import DISCOVERY, actual_external_targets
 
@@ -1543,6 +1624,20 @@ def run_case(
                 prefer_linear=casting.get("linear") is True,
                 prefer_diagonal=casting.get("diagonal") is True,
             )
+            if recovery_search:
+                from freecell_area_scene import rank_anchors
+
+                empty = rank_anchors(
+                    source,
+                    empty,
+                    [
+                        tuple(actor.position)
+                        for actor in fight.actors.values()
+                        if actor.team != fight.actors[-200].team and actor.hp > 0
+                    ],
+                    scene_roots,
+                    casting,
+                )
             empty_targets = [(cell, None) for cell in empty]
             targets = (
                 targets + empty_targets
@@ -1598,8 +1693,11 @@ def run_case(
                 targets.extend((cell, None) for cell in ordinary_empty)
             else:
                 targets = [(cell, None) for cell in preferred] + targets
+        from monster_pending_scenarios import refresh_native_actor_targets
+
+        targets = refresh_native_actor_targets(fight, targets)
         if work.resumed:
-            targets = work.targets
+            targets = refresh_native_actor_targets(fight, work.targets)
         for target_index, (target, identity) in enumerate(targets):
             preempted = False
             if (
@@ -2004,6 +2102,7 @@ def main():
     parser.add_argument("--resume", type=Path)
     parser.add_argument("--reuse-commit-checks", action="store_true")
     parser.add_argument("--baseline-report", type=Path)
+    parser.add_argument("--initial-subscription-audit", type=Path)
     parser.add_argument(
         "--native-monsters",
         type=Path,
@@ -2080,6 +2179,17 @@ def main():
     }
     global NATIVE_SOURCE_MONSTERS
     NATIVE_SOURCE_MONSTERS = native_monsters
+    from initial_subscription_preparation import configure_source_audit
+
+    configure_source_audit(
+        json.loads(args.initial_subscription_audit.read_text())
+        if args.initial_subscription_audit
+        else None
+    )
+    if args.initial_subscription_audit:
+        result["initial_subscription_audit_sha256"] = digest(
+            args.initial_subscription_audit
+        )
     result["native_monsters_sha256"] = digest(args.native_monsters)
     result["native_monsters_path"] = str(args.native_monsters.resolve())
     if args.class_tests_only:

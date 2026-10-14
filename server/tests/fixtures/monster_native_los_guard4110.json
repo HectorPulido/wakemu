@@ -1,0 +1,985 @@
+{
+  "source_receipt": "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/monster-low50-20261013/admission/fast10-native.json",
+  "source_sha256": "c2b887943f631496ad8fec3fa65f3183c2abb1ae7a30d2a78cac611fc4862167",
+  "source_pointer": "/monsters/6/cases/1",
+  "raw_case": {
+    "level": 50,
+    "spell_id": 4110,
+    "spell_level": 50,
+    "status": "pending",
+    "attempts": 6,
+    "errors": {
+      "ValueError: Native spell casting eligibility rejected: twG": 1,
+      "ValueError: Native spell casting eligibility rejected: twV": 5
+    },
+    "successful_targets": [],
+    "initialization_receipts": [
+      {
+        "ref": 2868,
+        "descriptor_level": 50,
+        "raw_triples": [
+          2495,
+          1,
+          0
+        ],
+        "resolved_states": [
+          {
+            "state_id": 2495,
+            "level": 1,
+            "native_rBq": true,
+            "native_rBr": true
+          }
+        ],
+        "applications": [
+          {
+            "state_id": 2495,
+            "level": 1,
+            "applied": true
+          }
+        ],
+        "initialized": true,
+        "placement_effects": {
+          "verified": true,
+          "bytes": 251,
+          "effect_count": 2,
+          "state_carrier_count": 1,
+          "sha256": "d6345876c1166d3d556c4000ec8593b2643efdda634c5d46bfce4cc57720b0bc"
+        }
+      }
+    ],
+    "cast_diagnostics": [
+      {
+        "target": [
+          -10,
+          -7,
+          -1
+        ],
+        "target_id": null,
+        "enemy_cell": [
+          -9,
+          -7,
+          -1
+        ],
+        "error_type": "ValueError",
+        "message": "Native spell casting eligibility rejected: twG",
+        "details": {
+          "native_casting_result": "twG",
+          "native_casting_diagnostic": {
+            "selected_casting_flags": {
+              "line_of_sight": true,
+              "linear": false,
+              "diagonal": false,
+              "linear_path": false,
+              "path_option": false,
+              "free_cell": true,
+              "range_modifiable": false,
+              "allow_self": false,
+              "forbid_QI_P": false,
+              "minimum": 1,
+              "maximum": 4
+            },
+            "criterion": "CellContainsSpecificEffectArea(638, True)",
+            "caster_id": -200,
+            "target_cell": [
+              -10,
+              -7,
+              -1
+            ],
+            "target_id": null,
+            "spell_id": 4110,
+            "evaluation_level": 50,
+            "trace": [
+              {
+                "stage": "normal_alignment",
+                "value": true
+              },
+              {
+                "stage": "container_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "current_turn_matches",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "effective_range",
+                "arguments": [],
+                "value": [
+                  1,
+                  4
+                ]
+              },
+              {
+                "stage": "cell_and_qi_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "resolve_target_fighter",
+                "arguments": [],
+                "value": null
+              },
+              {
+                "stage": "range_accepts",
+                "arguments": [
+                  1,
+                  4,
+                  false
+                ],
+                "value": true
+              },
+              {
+                "stage": "qi_in_bounds",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "qi_r",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "native_los",
+                "arguments": [],
+                "value": false
+              },
+              {
+                "stage": "result",
+                "value": "twG"
+              },
+              {
+                "stage": "native_los_detail",
+                "value": {
+                  "map_id": 1134,
+                  "source_cell": [
+                    -8,
+                    -7,
+                    -1
+                  ],
+                  "target_cell": [
+                    -10,
+                    -7,
+                    -1
+                  ],
+                  "source_height": 8,
+                  "target_height": 0,
+                  "ignored_slots": [
+                    1
+                  ],
+                  "rays": [
+                    {
+                      "static_clear": true,
+                      "probes": [
+                        [
+                          -9,
+                          -7
+                        ]
+                      ],
+                      "blocked_probe": [
+                        -9,
+                        -7
+                      ],
+                      "evaluated_slots": [
+                        {
+                          "slot": 0,
+                          "identity": [
+                            "actor",
+                            7
+                          ],
+                          "position": [
+                            -9,
+                            -7
+                          ],
+                          "radius": 0,
+                          "blocks_los": true
+                        }
+                      ],
+                      "terrain_mask": 0
+                    },
+                    {
+                      "static_clear": true,
+                      "probes": [
+                        [
+                          -9,
+                          -7
+                        ]
+                      ],
+                      "blocked_probe": [
+                        -9,
+                        -7
+                      ],
+                      "evaluated_slots": [
+                        {
+                          "slot": 0,
+                          "identity": [
+                            "actor",
+                            7
+                          ],
+                          "position": [
+                            -9,
+                            -7
+                          ],
+                          "radius": 0,
+                          "blocks_los": true
+                        }
+                      ],
+                      "terrain_mask": 0
+                    }
+                  ],
+                  "result": false
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "target": [
+          -9,
+          -8,
+          -1
+        ],
+        "target_id": null,
+        "enemy_cell": [
+          -9,
+          -7,
+          -1
+        ],
+        "error_type": "ValueError",
+        "message": "Native spell casting eligibility rejected: twV",
+        "details": {
+          "native_casting_result": "twV",
+          "native_casting_diagnostic": {
+            "selected_casting_flags": {
+              "line_of_sight": true,
+              "linear": false,
+              "diagonal": false,
+              "linear_path": false,
+              "path_option": false,
+              "free_cell": true,
+              "range_modifiable": false,
+              "allow_self": false,
+              "forbid_QI_P": false,
+              "minimum": 1,
+              "maximum": 4
+            },
+            "criterion": "CellContainsSpecificEffectArea(638, True)",
+            "caster_id": -200,
+            "target_cell": [
+              -9,
+              -8,
+              -1
+            ],
+            "target_id": null,
+            "spell_id": 4110,
+            "evaluation_level": 50,
+            "trace": [
+              {
+                "stage": "normal_alignment",
+                "value": true
+              },
+              {
+                "stage": "container_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "current_turn_matches",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "effective_range",
+                "arguments": [],
+                "value": [
+                  1,
+                  4
+                ]
+              },
+              {
+                "stage": "cell_and_qi_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "resolve_target_fighter",
+                "arguments": [],
+                "value": null
+              },
+              {
+                "stage": "range_accepts",
+                "arguments": [
+                  1,
+                  4,
+                  false
+                ],
+                "value": true
+              },
+              {
+                "stage": "qi_in_bounds",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "qi_r",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "native_los",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "criterion_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "criterion_cell",
+                "arguments": [],
+                "value": false
+              },
+              {
+                "stage": "result",
+                "value": "twV"
+              },
+              {
+                "stage": "native_los_detail",
+                "value": {
+                  "map_id": 1134,
+                  "source_cell": [
+                    -8,
+                    -7,
+                    -1
+                  ],
+                  "target_cell": [
+                    -9,
+                    -8,
+                    -1
+                  ],
+                  "source_height": 8,
+                  "target_height": 0,
+                  "ignored_slots": [
+                    1
+                  ],
+                  "rays": [
+                    {
+                      "static_clear": true,
+                      "probes": [],
+                      "blocked_probe": null,
+                      "evaluated_slots": []
+                    }
+                  ],
+                  "result": true
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "target": [
+          -9,
+          -6,
+          -1
+        ],
+        "target_id": null,
+        "enemy_cell": [
+          -9,
+          -7,
+          -1
+        ],
+        "error_type": "ValueError",
+        "message": "Native spell casting eligibility rejected: twV",
+        "details": {
+          "native_casting_result": "twV",
+          "native_casting_diagnostic": {
+            "selected_casting_flags": {
+              "line_of_sight": true,
+              "linear": false,
+              "diagonal": false,
+              "linear_path": false,
+              "path_option": false,
+              "free_cell": true,
+              "range_modifiable": false,
+              "allow_self": false,
+              "forbid_QI_P": false,
+              "minimum": 1,
+              "maximum": 4
+            },
+            "criterion": "CellContainsSpecificEffectArea(638, True)",
+            "caster_id": -200,
+            "target_cell": [
+              -9,
+              -6,
+              -1
+            ],
+            "target_id": null,
+            "spell_id": 4110,
+            "evaluation_level": 50,
+            "trace": [
+              {
+                "stage": "normal_alignment",
+                "value": true
+              },
+              {
+                "stage": "container_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "current_turn_matches",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "effective_range",
+                "arguments": [],
+                "value": [
+                  1,
+                  4
+                ]
+              },
+              {
+                "stage": "cell_and_qi_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "resolve_target_fighter",
+                "arguments": [],
+                "value": null
+              },
+              {
+                "stage": "range_accepts",
+                "arguments": [
+                  1,
+                  4,
+                  false
+                ],
+                "value": true
+              },
+              {
+                "stage": "qi_in_bounds",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "qi_r",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "native_los",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "criterion_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "criterion_cell",
+                "arguments": [],
+                "value": false
+              },
+              {
+                "stage": "result",
+                "value": "twV"
+              },
+              {
+                "stage": "native_los_detail",
+                "value": {
+                  "map_id": 1134,
+                  "source_cell": [
+                    -8,
+                    -7,
+                    -1
+                  ],
+                  "target_cell": [
+                    -9,
+                    -6,
+                    -1
+                  ],
+                  "source_height": 8,
+                  "target_height": 0,
+                  "ignored_slots": [
+                    1
+                  ],
+                  "rays": [
+                    {
+                      "static_clear": true,
+                      "probes": [],
+                      "blocked_probe": null,
+                      "evaluated_slots": []
+                    }
+                  ],
+                  "result": true
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "target": [
+          -8,
+          -8,
+          -1
+        ],
+        "target_id": null,
+        "enemy_cell": [
+          -9,
+          -7,
+          -1
+        ],
+        "error_type": "ValueError",
+        "message": "Native spell casting eligibility rejected: twV",
+        "details": {
+          "native_casting_result": "twV",
+          "native_casting_diagnostic": {
+            "selected_casting_flags": {
+              "line_of_sight": true,
+              "linear": false,
+              "diagonal": false,
+              "linear_path": false,
+              "path_option": false,
+              "free_cell": true,
+              "range_modifiable": false,
+              "allow_self": false,
+              "forbid_QI_P": false,
+              "minimum": 1,
+              "maximum": 4
+            },
+            "criterion": "CellContainsSpecificEffectArea(638, True)",
+            "caster_id": -200,
+            "target_cell": [
+              -8,
+              -8,
+              -1
+            ],
+            "target_id": null,
+            "spell_id": 4110,
+            "evaluation_level": 50,
+            "trace": [
+              {
+                "stage": "normal_alignment",
+                "value": true
+              },
+              {
+                "stage": "container_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "current_turn_matches",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "effective_range",
+                "arguments": [],
+                "value": [
+                  1,
+                  4
+                ]
+              },
+              {
+                "stage": "cell_and_qi_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "resolve_target_fighter",
+                "arguments": [],
+                "value": null
+              },
+              {
+                "stage": "range_accepts",
+                "arguments": [
+                  1,
+                  4,
+                  false
+                ],
+                "value": true
+              },
+              {
+                "stage": "qi_in_bounds",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "qi_r",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "native_los",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "criterion_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "criterion_cell",
+                "arguments": [],
+                "value": false
+              },
+              {
+                "stage": "result",
+                "value": "twV"
+              },
+              {
+                "stage": "native_los_detail",
+                "value": {
+                  "map_id": 1134,
+                  "source_cell": [
+                    -8,
+                    -7,
+                    -1
+                  ],
+                  "target_cell": [
+                    -8,
+                    -8,
+                    -1
+                  ],
+                  "source_height": 8,
+                  "target_height": 0,
+                  "ignored_slots": [
+                    1
+                  ],
+                  "rays": [
+                    {
+                      "static_clear": true,
+                      "probes": [],
+                      "blocked_probe": null,
+                      "evaluated_slots": []
+                    }
+                  ],
+                  "result": true
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "target": [
+          -8,
+          -6,
+          -1
+        ],
+        "target_id": null,
+        "enemy_cell": [
+          -9,
+          -7,
+          -1
+        ],
+        "error_type": "ValueError",
+        "message": "Native spell casting eligibility rejected: twV",
+        "details": {
+          "native_casting_result": "twV",
+          "native_casting_diagnostic": {
+            "selected_casting_flags": {
+              "line_of_sight": true,
+              "linear": false,
+              "diagonal": false,
+              "linear_path": false,
+              "path_option": false,
+              "free_cell": true,
+              "range_modifiable": false,
+              "allow_self": false,
+              "forbid_QI_P": false,
+              "minimum": 1,
+              "maximum": 4
+            },
+            "criterion": "CellContainsSpecificEffectArea(638, True)",
+            "caster_id": -200,
+            "target_cell": [
+              -8,
+              -6,
+              -1
+            ],
+            "target_id": null,
+            "spell_id": 4110,
+            "evaluation_level": 50,
+            "trace": [
+              {
+                "stage": "normal_alignment",
+                "value": true
+              },
+              {
+                "stage": "container_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "current_turn_matches",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "effective_range",
+                "arguments": [],
+                "value": [
+                  1,
+                  4
+                ]
+              },
+              {
+                "stage": "cell_and_qi_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "resolve_target_fighter",
+                "arguments": [],
+                "value": null
+              },
+              {
+                "stage": "range_accepts",
+                "arguments": [
+                  1,
+                  4,
+                  false
+                ],
+                "value": true
+              },
+              {
+                "stage": "qi_in_bounds",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "qi_r",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "native_los",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "criterion_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "criterion_cell",
+                "arguments": [],
+                "value": false
+              },
+              {
+                "stage": "result",
+                "value": "twV"
+              },
+              {
+                "stage": "native_los_detail",
+                "value": {
+                  "map_id": 1134,
+                  "source_cell": [
+                    -8,
+                    -7,
+                    -1
+                  ],
+                  "target_cell": [
+                    -8,
+                    -6,
+                    -1
+                  ],
+                  "source_height": 8,
+                  "target_height": 0,
+                  "ignored_slots": [
+                    1
+                  ],
+                  "rays": [
+                    {
+                      "static_clear": true,
+                      "probes": [],
+                      "blocked_probe": null,
+                      "evaluated_slots": []
+                    }
+                  ],
+                  "result": true
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "target": [
+          -7,
+          -7,
+          -1
+        ],
+        "target_id": null,
+        "enemy_cell": [
+          -9,
+          -7,
+          -1
+        ],
+        "error_type": "ValueError",
+        "message": "Native spell casting eligibility rejected: twV",
+        "details": {
+          "native_casting_result": "twV",
+          "native_casting_diagnostic": {
+            "selected_casting_flags": {
+              "line_of_sight": true,
+              "linear": false,
+              "diagonal": false,
+              "linear_path": false,
+              "path_option": false,
+              "free_cell": true,
+              "range_modifiable": false,
+              "allow_self": false,
+              "forbid_QI_P": false,
+              "minimum": 1,
+              "maximum": 4
+            },
+            "criterion": "CellContainsSpecificEffectArea(638, True)",
+            "caster_id": -200,
+            "target_cell": [
+              -7,
+              -7,
+              -1
+            ],
+            "target_id": null,
+            "spell_id": 4110,
+            "evaluation_level": 50,
+            "trace": [
+              {
+                "stage": "normal_alignment",
+                "value": true
+              },
+              {
+                "stage": "container_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "current_turn_matches",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "effective_range",
+                "arguments": [],
+                "value": [
+                  1,
+                  4
+                ]
+              },
+              {
+                "stage": "cell_and_qi_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "resolve_target_fighter",
+                "arguments": [],
+                "value": null
+              },
+              {
+                "stage": "range_accepts",
+                "arguments": [
+                  1,
+                  4,
+                  false
+                ],
+                "value": true
+              },
+              {
+                "stage": "qi_in_bounds",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "qi_r",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "native_los",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "criterion_present",
+                "arguments": [],
+                "value": true
+              },
+              {
+                "stage": "criterion_cell",
+                "arguments": [],
+                "value": false
+              },
+              {
+                "stage": "result",
+                "value": "twV"
+              },
+              {
+                "stage": "native_los_detail",
+                "value": {
+                  "map_id": 1134,
+                  "source_cell": [
+                    -8,
+                    -7,
+                    -1
+                  ],
+                  "target_cell": [
+                    -7,
+                    -7,
+                    -1
+                  ],
+                  "source_height": 8,
+                  "target_height": 0,
+                  "ignored_slots": [
+                    1
+                  ],
+                  "rays": [
+                    {
+                      "static_clear": true,
+                      "probes": [],
+                      "blocked_probe": null,
+                      "evaluated_slots": []
+                    }
+                  ],
+                  "result": true
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "search_budget_policy": "per_scene_target_class_v1",
+    "search_budget": {
+      "attempt_cap": 6,
+      "scene_cap": 4
+    },
+    "scenes_attempted": 1,
+    "capability": {
+      "spellId": 4110,
+      "level": 50,
+      "minimum": 1,
+      "maximum": 4,
+      "conditional": true,
+      "tags": [
+        "damage",
+        "unknown"
+      ],
+      "unknownDependencies": [
+        "unclassified_family:843"
+      ]
+    }
+  }
+}

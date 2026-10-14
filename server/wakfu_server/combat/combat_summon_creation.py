@@ -59,6 +59,7 @@ def native_fresh_summon_authority(actor, reference):
         native_controlled_by_ai=actor.native_controlled_by_ai,
         # Fresh bjm.pHM is null until eHD.a after aQc; eGz.dTC is false.
         native_summoned_from_symbiot=False,
+        native_is_ehp=False,  # Actual detached bje does not implement eHP.
         native_actor_type=1,  # Actual bje.dpV -> eGj.aWs.asQ.
         native_npc_prototype_ref=reference,
         native_copied_equipment_operand=0,
@@ -363,6 +364,7 @@ class NativeSummonBuilder:
             native_ai_control_baseline=True,  # Actual new bje.dpR, not ownership.
             native_controlled_by_ai=actor.native_controlled_by_ai,
             native_summoned_from_symbiot=actor.native_summoned_from_symbiot,
+            native_is_ehp=False,  # Actual registered bje does not implement eHP.
             native_actor_type=1,  # Actual constructed bje.dpV, not controller type.
             native_npc_prototype_ref=specification.reference,
             native_copied_equipment_operand=0,

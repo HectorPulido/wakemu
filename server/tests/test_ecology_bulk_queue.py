@@ -58,11 +58,11 @@ class EcologyBulkQueueTests(PostgresCase):
         self.assertEqual(saved["payload"], row["payload"])
         self.assertEqual(saved["attempts"], 1)
 
-    def test_identical_entry_set_cannot_reroll_after_five_failed_attempts(self):
+    def test_identical_entry_set_cannot_reroll_after_three_failed_attempts(self):
         repository = service.Repository(self.store)
         repository.save([births(range(1, 65))], [])
         durable_id = repository.pending()[0]["id"]
-        for _ in range(5):
+        for _ in range(3):
             repository.acknowledge([dict(id=durable_id, status="retry")])
         repository.save([births(range(1, 65), variant=11)], [])
         self.assertEqual(repository.pending_count(), 0)
@@ -71,7 +71,7 @@ class EcologyBulkQueueTests(PostgresCase):
                 "SELECT payload,attempts,last_error_code FROM ecology_service_proposals WHERE id=%s",
                 (durable_id,),
             ).fetchone()
-        self.assertEqual(saved["attempts"], 5)
+        self.assertEqual(saved["attempts"], 3)
         self.assertEqual(saved["last_error_code"], "retry_exhausted")
         self.assertEqual(saved["payload"]["resources"][0]["member"]["ref"], 10)
 
@@ -120,7 +120,7 @@ class EcologyBulkQueueTests(PostgresCase):
         a["payload"]["resources"][0]["expected"]["resource_reference"] = 60
         repository.save([a], [])
         durable_id = repository.pending()[0]["id"]
-        for _ in range(5):
+        for _ in range(3):
             repository.acknowledge([dict(id=durable_id, status="retry")])
         ab = births([1, 2])
         for entry in ab["payload"]["resources"]:

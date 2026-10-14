@@ -33,6 +33,16 @@ def owned_spells(fight, monsters, *, character=None, player_characters=None):
             entry["spell_id"]: entry["spell_level"]
             for entry in native_abilities(monster["ref"], actor.effective_level)
         }
+    from .combat_morph_spellbook import morph_record
+
+    morph = morph_record(fight, actor.id)
+    if morph is not None:
+        # big.a switches dok() to the temporary fyR; original NPC actions vanish.
+        spells = {
+            reference: level
+            for reference, level in morph["levels"].items()
+            if reference not in morph["removed_raw_uids"]
+        }
     from .combat_spell_grant import granted_spells
 
     for spell, record in granted_spells(fight, actor.id).items():
@@ -236,6 +246,12 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
     from .combat_ai_cast_history import record_authorized_cast
 
     record_authorized_cast(preview, caster.id, spell)
+    from .combat_normal_execution_origin import (
+        normal_execution_origin,
+        normal_root_context,
+    )
+
+    execution_origin = normal_execution_origin(plan)
     dispatcher, effect_packets = factory(preview, plan)
     with active_spell_scope(preview, spell), preview.effect_resolution():
         outcomes = tuple(
@@ -246,6 +262,12 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
                     caster.id,
                     plan["target_id"],
                     plan["target"],
+                    native_context_hex=normal_root_context(
+                        execution_origin,
+                        caster_id=caster.id,
+                        spell_id=spell,
+                        level=level,
+                    ).hex(),
                 )
             )
             for reference in rule["roots"]

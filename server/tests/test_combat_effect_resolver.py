@@ -242,6 +242,71 @@ class NativeResolverTests(unittest.TestCase):
             [row.target_id for row in self.resolver(self.effect, invocation)], [1]
         )
 
+    def original_controller_child(self):
+        self.effect.update(
+            effect_class=330,
+            parameter_count=0,
+            parameters=[],
+            area_class="anD",
+            area_native="point",
+        )
+        self.effect["native_target_selector"] = {
+            "class": "fcE",
+            "mask": 8192 | (1 << 45) | (1 << 47),
+        }
+        self.resolver.direct_target_policies = {"50": [330, False, False]}
+        self.native[1]["dpr_id"] = 2
+        return replace(
+            self.invocation,
+            target_id=3,
+            cell=self.actors[2].position,
+            native_explicit_target=True,
+            wakemu_fresh_child_selection=True,
+            native_trigger_context={"target_id": 3, "caster_id": 1},
+        )
+
+    def test_fresh_original_controller_child_reselects_controller_not_trigger_enemy(
+        self,
+    ):
+        invocation = self.original_controller_child()
+        selected = self.resolver(self.effect, invocation)
+        self.assertEqual([row.target_id for row in selected], [2])
+        self.assertEqual(selected[0].caster_id, 1)
+        self.assertFalse(selected[0].native_target_cell_argument)
+        self.assertEqual(invocation.target_id, 3)
+
+    def test_original_controller_native_chosen_pv_replay_keeps_its_recipient(self):
+        invocation = self.original_controller_child()
+        selected = self.resolver(
+            self.effect, replace(invocation, wakemu_fresh_child_selection=False)
+        )
+        self.assertEqual([row.target_id for row in selected], [3])
+
+    def test_fresh_controller_child_never_substitutes_foreign_or_untyped_owner(self):
+        invocation = self.original_controller_child()
+        self.native[1]["dpr_id"] = 99
+        self.assertEqual(self.resolver(self.effect, invocation), ())
+        self.native[1]["dpr_id"] = 2
+        self.native[1]["is_eGj"] = False
+        self.assertEqual(self.resolver(self.effect, invocation), ())
+
+    def test_fresh_original_controller_leaf_preserves_native_chosen_recipient(self):
+        invocation = self.original_controller_child()
+        # Aniripsa164608 is a321 leaf, not an actor-selection group. Native
+        # Qe.g applies its already chosen PV even with controller flag45.
+        self.effect["effect_class"] = 321
+        self.resolver.direct_target_policies = {"50": [321, False, False]}
+        selected = self.resolver(self.effect, invocation)
+        self.assertEqual([row.target_id for row in selected], [3])
+        self.assertEqual(selected[0].caster_id, 1)
+
+    def test_type_only_fresh_child_does_not_fan_out_explicit_recipient(self):
+        invocation = self.original_controller_child()
+        self.effect["native_target_selector"]["mask"] = 8192 | (1 << 47)
+        self.assertEqual(
+            [row.target_id for row in self.resolver(self.effect, invocation)], [3]
+        )
+
     def setUp(self):
         self.actors = [
             SimpleNamespace(id=i, team=t, position=p, hp=10, physical_radius=0)

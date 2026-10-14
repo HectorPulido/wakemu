@@ -80,29 +80,26 @@ def remove_owned_hour_area(fight, uid, *, callbacks=None, removal_target_id=None
         from .combat_global_pv_collections import unregister_global_area
 
         unregister_global_area(fight, uid)
-    # Qs.a(Qq,PV) unregisters before delivering event10011.
-    if callbacks is not None:
-        if removal_target_id is None:
-            callbacks.removed(removed)
-        else:
-            callbacks.removed(removed, target_id=removal_target_id)
-    ledger = removed.get("state_ledger")
-    has_children = any(
-        (
-            entry.get("container_kind") == "effect_area"
-            and entry.get("container_id") == uid
-        )
-        or entry.get("manager_id") == uid
-        for entry in getattr(fight, "native_retained_records", {}).values()
-    )
-    if (ledger is not None and ledger.entries) or has_children:
-        # Qf and owned Qe/PL identities remain actual objects after Qs unregisters
-        # the area. Keep their ledger out of spatial queries and the fighter roster.
-        retired = getattr(fight, "native_retired_area_managers", None)
-        if retired is None:
-            retired = {}
-            fight.native_retired_area_managers = retired
-        retired[uid] = removed
+    # Qs unregisters spatially first, but the actual Qq remains on the
+    # synchronous callback stack, including roots that remove their own source.
+    retired = getattr(fight, "native_retired_area_managers", None)
+    if retired is None:
+        retired = {}
+        fight.native_retired_area_managers = retired
+    retired[uid] = removed
+    previous_removing = removed.get("removing", False)
+    removed["removing"] = True
+    try:
+        if callbacks is not None:
+            if removal_target_id is None:
+                callbacks.removed(removed)
+            else:
+                callbacks.removed(removed, target_id=removal_target_id)
+    finally:
+        removed["removing"] = previous_removing
+        from .combat_state_managers import prune_retired_state_managers
+
+        prune_retired_state_managers(fight)
     return (removed,)
 
 

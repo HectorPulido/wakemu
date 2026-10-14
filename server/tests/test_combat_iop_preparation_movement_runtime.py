@@ -132,11 +132,25 @@ class IopPreparationMovementRuntimeTests(unittest.TestCase):
         from wakfu_server.combat_final_modifier import NativeFinalModifier
 
         additions = []
+        active_observed_effect = []
+        observed_preparation_sources = []
         original_add = NativeFinalModifier.add
 
         def observe_add(accumulator, value):
             result = original_add(accumulator, value)
             additions.append((accumulator.family, value, result))
+            if (
+                active_observed_effect
+                and active_observed_effect[-1].reference == 151185
+            ):
+                observed_preparation_sources.append(
+                    (
+                        tuple(item.reference for item in active_observed_effect),
+                        accumulator.uid,
+                        accumulator.family,
+                        value,
+                    )
+                )
             return result
 
         from wakfu_server.combat_effect_dispatch import EffectDispatcher
@@ -144,8 +158,88 @@ class IopPreparationMovementRuntimeTests(unittest.TestCase):
         executions = []
         original_execute = EffectDispatcher.execute
 
+        # A wrong-order rotation is not a matched control: it also changes
+        # characteristic 67. Instead replay this identical prepared checkpoint
+        # and RNG, ablating only Preparation's native 1093 accumulator value.
+        # Damage, reactions, costs and state consumption still execute normally.
+        import random
+
+        control_rng = random.Random()
+        control_rng.setstate(rng.getstate())
+        active_control_effect = []
+        neutralized = []
+
+        def control_execute(dispatcher, invocation, **kwargs):
+            active_control_effect.append((dispatcher, invocation))
+            try:
+                return original_execute(dispatcher, invocation, **kwargs)
+            finally:
+                active_control_effect.pop()
+
+        def control_add(accumulator, value):
+            if (
+                active_control_effect
+                and active_control_effect[-1][1].reference == 151185
+            ):
+                dispatcher, invocation = active_control_effect[-1]
+                neutralized.append(
+                    {
+                        "fight": dispatcher.native_retention.fight,
+                        "reference": invocation.reference,
+                        "state_uid": invocation.state_uid,
+                        "caster_id": invocation.caster_id,
+                        "target_id": invocation.target_id,
+                        "source_uid": invocation.native_trigger_context.get("uid"),
+                        "accumulator_uid": accumulator.uid,
+                        "family": accumulator.family,
+                        "value": value,
+                        "path": tuple(
+                            item.reference for _, item in active_control_effect
+                        ),
+                    }
+                )
+                return original_add(accumulator, 0)
+            return original_add(accumulator, value)
+
+        with (
+            patch.object(EffectDispatcher, "execute", control_execute),
+            patch.object(NativeFinalModifier, "add", control_add),
+        ):
+            control_attack, _ = helper.cast(
+                (character, monster, fight, deck, control_rng), 4785, 5
+            )
+        self.assertTrue(neutralized)
+        # Observe source identities rather than assuming one Python invocation:
+        # nested native damage roots or independent previews may each calculate
+        # an accumulator. Only the returned preview's HP delta is published.
+        for observed in neutralized:
+            self.assertEqual(observed["reference"], 151185)
+            self.assertEqual(observed["state_uid"], prepared.uid)
+            self.assertEqual(observed["caster_id"], 7)
+            self.assertEqual(observed["target_id"], -7)
+            self.assertEqual(observed["source_uid"], observed["accumulator_uid"])
+            self.assertEqual(
+                (observed["family"], observed["value"]), (5, prepared.level)
+            )
+        self.assertTrue(
+            any(observed["fight"] is control_attack.fight for observed in neutralized)
+        )
+        ablated_damage = fight.actors[-7].hp - control_attack.fight.actors[-7].hp
+        self.assertGreater(ablated_damage, 0)
+        self.assertNotIn(
+            3462,
+            {
+                state.reference
+                for state in control_attack.fight.actors[7].state_ledger.entries
+            },
+        )
+
         def observe_execute(dispatcher, invocation, **kwargs):
-            result = original_execute(dispatcher, invocation, **kwargs)
+            active_observed_effect.append(invocation)
+            try:
+                result = original_execute(dispatcher, invocation, **kwargs)
+            finally:
+                active_observed_effect.pop()
             if invocation.reference in (409890, 151186, 151188):
                 executions.append(
                     {
@@ -172,6 +266,13 @@ class IopPreparationMovementRuntimeTests(unittest.TestCase):
             for row in trace
             if row.get("status") == "completed"
         }
+        self.assertEqual(
+            observed_preparation_sources,
+            [
+                (row["path"], row["accumulator_uid"], row["family"], row["value"])
+                for row in neutralized
+            ],
+        )
         self.assertIn(151183, completed)
         self.assertIn(151185, completed)
         self.assertIn(
@@ -227,6 +328,22 @@ class IopPreparationMovementRuntimeTests(unittest.TestCase):
             },
         )
         self.assertLess(transaction.fight.actors[-7].hp, fight.actors[-7].hp)
+        self.assertEqual(
+            control_attack.fight.actors[7].effect_stats,
+            transaction.fight.actors[7].effect_stats,
+        )
+        self.assertEqual(
+            control_attack.fight.actors[7].ap, transaction.fight.actors[7].ap
+        )
+        self.assertEqual(
+            control_attack.fight.actors[7].mp, transaction.fight.actors[7].mp
+        )
+        prepared_damage = fight.actors[-7].hp - transaction.fight.actors[-7].hp
+        self.assertGreater(
+            prepared_damage,
+            ablated_damage,
+            {"prepared_damage": prepared_damage, "ablated_damage": ablated_damage},
+        )
 
     def test_banner_actual_cast_then_legal_step_removes_stationary_state(self):
         from test_combat_iop_cast_boundary_runtime import IopCastBoundaryRuntimeTests

@@ -1,8 +1,11 @@
 """Session-independent retry-safe persistence callbacks.
 
-Redis Scheduler owns distributed leases. This process deduplicates completed
-occurrences; a crash before reply may safely repeat a durable journal flush.
+Completed occurrences use bounded, insertion-ordered caches; a crash before
+reply may safely repeat a durable journal flush. Active callbacks are tracked
+separately and are never evicted by retention or cache capacity.
 """
+from collections import OrderedDict
+import math
 import threading
 import time
 
@@ -15,7 +18,8 @@ class GlobalTasks:
         callbacks,
         *,
         clock=time.monotonic,
-        retention_seconds=604800,
+        retention_seconds=300,
+        max_cached_occurrences=4096,
         observer=None,
     ):
         if set(callbacks) - ALLOWED_TASKS or any(
@@ -24,19 +28,41 @@ class GlobalTasks:
             raise ValueError("Unknown or invalid global callback")
         self.callbacks = dict(callbacks)
         self.clock = clock
+        if (
+            isinstance(retention_seconds, bool)
+            or not isinstance(retention_seconds, (int, float))
+            or not math.isfinite(retention_seconds)
+            or retention_seconds <= 0
+        ):
+            raise ValueError("Invalid global task retention")
+        if type(max_cached_occurrences) is not int or max_cached_occurrences < 1:
+            raise ValueError("Invalid global task cache capacity")
+        # These constructor settings bound each completed/announcement cache.
+        # Active callbacks remain separate so eviction cannot execute them twice.
         self.retention_seconds = retention_seconds
+        self.max_cached_occurrences = max_cached_occurrences
         if observer is not None and not callable(observer):
             raise ValueError("Invalid global task observer")
         self.observer = observer
-        self.completed = {}
-        self.announced = {}
+        self.completed = OrderedDict()
+        self.announced = OrderedDict()
+        self.active_announced = {}
         self.lock = threading.RLock()
         self.condition = threading.Condition(self.lock)
         self.running = set()
 
     def _cleanup(self, now):
-        self.completed = {k: v for k, v in self.completed.items() if v[0] > now}
-        self.announced = {k: v for k, v in self.announced.items() if v[0] > now}
+        # Fixed retention and a monotonic clock keep insertion and expiry order
+        # identical. Each expired entry is visited once, never a full-cache scan.
+        for cache in (self.completed, self.announced):
+            while cache and next(iter(cache.values()))[0] <= now:
+                cache.popitem(last=False)
+
+    def _cache(self, cache, key, value, now):
+        cache.pop(key, None)
+        cache[key] = (now + self.retention_seconds, value)
+        while len(cache) > self.max_cached_occurrences:
+            cache.popitem(last=False)
 
     def _notify(self, name, request_id, status, *, error_type=None):
         if self.observer is None:
@@ -45,13 +71,18 @@ class GlobalTasks:
         with self.lock:
             now = self.clock()
             self._cleanup(now)
-            expires, events = self.announced.get(
-                key, (now + self.retention_seconds, set())
-            )
+            events = self.active_announced.get(key)
+            if events is None:
+                cached = self.announced.get(key)
+                events = set() if cached is None else cached[1]
             if status in events:
                 return
             events.add(status)
-            self.announced[key] = (expires, events)
+            if status == "completed":
+                self.active_announced.pop(key, None)
+                self._cache(self.announced, key, events, now)
+            else:
+                self.active_announced[key] = events
         event = dict(task=name, request_id=request_id, status=status)
         if error_type is not None:
             # Never pass exception text to an observer that may announce it to
@@ -66,10 +97,7 @@ class GlobalTasks:
             # Failed occurrences may be retried. Let each retry announce its
             # own start/failure lifecycle instead of deduplicating it away.
             with self.lock:
-                current = self.announced.get(key)
-                if current is not None:
-                    current[1].discard("started")
-                    current[1].discard("failed")
+                self.active_announced.pop(key, None)
 
     def names(self):
         return sorted(self.callbacks)
@@ -92,6 +120,9 @@ class GlobalTasks:
             if key in self.completed:
                 return dict(self.completed[key][1], deduplicated=True)
             self.running.add(key)
+            # A completed-cache eviction/expiry starts a fresh lifecycle even
+            # if its observer entry survived a slightly later expiry.
+            self.announced.pop(key, None)
         self._notify(name, request_id, "started")
         try:
             self.callbacks[name]()
@@ -104,7 +135,8 @@ class GlobalTasks:
         with self.condition:
             now = self.clock()
             result = dict(task=name, request_id=request_id, status="completed")
-            self.completed[key] = (now + self.retention_seconds, result)
+            self._cleanup(now)
+            self._cache(self.completed, key, result, now)
             self.running.discard(key)
             self.condition.notify_all()
         self._notify(name, request_id, "completed")

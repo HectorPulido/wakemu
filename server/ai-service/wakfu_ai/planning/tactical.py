@@ -6,7 +6,7 @@ Every edge is a legal action certified by world for its exact source state.
 import math
 import time
 
-from .feature_values import validate_features
+from .feature_values import DEFAULT_FEATURE_WEIGHTS, validate_features
 
 
 DEFAULT_WEIGHTS = {
@@ -92,6 +92,62 @@ def _position(value, cells):
     return tuple(value)
 
 
+def _native_controller_team_change(actor, before, actors):
+    """Accept only the server's actual eWD207/fdt receipt, never physical ownership."""
+    row = actor.get("nativeControllerTransfer")
+    expected = {
+        "source",
+        "producer",
+        "effect_class",
+        "effect_reference",
+        "running_uid",
+        "target_id",
+        "caster_id",
+        "controller_id",
+        "current_team",
+        "original_team",
+        "original_controller",
+    }
+    if not isinstance(row, dict) or set(row) != expected:
+        return False
+    if (
+        row["source"] != "fdt.a.fdy.saH_saJ_saF_ebh.v1"
+        or (row["effect_class"], row["producer"])
+        not in (
+            (207, "eWD207.eZd.fQM.actual"),
+            (1030, "eYV1030.fdy.au.actual"),
+        )
+        or row["target_id"] != actor["id"]
+        or row["current_team"] != actor["team"]
+        or type(row["effect_reference"]) is not int
+        or row["effect_reference"] <= 0
+        or type(row["running_uid"]) is not int
+        or not 0 < row["running_uid"] < 1 << 63
+        or type(row["original_team"]) is not int
+        or not 0 <= row["original_team"] <= 255
+        or any(
+            type(row[key]) is not int
+            for key in (
+                "target_id",
+                "caster_id",
+                "controller_id",
+                "original_controller",
+            )
+        )
+        or row["caster_id"] not in actors
+        or row["controller_id"] not in actors
+    ):
+        return False
+    previous = before.get("nativeControllerTransfer")
+    if previous is None:
+        return row["original_team"] == before["team"]
+    return (
+        isinstance(previous, dict)
+        and previous.get("original_team") == row["original_team"]
+        and previous.get("original_controller") == row["original_controller"]
+    )
+
+
 def _actors(raw, cells):
     if not isinstance(raw, list) or not 1 <= len(raw) <= 256:
         raise ValueError("Invalid forecast roster")
@@ -106,7 +162,9 @@ def _actors(raw, cells):
         actor["position"] = _position(entry.get("position"), cells)
         for field in ("hp", "max_hp", "armor", "ap", "mp", "wp"):
             actor[field] = _integer(entry.get(field), 0, (1 << 31) - 1, field)
-        if actor["hp"] > actor["max_hp"] or actor["max_hp"] == 0:
+        # Native maximum-HP reduction can leave a retained dead fighter at
+        # zero current and maximum HP. Living fighters still require max > 0.
+        if actor["hp"] > actor["max_hp"]:
             raise ValueError("Invalid forecast HP")
         actor["team"] = _integer(entry.get("team"), 0, 255, "team")
         if type(entry.get("controlled")) is not bool:
@@ -151,12 +209,12 @@ def _action(raw, before, after, actor_id, cells, edges):
         if set(action) - {"type", "spellId", "level", "targetId", "target"}:
             raise ValueError("Invalid cast action fields")
         _integer(action.get("spellId"), 1, (1 << 31) - 1, "spell ID")
-        _integer(action.get("level"), 1, 32767, "spell level")
+        # Explicit native bPO morph books may own level-zero spells. World
+        # certifies that exact owned level; this does not permit level-zero actors.
+        _integer(action.get("level"), 0, 32767, "spell level")
         _position(action.get("target"), cells)
         target = action.get("targetId")
-        if target is not None and (
-            type(target) is not int or target not in before or before[target]["hp"] <= 0
-        ):
+        if target is not None and (type(target) is not int or target not in before):
             raise ValueError("Invalid forecast cast target")
         # Range/LOS, ownership, costs, usage, facing and conditional effects
         # belong to the native preview authority, never reconstructed here.
@@ -198,11 +256,13 @@ def validate(snapshot, base_validation):
         if actor_id not in actors:
             raise ValueError("Forecast lost current actor")
         for i, actor in actors.items():
-            if i in base_actors and (
-                actor["team"] != base_actors[i]["team"]
-                or actor["controlled"] != base_actors[i]["controlled"]
-            ):
-                raise ValueError("Forecast changed actor ownership")
+            if i in base_actors:
+                if actor["controlled"] != base_actors[i]["controlled"]:
+                    raise ValueError("Forecast changed actor ownership")
+                if actor["team"] != base_actors[i][
+                    "team"
+                ] and not _native_controller_team_change(actor, base_actors[i], actors):
+                    raise ValueError("Forecast changed actor ownership")
         outgoing = raw.get("transitions", [])
         if not isinstance(outgoing, list):
             raise ValueError("Invalid forecast transitions")
@@ -299,8 +359,9 @@ def validate(snapshot, base_validation):
             state["threat"], state["rivalResponses"] = estimate(
                 state["actors"], actor_id, state.pop("rivalForecasts"), weights
             )
-    feature_weights = _features(
-        policy.get("featureWeights", {}), "feature weights", 1000
+    feature_weights = dict(DEFAULT_FEATURE_WEIGHTS)
+    feature_weights.update(
+        _features(policy.get("featureWeights", {}), "feature weights", 1000)
     )
     limits = {
         k: _integer(policy.get(k, default), 1, maximum, k)

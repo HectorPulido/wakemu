@@ -40,9 +40,9 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
     current_timeline = timeline(fight, deadline_ms=deadline_ms)
     participants = []
     payloads = {}
-    from .combat_pve_departure import retired_pve_actor_ids
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
 
-    departed = retired_pve_actor_ids(fight)
+    departed = hidden_snapshot_actor_ids(fight)
     for actor in fight.actors.values():
         if actor.id in departed:
             continue

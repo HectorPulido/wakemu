@@ -135,3 +135,45 @@ class XelorAPLossPassiveRuntimeTests(unittest.TestCase):
                 )
                 successful = {ref for ref, _, _, ok in trace if ok}
                 self.assertEqual(314328 in successful, distance == 3, evidence)
+
+    def test_time_theft_reward_does_not_erase_victim_ap_loss_at_turn_boundaries(self):
+        import test_aniripsa_grant_summon_pipeline as turn_helpers
+
+        helper = helpers.XelorRuntimePipelineTests()
+        turns = turn_helpers.AniripsaGrantSummonPipelineTests()
+        for passive in (None, 5351):
+            with self.subTest(passive=passive):
+                data = helper.fixture(passives=(passive,) if passive else (), seed=17)
+                source = data[2]
+                target = source.actors[-7]
+                before_ap, maximum_ap = target.ap, target.max_ap
+                before_wp = source.actors[7].effect_stats[4]
+                self.assertEqual(before_ap, maximum_ap)
+                paid = helper.cast(data, 775, target.position, action_id=40)
+                data = helper.adopt(data, paid.fight)
+                fight = data[2]
+                loss = before_ap - fight.actors[-7].ap
+                self.assertGreater(loss, 0)
+                self.assertEqual(
+                    fight.actors[7].effect_stats[4],
+                    before_wp - 1 + int(passive is not None),
+                )
+                hp = fight.actors[-7].hp
+
+                turns.end_current_turn(fight, data)
+                self.assertEqual(fight.current.id, -7)
+                self.assertEqual(fight.actors[-7].ap, before_ap - loss)
+                self.assertEqual(fight.actors[-7].max_ap, maximum_ap)
+                self.assertEqual(fight.actors[-7].hp, hp)
+
+                # The victim's completed turn expires the loss and restores its
+                # next budget. No second cast or synthetic expiration is used.
+                turns.end_current_turn(fight, data)
+                self.assertEqual(fight.current.id, 7)
+                self.assertEqual(fight.actors[-7].ap, maximum_ap)
+                self.assertEqual(fight.actors[-7].hp, hp)
+                turns.end_current_turn(fight, data)
+                self.assertEqual(fight.current.id, -7)
+                self.assertEqual(fight.actors[-7].ap, maximum_ap)
+                self.assertEqual(fight.actors[-7].max_ap, maximum_ap)
+                self.assertEqual(fight.actors[-7].hp, hp)

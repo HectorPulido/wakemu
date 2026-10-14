@@ -1,0 +1,822 @@
+{
+  "schema": "native-dj-dance-quest-minigame-source-classification-v1",
+  "classification": "source_confirmed_quest_dance_minigame",
+  "references": [
+    2502,
+    2518
+  ],
+  "consumer_ref": 2518,
+  "consumer_native_level": 85,
+  "consumer_owned_spell_ids": [
+    3701,
+    3702,
+    3703,
+    3704,
+    3713,
+    3714,
+    3715,
+    3716
+  ],
+  "native_profiles": {
+    "2502": {
+      "family_id": 533,
+      "fight_properties": [
+        28
+      ],
+      "initial_state_triples": [],
+      "max_level": 100,
+      "min_level": 100,
+      "native_abilities": [
+        {
+          "level_parameter": -1,
+          "spell_id": 3700
+        }
+      ],
+      "raw_native": {
+        "aHf": 10,
+        "ckP": 1825,
+        "ckQ": 8,
+        "ckR": 0,
+        "ckS": 2,
+        "ckT": 1000,
+        "cle": [],
+        "cqM": 533,
+        "cqN": 100,
+        "cqO": 100,
+        "cqP": 1.0,
+        "cqQ": 1.0,
+        "cqR": 0,
+        "cqS": 0,
+        "cqT": 14,
+        "cqU": 0,
+        "cqV": 11,
+        "cqW": 0,
+        "cqX": 0,
+        "cqY": 0,
+        "cqZ": 0,
+        "crA": 0,
+        "crB": 0,
+        "crC": 0,
+        "crD": 0,
+        "crE": 0,
+        "crF": 0.0,
+        "crG": 0.0,
+        "crH": 0.0,
+        "crI": 0.0,
+        "crJ": 0.0,
+        "crK": 0.0,
+        "crL": 0.0,
+        "crM": 0.0,
+        "crN": 0.0,
+        "crO": 0.0,
+        "crP": 0.0,
+        "crQ": 0.0,
+        "crR": 0.0,
+        "crS": 0.0,
+        "crT": 0.0,
+        "crU": 0.0,
+        "crV": 0.0,
+        "crW": false,
+        "crX": 0,
+        "crY": 0,
+        "crZ": 0,
+        "cra": 0.0,
+        "crb": 0.0,
+        "crc": 0.0,
+        "crd": 0.0,
+        "cre": 0.0,
+        "crf": 0.0,
+        "crg": 0.0,
+        "crh": 0.0,
+        "cri": 0.0,
+        "crj": 0.0,
+        "crk": 0.0,
+        "crl": 0.0,
+        "crm": 0.0,
+        "crn": 0,
+        "cro": 1,
+        "crp": 1,
+        "crq": 118,
+        "crr": 102,
+        "crs": 0,
+        "crt": 0,
+        "cru": 0,
+        "crv": 431,
+        "crw": 72,
+        "crx": 158,
+        "cry": 158,
+        "crz": 130,
+        "csA": 0,
+        "csa": 0,
+        "csb": [
+          28
+        ],
+        "csc": [
+          13,
+          7
+        ],
+        "csd": [
+          {
+            "d": 3700,
+            "native_class": "aMk",
+            "tL": -1
+          }
+        ],
+        "cse": 0,
+        "csf": 2,
+        "csg": 1,
+        "csh": 5,
+        "csi": 2,
+        "csj": [
+          {
+            "aGJ": 4,
+            "cbH": 0,
+            "clT": "",
+            "clx": 67,
+            "csI": false,
+            "csJ": false,
+            "csK": false,
+            "d": 343,
+            "getDuration": 0,
+            "native_class": "aMg"
+          }
+        ],
+        "csk": [],
+        "csl": [
+          {
+            "aeV": 1,
+            "cbH": 0,
+            "csL": false,
+            "d": 5149,
+            "native_class": "aMh"
+          }
+        ],
+        "csm": [],
+        "csn": 1,
+        "cso": 0,
+        "csp": 0,
+        "csq": 27,
+        "csr": [],
+        "css": 6,
+        "cst": 0,
+        "csu": [],
+        "csv": [
+          {
+            "aYQ": [
+              "VETEMENTCUSTOM"
+            ],
+            "cdf": "210110001",
+            "native_class": "aMe"
+          },
+          {
+            "aYQ": [
+              "CHEVEUXCUSTOM"
+            ],
+            "cdf": "200110001",
+            "native_class": "aMe"
+          },
+          {
+            "aYQ": [
+              "PiedHabit01",
+              "PiedHabit02"
+            ],
+            "cdf": "51317012",
+            "native_class": "aMe"
+          },
+          {
+            "aYQ": [
+              "Chapeau"
+            ],
+            "cdf": "51317012",
+            "native_class": "aMe"
+          },
+          {
+            "aYQ": [
+              "CorpsHabit"
+            ],
+            "cdf": "51317012",
+            "native_class": "aMe"
+          }
+        ],
+        "csw": [
+          {
+            "AM": -9182209,
+            "csC": 2,
+            "native_class": "aMd"
+          },
+          {
+            "AM": -4335617,
+            "csC": 1,
+            "native_class": "aMd"
+          }
+        ],
+        "csx": [],
+        "csy": -1,
+        "csz": "default",
+        "d": 2502,
+        "native_class": "aMb"
+      },
+      "ref": 2502
+    },
+    "2518": {
+      "family_id": 533,
+      "fight_properties": [
+        28
+      ],
+      "initial_state_triples": [
+        1895,
+        1,
+        1
+      ],
+      "max_level": 85,
+      "min_level": 85,
+      "native_abilities": [
+        {
+          "level_parameter": -1,
+          "spell_id": 3713
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 3714
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 3715
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 3716
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 3701
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 3702
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 3703
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 3704
+        }
+      ],
+      "raw_native": {
+        "aHf": 11,
+        "ckP": 1825,
+        "ckQ": 8,
+        "ckR": 0,
+        "ckS": 2,
+        "ckT": 99,
+        "cle": [
+          1895,
+          1,
+          1
+        ],
+        "cqM": 533,
+        "cqN": 85,
+        "cqO": 85,
+        "cqP": 1.0,
+        "cqQ": 1.0,
+        "cqR": 0,
+        "cqS": 0,
+        "cqT": 14,
+        "cqU": 0,
+        "cqV": 11,
+        "cqW": 0,
+        "cqX": 0,
+        "cqY": 0,
+        "cqZ": 0,
+        "crA": 0,
+        "crB": 0,
+        "crC": 0,
+        "crD": 0,
+        "crE": 0,
+        "crF": 0.0,
+        "crG": 0.0,
+        "crH": 0.0,
+        "crI": 0.0,
+        "crJ": 0.0,
+        "crK": 0.0,
+        "crL": 0.0,
+        "crM": 0.0,
+        "crN": 0.0,
+        "crO": 0.0,
+        "crP": 0.0,
+        "crQ": 0.0,
+        "crR": 0.0,
+        "crS": 0.0,
+        "crT": 0.0,
+        "crU": 0.0,
+        "crV": 0.0,
+        "crW": false,
+        "crX": 0,
+        "crY": 0,
+        "crZ": 0,
+        "cra": 0.0,
+        "crb": 0.0,
+        "crc": 0.0,
+        "crd": 0.0,
+        "cre": 0.0,
+        "crf": 0.0,
+        "crg": 0.0,
+        "crh": 0.0,
+        "cri": 0.0,
+        "crj": 0.0,
+        "crk": 0.0,
+        "crl": 0.0,
+        "crm": 0.0,
+        "crn": 0,
+        "cro": 1,
+        "crp": 1,
+        "crq": 118,
+        "crr": 102,
+        "crs": 0,
+        "crt": 0,
+        "cru": 0,
+        "crv": 431,
+        "crw": 72,
+        "crx": 158,
+        "cry": 158,
+        "crz": 130,
+        "csA": 0,
+        "csa": 0,
+        "csb": [
+          28
+        ],
+        "csc": [
+          7
+        ],
+        "csd": [
+          {
+            "d": 3713,
+            "native_class": "aMk",
+            "tL": -1
+          },
+          {
+            "d": 3714,
+            "native_class": "aMk",
+            "tL": -1
+          },
+          {
+            "d": 3715,
+            "native_class": "aMk",
+            "tL": -1
+          },
+          {
+            "d": 3716,
+            "native_class": "aMk",
+            "tL": -1
+          },
+          {
+            "d": 3701,
+            "native_class": "aMk",
+            "tL": -1
+          },
+          {
+            "d": 3702,
+            "native_class": "aMk",
+            "tL": -1
+          },
+          {
+            "d": 3703,
+            "native_class": "aMk",
+            "tL": -1
+          },
+          {
+            "d": 3704,
+            "native_class": "aMk",
+            "tL": -1
+          }
+        ],
+        "cse": 0,
+        "csf": 2,
+        "csg": 1,
+        "csh": 5,
+        "csi": 2,
+        "csj": [],
+        "csk": [],
+        "csl": [
+          {
+            "aeV": 1,
+            "cbH": 0,
+            "csL": false,
+            "d": 5169,
+            "native_class": "aMh"
+          }
+        ],
+        "csm": [],
+        "csn": 1,
+        "cso": 0,
+        "csp": 0,
+        "csq": 27,
+        "csr": [],
+        "css": 6,
+        "cst": 0,
+        "csu": [],
+        "csv": [
+          {
+            "aYQ": [
+              "VETEMENTCUSTOM"
+            ],
+            "cdf": "210710001",
+            "native_class": "aMe"
+          },
+          {
+            "aYQ": [
+              "CHEVEUXCUSTOM"
+            ],
+            "cdf": "200710001",
+            "native_class": "aMe"
+          },
+          {
+            "aYQ": [
+              "PiedHabit01",
+              "PiedHabit02"
+            ],
+            "cdf": "11916918",
+            "native_class": "aMe"
+          },
+          {
+            "aYQ": [
+              "Chapeau"
+            ],
+            "cdf": "13416912",
+            "native_class": "aMe"
+          },
+          {
+            "aYQ": [
+              "CorpsHabit"
+            ],
+            "cdf": "13616908",
+            "native_class": "aMe"
+          }
+        ],
+        "csw": [
+          {
+            "AM": -9182209,
+            "csC": 2,
+            "native_class": "aMd"
+          },
+          {
+            "AM": -4335617,
+            "csC": 1,
+            "native_class": "aMd"
+          }
+        ],
+        "csx": [],
+        "csy": -1,
+        "csz": "",
+        "d": 2518,
+        "native_class": "aMb"
+      },
+      "ref": 2518
+    }
+  },
+  "owned_abilities": {
+    "2502": [
+      {
+        "casting_present": true,
+        "effective_level_range": [
+          100,
+          100
+        ],
+        "level_parameter": -1,
+        "name": "¡Que el Ritmo no Pare!",
+        "spell_id": 3700,
+        "usage_limits_present": true
+      }
+    ],
+    "2518": [
+      {
+        "casting_present": true,
+        "effective_level_range": [
+          85,
+          85
+        ],
+        "level_parameter": -1,
+        "name": "Beatbox Ardiente",
+        "spell_id": 3713,
+        "usage_limits_present": true
+      },
+      {
+        "casting_present": true,
+        "effective_level_range": [
+          85,
+          85
+        ],
+        "level_parameter": -1,
+        "name": "Beatbox Acuático",
+        "spell_id": 3714,
+        "usage_limits_present": true
+      },
+      {
+        "casting_present": true,
+        "effective_level_range": [
+          85,
+          85
+        ],
+        "level_parameter": -1,
+        "name": "Beatbox Rocoso",
+        "spell_id": 3715,
+        "usage_limits_present": true
+      },
+      {
+        "casting_present": true,
+        "effective_level_range": [
+          85,
+          85
+        ],
+        "level_parameter": -1,
+        "name": "Beatbox Aéreo",
+        "spell_id": 3716,
+        "usage_limits_present": true
+      },
+      {
+        "casting_present": true,
+        "effective_level_range": [
+          85,
+          85
+        ],
+        "level_parameter": -1,
+        "name": "Baile Ardiente",
+        "spell_id": 3701,
+        "usage_limits_present": true
+      },
+      {
+        "casting_present": true,
+        "effective_level_range": [
+          85,
+          85
+        ],
+        "level_parameter": -1,
+        "name": "Baile Acuático",
+        "spell_id": 3702,
+        "usage_limits_present": true
+      },
+      {
+        "casting_present": true,
+        "effective_level_range": [
+          85,
+          85
+        ],
+        "level_parameter": -1,
+        "name": "Baile Rocoso",
+        "spell_id": 3703,
+        "usage_limits_present": true
+      },
+      {
+        "casting_present": true,
+        "effective_level_range": [
+          85,
+          85
+        ],
+        "level_parameter": -1,
+        "name": "Baile Aéreo",
+        "spell_id": 3704,
+        "usage_limits_present": true
+      }
+    ]
+  },
+  "native_quest_definition": {
+    "aHe": "IsAchievementActive(1264)",
+    "aeV": 2,
+    "aqb": false,
+    "bwX": 1260,
+    "cjG": 512,
+    "cjH": true,
+    "cjI": "GetRealLevel() >= 85",
+    "cjJ": [
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": -42,
+            "ckh": -113,
+            "cki": 30,
+            "ckj": 458,
+            "native_class": "aJO"
+          },
+          {
+            "ckg": -25,
+            "ckh": -17,
+            "cki": 8,
+            "ckj": 557,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 2393,
+        "native_class": "aJN"
+      }
+    ],
+    "cjK": [
+      {
+        "aeV": 6,
+        "ckk": false,
+        "ckl": [
+          714800
+        ],
+        "d": 2483,
+        "native_class": "aJP"
+      },
+      {
+        "aeV": 11,
+        "ckk": false,
+        "ckl": [
+          7500
+        ],
+        "d": 2611,
+        "native_class": "aJP"
+      }
+    ],
+    "cjL": 0,
+    "cjM": false,
+    "cjN": false,
+    "cjO": false,
+    "cjP": 85,
+    "cjQ": 1,
+    "cjR": true,
+    "cjS": -1,
+    "cjT": 0,
+    "cjU": 0,
+    "cjV": false,
+    "cjW": false,
+    "cjX": 0,
+    "cjY": 0,
+    "cjZ": 6,
+    "cka": "ach.512",
+    "d": 1264,
+    "getDuration": 0,
+    "isVisible": true,
+    "native_class": "aJM"
+  },
+  "native_quest_text": {
+    "en": {
+      "content.62.1264": "I've Got a Feeling!",
+      "content.63.1264": "The Battle of the Beats is coming up... Finally, your chance to wow the crowd with your dancing and beatboxing talents! What? You don't have any? Better get to work, then!",
+      "content.64.2393": "Steal the show at DJ Bilbiboy's challenge"
+    },
+    "es": {
+      "content.62.1264": "I've got a Feeling!",
+      "content.63.1264": "Un Beat For All va a tener lugar. Ha llegado el momento de demostrar tu talento como bailarín y beatboxer. ¿Cómo? ¿Que no tienes talento? ¡Pues tendrás que aprender y rápido!",
+      "content.64.2393": "Ganar el desafío de DJ Bilbyboy"
+    },
+    "fr": {
+      "content.62.1264": "I've got a Feeling !",
+      "content.63.1264": "Un \"Beat For All\" va avoir lieu. C'est le moment de faire valoir vos talents de danseur et de beatboxer. Comment ça ? Vous n'en avez pas ?! Eh bien il va falloir apprendre et plus vite que ça !",
+      "content.64.2393": "Remporter le défi du DJ Bilbyboy"
+    },
+    "pt": {
+      "content.62.1264": "I've got a feeling!",
+      "content.63.1264": "A Batalha dos Beats está chegando... Finalmente, apareceu a sua chance de surpreender a multidão com seus talentos em dança e beatbox! O quê? Você não tem nenhum? Então é melhor aprender... E rápido!",
+      "content.64.2393": "Ganhar o desafio do DJ Bilbyboy"
+    }
+  },
+  "native_area_labels": {
+    "527": "Casilla roja",
+    "528": "Casilla azul",
+    "529": "Casilla verde",
+    "530": "Casilla violeta"
+  },
+  "genuine_area_producer": {
+    "owner_ref": 2502,
+    "native_level": 100,
+    "owned_spell": 3700,
+    "not_owned_by_consumer2518": true,
+    "literal_false_direct_area_branches": [
+      {
+        "producer_effect_id": 95123,
+        "path": [
+          95121,
+          95122,
+          95123
+        ],
+        "native_false_ancestor": 95121
+      },
+      {
+        "producer_effect_id": 95125,
+        "path": [
+          95121,
+          95124,
+          95125
+        ],
+        "native_false_ancestor": 95121
+      },
+      {
+        "producer_effect_id": 95127,
+        "path": [
+          95121,
+          95126,
+          95127
+        ],
+        "native_false_ancestor": 95121
+      },
+      {
+        "producer_effect_id": 95129,
+        "path": [
+          95121,
+          95128,
+          95129
+        ],
+        "native_false_ancestor": 95121
+      }
+    ],
+    "alternate_state1941_grant_path": [
+      95219,
+      95845
+    ],
+    "alternate_area_producer_state": 1941,
+    "state1941_is_initial_for_either_actor": false,
+    "native_state1941_subscription_event": 1001,
+    "ordinary_producer_spell_range": [
+      0,
+      0
+    ],
+    "ordinary_producer_roots_enemy_only": true,
+    "prepared_426_649_caller_found": false,
+    "runnable_ordinary_recipe": false,
+    "missing_authority": "Native dance challenge encounter bootstrap/control and genuine area placement; no area/state injection permitted"
+  },
+  "classification_basis": "Exact installed quest objective/description plus native four colored areas/eight dance-or-beatbox commands and independent challenge mechanics; not inferred solely from names, flags or quest-looking appearances.",
+  "external_corroboration": [
+    {
+      "url": "https://methodwakfu.com/quetes/bilbyza/",
+      "claim": "The Bilbyza level85 quest challenge uses four colored floor cells and four ordered dance/beatbox states. Ordinary Bilbiboy fights and later boss combat are distinct stages."
+    },
+    {
+      "url": "https://wakfu.wiki.gg/wiki/Bilbiza_-_Main_Quest",
+      "claim": "The level85 single-player I Have Got a Feeling quest objective is the DJ dance/beatboxing challenge."
+    }
+  ],
+  "quest_producer_current_hash_verification": [
+    {
+      "path": "client/contents/bdata/1.jar",
+      "sha256": "a40b77575b015bee15fcfcaac700c6fa6f7417f52438121d61e86add825b6ad8",
+      "matches": true
+    },
+    {
+      "path": "client/contents/bdata/115.jar",
+      "sha256": "533840407a60bcaabf19f3125655a1fe1cf4572942f20789a2b2f1ee6f9d02b5",
+      "matches": true
+    },
+    {
+      "path": "client/contents/bdata/2.jar",
+      "sha256": "bf8c9304eab33876116b42533cb3927dcb709134e625cbe634b899696df98b76",
+      "matches": true
+    },
+    {
+      "path": "client/contents/bdata/3.jar",
+      "sha256": "7c3a6a50e0cad375c99fa3b207d5ebaecd1cbcc71927ac2b75ea4f5ee52f4c8b",
+      "matches": true
+    },
+    {
+      "path": "client/contents/i18n/i18n_en.jar",
+      "sha256": "a9a077c6805fbfc9caa28d1b398b1c1ec95e3df035f7f3853ace9d82e2d11830",
+      "matches": true
+    },
+    {
+      "path": "client/contents/i18n/i18n_es.jar",
+      "sha256": "7a1e3247388f5e771e31f2ea1e4db7a2c7dc48d4108b71dae04789e7966ce7c8",
+      "matches": true
+    },
+    {
+      "path": "client/contents/i18n/i18n_fr.jar",
+      "sha256": "12cab5e8b0959cf4cbafa0b675a77da4305a3a45777454239c1cee53f0ba3530",
+      "matches": true
+    },
+    {
+      "path": "client/contents/i18n/i18n_pt.jar",
+      "sha256": "e6f6a6ecbbd81a86c6235f6781e16a4f8b6c3c848b7239809baa80e461975020",
+      "matches": true
+    },
+    {
+      "path": "client/lib/wakfu-client.jar",
+      "sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+      "matches": true
+    },
+    {
+      "path": "sniffer/java/ExportNativeQuestDefinitions.java",
+      "sha256": "24b476f17125d2addf478195f32ad07b231e612851dfde100112d52402130284",
+      "matches": true
+    }
+  ],
+  "source_sha256": {
+    "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/monster-combat-extraction-20261010/monsters.json.gz": "93ad4c48ae6820af446bf405be1cf0d9e7fce6886d4618fcd3c690d1f0fda705",
+    "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/monster-combat-extraction-20261010/inventory.json.gz": "6a97219005af5e7f1e287f1147540c8cb892269b41057c1125ea4b1478049200",
+    "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/monster-combat-extraction-20261010/translations.json.gz": "9ae0bad8c0eacf7ef0c5ab00e825a11066ad441d9968c14293ec14acd84a830c",
+    "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/local/native-quest-definitions.json": "aa58f226c13fc30c4be6fdc5812a40889472432f26dfb7a98330957eeda2ec48",
+    "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/monster-all-native-max-20261013/source-encounter-audit/inventory.json": "d79b2d5073d174d4f0e28e752f1df924405c05f22a7b366f79ce42c3aa660fab",
+    "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/monster-global-all-levels-20261013/semantic-triage-midbatch-v2.inputs/d06403f888d749ca951a6522425e529fce8c19342bb4680d50f20f69bcd9cedd.json": "d06403f888d749ca951a6522425e529fce8c19342bb4680d50f20f69bcd9cedd",
+    "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/monster-activation-recovery-20261012/global-selector-private/areas527-530-source/producer-effect-records.json": "45341148d6847fd071fb4191420bc4219457d9823e1b52a26c9e3ff69be4f14c",
+    "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/monster-activation-recovery-20261012/global-selector-private/areas527-530-source/installed-script-joins.json": "af55c421b43092fd86bcd4ebfd4aaebcfa35697de5abdc420254637fd7eb9bfb",
+    "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/monster-activation-recovery-20261012/global-selector-private/areas527-530-source/aMg.txt": "a0b8be9cbcbc4dc9b02747bddb6d33465878858118e79793e7251b0f2f9861d0",
+    "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/monster-activation-recovery-20261012/global-selector-private/areas527-530-source/genericIEActions-343.lua": "d0213c5525c4de951342b4ac73fb1b8e7ae3ab579cffa289db3dfc61a81dae90",
+    "/Users/hectorpulido/Documents/wakfu-experiment/.runtime/monster-activation-recovery-20261012/global-selector-private/areas527-530-source/build_classification.py": "2cba04e12977ca5e5fee757be0c7a3ac7bb6b50fa4fbe24891c8176d2fcd36dc"
+  }
+}

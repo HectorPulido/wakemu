@@ -3,6 +3,11 @@ import math
 import re
 
 
+# One point of actual progress outweighs a small AP cost; capped at the
+# concrete owned action threshold, so already prepared states earn no gain.
+DEFAULT_FEATURE_WEIGHTS = {"owned_state_progress": 1.0}
+
+
 def validate_features(raw, label, maximum):
     if not isinstance(raw, dict) or len(raw) > 64:
         raise ValueError("Invalid " + label)

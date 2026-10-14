@@ -9,6 +9,48 @@ from wakfu_server.fight_checkpoint_store import snapshot
 
 
 class OwnedTurnEndTests(unittest.TestCase):
+    def test_out_of_play_wave_history_does_not_receive_global_turn_events(self):
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+            set_global_fighter_status,
+        )
+        from wakfu_server.combat_native_actor_lookup import native_actor_population
+
+        fight, dispatcher, seen = self.fixture()
+        initialize_global_pv_collections(fight, tuple(fight.actors))
+        # A defeated wave stays registered for corpse/effect history. Its
+        # retained state must not receive global1002 outside the PV population.
+        fight.actors[-7].hp = 0
+        set_global_fighter_status(fight, -7, "OUT_OF_PLAY")
+        contexts = {actor.id: {} for actor in native_actor_population(fight)}
+
+        def replay(event, **kwargs):
+            if event.manager_actor_id not in contexts:
+                raise ValueError("Missing native context for caster or target")
+            seen.append(event)
+            return ()
+
+        dispatcher.replay_event = replay
+        deliver_turn_end(dispatcher, actor_id=7)
+        self.assertEqual(
+            [(event.manager_actor_id, event.channel) for event in seen],
+            [(7, 6), (7, 60), (7, 61)],
+        )
+
+    def test_off_play_registered_actor_still_receives_global_turn_event(self):
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+            set_global_fighter_status,
+        )
+
+        fight, dispatcher, seen = self.fixture()
+        initialize_global_pv_collections(fight, tuple(fight.actors))
+        set_global_fighter_status(fight, -7, "OFF_PLAY")
+        deliver_turn_end(dispatcher, actor_id=7)
+        self.assertIn(
+            (-7, 61), [(event.manager_actor_id, event.channel) for event in seen]
+        )
+
     def fixture(self):
         a = Actor(7, 0, (0, 0, 0), 60, 6, 3, 10, 20, 3, True)
         b = Actor(-7, 1, (1, 0, 0), 20, 6, 3, 5, 1)

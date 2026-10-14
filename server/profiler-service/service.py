@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 OUTPUT = Path(os.environ.get("PROFILER_OUTPUT", "/profiles"))
 METRICS = Path(os.environ.get("PROFILER_METRICS", "/metrics/performance-latest.json"))
 RATE = 25
-RETENTION_SECONDS = 3600
+RETENTION_SECONDS = int(os.environ.get("PROFILER_RETENTION_SECONDS", "3600"))
 MAX_BYTES = int(os.environ.get("PROFILER_MAX_BYTES", str(1024**3)))
 CHUNK_SECONDS = 60
 TIMELINE_SECONDS = 5

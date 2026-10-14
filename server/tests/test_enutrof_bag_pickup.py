@@ -141,7 +141,7 @@ class EnutrofBagPickupTests(unittest.TestCase):
             row["uid"]
             for row in second.fight.native_effect_areas.values()
             if row["reference"] == 207
-        }
+        } - {row["uid"] for row in before_conversion if row["reference"] == 207}
         # Native 385371/386177 explicitly exclude cells already containing
         # owned bag 207/209. Natural turn-start deposits may share those
         # cells, so conversion consumes them without adding another bag.
@@ -153,20 +153,28 @@ class EnutrofBagPickupTests(unittest.TestCase):
         ]
         self.assertTrue(prior_deposits)
         occupied_bag_cells = {tuple(row["cell"]) for row in prior_bags}
-        self.assertTrue(
-            all(
-                row["owner_id"] == 7 and tuple(row["cell"]) in occupied_bag_cells
-                for row in prior_deposits
-            ),
-            before_conversion,
+        self.assertTrue(all(row["owner_id"] == 7 for row in prior_deposits))
+        deposit_cells = {tuple(row["cell"]) for row in prior_deposits}
+        # Natural turn-start deposits may include a new unoccupied cell as
+        # well as cells covered by an older bag. Only the covered cells are
+        # negative conversion controls; unrelated new deposits still convert.
+        self.assertTrue(deposit_cells & occupied_bag_cells, before_conversion)
+        second_bag_rows = [
+            row
+            for row in second.fight.native_effect_areas.values()
+            if row["uid"] in second_bags
+        ]
+        self.assertEqual(
+            {tuple(row["cell"]) for row in second_bag_rows},
+            deposit_cells - occupied_bag_cells,
         )
-        self.assertFalse(second_bags)
+        self.assertTrue(all(row["owner_id"] == 7 for row in second_bag_rows))
         self.assertEqual(
             {row["uid"] for row in prior_bags},
             {
                 row["uid"]
                 for row in second.fight.native_effect_areas.values()
-                if row["reference"] in (207, 209)
+                if row["reference"] in (207, 209) and row["uid"] not in second_bags
             },
         )
         self.assertTrue(
@@ -180,6 +188,7 @@ class EnutrofBagPickupTests(unittest.TestCase):
             for row in second.fight.native_effect_areas.values()
             if row["reference"] in (207, 209)
         ]
+        self.assertEqual(len({tuple(row["cell"]) for row in live_bags}), len(live_bags))
         self.assertEqual(len({row["uid"] for row in live_bags}), len(live_bags))
         self.assertEqual(len({row["effect_uid"] for row in live_bags}), len(live_bags))
         # Bag identities remain unique; no second bag was stacked on a cell.

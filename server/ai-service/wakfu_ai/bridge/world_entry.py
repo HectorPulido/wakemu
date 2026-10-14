@@ -116,8 +116,13 @@ def _run_npc_turn(runtime, *, store, viewer_character, monsters, stats_serialize
         time.monotonic(),
         getattr(runtime, "native_ai_preparation_started_at", time.monotonic()),
     )
+    # The first actual turn of each actor includes cold authority/catalog work.
+    # Actor-local turn count also covers monsters introduced by later rift waves;
+    # resuming the same turn must not consume or renew this allowance.
+    first_turn = getattr(runtime.fight.current, "turn_count", None) == 1
+    allowance_seconds = 20 if first_turn else 10
     # Preparation consumes the same allowance as planning and transport.
-    with bounded(started + 10):
+    with bounded(started + allowance_seconds):
         yield from _prepare_npc_turn(
             runtime,
             store=store,
@@ -154,6 +159,9 @@ def _prepare_npc_turn(
     turn_ms = profile["policy"].get("limits", {}).get("turnMs", 10000)
     if type(turn_ms) is not int or not 1 <= turn_ms <= 60000:
         raise ValueError("Invalid complete native turn deadline")
+    first_turn = getattr(current, "turn_count", None) == 1
+    if first_turn:
+        turn_ms = max(turn_ms, 20000)
     flags = dict(
         native_area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "0") == "1",
         native_start_events=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
@@ -164,7 +172,11 @@ def _prepare_npc_turn(
         },
     )
     url = os.environ.get("WAKFU_AI_URL", "http://ai:8090")
-    transport = ContextTransport(url)
+    # The transport still clips each request to the original absolute deadline.
+    # Its normal ten-second socket cap must not truncate first-turn cold work.
+    transport = (
+        ContextTransport(url, timeout=20) if first_turn else ContextTransport(url)
+    )
     try:
         with bounded(started + turn_ms / 1000):
             stage_started = time.monotonic()

@@ -62,6 +62,23 @@ def constructor_stat_context(fight, invocation):
     return actor is not None and invocation.target_id == actor.id
 
 
+def constructor_cell_group_context(fight, effect, invocation):
+    """Actual detached eZQ/PO cell groups also have no PN.bac() clock."""
+    from .combat_effect_groups import NATIVE_CELL_GROUP_FAMILIES
+    from .combat_summon_initialization import detached_actor
+
+    return (
+        detached_actor(fight, invocation.caster_id) is not None
+        and invocation.target_id is None
+        and getattr(invocation, "native_target_cell_argument", False) is True
+        and type(effect.get("effect_class")) is int
+        and effect["effect_class"] in NATIVE_CELL_GROUP_FAMILIES
+        and effect.get("native_definition_class") == "eVy"
+        and type(effect.get("native_execution_mode")) is int
+        and effect["native_execution_mode"] == 2
+    )
+
+
 def _runtime(monsters, actor_id):
     import random
     from .combat_server_spell import (

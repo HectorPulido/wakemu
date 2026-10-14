@@ -72,9 +72,11 @@ def freeze_startup_heap(prewarm, cleanup):
         raise RuntimeError("Catalogue heap freeze already completed")
     _assert_startup()
     started = time.monotonic()
+    gc.disable()
     try:
         details = prewarm()
     finally:
+        gc.enable()
         cleanup()
     _assert_startup()
     collected = gc.collect()

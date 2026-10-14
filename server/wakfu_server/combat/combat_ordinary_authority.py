@@ -255,7 +255,7 @@ class OrdinaryActorAuthority:
             native_summon_counts_complete=True,
             # Owned client actor is biB, which explicitly implements eHP.
             # Its optional drI component is hydrated separately by Store.character.
-            native_is_ehp=True if player else None,
+            native_is_ehp=player,  # Exact ordinary biB implements eHP; bje does not.
             native_captured_roster=captured_roster,
             # eGj.aWs assigns dpV to asQ: bjo=0, bje=1.
             native_actor_type=0 if player else 1,

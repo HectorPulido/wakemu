@@ -73,6 +73,11 @@ class EcaflipSummonDeathPipelineTests(unittest.TestCase):
             self.end_current_turn(fight, data)
         self.assertEqual(fight.current.id, -7)
         owner_hp_before = fight.actors[7].hp
+        unrelated_hp_before = {
+            actor_id: actor.hp
+            for actor_id, actor in fight.actors.items()
+            if actor_id not in (7, summon.id)
+        }
         source = snapshot(fight)
         tx = prepare_npc_spell(
             fight,
@@ -95,6 +100,14 @@ class EcaflipSummonDeathPipelineTests(unittest.TestCase):
         # Native Bow Meow life link copies incoming damage to its Ecaflip.
         self.assertLess(tx.fight.actors[7].hp, owner_hp_before)
         self.assertEqual(fight.actors[7].hp, owner_hp_before)
+        self.assertEqual(
+            {
+                actor_id: tx.fight.actors[actor_id].hp
+                for actor_id in unrelated_hp_before
+            },
+            unrelated_hp_before,
+            "Incoming cat damage must not leak to unrelated existing actors",
+        )
         self.assertEqual(dead.native_obstacle_id, -1)
         current_registry(tx.fight)
         from wakfu_server.combat_spell_grant import granted_spells

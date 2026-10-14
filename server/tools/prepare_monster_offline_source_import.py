@@ -5,7 +5,15 @@ from prepare_monster_spell_activation import merge_records
 
 
 def prepare_source_import(
-    base_npc, trees, states, casting, roots, inventory, references
+    base_npc,
+    trees,
+    states,
+    casting,
+    roots,
+    inventory,
+    references,
+    *,
+    positive_actor_levels_only=False,
 ):
     """Return exact source additions and explicit admission blockers.
 
@@ -19,9 +27,12 @@ def prepare_source_import(
     for reference in selected:
         native = inventory[reference]
         blockers = []
-        if native["min_level"] == 0:
+        if native["min_level"] == 0 and not positive_actor_levels_only:
             blockers.append("unsupported_native_zero_level_activation")
-        elif not 1 <= native["min_level"] <= native["max_level"]:
+        elif (
+            not 0 <= native["min_level"] <= native["max_level"]
+            or native["max_level"] < 1
+        ):
             blockers.append("invalid_native_level_interval")
         deps = native["dependencies"]
         if (
@@ -52,6 +63,7 @@ def prepare_source_import(
                 ref=reference,
                 min_level=native["min_level"],
                 max_level=native["max_level"],
+                validation_min_level=max(1, native["min_level"]),
                 blockers=blockers,
                 spell_ids=deps["spell_ids"],
                 state_ids=deps["state_ids"],

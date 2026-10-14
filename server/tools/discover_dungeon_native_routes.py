@@ -89,7 +89,14 @@ def criterion_allowed(criterion):
 
 
 def accessible_anchor_topology(
-    geometry, entry, room_count, *, enemy_counts=None, largest_component_only=False
+    geometry,
+    entry,
+    room_count,
+    *,
+    enemy_counts=None,
+    largest_component_only=False,
+    reviewed_room_anchors=(),
+    native_doors=(),
 ):
     """Select real native free areas for explicit local logical rooms.
 
@@ -107,12 +114,25 @@ def accessible_anchor_topology(
         raise ValueError("Invalid per-room encounter capacity")
     minimum_capacity = max(enemy_counts) + 6
     cells = set(map(tuple, geometry["cells"]))
+    reviewed = tuple(map(tuple, reviewed_room_anchors))
+    blocked = {tuple(door[key] for key in ("x", "y", "z")) for door in native_doors}
+    if reviewed and (
+        len(reviewed) != room_count or not blocked or largest_component_only
+    ):
+        raise ValueError("Reviewed physical rooms require exact native door boundaries")
+    if blocked and not reviewed:
+        raise ValueError("Native door boundaries require reviewed room anchors")
+    if not blocked.issubset(cells):
+        raise ValueError("Reviewed native door is not walkable")
     start = tuple(entry[k] for k in ("x", "y", "z"))
     if start not in cells:
         raise ValueError("Native entry anchor is not accessible")
+    cells -= blocked
     edges = defaultdict(set)
     for left, right in geometry["edges"]:
         left, right = tuple(left), tuple(right)
+        if left in blocked or right in blocked:
+            continue
         if left not in cells or right not in cells:
             raise ValueError("Native edge leaves walkable terrain")
         edges[left].add(right)
@@ -145,6 +165,17 @@ def accessible_anchor_topology(
     if not selected:
         selected = components[:1]
     selected = components[:1] if largest_component_only else selected[:room_count]
+    if reviewed:
+        selected = []
+        for anchor in reviewed:
+            matches = [component for component in components if anchor in component]
+            if len(matches) != 1 or matches[0] in selected:
+                raise ValueError(
+                    "Reviewed room anchors do not identify distinct native rooms"
+                )
+            if len(matches[0]) < minimum_capacity:
+                raise ValueError("Reviewed native room lacks encounter capacity")
+            selected.append(matches[0])
     slots = [1] * len(selected)
     while sum(slots) < room_count:
         index = min(

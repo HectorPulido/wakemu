@@ -1,5 +1,6 @@
 import copy
 import unittest
+from unittest.mock import patch
 
 from wakfu_server.monsters import owned_instance
 from wakfu_server.combat_state import Actor, Fight
@@ -16,6 +17,61 @@ from wakfu_server.rift_combat_adapter import creation_replay, world_snapshot
 
 
 class RiftNativeWaveTests(unittest.TestCase):
+    def test_wave_initialization_only_initializes_new_roster_and_preserves_history(
+        self,
+    ):
+        from wakfu_server.rift_npc_creation import initialize_native_wave_actors
+
+        fight = self.pending_fight()
+        monster = self.monster(-201, 3)
+        actor = prepare_wave_npcs([monster])[0]
+        fight.actors[actor.id] = actor
+        fight.native_npc_ai_actors = frozenset({-200})
+        fight.native_npc_initialization_receipts = {-200: {"initialized": True}}
+        plans = {-201: (5525, (), ())}
+
+        def initialize(preview, sources, admitted_plans):
+            self.assertEqual(set(sources), {-201})
+            self.assertEqual(admitted_plans, plans)
+            self.assertTrue(preview.actors[-201].native_controlled_by_ai)
+            preview.native_npc_initialization_receipts = {-201: {"initialized": True}}
+
+        with patch(
+            "wakfu_server.combat_npc_ai_initialization.initial_ai_actors",
+            return_value=frozenset({-201}),
+        ), patch(
+            "wakfu_server.combat_npc_initialization.initial_plans",
+            return_value=plans,
+        ), patch(
+            "wakfu_server.combat_npc_initialization.initialize_ordinary_npcs",
+            side_effect=initialize,
+        ):
+            initialize_native_wave_actors(fight, [monster])
+        self.assertEqual(fight.native_npc_ai_actors, frozenset({-200, -201}))
+        self.assertEqual(set(fight.native_npc_initialization_receipts), {-200, -201})
+        self.assertFalse(fight.actors[-200].native_controlled_by_ai)
+
+    def test_wave_without_initial_states_preserves_existing_initialization_receipts(
+        self,
+    ):
+        from wakfu_server.rift_npc_creation import initialize_native_wave_actors
+
+        fight = self.pending_fight()
+        fight.native_npc_initialization_receipts = {-200: {"initialized": True}}
+        with patch(
+            "wakfu_server.combat_npc_ai_initialization.initial_ai_actors",
+            return_value=frozenset(),
+        ), patch(
+            "wakfu_server.combat_npc_initialization.initial_plans", return_value={}
+        ), patch(
+            "wakfu_server.combat_npc_initialization.initialize_ordinary_npcs"
+        ) as initialize:
+            initialize_native_wave_actors(fight, [self.monster(-200, 2)])
+        initialize.assert_not_called()
+        self.assertEqual(
+            fight.native_npc_initialization_receipts, {-200: {"initialized": True}}
+        )
+
     def monster(self, identity, x):
         return owned_instance(5525, 1, identity, map_id=1134, x=x, y=0, z=0)
 

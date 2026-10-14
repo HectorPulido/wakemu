@@ -473,6 +473,9 @@ class SpellTransactionTests(unittest.TestCase):
                 7,
                 caster.position,
                 target.position,
+                # Tests keep exact distance-dependent spell criteria. Preserve
+                # both actor seeds instead of selecting a relocated formation.
+                relocate_monsters=False,
                 variation_seed=variation_seed,
             )
         caster_snapshot = npc_snapshot = None
