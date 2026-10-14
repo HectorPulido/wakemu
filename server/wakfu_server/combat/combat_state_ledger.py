@@ -201,6 +201,21 @@ class StateLedger:
             self._entries = tuple(entry for entry in self._entries if entry.uid != uid)
         return removed
 
+    def bind_registered_timer(self, original, updated):
+        """Publish a validated first-registration clock without reapplying state."""
+        from dataclasses import replace
+
+        if (
+            original not in self._entries
+            or original.timer is not None
+            or updated.timer is None
+            or replace(updated, timer=None) != original
+        ):
+            raise ValueError("Invalid first-registration state timer binding")
+        self._entries = tuple(
+            updated if entry is original else entry for entry in self._entries
+        )
+
     def expire(self, *, actor_id, round_number, phase, round_cleanup=False):
         """Return exact native-clock removals for the wire/effect dispatcher.
 

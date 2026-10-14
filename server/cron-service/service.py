@@ -9,6 +9,7 @@ import redis
 from wakfu_server.world_scheduler import RedisBackend, Scheduler
 from wakfu_server.storage.postgres import Database
 from wakfu_server.storage.cron_policy import load_policy
+from wakfu_server.storage.scheduler_credentials import provision
 
 
 def http_action(task):
@@ -68,8 +69,12 @@ def http_action(task):
 def run_scheduler(database, backend):
     scheduler = Scheduler(backend, {})
     poll_seconds = 1
+    credential_check_at = 0
     while True:
         try:
+            if time.monotonic() >= credential_check_at:
+                provision(database, os.environ["WAKFU_CRON_API_TOKEN_FILE"])
+                credential_check_at = time.monotonic() + 60
             config = load_policy(database)
             poll_seconds = config["poll_seconds"]
             scheduler.tasks = {
@@ -92,6 +97,7 @@ def main():
         max_size=2,
     )
     try:
+        provision(database, os.environ["WAKFU_CRON_API_TOKEN_FILE"], bootstrap=True)
         client = redis.Redis.from_url(
             os.environ["WAKFU_REDIS_URL"], decode_responses=True
         )

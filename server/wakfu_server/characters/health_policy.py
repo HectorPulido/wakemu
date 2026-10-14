@@ -26,6 +26,17 @@ def changed(character, hp):
     return damage, hp == 0
 
 
+def recover_finished_return(maximum, damage, dead):
+    """Explicit Wakemu exploration recovery after an acknowledged fight return.
+
+    A terminal casualty returns with one HP and may regenerate. This does not
+    resurrect an in-combat actor, infer a Phoenix position, or recover an active
+    disconnect. The caller owns the finished-fight/return and once-only fences.
+    """
+    visible(maximum, damage, dead)
+    return (maximum - 1, False) if dead else (damage, dead)
+
+
 def reconfigure(db, character, maximum):
     hp = visible(maximum, character["hp_damage"], character["health_dead"])
     db.execute(

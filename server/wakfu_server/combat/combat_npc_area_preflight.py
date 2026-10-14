@@ -1,6 +1,6 @@
 """Wakemu NPC-only area-recipient preflight; not original server recovery.
 
-Client fcj checks the anchor fighter. Ordinary NPC self-centered direct AoE
+Client fcj checks the anchor fighter. Ordinary NPC self-centered immediate AoE
 instead requires actual recipients selected by the unchanged shared resolver.
 All other native casting checks and the actual spell transaction still run.
 """
@@ -9,7 +9,7 @@ from dataclasses import replace
 
 
 def qualified_roots(fight, request, rule, effects):
-    """Keep the policy deliberately limited to attested immediate actor AoE."""
+    """Keep the policy limited to attested immediate actor AoE/callback groups."""
     from .combat_effect_targets import area_offsets, native_selector_policy
 
     caster = fight.actors.get(request.get("actor_id"))
@@ -31,16 +31,31 @@ def qualified_roots(fight, request, rule, effects):
     result = {}
     for reference in roots:
         effect = effects.get(str(reference))
-        if not isinstance(effect, dict) or effect.get("children"):
+        if not isinstance(effect, dict):
             return None
+        if effect.get("children") and transfer_children(effect, effects) is None:
+            from .combat_npc_area_groups import immediate_state_group
+
+            if immediate_state_group(effect, effects) is None:
+                return None
         selector = effect.get("native_target_selector")
         if not isinstance(selector, dict) or selector.get("class") != "fcE":
             return None
         mask = selector.get("mask")
         policy = native_selector_policy(effect)
-        if "self" in policy["relations"] or not policy["relations"]:
+        if not policy["relations"]:
+            # Contradictory native relation flags cannot select any fighter.
+            # Keep the root in the real transaction, but do not let a dormant
+            # branch disqualify other immediate area roots in the same spell.
+            if (
+                effect.get("application_flag") != "NONE"
+                or effect.get("removal_flag") != "NONE"
+            ):
+                return None
+            continue
+        if "self" in policy["relations"]:
             return None
-        if mask in (9, 129, 257):
+        if mask in (9, 129, 257, (1 << 50) | 9):
             if policy["in_area"] is not True:
                 return None
             # Parse the real geometry, never turn an unknown area into a radius.
@@ -72,6 +87,36 @@ def qualified_roots(fight, request, rule, effects):
     return result
 
 
+def transfer_children(effect, effects):
+    """Recognize immediate eYy callback groups, never arbitrary nested roots."""
+    if effect.get("effect_class") != 865:
+        return None
+    children = effect.get("children")
+    if not isinstance(children, (list, tuple)) or len(children) != 2:
+        return None
+    result = []
+    for reference in children:
+        child = effects.get(str(reference))
+        if (
+            not isinstance(child, dict)
+            or child.get("children")
+            or child.get("criteria", "").strip()
+            or child.get("area_native") != "point"
+            or child.get("application_flag") != "NONE"
+            or child.get("removal_flag") != "NONE"
+        ):
+            return None
+        result.append(child)
+    if result[0].get("native_target_selector") != effect.get("native_target_selector"):
+        return None
+    from .combat_effect_targets import native_selector_policy
+
+    # Parse both real child selectors; missing/unknown metadata stays rejected.
+    for child in result:
+        native_selector_policy(child)
+    return tuple(result)
+
+
 def eligible_recipients(dispatcher, effect, invocation, fight):
     """Reuse native resolution and criteria without applying or allocating effects."""
     from .combat_conditions import evaluate_condition
@@ -86,11 +131,44 @@ def eligible_recipients(dispatcher, effect, invocation, fight):
             or actor.id == invocation.caster_id
         ):
             continue
+        eligibility_effect, eligibility_invocation = effect, selected
         handler = dispatcher.handlers.get(effect["effect_class"])
+        if effect["effect_class"] == 330:
+            from .combat_npc_area_groups import immediate_state_group
+
+            child = immediate_state_group(effect, dispatcher.effects)
+            if child is None or dispatcher.handlers.get(child["effect_class"]) is None:
+                raise ValueError("Missing native NPC ordered state group authority")
+            # Class330 is an internal dispatcher branch, not a leaf handler.
+            # Child selection and state application remain transaction-owned.
+            handler = object()
+        if effect["effect_class"] == 865:
+            children = transfer_children(effect, dispatcher.effects)
+            if (
+                children is None
+                or dispatcher.group_retention is None
+                or not callable(dispatcher.transfer_probability)
+            ):
+                raise ValueError("Missing native NPC transfer group authority")
+            first_handler = dispatcher.handlers.get(children[0]["effect_class"])
+            second_handler = dispatcher.handlers.get(children[1]["effect_class"])
+            if (
+                getattr(first_handler, "native_runner_value_verified", False)
+                is not True
+                or second_handler is None
+            ):
+                raise ValueError("Missing native NPC transfer child handler")
+            # The actual transaction retains eYy child-level/context, selector,
+            # callback, transfer arithmetic and final execution authority.
+            handler = first_handler
+            eligibility_effect = children[0]
+            eligibility_invocation = replace(selected, reference=effect["children"][0])
         if handler is None:
             raise ValueError("Missing mandatory NPC area handler")
         eligibility = getattr(handler, "native_eligibility", None)
-        if callable(eligibility) and not eligibility(effect, selected):
+        if callable(eligibility) and not eligibility(
+            eligibility_effect, eligibility_invocation
+        ):
             continue
         if not evaluate_condition(
             effect["criteria"], dispatcher.condition_context(selected)
@@ -159,7 +237,7 @@ def npc_cast_condition(adapter, fight, request, *, factory, enabled):
 
         class NpcAreaCastingContext(NativeOwnedCastingContext):
             def root_selector_accepts(self, root):
-                return bool(recipients[root])
+                return bool(recipients.get(root, ()))
 
         casting = NpcAreaCastingContext(
             adapter, fight, plan, invocation, actual_conditions, rule

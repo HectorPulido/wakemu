@@ -118,7 +118,27 @@ def native_state_timeline(fight, clock_actor_id):
     if not 0 <= fight.turn_index < len(order) or order[fight.turn_index] != actor.id:
         raise ValueError("Inconsistent native current actor index")
     if clock_actor_id not in order and clock_actor_id not in excluded:
-        raise ValueError("Missing state clock actor")
+        # Native SU.eA uses Tb.biq().indexOf(clock), whose absent result is -1.
+        # An actual reversible OFF_PLAY actor retains its PV/Qf after leaving
+        # the active timeline; it can still own a timer. Numerical HP0 alone
+        # does not attest that missing-clock case.
+        from .combat_global_pv_collections import (
+            global_fighter_registered,
+            global_fighter_guards,
+        )
+        from .combat_ordinary_death import registered_ordinary_death
+
+        clock_actor = fight.actors.get(clock_actor_id)
+        registered_off_play = (
+            clock_actor is not None
+            and hasattr(fight, "native_global_pv_collections")
+            and global_fighter_registered(fight, clock_actor_id)
+            and global_fighter_guards(fight, clock_actor_id)
+            == dict(baF=False, baG=True, baK=False)
+            and registered_ordinary_death(fight, clock_actor) is True
+        )
+        if not registered_off_play:
+            raise ValueError("Missing state clock actor")
     return StateTimeline(
         actor.turn_count,
         actor.id,
@@ -248,7 +268,10 @@ class NativeEffectTimingProvider:
         native = native_definition_timing(effect, invocation.level)
         retained = native["retained"]
         timer = None
-        from .combat_npc_initialization import constructor_stat_context
+        from .combat_npc_initialization import (
+            constructor_stat_context,
+            constructor_cell_group_context,
+        )
 
         # big.a(eGH) applies cle through its actual eZQ/PO context.
         # PO.bac returns null; eZR.bbT returns before scheduling a Tt.
@@ -256,7 +279,10 @@ class NativeEffectTimingProvider:
         if (
             effect["native_execution_mode"] == 2
             and native["duration"] > 0
-            and not constructor_stat_context(preview, invocation)
+            and not (
+                constructor_stat_context(preview, invocation)
+                or constructor_cell_group_context(preview, effect, invocation)
+            )
         ):
             fields = effect["native_timing_definition"]
             for key in ("clock_on_caster", "clock_on_target"):

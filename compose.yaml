@@ -46,7 +46,6 @@ services:
       WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
       WAKFU_AI_URL: ${WAKFU_AI_URL:-http://ai:8090}
       WAKFU_REDIS_URL: ${WAKFU_REDIS_URL:-redis://redis:6379/0}
-      WAKFU_EXTERNAL_SCHEDULER: '1'
       WAKFU_ECOLOGY_MODE: ${WAKFU_ECOLOGY_MODE:-external}
       WAKFU_ECOLOGY_TOKEN_FILE: /run/secrets/ecology-token
       #
@@ -57,7 +56,6 @@ services:
       WAKFU_OPEN_PLANTING: ${WAKFU_OPEN_PLANTING:-1}
       WAKFU_NATIVE_PLANTING_BONUS: ${WAKFU_NATIVE_PLANTING_BONUS:-0}
       WAKFU_PLANT_GROWTH_SECONDS: ${WAKFU_PLANT_GROWTH_SECONDS:-30}
-      WAKFU_POSITION_FLUSH_SECONDS: ${WAKFU_POSITION_FLUSH_SECONDS:-2}
       WAKFU_ENABLE_COMBAT_TEST: ${WAKFU_ENABLE_COMBAT_TEST:-1}
       WAKFU_COMBAT_START_EVENTS: ${WAKFU_COMBAT_START_EVENTS:-1}
       # Development fallback: omit unsupported equipment effects with chat/log diagnostics.
@@ -211,7 +209,7 @@ services:
       WAKFU_REDIS_URL: redis://redis:6379/0
       WAKFU_WORLD_URL: http://world:18081
       WAKFU_ECOLOGY_TOKEN_FILE: /run/secrets/ecology-token
-      WAKFU_ECOLOGY_MAX_ATTEMPTS: ${WAKFU_ECOLOGY_MAX_ATTEMPTS:-5}
+      WAKFU_ECOLOGY_MAX_ATTEMPTS: ${WAKFU_ECOLOGY_MAX_ATTEMPTS:-3}
       WAKFU_RUNTIME: /data
       WAKFU_PLANT_GROWTH_SECONDS: ${WAKFU_PLANT_GROWTH_SECONDS:-30}
     volumes:
@@ -232,29 +230,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 180s
-  cron:
-    build:
-      context: ./server
-      dockerfile: cron-service/Dockerfile
-    init: true
-    depends_on:
-      postgres:
-        condition: service_healthy
-      world:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
-      WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
-      WAKFU_REDIS_URL: redis://redis:6379/0
-      WAKFU_CRON_API_TOKEN_FILE: /run/secrets/wakfu-scheduler-token
-    volumes:
-      - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
-      - ./.database/secrets/scheduler-token:/run/secrets/wakfu-scheduler-token:ro
-      - ./server/wakfu_server:/app/wakfu_server:ro
-      - ./server/cron-service/service.py:/app/service.py:ro
-    networks: [isolated]
   ai:
     build:
       context: ./server/ai-service

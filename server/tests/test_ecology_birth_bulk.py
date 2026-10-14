@@ -114,6 +114,7 @@ class BirthBulkPersistenceTests(PostgresCase):
                 publish=Mock(),
             )
         self.assertTrue(result["applied"])
+        self.assertEqual(result["resource_failures"], [101, 103])
         self.assertEqual(mutate.call_count, 1)
         self.assertEqual(
             [item[0]["resource_uid"] for item in mutate.call_args.args[0]], [102, 103]

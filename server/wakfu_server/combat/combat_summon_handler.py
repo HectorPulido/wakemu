@@ -15,6 +15,7 @@ from .combat_summon import (
     RegisteredSummonAuthority,
 )
 from .combat_summon_creation import NativeSummonBuilder
+from .combat_summon_property_descriptor import descriptor_property_keys
 from .combat_summon_codec import summon_application, summon_payload
 from .combat_stat_handler import StatExecutionContext
 from .combat_actor_snapshot import native_actor_catalog
@@ -193,7 +194,9 @@ class NativeSummonHandler:
                 self.fight, spec, caster_id=caster.id, actor_id=actor_uid
             )
         owner, owner_id = self.container(invocation)
-        properties = self.builder.properties["npc"][str(reference)]["fight_properties"]
+        # eZl.C constructs one eHN map entry per distinct descriptor property.
+        # Reuse the exact builder increments, never the raw aMb.csb array.
+        properties = descriptor_property_keys(registration.fight_properties)
         payload_arguments = dict(
             uid=effect_uid,
             base_uid=invocation.base_uid,

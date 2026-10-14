@@ -72,6 +72,24 @@ def registered_ordinary_death(fight, actor):
             and type(previous.get("minimum")) is int
             and previous["minimum"] == 0
         )
+        hp_minimum = (
+            previous.get("kind") == "hp_minimum_update"
+            and type(previous.get("effect_class")) is int
+            and previous["effect_class"] == 830
+            and type(previous.get("uid")) is int
+            and previous["uid"] > 0
+            and type(previous.get("hp_before")) is int
+            and previous["hp_before"] > 0
+            and type(previous.get("minimum")) is int
+            and previous["minimum"] == 0
+            and type(previous.get("hp")) is int
+            and previous["hp"] == 0
+            and type(previous.get("source_id")) is int
+            and type(previous.get("target_id")) is int
+            and type(previous.get("sequence")) is int
+            and type(event.get("sequence")) is int
+            and type(event.get("actor_id")) is int
+        )
         summon_recall_minimum = (
             previous.get("kind") == "summon_recall_hp_minimum_update"
             and previous.get("effect_class") == 859
@@ -82,7 +100,13 @@ def registered_ordinary_death(fight, actor):
             and previous.get("minimum") == 0
         )
         if (
-            (damage or percentage_hp or kill_minimum or summon_recall_minimum)
+            (
+                damage
+                or percentage_hp
+                or kill_minimum
+                or hp_minimum
+                or summon_recall_minimum
+            )
             and previous.get("target_id") == actor.id
             and previous.get("hp") == 0
             and previous.get("source_id") in fight.actors

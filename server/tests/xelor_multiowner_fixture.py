@@ -22,6 +22,9 @@ class TwoXelorFixture:
         injury=0,
         level=1,
         caster_breed=5,
+        second_player_breed=5,
+        second_player_spells=(),
+        second_player_passives=(),
         caster_aptitudes=(),
         enemy_position=(-5, -7, -1),
         third_player_position=(-8, -6, -1),
@@ -99,9 +102,9 @@ class TwoXelorFixture:
                     id=8,
                     account_id=4,
                     map_id=1134,
-                    breed=5,
+                    breed=second_player_breed,
                     level=level,
-                    hp=maximum(5, level) - injury,
+                    hp=maximum(second_player_breed, level) - injury,
                     builds={
                         0: {
                             "sheet": proto_field(24, 0xFFFFFFFF).hex(),
@@ -169,7 +172,7 @@ class TwoXelorFixture:
 
         decks = {
             7: encode_deck(active_spells, passive_spells),
-            8: encode_deck(),
+            8: encode_deck(second_player_spells, second_player_passives),
             9: encode_deck(),
         }
         with patch.object(

@@ -224,6 +224,8 @@ def existing_witnesses(scenarios):
                 )
             if scene.get("population"):
                 features.append("population")
+            if discovery == "native_initial_subscription_prerequisite_v1":
+                features.append("initial_subscription_prerequisite")
             if discovery == "native_incoming_damage_hp_prerequisite_v1":
                 features.append("hp_prerequisite")
             deferred = discovery in (

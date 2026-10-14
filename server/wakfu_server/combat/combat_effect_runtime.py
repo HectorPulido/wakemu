@@ -1363,6 +1363,10 @@ class NativeEffectRuntimeFactory:
             retention.cost_resolver = cost_resolver
 
         def group_level(effect, values, invocation):
+            if effect["effect_class"] == 1101:
+                from .combat_polynomial_level_group import runtime_child_level
+
+                return runtime_child_level(effect, values, invocation)
             if effect["effect_class"] == 1100:
                 from .combat_instance_level_group import runtime_child_level
 

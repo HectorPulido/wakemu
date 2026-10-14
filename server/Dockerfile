@@ -12,6 +12,7 @@ COPY protocol/npc-dialogues.json.gz protocol/npc-observed-dialogue-edges.json.gz
 COPY protocol/npc-objective-definitions.json.gz protocol/native_intergame_descriptors.json ./protocol/
 COPY tools/migrate_postgres.py tools/import_native_catalogs.py tools/manage_permissions.py tools/plan_initial_monster_habitat.py tools/generate_initial_monster_population.py tools/equip_test_finisher.py tools/performance_report.py ./tools/
 COPY tools/prepare_geometry_artifacts.py tools/prepare_los_artifacts.py ./tools/
+COPY tools/retire_cron.py ./tools/
 COPY docker-entrypoint.sh ./
 ENV WAKFU_RUNTIME=/data \
     WAKFU_CATALOG_REVISION=${CATALOG_REVISION} \

@@ -28,6 +28,7 @@ def _retained_carrier_packets(fight, action_id):
         | set(fight.state_wire_payloads)
         | set(fight.native_owned_group_effects)
         | set(getattr(fight, "native_owned_area_effects", {}))
+        | set(getattr(fight, "native_owned_spatial_effects", {}))
     )
     live.update(
         entry.uid
@@ -55,6 +56,9 @@ def _retained_carrier_packets(fight, action_id):
     from .combat_state_carrier import state_carrier_application
     from .combat_stat_effects import owned_effect_delivery
 
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    hidden = hidden_snapshot_actor_ids(fight)
     packets = []
     for entry in view.entries:
         uid = entry.uid
@@ -65,6 +69,8 @@ def _retained_carrier_packets(fight, action_id):
             sources.append(fight.owned_stat_effects[uid].get("payload"))
         if uid in getattr(fight, "native_owned_area_effects", {}):
             sources.append(fight.native_owned_area_effects[uid].get("payload"))
+        if uid in getattr(fight, "native_owned_spatial_effects", {}):
+            sources.append(fight.native_owned_spatial_effects[uid].get("payload"))
         if uid in fight.native_owned_group_effects:
             sources.append(fight.native_owned_group_effects[uid].get("payload"))
         if len(sources) != 1 or not isinstance(sources[0], str):
@@ -74,6 +80,8 @@ def _retained_carrier_packets(fight, action_id):
         target_id = entry.target_id if entry.target_id is not None else manager_id
         if type(manager_id) is not int or manager_id == 0 or type(target_id) is not int:
             raise ValueError("Retained effect has no current native manager")
+        if target_id in hidden or manager_id in hidden:
+            continue
         if entry.effect_class == 310:
             opcode, body = 12613, state_carrier_application(
                 fight.id,
@@ -95,12 +103,6 @@ def _retained_carrier_packets(fight, action_id):
                 uid=uid,
                 running_effect_payload=payload,
             )
-        if manager_id != target_id:
-            # The protobuf's original target remains part of the exact payload;
-            # the frame owner is the actor whose native manager contains the UID.
-            import struct
-
-            body = body[:-16] + struct.pack(">qq", manager_id, uid)
         packets.append((opcode, body))
     return tuple(packets)
 
@@ -150,7 +152,12 @@ def current_snapshot(fight, shared, *, actor_payload, deadline_ms=None):
     ):
         raise ValueError("Live fight leaders are not current actors")
 
-    actors = list(fight.actors.values())
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    retired_summons = hidden_snapshot_actor_ids(fight)
+    actors = [
+        actor for actor in fight.actors.values() if actor.id not in retired_summons
+    ]
     if not actors or len(actors) > 127:
         raise ValueError("Unsupported live spectator roster size")
     participants = []

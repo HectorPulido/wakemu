@@ -9,7 +9,9 @@ def discover_conditional_owned_state_recipes(
     *,
     limit=4,
     casting=None,
-    companion_recipes=None
+    companion_recipes=None,
+    required_levels=None,
+    state_definitions=None
 ):
     from wakfu_server.combat_effect_targets import native_selector_policy
 
@@ -22,6 +24,25 @@ def discover_conditional_owned_state_recipes(
         document.get("effects", {}), document.get("baseline_effects", {})
     )
     recipes = []
+    if (
+        required_levels
+        and any(grade > 1 for grade in required_levels.values())
+        and casting is not None
+    ):
+
+        def native_cost(ability):
+            costs = casting.get(str(ability["spell_id"]), {}).get("costs", [])
+            level = ability["spell_level"]
+            if (
+                type(level) is not int
+                or not 1 <= level <= len(costs)
+                or len(costs[level - 1]) != 3
+            ):
+                return (float("inf"),) * 3
+            ap, mp, wp = costs[level - 1]
+            return wp, mp, ap
+
+        abilities = sorted(abilities, key=native_cost)
     for ability in abilities:
         spell, level = ability["spell_id"], ability["spell_level"]
         record = document.get("spells", {}).get(str(spell))
@@ -41,7 +62,13 @@ def discover_conditional_owned_state_recipes(
                 casting.get(str(spell), {}).get("cast_criterion_raw", "")
             )
             if not companion_options:
-                continue
+                # A plain enemy criterion uses the existing real player target.
+                criterion = casting.get(str(spell), {}).get("cast_criterion_raw", "")
+                if criterion.strip() not in ("", "IsEnnemy()", "IsEnemy()"):
+                    continue
+                companion_options = [
+                    {"kind": "owned_spell_sequence", "native_player_target": True}
+                ]
         paths = []
         todo = [(str(r), (), ()) for r in roots]
         visited = 0
@@ -64,9 +91,11 @@ def discover_conditional_owned_state_recipes(
             ):
                 continue
             # These producer paths preserve literal point/self selection.
-            if (effect.get("area_class"), effect.get("area_native")) != (
-                "anD",
-                "point",
+            geometry = (effect.get("area_class"), effect.get("area_native"))
+            if geometry != ("anD", "point") and not (
+                geometry == ("anA", "empty")
+                and policy["relations"] == frozenset({"self"})
+                and not policy["in_area"]
             ):
                 continue
             path = path + (key,)
@@ -96,6 +125,12 @@ def discover_conditional_owned_state_recipes(
                 paths.append(
                     {
                         "state": state,
+                        "constant_state_gain": int(raw[2])
+                        if len(raw) >= 4
+                        and raw[3] == 0
+                        and type(raw[2]) in (int, float)
+                        and float(raw[2]).is_integer()
+                        else None,
                         "effect_ids": list(map(int, path)),
                         "criteria": [
                             {"effect_id": int(k), "criterion": v} for k, v in criteria
@@ -111,6 +146,15 @@ def discover_conditional_owned_state_recipes(
             p["criteria"] or p["native_selector"].get("mask") != 1 for p in paths
         ):
             continue
+        repeats = 1
+        if required_levels and any(grade > 1 for grade in required_levels.values()):
+            from owned_state_stack import bounded_repeat_count
+
+            repeats = bounded_repeat_count(
+                paths, required_levels, state_definitions or {}
+            )
+            if repeats is None:
+                continue
         contexts = companion_options if ranged else [None]
         for companion in contexts:
             for next_turn in (False, True):
@@ -139,6 +183,30 @@ def discover_conditional_owned_state_recipes(
                         casting.get(str(spell), {}).get("cast_criterion_raw", "")
                     ):
                         recipe["actions"][0]["prepare_zero_mp"] = True
+                if recipe.get("native_player_target"):
+                    recipe["native_producer_range"] = [minimum, maximum]
+                    recipe["actions"][0]["target"] = "player"
+                recipe["actions"] = [
+                    dict(
+                        recipe["actions"][0],
+                        next_turn=next_turn if index == repeats - 1 else True,
+                    )
+                    for index in range(repeats)
+                ]
+                if ranged:
+                    recipe["native_producer_range"] = [minimum, maximum]
+                    recipe["native_producer_target_id"] = (
+                        7 if recipe.get("native_player_target") else -201
+                    )
+                if casting is not None:
+                    costs = casting.get(str(spell), {}).get("costs", [])
+                    if 1 <= level <= len(costs):
+                        recipe["native_producer_base_costs"] = list(costs[level - 1])
+                recipe["required_state_levels"] = {
+                    state: grade
+                    for state, grade in (required_levels or {}).items()
+                    if grade > 1
+                }
                 recipes.append(recipe)
                 if len(recipes) >= limit:
                     return recipes
@@ -152,7 +220,9 @@ def verify_state_transaction(source_fight, preview, recipe, action, caster_id):
         or action.get("type") != "cast"
         or action.get("targetId")
         != (
-            -201
+            7
+            if recipe["actions"][0].get("target") == "player"
+            else -201
             if recipe["actions"][0].get("target") == "native_opponent"
             else caster_id
         )

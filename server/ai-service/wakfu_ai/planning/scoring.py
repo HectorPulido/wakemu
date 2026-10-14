@@ -19,7 +19,7 @@ def evaluate(
         or not 0 <= summon_value <= 1
     ):
         raise ValueError("Invalid registered summon value")
-    friendly = root["actors"][actor_id]["team"]
+    friendly = state["actors"][actor_id]["team"]
     values = dict.fromkeys(weights, 0.0)
     victims, healed, killed = [], [], []
     for identity, before in root["actors"].items():
@@ -27,7 +27,7 @@ def evaluate(
         # Removed actors must be retained as zero HP in the native forecast.
         if after is None:
             raise ValueError("Forecast omitted existing actor")
-        ally = before["team"] == friendly
+        ally = after["team"] == friendly
         hostile_summon_value = (
             summon_value if not ally and before.get("registeredSummon") is True else 1
         )

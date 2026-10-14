@@ -1117,6 +1117,15 @@ class SharedFightStorageTests(PostgresCase):
             )
 
     def test_session_adapter_persists_join_before_publishing_shared_batches(self):
+        # Session world coordinates must agree with the durable admission
+        # authority; newly created test characters otherwise retain spawn map.
+        with self.store.connection() as db:
+            for character_id, x in ((self.left_char, 0), (self.right_char, 1)):
+                db.execute(
+                    "UPDATE characters SET map_id=1134,instance_id=0,x=%s,y=0,z=0 "
+                    "WHERE id=%s",
+                    (x, character_id),
+                )
         adapter = CombatSessionAdapter(self.store)
         left = adapter.session(
             self.left_account,
@@ -1175,9 +1184,25 @@ class SharedFightStorageTests(PostgresCase):
         left_batches = adapter.drain(left, self.fight_id)
         right_batches = adapter.drain(right, self.fight_id)
         self.assertEqual(
-            [packet[0] for packet in left_batches[0].packets], [13091, 13026]
+            [packet[0] for packet in left_batches[0].packets], [12436, 13091, 13026]
         )
-        self.assertEqual(right_batches[0].packets, ((12847, b"native-placement"),))
+        # Admission freezes regeneration for the actual joining actor on both
+        # transports before publishing its appearance/placement.
+        regeneration = (12436, struct.pack(">qii", self.right_char, joined_actor.hp, 0))
+        self.assertEqual(left_batches[0].packets[0], regeneration)
+        self.assertEqual(
+            right_batches[0].packets,
+            (regeneration, (12847, b"native-placement")),
+        )
+        with self.store.connection() as db:
+            regen = db.execute(
+                "SELECT initial_hp,coefficient FROM character_regeneration "
+                "WHERE character_id=%s",
+                (self.right_char,),
+            ).fetchone()
+        self.assertEqual(
+            (regen["initial_hp"], regen["coefficient"]), (joined_actor.hp, 0)
+        )
         self.assertEqual(left_batches[1].packets, ((12502, b"shared-turn"),))
         self.assertEqual(right_batches[1].packets, ((12502, b"shared-turn"),))
         self.assertEqual(left_batches[1].sequence, right_batches[1].sequence)

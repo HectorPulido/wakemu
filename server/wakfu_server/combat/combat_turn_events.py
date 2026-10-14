@@ -66,7 +66,12 @@ def _deliver(dispatcher, *, actor_id, phase, event_id, suppression_phase=None):
     # Local/reversed subscribers belong to the actor at this boundary. Global
     # subscribers receive the same boundary in each participant's manager.
     recipients = [(actor_id, 6), (actor_id, 60)]
-    recipients += [(identity, 61) for identity in tuple(fight.actors)]
+    from .combat_native_actor_lookup import native_actor_population
+
+    # Native global delivery captures the registered IN_PLAY/OFF_PLAY PV
+    # population. Retained OUT_OF_PLAY corpses remain in fight.actors for
+    # history, but their managers cannot receive new global turn reactions.
+    recipients += [(candidate.id, 61) for candidate in native_actor_population(fight)]
     if suppressed:
         recipients = []  # fbX.A/z returns before native QP/QO phase delivery.
     from .combat_external_turn_recipient import owned_turn_recipient_scope

@@ -78,7 +78,11 @@ def persist(
         if lease is not None and lease["generation"] != generation:
             raise ValueError("Fight participant session generation was replaced")
         if lease is not None and lease["expires_at"] > now:
-            if lease["character_id"] != character["id"]:
+            if lease["character_id"] != (
+                character["id"]
+                if session_character_id is None
+                else session_character_id
+            ):
                 raise ValueError(
                     "Fight participant is no longer the selected character"
                 )
@@ -92,6 +96,12 @@ def persist(
         ):
             raise ValueError("Disconnected fight character is unavailable")
         saved = store.character(account_id, character["id"], db)
+        existing = db.execute(
+            "SELECT reason FROM fight_health_exits WHERE fight_id=%s AND character_id=%s",
+            (fight.id, character["id"]),
+        ).fetchone()
+        if existing is not None:
+            return dict(character=saved, applied=False)
         expected = (
             disconnected_baseline["hp"],
             disconnected_baseline["max_hp"],
@@ -131,7 +141,7 @@ def persist(
     from wakfu_server.equipment_stats import effective_character
 
     maximum = effective_character(saved)["max_hp"]
-    from wakfu_server.health_policy import visible
+    from wakfu_server.health_policy import visible, recover_finished_return
 
     # Translate the fight's wound delta, rather than its temporary maximum,
     # back to the persisted configuration. Preserve pre-existing hidden wounds.
@@ -139,6 +149,8 @@ def persist(
     final_wound = actor.max_hp - actor.hp
     damage = max(0, saved["hp_damage"] + final_wound - initial_wound)
     dead = actor.hp == 0
+    if reason == "return":
+        damage, dead = recover_finished_return(maximum, damage, dead)
     hp = visible(maximum, damage, dead)
     coefficient = 1 if hp > 0 else 0
     now = store.now()
@@ -267,9 +279,15 @@ def persist_aborted_shared_fight(
         for actor in fight.actors.values()
         if actor.controlled and actor.id not in summon_ids
     }
-    if controlled_roster != {
-        (session.account_id, session.character_id) for session in sessions
-    }:
+    sessions_by_account = {session.account_id: session for session in sessions}
+    if (
+        len(sessions_by_account) != len(sessions)
+        or any(owner not in sessions_by_account for owner, _ in controlled_roster)
+        or any(
+            (session.account_id, session.character_id) not in controlled_roster
+            for session in sessions
+        )
+    ):
         raise ValueError("Shared fight controlled actors do not match its roster")
     results = {}
     with store.connection() as db:
@@ -292,8 +310,8 @@ def persist_aborted_shared_fight(
             )
         )
         expected_roster = {
-            (session.account_id, session.character_id, session.generation)
-            for session in sessions
+            (owner, identity, sessions_by_account[owner].generation)
+            for owner, identity in controlled_roster
         }
         durable_roster = {
             (row["account_id"], row["character_id"], row["session_generation"])
@@ -348,12 +366,12 @@ def persist_aborted_shared_fight(
                 raise ValueError(
                     "Fight participant is no longer the selected character"
                 )
-        for session in sessions:
+        for owner, identity in sorted(controlled_roster):
             if (
                 db.execute(
                     "SELECT id FROM characters WHERE account_id=%s AND id=%s "
                     "AND deleted_at IS NULL FOR UPDATE",
-                    (session.account_id, session.character_id),
+                    (owner, identity),
                 ).fetchone()
                 is None
             ):
@@ -371,16 +389,17 @@ def persist_aborted_shared_fight(
                     (fight.id,),
                 )
             }
-            expected_exits = {(session.character_id, "abort") for session in sessions}
+            expected_exits = {(identity, "abort") for _, identity in controlled_roster}
             if exits == expected_exits:
                 return {
-                    session.character_id: dict(applied=False) for session in sessions
+                    identity: dict(applied=False) for _, identity in controlled_roster
                 }
             if reconnecting_session is None or exits:
                 raise ValueError("Aborted shared fight has incomplete health receipts")
 
-        for session in sessions:
-            row = rows_by_identity[(session.account_id, session.character_id)]
+        for owner, identity in sorted(controlled_roster):
+            session = sessions_by_account[owner]
+            row = rows_by_identity[(owner, identity)]
             baseline = {
                 "hp": row["entry_hp"],
                 "max_hp": row["entry_max_hp"],
@@ -389,16 +408,16 @@ def persist_aborted_shared_fight(
             }
             if any(value is None for value in baseline.values()):
                 raise ValueError("Shared fight participant has no durable HP baseline")
-            actor = fight.actors.get(session.character_id)
+            actor = fight.actors.get(identity)
             if (
                 actor is None
                 or not actor.controlled
                 or actor.owner_id != session.account_id
             ):
                 raise ValueError("Shared fight actor does not match its durable owner")
-            character = store.character(session.account_id, session.character_id, db)
+            character = store.character(owner, identity, db)
             character.update(baseline)
-            results[session.character_id] = persist(
+            results[identity] = persist(
                 store,
                 session.account_id,
                 reconnecting_session.generation
@@ -410,6 +429,7 @@ def persist_aborted_shared_fight(
                 reason="abort",
                 db=db,
                 disconnected_baseline=baseline,
+                session_character_id=session.character_id,
             )
 
         anchor = sessions[0]

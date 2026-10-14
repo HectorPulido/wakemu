@@ -256,6 +256,8 @@ def prune_retired_state_managers(fight):
     records = getattr(fight, "native_retained_records", {})
     facts = getattr(fight, "native_owned_state_containers", {})
     for identity, row in tuple(retired.items()):
+        if row.get("executing") or row.get("removing"):
+            continue  # The actual Qq is still owned by a synchronous stack.
         ledger = row.get("state_ledger")
         if ledger is not None and ledger.entries:
             continue

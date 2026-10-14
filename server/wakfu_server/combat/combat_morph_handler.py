@@ -119,7 +119,8 @@ class NativeMorphHandler:
         masks = effect.get("target_masks")
         if not isinstance(masks, (list, tuple)) or len(masks) != 7:
             raise ValueError("Missing native transformation subscription masks")
-        if any(masks[index] for index in range(6)):
+        # Qa.aZN excludes aZI (slot2): it removes an applied runner, never activates it.
+        if any(masks[index] for index in (0, 1, 3, 4, 5)):
             raise ValueError("Subscribed transformation client execution is unproven")
         # Server actors have no client igz visual manager. dou's visual side
         # effect is represented by actual eWG delivery, not a fabricated copy.

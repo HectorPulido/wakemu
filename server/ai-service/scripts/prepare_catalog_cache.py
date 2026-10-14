@@ -19,7 +19,9 @@ def main():
     started = time.monotonic()
     exporter = native_exporter()
     if args.seal:
-        transport = ContextTransport(os.environ.get("WAKFU_AI_URL", "http://ai:8090"))
+        transport = ContextTransport(
+            os.environ.get("WAKFU_AI_URL", "http://ai:8090"), timeout=60
+        )
         try:
             digest = transport.catalog(exporter)
             print(

@@ -114,5 +114,9 @@ def prioritized_owned_preparations(recipes):
         recipe
         for recipe in recipes
         if recipe.get("discovery")
-        in ("owned_conditional_self_state_v1", "native_zero_mp_lifecycle_v1")
+        in (
+            "owned_conditional_self_state_v1",
+            "native_zero_mp_lifecycle_v1",
+            "owned_target_state_wounded_v1",
+        )
     ]

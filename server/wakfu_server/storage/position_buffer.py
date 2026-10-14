@@ -24,6 +24,8 @@ class Positions:
         self.evictions = []
         self.account_locks = {}
         self.observer = None
+        self.background_cursor = None
+        self.background_lock = threading.Lock()
 
     def observe(self, stage, started, **details):
         if callable(self.observer):
@@ -53,18 +55,19 @@ class Positions:
     @contextmanager
     def flush_barrier(self, **scope):
         # Keep one atomic DB batch while never holding the registry lock for I/O.
-        with self.lock:
-            accounts = sorted(
-                {
-                    key[0]
-                    for key in self.entries
-                    if scope.get("account_id") is None or key[0] == scope["account_id"]
-                }
-            )
+        accounts = sorted(
+            account
+            for account in self.registered_accounts()
+            if scope.get("account_id") is None or account == scope["account_id"]
+        )
         with ExitStack() as stack:
             for account in accounts:
                 stack.enter_context(self.account_barrier(account, blocking=False))
             yield set(accounts)
+
+    def registered_accounts(self):
+        with self.lock:
+            return {key[0] for key in self.entries}
 
     def _entry_snapshot(self):
         with self.lock:
@@ -132,8 +135,7 @@ class Positions:
         """Checkpoint accounts independently so one busy owner cannot stall others."""
         if scope.get("account_id") is not None:
             return self._flush_one(**scope)
-        with self.lock:
-            accounts = sorted({key[0] for key in self.entries})
+        accounts = sorted(self.registered_accounts())
         count = 0
         failure = None
         for account in accounts:
@@ -146,7 +148,69 @@ class Positions:
             raise failure
         return count
 
+    def background_accounts(self):
+        with self.lock:
+            return {key[0] for key, entry in self.entries.items() if entry["dirty"]}
+
+    def has_dirty(self, **scope):
+        with self.lock:
+            return any(
+                entry["dirty"]
+                and all(
+                    scope.get(field) is None or key[index] == scope[field]
+                    for index, field in enumerate(
+                        ("account_id", "generation", "character_id")
+                    )
+                )
+                for key, entry in self.entries.items()
+            )
+
+    def flush_background(self, *, max_accounts, max_seconds, clock=time.monotonic):
+        """Start bounded fair dirty-account work; finish each started transaction.
+
+        The elapsed budget limits starting another account, not interrupting a
+        commit. Existing timeouts bound pool checkout and each SQL statement.
+        Lifecycle callers keep using the complete scoped ``flush`` barrier.
+        """
+        if type(max_accounts) is not int or max_accounts < 1 or max_seconds <= 0:
+            raise ValueError("Invalid background position checkpoint budget")
+        if not self.background_lock.acquire(blocking=False):
+            return dict(attempted=0, characters=0, failures=0, busy=True)
+        try:
+            started = clock()
+            accounts = sorted(self.background_accounts())
+            cursor = self.background_cursor
+            if cursor is not None:
+                accounts = [a for a in accounts if a > cursor] + [
+                    a for a in accounts if a <= cursor
+                ]
+            attempted = count = failures = 0
+            for account in accounts:
+                if attempted >= max_accounts or clock() - started >= max_seconds:
+                    break
+                self.background_cursor = account
+                attempted += 1
+                try:
+                    count += self._flush_one(account_id=account)
+                except Exception as error:
+                    failures += 1
+                    self.observe(
+                        "background_account_failed",
+                        started,
+                        account_id=account,
+                        error_type=type(error).__name__,
+                    )
+            return dict(
+                attempted=attempted, characters=count, failures=failures, busy=False
+            )
+        finally:
+            self.background_lock.release()
+
     def _flush_one(self, **scope):
+        # A clean account never borrows a connection. A later move is handled by
+        # the next background pass or the caller's next lifecycle barrier.
+        if not self.has_dirty(**scope):
+            return 0
         # Pool waits must happen before taking any player ownership barrier.
         started = time.monotonic()
         with ExitStack() as transaction:

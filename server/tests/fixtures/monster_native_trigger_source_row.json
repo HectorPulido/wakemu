@@ -1,0 +1,107 @@
+{
+  "source_artifact": ".runtime/monster-activation-recovery-20261012/global-selector-private/zero-range-constant-caller-index.json",
+  "source_artifact_sha256": "a7352ab0bd84955dd2fed2c8403dc08eb68924c5d4126523c81839fb592c827f",
+  "schema": "native-zero-range-constant-caller-index-v1",
+  "base_candidate_manifest_sha256": "be3678bb8101511313bcc9e447b9e19f72bfea289116437292f3d5557670e2ca",
+  "rows": [
+    {
+      "ref": 1633,
+      "name": "LeChark el Pirata",
+      "zero_range_owned_spell_ids": [
+        6417
+      ],
+      "native_initial_state_triples": [
+        5432,
+        1,
+        1,
+        5442,
+        1,
+        1,
+        5456,
+        1,
+        1,
+        5864,
+        1,
+        1
+      ],
+      "native_initial_state_source": "sealed_original_aMb.cle",
+      "published_constructor_profile_present": false,
+      "native_initialization": {
+        "source_paths": [
+          {
+            "spell_id": 6417,
+            "callback_effect_id": 256194,
+            "family": 426,
+            "path": [
+              [
+                "states",
+                5432
+              ],
+              [
+                "effects",
+                256193
+              ],
+              [
+                "effects",
+                256194
+              ]
+            ],
+            "native_subscriptions": [
+              {
+                "effect_id": 256193,
+                "effect_class": 330,
+                "target_masks": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  [
+                    1001
+                  ],
+                  null
+                ],
+                "criterion": "HasStateFromLevel(5456, 2) and GetCharac(\"AP\") >= 2",
+                "native_timing_definition": {
+                  "clock_on_caster": false,
+                  "clock_on_target": true,
+                  "esr": false,
+                  "ryE": -1,
+                  "ryF": 0.0,
+                  "ryG": false,
+                  "ryH": 0,
+                  "ryI": 0.0
+                },
+                "selector": {
+                  "class": "fcE",
+                  "mask": 0
+                }
+              }
+            ],
+            "route_kind": "native426_cast_callback",
+            "qualification_status": "pending_native_trigger_witness"
+          }
+        ],
+        "missing_compact_authorities": [],
+        "unexpanded_nested_profile_effect_ids": [
+          277238,
+          277236,
+          277234,
+          277244
+        ],
+        "ancestry_bound_reached": false
+      },
+      "owned_spell_origin": {
+        "source_paths": [],
+        "missing_compact_authorities": [],
+        "unexpanded_nested_profile_effect_ids": [
+          255926,
+          255925,
+          255924
+        ],
+        "ancestry_bound_reached": false
+      },
+      "ordinary_ai_qualification_separate": true
+    }
+  ]
+}

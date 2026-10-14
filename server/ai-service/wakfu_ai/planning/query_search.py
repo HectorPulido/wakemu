@@ -25,7 +25,7 @@ from .casting_prerequisites import (
 )
 from ..native.native_deadline import check
 from .query_identity import identity as state_identity
-from .feature_values import validate_features
+from .feature_values import DEFAULT_FEATURE_WEIGHTS, validate_features
 
 
 def _fight(graph):
@@ -157,6 +157,22 @@ def _within_target_bound(origin, cell, maximum):
     return distance > (1 << 31) - 1 or distance <= maximum
 
 
+def _cast_recipient_ids(actors):
+    """Keep retained KO identities without treating them as living occupancy.
+
+    A living fighter wins a shared cell. Otherwise every retained fighter is
+    offered independently; native eligibility alone accepts or rejects revival.
+    """
+    result = {}
+    for actor in sorted(actors.values(), key=lambda entry: entry["id"]):
+        result.setdefault(tuple(actor["position"]), []).append(actor["id"])
+    for cell, identities in result.items():
+        living = [identity for identity in identities if actors[identity]["hp"] > 0]
+        if living:
+            result[cell] = living
+    return result
+
+
 def candidates(
     graph, state, repertoire, actor_id, capability_evidence=None, prepare=None
 ):
@@ -179,9 +195,11 @@ def candidates(
     edges_reference = graph.field(fight, "edges")
     origin = tuple(actor["position"])
     occupied = {tuple(a["position"]): a["id"] for a in actors.values() if a["hp"] > 0}
+    recipients = _cast_recipient_ids(actors)
 
     def priority(cell):
-        target = actors.get(occupied.get(tuple(cell)))
+        identities = recipients.get(tuple(cell), ())
+        target = actors.get(identities[0]) if identities else None
         if target is None:
             category, health = 3, 0
         elif target["team"] == actor["team"] and target["hp"] < target["max_hp"]:
@@ -289,8 +307,9 @@ def candidates(
             )
 
         def relevant(cell, roles=roles, summon_hint=summon_hint):
-            target = actors.get(occupied.get(tuple(cell)))
-            if target is None or target["hp"] <= 0:
+            identities = recipients.get(tuple(cell), ())
+            target = actors.get(identities[0]) if identities else None
+            if target is None:
                 return summon_hint
             ally = target["team"] == actor["team"]
             return (
@@ -348,9 +367,12 @@ def candidates(
                     level=spell["level"],
                     target=list(cell),
                 )
-                if tuple(cell) in occupied:
-                    action["targetId"] = occupied[tuple(cell)]
-                yield action
+                identities = recipients.get(tuple(cell), ())
+                if identities:
+                    for target_id in identities:
+                        yield dict(action, targetId=target_id)
+                else:
+                    yield action
 
         cast_streams.append(iter(casts()))
     moves = _movement_candidates(
@@ -888,8 +910,9 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         or not 0 <= registered_summon_value <= 1
     ):
         raise ValueError("Invalid registered summon value")
-    feature_weights = validate_features(
-        policy.get("featureWeights", {}), "feature weights", 1000
+    feature_weights = dict(DEFAULT_FEATURE_WEIGHTS)
+    feature_weights.update(
+        validate_features(policy.get("featureWeights", {}), "feature weights", 1000)
     )
     memory_graph = root_graph or load_graph(store, envelope["root"]["nativeContext"])
     retreat = attacked_this_turn(memory_graph, _fight(memory_graph), actor_id)

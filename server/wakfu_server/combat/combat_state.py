@@ -359,6 +359,9 @@ class Fight:
         actor.turn_count += 1
         if self.native_timeline_round == 0:
             self.native_timeline_round = 1  # First SU.bhP enters round1.
+        from .combat_initial_finite_clock_policy import bind_initial_finite_clocks
+
+        bind_initial_finite_clocks(self)
         self._event(
             "turn_started",
             actor_id=actor.id,

@@ -110,8 +110,17 @@ class NativeOracle:
     def outcome_features(self, runtime):
         """Measure an isolated full runtime and reject any provider mutation."""
         provider = self.outcome_features_provider
+        actor = runtime.fight.current
+        builtin = {}
+        if actor is not None and actor.hp > 0 and not actor.controlled:
+            from wakfu_server.combat_ai_state_progress import progress
+            from wakfu_server.combat_native_spell_casting import catalog
+
+            amount = progress(actor, self.owned_spells(runtime.fight), catalog())
+            if amount:
+                builtin["owned_state_progress"] = amount
         if provider is None:
-            return None
+            return builtin or None
         check()
         live_source = complete_fingerprint(runtime)
         private = deepcopy(runtime)
@@ -134,6 +143,9 @@ class NativeOracle:
         if complete_fingerprint(runtime) != live_source:
             raise ValueError("Native source changed while measuring outcome features")
         checked = validate_features(measurements, "native outcome features", 1e9)
+        if "owned_state_progress" in checked:
+            raise ValueError("Custom provider overrides native owned-state progress")
+        checked.update(builtin)
         check()
         return checked
 

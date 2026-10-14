@@ -253,6 +253,21 @@ class ApiAuthorizationTests(PostgresCase):
         self.assertEqual(self.console.poll(receipt["handle"])["status"], "failed")
         self.assertEqual(self.request("/test/sessions", token=token)[0], 401)
 
+    def test_managed_scheduler_retains_global_only_scope_and_revocation(self):
+        import tempfile
+        from pathlib import Path
+        from wakfu_server.storage.scheduler_credentials import provision
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "scheduler-token"
+            path.write_text("managed-scheduler-test-" + "x" * 48)
+            path.chmod(0o600)
+            provision(self.store, path, bootstrap=True)
+            self.scheduler_token = path.read_text()
+            self.test_scheduler_can_flush_but_cannot_inspect_sessions_or_execute_commands()
+            with self.assertRaisesRegex(ValueError, "revoked"):
+                provision(self.store, path, bootstrap=True)
+
     def test_scheduler_can_flush_but_cannot_inspect_sessions_or_execute_commands(self):
         token = self.scheduler_token
         for path, body in [

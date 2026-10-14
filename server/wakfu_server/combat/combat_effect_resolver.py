@@ -270,6 +270,12 @@ class NativeEffectResolver:
                         | (1 << 46)
                     )
                 )
+                # Fresh actor groups resolve their original-controller route;
+                # a leaf given a chosen PV still follows native Qe.g(PV).
+                or (
+                    bool(selector["mask"] & (1 << 45))
+                    and native_group_route(effect) == "actors"
+                )
                 # QK is fighter-index eligibility, not a relationship selector.
                 # Preserve an explicit chosen PV only for a point AREA|QK leaf;
                 # groups, nonpoint geometry and typed-PV selectors still select.

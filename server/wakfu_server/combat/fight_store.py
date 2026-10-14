@@ -396,7 +396,7 @@ def takeover_participant(
     *,
     previous_generation,
 ):
-    """Fence a reconnected owner onto its existing durable participant row."""
+    """Fence the owner's frozen main and hero memberships onto one lease."""
     if not isinstance(previous_generation, str) or not previous_generation:
         raise ValueError("Invalid previous combat participant generation")
     with store.connection() as db:
@@ -415,16 +415,35 @@ def takeover_participant(
         if row["status"] == "finished" and row["return_acknowledged"]:
             raise ValueError("Finished fight participant already acknowledged return")
         store.lock_character(db, account_id, generation, character_id)
-        if row["session_generation"] == generation:
-            return False
-        if row["session_generation"] != previous_generation:
+        if row["session_generation"] not in (previous_generation, generation):
             raise ValueError("Stale durable combat participant generation")
+        return _takeover_account_memberships(
+            db, fight_id, account_id, generation, previous_generation
+        )
+
+
+def _takeover_account_memberships(
+    db, fight_id, account_id, generation, previous_generation
+):
+    """Keep every frozen hero behind the same validated selected-main lease."""
+    members = db.execute(
+        "SELECT character_id,session_generation FROM combat_fight_participants "
+        "WHERE fight_id=%s AND account_id=%s ORDER BY character_id FOR UPDATE",
+        (fight_id, account_id),
+    ).fetchall()
+    if not members or any(
+        member["session_generation"] not in (previous_generation, generation)
+        for member in members
+    ):
+        raise ValueError("Stale durable account combat participant generation")
+    changed = any(member["session_generation"] != generation for member in members)
+    if changed:
         db.execute(
             "UPDATE combat_fight_participants SET session_generation=%s "
-            "WHERE fight_id=%s AND character_id=%s AND account_id=%s",
-            (generation, fight_id, character_id, account_id),
+            "WHERE fight_id=%s AND account_id=%s AND session_generation=%s",
+            (generation, fight_id, account_id, previous_generation),
         )
-        return True
+    return changed
 
 
 def recover_finished_return(
@@ -526,12 +545,9 @@ def recover_finished_return(
         ).fetchone()
         if existing_exit is not None and existing_exit["reason"] != "return":
             raise ValueError("Settled fight already has a non-return health exit")
-        if row["session_generation"] != generation:
-            db.execute(
-                "UPDATE combat_fight_participants SET session_generation=%s "
-                "WHERE fight_id=%s AND character_id=%s AND account_id=%s",
-                (generation, fight.id, character_id, account_id),
-            )
+        _takeover_account_memberships(
+            db, fight.id, account_id, generation, previous_generation
+        )
         if row["checkpoint_status"] != "ended" or not terminal_snapshot:
             from .fight_checkpoint_store import snapshot
             from psycopg.types.json import Jsonb
@@ -552,7 +568,7 @@ def recover_finished_return(
             )
             if closed.rowcount != 1:
                 raise ValueError("Stale active checkpoint during terminal recovery")
-        from .combat_health import persist as persist_health
+        from .combat_health import persist_owned as persist_health
 
         exit_result = persist_health(
             store,

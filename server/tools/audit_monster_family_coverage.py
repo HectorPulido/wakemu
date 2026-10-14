@@ -84,6 +84,114 @@ def dispatcher_families(path):
     return matches[0]
 
 
+def loop_registered_families(tree, constants):
+    """Resolve lexical integer loop bindings used by actual handler stores."""
+
+    class Registrations(ast.NodeVisitor):
+        def __init__(self):
+            self.bindings = dict(constants)
+            self.families = set()
+
+        def values(self, node):
+            if isinstance(node, ast.Name):
+                value = self.bindings.get(node.id)
+            elif isinstance(node, (ast.Tuple, ast.List, ast.Set)):
+                try:
+                    value = ast.literal_eval(node)
+                except (ValueError, TypeError):
+                    return None
+            elif (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in ("tuple", "list", "set", "frozenset")
+                and len(node.args) == 1
+                and not node.keywords
+            ):
+                return self.values(node.args[0])
+            elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+                left, right = self.values(node.left), self.values(node.right)
+                return left | right if left is not None and right is not None else None
+            else:
+                return None
+            if not isinstance(value, (tuple, list, set, frozenset)):
+                return None
+            if any(type(item) is not int or item <= 0 for item in value):
+                raise ValueError("Malformed static handler family loop")
+            return set(value)
+
+        def visit_Assign(self, node):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id != "handlers":
+                    try:
+                        value = ast.literal_eval(node.value)
+                    except (ValueError, TypeError):
+                        try:
+                            value = self.values(node.value)
+                        except ValueError:
+                            value = None
+                    if value is not None:
+                        self.bindings[target.id] = value
+                    else:
+                        self.bindings.pop(target.id, None)
+            self.generic_visit(node)
+
+        def visit_FunctionDef(self, node):
+            saved = dict(self.bindings)
+            for argument in (
+                *node.args.posonlyargs,
+                *node.args.args,
+                *node.args.kwonlyargs,
+            ):
+                self.bindings.pop(argument.arg, None)
+            for child in node.body:
+                self.visit(child)
+            self.bindings = saved
+
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+        def visit_For(self, node):
+            saved = dict(self.bindings)
+            if isinstance(node.target, ast.Name):
+                registers = any(
+                    isinstance(child, ast.Subscript)
+                    and isinstance(child.ctx, ast.Store)
+                    and isinstance(child.value, ast.Name)
+                    and child.value.id == "handlers"
+                    and isinstance(child.slice, ast.Name)
+                    and child.slice.id == node.target.id
+                    for statement in node.body
+                    for child in ast.walk(statement)
+                )
+                values = self.values(node.iter) if registers else None
+                self.bindings.pop(node.target.id, None)
+                if values is not None:
+                    self.bindings[node.target.id] = values
+            for child in node.body:
+                self.visit(child)
+            self.bindings = saved
+            for child in node.orelse:
+                self.visit(child)
+
+        def visit_Subscript(self, node):
+            if (
+                isinstance(node.ctx, ast.Store)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "handlers"
+                and isinstance(node.slice, ast.Name)
+            ):
+                values = self.bindings.get(node.slice.id, ())
+                if not isinstance(values, (tuple, list, set, frozenset)) or any(
+                    type(value) is not int or value <= 0 for value in values
+                ):
+                    raise ValueError("Malformed static handler family binding")
+                self.families.update(values)
+            self.generic_visit(node)
+
+    visitor = Registrations()
+    visitor.visit(tree)
+    return visitor.families
+
+
 def supported_families(registry, setters):
     """Read actual handler registrations without importing DB-backed modules."""
     constants = {
@@ -135,6 +243,7 @@ def supported_families(registry, setters):
                     )
                 else:
                     raise ValueError("Unrecognized handler registration")
+    families.update(loop_registered_families(tree, constants))
     families.update(dispatcher_families(COMBAT / "combat_effect_dispatch.py"))
     return families
 

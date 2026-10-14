@@ -155,12 +155,13 @@ class AniripsaSummonPassivePipelineTests(unittest.TestCase):
         ):
             with self.subTest(dark=dark, upgraded=upgraded, nature=nature):
                 passives = ((5455,) if nature else ()) + ((7991,) if upgraded else ())
-                # Kill the upgraded normal profile before its native protected
-                # end-turn withdrawal, using a lawful fresh selected build.
+                # Both upgraded profiles can withdraw at their protected turn
+                # boundary. Use a lawful selected damage build so this case
+                # proves an actual KO rather than that separate withdrawal.
                 aptitudes = ((26, 40), (23, 10), (13, 49), (2, 1))
                 fixture = helper.fixture(
                     passives=passives,
-                    caster_aptitudes=aptitudes if upgraded and not dark else (),
+                    caster_aptitudes=aptitudes if upgraded else (),
                 )
                 if dark:
                     fixture = helper.adopt(fixture, helper.cast(fixture, 7977).fight)

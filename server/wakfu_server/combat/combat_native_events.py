@@ -161,6 +161,26 @@ def validate_group_registration_flags(
     ):
         raise ValueError("Explicit native group flags/combat context required")
     unknown = set(flags) - {1, 3, 5, 9, 14, 15, 16, 17, 24, 26}
+    if 4 in unknown and effect is not None and reference is not None:
+        # eVl.rwB is ZONE_EFFECT: eXt/eWx/fat/fau consume it for damage
+        # mastery/event2215. eYg/eZR do not consume it during registration.
+        # Accept only exact native cell-group metadata; damage consumers and
+        # every other unknown flag retain their own validation contracts.
+        from collections.abc import Mapping
+        from .combat_effect_groups import NATIVE_CELL_GROUP_FAMILIES
+
+        if isinstance(effect, Mapping):
+            native_flags = effect.get("native_effect_flags")
+            if (
+                type(effect.get("effect_class")) is int
+                and effect["effect_class"] in NATIVE_CELL_GROUP_FAMILIES
+                and type(reference) is int
+                and reference > 0
+                and isinstance(native_flags, (list, tuple, set, frozenset))
+                and all(type(flag) is int for flag in native_flags)
+                and set(native_flags) == set(flags)
+            ):
+                unknown.remove(4)
     if 8 in unknown and effect is not None and reference is not None:
         if set(effect.get("native_effect_flags", ())) != set(flags):
             raise ValueError("Native group ordering flags differ from definition")
@@ -180,6 +200,23 @@ def validate_group_registration_flags(
             and set(effect.get("native_effect_flags", ())) == set(flags)
         ):
             unknown.remove(22)
+    if 29 in unknown and effect is not None and reference is not None:
+        # eVl.rwZ labels LIFE_STEAL_HEAL_EFFECT. Native eYy/865 and its
+        # eZR lifecycle do not read it; the two-child value-transfer runner
+        # owns the actual damage callback and life-steal calculation.
+        # Retain the source flag, and do not extend this proof to other groups.
+        children = effect.get("children")
+        if (
+            type(effect.get("effect_class")) is int
+            and effect["effect_class"] == 865
+            and type(reference) is int
+            and reference > 0
+            and isinstance(children, (list, tuple))
+            and len(children) == 2
+            and all(type(child) is int and child > 0 for child in children)
+            and set(effect.get("native_effect_flags", ())) == set(flags)
+        ):
+            unknown.remove(29)
     if unknown:
         raise ValueError(f"Unaudited native group execution flags: {sorted(unknown)}")
     # eYg.bcd returns true unconditionally; no active-phase predicate is

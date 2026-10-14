@@ -96,6 +96,49 @@ class NativeTimingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             native_state_timeline(fight, 22)
 
+    def off_play_clock_fixture(self):
+        from wakfu_server.combat_state import Actor, Fight
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+        )
+
+        first = Actor(11, 0, (0, 0, 0), 100, 6, 3, 30, 1, 3, True)
+        clock = Actor(22, 1, (1, 0, 0), 100, 6, 3, 20, 1)
+        survivor = Actor(33, 1, (2, 0, 0), 100, 6, 3, 10, 1)
+        fight = Fight(
+            77,
+            [first, clock, survivor],
+            {first.position, clock.position, survivor.position},
+            {0: {first.position}, 1: {clock.position, survivor.position}},
+        )
+        initialize_global_pv_collections(fight, tuple(fight.actors))
+        fight.ready(3)
+        return fight
+
+    def test_actual_registered_off_play_clock_uses_native_absent_index(self):
+        fight = self.off_play_clock_fixture()
+        fight.apply_effect_damage(11, 22, 100)
+        self.assertEqual(fight.phase, "active")
+        self.assertNotIn(22, fight.order)
+        timeline = native_state_timeline(fight, 22)
+        self.assertEqual(timeline.clock_actor_index, -1)
+        self.assertEqual(timeline.current_actor_id, fight.current.id)
+        self.assertEqual(timeline.current_actor_index, fight.turn_index)
+
+    def test_unattested_zero_hp_and_forged_off_play_clock_still_reject(self):
+        from wakfu_server.combat_global_pv_collections import set_global_fighter_status
+
+        fight = self.off_play_clock_fixture()
+        fight.actors[22].hp = 0
+        fight.order.remove(22)
+        with self.assertRaisesRegex(ValueError, "Missing state clock actor"):
+            native_state_timeline(fight, 22)
+        set_global_fighter_status(fight, 22, "OFF_PLAY")
+        with self.assertRaisesRegex(ValueError, "corpse registration"):
+            native_state_timeline(fight, 22)
+        with self.assertRaisesRegex(ValueError, "Missing state clock actor"):
+            native_state_timeline(fight, 999)
+
     def test_mode_zero_owned_stat_without_timer_and_unknown_rejected(self):
         provider = NativeEffectTimingProvider({})
         context = provider.stat(

@@ -28,6 +28,23 @@ class PreparationScheduler:
         if not any(work.scene == scene for work in self.pending):
             self.pending.append(SceneWork(scene))
 
+    def prioritize_scenes(self, scenes):
+        """Promote valid replacement placements without discarding resumptions."""
+        selected = []
+        for scene in scenes:
+            if any(work.scene == scene for work in selected):
+                continue
+            existing = next(
+                (work for work in self.pending if work.scene == scene), None
+            )
+            selected.append(existing if existing is not None else SceneWork(scene))
+        self.pending = deque(
+            work
+            for work in self.pending
+            if not any(chosen.scene == work.scene for chosen in selected)
+        )
+        self.pending.extendleft(reversed(selected))
+
     def prioritize(
         self,
         preparations,

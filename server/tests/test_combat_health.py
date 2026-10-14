@@ -348,13 +348,54 @@ class FightExitHealthTests(PostgresCase):
                     1,
                 )
 
-    def test_defeat_persists_zero_hp_without_implicit_regeneration_or_rewards(self):
+    def test_active_abort_keeps_zero_hp_and_does_not_apply_finished_recovery(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store, account, character, generation, fight = self.state(directory)
+            fight.phase = "active"
+            fight.winner = None
+            fight.actors[character["id"]].hp = 0
+            result = persist(
+                store, account, generation, character, fight, reason="abort"
+            )
+            self.assertEqual((result["character"]["hp"], result["coefficient"]), (0, 0))
+            self.assertTrue(result["character"]["health_dead"])
+            reopened = health_store.initialize(
+                store, account, generation, character["id"], coefficient=1
+            )
+            self.assertEqual(reopened["hp"], 0)
+
+    def test_finished_recovery_receipt_does_not_reset_later_world_healing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store, account, character, generation, fight = self.state(directory)
+            fight.actors[character["id"]].hp = 0
+            fight.winner = 1
+            result = persist(store, account, generation, character, fight)
+            self.assertEqual(result["character"]["hp"], 1)
+            with store.connection() as db:
+                current = store.character(account, character["id"], db)
+                health_policy.apply(db, current, 3)
+            again = persist(store, account, generation, character, fight)
+            self.assertFalse(again["applied"])
+            self.assertEqual(again["character"]["hp"], 3)
+            self.assertEqual(fight.actors[character["id"]].hp, 0)
+
+    def test_finished_defeat_return_recovers_one_hp_with_regeneration_and_no_rewards(
+        self,
+    ):
         with tempfile.TemporaryDirectory() as directory:
             s, a, c, g, f = self.state(directory)
             f.actors[c["id"]].hp = 0
             f.winner = 1
             result = persist(s, a, g, c, f)
-            self.assertEqual((result["character"]["hp"], result["coefficient"]), (0, 0))
+            self.assertEqual((result["character"]["hp"], result["coefficient"]), (1, 1))
+            self.assertFalse(result["character"]["health_dead"])
+            self.assertEqual(
+                result["character"]["hp_damage"], result["character"]["max_hp"] - 1
+            )
+            self.assertEqual(f.actors[c["id"]].hp, 0)
+            self.assertEqual(
+                (result["character"]["xp"], result["character"]["kamas"]), (c["xp"], 0)
+            )
             with s.connection() as db:
                 exit_row = db.execute(
                     "SELECT reason,return_acknowledged_at FROM fight_health_exits "
@@ -372,7 +413,8 @@ class FightExitHealthTests(PostgresCase):
                     (g, f.id, c["id"]),
                 )
             reopened = health_store.initialize(s, a, g, c["id"], coefficient=1)
-            self.assertEqual(reopened["hp"], 0)
+            self.assertEqual(reopened["hp"], 1)
+            self.assertFalse(reopened["health_dead"])
             replacement = s.begin_session(a)
             s.select_character(a, replacement, c["id"])
             from wakfu_server.fight_store import takeover_participant
@@ -387,8 +429,9 @@ class FightExitHealthTests(PostgresCase):
                     previous_generation=g,
                 )
             s.clock = lambda: 1005
-            current = health_store.tick(s, a, replacement, c["id"], 0)
-            self.assertEqual(current["hp"], 0)
+            current = health_store.tick(s, a, replacement, c["id"], reopened["hp"])
+            self.assertEqual(current["hp"], 2)
+            self.assertFalse(current["health_dead"])
             self.assertEqual((current["xp"], current["kamas"]), (c["xp"], 0))
             with s.connection() as db:
                 self.assertEqual(

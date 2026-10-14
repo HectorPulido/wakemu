@@ -38,3 +38,19 @@ def breed_in_symbiot(authority, reference):
     return any(
         entry is not None and entry.profile_id == reference for entry in roster.slots
     )
+
+
+def has_captured_summon(authority):
+    """eIF HasSummon: any descriptor in eHP.drI/Qn(0..9), even unavailable.
+
+    This is the owned captured roster, not active summons or the selected slot.
+    A known non-eHP is false; unavailable eHP component authority stays unknown.
+    """
+    if authority is None or authority.native_is_ehp is False:
+        return False
+    if authority.native_is_ehp is not True:
+        raise ValueError("Missing native eIF selected eHP type")
+    roster = authority.native_captured_roster
+    if not isinstance(roster, OwnedCapturedRoster):
+        raise ValueError("Missing actual owned eHU component for HasSummon")
+    return any(entry is not None for entry in roster.slots)

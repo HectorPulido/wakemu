@@ -360,3 +360,83 @@ class GlobalTaskTests(PostgresCase):
             servers[0].shutdown()
             servers[0].server_close()
             thread.join(2)
+
+
+class GlobalTaskCacheTests(unittest.TestCase):
+    def test_expiration_and_capacity_evict_only_old_completed_occurrences(self):
+        now = [0]
+        calls = []
+        events = []
+        tasks = GlobalTasks(
+            {"positions_flush": lambda: calls.append(1)},
+            clock=lambda: now[0],
+            retention_seconds=5,
+            max_cached_occurrences=2,
+            observer=events.append,
+        )
+        for suffix in ("a", "b", "c"):
+            tasks.run("positions_flush", "positions_flush:" + suffix)
+        self.assertEqual(2, len(tasks.completed))
+        self.assertEqual(2, len(tasks.announced))
+        self.assertNotIn(("positions_flush", "positions_flush:a"), tasks.completed)
+        self.assertTrue(
+            tasks.run("positions_flush", "positions_flush:c")["deduplicated"]
+        )
+        now[0] = 5
+        self.assertFalse(
+            tasks.run("positions_flush", "positions_flush:c")["deduplicated"]
+        )
+        self.assertEqual(4, len(calls))
+        self.assertEqual(1, len(tasks.completed))
+        self.assertEqual(1, len(tasks.announced))
+        self.assertEqual({}, tasks.active_announced)
+
+    def test_running_occurrence_survives_expiration_and_capacity_pressure(self):
+        now = [0]
+        entered, release = threading.Event(), threading.Event()
+        calls, events = [], []
+
+        def callback():
+            calls.append(1)
+            if threading.current_thread().name.startswith("blocked"):
+                entered.set()
+                self.assertTrue(release.wait(3))
+
+        tasks = GlobalTasks(
+            {"positions_flush": callback},
+            clock=lambda: now[0],
+            retention_seconds=1,
+            max_cached_occurrences=1,
+            observer=events.append,
+        )
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="blocked") as pool:
+            first = pool.submit(tasks.run, "positions_flush", "positions_flush:active")
+            self.assertTrue(entered.wait(2))
+            now[0] = 10
+            for suffix in ("a", "b", "c"):
+                tasks.run("positions_flush", "positions_flush:" + suffix)
+            second = pool.submit(tasks.run, "positions_flush", "positions_flush:active")
+            release.set()
+            results = [first.result(2), second.result(2)]
+        self.assertEqual(4, len(calls))
+        self.assertEqual(1, sum(r["deduplicated"] for r in results))
+        self.assertEqual(
+            ["started", "completed"],
+            [
+                e["status"]
+                for e in events
+                if e["request_id"] == "positions_flush:active"
+            ],
+        )
+        self.assertFalse(tasks.running)
+        self.assertFalse(tasks.active_announced)
+        self.assertLessEqual(len(tasks.completed), 1)
+        self.assertLessEqual(len(tasks.announced), 1)
+
+    def test_invalid_cache_settings_are_rejected(self):
+        for retention in (0, -1, True, float("inf"), float("nan")):
+            with self.assertRaises(ValueError):
+                GlobalTasks({}, retention_seconds=retention)
+        for capacity in (0, -1, True, 1.5):
+            with self.assertRaises(ValueError):
+                GlobalTasks({}, max_cached_occurrences=capacity)

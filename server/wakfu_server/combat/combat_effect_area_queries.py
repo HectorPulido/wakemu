@@ -5,6 +5,7 @@ Registered faV geometry and captured affiliations remain explicit authority.
 """
 from .combat_effect_area_geometry import contains_area_cell, refresh_area_geometry
 from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
+from .combat_area_affiliation import area_affiliation
 
 
 def _rows(fight):
@@ -180,8 +181,8 @@ def team_area_count(fight, *, source_id, center, area_type, minimum, maximum):
     rows = _rows(fight)
     by_uid = {r["uid"]: r for r in rows}
     source_row = by_uid.get(source_id)
-    if source_row is not None and "native_fight_affiliation" in source_row:
-        source_affiliation = source_row["native_fight_affiliation"]
+    if source_row is not None:
+        source_affiliation = area_affiliation(fight, source_row)
     else:
         owner = source_row["owner_id"] if source_row is not None else source_id
         source = getattr(fight, "actors", {}).get(owner)
@@ -194,15 +195,7 @@ def team_area_count(fight, *, source_id, center, area_type, minimum, maximum):
     for row in rows:
         if row["uid"] == source_id or area_type != row.get("native_type_id", 1):
             continue
-        if "native_fight_affiliation" in row:
-            affiliation = row["native_fight_affiliation"]
-        else:
-            row_owner = getattr(fight, "actors", {}).get(row["owner_id"])
-            if row_owner is None:
-                raise ValueError("Missing native registered area team")
-            affiliation = getattr(
-                row_owner, "native_fight_affiliation", getattr(row_owner, "team", None)
-            )
+        affiliation = area_affiliation(fight, row)
         if type(affiliation) is not int or type(source_affiliation) is not int:
             raise ValueError("Missing native registered area bcM")
         if affiliation != source_affiliation:
@@ -315,12 +308,7 @@ def actor_on_specific_area(
         if ownership == "own" and area_owner != selected_owner:
             continue
         if ownership == "team":
-            owner = fight.actors.get(row.get("owner_id"))
-            if owner is None:
-                raise ValueError("Missing native area affiliation")
-            if getattr(owner, "native_fight_affiliation", owner.team) != getattr(
-                actor, "native_fight_affiliation", selected_affiliation
-            ):
+            if area_affiliation(fight, row) != selected_affiliation:
                 continue
         radius = actor.physical_radius
         if type(radius) is not int or radius != 0:

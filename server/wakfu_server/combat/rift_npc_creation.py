@@ -9,7 +9,37 @@ from .combat_monster_world import spawn_monster
 from .combat_multiplayer_wire import added
 
 
-def creation_packets(monster, fight_id, *, obstacle_id, group_id, direction=3):
+def initialize_native_wave_actors(fight, monsters):
+    """Initialize only fresh reinforcements through ordinary NPC producers.
+
+    The caller owns an unpublished preview. Existing actors' innate states and
+    controller changes must never be initialized again at a wave boundary.
+    """
+    from .combat_npc_ai_initialization import initial_ai_actors
+    from .combat_npc_initialization import initial_plans, initialize_ordinary_npcs
+
+    sources = {monster["id"]: monster for monster in monsters}
+    ai_actors = initial_ai_actors(fight, sources)
+    for identity in ai_actors:
+        fight.actors[identity].native_controlled_by_ai = True
+    fight.native_npc_ai_actors = (
+        frozenset(getattr(fight, "native_npc_ai_actors", ())) | ai_actors
+    )
+    plans = initial_plans(fight, sources)
+    if plans:
+        previous = dict(getattr(fight, "native_npc_initialization_receipts", {}))
+        if set(previous) & set(plans):
+            raise ValueError("Rift NPC initial states were already initialized")
+        initialize_ordinary_npcs(fight, sources, plans)
+        fight.native_npc_initialization_receipts = {
+            **previous,
+            **fight.native_npc_initialization_receipts,
+        }
+
+
+def creation_packets(
+    monster, fight_id, *, obstacle_id, group_id, direction=3, actor=None, fight=None
+):
     """Return ordered appearance and fight admission for an owned ordinary NPC.
 
     The caller registers the actor and its obstacle in the same authoritative
@@ -23,13 +53,34 @@ def creation_packets(monster, fight_id, *, obstacle_id, group_id, direction=3):
         direction=direction,
         obstacle_id=obstacle_id,
     )
+    effects = actor_effects()
+    if actor is not None:
+        from .combat_actor import actual_monster_actor_stats
+        from .combat_remote_effects import active_actor_effects
+
+        if (
+            fight is None
+            or fight.id != fight_id
+            or fight.actors.get(actor.id) is not actor
+        ):
+            raise ValueError("Rift creation snapshot requires its owned actor")
+        stats = actual_monster_actor_stats(
+            monster,
+            actor,
+            fight_id,
+            wp_current=actor.effect_stats[4],
+            wp_maximum=actor.effect_maxima[4],
+            direction=direction,
+            fight=fight,
+        )
+        effects = active_actor_effects(fight, actor.id)
     admission = added(
         fight_id,
         monster["id"],
         actor_type=0,
         team=monster["team"],
         stats=stats,
-        effects=actor_effects(),
+        effects=effects,
         controller=None,
     )
     return ((12608, appearance), admission)
@@ -149,17 +200,21 @@ def install_native_wave(fight, monsters, *, initialize_actor, catalog=None):
         fight.order.append(actor.id)
         if base is not None:
             base.append(actor.id)
+    initialize_native_wave_actors(fight, monsters)
     packets, creations = [], {}
     for actor, monster in zip(actors, monsters):
+        initialization_packets = initialize_actor(fight, actor, monster)
         actor_packets = creation_packets(
             monster,
             fight.id,
             obstacle_id=actor.native_obstacle_id,
             group_id=state.get("world_group_id", fight.id),
+            actor=actor,
+            fight=fight,
         )
         creations[actor.id] = actor_packets
         packets.extend(actor_packets)
-        packets.extend(initialize_actor(fight, actor, monster))
+        packets.extend(initialization_packets)
     acknowledge_wave(
         fight,
         [a.id for a in actors],

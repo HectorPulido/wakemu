@@ -171,10 +171,11 @@ class NativeAreaEventRuntime:
                 raise ValueError("Missing native faP null-owner constructor")
         elif not environment and row["owner_id"] not in self.fight.actors:
             raise ValueError("Missing registered area owner")
-        self.dispatcher.native_retention.synchronize()
-        before = set(self.fight.native_retained_records)
+        previous_executing = row.get("executing", False)
         row["executing"] = True
         try:
+            self.dispatcher.native_retention.synchronize()
+            before = set(self.fight.native_retained_records)
             for reference in definition["effect_ids"]:
                 self.dispatcher.execute(
                     EffectInvocation(
@@ -210,7 +211,10 @@ class NativeAreaEventRuntime:
                     )
                 )
         finally:
-            row["executing"] = False
+            row["executing"] = previous_executing
+            from .combat_state_managers import prune_retired_state_managers
+
+            prune_retired_state_managers(self.fight)
         self.dispatcher.native_retention.synchronize()
         new = set(self.fight.native_retained_records) - before
         children = row.setdefault("child_effect_uids", {})

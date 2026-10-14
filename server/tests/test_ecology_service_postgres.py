@@ -25,7 +25,7 @@ class EcologyServicePostgresTests(PostgresCase):
         }
         repository.save([proposal("plants", payload, "boot")], [])
         durable_id = repository.pending()[0]["id"]
-        for _ in range(5):
+        for _ in range(3):
             repository.acknowledge([{"id": durable_id, "status": "retry"}])
         with self.store.connection() as db:
             db.execute(
@@ -47,7 +47,7 @@ class EcologyServicePostgresTests(PostgresCase):
             ordinary = db.execute(
                 "SELECT count(*) AS count FROM ecology_service_proposals WHERE domain='weather'"
             ).fetchone()["count"]
-        self.assertEqual(saved["attempts"], 5)
+        self.assertEqual(saved["attempts"], 3)
         self.assertEqual(saved["last_error_code"], "retry_exhausted")
         self.assertLess(ordinary, 4400)
         self.assertEqual(repository.pending_count(), 0)
@@ -127,7 +127,7 @@ class EcologyServicePostgresTests(PostgresCase):
         }
         repository.save([proposal("mobs", payload, "boot")], [])
         durable_id = repository.pending()[0]["id"]
-        for attempt in range(1, 6):
+        for attempt in range(1, 4):
             repository.acknowledge([{"id": durable_id, "status": "stale"}])
             if attempt == 1:
                 repository.save(
@@ -156,7 +156,7 @@ class EcologyServicePostgresTests(PostgresCase):
             self.assertEqual(saved["payload"]["group_draw"], 0.3)
             self.assertEqual(saved["payload"]["child"]["id"], -900)
             self.assertEqual(saved["payload"]["child"]["ref"], 11)
-            if attempt < 5:
+            if attempt < 3:
                 self.assertIsNone(saved["delivered_at"])
                 self.assertEqual(
                     saved["payload"]["expected_members"], fresh["expected_members"]
@@ -205,9 +205,9 @@ class EcologyServicePostgresTests(PostgresCase):
         self.assertEqual(counts["total"], 500)
         self.assertEqual(counts["groups"], 100)
 
-    def test_default_five_failures_exhaust_once_and_replanning_cannot_resurrect(self):
+    def test_default_three_failures_exhaust_once_and_replanning_cannot_resurrect(self):
         repository = service.Repository(self.store)
-        self.assertEqual(repository.max_attempts, 5)
+        self.assertEqual(repository.max_attempts, 3)
         row = proposal(
             "mobs",
             {
@@ -220,9 +220,9 @@ class EcologyServicePostgresTests(PostgresCase):
             "boot",
         )
         repository.save([row], [])
-        for attempt in range(5):
+        for attempt in range(3):
             repository.acknowledge([{"id": row["id"], "status": "retry"}])
-            self.assertEqual(repository.pending_count(), int(attempt < 4))
+            self.assertEqual(repository.pending_count(), int(attempt < 2))
         repository.save([row], [])
         self.assertEqual(repository.pending_count(), 0)
         with self.store.connection() as db:
@@ -230,7 +230,7 @@ class EcologyServicePostgresTests(PostgresCase):
                 "SELECT attempts,last_error_code FROM ecology_service_proposals WHERE id=%s",
                 (row["id"],),
             ).fetchone()
-        self.assertEqual(saved["attempts"], 5)
+        self.assertEqual(saved["attempts"], 3)
         self.assertEqual(saved["last_error_code"], "retry_exhausted")
 
     def test_pending_flora_growth_does_not_consume_reserved_monster_birth_capacity(

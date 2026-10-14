@@ -78,5 +78,27 @@ class EcologyClient:
                 not in ("applied", "duplicate", "stale", "retry", "deferred")
             ):
                 raise ValueError("Invalid ecology acknowledgement")
+            failures = row.get("resource_failures", [])
+            if (
+                not isinstance(failures, list)
+                or len(failures) > 64
+                or any(
+                    type(uid) is not int or not 0 < uid < 2**63 for uid in failures
+                )
+                or len(set(failures)) != len(failures)
+            ):
+                raise ValueError("Invalid ecology resource failure acknowledgement")
+            if failures:
+                source = next(
+                    proposal for proposal in proposals if proposal["id"] == row["id"]
+                )
+                entries = source["payload"].get("resources", [source["payload"]])
+                expected_uids = {
+                    entry["expected"]["resource_uid"]
+                    for entry in entries
+                    if entry.get("kind") == "resource_growth"
+                }
+                if not set(failures) <= expected_uids:
+                    raise ValueError("Unknown ecology resource failure acknowledgement")
             seen.add(row["id"])
         return rows

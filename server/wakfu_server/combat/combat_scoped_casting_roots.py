@@ -10,12 +10,21 @@ def morph_casting_roots():
     source = protocol_catalog.load(
         DATA_ROOT / "native-class-morph933-casting-roots.json"
     )
+    from .combat_morph_spellbook import native_morph_profiles
+
+    references = sorted(
+        {
+            action["reference"]
+            for profile in native_morph_profiles().values()
+            for action in profile["abilities"]
+        }
+    )
     if (
         source.get("schema") != "native-class-casting-roots-v1"
         or source.get("class_dependency_domain") != "morph933"
         or source.get("class_id") != 11
         or source.get("profile_id") != 5900
-        or source.get("spell_references") != [8588, 8589, 8590]
+        or source.get("spell_references") != references
     ):
         raise ValueError("Unattested original class morph casting roots")
     from wakfu_server.combat_morph_dependencies import zero_catalog

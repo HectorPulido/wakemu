@@ -43,6 +43,37 @@ def actor_payload(fight, actor):
 
 
 class SpectatorSnapshotTests(unittest.TestCase):
+    def test_ordinary_off_play_corpse_remains_in_snapshot_roster(self):
+        from wakfu_server.fight_checkpoint_store import snapshot
+        from wakfu_server.combat_global_pv_collections import (
+            initialize_global_pv_collections,
+            global_fighter_guards,
+        )
+
+        fight, shared = shared_fixture()
+        survivor = Actor(-201, 1, (2, 0, 0), 20, 4, 2, 9, 1)
+        fight.actors[survivor.id] = survivor
+        fight.walkable.add(survivor.position)
+        fight.placement[1].add(survivor.position)
+        initialize_global_pv_collections(fight, tuple(fight.actors))
+        fight.ready(1)
+        fight.apply_damage(5, -200, 20)
+        self.assertEqual(fight.phase, "active")
+        self.assertEqual(
+            global_fighter_guards(fight, -200),
+            dict(baF=False, baG=True, baK=False),
+        )
+        before = copy.deepcopy(snapshot(fight))
+        packets = current_snapshot(
+            fight, shared, actor_payload=actor_payload, deadline_ms=123456
+        )
+        decoded = decode_spectator_bootstrap(packets[0][1])
+        self.assertEqual(
+            {row["actor_id"] for row in decoded["participants"]},
+            {5, -200, -201},
+        )
+        self.assertEqual(snapshot(fight), before)
+
     def test_public_world_scope_is_distinct_from_native_arena_identity(self):
         fight, shared = shared_fixture()
         shared.instance_id = 0

@@ -10,7 +10,6 @@ import secrets
 ROOT = Path(__file__).resolve().parents[1]
 SECRET_NAMES = (
     "postgres-password",
-    "scheduler-token",
     "ecology-token",
     "admin-control-token",
 )
@@ -34,12 +33,7 @@ def prepare(runtime, database):
             raise ValueError("Runtime directories must not be symbolic links")
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     created = []
-    for name in (
-        "postgres-password",
-        "scheduler-token",
-        "ecology-token",
-        "admin-control-token",
-    ):
+    for name in SECRET_NAMES:
         path = database / "secrets" / name
         if path.is_symlink():
             raise ValueError("Secret files must not be symbolic links")

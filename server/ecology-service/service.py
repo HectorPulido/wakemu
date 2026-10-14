@@ -34,6 +34,8 @@ from wakfu_server.ecology.protocol import (
 from wakfu_server.ecology.proposal_identity import identity as _proposal_identity
 
 MAX_PENDING = 4096
+RESERVED_INTERACTIVE = 32
+RESERVED_GROWTH = 16
 SOFT_PENDING = 512
 DRAIN_BUDGET_SECONDS = 0.2
 MAX_DRAIN_BATCHES = 16
@@ -75,13 +77,35 @@ def bulk_entry_key(entry):
 def bulk_failure_identity(domain, epoch, entry):
     identity = [epoch, domain, bulk_entry_key(entry)]
     if entry.get("kind") == "resource_growth":
-        identity.append(entry["expected"].get("resource_reference"))
+        expected = entry["expected"]
+        # A resource incarnation survives World restarts and batch reshuffling.
+        identity = [
+            domain,
+            "resource_growth",
+            {
+                key: expected.get(key)
+                for key in (
+                    "resource_uid",
+                    "map_id",
+                    "instance_id",
+                    "resource_reference",
+                    "creation_time",
+                    "stage",
+                )
+            },
+        ]
     return hashlib.sha256(b"bulk_failure_guard:" + json_bytes(identity)).hexdigest()
 
 
 def filter_failed_bulk(row, exhausted):
     specification = BULK_FIELDS.get(row["payload"].get("kind"))
     if specification is None:
+        if (
+            row["payload"].get("kind") == "resource_growth"
+            and bulk_failure_identity(row["domain"], row["world_epoch"], row["payload"])
+            in exhausted
+        ):
+            return None
         return row
     field, _ = specification
     entries = [
@@ -281,7 +305,7 @@ class Repository:
         self.store = store
         self.owner = None
         self.max_attempts = (
-            int(os.environ.get("WAKFU_ECOLOGY_MAX_ATTEMPTS", "5"))
+            int(os.environ.get("WAKFU_ECOLOGY_MAX_ATTEMPTS", "3"))
             if max_attempts is None
             else max_attempts
         )
@@ -393,8 +417,13 @@ class Repository:
             guard_ids = [
                 bulk_failure_identity(row["domain"], row["world_epoch"], entry)
                 for row in list(pending) + proposals
-                if row["payload"].get("kind") in BULK_FIELDS
-                for entry in row["payload"][BULK_FIELDS[row["payload"]["kind"]][0]]
+                for entry in (
+                    row["payload"][BULK_FIELDS[row["payload"]["kind"]][0]]
+                    if row["payload"].get("kind") in BULK_FIELDS
+                    else [row["payload"]]
+                    if row["payload"].get("kind") == "resource_growth"
+                    else []
+                )
             ]
             exhausted = set()
             if guard_ids:
@@ -459,9 +488,19 @@ class Repository:
                         statistics["deduplicated"] += 1
                         continue
                     superseded.append(previous[0]["id"])
-                elif len(slots) >= MAX_PENDING:
-                    statistics["capacity_deferred"] += 1
-                    continue
+                else:
+                    kind = row["payload"].get("kind")
+                    capacity = (
+                        MAX_PENDING
+                        if kind in ("planting_begin", "planting_rejected")
+                        else MAX_PENDING - RESERVED_INTERACTIVE
+                        if kind == "resource_growth_bulk"
+                        or (kind == "resource_growth" and row["payload"].get("member"))
+                        else MAX_PENDING - RESERVED_INTERACTIVE - RESERVED_GROWTH
+                    )
+                    if len(slots) >= capacity:
+                        statistics["capacity_deferred"] += 1
+                        continue
                 if decision_id is not None:
                     row["id"] = decision_id
                     history = db.execute(
@@ -623,6 +662,47 @@ class Repository:
     def acknowledge(self, results):
         with self.connection() as db:
             for row in results:
+                failures = row.get("resource_failures", [])
+                if failures:
+                    source = db.execute(
+                        "SELECT domain,payload,world_epoch FROM ecology_service_proposals "
+                        "WHERE id=%s AND delivered_at IS NULL FOR UPDATE",
+                        (row["id"],),
+                    ).fetchone()
+                    if source is not None:
+                        entries = source["payload"].get(
+                            "resources", [source["payload"]]
+                        )
+                        by_uid = {
+                            entry["expected"]["resource_uid"]: entry
+                            for entry in entries
+                            if entry.get("kind") == "resource_growth"
+                        }
+                        for uid in set(failures):
+                            entry = by_uid.get(uid)
+                            if entry is None:
+                                raise ValueError("Unknown failed ecology resource")
+                            guard_id = bulk_failure_identity(
+                                source["domain"], source["world_epoch"], entry
+                            )
+                            db.execute(
+                                "INSERT INTO ecology_service_proposals(id,domain,payload,world_epoch,attempts,"
+                                "delivered_at,last_error_code) VALUES(%s,%s,%s,%s,1,CURRENT_TIMESTAMP,'bulk_entry_retry') "
+                                "ON CONFLICT(id) DO UPDATE SET attempts=LEAST(%s,ecology_service_proposals.attempts+1),"
+                                "delivered_at=CURRENT_TIMESTAMP,last_error_code='bulk_entry_retry'",
+                                (
+                                    guard_id,
+                                    source["domain"],
+                                    Jsonb(
+                                        dict(
+                                            kind="bulk_failure_guard",
+                                            entry_key=bulk_entry_key(entry),
+                                        )
+                                    ),
+                                    source["world_epoch"],
+                                    self.max_attempts,
+                                ),
+                            )
                 # A normal bulk pass is not a failed delivery. Native timers,
                 # life plans and seed rows decide whether any operation remains due.
                 if row["status"] in ("deferred", "applied", "duplicate", "stale"):

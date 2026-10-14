@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 import struct
 import unittest
+from unittest.mock import Mock, patch
 
 from wakfu_server import dungeon_stele
 from wakfu_server.wire import proto_fields
@@ -105,6 +106,49 @@ class DungeonSteleTests(unittest.TestCase):
                 for r in sorted(config["difficulties"], key=lambda r: r["id"])
             ],
         )
+
+
+class DungeonSteleUnscaledEncounterTests(unittest.TestCase):
+    def freeze(self, *, scaling=None, selected=None, frozen=None):
+        db = Mock()
+        # Relation, active run, prior stele snapshot, bound room, selection,
+        # frozen difficulty, optional unscaled-run selection check.
+        rows = [
+            {"relation": "dungeon_stele_encounters"},
+            {"status": "active", "current_room": 1, "rooms": [1]},
+            {"relation": "dungeon_stele_encounters"},
+            None,
+            {"status": "active", "room_order": 1},
+            frozen,
+            selected,
+        ]
+        db.execute.side_effect = [Mock(fetchone=Mock(return_value=row)) for row in rows]
+        with patch(
+            "wakfu_server.dungeon_difficulty.selection", return_value={"revision": 1}
+        ), patch(
+            "wakfu_server.dungeon_difficulty.encounter_scaling", return_value=scaling
+        ):
+            result = dungeon_stele.freeze_encounter(db, 123, 456)
+        return result, db
+
+    def test_unscaled_room_without_steles_has_no_reward_receipt(self):
+        result, db = self.freeze()
+        self.assertIsNone(result)
+        self.assertFalse(
+            any("INSERT" in call.args[0] for call in db.execute.call_args_list)
+        )
+
+    def test_missing_stasis_receipt_still_rejects_scaled_room(self):
+        with self.assertRaisesRegex(ValueError, "Stele profile differs"):
+            self.freeze(scaling={"selection_revision": 1})
+
+    def test_unscaled_room_cannot_publish_previously_selected_steles(self):
+        with self.assertRaisesRegex(ValueError, "Stele profile differs"):
+            self.freeze(selected={"exists": 1})
+
+    def test_frozen_revision_mismatch_still_rejects(self):
+        with self.assertRaisesRegex(ValueError, "Stele profile differs"):
+            self.freeze(frozen={"snapshot": {"selection_revision": 2}})
 
 
 if __name__ == "__main__":

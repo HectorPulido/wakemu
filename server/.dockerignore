@@ -34,6 +34,7 @@ wakfu_server/__pycache__/
 !tools/performance_report.py
 !tools/prepare_geometry_artifacts.py
 !tools/prepare_los_artifacts.py
+!tools/retire_cron.py
 !shop-service/
 !shop-service/Dockerfile
 !shop-service/service.py
