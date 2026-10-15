@@ -1594,7 +1594,12 @@ def run_case(
             == "native_initial_subscription_prerequisite_v1"
         ):
             target_id = 7
-        targets = [(enemy, target_id), (source, -200)]
+        # Scene preparation may relocate actors before native snapshots exist.
+        # Actor-directed casts must use their actual registered cells.
+        targets = [
+            (fight.actors[target_id].position, target_id),
+            (fight.actors[-200].position, -200),
+        ]
         from external_owned_area_preparation import DISCOVERY, actual_external_targets
 
         if isinstance(scenario, dict) and scenario.get("discovery") == DISCOVERY:
@@ -1866,6 +1871,7 @@ def native_witness_diagnostic(error, target, identity, enemy):
         "native_resource_diagnostic",
         "cast_diagnostics",
         "native_target_diagnostic",
+        "native_displacement_actor",
     )
     details = {
         name: getattr(error, name)

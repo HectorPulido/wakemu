@@ -68,14 +68,14 @@ public final class CaptureAgent {
  private static Map<String,Object> equipmentDiagnostic() {
   Map<String,Object> out=new LinkedHashMap<>();out.put("time",java.time.Instant.now().toString());
   try {
-   Object player=call(call(Class.forName("aTx"),"cWt"),"cWu");
+   Object player=call(call(NativeDiagnosticReadiness.initializedClass("aTx"),"cWt"),"cWu");
    if(player==null){out.put("player_present",false);return out;}
    long id=((Number)call(player,"Sn")).longValue();out.put("actor_id",id);
    Object metadata=call(player,"drq");
    for(String key:new String[]{"fHn","fHo","wM","wR"})out.put("build."+key,call(metadata,key));
    out.put("active_sheet",equipmentSheetDiagnostic(call(player,"dqw")));
    for(int index=0;index<3;index++)out.put("owned_sheet"+index,equipmentSheetDiagnostic(call(player,"Dj",index)));
-   Object inventory=call(field(Class.forName("bIM"),"kel"),"tT",id);
+   Object inventory=call(field(NativeDiagnosticReadiness.initializedClass("bIM"),"kel"),"tT",id);
    Map<String,Object> items=new LinkedHashMap<>();
    if(inventory!=null){for(Map.Entry<?,?> entry:((Map<?,?>)call(inventory,"giz")).entrySet()){
     Object item=entry.getValue();Map<String,Object> value=new LinkedHashMap<>();
@@ -96,7 +96,7 @@ public final class CaptureAgent {
     physicalItems.put(String.valueOf(item.LV()),value);return true;
    });
    out.put("physical_items",physicalItems);
-   Object dialog=call(Class.forName("dbU"),"fdS");out.put("dialog_open",call(Class.forName("dbU"),"fay"));
+   Object dialog=call(NativeDiagnosticReadiness.initializedClass("dbU"),"fdS");out.put("dialog_open",call(NativeDiagnosticReadiness.initializedClass("dbU"),"fay"));
    out.put("dialog.omt",field(dialog,"omt"));out.put("dialog.omz",field(dialog,"omz"));
    Object clone=field(dialog,"omy");
    if(clone!=null)out.put("dialog_sheet",equipmentSheetDiagnostic(call(field(clone,"jGT"),"dqw")));
@@ -106,8 +106,9 @@ public final class CaptureAgent {
 
  private static Map<String,Object> movementDiagnostic() {
   Map<String,Object> out=new LinkedHashMap<>();out.put("time",Instant.now().toString());
+  if(!NativeDiagnosticReadiness.ready(out,"aTx"))return out;
   try {
-   Object player=call(call(Class.forName("aTx"),"cWt"),"cWu");
+   Object player=call(call(NativeDiagnosticReadiness.initializedClass("aTx"),"cWt"),"cWu");
    if(player==null){out.put("status","not_loaded");return out;}
    out.put("actor_id",call(player,"Sn"));out.put("name",call(player,"getName"));
    out.put("position",List.of(call(player,"getWorldX"),call(player,"getWorldY"),call(player,"getAltitude")));
@@ -151,8 +152,9 @@ public final class CaptureAgent {
 
  private static Map<String,Object> combatDiagnostic() {
   Map<String,Object> out=new LinkedHashMap<>();out.put("time",java.time.Instant.now().toString());
+  if(!NativeDiagnosticReadiness.ready(out,"aTx","dba","dbe","ffw"))return out;
   try {
-   Object ownPlayer=call(call(Class.forName("aTx"),"cWt"),"cWu");
+   Object ownPlayer=call(call(NativeDiagnosticReadiness.initializedClass("aTx"),"cWt"),"cWu");
    out.put("own_player_present",ownPlayer!=null);
    if(ownPlayer!=null) {
     out.put("own_player_id",String.valueOf(call(ownPlayer,"Sn")));
@@ -160,7 +162,7 @@ public final class CaptureAgent {
    }
   }catch(Throwable error){out.put("own_player_error",error.toString());}
   try {
-   Object dbe=call(Class.forName("dbe"),"fcF"),dba=call(Class.forName("dba"),"fcm");
+   Object dbe=call(NativeDiagnosticReadiness.initializedClass("dbe"),"fcF"),dba=call(NativeDiagnosticReadiness.initializedClass("dba"),"fcm");
    for(String key:new String[]{"NO","cEV","okd","oke","okf"})out.put("dbe."+key,field(dbe,key));
    for(String key:new String[]{"fcs","fct","fcA"})out.put("dba."+key,call(dba,key));
    for(String key:new String[]{"bVK","bVL","ojT"})out.put("dba."+key,field(dba,key));
@@ -168,14 +170,14 @@ public final class CaptureAgent {
    Object route=field(dbe,"okg");out.put("route",String.valueOf(route));if(route!=null)out.put("path_points",call(route,"bDT"));
    Object fight=call(dba,"cXY"),timeline=call(fight,"dLW"),actor=call(timeline,"dNG");
    out.put("fight_phase",String.valueOf(call(fight,"dLv")));
-   Object ownPlayer=call(call(Class.forName("aTx"),"cWt"),"cWu");
+   Object ownPlayer=call(call(NativeDiagnosticReadiness.initializedClass("aTx"),"cWt"),"cWu");
    out.put("own_player_fight",String.valueOf(call(ownPlayer,"doI")));
    Object ownFighter=call(fight,"rj",((Number)call(ownPlayer,"Sn")).longValue());
    Map<String,Object> resources=new LinkedHashMap<>();
    if(ownFighter!=null){
     resources.put("id",call(ownFighter,"Sn"));
     for(String stat:new String[]{"sgC","shQ","shL","shH"}){
-     Object definition=field(Class.forName("ffw"),stat);
+     Object definition=field(NativeDiagnosticReadiness.initializedClass("ffw"),stat);
      resources.put(stat+".id",call(definition,"aKg"));
      resources.put(stat+".current",call(ownFighter,"c",definition));
      resources.put(stat+".maximum",call(call(ownFighter,"e",definition),"aYU"));
@@ -184,7 +186,7 @@ public final class CaptureAgent {
    out.put("own_fighter_resources",resources);
    out.put("actor_fight",String.valueOf(call(actor,"doI")));
    out.put("actor_id",call(actor,"Xi"));out.put("actor_owned",call(actor,"doz"));out.put("actor_position",String.valueOf(call(actor,"baM")));
-   out.put("actor_mp",call(actor,"c",field(Class.forName("ffw"),"sgE")));
+   out.put("actor_mp",call(actor,"c",field(NativeDiagnosticReadiness.initializedClass("ffw"),"sgE")));
   }catch(Throwable t){out.put("error",t.toString());}
   return out;
  }
@@ -192,22 +194,22 @@ public final class CaptureAgent {
  private static Map<String,Object> interactiveRegistryDiagnostic(List<Long> ids) {
   Map<String,Object> out=new LinkedHashMap<>();out.put("time",Instant.now().toString());
   try {
-   Object game=call(Class.forName("aTx"),"cWt");
+   Object game=call(NativeDiagnosticReadiness.initializedClass("aTx"),"cWt");
    if(game==null||call(game,"cWv")==null){out.put("status","not_loaded");return out;}
-   Object rawRegistry=call(Class.forName("bEC"),"dVG");
-   Object scene=call(Class.forName("cdE"),"exN");
+   Object rawRegistry=call(NativeDiagnosticReadiness.initializedClass("bEC"),"dVG");
+   Object scene=call(NativeDiagnosticReadiness.initializedClass("cdE"),"exN");
    List<?> loaded=(List<?>)call(scene,"exP");
    Map<Long,Object> rendered=new LinkedHashMap<>();
    int sceneObjectCount=0;
    for(Object candidate:loaded) {
     sceneObjectCount++;
-    if(Class.forName("bEG").isInstance(candidate))
+    if(NativeDiagnosticReadiness.initializedClass("bEG").isInstance(candidate))
      rendered.put(((Number)call(candidate,"Sn")).longValue(),candidate);
    }
    out.put("scene_object_count",sceneObjectCount);
    out.put("scene_interactive_count",rendered.size());
    try {
-    Object screen=call(Class.forName("cdG"),"exW"),meta=call(screen,"exX");
+    Object screen=call(NativeDiagnosticReadiness.initializedClass("cdG"),"exW"),meta=call(screen,"exX");
     out.put("map_id",meta==null?null:field(meta,"cgb"));
     out.put("world_map_id",field(screen,"bqh"));
    } catch(Throwable error) {out.put("map_error",error.toString());}
@@ -218,7 +220,7 @@ public final class CaptureAgent {
     if(raw!=null) {
      short type=((Number)field(raw,"bkI")).shortValue();byte[] payload=(byte[])field(raw,"bkJ");
      row.put("raw_type_id",type);row.put("raw_payload_bytes",payload.length);
-     try {Object definition=call(Class.forName("bEE"),"cb",type);row.put("raw_type",definition==null?null:call(definition,"aYh"));}
+     try {Object definition=call(NativeDiagnosticReadiness.initializedClass("bEE"),"cb",type);row.put("raw_type",definition==null?null:call(definition,"aYh"));}
      catch(Throwable ignored){}
     }
     Object object=rendered.get(id);row.put("rendered_exists",object!=null);
@@ -230,7 +232,7 @@ public final class CaptureAgent {
      row.put("selectable",call(object,"isSelectable"));row.put("state_short",call(object,"dVL"));
      row.put("state_int",call(object,"dVM"));row.put("state",String.valueOf(call(object,"dVN")));
      short type=((Number)call(object,"bem")).shortValue();row.put("native_type_id",type);
-     try {Object definition=call(Class.forName("bEE"),"cb",type);row.put("native_type",definition==null?null:call(definition,"aYh"));}
+     try {Object definition=call(NativeDiagnosticReadiness.initializedClass("bEE"),"cb",type);row.put("native_type",definition==null?null:call(definition,"aYh"));}
      catch(Throwable ignored){}
      List<Map<String,Object>> actions=new ArrayList<>();
      for(Object action:(Object[])call(object,"bee")) {
@@ -373,6 +375,54 @@ public final class CaptureAgent {
         return writer.toByteArray();
     }
 
+    static byte[] decodedAreaRemoval(byte[] data) {
+        ClassReader reader = new ClassReader(data);
+        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        int[] patched = {0};
+        reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
+            @Override
+            public MethodVisitor visitMethod(int access, String method, String desc, String signature, String[] exceptions) {
+                MethodVisitor target = super.visitMethod(access, method, desc, signature, exceptions);
+                if (!method.equals("cYg") || !desc.equals("()V")) return target;
+                return new MethodVisitor(Opcodes.ASM8, target) {
+                    @Override
+                    public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean iface) {
+                        if (opcode == Opcodes.INVOKEVIRTUAL && owner.equals("eZR") && name.equals("a") && descriptor.equals("(LQe;Z)V")) {
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativeDecodedAreaRemoval", "execute", "(LeZR;LQe;Z)V", false);
+                            patched[0]++;
+                        } else super.visitMethodInsn(opcode, owner, name, descriptor, iface);
+                    }
+                };
+            }
+        }, 0);
+        if (patched[0] != 2) throw new IllegalStateException("Unexpected native decoded area-removal boundaries");
+        return writer.toByteArray();
+    }
+
+    static byte[] movementPathCleared(byte[] data) {
+        ClassReader reader = new ClassReader(data);
+        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+        int[] exits = {0};
+        reader.accept(new ClassVisitor(Opcodes.ASM8, writer) {
+            @Override public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+                MethodVisitor target = super.visitMethod(access, name, desc, signature, exceptions);
+                if (!name.equals("bvC") || !desc.equals("()V")) return target;
+                return new MethodVisitor(Opcodes.ASM8, target) {
+                    @Override public void visitInsn(int opcode) {
+                        if (opcode == Opcodes.RETURN) {
+                            super.visitVarInsn(Opcodes.ALOAD, 0);
+                            super.visitMethodInsn(Opcodes.INVOKESTATIC, "NativeMovementStop", "pathCleared", "(LacS;)V", false);
+                            exits[0]++;
+                        }
+                        super.visitInsn(opcode);
+                    }
+                };
+            }
+        }, 0);
+        if (exits[0] != 1) throw new IllegalStateException("Unexpected native path-clear completion exits");
+        return writer.toByteArray();
+    }
+
     public static void premain(String directory, Instrumentation instrumentation) throws Exception {
         Path base = Path.of(directory);
         Files.createDirectories(base);
@@ -383,6 +433,7 @@ public final class CaptureAgent {
         instrumentation.addTransformer(new ClassFileTransformer() {
             @Override
             public byte[] transform(ClassLoader loader, String name, Class<?> clazz, ProtectionDomain domain, byte[] data) {
+                if ("aVo".equals(name)) return decodedAreaRemoval(data);
                 if ("aUH".equals(name)) return spectatorTerminalAck(data);
                 if ("fnR".equals(name)) {
                     ClassReader reader = new ClassReader(data);
@@ -672,7 +723,10 @@ public final class CaptureAgent {
                 KeyboardFocusManager keyboard = KeyboardFocusManager.getCurrentKeyboardFocusManager();
                 long now = System.currentTimeMillis();
                 keyboard.redispatchEvent(canvas, new KeyEvent(canvas, KeyEvent.KEY_PRESSED, now, modifiers, code, ch));
-                if (ch != '\n') keyboard.redispatchEvent(canvas, new KeyEvent(canvas, KeyEvent.KEY_TYPED, now, modifiers, KeyEvent.VK_UNDEFINED, ch));
+                // Xulor chat binds send/submit to processKeyTyped and expects LF (char 10).
+                // A KEY_PRESSED Enter alone does not invoke that native callback.
+                if (ch != '\n' || submit)
+                    keyboard.redispatchEvent(canvas, new KeyEvent(canvas, KeyEvent.KEY_TYPED, now, modifiers, KeyEvent.VK_UNDEFINED, ch));
             });
             Thread.sleep(35); // Let the game process the pressed key before release.
             SwingUtilities.invokeAndWait(() -> KeyboardFocusManager.getCurrentKeyboardFocusManager().redispatchEvent(
@@ -699,20 +753,36 @@ public final class CaptureAgent {
                 exchange.sendResponseHeaders(403, -1); exchange.close(); return;
             }
             try {
+                String endpoint = exchange.getRequestURI().getPath();
+                boolean nativeInspection = switch (endpoint) {
+                    case "/actors", "/actor-registry", "/position", "/pick-cell",
+                         "/hero-eligibility-diagnostic", "/item-use-diagnostic",
+                         "/equipment-diagnostic", "/spell-availability", "/combat-actor",
+                         "/movement-diagnostic", "/combat-diagnostic", "/combat-path-diagnostic",
+                         "/combat-areas", "/interactive-registry", "/project-cell" -> true;
+                    default -> false;
+                };
+                Map<String, Object> readiness = new LinkedHashMap<>();
+                if (nativeInspection && !NativeDiagnosticReadiness.ready(readiness, "aTx", "dba")) {
+                    byte[] pending = (JSON.toJson(readiness) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    exchange.sendResponseHeaders(200, pending.length);
+                    exchange.getResponseBody().write(pending);
+                    return;
+                }
                 byte[] response;
-                switch (exchange.getRequestURI().getPath()) {
+                switch (endpoint) {
                     case "/focus-chat" -> {
                         Map<String, Object> state = new LinkedHashMap<>();
                         SwingUtilities.invokeAndWait(() -> {
                             try {
-                                Object chat = Class.forName("cZy").getMethod("eZo").invoke(null);
+                                Object chat = NativeDiagnosticReadiness.initializedClass("cZy").getMethod("eZo").invoke(null);
                                 Object dialog = chat.getClass().getMethod("eZp").invoke(chat);
                                 Object map = dialog.getClass().getMethod("getElementMap").invoke(dialog);
                                 Object input = map.getClass().getMethod("wo", String.class).invoke(map, "textEditorRenderableContainer.chatInput");
                                 if (input == null) throw new IllegalStateException("Chat input is not present");
-                                Class<?> focusClass = Class.forName("fQd");
+                                Class<?> focusClass = NativeDiagnosticReadiness.initializedClass("fQd");
                                 Object manager = focusClass.getMethod("gOg").invoke(null);
-                                focusClass.getMethod("t", Class.forName("fMZ")).invoke(manager, input);
+                                focusClass.getMethod("t", NativeDiagnosticReadiness.initializedClass("fMZ")).invoke(manager, input);
                                 state.put("id", input.getClass().getMethod("getId").invoke(input));
                                 state.put("focusable", input.getClass().getMethod("getFocusable").invoke(input));
                                 Object active = focusClass.getMethod("gOh").invoke(manager);
@@ -734,7 +804,7 @@ public final class CaptureAgent {
                         List<Map<String, Object>> actors = new ArrayList<>();
                         SwingUtilities.invokeAndWait(() -> {
                             try {
-                                Class<?> managerClass = Class.forName("bio");
+                                Class<?> managerClass = NativeDiagnosticReadiness.initializedClass("bio");
                                 Object manager = managerClass.getMethod("dpx").invoke(null);
                                 java.util.Iterator<?> iterator = (java.util.Iterator<?>) managerClass.getMethod("bak").invoke(manager);
                                 while (iterator.hasNext()) {
@@ -756,7 +826,7 @@ public final class CaptureAgent {
                         List<Map<String, Object>> actors = new ArrayList<>();
                         SwingUtilities.invokeAndWait(() -> {
                             try {
-                                Class<?> managerClass = Class.forName("bio");
+                                Class<?> managerClass = NativeDiagnosticReadiness.initializedClass("bio");
                                 Object manager = managerClass.getMethod("dpx").invoke(null);
                                 java.util.Iterator<?> iterator = (java.util.Iterator<?>) managerClass.getMethod("bak").invoke(manager);
                                 java.util.Set<Object> worldActors = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
@@ -782,7 +852,23 @@ public final class CaptureAgent {
                                                 graphicState.put("class", graphic.getClass().getName());
                                                 graphicState.put("identity", System.identityHashCode(graphic));
                                                 graphicState.put("visible", call(graphic, "isVisible"));
-                                                Object scene = call(Class.forName("cdE"), "exN");
+                                                Map<String, Object> animation = new LinkedHashMap<>();
+                                                for (String method : new String[]{"bkG", "bpT", "bvM", "bvy", "bcy"}) {
+                                                    try { animation.put(method, String.valueOf(call(graphic, method))); }
+                                                    catch (Throwable error) { animation.put(method + "_error", error.toString()); }
+                                                }
+                                                for (String key : new String[]{"cjs", "cjt", "cju", "cjv", "cjz", "cjA"}) {
+                                                    try { animation.put(key, field(graphic, key)); }
+                                                    catch (Throwable error) { animation.put(key + "_error", error.toString()); }
+                                                }
+                                                try {
+                                                    Object path = field(graphic, "cjr");
+                                                    animation.put("path_present", path != null);
+                                                    if (path != null) animation.put("path_points", call(path, "bDT"));
+                                                } catch (Throwable error) { animation.put("path_error", error.toString()); }
+                                                graphicState.put("animation", animation);
+                                                animation.put("stop_diagnostic", NativeMovementStop.diagnostic(id));
+                                                Object scene = call(NativeDiagnosticReadiness.initializedClass("cdE"), "exN");
                                                 Object loaded = call(scene, "exP");
                                                 if (loaded instanceof Iterable<?> objects) {
                                                     boolean found = false;
@@ -795,6 +881,16 @@ public final class CaptureAgent {
                                             if (model != null) {
                                                 graphicState.put("model_class", model.getClass().getName());
                                                 graphicState.put("model_identity", System.identityHashCode(model));
+                                                if (model instanceof Number) graphicState.put("model_value", model);
+                                            }
+                                            graphicState.put("breed", call(actor, "aXA"));
+                                            graphicState.put("sex", call(actor, "aXz"));
+                                            if (NativeDiagnosticReadiness.initializedClass("bjo").isInstance(actor)) {
+                                                Object appearance = call(actor, "dsV");
+                                                Map<String, Object> palette = new LinkedHashMap<>();
+                                                for (String key : new String[]{"dpi", "dpj", "sC", "sE", "sG", "sI", "sK", "sM", "sO", "sQ", "sS"})
+                                                    palette.put(key, call(appearance, key));
+                                                graphicState.put("appearance", palette);
                                             }
                                         } catch (Exception error) {
                                             graphicState.put("error_class", error.getClass().getName());
@@ -837,13 +933,13 @@ public final class CaptureAgent {
                                     throw new IllegalArgumentException("Native packet decoder rejected body");
                                 boolean accepted;
                                 if (opcode == 13753) {
-                                    Class<?> handlerClass = Class.forName("ckM");
+                                    Class<?> handlerClass = NativeDiagnosticReadiness.initializedClass("ckM");
                                     var constructor = handlerClass.getDeclaredConstructor();
                                     constructor.setAccessible(true);
                                     Object handler = constructor.newInstance();
                                     accepted = (Boolean) call(handler, "a", message);
                                 } else {
-                                    Object dispatcher = call(Class.forName("cgN"), "eCA");
+                                    Object dispatcher = call(NativeDiagnosticReadiness.initializedClass("cgN"), "eCA");
                                     accepted = (Boolean) call(dispatcher, "b", message);
                                 }
                                 result.put("opcode", opcode);
@@ -857,7 +953,7 @@ public final class CaptureAgent {
                         Map<String, Object> position = new LinkedHashMap<>();
                         SwingUtilities.invokeAndWait(() -> {
                             try {
-                                Object game = Class.forName("aTx").getMethod("cWt").invoke(null);
+                                Object game = NativeDiagnosticReadiness.initializedClass("aTx").getMethod("cWt").invoke(null);
                                 Object player = game.getClass().getMethod("cWv").invoke(game);
                                 if (player == null) { position.put("status", "not_loaded"); return; }
                                 position.put("time", Instant.now().toString());
@@ -893,14 +989,14 @@ public final class CaptureAgent {
                         Map<String,Object> picks = new LinkedHashMap<>();
                         SwingUtilities.invokeAndWait(() -> {
                             try {
-                                Object manager = call(Class.forName("aGZ"),"cfK"), scene = call(manager,"bmC");
+                                Object manager = call(NativeDiagnosticReadiness.initializedClass("aGZ"),"cfK"), scene = call(manager,"bmC");
                                 float x=((Number)point.get("x")).floatValue(), y=((Number)point.get("y")).floatValue();
                                 float height=((Number)call(scene,"bRV")).floatValue();
                                 for (String pickMode : new String[]{"bWP","bWQ"}) {
                                 for (float scale : new float[]{1,2}) {
                                     for (boolean flip : new boolean[]{false,true}) {
                                         float px=x*scale,py=flip?height-y*scale:y*scale;
-                                        java.util.List<?> tiles=(java.util.List<?>)Class.forName("Zi").getMethod("a",float.class,float.class,float.class,Class.forName("Zq")).invoke(scene,px,py,0f,field(Class.forName("Zq"),pickMode));
+                                        java.util.List<?> tiles=(java.util.List<?>)NativeDiagnosticReadiness.initializedClass("Zi").getMethod("a",float.class,float.class,float.class,NativeDiagnosticReadiness.initializedClass("Zq")).invoke(scene,px,py,0f,field(NativeDiagnosticReadiness.initializedClass("Zq"),pickMode));
                                         java.util.List<Map<String,Object>> values=new ArrayList<>();
                                         for(Object tile:tiles) {
                                             Map<String,Object> value=new LinkedHashMap<>();
@@ -940,7 +1036,7 @@ public final class CaptureAgent {
                         Map<String,Object> diagnostic=new LinkedHashMap<>();
                         SwingUtilities.invokeAndWait(() -> {
                             try {
-                                Object fight=call(call(Class.forName("dba"),"fcm"),"cXY");
+                                Object fight=call(call(NativeDiagnosticReadiness.initializedClass("dba"),"fcm"),"cXY");
                                 Object actor=call(fight,"rj",actorId);
                                 Object book=call(actor,"js",spellUid);
                                 diagnostic.put("actor_id",actorId);
@@ -971,7 +1067,7 @@ public final class CaptureAgent {
                         SwingUtilities.invokeAndWait(() -> {
                             diagnostic.put("time",Instant.now().toString());
                             try {
-                                Object fight=call(call(Class.forName("dba"),"fcm"),"cXY");
+                                Object fight=call(call(NativeDiagnosticReadiness.initializedClass("dba"),"fcm"),"cXY");
                                 Object fighter=call(fight,"rj",identity);
                                 diagnostic.put("fight",String.valueOf(fight));
                                 if(fighter==null)throw new IllegalStateException("Combat actor absent");
@@ -988,14 +1084,14 @@ public final class CaptureAgent {
                                     Object controller=call(candidate,"dpr");
                                     row.put("controller_id",controller==null?null:call(controller,"Sn"));
                                     row.put("controller_is_selected_actor",controller==fighter);
-                                    row.put("excluded_property_103",call(candidate,"i",call(Class.forName("ffe"),"Ua",103)));
+                                    row.put("excluded_property_103",call(candidate,"i",call(NativeDiagnosticReadiness.initializedClass("ffe"),"Ua",103)));
                                     countPopulation.add(row);
                                 }
                                 summonCount.put("population",countPopulation);
                                 diagnostic.put("native_summon_count",summonCount);
                                 diagnostic.put("position",List.of(call(fighter,"getWorldX"),call(fighter,"getWorldY"),call(fighter,"getAltitude")));
                                 Map<String,Object> stats=new LinkedHashMap<>();
-                                for(Object definition:(Object[])call(Class.forName("ffw"),"values")){
+                                for(Object definition:(Object[])call(NativeDiagnosticReadiness.initializedClass("ffw"),"values")){
                                     stats.put(String.valueOf(call(definition,"aKg")),call(fighter,"c",definition));
                                 }
                                 diagnostic.put("stats",stats);
@@ -1012,7 +1108,7 @@ public final class CaptureAgent {
                                         entry.put("uid",call(effect,"LV"));
                                         entry.put("effect_class",call(effect,"d"));
                                         entry.put("value",call(effect,"getValue"));
-                                        if(Class.forName("eZk").isInstance(effect)) {
+                                        if(NativeDiagnosticReadiness.initializedClass("eZk").isInstance(effect)) {
                                             Object definition=call(effect,"fQW");
                                             entry.put("state_id",call(definition,"guI"));
                                             entry.put("state_level",call(definition,"cmZ"));
@@ -1023,7 +1119,7 @@ public final class CaptureAgent {
                                 }catch(Throwable error){diagnostic.put("running_effects_error",error.toString());}
                                 // Combat eGj does not expose the visual actor getDirection.
                                 // Read only the proven characteristic getter here.
-                                diagnostic.put("maximum_hp",call(call(fighter,"e",field(Class.forName("ffw"),"sgC")),"aYU"));
+                                diagnostic.put("maximum_hp",call(call(fighter,"e",field(NativeDiagnosticReadiness.initializedClass("ffw"),"sgC")),"aYU"));
                             }catch(Throwable error){diagnostic.put("error",error.toString());}
                         });
                         response=(JSON.toJson(diagnostic)+"\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -1037,6 +1133,25 @@ public final class CaptureAgent {
                         Map<String,Object> diagnostic = new LinkedHashMap<>();
                         SwingUtilities.invokeAndWait(() -> diagnostic.putAll(combatDiagnostic()));
                         response = (JSON.toJson(diagnostic) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                    case "/combat-path-diagnostic" -> {
+                        if (!"GET".equals(exchange.getRequestMethod()))
+                            throw new IllegalArgumentException("GET required");
+                        Map<String, Object> diagnostic = new LinkedHashMap<>();
+                        SwingUtilities.invokeAndWait(() -> diagnostic.putAll(CombatPathDiagnostic.snapshot()));
+                        response = (JSON.toJson(diagnostic) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                        if (response.length > 256_000)
+                            throw new IllegalStateException("Combat path diagnostic exceeds output limit");
+                    }
+                    case "/combat-areas" -> {
+                        if (!"GET".equals(exchange.getRequestMethod()))
+                            throw new IllegalArgumentException("GET required");
+                        Map<String, Object> diagnostic = new LinkedHashMap<>();
+                        SwingUtilities.invokeAndWait(() -> diagnostic.putAll(CombatAreaDiagnosticAgent.snapshot()));
+                        response = (JSON.toJson(diagnostic) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                        if (response.length > 1_000_000)
+                            throw new IllegalStateException("Combat area snapshot exceeds output limit");
+                        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
                     }
                     case "/interactive-registry" -> {
                         Map<?,?> input=JSON.fromJson(new String(exchange.getRequestBody().readNBytes(8192),java.nio.charset.StandardCharsets.UTF_8),Map.class);
@@ -1062,9 +1177,9 @@ public final class CaptureAgent {
                         Map<String, Object> point = new LinkedHashMap<>();
                         SwingUtilities.invokeAndWait(() -> {
                             try {
-                                Object manager = Class.forName("aGZ").getMethod("cfK").invoke(null);
+                                Object manager = NativeDiagnosticReadiness.initializedClass("aGZ").getMethod("cfK").invoke(null);
                                 Object scene = manager.getClass().getMethod("bmC").invoke(manager);
-                                Object projected = Class.forName("afh").getMethod("c", Class.forName("aeU"), float.class, float.class, float.class).invoke(null, scene,
+                                Object projected = NativeDiagnosticReadiness.initializedClass("afh").getMethod("c", NativeDiagnosticReadiness.initializedClass("aeU"), float.class, float.class, float.class).invoke(null, scene,
                                     ((Number) cell.get("x")).floatValue(), ((Number) cell.get("y")).floatValue(), ((Number) cell.get("z")).floatValue());
                                 double sx = projected.getClass().getField("aRt").getFloat(projected);
                                 double sy = projected.getClass().getField("aRu").getFloat(projected);
@@ -1135,7 +1250,25 @@ public final class CaptureAgent {
                 exchange.sendResponseHeaders(200, response.length);
                 exchange.getResponseBody().write(response);
             } catch (Exception error) {
-                byte[] message = error.getClass().getSimpleName().getBytes();
+                Throwable root = error;
+                for (int depth = 0; depth < 4 && root.getCause() != null && root.getCause() != root; depth++)
+                    root = root.getCause();
+                if (root instanceof NativeDiagnosticReadiness.NotReady) {
+                    byte[] message = (JSON.toJson(Map.of("status", "not_ready", "reason", root.getMessage())) + "\n")
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    exchange.sendResponseHeaders(200, message.length);
+                    exchange.getResponseBody().write(message);
+                    return;
+                }
+                String detail = root.getMessage();
+                if (detail == null) detail = "";
+                detail = detail.replaceAll("[\\r\\n\\t]", " ")
+                    .replaceAll("(?i)(password|token|secret|authorization|inspector-key)\\s*[:=]\\s*[^ ,;]+", "$1=[redacted]");
+                if (detail.length() > 160) detail = detail.substring(0, 160);
+                String text = error.getClass().getSimpleName() + "; root="
+                    + root.getClass().getSimpleName() + (detail.isEmpty() ? "" : ": " + detail);
+                if (text.length() > 256) text = text.substring(0, 256);
+                byte[] message = text.getBytes(java.nio.charset.StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(500, message.length);
                 exchange.getResponseBody().write(message);
             } finally { exchange.close(); }

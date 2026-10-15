@@ -1,11 +1,13 @@
 """Native flat neutral self-healing foods, persisted with owned consumption.
 
-Equipment/passive healing modifiers and conditional effects are not evaluated.
-The caller must reject use during combat; the transaction checks current HP.
+The accepted food effect uses native coefficient mask 2: target healing
+resistance applies, source mastery/final bonuses do not. Conditional food
+effects remain separate. The transaction checks current HP and ownership.
 """
 from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 import json
+import random
 import struct
 from pathlib import Path
 from .inventory_items import _lease, decode_use
@@ -49,6 +51,35 @@ def healing_plan(reference):
     return dict(amount=heal[0], emotes=emotes)
 
 
+def food_healing_amount(character, amount, *, rng=None):
+    """Use eXs.fOA -> fat.fSy arithmetic for the accepted neutral food effect.
+
+    healing_plan verifies parameter1=2. Native fat reads mastery/final bonuses
+    only for bit1 and healing resistance (characteristic32) for bit2. Evaluate
+    the selected equipment/aptitude sheet, never an inactive saved build.
+    """
+    from wakfu_server.equipment_stats import bonuses
+    from wakfu_server.combat.combat_damage_healing import healing_amount
+
+    stats = bonuses(character)["stats"]
+    return healing_amount(
+        amount,
+        1,
+        stats,
+        stats,
+        critical=False,
+        single_target=False,
+        area=False,
+        melee=False,
+        ranged=False,
+        berserk=False,
+        coefficient_mask=2,
+        additional_mastery=0,
+        additional_final=0,
+        rng=random.random if rng is None else rng,
+    )
+
+
 def use(store, account_id, generation, character_id, body, *, expected_hp, in_fight):
     """12659 self use: consume one owned item and heal in one transaction.
 
@@ -65,15 +96,6 @@ def use(store, account_id, generation, character_id, body, *, expected_hp, in_fi
             raise ValueError("Stale consumable health snapshot")
         if not 0 < character["hp"] < character["max_hp"]:
             raise ValueError("Healing food requires a living wounded character")
-        # Until equipment effects are authoritative, no item modifier is silently
-        # ignored. Build equipment is native protobuf and unrelated to bags.
-        from .wire import proto_fields
-
-        if any(
-            any(tag == 10 for tag, _ in proto_fields(bytes.fromhex(build["equipment"])))
-            for build in character["builds"].values()
-        ):
-            raise ValueError("Equipped healing modifiers are not implemented")
         item = db.execute(
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (request["uid"], character_id),
@@ -81,7 +103,8 @@ def use(store, account_id, generation, character_id, body, *, expected_hp, in_fi
         if item is None:
             raise ValueError("Used food unavailable or foreign")
         plan = healing_plan(item["reference"])
-        hp = min(character["max_hp"], character["hp"] + plan["amount"])
+        amount = food_healing_amount(character, plan["amount"])
+        hp = min(character["max_hp"], character["hp"] + amount)
         state = db.execute(
             "SELECT coefficient FROM character_regeneration WHERE character_id=%s",
             (character_id,),

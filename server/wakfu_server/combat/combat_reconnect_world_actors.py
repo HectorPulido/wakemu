@@ -15,11 +15,16 @@ def ordinary_npc_appearances(fight, shared):
     monsters = context["monsters"]
     if not isinstance(monsters, dict):
         raise ValueError("Reconnect monster metadata must be an owned mapping")
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    hidden = hidden_snapshot_actor_ids(fight)
     registrations = getattr(fight, "native_summon_registrations", {})
     actors = [
         actor
         for actor in fight.actors.values()
-        if not actor.controlled and actor.id not in registrations
+        if not actor.controlled
+        and actor.id not in registrations
+        and actor.id not in hidden
     ]
     if {actor.id for actor in actors} - monsters.keys():
         raise ValueError("Reconnect is missing original NPC appearance authority")

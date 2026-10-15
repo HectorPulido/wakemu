@@ -72,7 +72,7 @@ def _wall_target(fight, identity):
         from .combat_fake_fighter_resources import fake_fighter_damage_snapshot
 
         constructor = verified_fake_fighter(row, definition)
-        if not constructor["characteristic_ids"]:
+        if 1 not in constructor["characteristic_ids"]:
             return None
         snapshot = fake_fighter_damage_snapshot(row, definition)
     else:

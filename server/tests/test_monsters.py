@@ -38,6 +38,33 @@ class MonsterTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 monsters.owned_instance(2, 4, uid, map_id=1385, x=1, y=2, z=0)
 
+    def test_ogrest_resource_curve_is_bounded_before_combat_snapshot(self):
+        from wakfu_server.combat.combat_actor_snapshot import build_npc_snapshot
+        from wakfu_server.combat.combat_state import Actor
+
+        self.assertEqual(monsters.statistics(3046, 999)["WP"], 25)
+        monster = monsters.owned_instance(3046, 999, -10002, map_id=1385, x=1, y=2, z=0)
+        self.assertEqual(monster["wp"], 20)
+        actor = Actor(
+            monster["id"],
+            1,
+            (1, 2, 0),
+            monster["hp"],
+            monster["ap"],
+            monster["mp"],
+            monster["initiative"],
+            999,
+            max_hp=monster["max_hp"],
+        )
+        snapshot = build_npc_snapshot(
+            monster,
+            actor,
+            wp_current=monster["wp"],
+            wp_maximum=monster["wp"],
+            running_effects=(),
+        )
+        self.assertEqual((snapshot.stats[4], snapshot.maxima[4]), (20, 20))
+
     def test_native_abilities_are_csd_and_csr_is_loot(self):
         record = monsters.reference(5525)
         self.assertNotIn("spell_forms", record)

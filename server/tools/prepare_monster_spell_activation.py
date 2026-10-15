@@ -120,6 +120,10 @@ def inventory_activation_status(reference, selected, previously_enabled):
 
 
 def merge_npc(existing, exported, candidates):
+    from monster_spell_namespace import validate_spell_namespace
+
+    validate_spell_namespace(existing["spells"])
+    validate_spell_namespace(exported["spells"])
     result = dict(existing)
     result["baseline_effects"] = deepcopy(
         existing.get("baseline_effects", existing["effects"])

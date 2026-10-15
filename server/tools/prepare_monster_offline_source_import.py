@@ -21,6 +21,10 @@ def prepare_source_import(
     must validate dependency catalogs and execution before enabling references.
     """
     selected = sorted(set(references))
+    from monster_spell_namespace import validate_spell_namespace
+
+    validate_spell_namespace(base_npc["spells"])
+    validate_spell_namespace(trees["spells"])
     additions = {kind: {} for kind in ("spells", "effects")}
     root_additions = {}
     rows = []

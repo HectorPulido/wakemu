@@ -632,9 +632,25 @@ class NativeProvider:
             )
         else:
             from .combat_wire import actor_state
+            from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+            from .combat_movement_runtime import movement_stats_snapshot
 
             packets = list(preview.packets) + [candidate._flush()]
+            hidden = hidden_snapshot_actor_ids(preview.fight)
             for actor in preview.fight.actors.values():
+                if actor.id in hidden:
+                    continue
+                stats = stats_serializer(actor, preview.fight)
+                previous = runtime.fight.actors.get(actor.id)
+                if previous is not None and (
+                    actor.id == runtime.fight.current.id
+                    or actor.position == previous.position
+                ):
+                    stats = movement_stats_snapshot(
+                        stats,
+                        stats_serializer(previous, runtime.fight),
+                        position_owned=actor.id == runtime.fight.current.id,
+                    )
                 packets.append(
                     (
                         12873,
@@ -642,7 +658,7 @@ class NativeProvider:
                             12873,
                             preview.fight.id,
                             actor.id,
-                            stats_serializer(actor, preview.fight),
+                            stats,
                         ),
                     )
                 )
@@ -668,9 +684,21 @@ class NativeProvider:
 
 
 def _distances(fight, origin, actor_id, *, budget=None, paths=True):
-    occupied = {
-        a.position for a in fight.actors.values() if a.id != actor_id and a.hp > 0
-    }
+    from .combat_qi_movement import movement_blocked_cells
+
+    blocked = movement_blocked_cells(
+        fight,
+        fight.actors[actor_id],
+        fight.walkable - {origin},
+    )
+    occupied = (
+        None
+        if blocked is not None
+        else {
+            a.position for a in fight.actors.values() if a.id != actor_id and a.hp > 0
+        }
+    )
+    blocked = blocked or set()
     graph = _adjacency(fight.edges)
     reached = {origin: (0, [])}
     queue = deque([origin])
@@ -680,7 +708,11 @@ def _distances(fight, origin, actor_id, *, budget=None, paths=True):
         if budget is not None and distance >= budget:
             continue
         for dst in graph.get(cell, ()):
-            if dst not in occupied and dst not in reached:
+            if (
+                (occupied is None or dst not in occupied)
+                and dst not in blocked
+                and dst not in reached
+            ):
                 reached[dst] = distance + 1, [*path, dst] if paths else []
                 queue.append(dst)
     return reached
@@ -688,16 +720,28 @@ def _distances(fight, origin, actor_id, *, budget=None, paths=True):
 
 def _nearest_distance(fight, actor, useful):
     graph = _adjacency(fight.edges)
-    occupied = {
-        a.position for a in fight.actors.values() if a.id != actor.id and a.hp > 0
-    }
+    from .combat_qi_movement import movement_blocked_cells
+
+    blocked = movement_blocked_cells(fight, actor, fight.walkable - {actor.position})
+    occupied = (
+        None
+        if blocked is not None
+        else {
+            a.position for a in fight.actors.values() if a.id != actor.id and a.hp > 0
+        }
+    )
+    blocked = blocked or set()
     visited, queue = {actor.position}, deque([(actor.position, 0)])
     while queue:
         cell, distance = queue.popleft()
         if useful(cell):
             return distance
         for destination in graph.get(cell, ()):
-            if destination not in visited and destination not in occupied:
+            if (
+                destination not in visited
+                and (occupied is None or destination not in occupied)
+                and destination not in blocked
+            ):
                 visited.add(destination)
                 queue.append((destination, distance + 1))
     return len(fight.walkable)

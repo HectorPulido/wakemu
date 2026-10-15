@@ -4,13 +4,15 @@ services:
     image: ${WAKFU_PROFILER_IMAGE:-wakemu-profiler:local}
     build: ./server/profiler-service
     environment:
-      PROFILER_RETENTION_SECONDS: ${WAKFU_PROFILER_RETENTION_SECONDS:-3600}
+      PROFILER_RETENTION_SECONDS: ${WAKFU_PROFILER_RETENTION_SECONDS:-28800}
       PROFILER_MAX_BYTES: ${WAKFU_PROFILER_MAX_BYTES:-1073741824}
+    restart: unless-stopped
     init: true
     pid: service:world
     depends_on:
       world:
         condition: service_healthy
+        restart: true
     cap_drop: [ALL]
     cap_add: [SYS_PTRACE]
     security_opt: [no-new-privileges:true]
@@ -18,8 +20,8 @@ services:
     tmpfs:
       - /tmp:size=16m,mode=1777
     volumes:
-      - ./.runtime/local/profiler:/profiles
-      - ./.runtime/local/logs/profiles:/metrics:ro
+      - ./.local-state/wakemu/profiler:/profiles
+      - ./.local-state/wakemu/world/logs/profiles:/metrics:ro
     ports:
       - '127.0.0.1:18082:8092'
     networks: [isolated, client-access]

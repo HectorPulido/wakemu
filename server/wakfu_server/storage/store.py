@@ -800,22 +800,37 @@ class Store:
         from wakfu_server.wire import proto_fields
         from wakfu_server.equipment_stats import effective_character
 
-        if type(in_fight) is not bool or in_fight:
-            raise ValueError("Build deletion requires an outside-combat character")
+        if type(in_fight) is not bool:
+            raise ValueError("Invalid build combat state")
         if not valid_index(index) or index == 0:
             raise ValueError("Default build cannot be deleted")
         with self.connection() as db:
             self.lock_character(db, account_id, generation, character_id)
             current = self.character(account_id, character_id, db)
-            if current.get("dungeon_modulation") is not None:
-                raise ValueError(
-                    "Build deletion waits until competitive modulation ends"
-                )
+            active_edit = index == current["active_build_index"]
+            durable_fight = db.execute(
+                "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+                "WHERE p.character_id=%s AND f.status IN ('placement','active') LIMIT 1",
+                (character_id,),
+            ).fetchone()
+            if active_edit and (in_fight or durable_fight):
+                raise ValueError("Active build cannot be deleted during combat")
+            modulation = current.get("dungeon_modulation")
+            if modulation is not None and index == modulation["build_index"]:
+                raise ValueError("Temporary automatic build is read-only")
             sheet = current["builds"].get(index)
             if sheet is None:
                 raise ValueError("Requested build does not exist")
             if dict(proto_fields(bytes.fromhex(sheet["sheet"]))).get(64, 0):
                 raise ValueError("Permanent build cannot be deleted")
+            if not active_edit:
+                # An inactive sheet is not a change to the live actor. In
+                # particular, do not rewrite combat HP or regeneration.
+                db.execute(
+                    "DELETE FROM character_builds WHERE character_id=%s AND build_index=%s",
+                    (character_id, index),
+                )
+                return self.character(account_id, character_id, db)
             remaining = {i: b for i, b in current["builds"].items() if i != index}
             active = (
                 0
@@ -878,13 +893,17 @@ class Store:
             self.lock_character(
                 db, account_id, generation, character_id, selected=False
             )
-            if db.execute(
-                "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
-                "WHERE p.character_id=%s AND f.status IN ('placement','active') LIMIT 1",
-                (character_id,),
-            ).fetchone():
-                raise ValueError("Build cannot be saved during combat")
             character = self.character(account_id, character_id, db)
+            active_edit = build_index == character["active_build_index"]
+            if (
+                active_edit
+                and db.execute(
+                    "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+                    "WHERE p.character_id=%s AND f.status IN ('placement','active') LIMIT 1",
+                    (character_id,),
+                ).fetchone()
+            ):
+                raise ValueError("Active build cannot be saved during combat")
             modulation = character.get("dungeon_modulation")
             if modulation is not None and build_index == modulation["build_index"]:
                 raise ValueError("Temporary automatic build is read-only")
@@ -903,6 +922,8 @@ class Store:
                 (character_id, build_index, *values),
             )
             updated = self.character(account_id, character_id, db)
+            if not active_edit:
+                return updated
             from wakfu_server.mount_state import reconcile_equipment
 
             reconcile_equipment(db, character, updated)

@@ -11,7 +11,10 @@ from .combat_effect_dispatch import EffectDispatcher, EffectInvocation
 from .combat_spells import cast_animation, cast_notification
 from .combat_geometry_snapshot import source_snapshot
 from .combat_active_spell import active_spell_scope
-from .combat_cast_facing import mirror_cast_facing
+from .combat_cast_facing import (
+    finish_mirrored_cast_facing,
+    mirror_cast_facing,
+)
 from .combat_transaction_rng import transactional_spell_rng
 from .combat_cast_events import cast_event_scope
 
@@ -190,6 +193,7 @@ def _prepare_spell_transaction(
             )
             for reference in plan["effect_ids"]
         )
+    finish_mirrored_cast_facing(caster, plan, fight=preview)
     for opcode, payload in effect_packets:
         if (
             type(opcode) is not int

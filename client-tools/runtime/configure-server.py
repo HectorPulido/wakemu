@@ -33,13 +33,18 @@ def configure(server=None, config_file=None, api_url=None):
     ):
         raise ValueError("api_url must use the configured server hostname")
     for name, default in (
-        ("runtime_root", ROOT / ".runtime/client-servers" / config["server_host"]),
+        (
+            "runtime_root",
+            ROOT / ".local-state/wakemu/client-servers" / config["server_host"],
+        ),
         ("install_root", ROOT),
         ("runner", ROOT / "client-tools/local-client.sh"),
     ):
         path = Path(config.get(name, default)).expanduser()
         config[name] = str(path if path.is_absolute() else (base / path).resolve())
-    output = ROOT / ".runtime/client-servers" / (config["server_host"] + ".json")
+    output = (
+        ROOT / ".local-state/wakemu/client-servers" / (config["server_host"] + ".json")
+    )
     output.parent.mkdir(parents=True, exist_ok=True)
     # A configuration contains no account credentials; still keep it private.
     fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)

@@ -298,6 +298,7 @@ class SpectatorSnapshotTests(unittest.TestCase):
             keep_after=True,
             executed=True,
         )
+        fight.native_effect_areas[99] = dict(uid=99)
         area_record = RetainedEffect(
             area_uid,
             None,

@@ -103,7 +103,3 @@ Across these fights, check normal turns, correct spell bars/resources, movement 
   **A:** Without "Mago de Combate" or "Marchitación", use "Ralentización" and note actual AP loss. It survives the upcoming enemy turn start, then expires after that turn; maximum AP remains unchanged. A popup alone is insufficient.
 
   **B:** Place "Esfera/Reloj" 5345, cast "Ralentización" with normal WP payment: hour advances once,12 →1. Later replace the dial legally: old dial/hours clear, new one starts at 12 and old cells are released.
-
-## References
-
-[Detailed A/B steps and setup](../../agents_docs/reports/combat-inventory/18-class-short-manual-acceptance-20261012.md), [per-class spell/passive inventories](../../agents_docs/reports/combat-inventory/clases/), [remaining-six evidence and coverage limits](../../agents_docs/reports/combat-inventory/remaining-six-refresh-20261010/current-closure-20261011.md), [Sram live regressions](../../agents_docs/reports/combat-inventory/sram-live-regression-status-20261012.md). Historical automated results do not mark any checkbox as manually passed.

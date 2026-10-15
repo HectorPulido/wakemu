@@ -56,6 +56,7 @@ def prewarm_runtime_catalogs():
     from .combat_spell_grant import native_spell_references
     from .combat_native_spell_casting import catalog as native_casting_catalog
     from .combat_spell_resource_costs import catalog as native_resource_cost_catalog
+    from .combat_casting_context import casting_root_catalog
 
     from .combat_native_los_ray import ray_program, topology_columns
 
@@ -63,6 +64,9 @@ def prewarm_runtime_catalogs():
     from .combat_npc_attack import npc_runtime_catalog
 
     npc_runtime_catalog()  # Immutable NPC definitions, before the first AI attack.
+    # Observation and forecast construction use the preserved baseline even
+    # when imported NPC spells are enabled. It has a separate compiled cache.
+    npc_runtime_catalog(imported=False)
     from .combat_weapon import weapon_runtime_catalog
 
     weapon_runtime_catalog()
@@ -86,6 +90,7 @@ def prewarm_runtime_catalogs():
         native_spell_references,
         null_exclusion_references,
         native_casting_catalog,
+        casting_root_catalog,
     ):
         loader()
     ray_program()

@@ -109,6 +109,12 @@ class NativeAreaEventRuntime:
             return False
         if row.get("executing"):
             return False
+        if definition["type"] == "SIMPLE":
+            from .combat_simple_area import verified_simple_area
+
+            verified_simple_area(row, definition)
+            if target is None or self.fight.actors.get(row["owner_id"]) is not target:
+                return False  # fbb.e compares the actual owner PV identity.
         if definition["type"] == "TRAP":
             from .combat_trap_area import verified_trap_characteristics
 
@@ -116,7 +122,7 @@ class NativeAreaEventRuntime:
         if definition["type"] == "WALL":
             from .combat_wall_area import verified_wall_constructor
 
-            verified_wall_constructor(row, definition)
+            verified_wall_constructor(row, definition, fight=self.fight)
             return False  # Actual fbd.e(amP) is false, before charge handling.
         if definition["type"] == "FAKE_FIGHTER":
             from .combat_fake_fighter import verified_fake_fighter
@@ -151,6 +157,10 @@ class NativeAreaEventRuntime:
         if remaining > 0 and definition["type"] != "HOUR":
             # Qq.a decrements only !bcv(); native faZ.bcv is always true.
             row["remaining_activations"] -= 1
+        if definition["type"] == "SIMPLE":
+            # Qq.a has consumed the charge; fbb.c(amP) is always null.
+            # bcW.a(x,y,z,Qe) is also empty: no child effects are executed.
+            return True
         if target is None and row.get("native_area_contract") != "fbc":
             # faY.e(null) true, faY.c(null) null: consumes a finite charge but
             # supplies no coordinates to execute child definitions.
@@ -243,7 +253,9 @@ class NativeAreaEventRuntime:
             from .combat_effect_area import native_effect_areas
             from .combat_wall_area import verified_wall_constructor
 
-            verified_wall_constructor(row, native_effect_areas()[str(row["reference"])])
+            verified_wall_constructor(
+                row, native_effect_areas()[str(row["reference"])], fight=self.fight
+            )
             return False  # fbd.d/n supplies its actual empty recipient list.
         if row.get("native_area_contract") in ("faZ", "faW"):
             # faZ.d(amP) always returns the actual owner, including null/other.

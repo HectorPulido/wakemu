@@ -11,6 +11,218 @@ from wakfu_server.combat_shared import SharedFight
 
 
 class CheckpointTests(PostgresCase):
+    def test_reconcile_missing_and_identical_committed_snapshot(self):
+        from wakfu_server.fight_checkpoint_store import snapshot
+
+        state = snapshot(self.fight)
+        receipt = self.checkpoints.reconcile_write(
+            self.account, self.generation, self.fight, state, expected_revision=None
+        )
+        self.assertFalse(receipt["committed"])
+        revision = self.checkpoints.save(self.account, self.generation, self.fight)
+        receipt = self.checkpoints.reconcile_write(
+            self.account, self.generation, self.fight, state, expected_revision=None
+        )
+        self.assertEqual(
+            receipt, dict(committed=True, revision=revision, terminal=False)
+        )
+        receipt = self.checkpoints.reconcile_write(
+            self.account, self.generation, self.fight, state, expected_revision=revision
+        )
+        self.assertFalse(receipt["committed"])
+
+    def test_reconcile_rejects_different_snapshot_and_stale_generation(self):
+        from wakfu_server.fight_checkpoint_store import snapshot
+
+        state = snapshot(self.fight)
+        self.checkpoints.save(self.account, self.generation, self.fight)
+        changed = dict(state, phase="different")
+        with self.assertRaisesRegex(ValueError, "cannot be reconciled"):
+            self.checkpoints.reconcile_write(
+                self.account,
+                self.generation,
+                self.fight,
+                changed,
+                expected_revision=None,
+            )
+        with self.assertRaisesRegex(ValueError, "session is stale"):
+            self.checkpoints.reconcile_write(
+                self.account,
+                "stale-generation",
+                self.fight,
+                state,
+                expected_revision=None,
+            )
+
+    def test_reconcile_aborted_terminal_receipt_after_lost_response(self):
+        from wakfu_server.fight_checkpoint_store import snapshot
+
+        state = snapshot(self.fight)
+        revision = self.checkpoints.save(self.account, self.generation, self.fight)
+        terminal_revision = self.checkpoints.end(
+            self.account,
+            self.generation,
+            self.fight.id,
+            expected_revision=revision,
+            status="aborted",
+        )
+        receipt = self.checkpoints.reconcile_write(
+            self.account,
+            self.generation,
+            self.fight,
+            state,
+            expected_revision=revision,
+            status="aborted",
+        )
+        self.assertEqual(
+            receipt, dict(committed=True, revision=terminal_revision, terminal=True)
+        )
+
+    def test_takeover_reconciliation_uses_new_login_and_is_idempotent(self):
+        from wakfu_server.fight_checkpoint_store import checkpoint_digest, snapshot
+        from wakfu_server.fight_store import takeover_participant
+
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_fight_participants SET session_generation=%s "
+                "WHERE fight_id=77",
+                (self.generation,),
+            )
+        state = snapshot(self.fight)
+        revision = self.checkpoints.save(self.account, self.generation, self.fight)
+        recovery = dict(
+            account_id=self.account,
+            generation=self.generation,
+            revision=None,
+            status=None,
+            digest=checkpoint_digest(state),
+        )
+        new = self.store.begin_session(self.account)
+        self.store.select_character(self.account, new, self.character)
+        with self.assertRaisesRegex(ValueError, "session is stale"):
+            self.checkpoints.reconcile_write(
+                self.account, self.generation, self.fight, state, expected_revision=None
+            )
+        receipt = self.checkpoints.recover_write_for_takeover(
+            self.account, self.generation, new, self.fight, recovery
+        )
+        self.assertEqual(
+            receipt, dict(committed=True, revision=revision, terminal=False)
+        )
+        # Lost membership commit response: repeat against the now-new lease.
+        self.assertEqual(
+            self.checkpoints.recover_write_for_takeover(
+                self.account, self.generation, new, self.fight, recovery
+            ),
+            receipt,
+        )
+        self.assertFalse(
+            takeover_participant(
+                self.store,
+                self.account,
+                new,
+                self.character,
+                self.fight.id,
+                previous_generation=self.generation,
+            )
+        )
+        # A further login can reconcile an earlier membership transfer whose
+        # response was lost, using only the server-recorded generation lineage.
+        third = self.store.begin_session(self.account)
+        self.store.select_character(self.account, third, self.character)
+        self.assertEqual(
+            self.checkpoints.recover_write_for_takeover(
+                self.account,
+                self.generation,
+                third,
+                self.fight,
+                recovery,
+                recovery_generations=(new,),
+            ),
+            receipt,
+        )
+        self.assertEqual(
+            self.checkpoints.save(
+                self.account, third, self.fight, expected_revision=revision
+            ),
+            revision + 1,
+        )
+
+    def test_takeover_reconciliation_rejects_mismatch_without_transferring_lease(self):
+        from wakfu_server.fight_checkpoint_store import checkpoint_digest, snapshot
+
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_fight_participants SET session_generation=%s "
+                "WHERE fight_id=77",
+                (self.generation,),
+            )
+        state = snapshot(self.fight)
+        self.checkpoints.save(self.account, self.generation, self.fight)
+        new = self.store.begin_session(self.account)
+        self.store.select_character(self.account, new, self.character)
+        recovery = dict(
+            account_id=self.account,
+            generation=self.generation,
+            revision=None,
+            status=None,
+            digest=checkpoint_digest(dict(state, phase="different")),
+        )
+        with self.assertRaisesRegex(ValueError, "cannot be reconciled"):
+            self.checkpoints.recover_write_for_takeover(
+                self.account, self.generation, new, self.fight, recovery
+            )
+        with self.store.connection() as db:
+            row = db.execute(
+                "SELECT session_generation FROM combat_fight_participants "
+                "WHERE fight_id=77 AND character_id=%s",
+                (self.character,),
+            ).fetchone()
+        self.assertEqual(row["session_generation"], self.generation)
+
+    def test_takeover_reconciliation_preserves_peer_writer_receipt_and_lease(self):
+        from wakfu_server.fight_checkpoint_store import checkpoint_digest, snapshot
+
+        peer, peer_character, peer_generation, _ = self._add_shared_owner()
+        state = snapshot(self.fight)
+        revision = self.checkpoints.save(peer, peer_generation, self.fight)
+        recovery = dict(
+            account_id=peer,
+            generation=peer_generation,
+            revision=None,
+            status=None,
+            digest=checkpoint_digest(state),
+        )
+        new = self.store.begin_session(self.account)
+        self.store.select_character(self.account, new, self.character)
+        receipt = self.checkpoints.recover_write_for_takeover(
+            self.account, self.generation, new, self.fight, recovery
+        )
+        self.assertEqual(receipt["revision"], revision)
+        with self.store.connection() as db:
+            rows = db.execute(
+                "SELECT account_id,session_generation FROM combat_fight_participants "
+                "WHERE fight_id=77"
+            ).fetchall()
+        self.assertEqual(
+            {r["account_id"]: r["session_generation"] for r in rows},
+            {self.account: new, peer: peer_generation},
+        )
+        self.store.begin_session(peer)
+        # Receipt writer identity does not authenticate the reader. A still
+        # admitted live peer can reconcile that exact old committed snapshot.
+        self.assertEqual(
+            self.checkpoints.reconcile_write(
+                self.account,
+                new,
+                self.fight,
+                state,
+                expected_revision=None,
+                receipt_writer=(peer, peer_generation),
+            ),
+            receipt,
+        )
+
     def test_rift_progress_and_checkpoint_share_one_commit(self):
         from unittest.mock import patch
 

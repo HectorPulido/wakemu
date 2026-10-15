@@ -11,6 +11,25 @@ from wakfu_server.paths import DATA_ROOT
 from .combat_runtime_adapter import NativeActorAuthority
 
 
+def visibility_property_side_effect(preview, affiliation, *, applying):
+    """Apply eWt's QI callback to the owning fight after actor validation."""
+    los = getattr(preview, "native_los_ignored_affiliations", None)
+    walk = getattr(preview, "native_walk_ignored_affiliations", None)
+    if not isinstance(los, frozenset) or not isinstance(walk, frozenset):
+        raise ValueError("Missing native QI affiliation sets")
+    if type(affiliation) is not int or not -128 <= affiliation <= 127:
+        raise ValueError("Missing native QK.bcN affiliation")
+
+    def update():
+        if applying:
+            preview.native_los_ignored_affiliations = los | {affiliation}  # QI.d
+        else:
+            preview.native_los_ignored_affiliations = los - {affiliation}  # QI.e
+            preview.native_walk_ignored_affiliations = walk - {affiliation}  # QI.c
+
+    return update
+
+
 @lru_cache(maxsize=1)
 def native_property_catalog():
     return protocol_catalog.load(DATA_ROOT / "native-actor-properties.json")
@@ -276,6 +295,20 @@ class OrdinaryActorAuthority:
 
         return current_controller_authority(preview, actor, metadata)
 
+    def has_equipment_type(self, preview, actor, references, inventory=False):
+        self(preview, actor)
+        if actor.id not in self.characters:
+            # Ordinary world NPCs have no companion eSt/eSy equipment component;
+            # bje.dsn returns null and inherited dqw/drv also return null.
+            if actor.id not in self._monster_sources(preview):
+                raise ValueError("Missing native equipment component authority")
+            return False
+        from .combat_equipment_type_condition import character_has_equipment_type
+
+        return character_has_equipment_type(
+            self.characters[actor.id], references, inventory
+        )
+
     def item_quantity(self, preview, actor, references):
         """eKE uses source actor inventory, not the current effect target."""
         self(preview, actor)
@@ -348,28 +381,9 @@ class OrdinaryActorAuthority:
 
             return insert
         if identity in (5, 18):
-            los = getattr(preview, "native_los_ignored_affiliations", None)
-            walk = getattr(preview, "native_walk_ignored_affiliations", None)
-            if not isinstance(los, frozenset) or not isinstance(walk, frozenset):
-                raise ValueError("Missing native QI affiliation sets")
-            affiliation = self(preview, actor).targeting["bcN"]
-            if type(affiliation) is not int or not -128 <= affiliation <= 127:
-                raise ValueError("Missing native QK.bcN affiliation")
-
-            def update():
-                if applying:
-                    preview.native_los_ignored_affiliations = los | {
-                        affiliation
-                    }  # QI.d
-                else:
-                    preview.native_los_ignored_affiliations = los - {
-                        affiliation
-                    }  # QI.e
-                    preview.native_walk_ignored_affiliations = walk - {
-                        affiliation
-                    }  # QI.c
-
-            return update
+            return visibility_property_side_effect(
+                preview, self(preview, actor).targeting["bcN"], applying=applying
+            )
         if identity == 25 and applying:
             observers = getattr(actor, "native_resource_numeric_observers", None)
             if not isinstance(observers, dict) or 4 not in observers:
@@ -397,8 +411,23 @@ class OrdinaryActorAuthority:
             return notify
         raise ValueError("Native property resource-listener branch remains unaudited")
 
+    def condition_projection(self, preview, actor):
+        """Read one validated actor and its property sets without retaining state."""
+        authority = self(preview, actor)
+        from .combat_native_actor_lookup import detached_authority
+
+        if detached_authority(preview, actor) is not None:
+            # Keep the detached property getter's stricter source requirement.
+            world = self.world_properties(preview, actor)
+        else:
+            world = self._condition_world_properties(preview, actor)
+        return authority, world, self._condition_fight_properties(preview, actor)
+
     def properties(self, preview, actor):
         self(preview, actor)
+        return self._condition_fight_properties(preview, actor)
+
+    def _condition_fight_properties(self, preview, actor):
         live = getattr(actor, "native_fight_properties", None)
         if live is not None:
             return frozenset(live)
@@ -450,6 +479,9 @@ class OrdinaryActorAuthority:
                 raise ValueError("Missing detached native world-property source")
             return frozenset(live)
         self(preview, actor)
+        return self._condition_world_properties(preview, actor)
+
+    def _condition_world_properties(self, preview, actor):
         live = getattr(actor, "native_world_properties", None)
         if live is not None:
             return frozenset(live)

@@ -2,6 +2,15 @@
 from protocol_codec import decode_body
 
 
+def select_created(store, account_id, generation, character_id):
+    """Prepare creation's automatic selection for the same world join as login."""
+    from wakfu_server.characters import heroes
+
+    character = store.select_character(account_id, generation, character_id)
+    heroes.select_main(store, account_id, generation, character_id)
+    return character
+
+
 def create(store, account_id, generation, body):
     if not store.current_session(account_id, generation):
         raise ValueError("Authentication required")

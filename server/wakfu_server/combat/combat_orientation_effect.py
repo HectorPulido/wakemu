@@ -114,6 +114,12 @@ class NativeOrientationHandler:
         # Original eWF.C reads parameter0 only; extra pairs are unused.
         caster = self.fight.actors.get(invocation.caster_id)
         target = self.fight.actors.get(invocation.target_id)
+        from .combat_area_orientation import orientation_area_pv, set_area_direction
+
+        if caster is None and invocation.caster_id is not None:
+            caster = orientation_area_pv(self.fight, invocation.caster_id)
+        if target is None and invocation.target_id is not None:
+            target = orientation_area_pv(self.fight, invocation.target_id)
         if invocation.target_id is not None and target is None:
             raise ValueError("Unknown native orientation PV target")
         rebind, direction = orientation_transition(
@@ -136,7 +142,9 @@ class NativeOrientationHandler:
         provider = getattr(self.authority, "property_counts", None)
         if not callable(provider):
             raise ValueError("Missing native orientation property authority")
-        counts = provider(self.fight, actor)
+        is_area = getattr(actor, "native_is_area", False)
+        # Verified faV properties are fbo (namespace4), not ffe.sev.
+        counts = {} if is_area else provider(self.fight, actor)
         if not isinstance(counts, dict) or any(
             type(k) is not int or type(v) is not int for k, v in counts.items()
         ):
@@ -156,7 +164,10 @@ class NativeOrientationHandler:
             return False
         from .combat_carrying import carrying_relations, set_registered_direction
 
-        carrying_relations(self.fight, actor)  # Validate before allocating/observing.
+        if not is_area:
+            carrying_relations(
+                self.fight, actor
+            )  # Validate before allocating/observing.
         uid = self.allocate_uid()
         payload = owned_effect_payload(
             uid=uid,
@@ -177,7 +188,10 @@ class NativeOrientationHandler:
             uid=uid,
             running_effect_payload=payload,
         )
-        set_registered_direction(self.fight, actor, direction)
+        if is_area:
+            set_area_direction(self.fight, actor, direction)
+        else:
+            set_registered_direction(self.fight, actor, direction)
         self.fight._event(
             "orientation",
             actor_id=actor.id,

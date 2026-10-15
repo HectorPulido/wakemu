@@ -287,6 +287,24 @@ class NativeDisplacementTests(unittest.TestCase):
             self.assertEqual(effect["native_effect_flags"], flags)
         self.assertEqual(results[0], results[1])
 
+    def test_zone_effect_flag4_keeps_identical_forced_path_and_packet(self):
+        results = []
+        for flags in ([], [4]):
+            self.setUp()
+            effect = deepcopy(self.effects["358000"])
+            effect["native_effect_flags"] = flags
+            self.handler(effect, None, EffectInvocation(358000, 1, 7, -7, (4, 0, 0)))
+            results.append(
+                (
+                    self.preview.actors[-7].position,
+                    tuple(self.packets),
+                    self.preview.native_effect_uid_next,
+                )
+            )
+            self.assertEqual(effect["native_effect_flags"], flags)
+        self.assertEqual(results[0], results[1])
+        self.assertEqual(results[0][0], (5, 0, 0))
+
     def test_do_not_uncarry_flag37_preserves_ordinary_displacement_result(self):
         results = []
         for enabled in (False, True):

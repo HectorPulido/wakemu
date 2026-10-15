@@ -103,7 +103,7 @@ def range_count(
                 for ref, level, caster in row.states
             ):
                 continue
-        elif relation not in ("enemy", "ally"):
+        elif relation not in ("enemy", "ally", "world_property"):
             raise ValueError("Unknown native range candidate filter")
         if maximum > 0:
             distance = sum(

@@ -1,11 +1,42 @@
 import struct
 import unittest
 from postgres_case import PostgresCase
-from wakfu_server.creation import create
+from wakfu_server.creation import create, select_created
+from wakfu_server.characters import heroes
 from wakfu_server.wire import appearance_section
 
 
 class CreationTests(PostgresCase):
+    def test_creation_auto_selection_rebinds_existing_company_before_world_join(self):
+        store = self.store
+        account = store.register("creator-company", "creation-password")["id"]
+        previous = store.create_character(account, "Previous Main")
+        companion = store.create_character(account, "Saved Companion")
+        generation = store.begin_session(account)
+        store.select_character(account, generation, previous["id"])
+        heroes.add(store, account, generation, previous["id"], companion["id"])
+        encoded = b"New Main"
+        body = (
+            struct.pack(">qhB", -1, 3, len(encoded))
+            + encoded
+            + b"\x01"
+            + appearance_section({"sex": 0, "clothIndex": 1, "skinColor": -9065766})
+        )
+        status, created = create(store, account, generation, body)
+        self.assertEqual(0, status)
+        selected = select_created(store, account, generation, created["id"])
+        roster = heroes.ensure_company_party(store, account, generation, selected["id"])
+        self.assertEqual(created["id"], roster["leader"]["id"])
+        self.assertEqual((companion["id"],), tuple(c["id"] for c in roster["heroes"]))
+        self.assertEqual(-9065766, selected["appearance"]["skinColor"])
+        with store.connection() as db:
+            party = db.execute(
+                "SELECT p.leader_id FROM player_parties p JOIN player_party_members m "
+                "ON m.party_id=p.id WHERE m.character_id=%s",
+                (selected["id"],),
+            ).fetchone()
+            self.assertEqual(selected["id"], party["leader_id"])
+
     def test_protocol_creation_persistence_errors_and_session_ownership(self):
         store = self.store
         store.max_characters = 5

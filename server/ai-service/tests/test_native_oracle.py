@@ -329,7 +329,16 @@ class NativeOracleTests(unittest.TestCase):
         prewarm_runtime_catalogs()
 
     @staticmethod
-    def wonejo_fixture():
+    def wonejo_fixture(
+        *,
+        compact=False,
+        terrain_effect_id=46,
+        map_id=1134,
+        player_position=(-8, -7, -1),
+        monster_position=(-7, -7, -1),
+        monster_ref=5525,
+        monster_level=1,
+    ):
         from tests.test_combat_npc_attack import NativeNpcAttackTests
         from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
         from wakfu_server.combat_bootstrap import create_placement
@@ -340,27 +349,32 @@ class NativeOracleTests(unittest.TestCase):
         fixture.setUp()
         character = dict(fixture.character)
         character.update(
-            map_id=1134, instance_id=0, x=-8, y=-7, z=-1, active_build_index=0
+            map_id=map_id,
+            instance_id=0,
+            x=player_position[0],
+            y=player_position[1],
+            z=player_position[2],
+            active_build_index=0,
         )
         monster = owned_instance(
-            5525,
-            1,
+            monster_ref,
+            monster_level,
             fixture.npc.id,
-            map_id=1134,
-            x=-7,
-            y=-7,
-            z=-1,
+            map_id=map_id,
+            x=monster_position[0],
+            y=monster_position[1],
+            z=monster_position[2],
             instance_id=0,
         )
         # Preserve the adjacent casting fixture; the default live arena policy
         # may spread opponents to a different native cell.
         terrain = local_arena(
-            1134,
+            map_id,
             77,
-            (-8, -7, -1),
-            (-7, -7, -1),
+            player_position,
+            monster_position,
             relocate_monsters=False,
-            compact=False,
+            compact=compact,
         )
         fight, _ = create_placement(
             character,
@@ -371,7 +385,7 @@ class NativeOracleTests(unittest.TestCase):
             player_mp=3,
             player_wp=6,
             player_initiative=fixture.pc.initiative,
-            terrain_effect_id=46,
+            terrain_effect_id=terrain_effect_id,
             terrain_instance_id=-300,
         )
         initialize_fight_snapshots(

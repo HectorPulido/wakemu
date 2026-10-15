@@ -12,6 +12,11 @@ from wakfu_server.monsters import owned_instance
 
 class ReconnectWorldActorTests(unittest.TestCase):
     def setUp(self):
+        if (
+            self._testMethodName
+            == "test_npc_morph_reconnect_replays_same_uid_then_omits_after_removal"
+        ):
+            return  # This integrated fixture supplies its own NPC identity.
         self.monster = owned_instance(4, 8, -200, map_id=1134, x=-10, y=-2, z=-1)
         self.actor = SimpleNamespace(
             id=-200, controlled=False, team=1, position=(-9, -3, -1)
@@ -70,6 +75,204 @@ class ReconnectWorldActorTests(unittest.TestCase):
                     )
                 self.assertEqual([op for op, _ in packets], [12608, 12847])
 
+    def test_npc_morph_reconnect_replays_same_uid_then_omits_after_removal(self):
+        """The world appearance, fight roster and morph carrier keep one NPC ID."""
+        from dataclasses import asdict
+        import struct
+        from unittest.mock import patch
+
+        from wakfu_server.combat_effect_dispatch import EffectInvocation
+        from wakfu_server.combat_morph_handler import (
+            NativeMorphHandler,
+            remove_morph_effect,
+        )
+        from wakfu_server.combat_retained_effects import RetainedEffect
+        from wakfu_server.combat_retained_runtime import NativeRetainedRuntime
+        from wakfu_server.combat_state import Actor, Fight
+        from wakfu_server.combat_stat_handler import StatExecutionContext
+        from wakfu_server.combat_native_timing_context import native_time_payload
+
+        player = Actor(10, 0, (0, 0, 0), 60, 6, 3, 100, 50, 10, True)
+        npc = Actor(-200, 1, (2, 0, 0), 40, 6, 3, 40, 25)
+        fight = Fight(
+            901,
+            [player, npc],
+            {(x, 0, 0) for x in range(4)},
+            {0: {(0, 0, 0), (1, 0, 0)}, 1: {(2, 0, 0), (3, 0, 0)}},
+        )
+        fight.ready(10)
+        fight.native_retained_tracking = True
+        effect_packets = []
+        profile = {
+            "profile_id": 2778,
+            "minimum_level": 12,
+            "abilities": [{"reference": 91, "casting_uid": 91, "maximum_level": 50}],
+        }
+        morph = NativeMorphHandler(
+            fight,
+            effect_packets,
+            action_id=41,
+            allocate_uid=lambda: 7501,
+            context=lambda *_: StatExecutionContext(
+                True, True, None, True, native_time_payload()
+            ),
+            rng=lambda: 0.5,
+            profiles={"2778": profile},
+        )
+        effect = {
+            "effect_class": 933,
+            "parameter_count": 1,
+            "parameters": [2778, 0],
+            "target_masks": [[], [], [], [], [], [], []],
+        }
+        invocation = EffectInvocation(105267, 50, 10, -200, npc.position)
+
+        class Runner:
+            def __init__(self, uid, family, *, rng, value=0):
+                self.uid, self.family, self.value = uid, family, value
+
+            def set_calculated(self, value):
+                self.value = value
+
+            def finish_application(self):
+                pass
+
+        with patch(
+            "wakfu_server.combat.combat_morph_handler.NativeRunnerAmount", Runner
+        ):
+            self.assertTrue(morph(effect, {}, invocation))
+        self.assertEqual([opcode for opcode, _ in effect_packets], [12613])
+        original_payload = bytes.fromhex(fight.owned_stat_effects[7501]["payload"])
+        entry = RetainedEffect(
+            uid=7501,
+            target_id=-200,
+            effect_class=933,
+            generic_effect=105267,
+            manager_id=-200,
+            definition_type=0,
+            container_present=False,
+        )
+        fight.native_retained_records[7501] = asdict(entry)
+        fight.native_retained_order.append(7501)
+
+        shared = SimpleNamespace(
+            map_id=1134,
+            instance_id=0,
+            runtime=SimpleNamespace(
+                fight=fight,
+                turn_deadline=None,
+                native_action_id=41,
+                awaiting_ack=None,
+            ),
+            join_context={
+                "monsters": {
+                    -200: {
+                        "id": -200,
+                        "ref": 4,
+                        "level": 25,
+                        "map_id": 1134,
+                        "instance_id": 0,
+                        "team": 1,
+                    }
+                },
+                "group_key": (1134, 0, 555),
+                "arena": {
+                    "map_id": 1134,
+                    "instance_id": 0,
+                    "x": 0,
+                    "y": 0,
+                    "width": 4,
+                    "height": 1,
+                    "min_z": 0,
+                    "max_z": 0,
+                    "cell_masks": [0, 0, 0, 0],
+                },
+                "terrain_effect_id": 99,
+                "terrain_instance_id": 0,
+                "leaders": {0: 10, 1: -200},
+            },
+        )
+        adapter = CombatSessionAdapter(SimpleNamespace())
+
+        def fixture_instance(ref, level, actor_id, **kw):
+            return {
+                "id": actor_id,
+                "ref": ref,
+                "level": level,
+                "map_id": kw["map_id"],
+                "instance_id": kw["instance_id"],
+                "team": kw["team"],
+                **{key: kw[key] for key in ("x", "y", "z")},
+            }
+
+        def reconnect_packets():
+            with (
+                patch.object(adapter, "actor_payload", return_value=(b"stats", b"fx")),
+                patch(
+                    "wakfu_server.monsters.owned_instance", side_effect=fixture_instance
+                ),
+                patch(
+                    "wakfu_server.combat.combat_monster_world.owned_instance",
+                    side_effect=fixture_instance,
+                ),
+                patch(
+                    "wakfu_server.combat.combat_monster_world.reference",
+                    return_value={"name": "Native NPC"},
+                ),
+                patch(
+                    "wakfu_server.combat.combat_monster_world.corpse_collect_actions",
+                    return_value=(),
+                ),
+            ):
+                return adapter.owned_reconnect_bootstrap(fight, shared, None)
+
+        first = reconnect_packets()
+        opcodes = [opcode for opcode, _ in first]
+        self.assertEqual(opcodes[:2], [12608, 12847])
+        self.assertEqual(opcodes[-1], 12613)
+        self.assertIn(original_payload, first[-1][1])
+        self.assertEqual(
+            struct.unpack_from(">iiiBi", first[-1][1]), (901, 41, -1, 0, 933)
+        )
+        self.assertEqual(fight.actors[-200].id, -200)
+        appearance = Reader(first[0][1])
+        self.assertEqual(tuple(appearance.number(t) for t in ("B", "B")), (0, 1))
+        self.assertEqual(appearance.number("B"), 1)
+        self.assertEqual(appearance.number("q"), -200)
+        actor = Reader(appearance.take(appearance.number("H")))
+        self.assertEqual(actor.number("B"), 11)
+        self.assertEqual(actor.number("q"), -200)
+        self.assertEqual(actor.number("B"), 1)
+        self.assertEqual(actor.number("q"), -1)
+        from wakfu_server.combat.combat_wire import decode_bootstrap
+
+        roster = decode_bootstrap(first[1][1])
+        self.assertIn(-200, {row["actor_id"] for row in roster["participants"]})
+
+        remove_morph_effect(morph, 7501)
+        retention = object.__new__(NativeRetainedRuntime)
+        retention.fight = fight
+        retention.synchronize()
+        self.assertEqual([opcode for opcode, _ in effect_packets], [12613, 13560])
+        from wakfu_server.combat_effect_removal import state_unapplication_payload
+
+        self.assertIn(
+            state_unapplication_payload(original_payload), effect_packets[-1][1]
+        )
+        self.assertNotIn(7501, fight.owned_stat_effects)
+        self.assertNotIn(7501, fight.native_retained_records)
+        self.assertNotIn(7501, fight.native_retained_order)
+
+        second = reconnect_packets()
+        self.assertEqual([opcode for opcode, _ in second][:2], [12608, 12847])
+        self.assertFalse(
+            any(
+                opcode == 12613 and original_payload in payload
+                for opcode, payload in second
+            )
+        )
+        self.assertEqual(fight.actors[-200].id, -200)
+
     def test_friendly_duel_does_not_fabricate_npcs(self):
         self.shared.join_context = {}
         self.assertEqual(ordinary_npc_appearances(self.fight, self.shared), ())
@@ -87,6 +290,42 @@ class ReconnectWorldActorTests(unittest.TestCase):
         self.assertEqual(
             tuple(outer.number(t) for t in ("B", "B", "B", "q")), (0, 1, 1, -200)
         )
+
+    def test_retired_snapshot_npc_is_not_restored_as_a_world_appearance(self):
+        with patch(
+            "wakfu_server.combat.combat_snapshot_actor_visibility.hidden_snapshot_actor_ids",
+            return_value={-200},
+        ):
+            self.assertEqual(ordinary_npc_appearances(self.fight, self.shared), ())
+
+    def test_hidden_npc_is_filtered_without_dropping_surviving_npc_appearance(self):
+        survivor = SimpleNamespace(
+            id=-201, controlled=False, team=1, position=(-8, -4, -1)
+        )
+        self.fight.actors[survivor.id] = survivor
+        self.shared.join_context["monsters"][survivor.id] = owned_instance(
+            4, 8, survivor.id, map_id=1134, x=-8, y=-4, z=-1, team=1
+        )
+        emitted = []
+
+        def capture_group(members, *, group_id):
+            emitted.extend(members)
+            return b"spawn-group"
+
+        with (
+            patch(
+                "wakfu_server.combat.combat_snapshot_actor_visibility.hidden_snapshot_actor_ids",
+                return_value={-200},
+            ),
+            patch(
+                "wakfu_server.combat.combat_monster_world.spawn_group",
+                side_effect=capture_group,
+            ),
+        ):
+            packets = ordinary_npc_appearances(self.fight, self.shared)
+
+        self.assertEqual(packets, ((12608, b"spawn-group"),))
+        self.assertEqual([member["id"] for member in emitted], [-201])
 
     def test_incomplete_or_foreign_group_authority_is_rejected_without_mutation(self):
         cases = [

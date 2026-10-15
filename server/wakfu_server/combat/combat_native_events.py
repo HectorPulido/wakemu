@@ -200,11 +200,12 @@ def validate_group_registration_flags(
             and set(effect.get("native_effect_flags", ())) == set(flags)
         ):
             unknown.remove(22)
-    if 29 in unknown and effect is not None and reference is not None:
-        # eVl.rwZ labels LIFE_STEAL_HEAL_EFFECT. Native eYy/865 and its
-        # eZR lifecycle do not read it; the two-child value-transfer runner
-        # owns the actual damage callback and life-steal calculation.
-        # Retain the source flag, and do not extend this proof to other groups.
+    if unknown & {4, 22, 29} and effect is not None and reference is not None:
+        # eYy/865 and its eZR lifecycle do not consume ZONE_EFFECT/rwB(4),
+        # SINGLE_TARGET_EFFECT/rwS(22), or LIFE_STEAL_HEAL_EFFECT/rwZ(29).
+        # The real child runners own damage mastery/events and the transfer
+        # calculation. Preserve their flags; do not copy parent flags to them.
+        # Keep this proof scoped to an authenticated two-child eYy definition.
         children = effect.get("children")
         if (
             type(effect.get("effect_class")) is int
@@ -216,7 +217,7 @@ def validate_group_registration_flags(
             and all(type(child) is int and child > 0 for child in children)
             and set(effect.get("native_effect_flags", ())) == set(flags)
         ):
-            unknown.remove(29)
+            unknown.difference_update({4, 22, 29})
     if unknown:
         raise ValueError(f"Unaudited native group execution flags: {sorted(unknown)}")
     # eYg.bcd returns true unconditionally; no active-phase predicate is

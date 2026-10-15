@@ -1,4 +1,4 @@
-"""Construct an owned two-player placement runtime for a consented duel."""
+"""Construct owned player companies in a placement runtime for a consented duel."""
 import secrets
 import time
 from .combat_orientation import INITIAL_PLAYER_DIRECTION
@@ -68,7 +68,7 @@ def prepare_and_register(
         fight_id,
         (challenger["x"], challenger["y"], challenger["z"]),
         [(target["x"], target["y"], target["z"])],
-        relocate_monsters=False,
+        relocate_monsters=challenger["account_id"] == target["account_id"],
         compact=True,
         minimum_dimensions=(30, 30),
         prepared_terrain=prepared_terrain,
@@ -215,11 +215,27 @@ def prepare_and_register(
             instance_id,
         ),
     )
+    # Reuse ordinary atomic hero admission: durable membership is per actor,
+    # while transport and input ownership remain the actual selected session.
+    from wakfu_server.combat_heroes import admit_owned_heroes
+
+    if challenger["account_id"] == target["account_id"]:
+        # One real transport controls the two explicitly nominated opponents.
+        # Never duplicate the same company onto both teams.
+        sessions = sessions[:1]
+    else:
+        for session in sessions:
+            admitted = admit_owned_heroes(db, store, session, fight)
+            fight = admitted["fight"]
+            characters.update(admitted["characters"])
+    runtime.fight = fight
     payloads = {
         actor.id: adapter.actor_payload(
             fight,
             actor,
-            next(session for session in sessions if session.character_id == actor.id),
+            next(
+                session for session in sessions if session.account_id == actor.owner_id
+            ),
         )
         for actor in fight.actors.values()
     }
@@ -253,10 +269,7 @@ def prepare_and_register(
         sessions,
         runtime=runtime,
         auto_locked=auto_locked,
-        initial_packets={
-            sessions[0].account_id: packets,
-            sessions[1].account_id: packets,
-        },
+        initial_packets={session.account_id: packets for session in sessions},
         db=db,
         join_context=context,
     )

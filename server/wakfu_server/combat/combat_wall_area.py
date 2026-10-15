@@ -72,7 +72,7 @@ def wall_constructor(definition, level):
     }
 
 
-def verified_wall_constructor(row, definition):
+def verified_wall_constructor(row, definition, *, fight=None):
     """Verify the persisted area checkpoint against its source definition."""
     if (
         not isinstance(row, dict)
@@ -86,11 +86,26 @@ def verified_wall_constructor(row, definition):
         raise ValueError("Native bcZ wall constructor checkpoint mismatch")
     wall_hp_state(row, expected)
     if expected["obstacle"]:
-        if (
-            type(row.get("native_obstacle_id")) is not int
-            or not 0 <= row["native_obstacle_id"] <= 126
-            or row.get("native_obstacle_source") != "QI.f(QK)"
-        ):
+        registered = (
+            type(row.get("native_obstacle_id")) is int
+            and 0 <= row["native_obstacle_id"] <= 126
+            and row.get("native_obstacle_source") == "QI.f(QK)"
+        )
+        # Qs removes the spatial QI entry before synchronous Qq callbacks.
+        # Only the actual retained PV may outlive that registration; a marker
+        # on an active or detached row does not grant retirement authority.
+        from .combat_state_managers import retained_area_pv_row
+
+        retired = (
+            fight is not None
+            and type(row.get("uid")) is int
+            and type(row.get("native_obstacle_id")) is int
+            and row["native_obstacle_id"] == -1
+            and row.get("native_obstacle_source") == "QI.g(QK)"
+            and row["uid"] not in getattr(fight, "native_effect_areas", {})
+            and retained_area_pv_row(fight, row["uid"]) is row
+        )
+        if not registered and not retired:
             raise ValueError("Missing registered native bcZ QI obstacle")
     elif (
         row.get("native_obstacle_id") != -1

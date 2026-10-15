@@ -1,6 +1,8 @@
 """Publish native protector tax objects without inventing actors or nations."""
 from functools import lru_cache
 import math
+import os
+import threading
 import struct
 
 from wakfu_server import native_catalog
@@ -200,7 +202,26 @@ def bootstrap_records(db, map_id, existing_records=(), *, instance_id=0):
     )
 
 
+_policy_pool = None
+_policy_pool_lock = threading.Lock()
+
+
+def _policy_database():
+    # Catalog decoding can acquire its own bounded pool while encoding policy.
+    # Never hold a catalog connection across those nested document reads.
+    global _policy_pool
+    with _policy_pool_lock:
+        if _policy_pool is None:
+            from wakfu_server.postgres import Database
+
+            _policy_pool = Database(
+                os.environ["WAKFU_DATABASE_URL"],
+                password_file=os.environ.get("WAKFU_DATABASE_PASSWORD_FILE"),
+            )
+        return _policy_pool
+
+
 def message_records(map_id, existing_records=(), *, instance_id=0):
     """Shared native13974 encoder seam using PostgreSQL policy authority."""
-    with native_catalog._database().connection() as db:
+    with _policy_database().connection() as db:
         return bootstrap_records(db, map_id, existing_records, instance_id=instance_id)

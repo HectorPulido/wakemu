@@ -1205,8 +1205,24 @@ class NativeSession:
                 )
             )
         fight = runtime.fight
+        from .actor_repertoires import actor_repertoires
+
+        repertoire_cache = getattr(self, "_actor_repertoire_cache", None)
+        if repertoire_cache is None:
+            repertoire_cache = self._actor_repertoire_cache = {}
+        observation_key = (key, tuple(actor["id"] for actor in actors))
+        if observation_key not in repertoire_cache:
+            repertoire_cache[observation_key] = actor_repertoires(
+                self.oracle,
+                fight,
+                actors,
+                source_state=key,
+                capabilities=_advisory_spell_capabilities,
+            )
+        repertoires = repertoire_cache[observation_key]
         description = dict(
             key=key,
+            actorRepertoires=repertoires,
             nativeContext=key,
             runtimeIdentity=self.state_identities[key],
             actors=actors,

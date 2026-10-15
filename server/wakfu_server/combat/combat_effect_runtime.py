@@ -996,6 +996,12 @@ class NativeEffectRuntimeFactory:
                 allocate_uid=allocate,
                 authority=self.displacement_authority,
                 selected_surface=self.contexts.selected_surface,
+                context=contextual("stat"),
+                draw_direction=(
+                    None
+                    if self.transaction_rng is None
+                    else lambda: self.transaction_rng.randint(1, 4)
+                ),
             )
             handlers.update({identity: displacement for identity in FAMILIES})
             from .combat_armor import NativeArmorHandler

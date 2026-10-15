@@ -7,6 +7,34 @@ from wakfu_server.combat_effect_area_queries import actor_on_specific_area
 
 
 class SelectedAreaGeometryTests(unittest.TestCase):
+    def test_eOv_area_membership_expands_using_signed_actor_radius(self):
+        actor = SimpleNamespace(id=7, position=(2, 3, 0), physical_radius=1, team=1)
+        area = dict(
+            uid=71,
+            reference=1836,
+            cell=(3, 4, 0),
+            owner_id=-7,
+            native_hour_contract=True,
+            native_area_contract="faZ",
+        )
+        fight = SimpleNamespace(
+            actors={7: actor},
+            native_effect_areas={71: area},
+            native_retired_area_managers={},
+        )
+
+        # Qq.a(PV,x,y,z) first checks the center, then the complete square
+        # expansion from -radius through +radius on both axes.
+        self.assertTrue(actor_on_specific_area(fight, actor_id=7, reference=1836))
+        area["cell"] = (4, 5, 0)
+        self.assertFalse(actor_on_specific_area(fight, actor_id=7, reference=1836))
+
+        actor.physical_radius = -1
+        area["cell"] = (2, 3, 0)
+        self.assertTrue(actor_on_specific_area(fight, actor_id=7, reference=1836))
+        area["cell"] = (3, 3, 0)
+        self.assertFalse(actor_on_specific_area(fight, actor_id=7, reference=1836))
+
     def test_selected_area_geometry_respects_actual_npc_owner_and_team(self):
         for target_owner, affiliation, own, team in (
             (-7, 1, True, True),
@@ -37,7 +65,7 @@ class SelectedAreaGeometryTests(unittest.TestCase):
                     "wakfu_server.combat_state_managers.registered_area_pv",
                     return_value=pv,
                 ), patch(
-                    "wakfu_server.combat_effect_area_queries.contains_area_cell",
+                    "wakfu_server.combat_effect_area_geometry.contains_area_cell",
                     side_effect=lambda row, position: row["uid"] == 71
                     and position == (2, 3, 0),
                 ):
@@ -79,7 +107,7 @@ class SelectedAreaGeometryTests(unittest.TestCase):
                     native_retired_area_managers={},
                 )
                 with patch(
-                    "wakfu_server.combat_effect_area_queries.contains_area_cell",
+                    "wakfu_server.combat_effect_area_geometry.contains_area_cell",
                     return_value=True,
                 ):
                     self.assertTrue(
@@ -135,7 +163,7 @@ class SelectedAreaGeometryTests(unittest.TestCase):
         with patch(
             "wakfu_server.combat_state_managers.registered_area_pv", return_value=pv
         ), patch(
-            "wakfu_server.combat_effect_area_queries.contains_area_cell",
+            "wakfu_server.combat_effect_area_geometry.contains_area_cell",
             return_value=True,
         ):
             self.assertEqual(root(70), -7)

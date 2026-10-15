@@ -73,7 +73,7 @@ class ShardIdentificationTests(PostgresCase):
                 1,
             )
 
-    def test_level_gate_returns_native_too_high_level_without_drawing(self):
+    def test_owned_higher_level_item_can_be_identified(self):
         with self.store.connection() as db:
             db.execute("UPDATE characters SET level=1 WHERE id=%s", (self.char["id"],))
         result = identify(
@@ -82,16 +82,16 @@ class ShardIdentificationTests(PostgresCase):
             self.generation,
             self.char["id"],
             struct.pack(">q", self.item["uid"]),
-            randbelow=lambda _limit: self.fail("level gate must precede RNG"),
+            randbelow=lambda _limit: 0,
         )
-        self.assertEqual(result["status"], 2)
-        self.assertIsNone(result["shard_state"])
+        self.assertEqual(result["status"], 0)
+        self.assertIsNotNone(result["shard_state"])
         with self.store.connection() as db:
             self.assertEqual(
                 db.execute(
                     "SELECT count(*) AS n FROM inventory_socket_identification_receipts"
                 ).fetchone()["n"],
-                0,
+                1,
             )
 
     def test_unknown_template_fails_without_splitting_and_valid_stack_identifies_one(
@@ -398,8 +398,11 @@ class ShardIdentificationTests(PostgresCase):
         with self.store.connection() as db:
             db.execute("DELETE FROM player_exchanges WHERE id=%s", (exchange_id,))
 
+        from wakfu_server.equipment import RULES
+
         equipped = proto_field(
-            10, proto_field(8, self.item["uid"]) + proto_field(16, 4)
+            10,
+            proto_field(8, self.item["uid"]) + proto_field(16, RULES[2869]["slots"][0]),
         )
         with self.store.connection() as db:
             db.execute(
@@ -407,8 +410,10 @@ class ShardIdentificationTests(PostgresCase):
                 "VALUES(%s,0,%s,%s,%s,%s) ON CONFLICT(character_id,build_index) DO UPDATE SET equipment=EXCLUDED.equipment",
                 (self.char["id"], proto_field(24, 100), equipped, b"", b""),
             )
-        with self.assertRaisesRegex(ValueError, "Unequip"):
-            identify(self.store, self.account, self.generation, self.char["id"], body)
+        result = identify(
+            self.store, self.account, self.generation, self.char["id"], body
+        )
+        self.assertEqual(result["status"], 0)
 
     def test_deleted_uid_does_not_replay_durable_identification_receipt(self):
         body = struct.pack(">q", self.item["uid"])

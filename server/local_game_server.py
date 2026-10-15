@@ -39,6 +39,7 @@ from wakfu_server import wire
 from wakfu_server.world import World
 from wakfu_server.movement import Movement
 from wakfu_server.creation import create as create_character_request
+from wakfu_server.creation import select_created as select_created_character
 from wakfu_server import builds
 from wakfu_server import (
     transports,
@@ -67,7 +68,9 @@ from wakfu_server.maps.world_scene_sync import (
 
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent if ROOT.name == "server" else ROOT
-RUNTIME = Path(os.environ.get("WAKFU_RUNTIME", PROJECT_ROOT / ".runtime/local"))
+RUNTIME = Path(
+    os.environ.get("WAKFU_RUNTIME", PROJECT_ROOT / ".local-state/wakemu/world")
+)
 RUNTIME.mkdir(parents=True, exist_ok=True)
 (RUNTIME / "logs").mkdir(exist_ok=True)
 LOCK = threading.Lock()
@@ -120,6 +123,7 @@ from wakfu_server.planting_bonus_publisher import Publisher as PlantingBonusPubl
 NATIVE_PLANTING_BONUS = (
     not OPEN_PLANTING and os.environ.get("WAKFU_NATIVE_PLANTING_BONUS", "0") == "1"
 )
+COMBAT_WIRE_TRACE = os.environ.get("WAKFU_COMBAT_WIRE_TRACE", "0") == "1"
 PLANTING_BONUSES = PlantingBonusPublisher(STORE)
 PLANTING_BONUS_RESOLVER = (
     planting_level_bonus_resolver(STORE)
@@ -518,6 +522,30 @@ def receive(connection, count, on_idle=None):
     return bytes(data)
 
 
+def record_combat_wire_effect(connection, service, opcode, body):
+    """Optionally log safe identity fields for outgoing native 12613 packets."""
+    if not COMBAT_WIRE_TRACE or service != "world" or opcode != 12613:
+        return
+    try:
+        from wakfu_server.combat.combat_wire_diagnostics import (
+            effect_application_metadata,
+        )
+
+        metadata = effect_application_metadata(opcode, body)
+        if metadata is None:
+            return
+        record(
+            event="combat_effect_wire",
+            service=service,
+            direction="out",
+            target_connection_id=getattr(connection, "trace_id", None),
+            **metadata,
+        )
+    except Exception:
+        # Diagnostics run after the successful write and must never affect it.
+        return
+
+
 def send(connection, service, opcode, body):
     write = lambda: connection.sendall(struct.pack(">IH", 6 + len(body), opcode) + body)
     if service == "world" and NATIVE_PLANTING_BONUS:
@@ -531,6 +559,7 @@ def send(connection, service, opcode, body):
         bytes=len(body),
         target_connection_id=getattr(connection, "trace_id", None),
     )
+    record_combat_wire_effect(connection, service, opcode, body)
 
 
 def send_batch(connection, service, packets):
@@ -558,6 +587,7 @@ def send_batch(connection, service, packets):
             bytes=len(body),
             target_connection_id=getattr(connection, "trace_id", None),
         )
+        record_combat_wire_effect(connection, service, opcode, body)
 
 
 from wakfu_server.mount_publication import snapshot as mount_snapshot
@@ -1049,6 +1079,11 @@ def replay(connection, start, end, account_id, character=None, *, generation=Non
 
     for frame in FRAMES[start:end]:
         if frame["direction"] == "in":
+            if frame["opcode"] in (12705, 12728):
+                # Reference running effects belong to the captured actor. An
+                # identity rewrite can target our player with foreign visual
+                # state; only authoritative live emitters may publish effects.
+                continue
             if frame["opcode"] in CAPTURE_STATE_OPCODES:
                 # Account chest compartments and updates belong exclusively
                 # to PostgreSQL-owned custody, never the reference account.
@@ -1360,6 +1395,13 @@ def session(raw, peer, service, context):
         if ranch_session is not None:
             ranch_session.validate_lease(generation)
         return session.refresh(character, saved)
+
+    def refresh_item_mutation_character():
+        from wakfu_server.combat_lifecycle import outside_progression
+
+        updated = refresh_owned_character(STORE.character(account_id, character["id"]))
+        send(connection, service, *outside_progression(updated, wp=COMBAT_TEST_WP))
+        return updated
 
     def attach_combat_return_position():
         # Private coordinates never replace the durable exterior position.
@@ -1858,8 +1900,11 @@ def session(raw, peer, service, context):
         )
 
     def publish_heroes(roster):
-        from wakfu_server.characters import hero_wire
+        from wakfu_server.characters import hero_wire, hero_private_scene
 
+        roster = hero_private_scene.project(
+            roster, active_private_session(), character, generation
+        )
         for hero in roster["heroes"]:
             send(connection, service, *hero_wire.activate(OWNED_HERO_TEMPLATE, hero))
             send(connection, service, *hero_wire.statistics(hero))
@@ -3966,7 +4011,9 @@ def session(raw, peer, service, context):
 
             # The worker publishes its revision under shared.lock. Drain before
             # Registry.takeover acquires that lock, never from its callback.
-            if not CHECKPOINT_WRITER.flush_fight(shared.fight.id, timeout=10):
+            if not CHECKPOINT_WRITER.flush_for_takeover(
+                shared.fight.id, account_id, owner.generation, generation, timeout=10
+            ):
                 raise ValueError("Checkpoint takeover drain timed out")
 
             def persist_takeover(previous):
@@ -4254,7 +4301,25 @@ def session(raw, peer, service, context):
             now = time.monotonic()
             renew = now - last_session_renewal >= 10
             health_started = time.monotonic()
-            session_health = STORE.session_health(account_id, generation, renew=renew)
+            try:
+                session_health = STORE.session_health(
+                    account_id, generation, renew=renew
+                )
+            except Exception as error:
+                CHECKPOINT_WRITER.observe_database_health(
+                    account_id, generation, error=error
+                )
+                raise
+            if renew and session_health["valid"]:
+                checkpoint_recovery = CHECKPOINT_WRITER.observe_database_health(
+                    account_id,
+                    generation,
+                    renewed_until=session_health["renewed_until"],
+                )
+                if checkpoint_recovery["resumed"]:
+                    record(
+                        event="combat_checkpoint_health_recovery", **checkpoint_recovery
+                    )
             health_elapsed_ms = (time.monotonic() - health_started) * 1000
             if not session_health["valid"] or health_elapsed_ms >= 1000:
                 record(
@@ -4562,8 +4627,10 @@ def session(raw, peer, service, context):
         return time.monotonic() - connected_at < 30
 
     try:
-        raw.settimeout(1)
+        # Preserve remote TLS handshake tolerance before normal polling.
+        raw.settimeout(10)
         with context.wrap_socket(raw, server_side=True) as connection:
+            connection.settimeout(1)
             connection = Connection(connection)
             connection.trace_id = connection_trace_id
             if service == "world":
@@ -4775,7 +4842,6 @@ def session(raw, peer, service, context):
                     13578,
                     12247,
                     13331,
-                    12772,
                     13434,
                     12580,
                     13210,
@@ -4783,26 +4849,6 @@ def session(raw, peer, service, context):
                     12870,
                     12363,
                 ):
-                    if opcode == 12772:
-                        # The client edits builds optimistically. Restore the
-                        # prior sheet while preserving combat resources; a
-                        # silent discard looks like a lost save on reconnect.
-                        try:
-                            packets = builds.blocked_save_messages(character, body)
-                        except (ValueError, UnicodeError) as error:
-                            record(
-                                event="build_rejected",
-                                actor_id=character["id"],
-                                reason=str(error),
-                            )
-                        else:
-                            for message_id, message_body in packets:
-                                send(connection, service, message_id, message_body)
-                            record(
-                                event="build_rejected",
-                                actor_id=character["id"],
-                                reason="Build editing is unavailable during combat",
-                            )
                     record(
                         event="combat_world_action_rejected",
                         actor_id=character["id"],
@@ -4860,12 +4906,14 @@ def session(raw, peer, service, context):
                         for message_id, message_body in transports.bootstrap(
                             character, destination_route
                         ):
-                            send(connection, service, message_id, message_body)
+                            if opcode != 14689 or message_id != 13256:
+                                send(connection, service, message_id, message_body)
                     elif character["map_id"] != 1134:
                         for message_id, message_body in owned_native_bootstrap(
                             character
                         ):
-                            send(connection, service, message_id, message_body)
+                            if opcode != 14689 or message_id != 13256:
+                                send(connection, service, message_id, message_body)
                     else:
                         replay(
                             connection,
@@ -5258,8 +5306,8 @@ def session(raw, peer, service, context):
                         )
                         # Official creation selects the new character server-side;
                         # it sends 23082/bootstrap without waiting for 23664.
-                        character = STORE.select_character(
-                            account_id, generation, created["id"]
+                        character = select_created_character(
+                            STORE, account_id, generation, created["id"]
                         )
                         deliver_custom_task_rewards(bootstrap=True)
                         character = health_store.initialize(
@@ -6359,23 +6407,48 @@ def session(raw, peer, service, context):
                         from wakfu_server.friendly_duels import (
                             cancel_undelivered_invitation,
                             invite_challenge,
+                            owned_duel_target,
                         )
 
                         request = decode_challenge(body)
                         identity = WORLD.live_identity(
                             character_id=request["target_character_id"]
                         )
-                        if identity is None:
-                            raise ValueError("Duel target is offline")
-                        target_generation, target_character = identity
                         challenger_session = COMBAT_SESSIONS.session(
                             account_id, generation, character
                         )
-                        target_session = COMBAT_SESSIONS.session(
-                            target_character["account_id"],
-                            target_generation,
-                            target_character,
+                        own_target = (
+                            owned_duel_target(
+                                STORE,
+                                challenger_session,
+                                request["target_character_id"],
+                            )
+                            if identity is None
+                            or identity[1]["account_id"] == account_id
+                            else None
                         )
+                        if identity is None and own_target is None:
+                            raise ValueError("Duel target is offline")
+                        if own_target is not None:
+                            from wakfu_server.combat_shared import Session
+
+                            target_generation, target_character = generation, own_target
+                            target_session = Session(
+                                account_id,
+                                own_target["id"],
+                                generation,
+                                own_target["map_id"],
+                                own_target.get("instance_id", 0),
+                            )
+                            delivery_character_id = character["id"]
+                        else:
+                            target_generation, target_character = identity
+                            target_session = COMBAT_SESSIONS.session(
+                                target_character["account_id"],
+                                target_generation,
+                                target_character,
+                            )
+                            delivery_character_id = target_character["id"]
                         flush_positions(
                             account_id=account_id,
                             generation=generation,
@@ -6384,13 +6457,13 @@ def session(raw, peer, service, context):
                         flush_positions(
                             account_id=target_character["account_id"],
                             generation=target_generation,
-                            character_id=target_character["id"],
+                            character_id=delivery_character_id,
                         )
                         result = invite_challenge(
                             STORE, challenger_session, target_session, body
                         )
                         if not WORLD.send_to(
-                            target_character["id"],
+                            delivery_character_id,
                             target_generation,
                             *result["packet"],
                         ):
@@ -6956,9 +7029,9 @@ def session(raw, peer, service, context):
                                 (time.monotonic() - warm_started) * 1000, 3
                             ),
                         )
-                        # Match the directions published by placement actor serializers.
-                        for participant in candidate.actors.values():
-                            participant.direction = 0 if participant.controlled else 3
+                        # Placement serializers publish each actor's initialized facing.
+                        # Preserve it: resetting controlled actors to EAST also makes
+                        # inherited summon appearances request unavailable 0_ clips.
                         from wakfu_server.combat_monster_world import remove_message
 
                         if rift_start_run is None:
@@ -8955,6 +9028,17 @@ def session(raw, peer, service, context):
                             actor_id=character["id"],
                             fight_id=fight.id,
                         )
+                        if CHECKPOINT_WRITER.recover_pending(
+                            fight.id,
+                            account_id,
+                            generation,
+                            request_token=(13332, bytes(body), last_session_renewal),
+                        ):
+                            record(
+                                event="combat_checkpoint_owned_recovery",
+                                actor_id=character["id"],
+                                fight_id=fight.id,
+                            )
                         # Recovery supersedes the outstanding turn ACK. A
                         # server-controlled actor otherwise has no remaining
                         # packet that can trigger its bounded turn policy.
@@ -9087,7 +9171,7 @@ def session(raw, peer, service, context):
                             STORE, account_id, generation, character["id"], body
                         )
                         previous_items = character.get("inventory_items", [])
-                        character = reload_inventory(STORE, account_id, character)
+                        character = refresh_item_mutation_character()
                         if previous_items != character["inventory_items"]:
                             send(connection, service, *synchronization(character))
                         send(connection, service, *response(result))
@@ -9139,7 +9223,7 @@ def session(raw, peer, service, context):
                             STORE, account_id, generation, character["id"], body
                         )
                         previous_items = character.get("inventory_items", [])
-                        character = reload_inventory(STORE, account_id, character)
+                        character = refresh_item_mutation_character()
                         if previous_items != character["inventory_items"]:
                             send(connection, service, *synchronization(character))
                         send(connection, service, *result["packet"])
@@ -9199,7 +9283,7 @@ def session(raw, peer, service, context):
                                 opcode,
                                 body,
                             )
-                        character = reload_inventory(STORE, account_id, character)
+                        character = refresh_item_mutation_character()
                         response_packets = (
                             bonus_installation_packets(character["id"], result)
                             if opcode == 13269
@@ -10061,15 +10145,22 @@ def session(raw, peer, service, context):
                                 failed=False,
                             ),
                         )
-                        send(connection, service, *builds.selection_message(character))
-                        publish_mount_equipment(previous_mount_character, character)
-                        from wakfu_server.combat_lifecycle import outside_progression
+                        if index == previous_mount_character["active_build_index"]:
+                            send(
+                                connection,
+                                service,
+                                *builds.selection_message(character),
+                            )
+                            publish_mount_equipment(previous_mount_character, character)
+                            from wakfu_server.combat_lifecycle import (
+                                outside_progression,
+                            )
 
-                        send(
-                            connection,
-                            service,
-                            *outside_progression(character, wp=COMBAT_TEST_WP),
-                        )
+                            send(
+                                connection,
+                                service,
+                                *outside_progression(character, wp=COMBAT_TEST_WP),
+                            )
                         record(
                             event="build_deleted",
                             actor_id=character["id"],
@@ -10136,18 +10227,39 @@ def session(raw, peer, service, context):
                             reason=str(error),
                         )
                         send(connection, service, *builds.capacity_message(character))
-                        for message_id, message_body in builds.rejection_messages(
-                            character,
-                            character["active_build_index"],
-                            wp=COMBAT_TEST_WP,
-                            status=2,
-                        ):
+                        messages = (
+                            [
+                                (
+                                    12284,
+                                    builds.rejection_response(
+                                        character,
+                                        character["active_build_index"],
+                                        status=2,
+                                    ),
+                                )
+                            ]
+                            if fight is not None
+                            else builds.rejection_messages(
+                                character,
+                                character["active_build_index"],
+                                wp=COMBAT_TEST_WP,
+                                status=2,
+                            )
+                        )
+                        for message_id, message_body in messages:
                             send(connection, service, message_id, message_body)
                         continue
                     build_character = character
                     try:
                         build_character = STORE.character(account_id, request_id)
                         previous_build_character = build_character
+                        if (
+                            fight is not None
+                            and index == build_character["active_build_index"]
+                        ):
+                            raise ValueError(
+                                "Active build cannot be saved during combat"
+                            )
                         record(
                             event="persistence_stage",
                             domain="build",
@@ -10203,7 +10315,7 @@ def session(raw, peer, service, context):
                             builds.rejection_messages(
                                 build_character, index, wp=COMBAT_TEST_WP, status=status
                             )
-                            if request_id == character["id"]
+                            if request_id == character["id"] and fight is None
                             else [
                                 (
                                     12284,
@@ -10239,7 +10351,13 @@ def session(raw, peer, service, context):
                             service,
                             *builds.capacity_message(build_character),
                         )
-                        if request_id == character["id"]:
+                        if index != build_character["active_build_index"]:
+                            # cER acknowledges all sheet fields without replacing
+                            # the live actor's combat resources or selected gear.
+                            messages = [
+                                (12284, builds.response(build_character, index))
+                            ]
+                        elif request_id == character["id"]:
                             messages = builds.response_messages(
                                 build_character, index, wp=COMBAT_TEST_WP
                             )
@@ -10253,9 +10371,10 @@ def session(raw, peer, service, context):
                             ]
                         for message_id, message_body in messages:
                             send(connection, service, message_id, message_body)
-                        publish_mount_equipment(
-                            previous_build_character, build_character
-                        )
+                        if index == build_character["active_build_index"]:
+                            publish_mount_equipment(
+                                previous_build_character, build_character
+                            )
                         record(
                             event="build_saved", actor_id=request_id, build_index=index
                         )
@@ -11575,8 +11694,11 @@ def session(raw, peer, service, context):
                         if fight is not None or combat_session is not None:
                             raise ValueError("Hero roster cannot change during combat")
                         target = hero_wire.add_request(body)
-                        if ranch_session is not None:
-                            raise ValueError("Leave the ranch before changing heroes")
+                        from wakfu_server.characters import hero_private_scene
+
+                        hero_private_scene.authorize(
+                            active_private_session(), character, generation
+                        )
                         with POSITIONS.account_barrier(account_id):
                             flush_positions(account_id=account_id)
                             roster = heroes.add(
@@ -12302,10 +12424,11 @@ def session(raw, peer, service, context):
                                     ),
                                 ).fetchone()
                             if hero_slot is not None:
-                                if ranch_session is not None:
-                                    raise ValueError(
-                                        "Leave the ranch before removing heroes"
-                                    )
+                                from wakfu_server.characters import hero_private_scene
+
+                                hero_private_scene.authorize(
+                                    active_private_session(), character, generation
+                                )
                                 with POSITIONS.account_barrier(account_id):
                                     flush_positions(account_id=account_id)
                                     roster = heroes.remove(
@@ -12365,14 +12488,14 @@ def session(raw, peer, service, context):
                     )
 
                     try:
-                        if fight is not None:
-                            raise ValueError("Cosmetic selection requires exploration")
                         previous_cosmetic_character = character
                         saved = STORE.equip_owned_finishers(
                             account_id, character["id"], opcode, body
                         )
                         character = (
-                            active_private_session().refresh(character, saved)
+                            dict(character, owned_cosmetics=saved["owned_cosmetics"])
+                            if fight is not None
+                            else active_private_session().refresh(character, saved)
                             if active_private_session() is not None
                             and active_private_session().owns(character)
                             else saved
@@ -12389,16 +12512,20 @@ def session(raw, peer, service, context):
                             + struct.pack(">I", 9)
                             + cosmetics.preset_component(),
                         )
-                        cosmetic_opcode, cosmetic_body = actor_update(character)
-                        send(connection, service, cosmetic_opcode, cosmetic_body)
-                        WORLD.update(
-                            generation,
-                            character,
-                            cosmetic_opcode,
-                            cosmetic_body,
-                            include_sender=False,
-                        )
-                        publish_mount_equipment(previous_cosmetic_character, character)
+                        # Combat keeps its actor/resource snapshots; publish appearance on return.
+                        if fight is None:
+                            cosmetic_opcode, cosmetic_body = actor_update(character)
+                            send(connection, service, cosmetic_opcode, cosmetic_body)
+                            WORLD.update(
+                                generation,
+                                character,
+                                cosmetic_opcode,
+                                cosmetic_body,
+                                include_sender=False,
+                            )
+                            publish_mount_equipment(
+                                previous_cosmetic_character, character
+                            )
                         record(
                             event="owned_finishers_selected",
                             actor_id=character["id"],

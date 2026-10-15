@@ -1,4 +1,5 @@
 import unittest
+import struct
 from types import SimpleNamespace
 from wakfu_server.combat_area_remove_reference import NativeAreaReferenceRemovalHandler
 from wakfu_server.combat_stat_handler import StatExecutionContext
@@ -52,7 +53,47 @@ class AreaReferenceRemovalTests(unittest.TestCase):
         )
         self.assertEqual(seen, [(901, 7, False), (902, 7, False)])
         self.assertEqual(set(fight.native_effect_areas), {903})
-        self.assertEqual([opcode for opcode, _ in packets], [13497])
+        self.assertEqual([opcode for opcode, _ in packets], [12613])
+        body = packets[0][1]
+        self.assertEqual(struct.unpack_from(">iii", body), (11, 2, -1))
+        self.assertEqual(body[12], 1)  # cvX/eIK executes the decoded eXS.
+        family, size = struct.unpack_from(">ih", body, 13)
+        self.assertEqual(family, 935)
+        self.assertEqual(len(body), 19 + size)
+        from wakfu_server.combat_effect_removal import _identity_fields
+
+        fields = _identity_fields(body[19:])
+        self.assertEqual(fields[1], 999)  # Actual removal runner, not area UID.
+        self.assertEqual(fields[2], 999)
+        self.assertEqual(fields[3], 300001)
+        self.assertEqual(fields[4], 781)  # Exact prototype; no wildcard/owner rewrite.
+        self.assertEqual(fields[6], 7)  # Actual Qs.a removal callback source.
+        self.assertNotIn(7, fields)  # Native cell-only eXS has no fighter target.
+
+    def test_client_removal_precedes_child_cleanup_and_preserves_explicit_target(self):
+        fight, handler, packets, seen = self.fixture()
+
+        def removed(row, **kwargs):
+            seen.append((row["uid"], kwargs["target_id"]))
+            self.assertEqual(packets[0][0], 12613)
+            self.assertEqual(packets[0][1][12], 1)
+            packets.append((13560, b"child cleanup"))
+
+        handler.events = SimpleNamespace(removed=removed)
+        self.assertTrue(
+            handler(
+                {"effect_class": 935},
+                {"parameters": [781]},
+                EffectInvocation(300001, 1, 7, 7, (0, 0, 0)),
+            )
+        )
+        from wakfu_server.combat_effect_removal import _identity_fields
+
+        fields = _identity_fields(packets[0][1][19:])
+        self.assertEqual(fields[7], 7)
+        self.assertEqual(seen, [(901, 7), (902, 7)])
+        self.assertEqual([opcode for opcode, _ in packets], [12613, 13560, 13560])
+        self.assertEqual(set(fight.native_effect_areas), {903})
 
     def test_negative_reference_is_not_wildcard_and_empty_match_still_executes(self):
         fight, handler, packets, seen = self.fixture()

@@ -28,7 +28,18 @@ class ElementSelectionDispatchTests(unittest.TestCase):
             "Registry publication must import its own serializer",
         )
         body = [node for node in branch.body if not isinstance(node, ast.ImportFrom)]
-        module = ast.fix_missing_locations(ast.Module(body=body, type_ignores=[]))
+        helper = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "refresh_item_mutation_character"
+        )
+        helper.body = [
+            node for node in helper.body if not isinstance(node, ast.ImportFrom)
+        ]
+        module = ast.fix_missing_locations(
+            ast.Module(body=[helper, *body], type_ignores=[])
+        )
         select = Mock(
             return_value={
                 "packet": (13766, b"chosen"),
@@ -46,8 +57,12 @@ class ElementSelectionDispatchTests(unittest.TestCase):
             identify=select,
             response=lambda result: result["packet"],
             reload_inventory=reload,
+            refresh_owned_character=lambda saved: saved,
+            outside_progression=Mock(return_value=(999, b"updated-statistics")),
+            COMBAT_TEST_WP=6,
+            synchronization=Mock(return_value=(13713, b"updated-bags")),
             equipment_inventory=Mock(return_value=(13078, b"owned-equipment")),
-            STORE=object(),
+            STORE=Mock(character=reload),
             account_id=5,
             generation=11,
             character={"id": 7},
@@ -70,15 +85,27 @@ class ElementSelectionDispatchTests(unittest.TestCase):
         self.assertEqual(result["character"]["inventory_items"], ["updated"])
         self.assertEqual(
             [call.args[-2:] for call in result["send"].call_args_list],
-            [(13766, b"chosen"), (13078, b"owned-equipment")],
+            [
+                (999, b"updated-statistics"),
+                (13713, b"updated-bags"),
+                (13766, b"chosen"),
+                (13078, b"owned-equipment"),
+            ],
         )
         result["equipment_inventory"].assert_called_once_with(result["character"])
+        result["outside_progression"].assert_called_once_with(result["character"], wp=6)
+        result["reload_inventory"].assert_called_once_with(5, 7)
 
     def test_socket_identification_refreshes_separate_equipment_registry(self):
         result = self.run_branch(opcode=13787)
         self.assertEqual(
             [call.args[-2:] for call in result["send"].call_args_list],
-            [(13766, b"chosen"), (13078, b"owned-equipment")],
+            [
+                (999, b"updated-statistics"),
+                (13713, b"updated-bags"),
+                (13766, b"chosen"),
+                (13078, b"owned-equipment"),
+            ],
         )
 
     def test_combat_rejects_before_selection_or_inventory_change(self):

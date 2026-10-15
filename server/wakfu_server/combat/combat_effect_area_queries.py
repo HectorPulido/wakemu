@@ -3,7 +3,11 @@
 Specific range count uses Qq.bct, the prototype reference (eLn).
 Registered faV geometry and captured affiliations remain explicit authority.
 """
-from .combat_effect_area_geometry import contains_area_cell, refresh_area_geometry
+from .combat_effect_area_geometry import (
+    contains_area_actor,
+    contains_area_cell,
+    refresh_area_geometry,
+)
 from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
 from .combat_area_affiliation import area_affiliation
 
@@ -22,6 +26,13 @@ def _rows(fight):
             )
         ):
             raise ValueError("Unaudited native effect-area snapshot")
+        if row.get("native_area_contract") == "fbb":
+            from .combat_effect_area import native_effect_areas
+            from .combat_simple_area import verified_simple_area
+
+            verified_simple_area(
+                row, native_effect_areas().get(str(row["reference"]), {})
+            )
         if row.get("native_area_contract") == "faW":
             from .combat_effect_area import native_effect_areas
             from .combat_fake_fighter import verified_fake_fighter
@@ -311,9 +322,7 @@ def actor_on_specific_area(
             if area_affiliation(fight, row) != selected_affiliation:
                 continue
         radius = actor.physical_radius
-        if type(radius) is not int or radius != 0:
-            raise ValueError("Unaudited native eOv Qq.a nonzero actor radius")
-        if contains_area_cell(row, actor.position):
+        if contains_area_actor(row, actor.position, radius):
             return True
     return False
 

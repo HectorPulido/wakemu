@@ -230,15 +230,396 @@ class CheckpointWorkerTests(unittest.TestCase):
         self.assertTrue(fight.checkpoint_terminal)
         self.assertEqual(fight.checkpoint_revision, 3)
 
-    def test_capacity_and_replaced_generation_rejected(self):
+    def test_capacity_defers_new_fights_without_losing_intents(self):
         worker, database = self.worker(capacity=1)
         one = shared()
         worker.submit(one, 1, "generation")
         self.assertTrue(database.started.wait(1))
-        with self.assertRaisesRegex(ValueError, "capacity"):
-            worker.submit(shared(2), 1, "generation")
+        queued = [shared(identity) for identity in range(2, 140)]
+        for value in queued:
+            worker.submit(value, 1, "generation")
+        self.assertEqual(len(worker.inflight), 1)
+        self.assertTrue(
+            all(not hasattr(job, "fight") for job in worker.pending.values())
+        )
         with self.assertRaisesRegex(ValueError, "ownership"):
             worker.submit(one, 1, "replacement")
+        database.release.set()
+        for value in queued:
+            self.assertTrue(worker.flush_fight(value.fight.id, timeout=2))
+        self.assertEqual(len(database.revisions), 139)
+
+    def test_transient_failure_before_commit_retries_without_poisoning(self):
+        worker, database = self.worker(workers=1)
+        original = database.save_prepared
+        attempts = []
+        database.release.set()
+
+        def save(*args, **kwargs):
+            attempts.append(1)
+            if len(attempts) == 1:
+                raise ConnectionError("connection lost before commit")
+            return original(*args, **kwargs)
+
+        database.save_prepared = save
+        database.reconcile_write = lambda *args, **kwargs: dict(committed=False)
+        worker.submit(shared(), 1, "generation")
+        self.assertTrue(worker.flush_fight(1, timeout=1))
+        self.assertEqual(len(attempts), 2)
+        self.assertIsNone(worker.states[1]["error"])
+
+    def test_ambiguous_commit_uses_receipt_without_duplicate_write(self):
+        worker, database = self.worker(workers=1)
+        database.release.set()
+        original = database.save_prepared
+
+        def save(*args, **kwargs):
+            original(*args, **kwargs)
+            raise ConnectionError("commit response lost")
+
+        database.save_prepared = save
+        database.reconcile_write = lambda *args, **kwargs: dict(
+            committed=True, revision=1, terminal=False
+        )
+        value = shared()
+        worker.submit(value, 1, "generation")
+        self.assertTrue(worker.flush_fight(1, timeout=1))
+        self.assertEqual(database.calls, [("save", 1, 100)])
+        self.assertEqual(value.checkpoint_revision, 1)
+
+    def test_retries_stop_at_three_and_retain_dirty_intent(self):
+        worker, database = self.worker(workers=1)
+        attempts = []
+
+        def save(*args, **kwargs):
+            attempts.append(1)
+            raise ConnectionError("temporarily unavailable")
+
+        database.save_prepared = save
+        database.reconcile_write = lambda *args, **kwargs: dict(committed=False)
+        worker.submit(shared(), 1, "generation")
+        with self.assertRaisesRegex(ValueError, "checkpoint failed"):
+            worker.flush_fight(1, timeout=1)
+        self.assertEqual(len(attempts), 3)
+        self.assertIn(1, worker.pending)
+        self.assertFalse(worker.close(timeout=1))
+        self.assertEqual(len(attempts), 3)
+
+    def test_explicit_recovery_reconciles_before_persisting_latest_intent(self):
+        worker, database = self.worker(workers=1)
+        database.release.set()
+        original = database.save_prepared
+        attempts = []
+
+        def unavailable(*args, **kwargs):
+            attempts.append(1)
+            raise ConnectionError("database unavailable")
+
+        database.save_prepared = unavailable
+        checks = []
+
+        def reconcile(*args, **kwargs):
+            checks.append(kwargs)
+            return dict(committed=False)
+
+        database.reconcile_write = reconcile
+        value = shared()
+        worker.submit(value, 1, "generation")
+        with self.assertRaisesRegex(ValueError, "checkpoint failed"):
+            worker.flush_fight(1, timeout=1)
+        value.fight.actors[6].hp = 70
+        worker.submit(value, 1, "generation")
+        database.save_prepared = original
+        with self.assertRaisesRegex(ValueError, "another writer"):
+            worker.retry_failed(1, 1, "foreign")
+        self.assertTrue(worker.retry_failed(1, 1, "generation"))
+        self.assertTrue(worker.flush_fight(1, timeout=1))
+        self.assertEqual(len(attempts), 3)
+        self.assertIn("snapshot_digest", checks[-1])
+        self.assertEqual(database.calls, [("save", 1, 70)])
+
+    def test_new_login_recovers_once_and_followup_takeover_is_idempotent(self):
+        worker, database = self.worker(workers=1)
+        database.release.set()
+        original = database.save_prepared
+        attempts = []
+
+        def unavailable(*args, **kwargs):
+            attempts.append(args[1])
+            raise ConnectionError("database unavailable")
+
+        database.save_prepared = unavailable
+        database.reconcile_write = lambda *args, **kwargs: dict(committed=False)
+        value = shared()
+        worker.submit(value, 1, "old")
+        with self.assertRaisesRegex(ValueError, "checkpoint failed"):
+            worker.flush_fight(1, timeout=1)
+        self.assertEqual(attempts, ["old"] * 3)
+        recoveries = []
+
+        def recover(account, old, new, fight, receipt, **kwargs):
+            recoveries.append((account, old, new))
+            if len(recoveries) == 1:
+                raise ConnectionError("membership commit response lost")
+            return dict(committed=False)
+
+        database.recover_write_for_takeover = recover
+        database.save_prepared = original
+        self.assertTrue(worker.flush_for_takeover(1, 1, "old", "new", timeout=1))
+        self.assertEqual(recoveries, [(1, "old", "new")] * 2)
+        self.assertEqual(worker.states[1]["owners"], {1: "new"})
+        calls = []
+        worker.takeover_writer(1, 1, "old", "new", persist=lambda: calls.append(1))
+        self.assertEqual(calls, [1])
+        self.assertTrue(worker.flush_for_takeover(1, 1, "old", "new", timeout=1))
+        self.assertEqual(len(recoveries), 2)
+        with self.assertRaisesRegex(ValueError, "another writer"):
+            worker.flush_for_takeover(1, 1, "foreign", "new", timeout=1)
+        with self.assertRaisesRegex(ValueError, "Stale checkpoint writer"):
+            worker.takeover_writer(1, 1, "foreign", "new")
+        with self.assertRaisesRegex(ValueError, "ownership changed"):
+            worker.submit(value, 1, "old")
+
+    def test_repeated_idle_probe_cannot_reset_failed_replacement_budget(self):
+        worker, database = self.worker(workers=1)
+        attempts = []
+
+        def fail(*args, **kwargs):
+            attempts.append(args[1])
+            raise ConnectionError("database unavailable")
+
+        database.save_prepared = fail
+        database.reconcile_write = lambda *args, **kwargs: dict(committed=False)
+        database.recover_write_for_takeover = lambda *args, **kwargs: dict(
+            committed=False
+        )
+        worker.submit(shared(), 1, "old")
+        with self.assertRaisesRegex(ValueError, "checkpoint failed"):
+            worker.flush_fight(1, timeout=1)
+        with self.assertRaisesRegex(ValueError, "another writer"):
+            worker.flush_for_takeover(1, 1, "foreign", "new", timeout=1)
+        with self.assertRaisesRegex(ValueError, "checkpoint failed"):
+            worker.flush_for_takeover(1, 1, "old", "new", timeout=1)
+        self.assertEqual(attempts, ["old"] * 3 + ["new"] * 3)
+        for _ in range(4):
+            with self.assertRaisesRegex(ValueError, "checkpoint failed"):
+                worker.flush_for_takeover(1, 1, "old", "new", timeout=1)
+        self.assertEqual(len(attempts), 6)
+
+    def test_later_login_reconciles_lost_membership_transfer_responses(self):
+        worker, database = self.worker(workers=1)
+        database.release.set()
+        original = database.save_prepared
+
+        def unavailable(*args, **kwargs):
+            raise ConnectionError("database unavailable")
+
+        database.save_prepared = unavailable
+        database.reconcile_write = lambda *args, **kwargs: dict(committed=False)
+        worker.submit(shared(), 1, "old")
+        with self.assertRaises(ValueError):
+            worker.flush_fight(1, timeout=1)
+        transfers = []
+
+        def transfer(account, old, new, fight, receipt, **kwargs):
+            transfers.append(new)
+            if new == "second":
+                raise ConnectionError("transfer committed but response lost")
+            self.assertIn("second", kwargs["recovery_generations"])
+            return dict(committed=False)
+
+        database.recover_write_for_takeover = transfer
+        with self.assertRaises(ValueError):
+            worker.flush_for_takeover(1, 1, "old", "second", timeout=1)
+        self.assertEqual(transfers, ["second"] * 3)
+        database.save_prepared = original
+        self.assertTrue(worker.flush_for_takeover(1, 1, "old", "third", timeout=1))
+        self.assertEqual(worker.states[1]["owners"], {1: "third"})
+        worker.takeover_writer(1, 1, "old", "third")
+
+    def test_nontransient_failure_never_starts_replacement_retry(self):
+        worker, database = self.worker(workers=1)
+
+        def fail(*args, **kwargs):
+            raise ValueError("ownership validation failed")
+
+        database.save_prepared = fail
+        worker.submit(shared(), 1, "old")
+        with self.assertRaisesRegex(ValueError, "checkpoint failed"):
+            worker.flush_for_takeover(1, 1, "old", "new", timeout=1)
+        self.assertEqual(worker.states[1]["takeover_attempts"], set())
+
+    def test_health_recovery_requires_new_receipt_and_real_down_up_epoch(self):
+        worker, database = self.worker(workers=1)
+        database.release.set()
+        original = database.save_prepared
+        value = shared()
+        worker.submit(value, 1, "generation")
+        self.assertTrue(worker.flush_fight(1, timeout=1))
+        worker.observe_database_health(1, "generation", renewed_until="before")
+        attempts = []
+
+        def unavailable(*args, **kwargs):
+            attempts.append(1)
+            raise ConnectionError("write unavailable")
+
+        database.save_prepared = unavailable
+        database.reconcile_write = lambda *args, **kwargs: dict(committed=False)
+        worker.submit(value, 1, "generation")
+        with self.assertRaises(ValueError):
+            worker.flush_fight(1, timeout=1)
+        self.assertEqual(len(attempts), 3)
+        self.assertEqual(
+            worker.observe_database_health(1, "generation", renewed_until="before")[
+                "resumed"
+            ],
+            0,
+        )
+        self.assertEqual(
+            worker.observe_database_health(
+                1, "generation", renewed_until="healthy-one"
+            )["resumed"],
+            1,
+        )
+        with self.assertRaises(ValueError):
+            worker.flush_fight(1, timeout=1)
+        self.assertEqual(len(attempts), 6)
+        for token in ("healthy-one", "healthy-two", "healthy-three"):
+            self.assertEqual(
+                worker.observe_database_health(1, "generation", renewed_until=token)[
+                    "resumed"
+                ],
+                0,
+            )
+        self.assertEqual(len(attempts), 6)
+        worker.observe_database_health(
+            1, "generation", error=ConnectionError("renew failed")
+        )
+        database.save_prepared = original
+        self.assertEqual(
+            worker.observe_database_health(
+                1, "generation", renewed_until="healthy-four"
+            ),
+            dict(epoch=2, resumed=1),
+        )
+        self.assertTrue(worker.flush_fight(1, timeout=1))
+        self.assertEqual(len(attempts), 6)
+
+    def test_health_witness_does_not_restart_another_owners_stale_writer(self):
+        worker, database = self.worker(workers=1)
+        database.release.set()
+        original = database.save_prepared
+        one, two = shared(), shared(2)
+        worker.submit(one, 1, "owner-one")
+        worker.submit(two, 2, "owner-two")
+        self.assertTrue(worker.flush_fight(2, timeout=1))
+
+        def fail(*args, **kwargs):
+            raise ConnectionError("unavailable")
+
+        database.save_prepared = fail
+        database.reconcile_write = lambda *args, **kwargs: dict(committed=False)
+        worker.submit(one, 1, "owner-one")
+        with self.assertRaises(ValueError):
+            worker.flush_fight(1, timeout=1)
+        self.assertEqual(
+            worker.observe_database_health(
+                2, "owner-two", renewed_until="peer-healthy"
+            ),
+            dict(epoch=1, resumed=0),
+        )
+        self.assertIsNotNone(worker.states[1]["error"])
+        database.save_prepared = original
+        self.assertEqual(
+            worker.observe_database_health(
+                1, "owner-one", renewed_until="owner-healthy"
+            ),
+            dict(epoch=1, resumed=1),
+        )
+        self.assertTrue(worker.flush_fight(1, timeout=1))
+
+    def test_query_timeout_does_not_create_database_availability_epoch(self):
+        from psycopg.errors import QueryCanceled
+
+        worker, database = self.worker(workers=1)
+
+        def unavailable(*args, **kwargs):
+            raise QueryCanceled("statement timeout")
+
+        database.save_prepared = unavailable
+        database.reconcile_write = lambda *args, **kwargs: dict(committed=False)
+        worker.submit(shared(), 1, "generation")
+        with self.assertRaises(ValueError):
+            worker.flush_fight(1, timeout=1)
+        worker.observe_database_health(1, "generation", error=QueryCanceled("timeout"))
+        self.assertEqual(
+            worker.observe_database_health(1, "generation", renewed_until="healthy"),
+            dict(epoch=0, resumed=0),
+        )
+        self.assertIsNotNone(worker.states[1]["error"])
+
+    def test_explicit_current_owner_recovery_deduplicates_request_receipt(self):
+        from psycopg.errors import QueryCanceled
+
+        worker, database = self.worker(workers=1)
+        attempts = []
+
+        def unavailable(*args, **kwargs):
+            attempts.append(1)
+            raise QueryCanceled("statement timeout")
+
+        database.save_prepared = unavailable
+        database.reconcile_write = lambda *args, **kwargs: dict(committed=False)
+        worker.submit(shared(), 1, "generation")
+        with self.assertRaises(ValueError):
+            worker.flush_fight(1, timeout=1)
+        with self.assertRaisesRegex(ValueError, "another writer"):
+            worker.recover_pending(1, 1, "foreign", request_token=(13332, 10))
+        self.assertTrue(
+            worker.recover_pending(1, 1, "generation", request_token=(13332, 10))
+        )
+        with self.assertRaises(ValueError):
+            worker.flush_fight(1, timeout=1)
+        self.assertFalse(
+            worker.recover_pending(1, 1, "generation", request_token=(13332, 10))
+        )
+        self.assertEqual(len(attempts), 6)
+
+    def test_deferred_terminal_survives_registry_removal(self):
+        worker, database = self.worker(capacity=1, workers=1)
+        worker.submit(shared(), 1, "generation")
+        self.assertTrue(database.started.wait(1))
+        registry = {2: shared(2)}
+        registry[2].fight.actors[6].hp = 35
+        worker.submit(registry[2], 1, "generation", status="ended")
+        # A later registry transition replaces canonical objects. The accepted
+        # terminal source remains pinned until its receipt is persisted.
+        registry[2].fight = shared(2).fight
+        del registry[2]
+        database.release.set()
+        self.assertTrue(worker.flush_fight(2, timeout=1))
+        self.assertIn(("save", 2, 35), database.calls)
+        self.assertIn(("end", 2, "ended"), database.calls)
+
+    def test_ambiguous_terminal_commit_does_not_repeat_save_or_end(self):
+        worker, database = self.worker(workers=1)
+        database.release.set()
+        original = database.end
+
+        def end(*args, **kwargs):
+            original(*args, **kwargs)
+            raise TimeoutError("terminal response lost")
+
+        database.end = end
+        database.reconcile_write = lambda *args, **kwargs: dict(
+            committed=True, revision=2, terminal=True
+        )
+        value = shared()
+        worker.submit(value, 1, "generation", status="ended")
+        self.assertTrue(worker.flush_fight(1, timeout=1))
+        self.assertEqual(database.calls, [("save", 1, 100), ("end", 1, "ended")])
+        self.assertEqual(value.checkpoint_revision, 2)
+        self.assertTrue(value.checkpoint_terminal)
 
     def test_settlement_terminal_receipt_supersedes_queued_old_snapshot(self):
         worker, database = self.worker(workers=1)
@@ -340,7 +721,7 @@ class CheckpointWorkerTests(unittest.TestCase):
             node
             for node in ast.walk(adopt)
             if isinstance(node, ast.Call)
-            and ast.unparse(node.func) == "CHECKPOINT_WRITER.flush_fight"
+            and ast.unparse(node.func) == "CHECKPOINT_WRITER.flush_for_takeover"
         )
         takeover = next(
             node

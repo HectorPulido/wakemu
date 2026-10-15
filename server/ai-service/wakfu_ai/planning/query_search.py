@@ -26,6 +26,11 @@ from .casting_prerequisites import (
 from ..native.native_deadline import check
 from .query_identity import identity as state_identity
 from .feature_values import DEFAULT_FEATURE_WEIGHTS, validate_features
+from .team_posture import (
+    decide as decide_team_posture,
+    apply_position,
+    contradicted_hold,
+)
 
 
 def _fight(graph):
@@ -499,12 +504,14 @@ def _movement_candidates(
     """Decode the complete movement graph only when its stream is explored."""
     decode = geometry or (lambda reference: _sequence(graph, reference))
     edges = [] if graph.resolve(edges_reference) is None else decode(edges_reference)
+    after_attack = attacked_this_turn(graph, _fight(graph), actor_id)
     operation = lambda: _movement_orders(
         edges,
         cells,
         actors,
         actor_id,
-        retreat=attacked_this_turn(graph, _fight(graph), actor_id),
+        retreat=after_attack,
+        team_posture=after_attack,
         hazard_cells=battleground_border_cells(graph, _fight(graph)),
     )
     route_orders = operation() if prepare is None else prepare(operation)
@@ -528,7 +535,16 @@ def _movement_candidates(
     yield from movement_candidates()
 
 
-def _movement_orders(edges, cells, actors, actor_id, *, retreat=False, hazard_cells=()):
+def _movement_orders(
+    edges,
+    cells,
+    actors,
+    actor_id,
+    *,
+    retreat=False,
+    hazard_cells=(),
+    team_posture=False
+):
     """Prepare complete route orders; candidate exploration is timed separately.
 
     This fixed topology work still consumes the native turn and decision wall
@@ -539,6 +555,8 @@ def _movement_orders(edges, cells, actors, actor_id, *, retreat=False, hazard_ce
     occupied = {tuple(a["position"]): a["id"] for a in actors.values() if a["hp"] > 0}
     cell_set = set(cells)
     adjacency, reverse = directed_adjacencies(edges, cells=cell_set)
+    if team_posture:
+        retreat = decide_team_posture(actors, actor_id, adjacency)["mode"] == "retreat"
     routes, reached = [], {origin: ()}
     queue = deque([origin])
     while queue:
@@ -654,6 +672,18 @@ def _metrics(raw, actor_id, *, unreachable_penalty=None, retreat=False):
         raw.get("outcomeFeatures", {}), "outcome features", 1e9
     )
     actors = {a["id"]: dict(a, position=tuple(a["position"])) for a in raw["actors"]}
+    repertoires = raw.get("actorRepertoires")
+    if isinstance(repertoires, dict):
+        repertoires = {
+            identity: row
+            for identity, row in repertoires.items()
+            if isinstance(row, dict)
+            and ("sourceState" not in row or row["sourceState"] == raw.get("key"))
+            and (
+                "stateRevision" not in row
+                or row["stateRevision"] == raw.get("stateRevision")
+            )
+        }
     actor = actors[actor_id]
     if actor["hp"] <= 0:
         return dict(
@@ -714,6 +744,7 @@ def _metrics(raw, actor_id, *, unreachable_penalty=None, retreat=False):
                 raise ValueError("Invalid native topology distance")
     return dict(
         actors=actors,
+        actorRepertoires=repertoires,
         position=(min(distance, 6) if retreat else -distance) * 0.25,
         position_basis=position_basis,
         threat=0,
@@ -918,6 +949,15 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
     retreat = attacked_this_turn(memory_graph, _fight(memory_graph), actor_id)
     border_cells = battleground_border_cells(memory_graph, _fight(memory_graph))
     root = _metrics(envelope["root"], actor_id, retreat=retreat)
+    posture_adjacency = None
+    if retreat:
+        fight_reference = _fight(memory_graph)
+        edges_reference = memory_graph.field(fight_reference, "edges")
+        if memory_graph.resolve(edges_reference) is not None:
+            posture_adjacency, _ = directed_adjacencies(
+                _sequence(memory_graph, edges_reference)
+            )
+    apply_position(root, actor_id, posture_adjacency, after_attack=retreat)
     border_reverse = None
     unavoidable_border = None
     if border_cells and not retreat:
@@ -1139,6 +1179,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         intent="end_turn",
         target=None,
         orientationEvidence=[],
+        postureMode=root["teamPosture"]["mode"],
     )
     alternatives = [best]
     root_node = dict(**best, visited=frozenset({state_identity(envelope["root"])}))
@@ -1253,6 +1294,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                 unreachable_penalty=unreachable_penalty,
                 retreat=retreat,
             )
+            apply_position(metrics, actor_id, posture_adjacency, after_attack=retreat)
             if metrics["actors"][actor_id]["hp"] <= 0:
                 metrics["position"] = root["position"]
             if action["type"] == "cast":
@@ -1263,6 +1305,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             score, components, intent, target = evaluate_state(metrics)
             option = dict(
                 score=score,
+                postureMode=metrics["teamPosture"]["mode"],
                 components=components,
                 key=state["key"],
                 actions=node["actions"] + [action],
@@ -1387,6 +1430,18 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             set(),
             {state_identity(envelope["root"])},
         )
+        if root["teamPosture"]["mode"] == "hold":
+            # A nominally useful blocker must get a real escape alternative
+            # in the existing risk budget. Duplicate holding routes otherwise
+            # crowd it out before native forecasts can contradict tanking.
+            escape = next(
+                (option for option in ranked if option.get("postureMode") == "retreat"),
+                None,
+            )
+            if escape is not None:
+                shortlist.append(escape)
+                seen.add(state_identity(escape["state"]))
+                represented.add((escape["intent"], escape["target"]))
         for option in ranked:
             category = option["intent"], option["target"]
             identity = state_identity(option["state"])
@@ -1451,15 +1506,30 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
             adjusted = (
                 option["score"] + baseline_penalty - penalty - uncertainty_penalty
             )
+            option_metrics = _metrics(option["state"], actor_id, retreat=retreat)
+            posture = apply_position(
+                option_metrics, actor_id, posture_adjacency, after_attack=retreat
+            )
+            contradiction = contradicted_hold(
+                option_metrics["actors"], actor_id, posture, risk
+            )
+            posture_penalty = (
+                posture["holdPreference"] * weights["position"]
+                if contradiction
+                else 0.0
+            )
+            adjusted -= posture_penalty
             assessed = dict(
                 option,
                 riskForecast=risk,
                 score=adjusted,
+                postureRiskReason=contradiction,
                 components=dict(
                     option["components"],
                     rival_risk_baseline=baseline_penalty,
                     rival_risk_lower_bound=-penalty,
                     rival_risk_uncertainty=-uncertainty_penalty,
+                    contradicted_hold_preference=-posture_penalty,
                 ),
             )
             evaluated.append(assessed)
@@ -1469,6 +1539,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
                     actions=option["actions"],
                     score=adjusted,
                     forecast=risk,
+                    postureRiskReason=contradiction,
                 )
             )
         if rival_search_started is not None:
@@ -1502,6 +1573,7 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         unreachable_penalty=unreachable_penalty,
         retreat=retreat,
     )
+    apply_position(selected, actor_id, posture_adjacency, after_attack=retreat)
     if selected["actors"][actor_id]["hp"] <= 0:
         selected["position"] = root["position"]
     return dict(
@@ -1515,6 +1587,8 @@ def search(envelope, store, *, clock=time.monotonic, root_graph=None):
         components=best["components"],
         expanded=expanded,
         rivalForecasts=risk_trace,
+        teamPosture=dict(root=root["teamPosture"], selected=selected["teamPosture"]),
+        postureRiskReason=best.get("postureRiskReason"),
         searchBudgetEvidence=dict(
             nativeWaitMs=waiting * 1000,
             stopReasons=stop_reasons,

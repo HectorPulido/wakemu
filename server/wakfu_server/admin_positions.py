@@ -3,7 +3,7 @@ import json
 import os
 
 from wakfu_server.storage.position_redis import _identity, _position
-from wakfu_server.admin_map_catalog import MAP_NAMES
+from wakfu_server.admin_map_catalog import load as load_map_names
 
 
 def present(store, rows):
@@ -27,6 +27,7 @@ def present(store, rows):
                 "SELECT map_id,name FROM admin_map_metadata WHERE name<>''"
             )
         }
+        native_names = load_map_names(db)
     records = {}
     address = os.environ.get("WAKFU_REDIS_URL")
     if address and active:
@@ -74,7 +75,7 @@ def present(store, rows):
                 pass
         row["map_name"] = (
             labels.get(row["map_id"])
-            or MAP_NAMES.get(str(row["map_id"]))
+            or native_names.get(str(row["map_id"]))
             or f"Map #{row['map_id']}"
         )
     return rows

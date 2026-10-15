@@ -1,0 +1,8 @@
+[Unit]
+Description=Reattach Wakemu profiler to the current World container
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/wakemu
+ExecStart=/usr/bin/python3 %h/wakemu/server/tools/ensure_profiler.py --root %h/wakemu --project wakemu-linux
+TimeoutStartSec=100

@@ -1,4 +1,5 @@
 """Actual owned bag production and movement pickup, including the companion."""
+from collections import deque
 import unittest
 
 from wakfu_server.combat_area_transaction import prepare_area_event
@@ -286,6 +287,137 @@ class EnutrofBagPickupTests(unittest.TestCase):
                         set(repeated.native_effect_areas),
                         set(result.native_effect_areas),
                     )
+
+    def test_owner_picks_up_bag_through_actual_client_movement_handler(self):
+        """Cover opcode12161's committed per-step area callback end to end."""
+        import struct
+
+        import test_enutrof_runtime as enutrof_fixture
+        from wakfu_server.combat_area_transaction import prepare_area_movement
+        from wakfu_server.combat_movement_runtime import apply_client
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+
+        helper = enutrof_fixture.EnutrofRuntimeTests()
+        character, monster, fight, deck, rng = helper.fixture(actives=(2026,))
+        fight = helper.cast(
+            (character, monster, fight, deck, rng),
+            2026,
+            fight.actors[7].position,
+        ).fight
+        actor = fight.actors[7]
+        self.assertEqual(fight.current.id, actor.id)
+        bags = {
+            row["uid"]: row
+            for row in fight.native_effect_areas.values()
+            if row["reference"] == 207 and row["owner_id"] == actor.id
+        }
+        self.assertTrue(bags)
+
+        # Find a legal route that fits this turn's real MP budget. Avoid other
+        # area cells so this step only tests entry into the selected bag.
+        neighbors = {}
+        for left, right in fight.edges:
+            neighbors.setdefault(left, set()).add(right)
+        occupied = {
+            other.position
+            for other in fight.actors.values()
+            if other.id != actor.id and other.hp > 0
+        }
+        other_area_cells = {
+            tuple(row["cell"])
+            for row in fight.native_effect_areas.values()
+            if row["uid"] not in bags
+        }
+        route_for = {}
+        for bag in bags.values():
+            destination = tuple(bag["cell"])
+            queue = deque([(actor.position, ())])
+            visited = {actor.position}
+            while queue:
+                cell, path = queue.popleft()
+                if cell == destination:
+                    route_for[bag["uid"]] = path
+                    break
+                if len(path) >= actor.mp:
+                    continue
+                for next_cell in sorted(neighbors.get(cell, ())):
+                    if next_cell in visited or next_cell in occupied:
+                        continue
+                    if next_cell in other_area_cells and next_cell != destination:
+                        continue
+                    visited.add(next_cell)
+                    queue.append((next_cell, (*path, next_cell)))
+        reachable = [
+            (len(path), uid, path)
+            for uid, path in route_for.items()
+            if path and len(path) <= actor.mp
+        ]
+        self.assertTrue(reachable, {uid: row["cell"] for uid, row in bags.items()})
+        _, selected_uid, path = min(reachable)
+        before_max_mp = actor.max_mp
+        runtime = RuntimeMessages(fight)
+
+        def area_provider(candidate, **boundary):
+            return prepare_area_movement(
+                character,
+                {-7: monster},
+                candidate,
+                deck,
+                rng=rng,
+                **boundary,
+            )
+
+        body = struct.pack(">q", actor.id) + b"".join(
+            struct.pack(">iih", *cell) for cell in path
+        )
+        packets, event = apply_client(
+            runtime,
+            actor.owner_id,
+            body,
+            lambda moved: b"",
+            area_provider=area_provider,
+        )
+        after = runtime.fight
+        self.assertEqual(event["path"], list(path))
+        self.assertEqual(after.actors[actor.id].position, path[-1])
+        self.assertEqual(after.actors[actor.id].max_mp, before_max_mp + 1)
+        self.assertNotIn(selected_uid, after.native_effect_areas)
+        # A bag is a Qs/Qq area manager, not a registered QI blocker. Make sure
+        # retirement doesn't leave a spatial registration that can haunt cells.
+        from wakfu_server.combat_qi_fight import current_registry
+
+        for candidate in (after,):
+            registry = current_registry(candidate)
+            self.assertFalse(
+                any(
+                    slot is not None
+                    and slot["identity"] == ["effect_area", selected_uid]
+                    for slot in registry.slots
+                )
+            )
+        self.assertTrue(
+            all(uid in after.native_effect_areas for uid in bags if uid != selected_uid)
+        )
+
+        from wakfu_server.combat_effect_removal import _identity_fields
+
+        removals = []
+        for kind, payload in packets:
+            if kind != 12613 or len(payload) < 19:
+                continue
+            # Byte 12 is cvX/eIK (execute=1, retain=0), not the native Qq
+            # area type. Family 843 is the executable Qs.b retirement route.
+            if struct.unpack_from(">i", payload, 13)[0] != 843 or payload[12] != 1:
+                continue
+            size = struct.unpack_from(">h", payload, 17)[0]
+            if len(payload) != 19 + size:
+                continue
+            fields = _identity_fields(payload[19:])
+            if fields.get(7) == selected_uid:
+                removals.append(fields)
+        self.assertEqual(len(removals), 1, packets)
+        self.assertEqual(removals[0][3], 386191)
+        self.assertEqual(removals[0][6], actor.id)
 
 
 if __name__ == "__main__":

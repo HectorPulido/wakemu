@@ -4,11 +4,31 @@ Recovery marks interrupted fights aborted; it never reconstructs a client fight
 or silently resumes a timeline. Runtime callbacks and network peers are omitted.
 """
 import json
+import hashlib
 import time
 from psycopg.types.json import Jsonb
 from dataclasses import asdict
 from .combat_state_ledger import StateLedger
 from .combat_character_copy_book import CopyBookAction
+
+EPHEMERAL_FIGHT_FIELDS = frozenset(
+    {
+        "actors",
+        "native_rail_movement_authority",
+        # A live session fence, invalidated on disconnect; interrupted fights
+        # are aborted rather than resumed with this authority.
+        "native_instance_publication_lease",
+    }
+)
+
+
+def checkpoint_digest(state):
+    """Stable identity for reconciling an uncertain write without retaining its FSM."""
+    return hashlib.sha256(
+        json.dumps(
+            state, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def _trace_stage(
@@ -30,6 +50,7 @@ def _trace_stage(
 
 def _plain(value):
     from .combat_carrying import NativeCarryPair
+    from .combat_instance_level_group import InstanceDifficultySnapshot
 
     if isinstance(value, NativeCarryPair):
         # Persistent reciprocal carry authority is a typed immutable record,
@@ -39,6 +60,10 @@ def _plain(value):
         # eZd publishes immutable owned UI actions. Keep every exact UID and
         # native field in both durable evidence and transaction source guards.
         value.validate()
+        return _plain(asdict(value))
+    if isinstance(value, InstanceDifficultySnapshot):
+        # The published instance difficulty is authoritative gameplay input.
+        # Keep its exact actor/source binding in the durable snapshot.
         return _plain(asdict(value))
     if isinstance(value, StateLedger):
         return dict(
@@ -60,7 +85,7 @@ def snapshot(fight, *, runtime=None):
     state = {
         key: _plain(value)
         for key, value in fight.__dict__.items()
-        if key not in ("actors", "native_rail_movement_authority")
+        if key not in EPHEMERAL_FIGHT_FIELDS
     }
     state["actors"] = {
         str(identity): _plain(actor.__dict__)
@@ -379,6 +404,164 @@ class Checkpoints:
                 updated_at=row["updated_at"],
                 snapshot=self._read_snapshot(row["snapshot"]),
             )
+
+    def reconcile_write(
+        self,
+        account_id,
+        generation,
+        fight,
+        state,
+        *,
+        expected_revision,
+        status=None,
+        snapshot_digest=None,
+        receipt_writer=None,
+    ):
+        """Resolve a lost write response without relaxing session or revision CAS.
+
+        Only an identical next revision owned by this writer is our receipt.
+        An unchanged revision means the write did not commit and can be retried.
+        A separately settled finished fight may supersede an obsolete snapshot.
+        """
+        expected_digest = snapshot_digest or checkpoint_digest(state)
+        with self.store.connection() as db:
+            durable = db.execute(
+                "SELECT id,status FROM combat_fights WHERE id=%s FOR UPDATE",
+                (fight.id,),
+            ).fetchone()
+            if durable is None:
+                raise ValueError("Missing durable fight")
+            session = self._session(db, account_id, generation)
+            self._participant(
+                db, account_id, generation, session["character_id"], fight.id
+            )
+            actor = fight.actors.get(session["character_id"])
+            if actor is None or not actor.controlled or actor.owner_id != account_id:
+                raise ValueError(
+                    "Selected character does not participate in this fight"
+                )
+            row = db.execute(
+                "SELECT account_id,generation,status,revision,snapshot "
+                "FROM fight_checkpoints WHERE fight_id=%s",
+                (fight.id,),
+            ).fetchone()
+            if (
+                row is not None
+                and self._participant_generation_is_legacy(
+                    db, account_id, fight.id, session["character_id"]
+                )
+                and (row["account_id"] != account_id or row["generation"] != generation)
+            ):
+                raise ValueError("Stale shared fight writer generation")
+            writer_account, writer_generation = receipt_writer or (
+                account_id,
+                generation,
+            )
+            return self._reconcile_receipt(
+                row,
+                durable,
+                writer_account,
+                writer_generation,
+                expected_revision,
+                status,
+                expected_digest,
+            )
+
+    @staticmethod
+    def _reconcile_receipt(
+        row, durable, account_id, generation, expected_revision, status, expected_digest
+    ):
+        if row is None:
+            if expected_revision is None and status is None:
+                return dict(committed=False, revision=None, terminal=False)
+            raise ValueError("Fight checkpoint revision does not exist")
+        if (
+            status in (None, "ended")
+            and durable["status"] == "finished"
+            and row["status"] == "ended"
+            and row["snapshot"].get("phase") == "finished"
+            and row["revision"] >= (expected_revision or 0)
+        ):
+            return dict(committed=True, revision=row["revision"], terminal=True)
+        if row["revision"] == expected_revision and row["status"] == "active":
+            return dict(committed=False, revision=row["revision"], terminal=False)
+        if (
+            row["revision"] == (expected_revision or 0) + 1
+            and row["account_id"] == account_id
+            and row["generation"] == generation
+            and row["status"] == (status or "active")
+            and checkpoint_digest(Checkpoints._read_snapshot(row["snapshot"]))
+            == expected_digest
+        ):
+            return dict(
+                committed=True, revision=row["revision"], terminal=status is not None
+            )
+        raise ValueError("Checkpoint response cannot be reconciled with owned write")
+
+    def recover_write_for_takeover(
+        self,
+        account_id,
+        previous_generation,
+        generation,
+        fight,
+        recovery,
+        *,
+        recovery_generations=(),
+    ):
+        """Authenticate the replacement before reconciling and fencing old work.
+
+        The old login is no longer valid in sessions. It identifies the expected
+        participant lease and lost-write receipt; it never authenticates a new
+        write. All receipt checks and membership fencing share this transaction.
+        """
+        from .fight_store import _takeover_account_memberships
+
+        with self.store.connection() as db:
+            durable = db.execute(
+                "SELECT id,status FROM combat_fights WHERE id=%s FOR UPDATE",
+                (fight.id,),
+            ).fetchone()
+            if durable is None:
+                raise ValueError("Missing durable fight")
+            session = self._session(db, account_id, generation)
+            actor = fight.actors.get(session["character_id"])
+            if actor is None or not actor.controlled or actor.owner_id != account_id:
+                raise ValueError(
+                    "Selected character does not participate in this fight"
+                )
+            member = db.execute(
+                "SELECT p.session_generation, EXISTS(SELECT 1 FROM fight_health_exits e "
+                "WHERE e.fight_id=p.fight_id AND e.character_id=p.character_id "
+                "AND e.return_acknowledged_at IS NOT NULL) AS returned "
+                "FROM combat_fight_participants p WHERE p.fight_id=%s "
+                "AND p.character_id=%s AND p.account_id=%s FOR UPDATE",
+                (fight.id, session["character_id"], account_id),
+            ).fetchone()
+            if (
+                member is None
+                or member["returned"]
+                or member["session_generation"]
+                not in (previous_generation, generation, *recovery_generations)
+            ):
+                raise ValueError("Stale durable combat participant generation")
+            row = db.execute(
+                "SELECT account_id,generation,status,revision,snapshot "
+                "FROM fight_checkpoints WHERE fight_id=%s",
+                (fight.id,),
+            ).fetchone()
+            receipt = self._reconcile_receipt(
+                row,
+                durable,
+                recovery["account_id"],
+                recovery["generation"],
+                recovery["revision"],
+                recovery["status"],
+                recovery["digest"],
+            )
+            _takeover_account_memberships(
+                db, fight.id, account_id, generation, member["session_generation"]
+            )
+            return receipt
 
     def end(
         self,

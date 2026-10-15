@@ -30,9 +30,40 @@ class NativeAffiliationHandler:
             effect["effect_class"] != 1030
             or self.fight.phase != "active"
             or invocation.caster_id not in self.fight.actors
-            or invocation.target_id not in self.fight.actors
         ):
-            raise ValueError("Native eYV requires actual fighters")
+            raise ValueError("Native eYV requires an active fighter caster")
+        actor_target = self.fight.actors.get(invocation.target_id)
+        area_target = None
+        if actor_target is None:
+            area_target = getattr(self.fight, "native_effect_areas", {}).get(
+                invocation.target_id
+            )
+            if area_target is None:
+                raise ValueError("Native eYV requires an actual fighter or area PV")
+            from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
+            from .combat_area_affiliation import area_affiliation
+
+            identity = invocation.target_id
+            if (
+                type(identity) is not int
+                or area_target.get("uid") != identity
+                or area_target.get("native_area_contract")
+                not in SUPPORTED_AREA_CONTRACTS
+                or area_target.get("native_fight_affiliation_source") != "faV.j(PV).bcM"
+            ):
+                raise ValueError("Native eYV requires a registered native area PV")
+            manager = area_target.get("native_running_effect_manager")
+            if type(manager) is not bool:
+                raise ValueError("Missing native eYV area Qf authority")
+            from .combat_state_ledger import StateLedger
+
+            ledger = area_target.get("state_ledger")
+            if manager:
+                if not isinstance(ledger, StateLedger) or ledger.actor_id != identity:
+                    raise ValueError("Missing actual native eYV area Qf")
+            elif ledger is not None:
+                raise ValueError("Native eYV area without Qf has an invented ledger")
+            area_affiliation(self.fight, area_target)
         context = self.context(effect, invocation)
         if (
             not isinstance(context, StatExecutionContext)
@@ -41,6 +72,14 @@ class NativeAffiliationHandler:
             or type(context.retained) is not bool
         ):
             raise ValueError("Missing native eYV execution authority")
+        if (
+            area_target is not None
+            and area_target["native_running_effect_manager"] is False
+            and context.retained
+        ):
+            # Native faV.bax only supplies Qf when its constructor has the
+            # running-effect-manager property. Do not retain on a null-Qf PV.
+            context = replace(context, retained=False)
         return context
 
     def _phase(self, effect, invocation, runner, channel):
@@ -92,14 +131,31 @@ class NativeAffiliationHandler:
         context = self._context(effect, invocation)
         if not context.executable or runner.value == -1:
             return False
-        actor = self.fight.actors[invocation.target_id]
-        if self.authority(self.fight, actor).targeting.get("is_amO") is not True:
-            return False
-        old = getattr(actor, "native_fight_affiliation", actor.team)
+        actor = self.fight.actors.get(invocation.target_id)
+        area_target = None
+        if actor is not None:
+            if self.authority(self.fight, actor).targeting.get("is_amO") is not True:
+                return False
+            old = getattr(actor, "native_fight_affiliation", actor.team)
+            target_id = actor.id
+        else:
+            from .combat_area_affiliation import area_affiliation
+
+            area_target = getattr(self.fight, "native_effect_areas", {}).get(
+                invocation.target_id
+            )
+            if area_target is None or area_target.get("uid") != invocation.target_id:
+                raise ValueError("Native eYV area target disappeared before apply")
+            old = area_affiliation(self.fight, area_target)
+            target_id = invocation.target_id
         if type(old) is not int or not -128 <= old < 128:
             raise ValueError("Missing actual saved eYV bcM affiliation")
-        actor.native_fight_affiliation = signed_affiliation(runner.value)
-        if hasattr(self.fight, "native_controller_registry"):
+        affiliation = signed_affiliation(runner.value)
+        if area_target is None:
+            actor.native_fight_affiliation = affiliation
+        else:
+            area_target["native_fight_affiliation"] = affiliation
+        if area_target is None and hasattr(self.fight, "native_controller_registry"):
             from .combat_controller_registry import set_native_current_team
 
             set_native_current_team(
@@ -112,7 +168,7 @@ class NativeAffiliationHandler:
                 base_uid=invocation.base_uid,
                 generic_effect=invocation.reference,
                 caster_id=invocation.caster_id,
-                target_id=actor.id,
+                target_id=target_id,
                 value=value,
                 timing_payload=context.timing_payload,
             )
@@ -121,7 +177,7 @@ class NativeAffiliationHandler:
         if context.retained:
             self.fight.owned_stat_effects[runner.uid] = dict(
                 uid=runner.uid,
-                target_id=actor.id,
+                target_id=target_id,
                 caster_id=invocation.caster_id,
                 effect_class=1030,
                 family="eYV",
@@ -137,7 +193,7 @@ class NativeAffiliationHandler:
                 self.fight.id,
                 self.action_id,
                 effect_class=1030,
-                target_id=actor.id,
+                target_id=target_id,
                 uid=runner.uid,
                 running_effect_payload=payload,
             )
@@ -163,7 +219,33 @@ def remove_affiliation(handler, uid):
     row = handler.fight.owned_stat_effects[uid]
     if row["family"] != "eYV":
         raise ValueError("Not an owned native affiliation effect")
-    actor = handler.fight.actors[row["target_id"]]
+    actor = handler.fight.actors.get(row["target_id"])
+    area_target = None
+    if actor is None:
+        area_target = getattr(handler.fight, "native_effect_areas", {}).get(
+            row["target_id"]
+        )
+        if area_target is None:
+            area_target = getattr(
+                handler.fight, "native_retired_area_managers", {}
+            ).get(row["target_id"])
+        if area_target is None or area_target.get("uid") != row["target_id"]:
+            raise ValueError("Missing current eYV fighter or registered area PV")
+        from .combat_area_contracts import SUPPORTED_AREA_CONTRACTS
+        from .combat_area_affiliation import area_affiliation
+        from .combat_state_ledger import StateLedger
+
+        if (
+            area_target.get("native_area_contract") not in SUPPORTED_AREA_CONTRACTS
+            or area_target.get("native_fight_affiliation_source") != "faV.j(PV).bcM"
+            or area_target.get("native_running_effect_manager") is not True
+        ):
+            raise ValueError("Missing retained native eYV area Qf authority")
+        ledger = area_target.get("state_ledger")
+        if not isinstance(ledger, StateLedger) or ledger.actor_id != row["target_id"]:
+            raise ValueError("Missing retained native eYV area Qf")
+
+        area_affiliation(handler.fight, area_target)
     old = row["saved_affiliation"]
     if type(old) is not int or not -128 <= old < 128:
         raise ValueError("Missing saved native affiliation")
@@ -171,12 +253,15 @@ def remove_affiliation(handler, uid):
         handler.fight.id,
         handler.action_id,
         effect_class=1030,
-        target_id=actor.id,
+        target_id=row["target_id"],
         uid=uid,
         running_effect_payload=bytes.fromhex(row["payload"]),
     )
-    actor.native_fight_affiliation = old
-    if hasattr(handler.fight, "native_controller_registry"):
+    if area_target is None:
+        actor.native_fight_affiliation = old
+    else:
+        area_target["native_fight_affiliation"] = old
+    if area_target is None and hasattr(handler.fight, "native_controller_registry"):
         from .combat_controller_registry import set_native_current_team
 
         set_native_current_team(handler.fight, actor.id, old)

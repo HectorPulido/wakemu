@@ -164,7 +164,14 @@ def _facing_vector(actor, *, forced=False, reverse=False):
 
 
 def displacement_geometry(
-    effect, level, *, source, target, cell, teleport_recipient_is_fighter=None
+    effect,
+    level,
+    *,
+    source,
+    target,
+    cell,
+    teleport_recipient_is_fighter=None,
+    draw_direction=None,
 ):
     """Pure eXD.C/eXK/eXJ fOu/faz.bcy geometry; no actor IDs select behavior."""
     kind = FAMILIES[effect["effect_class"]]
@@ -209,6 +216,19 @@ def displacement_geometry(
                 )
             elif mode == 4:
                 vector = _facing_vector(actor, forced=True, reverse=True)
+            elif mode == 6:
+                # eXK.fOu -> UK.al(1,4): the native ordering differs from
+                # explicit modes0..3. Consume one transaction-owned draw.
+                if not callable(draw_direction):
+                    raise ValueError(
+                        "Random displacement requires transaction-owned direction RNG"
+                    )
+                draw = draw_direction()
+                if type(draw) is not int or not 1 <= draw <= 4:
+                    raise ValueError(
+                        "Invalid native random displacement direction draw"
+                    )
+                vector = ((0, -1), (-1, 0), (1, 0), (0, 1))[draw - 1]
             elif mode == 7:
                 vector = _facing_vector(source)
             elif mode == -1 or mode not in range(8):
@@ -243,7 +263,14 @@ def displacement_geometry(
                 vector = _facing_vector(actor, forced=True, reverse=True)
                 stop = None
             else:
-                raise ValueError("Unsupported native pull direction context")
+                # eXJ.fOu has explicit cases0..5 only. Every other byte,
+                # including6, uses the source-to-target direction (no draw).
+                # fPi maps equal XY to aAS.NONE, also represented by (0,0).
+                vector = cardinal_vector(
+                    actor.position[0] - source.position[0],
+                    actor.position[1] - source.position[1],
+                )
+                stop = None
         return dict(
             actor=actor,
             distance=distance,
@@ -281,11 +308,15 @@ class NativeDisplacementHandler:
         allocate_uid,
         authority,
         selected_surface=None,
+        context=None,
+        draw_direction=None,
     ):
         self.fight, self.packets, self.action_id = fight, packets, action_id
         self.allocate_uid, self.authority = allocate_uid, authority
         self.event_lifecycle = None
         self.selected_surface = selected_surface
+        self.context = context
+        self.draw_direction = draw_direction
         self.collision_executor = None
         self.carry_release_executor = None
         self.prepared_teleports = {}
@@ -344,8 +375,63 @@ class NativeDisplacementHandler:
         self.prepared_teleports.pop(invocation.native_running_uid, None)
 
     def _calculate_teleport(self, effect, invocation):
-        source = self.fight.actors[invocation.caster_id]
+        selected_id = (
+            invocation.caster_id
+            if effect["effect_class"] == 302
+            else invocation.target_id
+        )
+        parameters = effect.get("parameters")
+        redirects_owner = (
+            bool(parameters) and parameter_value(parameters, 0, invocation.level) == 1
+        )
+        selected_area = None
+        if selected_id is not None and selected_id not in self.fight.actors:
+            from .combat_state_managers import registered_area_pv
+
+            selected_area = registered_area_pv(self.fight, selected_id)
+            if selected_area is None:
+                raise ValueError("Unknown native teleport recipient PV")
+            if not redirects_owner:
+                # eZC/eZD.fRz preserves Qq here; eZB.C rejects a non-eGj
+                # recipient before any surface or fighter-resource lookup.
+                return dict(actor=None), False
+        source = self.fight.actors.get(invocation.caster_id)
         target = self.fight.actors.get(invocation.target_id)
+        if selected_area is not None:
+            from .combat_state_managers import retained_area_pv_row, registered_area_pv
+
+            # eZC/eZD.fRz follows the actual Qq.bch owner only for the
+            # owner-redirect form. Resolve nested area owners by their native
+            # PV records; never reinterpret an unknown UID as a fighter.
+            owner_id = retained_area_pv_row(self.fight, selected_id).get("owner_id")
+            visited = {selected_id}
+            while owner_id is not None:
+                if type(owner_id) is not int:
+                    raise ValueError("Invalid native teleport owner identity")
+                if owner_id in self.fight.actors:
+                    break
+                if owner_id in visited:
+                    raise ValueError("Invalid or recursive native teleport owner")
+                visited.add(owner_id)
+                if registered_area_pv(self.fight, owner_id) is None:
+                    raise ValueError("Unknown native teleport owner PV")
+                owner_id = retained_area_pv_row(self.fight, owner_id).get("owner_id")
+            owner = self.fight.actors.get(owner_id)
+            if owner is None:
+                # A null Qp.bch cannot become an eGj teleport recipient.
+                return dict(actor=None), False
+            if effect["effect_class"] == 302:
+                source = owner
+            else:
+                target = owner
+        if source is None:
+            if effect["effect_class"] == 302:
+                raise ValueError("Missing native teleport source fighter")
+            from .combat_effect_area_targets import retained_area_source_target
+
+            source = retained_area_source_target(self.fight, invocation.caster_id)
+            if source is None:
+                raise ValueError("Missing native teleport source PV")
         recipient = source if effect["effect_class"] == 302 else target
         # eZC/eZD.fRz redirects operand-zero=1 only for an actual Qq.
         # The ordinary eGj path returns the original fighter unchanged.
@@ -379,7 +465,14 @@ class NativeDisplacementHandler:
                     effect, invocation, uid=uid, value=value, channel=channel
                 )
 
-    def _ordinary(self, actor, *, allow_radius=False, allow_carrying=False):
+    def _ordinary(
+        self,
+        actor,
+        *,
+        allow_radius=False,
+        allow_carrying=False,
+        allow_ordinary_corpse=False,
+    ):
         authority = self.authority(self.fight, actor)
         unsupported_life = actor.hp <= 0
         if unsupported_life:
@@ -396,6 +489,28 @@ class NativeDisplacementHandler:
                 # an owned effect chain PA can reach0 before death settlement.
                 hp_raw_current(actor)
                 unsupported_life = False
+            if unsupported_life and allow_ordinary_corpse and actor.hp == 0:
+                from .combat_ordinary_death import (
+                    owned_fighter_guards,
+                    registered_ordinary_death,
+                )
+                from .combat_qi_fight import current_registry
+
+                guards = owned_fighter_guards(self.fight, actor)
+                if (
+                    self.fight.actors.get(actor.id) is actor
+                    and guards.get("baF") is False
+                    and guards.get("baG") is True
+                    and guards.get("baK") is False
+                    and registered_ordinary_death(self.fight, actor) is True
+                ):
+                    # eZB.C requires eGj and QI geometry, not baF/positive HP.
+                    # Authenticate the corpse's retained physical QK rather
+                    # than admitting arbitrary HP0 actors or reviving them.
+                    current_registry(self.fight)._owned(
+                        actor.native_obstacle_id, ("actor", actor.id)
+                    )
+                    unsupported_life = False
         if (
             unsupported_life
             or not allow_radius
@@ -437,21 +552,16 @@ class NativeDisplacementHandler:
         )
 
     def _teleport_free(self, actor, cell):
-        """QI.a(amP,aBn) for the verified ordinary radius-zero QK."""
+        """QI.a(amP,aBn): test every cell of the actual QK square footprint."""
         from .combat_qi_fight import current_registry
 
         registry = current_registry(self.fight)
         qi = registry.snapshot()
         if not qi.aK(*cell[:2]):
             return False
-        index = (cell[1] - qi.y) * qi.width + cell[0] - qi.x
-        if qi.masks[index] & 768:
-            return False
         override = getattr(self.fight, "native_qi_movement_override", None)
         if type(override) is not bool:
             raise ValueError("Missing actual QI movement override")
-        if override:
-            return True
         ignored = getattr(self.fight, "native_qi_ignored_slots", None)
         if not isinstance(ignored, (list, tuple)) or any(
             type(slot) is not int or not 0 <= slot <= 126 for slot in ignored
@@ -464,12 +574,39 @@ class NativeDisplacementHandler:
             or registry.slots[own_slot]["identity"] != ["actor", actor.id]
         ):
             raise ValueError("Missing actual teleport QK registration")
-        return not any(
-            slot != own_slot
-            and slot not in ignored
-            and registry.slots[slot]["movement_blocking"]
-            for slot in (qi.U(*cell[:2]) or ())
-        )
+        radius = actor.physical_radius
+        if (
+            type(radius) is not int
+            or not -128 <= radius <= 127
+            or registry.slots[own_slot]["radius"] != radius
+        ):
+            raise ValueError("Missing actual teleport QK footprint")
+        x0, y0 = cell[:2]
+        if radius >= 0 and any(
+            not -(1 << 31) <= value < (1 << 31) - 1
+            for value in (x0 - radius, x0 + radius, y0 - radius, y0 + radius)
+        ):
+            raise ValueError(
+                "Unsupported native teleport footprint coordinate overflow"
+            )
+        # QI.a checks the center with aK, then QI.g uses W/index bounds for
+        # each footprint cell (not another per-cell aK test). Its QK ignore
+        # removes only this actor's obstacle; all other registered QKs remain.
+        for x in range(x0 - radius, x0 + radius + 1):
+            for y in range(y0 - radius, y0 + radius + 1):
+                index = qi._int32(
+                    qi._int32(qi._int32(y - qi.y) * qi.width) + qi._int32(x - qi.x)
+                )
+                if not 0 <= index < len(qi.masks) or qi.masks[index] & 768:
+                    return False
+                if not override and any(
+                    slot != own_slot
+                    and slot not in ignored
+                    and registry.slots[slot]["movement_blocking"]
+                    for slot in (qi.U(x, y) or ())
+                ):
+                    return False
+        return True
 
     def _forced_obstruction(self, actor, cell):
         """faz's QI.g and QI.V, with actual registered QK population.
@@ -552,7 +689,12 @@ class NativeDisplacementHandler:
         ):
             return False
         # eZB writes PV.b(IIS) directly; unlike eXD it does not uncarry.
-        self._ordinary(actor, allow_carrying=True)
+        self._ordinary(
+            actor,
+            allow_radius=True,
+            allow_carrying=True,
+            allow_ordinary_corpse=True,
+        )
         return not geometry["check_cells"] or self._teleport_free(actor, destination)
 
     def __call__(self, effect, values, invocation):
@@ -560,7 +702,7 @@ class NativeDisplacementHandler:
             raise ValueError("Displacement requires active combat")
         # eZR.i rejects an actual corpse before invoking eXD.c/eXk.c. A proven
         # rejection skips this runner; it does not reject its parent spell.
-        if effect["effect_class"] in (300, 301, 422):
+        if effect["effect_class"] in (300, 301, 302, 340, 422):
             recipient = self.fight.actors.get(invocation.target_id)
             if recipient is not None:
                 from .combat_runner_target_life import runner_target_life_eligible
@@ -578,11 +720,20 @@ class NativeDisplacementHandler:
         # lifecycle (eZR.aZB); it does not prevent native displacement.
         # Flag37 skips eXD.fOQ uncarry. Its only native consumer returns
         # before the flag check when the ordinary actor's frA() is false.
-        if flags - {3, 5, 13, 14, 17, 26, 36, 37}:
+        # eVl.rwB(4) marks ZONE_EFFECT for damage mastery/event consumers.
+        # Native displacement runners do not consume it; preserve the metadata
+        # while using the unchanged forced-path and movement lifecycle.
+        if flags - {3, 4, 5, 13, 14, 17, 26, 36, 37}:
             raise ValueError(
-                f"Unhandled native displacement flags: {sorted(flags-{3,5,13,14,17,26,36,37})}"
+                f"Unhandled native displacement flags: {sorted(flags-{3,4,5,13,14,17,26,36,37})}"
             )
-        native_definition_timing(effect, invocation.level)
+        from .combat_displacement_retention import retained_displacement_context
+
+        retained_ctx = retained_displacement_context(
+            self, effect, invocation, native_definition_timing(effect, invocation.level)
+        )
+        if retained_ctx is not None and not retained_ctx.executable:
+            return False
         uid = invocation.native_running_uid
         kind = FAMILIES[effect["effect_class"]]
         if self.event_lifecycle is not None:
@@ -616,6 +767,18 @@ class NativeDisplacementHandler:
                 return False
         if self.event_lifecycle is not None:
             self.event_lifecycle.phase(effect, invocation, uid=uid, value=0, channel=2)
+        if kind.startswith("teleport"):
+            recipient = teleport_geometry["actor"]
+            if self.authority(self.fight, recipient).targeting.get("baK") is True:
+                from .combat_ordinary_death import corpse_gate_bypassed
+
+                # eZB.c rechecks actual fRz() after L2, independently from
+                # eZR.i's earlier selected-target baG gate.
+                if not corpse_gate_bypassed(
+                    effect, fight=self.fight, invocation=invocation
+                ):
+                    self._finish_events(effect, invocation, uid, 0)
+                    return False
         if kind in ("push", "pull"):
             recipient = self.fight.actors.get(invocation.target_id)
             if recipient is None:
@@ -667,7 +830,12 @@ class NativeDisplacementHandler:
         )
         target = self.fight.actors.get(invocation.target_id)
         geometry = teleport_geometry or displacement_geometry(
-            effect, invocation.level, source=source, target=target, cell=invocation.cell
+            effect,
+            invocation.level,
+            source=source,
+            target=target,
+            cell=invocation.cell,
+            draw_direction=self.draw_direction,
         )
         changed = []
         path = None
@@ -893,7 +1061,27 @@ class NativeDisplacementHandler:
             from .combat_qi_fight import move_registered_actor
 
             move_registered_actor(self.fight, actor, position)
+        if retained_ctx is not None and retained_ctx.retained:
+            from .combat_displacement_retention import retain_displacement
+
+            packet = retain_displacement(
+                self,
+                effect,
+                invocation,
+                retained_ctx,
+                uid=uid,
+                source=source,
+                target=target,
+                value=value,
+                additional=additional,
+            )
         self.packets.append(packet)
+        if (
+            retained_ctx is not None
+            and retained_ctx.retained
+            and self.event_lifecycle is not None
+        ):
+            self.event_lifecycle.register_applied(effect, invocation, uid)
         if collision is not None:
             displaced, collider, loss_ap = collision
             self.collision_executor(

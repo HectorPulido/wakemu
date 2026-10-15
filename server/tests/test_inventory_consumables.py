@@ -1,13 +1,133 @@
 import struct
 import unittest
+from unittest.mock import patch
 from postgres_case import PostgresCase
 from wakfu_server.inventory_items import grant
-from wakfu_server.inventory_consumables import use, healing_plan
+from wakfu_server.inventory_consumables import use, healing_plan, food_healing_amount
 from wakfu_server import health_store
 from wakfu_server import health_policy
+from wakfu_server.wire import proto_field
+
+
+class FoodHealingArithmeticTests(unittest.TestCase):
+    def character(self):
+        sheet = proto_field(24, (1 << 64) - 1).hex()
+        equipment = proto_field(10, proto_field(8, 1000) + proto_field(16, 4)).hex()
+        return dict(
+            id=1,
+            breed=8,
+            level=6,
+            hp=10,
+            max_hp=100,
+            active_build_index=0,
+            inventory_items=[
+                dict(uid=1000, character_id=1, reference=2021, quantity=1)
+            ],
+            builds={
+                0: dict(equipment=equipment, sheet=sheet),
+                1: dict(equipment="", sheet=sheet),
+            },
+        )
+
+    def test_real_equipped_mastery_does_not_increase_mask_two_food(self):
+        from wakfu_server.equipment_stats import bonuses
+
+        character = self.character()
+        self.assertEqual(bonuses(character)["stats"][20], 9)
+        self.assertEqual(food_healing_amount(character, 55), 55)
+
+    def test_inactive_equipment_does_not_contribute_or_block(self):
+        character = self.character()
+        character["active_build_index"] = 1
+        # An inactive reference is deliberately unavailable: food evaluation
+        # must not validate or read that unselected sheet.
+        character["inventory_items"] = []
+        self.assertEqual(food_healing_amount(character, 55), 55)
+
+    def test_target_resistance_and_native_fractional_rounding_are_applied(self):
+        with patch(
+            "wakfu_server.equipment_stats.bonuses",
+            return_value={"stats": {32: 100, 18: 900, 20: 900, 114: 500}},
+        ):
+            # 55 * (1 - 10%) = 49.5. Source mastery/final bonuses are disabled
+            # by mask2; target resistance remains enabled.
+            self.assertEqual(
+                food_healing_amount(self.character(), 55, rng=lambda: 0), 50
+            )
+            self.assertEqual(
+                food_healing_amount(self.character(), 55, rng=lambda: 0.99), 49
+            )
 
 
 class ConsumableTests(PostgresCase):
+    def test_equipped_food_and_inactive_build_preserve_gear_and_consume_one(self):
+        store = self.store
+        account = store.register("equipped-food", "local-password")["id"]
+        character = store.create_character(account, "Equipped Food", breed=8)
+        generation = store.begin_session(account)
+        store.select_character(account, generation, character["id"])
+        with store.connection() as db:
+            db.execute("UPDATE characters SET level=6 WHERE id=%s", (character["id"],))
+        container = character["inventory_containers"][0]["uid"]
+        gear = grant(
+            store,
+            account,
+            generation,
+            character["id"],
+            reference=2021,
+            quantity=1,
+            container=container,
+            slot=0,
+            allowed_references={2021},
+        )
+        food = grant(
+            store,
+            account,
+            generation,
+            character["id"],
+            reference=3864,
+            quantity=2,
+            container=container,
+            slot=1,
+            allowed_references={3864},
+        )
+        equipment = proto_field(10, proto_field(8, gear["uid"]) + proto_field(16, 4))
+        for index in (0, 1):
+            sheet = b"".join(
+                proto_field(tag, value)
+                for tag, value in [(8, index), (18, b"Food gear"), (24, 6), (56, 0)]
+            )
+            store.save_build(
+                account,
+                generation,
+                character["id"],
+                index,
+                {"sheet": sheet, "equipment": equipment, "deck": b"", "aptitudes": b""},
+            )
+        health_store.initialize(store, account, generation, character["id"])
+        current = store.character(account, character["id"])
+        health_store.sync(
+            store, account, generation, character["id"], current["hp"], 10
+        )
+        result = use(
+            store,
+            account,
+            generation,
+            character["id"],
+            struct.pack(">qB", food["uid"], 0),
+            expected_hp=10,
+            in_fight=False,
+        )
+        self.assertEqual(result["healed"], 55)
+        reopened = self.reopen().character(account, character["id"])
+        self.assertEqual(reopened["hp"], 65)
+        self.assertEqual(reopened["builds"][0]["equipment"], equipment.hex())
+        self.assertEqual(reopened["builds"][1]["equipment"], equipment.hex())
+        quantities = {
+            item["uid"]: item["quantity"] for item in reopened["inventory_items"]
+        }
+        self.assertEqual(quantities, {gear["uid"]: 1, food["uid"]: 1})
+
     def test_food_pays_hidden_wounds_and_regeneration_uses_remaining_debt(self):
         store = self.store
         store.clock = lambda: 1.0

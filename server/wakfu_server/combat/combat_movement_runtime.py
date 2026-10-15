@@ -8,6 +8,51 @@ from .combat_movement import movement
 from .combat_wire import actor_state
 
 
+def movement_stats_snapshot(stats, previous=None, *, position_owned=True):
+    """An existing movement action owns position; follow it with exact PCs only."""
+    if isinstance(stats, bytes) and stats and stats[0] in (2, 3):
+        from .combat_characteristic_snapshot import characteristics_only_snapshot
+
+        projected = characteristics_only_snapshot(stats)
+        if isinstance(previous, bytes) and previous and previous[0] in (2, 3):
+
+            def metadata(payload):
+                # Keep every non-position/non-PC field, including QI/control/book.
+                position = 1 + (8 if payload[0] == 3 else 0)
+                table = position + 30
+                characteristics_only_snapshot(payload)  # Validate before slicing.
+                count = struct.unpack_from(">H", payload, table)[0]
+                end = table + 2 + count * 17
+                suffix = payload[end:]
+                if payload[0] == 3:
+                    # Player snapshots repeat PCs after AI control and breed.
+                    public_table = end + 4
+                    if len(payload) < public_table + 2:
+                        raise ValueError(
+                            "Truncated native player public characteristics"
+                        )
+                    public_count = struct.unpack_from(">H", payload, public_table)[0]
+                    public_end = public_table + 2 + public_count * 17
+                    if public_end > len(payload):
+                        raise ValueError(
+                            "Truncated native player public characteristics"
+                        )
+                    suffix = payload[end:public_table] + payload[public_end:]
+                spatial = b"" if position_owned else payload[position : position + 20]
+                return (
+                    payload[:position]
+                    + spatial
+                    + payload[position + 20 : table]
+                    + suffix
+                )
+
+            if metadata(stats) != metadata(previous):
+                return stats
+        return projected
+    # Preserve custom serializer adapters and already partial native snapshots.
+    return stats
+
+
 # Native actor directions use the eight adjacent planar cell vectors. This is
 # the same ordering used by the client's oriented-area transform (anI/ana).
 _DIRECTION_VECTORS = (
@@ -93,6 +138,11 @@ def apply_client(
     from .combat_carrying import set_registered_direction
 
     if _step_callback is not None:
+        previous_stats = (
+            runtime_stats_serializer(actor, fight)
+            if runtime_stats_serializer is not None
+            else stats_serializer(actor)
+        )
         event = fight.move(owner_id, actor_id, path, step_callback=_step_callback)
         path = event["path"]
         direction = direction_after_path(
@@ -105,6 +155,7 @@ def apply_client(
             else stats_serializer(actor)
         )
     else:
+        previous_stats = None
         candidate_fight = copy.deepcopy(fight)
         candidate = candidate_fight.actors[actor_id]
         candidate_fight.move(owner_id, actor_id, path)
@@ -117,12 +168,20 @@ def apply_client(
     animation = movement(
         fight.id, runtime.action_id + 1, actor_id, [origin, *path], direction
     )
-    refresh = (12873, actor_state(12873, fight.id, actor_id, stats))
+    refresh = (
+        12873,
+        actor_state(
+            12873, fight.id, actor_id, movement_stats_snapshot(stats, previous_stats)
+        ),
+    )
     if _step_callback is None:
         event = fight.move(owner_id, actor_id, path)
         set_registered_direction(fight, actor, direction)
     runtime.action_id += 1
-    return [animation, runtime._flush(), refresh], event
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    final = [] if actor_id in hidden_snapshot_actor_ids(fight) else [refresh]
+    return [animation, runtime._flush(), *final], event
 
 
 def apply_ai(
@@ -157,6 +216,7 @@ def apply_ai(
 
     origin = actor.position
     if _step_callback is not None:
+        previous_stats = stats_serializer(actor)
         result["event"] = fight.server_move(
             actor.id, path, step_callback=_step_callback
         )
@@ -166,6 +226,7 @@ def apply_ai(
         set_registered_direction(fight, actor, direction)
         stats = stats_serializer(actor)
     else:
+        previous_stats = None
         candidate_fight = copy.deepcopy(fight)
         candidate = candidate_fight.actors[actor.id]
         candidate_fight.server_move(actor.id, path)
@@ -174,19 +235,29 @@ def apply_ai(
     animation = movement(
         fight.id, runtime.action_id + 1, actor.id, [origin, *path], direction
     )
-    refresh = (12873, actor_state(12873, fight.id, actor.id, stats))
+    refresh = (
+        12873,
+        actor_state(
+            12873, fight.id, actor.id, movement_stats_snapshot(stats, previous_stats)
+        ),
+    )
     if _step_callback is None:
         result["event"] = fight.server_move(actor.id, path)
         set_registered_direction(fight, actor, direction)
     runtime.action_id += 1
-    return [animation, runtime._flush(), refresh], result
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    final = [] if actor.id in hidden_snapshot_actor_ids(fight) else [refresh]
+    return [animation, runtime._flush(), *final], result
 
 
 def _with_areas(runtime, provider, operation):
     from copy import deepcopy
     from .combat_area_boundary import adopt_fight, adopt_runtime
+    from .combat_characteristic_reconciliation import characteristic_signatures
 
     candidate = deepcopy(runtime)
+    before_callbacks = characteristic_signatures(candidate.fight)
     callbacks = []
     action_id = candidate.action_id + 2
 
@@ -206,8 +277,54 @@ def _with_areas(runtime, provider, operation):
     event = result.get("event", result)
     if event.get("path"):
         candidate.action_id += 1
-        packets = list(packets) + callbacks
+        packets = list(packets)
+        from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+        hidden = hidden_snapshot_actor_ids(candidate.fight)
+        packets = [
+            (opcode, payload)
+            for opcode, payload in packets
+            if opcode != 12873 or struct.unpack_from(">q", payload, 4)[0] not in hidden
+        ]
+        refreshes = [packet for packet in packets if packet[0] == 12873]
+        refreshed = {
+            struct.unpack_from(">q", payload, 4)[0] for _, payload in refreshes
+        }
+        changed_stats = candidate._changed_stat_packets(
+            before_callbacks, exclude=refreshed
+        )
+        from .combat_wire import decode_actor_state
+
+        projected_changes = []
+        for opcode, payload in changed_stats:
+            state = decode_actor_state(opcode, payload)
+            identity = state["actor_id"]
+            previous = runtime.fight.actors.get(identity)
+            actor = candidate.fight.actors[identity]
+            stats = state["state"]
+            if previous is not None and previous.position == actor.position:
+                serialize = runtime.runtime_stats_serializer
+                baseline = (
+                    serialize(previous, runtime.fight)
+                    if serialize is not None
+                    else runtime.stats_serializer(previous)
+                )
+                stats = movement_stats_snapshot(stats, baseline, position_owned=False)
+            projected_changes.append(
+                (opcode, actor_state(opcode, candidate.fight.id, identity, stats))
+            )
+        changed_stats = projected_changes
         if callbacks:
+            # These snapshots already include every step callback's mutation.
+            # Native cvX completion also applies evaluated resource deltas,
+            # including its retained/execute-false branch. Queue the final
+            # cuU snapshots after those effects or the client applies a delta
+            # twice relative to the authoritative final current/max values.
+            packets = [packet for packet in packets if packet[0] != 12873]
+            packets.extend(callbacks)
+            packets.extend(refreshes)
+        if callbacks or changed_stats:
+            packets.extend(changed_stats)
             packets.append(candidate._flush())
     adopt_runtime(runtime, candidate)
     return packets, result

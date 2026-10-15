@@ -3,7 +3,7 @@
 Durable checkpoints still serialize every terrain cell and edge. Mutable legacy
 fixtures take the complete serialization path, so in-place edits remain visible.
 """
-from .fight_checkpoint_store import _plain
+from .fight_checkpoint_store import EPHEMERAL_FIGHT_FIELDS, _plain
 
 
 class ImmutableTerrainSet(frozenset):
@@ -39,7 +39,7 @@ def source_snapshot(fight):
             else _plain(value)
         )
         for key, value in fight.__dict__.items()
-        if key not in ("actors", "native_rail_movement_authority")
+        if key not in EPHEMERAL_FIGHT_FIELDS
     }
     state["actors"] = {
         str(identity): _plain(actor.__dict__)

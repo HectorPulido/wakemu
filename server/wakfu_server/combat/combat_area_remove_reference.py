@@ -3,7 +3,7 @@ from .combat_effect_area import remove_owned_hour_area
 from .combat_effect_area_queries import _rows
 from .combat_stat_handler import StatExecutionContext
 from .combat_retained_runtime import group_payload
-from .combat_stat_effects import owned_effect_application
+from .combat_stat_effects import evaluated_effect_delivery
 from .combat_effects import _integer, _varint
 from wakfu_server.wire import proto_fields
 
@@ -62,19 +62,20 @@ class NativeAreaReferenceRemovalHandler:
             if invocation.native_context_hex is None
             else bytes.fromhex(invocation.native_context_hex),
         )
+        # eXS.c performs Qs.a for each matching prototype. cvY/aTR only
+        # observes this runner, leaving client areas registered. Execute the
+        # evaluated runner before its removal callbacks' child deliveries.
         self.packets.append(
-            (
-                13497,
-                owned_effect_application(
-                    self.fight.id,
-                    self.action_id,
-                    effect_class=935,
-                    target_id=invocation.caster_id
-                    if invocation.target_id is None
-                    else invocation.target_id,
-                    uid=uid,
-                    running_effect_payload=payload,
-                ),
+            evaluated_effect_delivery(
+                self.fight.id,
+                self.action_id,
+                retained=False,
+                effect_class=935,
+                target_id=invocation.caster_id
+                if invocation.target_id is None
+                else invocation.target_id,
+                uid=uid,
+                running_effect_payload=payload,
             )
         )
         for row in rows:

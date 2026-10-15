@@ -384,9 +384,11 @@ class EffectDispatcher:
                 from .combat_cell_group import cell_group_mode
 
                 candidate_filter = cell_group_mode(values).filter_cells
+            # The evaluator accepts a blank criterion without reading context.
+            # Avoid rebuilding actor and retained-effect projections for it.
             condition = (
                 None
-                if candidate_filter
+                if candidate_filter or not effect["criteria"].strip()
                 else (
                     activation[2](effect, selected, activation[1])
                     if activation is not None
@@ -549,6 +551,8 @@ class EffectDispatcher:
                 )
 
                 def cell_condition(cell):
+                    if not effect["criteria"].strip():
+                        return True
                     candidate = replace(
                         selected,
                         target_id=None,
@@ -570,6 +574,7 @@ class EffectDispatcher:
                     condition=cell_condition,
                     rng=self.group_random,
                     criterion_present=native_cell_criterion_presence(effect, selected),
+                    reuse_condition_actors=True,
                 )
                 if selection.eligible_count:
                     child_level, context = self.group_retention.child_level_context(
@@ -624,6 +629,8 @@ class EffectDispatcher:
                 )
 
                 def candidate_condition(candidate):
+                    if not effect["criteria"].strip():
+                        return True
                     context = (
                         activation[2](effect, candidate, activation[1])
                         if activation is not None

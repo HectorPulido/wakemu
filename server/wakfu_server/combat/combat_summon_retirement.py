@@ -272,10 +272,33 @@ def retired_summon_ids(fight, *, registry=None):
                 record_data, expected_owner_id=owner_id
             )
             descriptor = roster.slots[slot]
+            # Availability is current component state, not an immutable death
+            # fact: a subsequent native324 can consume this released slot.
+            successors = []
+            if roster.available[slot] is not True:
+                for candidate_id, candidate in fight.actors.items():
+                    candidate_source = getattr(candidate, "native_summon_source", None)
+                    if (
+                        candidate_id in records
+                        or not isinstance(candidate_source, dict)
+                        or candidate_source.get("native_captured_owner_id") != owner_id
+                        or candidate_source.get("native_captured_slot") != slot
+                    ):
+                        continue
+                    _, _, successor_source, successor_captured, _ = _registration(
+                        fight, candidate_id
+                    )
+                    if (
+                        successor_captured
+                        and successor_source["ref"] == source["ref"]
+                        and global_fighter_registered(fight, candidate_id)
+                        and global_fighter_guards(fight, candidate_id)["baK"] is False
+                    ):
+                        successors.append(candidate_id)
             if (
                 descriptor is None
                 or descriptor.profile_id != source["ref"]
-                or roster.available[slot] is not True
+                or (roster.available[slot] is not True and len(successors) != 1)
             ):
                 raise ValueError("Retired captured summon slot is not released")
         result.add(actor_id)

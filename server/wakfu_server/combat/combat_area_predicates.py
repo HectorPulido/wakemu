@@ -164,3 +164,23 @@ def is_own_area(
                 continue
         return True
     return False
+
+
+def has_effect_area_property(
+    fight, *, property_id, target_kind, target_id=None, cell=None
+):
+    """eMh: selected Qq property namespace4 membership, never areas on a cell."""
+    if type(property_id) is not int:
+        raise ValueError("Native area property requires an integer")
+    property_id = ((property_id + (1 << 31)) % (1 << 32)) - (1 << 31)
+    if target_kind not in _TARGET_FORMS:
+        raise ValueError("Missing native area predicate target form")
+    # Qq.b defaults zero; eGj.b accepts namespaces0/1 only. fbo is namespace4.
+    if target_kind != "area" or not 0 <= property_id <= 14:
+        return False
+    from .combat_area_property import _target, area_properties
+
+    row, definition = _target(fight, target_id)
+    if row is None:
+        raise ValueError("Missing selected native area property authority")
+    return property_id in area_properties(row, definition)

@@ -73,6 +73,12 @@ def owned_instance(ref, level, actor_id, *, map_id, x, y, z, team=1, instance_id
         raise ValueError("Invalid local monster position")
     if stats["HP"] <= 0 or any(stats[name] < 0 for name in ("AP", "MP", "WP")):
         raise ValueError("Reference cannot initialize a living local fighter")
+    from wakfu_server.combat.combat_actor_snapshot import native_npc_creation_values
+
+    # Native ffC curves feed ffx characteristic bounds before entering combat.
+    # Keep statistics() as raw source data, but never publish an unbounded WP
+    # value (for example the native Ogrest curve is 25 and the WP ceiling is 20).
+    resources = native_npc_creation_values(ref, level)
     return dict(
         id=actor_id,
         ref=ref,
@@ -85,11 +91,11 @@ def owned_instance(ref, level, actor_id, *, map_id, x, y, z, team=1, instance_id
         y=y,
         z=z,
         team=team,
-        hp=stats["HP"],
-        max_hp=stats["HP"],
-        ap=stats["AP"],
-        mp=stats["MP"],
-        wp=stats["WP"],
+        hp=resources[1]["current"],
+        max_hp=resources[1]["maximum"],
+        ap=resources[2]["current"],
+        mp=resources[3]["current"],
+        wp=resources[4]["current"],
         initiative=stats["INIT"],
         sprite_id=monster["sprite_id"],
     )

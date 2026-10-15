@@ -78,7 +78,7 @@ services:
     volumes:
       # Runtime code, protocol and migrations come from the validated image.
       # Source edits remain isolated until the next tested image is deployed.
-      - ./.runtime/local:/data
+      - ./.local-state/wakemu/world:/data
       - ./.database/secrets:/run/secrets:ro
       - ./server/ai-service:/app/ai-service:ro
     networks: [isolated, client-access]
@@ -87,7 +87,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
-      start_period: 120s
+      start_period: 6m
   shop:
     image: ${WAKFU_SHOP_IMAGE:-wakemu-shop:performance-icons-20261011}
     build:
@@ -140,7 +140,7 @@ services:
       - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
       - ./.database/secrets/admin:/data
       - ./.database/secrets/admin-control-token:/run/secrets/admin-control-token:ro
-      - ./.runtime/local/logs/profiles:/metrics:ro
+      - ./.local-state/wakemu/world/logs/profiles:/metrics:ro
     ports:
       - '127.0.0.1:18084:18084'
     networks: [isolated, client-access]
@@ -166,6 +166,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./server:${PWD}/server:ro
       - ./compose.yaml:${PWD}/compose.yaml:ro
+      - ./.env:${PWD}/.env:ro
       - ./compose.profiler.yaml:${PWD}/compose.profiler.yaml:ro
       - ./.database/secrets/admin-control:/data
       - ./.database/secrets/postgres-password:/run/secrets/postgres-password:ro
@@ -202,6 +203,7 @@ services:
       redis:
         condition: service_healthy
     environment:
+      WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION}
       WAKFU_FISHING_CATALOG_REVISION: 20f2731c921701c025af2d8416696e5b01c7346fc9393408b47533c092cab5fa
       WAKFU_MINING_CATALOG_REVISION: 14b63a5b28014e455fd9910c99fe037e6d957ac9b40508335bfe130c2ee54518
       WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
@@ -231,6 +233,7 @@ services:
       retries: 3
       start_period: 180s
   ai:
+    image: ${WAKFU_AI_IMAGE:-wakfu-local-ai:latest}
     build:
       context: ./server/ai-service
       args:
@@ -243,6 +246,7 @@ services:
       redis:
         condition: service_healthy
     environment:
+      WAKFU_CATALOG_REVISION: ${WAKFU_CATALOG_REVISION}
       WAKFU_DATABASE_URL: host=postgres dbname=wakemu_runtime user=wakemu
       WAKFU_DATABASE_PASSWORD_FILE: /run/secrets/postgres-password
       WAKFU_REDIS_URL: redis://redis:6379/0

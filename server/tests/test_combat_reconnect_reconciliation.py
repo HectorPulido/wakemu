@@ -13,6 +13,7 @@ from wakfu_server.combat_session_adapter import CombatSessionAdapter
 from wakfu_server.combat_shared import Session
 from wakfu_server.combat_state_ledger import RunningState
 from wakfu_server import combat_health
+from wakfu_server.combat.combat_runtime_messages import RuntimeMessages
 
 
 class ReconnectReconciliationTests(unittest.TestCase):
@@ -303,6 +304,114 @@ class ReconnectReconciliationTests(unittest.TestCase):
         self.assertEqual(peer_batches[-1].packets, ((13482, b"after-reconnect"),))
         self.assertEqual(self._fight_state(self.shared), before)
 
+    def _prepare_pending_ack_reconnect(self):
+        fight = self.fight
+        fight.ready(1)
+        fight.turn_id = 2
+        runtime = RuntimeMessages(fight, clock=lambda: 100.0)
+        runtime.awaiting_ack = 1
+        runtime.pending = [(12502, b"stale-turn-end")]
+        runtime.turn_deadline = None
+        runtime.deadline_turn = None
+        runtime.native_action_id = 30
+        self.shared.runtime = runtime
+        self.shared.ack.arm(1, [self.old])
+        self.shared.reconnect_turn_end_packets = (
+            (12502, b"stale-turn-end"),
+            (13420, struct.pack(">i", fight.id)),
+        )
+        self.shared.join_context = {
+            "arena": {
+                "map_id": 1134,
+                "instance_id": 0,
+                "x": 0,
+                "y": 0,
+                "width": 4,
+                "height": 1,
+                "min_z": 0,
+                "max_z": 0,
+                "cell_masks": [0, 0, 0, 0],
+            },
+            "terrain_effect_id": 99,
+            "terrain_instance_id": 0,
+            "leaders": {0: 10, 1: -200},
+        }
+
+    def test_last_owner_reconnect_recovers_pending_ack_before_owned_snapshot(self):
+        from wakfu_server.combat.combat_reconnect_snapshot import owned_snapshot
+
+        self._prepare_pending_ack_reconnect()
+        registry = self.adapter.registry
+        self.assertEqual(registry.disconnect(self.old), [self.fight.id])
+        self.live.remove((1, "generation-old", 10))
+        replacement = Session(1, 10, "generation-new", 1134, 0)
+        self.live.add((1, "generation-new", 10))
+        original_fight, original_runtime = self.shared.fight, self.shared.runtime
+        original_state = self._fight_state(self.shared)
+        now = original_runtime.clock()
+        durable = []
+
+        def bootstrap(fight, shared, session):
+            return owned_snapshot(
+                fight,
+                shared,
+                session,
+                actor_payload=lambda *_: (b"current-stats", b"current-effects"),
+            )
+
+        registry.takeover(
+            self.fight.id,
+            replacement,
+            bootstrap,
+            recover_disconnected=True,
+            persist_takeover=lambda previous: durable.append(previous),
+        )
+        packets = registry.drain(self.fight.id, replacement)[0].packets
+        self.assertNotIn(12502, [opcode for opcode, _ in packets])
+        self.assertIn(12053, [opcode for opcode, _ in packets])
+        self.assertEqual(durable, [self.old])
+        self.assertIsNot(self.shared.fight, original_fight)
+        self.assertIsNot(self.shared.runtime, original_runtime)
+        self.assertIsNone(self.shared.runtime.awaiting_ack)
+        self.assertEqual(self.shared.runtime.pending, [])
+        self.assertIsNone(self.shared.ack.turn)
+        self.assertGreater(self.shared.runtime.turn_deadline, now)
+        self.assertEqual(self.shared.runtime.deadline_turn, self.shared.fight.turn_id)
+        recovered_state = self._fight_state(self.shared)
+        self.assertEqual(recovered_state[:4], original_state[:4])
+        self.assertEqual(recovered_state[5:], original_state[5:])
+        self.assertEqual(self.shared.fight.current.id, 10)
+
+    def test_failed_pending_ack_recovery_takeover_keeps_live_state_atomic(self):
+        self._prepare_pending_ack_reconnect()
+        registry = self.adapter.registry
+        self.assertEqual(registry.disconnect(self.old), [self.fight.id])
+        self.live.remove((1, "generation-old", 10))
+        replacement = Session(1, 10, "generation-new", 1134, 0)
+        self.live.add((1, "generation-new", 10))
+        original_fight, original_runtime = self.shared.fight, self.shared.runtime
+        state = self._fight_state(self.shared)
+        barrier = deepcopy(self.shared.ack)
+        with self.assertRaisesRegex(RuntimeError, "takeover checkpoint failed"):
+            registry.takeover(
+                self.fight.id,
+                replacement,
+                lambda *_: ((12847, b"prepared"),),
+                recover_disconnected=True,
+                persist_takeover=lambda _: (_ for _ in ()).throw(
+                    RuntimeError("takeover checkpoint failed")
+                ),
+            )
+        self.assertIs(self.shared.fight, original_fight)
+        self.assertIs(self.shared.runtime, original_runtime)
+        self.assertEqual(self._fight_state(self.shared), state)
+        self.assertEqual(self.shared.ack.turn, barrier.turn)
+        self.assertEqual(self.shared.ack.expected, barrier.expected)
+        self.assertEqual(self.shared.ack.received, barrier.received)
+        self.assertIsNone(self.shared.runtime.turn_deadline)
+        self.assertEqual(self.shared.runtime.awaiting_ack, 1)
+        self.assertEqual(self.shared.runtime.pending, [(12502, b"stale-turn-end")])
+
     def test_placement_reconnect_bootstrap_is_owned_and_does_not_change_fight(self):
         from wakfu_server.combat.combat_session_adapter import CombatSessionAdapter
 
@@ -421,8 +530,25 @@ class ReconnectReconciliationTests(unittest.TestCase):
 
         self.assertEqual(
             [opcode for opcode, _ in packets],
-            [12847, 13912, 12873, 13912, 12873, 12233, 12514, 12053, 12613],
+            [12847, 13912, 12873, 13912, 12873, 12233, 12053, 12514, 12613],
         )
+        recovery = next(body for opcode, body in packets if opcode == 12053)
+        restored_round, restored_turn, _, deadline_ms = struct.unpack_from(
+            ">hiBq", recovery, 15
+        )
+        self.assertEqual(restored_turn, fight.turn_id)
+        cursor = 30
+        member_count = recovery[cursor]
+        cursor += 1
+        restored_order = struct.unpack_from(">" + "q" * member_count, recovery, cursor)
+        cursor += 8 * member_count
+        next_count = recovery[cursor]
+        cursor += 1 + 8 * next_count
+        progress_count = recovery[cursor]
+        cursor += 1 + 10 * progress_count
+        self.assertEqual(restored_order[recovery[cursor]], fight.current.id)
+        action = next(body for opcode, body in packets if opcode == 12514)
+        self.assertEqual(struct.unpack_from(">iB", action), (fight.id, 2))
         carrier = packets[-1][1]
         self.assertEqual(
             struct.unpack_from(">iiiBi", carrier), (fight.id, 41, -1, 0, 310)

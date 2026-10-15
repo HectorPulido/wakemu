@@ -87,6 +87,11 @@ def registered_area_pv(fight, identity):
     cell = row.get("cell")
     faw = None
     wall = None
+    simple = None
+    if definition.get("type") == "SIMPLE":
+        from .combat_simple_area import verified_simple_area
+
+        simple = verified_simple_area(row, definition)
     if definition.get("type") == "FAKE_FIGHTER":
         from .combat_fake_fighter import verified_fake_fighter
 
@@ -98,7 +103,7 @@ def registered_area_pv(fight, identity):
     if definition.get("type") == "WALL":
         from .combat_wall_area import verified_wall_constructor
 
-        wall = verified_wall_constructor(row, definition)
+        wall = verified_wall_constructor(row, definition, fight=fight)
     trap_stats = None
     if definition.get("type") == "TRAP":
         from .combat_trap_area import verified_trap_characteristics
@@ -148,6 +153,8 @@ def registered_area_pv(fight, identity):
             if faw is not None
             else wall["bcK_value"]
             if wall is not None
+            else simple["bcK_value"]
+            if simple is not None
             else 0
         ),
         native_entry_masks=frozenset(entry_masks),
@@ -210,7 +217,7 @@ def state_manager(fight, identity):
         row = getattr(fight, "native_retired_area_managers", {}).get(identity)
     if row is None:
         return None
-    if row.get("native_area_contract") in ("faW", "faU", "fbd", "fbc"):
+    if row.get("native_area_contract") in ("faW", "faU", "fbd", "fbc", "fbb"):
         registered_area_pv(fight, identity)
     from .combat_effect_area_geometry import refresh_area_geometry
 

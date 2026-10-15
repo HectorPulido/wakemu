@@ -1,5 +1,6 @@
 import json
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from types import SimpleNamespace
 from dataclasses import replace
@@ -205,6 +206,117 @@ class NativeKillTests(unittest.TestCase):
             self.assertEqual(fight.owned_stat_effects, {})
             self.assertEqual(packets, [])
             self.assertEqual(handler.runners, {})
+
+    def test_eXc_registered_area_without_hp_is_a_noop_and_hp_or_unknown_reject(self):
+        from wakfu_server.combat_simple_area import simple_area_constructor
+        from wakfu_server.combat_state_ledger import StateLedger
+        from wakfu_server.combat_fake_fighter import fake_fighter_constructor
+        from wakfu_server.combat_fake_fighter_resources import install_fake_fighter_hp
+
+        simple = dict(
+            type="SIMPLE",
+            native_class="bcW",
+            native_type_id=6,
+            native_container_type=3,
+            native_area_properties=[],
+            entry_masks=[],
+            native_shape_class="anD",
+            native_shape_description="point",
+        )
+        hp_area = dict(
+            type="FAKE_FIGHTER",
+            native_class="bcQ",
+            native_type_id=15,
+            native_container_type=3,
+            raw_bdh=[0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0],
+            native_area_properties=[],
+            entry_masks=[],
+            native_shape_class="anD",
+            native_shape_description="point",
+        )
+        definitions = {"314": simple, "1031": hp_area}
+
+        def simple_row(identity=901):
+            return dict(
+                uid=identity,
+                reference=314,
+                level=1,
+                cell=(1, 1, 0),
+                owner_id=7,
+                direction=0,
+                native_area_contract="fbb",
+                native_type_id=6,
+                native_simple_constructor=simple_area_constructor(simple),
+                native_running_effect_manager=False,
+                native_obstacle_id=-1,
+            )
+
+        def hp_row(identity=902):
+            row = dict(
+                uid=identity,
+                reference=1031,
+                level=1,
+                cell=(2, 1, 0),
+                owner_id=7,
+                direction=0,
+                native_area_contract="faW",
+                native_faw_constructor=fake_fighter_constructor(
+                    hp_area, 1, allow_hp=True
+                ),
+                native_running_effect_manager=True,
+                native_obstacle_id=-1,
+                native_obstacle_source="QI.g(QK)",
+                state_ledger=StateLedger(identity),
+            )
+            install_fake_fighter_hp(row, hp_area)
+            return row
+
+        def run_target(target_id, rows):
+            fight, _, packets, _, handler, effect, invocation = self.fixture()
+            fight.native_effect_areas = rows
+            handler.context = lambda *args: StatExecutionContext(
+                True, True, None, False, b"", None
+            )
+            invocation = replace(invocation, target_id=target_id)
+            with patch(
+                "wakfu_server.combat_effect_area.native_effect_areas",
+                return_value=definitions,
+            ):
+                prepared = handler.prepare(effect, {}, invocation)
+                outcome = handler(effect, {}, prepared)
+            return fight, packets, handler, effect, prepared, outcome
+
+        with self.subTest(target="registered-no-hp-area"):
+            fight, packets, handler, effect, prepared, outcome = run_target(
+                901, {901: simple_row()}
+            )
+            self.assertTrue(outcome)
+            self.assertNotIn("hp", fight.native_effect_areas[901])
+            self.assertNotIn("effect_stats", fight.native_effect_areas[901])
+            self.assertEqual(fight.actors[-7].hp, 80)
+            self.assertEqual(packets, [])
+            self.assertEqual(fight.owned_stat_effects, {})
+            self.assertEqual(handler.runners, {})
+
+        for label, target_id, rows in (
+            ("HP-owning-area", 902, {902: hp_row()}),
+            ("unknown-area", 999, {}),
+        ):
+            with self.subTest(target=label):
+                fight, _, _, _, _, _, _ = self.fixture()
+                fight.native_effect_areas = rows
+                _, _, packets, _, handler, effect, invocation = self.fixture()
+                handler.fight.native_effect_areas = rows
+                with patch(
+                    "wakfu_server.combat_effect_area.native_effect_areas",
+                    return_value=definitions,
+                ):
+                    with self.assertRaises(ValueError):
+                        handler.prepare(
+                            effect, {}, replace(invocation, target_id=target_id)
+                        )
+                self.assertEqual(packets, [])
+                self.assertEqual(handler.runners, {})
 
     def test_malformed_removal_keeps_owned_identity_and_permanent_changes(self):
         fight, target, packets, phases, handler, effect, invocation = self.fixture(

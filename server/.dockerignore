@@ -47,3 +47,6 @@ wakfu_server/__pycache__/
 !admin-control-service/
 !admin-control-service/Dockerfile
 !admin-control-service/service.py
+
+!wakfu_server/combat/native-spatial937-source.json
+**/._*

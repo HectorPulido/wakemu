@@ -2,6 +2,7 @@
 from wakfu_server import native_catalog as protocol_catalog
 from .combat_state_ledger import StateLedger
 import json
+from dataclasses import replace
 from functools import lru_cache
 from wakfu_server.paths import DATA_ROOT
 from .combat_effect_area_codec import area_application
@@ -140,6 +141,30 @@ class NativeEffectAreaHandler:
         self.on_created = None
         self.target_aura_construction = None
         self.target_aura_applied = None
+        self.prepared_event_clones = {}
+
+    def prepare_activation(self, effect, values, invocation, *, clone_uid):
+        """Qe.k creates an eYQ clone and j/bbL makes its Ty false."""
+        listener = getattr(self.fight, "native_owned_group_effects", {}).get(
+            invocation.base_uid
+        )
+        if (
+            effect.get("effect_class") != 314
+            or type(clone_uid) is not int
+            or clone_uid <= 0
+            or clone_uid in self.prepared_event_clones
+            or invocation.native_running_uid is not None
+            or not isinstance(listener, dict)
+            or listener.get("effect_class") != 314
+            or listener.get("invocation", {}).get("reference") != invocation.reference
+        ):
+            raise ValueError("Missing subscribed eYQ original listener authority")
+        prepared = replace(invocation, native_running_uid=clone_uid)
+        self.prepared_event_clones[clone_uid] = prepared
+        return prepared
+
+    def cancel_prepared(self, invocation):
+        self.prepared_event_clones.pop(invocation.native_running_uid, None)
 
     def __call__(self, effect, values, invocation):
         from .combat_delivery_owners import owner_catalog, native_owner_flags
@@ -187,7 +212,14 @@ class NativeEffectAreaHandler:
             if not isinstance(constructor, NativeTargetAuraConstruction):
                 raise ValueError("Unregistered native eYJ constructor")
         elif invocation.native_running_uid is not None:
-            raise ValueError("Native retained area effect removal is unaudited")
+            prepared = self.prepared_event_clones.pop(
+                invocation.native_running_uid, None
+            )
+            if family != 314 or prepared is None or prepared != invocation:
+                raise ValueError("Missing prepared native eYQ event clone")
+            # The created Qq persists independently of its applying Qe. Native
+            # Qe.j calls bbL on the clone, and eZR.Ty returns false for bfM.
+            ctx = replace(ctx, retained=False)
         p = values["parameters"]
         if not p:
             raise ValueError("Missing native area reference")
@@ -228,6 +260,11 @@ class NativeEffectAreaHandler:
         faw = None
         grade = None
         wall = None
+        simple = None
+        if definition["type"] == "SIMPLE":
+            from .combat_simple_area import simple_area_constructor
+
+            simple = simple_area_constructor(definition)
         if target_aura and definition["type"] != "AURA":
             raise ValueError("Native eYJ requires actual faN prototype")
         if target_aura and constructor_stat_context(self.fight, invocation):
@@ -300,8 +337,15 @@ class NativeEffectAreaHandler:
             faw = fake_fighter_constructor(
                 definition, level, allow_hp=self.fake_fighter_hp_enabled
             )
+            from .combat_fake_fighter_owner_copy import damage_only_mask
+
+            damage_only = damage_only_mask(definition) is not None
             if 20 in faw["characteristic_ids"] and (
-                not self.fake_fighter_zero_copy_enabled or row["runner"] != "eYQ"
+                not self.fake_fighter_zero_copy_enabled
+                or (
+                    row["runner"] != "eYQ"
+                    and not (damage_only and row["runner"] in ("eYS", "eYU"))
+                )
             ):
                 raise ValueError(
                     "Native faW damage PC creation requires audited copy authority"
@@ -343,6 +387,14 @@ class NativeEffectAreaHandler:
             creator_id = original_controller_area_creator(
                 self.fight, invocation.caster_id, self.actor_authority
             )
+        faw_owner_stats = None
+        if faw is not None and damage_only:
+            from .combat_fake_fighter_owner_copy import constructor as copy_constructor
+
+            owner_actor = registered_or_detached_actor(self.fight, creator_id)
+            faw_owner_stats = getattr(owner_actor, "effect_stats", None)
+            # Validate the actual owner PA snapshot before reserving any UID.
+            copy_constructor(definition, faw_owner_stats)
         if faw is not None and faw["kind"] == 4:
             from .combat_microbot_network import preflight_microbot_owner
             from .combat_microbot_path import microbot_path_projection
@@ -366,6 +418,10 @@ class NativeEffectAreaHandler:
             None if target_aura else (p[3] if len(p) > 3 and 0 <= p[3] <= 7 else None)
         )
         caster = registered_or_detached_actor(self.fight, invocation.caster_id)
+        if caster is None and invocation.caster_id is not None:
+            from .combat_area_orientation import orientation_area_pv
+
+            caster = orientation_area_pv(self.fight, invocation.caster_id)
         orientation_owner = self.fight.actors[creator_id] if target_aura else caster
         effective_direction = (
             direction
@@ -388,7 +444,13 @@ class NativeEffectAreaHandler:
             reference=geometry_reference,
         )
         area_uid = constructor.area_uid if target_aura else self.allocate_area_uid()
-        uid = constructor.runner_uid if target_aura else self.allocate_uid()
+        uid = (
+            constructor.runner_uid
+            if target_aura
+            else invocation.native_running_uid
+            if invocation.native_running_uid is not None
+            else self.allocate_uid()
+        )
         owner, owner_id = self.container(invocation)
         if target_aura:
             from .combat_target_aura import target_aura_application
@@ -474,6 +536,8 @@ class NativeEffectAreaHandler:
         if affiliation is not None:
             areas[area_uid]["native_fight_affiliation"] = affiliation
             areas[area_uid]["native_fight_affiliation_source"] = "faV.j(PV).bcM"
+        if simple is not None:
+            areas[area_uid]["native_simple_constructor"] = simple
         if grade is not None:
             areas[area_uid]["native_deposit_grade"] = grade
             areas[area_uid]["native_deposit_grade_source"] = "faU.fTu.Qr_bdh0"
@@ -481,8 +545,12 @@ class NativeEffectAreaHandler:
             areas[area_uid]["native_faw_constructor"] = faw
             if faw["characteristic_ids"]:
                 from .combat_fake_fighter_resources import install_fake_fighter_hp
+                from .combat_fake_fighter_owner_copy import damage_only_mask, install
 
-                install_fake_fighter_hp(areas[area_uid], definition)
+                if damage_only_mask(definition) is not None:
+                    install(areas[area_uid], definition, faw_owner_stats)
+                else:
+                    install_fake_fighter_hp(areas[area_uid], definition)
             if faw["obstacle"]:
                 slot = self.area_obstacle_register(self.fight, areas[area_uid], faw)
                 if type(slot) is not int or not 0 <= slot <= 126:
@@ -569,8 +637,10 @@ class NativeEffectAreaHandler:
             final_direction = directional_area_orientation(
                 caster.position, invocation.cell
             )
-            areas[area_uid]["direction"] = final_direction
-            areas[area_uid]["native_cells_xy"] = registered_area_cells(
+            # eYU.fQE addresses oAP even if super.c callbacks removed it
+            # from Qs. Preserve that object without restoring membership.
+            created_area["direction"] = final_direction
+            created_area["native_cells_xy"] = registered_area_cells(
                 definition,
                 invocation.cell,
                 final_direction,

@@ -1,6 +1,7 @@
 import copy
 import random
 import unittest
+from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import patch
 from wakfu_server.combat_orientation_effect import (
@@ -165,3 +166,101 @@ class OrientationEffectTests(unittest.TestCase):
         self.assertTrue(handler({"effect_class": 303}, {"parameters": [8]}, invocation))
         self.assertEqual(fight.actors[7].direction, 1)
         self.assertEqual(fight.actors[-7].direction, 3)
+
+    def test_f303_orients_active_and_retained_simple_areas_without_fighter_authority(
+        self,
+    ):
+        from wakfu_server.combat_simple_area import simple_area_constructor
+        from wakfu_server.combat_state_ledger import StateLedger
+
+        fight, packets, handler, invocation, _ = self.fixture()
+        simple = dict(
+            type="SIMPLE",
+            native_class="bcW",
+            native_type_id=6,
+            native_container_type=3,
+            native_area_properties=[],
+            entry_masks=[],
+            native_shape_class="anD",
+            native_shape_description="point",
+        )
+        row = dict(
+            uid=901,
+            reference=314,
+            level=1,
+            cell=(2, 1, 0),
+            owner_id=7,
+            direction=0,
+            native_area_contract="fbb",
+            native_type_id=6,
+            native_simple_constructor=simple_area_constructor(simple),
+            native_running_effect_manager=False,
+            native_obstacle_id=-1,
+            native_cells_xy=((2, 1),),
+        )
+        fight.native_effect_areas = {901: row}
+        handler.authority.property_counts = lambda *_: self.fail(
+            "Area orientation must not request fighter ffe.sev properties"
+        )
+        area_invocation = replace(invocation, target_id=901)
+        definitions = {
+            "314": simple,
+            "1551": dict(
+                type="GLYPH",
+                native_class="bcT",
+                native_type_id=0,
+                native_container_type=3,
+                native_area_properties=[12],
+                entry_masks=[],
+                native_shape_class="anD",
+                native_shape_description="point",
+            ),
+        }
+        with patch(
+            "wakfu_server.combat_effect_area.native_effect_areas",
+            return_value=definitions,
+        ):
+            self.assertTrue(
+                handler({"effect_class": 303}, {"parameters": [1]}, area_invocation)
+            )
+            self.assertEqual((row["direction"], row["native_cells_xy"]), (5, ((2, 1),)))
+            self.assertEqual(fight.actors[7].direction, 7)
+            self.assertNotIn(901, fight.actors)
+
+            del fight.native_effect_areas[901]
+            fight.native_retired_area_managers = {901: row}
+            self.assertTrue(
+                handler({"effect_class": 303}, {"parameters": [2]}, area_invocation)
+            )
+            self.assertEqual(row["direction"], 7)
+            self.assertEqual(fight.native_effect_areas, {})
+            self.assertEqual(fight.actors[7].direction, 7)
+            self.assertNotIn(901, fight.actors)
+
+            glyph = dict(
+                uid=902,
+                reference=1551,
+                cell=(3, 1, 0),
+                owner_id=7,
+                direction=0,
+                native_area_contract="faY",
+                native_running_effect_manager=True,
+                native_obstacle_id=-1,
+                state_ledger=StateLedger(902),
+            )
+            fight.native_effect_areas = {902: glyph}
+            fight.native_retired_area_managers = {}
+            with self.assertRaisesRegex(ValueError, "SIMPLE constructor"):
+                handler(
+                    {"effect_class": 303},
+                    {"parameters": [1]},
+                    replace(area_invocation, target_id=902),
+                )
+            with self.assertRaisesRegex(ValueError, "Unknown native orientation"):
+                handler(
+                    {"effect_class": 303},
+                    {"parameters": [1]},
+                    replace(area_invocation, target_id=999),
+                )
+        self.assertEqual(glyph["direction"], 0)
+        self.assertEqual(fight.actors[7].direction, 7)

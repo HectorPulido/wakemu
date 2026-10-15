@@ -39,7 +39,7 @@ def group_pa(fight, identity, characteristic):
         row = retained_area_pv_row(fight, identity)
         contract = row.get("native_area_contract")
         # These concrete classes inherit faV.b(PC), literally returning null.
-        if contract in ("faY", "faZ", "faN", "faX", "faU"):
+        if contract in ("faY", "faZ", "faN", "faX", "faU", "fbb"):
             return None
         if contract == "faW":
             from .combat_effect_area import native_effect_areas

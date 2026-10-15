@@ -75,6 +75,37 @@ class SocketEnchantmentTests(PostgresCase):
                 "UPDATE characters SET level=100 WHERE id=%s", (self.char["id"],)
             )
 
+    def test_equipped_target_keeps_active_and_inactive_build_references(self):
+        from wakfu_server.equipment import RULES
+
+        slot = RULES[2869]["slots"][0]
+        equipment = proto_field(
+            10, proto_field(8, self.target["uid"]) + proto_field(16, slot)
+        )
+        with self.store.connection() as db:
+            for index in (0, 1):
+                db.execute(
+                    "INSERT INTO character_builds(character_id,build_index,sheet,equipment,deck,aptitudes) "
+                    "VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT(character_id,build_index) "
+                    "DO UPDATE SET equipment=EXCLUDED.equipment",
+                    (self.char["id"], index, proto_field(24, 100), equipment, b"", b""),
+                )
+        result = mutate(
+            self.store,
+            self.account,
+            self.generation,
+            self.char["id"],
+            12365,
+            struct.pack(">qBq", self.target["uid"], 0, self.sacrifice["uid"]),
+        )
+        self.assertTrue(result["applied"])
+        saved = self.store.character(self.account, self.char["id"])
+        for index in (0, 1):
+            self.assertEqual(saved["builds"][index]["equipment"], equipment.hex())
+        from wakfu_server.equipment_stats import effective_character
+
+        self.assertEqual(saved["max_hp"], effective_character(saved)["max_hp"])
+
     def test_socket_mutation_splits_target_and_preserves_remainder_state(self):
         with self.store.connection() as db:
             db.execute(
@@ -488,7 +519,7 @@ class SocketEnchantmentTests(PostgresCase):
         )
         with self.store.connection() as db:
             db.execute("UPDATE characters SET level=1 WHERE id=%s", (self.char["id"],))
-        with self.assertRaisesRegex(ValueError, "character-level gate"):
+        with self.assertRaisesRegex(ValueError, "Insufficient owned shard items"):
             install_bonus(
                 self.store, self.account, self.generation, self.char["id"], high_level
             )
@@ -612,22 +643,16 @@ class SocketEnchantmentTests(PostgresCase):
                 0,
             )
 
-    def test_target_item_level_gate_precedes_charge_or_item_consumption(self):
+    def test_owned_higher_level_target_can_be_modified(self):
         body = struct.pack(">qBq", self.target["uid"], 0, self.sacrifice["uid"])
         with self.store.connection() as db:
             db.execute("UPDATE characters SET level=1 WHERE id=%s", (self.char["id"],))
-        with self.assertRaisesRegex(ValueError, "character-level gate"):
-            mutate(
-                self.store,
-                self.account,
-                self.generation,
-                self.char["id"],
-                12365,
-                body,
-                randbelow=lambda _limit: self.fail("level gate must precede RNG"),
-            )
+        result = mutate(
+            self.store, self.account, self.generation, self.char["id"], 12365, body
+        )
+        self.assertTrue(result["applied"])
         with self.store.connection() as db:
-            self.assertIsNotNone(
+            self.assertIsNone(
                 db.execute(
                     "SELECT uid FROM inventory_items WHERE uid=%s",
                     (self.sacrifice["uid"],),
@@ -637,7 +662,7 @@ class SocketEnchantmentTests(PostgresCase):
                 db.execute(
                     "SELECT count(*) AS n FROM inventory_socket_enchantment_receipts"
                 ).fetchone()["n"],
-                0,
+                1,
             )
 
     def test_workshop_change_order_spends_local_charge_and_preserves_slots(self):

@@ -9,6 +9,98 @@ from wakfu_server.combat_movement_runtime import apply_client, decode_request
 
 
 class MovementRuntimeTests(unittest.TestCase):
+    def test_player_area_ap_loss_is_not_reapplied_after_final_snapshot(self):
+        from copy import deepcopy
+        from wakfu_server.combat_wire import decode_actor_state
+
+        runtime, original = self.setup_fight()
+        self.assertTrue(original.controlled)
+        self.assertEqual(original.owner_id, 7)
+
+        def ap_loss(preview, **boundary):
+            preview = deepcopy(preview)
+            preview.actors[original.id].ap -= 4
+            return preview, [(12613, b"evaluated-native-AP-loss-4")]
+
+        packets, event = apply_client(
+            runtime,
+            7,
+            struct.pack(">qiih", original.id, 1, 0, 0),
+            lambda actor: struct.pack(">ii", actor.ap, actor.mp),
+            area_provider=ap_loss,
+        )
+        final = next(packet for packet in packets if packet[0] == 12873)
+        effect = next(packet for packet in packets if packet[0] == 12613)
+        self.assertLess(packets.index(effect), packets.index(final))
+        state = decode_actor_state(12873, final[1])
+        self.assertEqual(state["actor_id"], original.id)
+        self.assertEqual(struct.unpack(">ii", state["state"]), (2, 2))
+        self.assertEqual((original.ap, original.mp, event["cost"]), (2, 2, 1))
+
+    def test_area_resource_callbacks_precede_authoritative_final_snapshot(self):
+        from copy import deepcopy
+        from wakfu_server.combat_wire import decode_actor_state
+
+        runtime, original = self.setup_fight()
+
+        def reward(preview, **boundary):
+            preview = deepcopy(preview)
+            actor = preview.actors[boundary["actor_id"]]
+            actor.ap += 1
+            actor.max_ap += 1
+            actor.mp += 2
+            actor.max_mp += 2
+            return preview, [(12613, b"evaluated-AP"), (12613, b"evaluated-MP")]
+
+        packets, event = apply_client(
+            runtime,
+            7,
+            struct.pack(">qiih", original.id, 1, 0, 0),
+            lambda actor: struct.pack(">ii", actor.ap, actor.mp),
+            area_provider=reward,
+        )
+        self.assertEqual((original.ap, original.mp, event["cost"]), (7, 4, 1))
+        self.assertEqual(
+            [opcode for opcode, _ in packets],
+            [13624, 13420, 12613, 12613, 12873, 13420],
+        )
+        final = decode_actor_state(12873, packets[-2][1])
+        self.assertEqual(final["actor_id"], original.id)
+        self.assertEqual(struct.unpack(">ii", final["state"]), (7, 4))
+
+    def test_partial_path_resource_callback_precedes_zero_mp_snapshot(self):
+        from copy import deepcopy
+        from wakfu_server.combat_wire import decode_actor_state
+
+        runtime, original = self.setup_fight()
+        calls = []
+
+        def exhaust(preview, **boundary):
+            preview = deepcopy(preview)
+            calls.append(boundary["path"])
+            preview.actors[original.id].mp = 0
+            return preview, [(12613, b"evaluated-MP-loss")]
+
+        body = struct.pack(">q", original.id) + b"".join(
+            struct.pack(">iih", x, 0, 0) for x in (1, 2)
+        )
+        packets, event = apply_client(
+            runtime,
+            7,
+            body,
+            lambda actor: struct.pack(">ii", actor.ap, actor.mp),
+            area_provider=exhaust,
+        )
+        self.assertEqual(calls, [[(1, 0, 0)]])
+        self.assertEqual(event["path"], [(1, 0, 0)])
+        self.assertEqual((original.position, original.mp), ((1, 0, 0), 0))
+        self.assertEqual(
+            [opcode for opcode, _ in packets],
+            [13624, 13420, 12613, 12873, 13420],
+        )
+        final = decode_actor_state(12873, packets[-2][1])
+        self.assertEqual(struct.unpack(">ii", final["state"]), (6, 0))
+
     def test_current_fight_serializer_receives_exact_movement_preview(self):
         runtime, original = self.setup_fight()
         body = struct.pack(">qiih", original.id, 1, 0, 0)

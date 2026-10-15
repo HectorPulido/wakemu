@@ -166,6 +166,19 @@ class RuntimeMessages:
     def _flush(self):
         return (13420, struct.pack(">i", self.fight.id))
 
+    def _changed_stat_packets(self, before, *, state=None, exclude=()):
+        from .combat_characteristic_reconciliation import changed_characteristic_packets
+
+        serialize = self.runtime_stats_serializer
+        if serialize is None and self.stats_serializer is not None:
+            serialize = lambda actor, fight: self.stats_serializer(actor)
+        return changed_characteristic_packets(
+            self.fight if state is None else state,
+            before,
+            serialize,
+            exclude=exclude,
+        )
+
     def _expire_owned(self, *, actor_id, round_number, phase, round_cleanup=False):
         from .combat_state_managers import state_managers
 
@@ -193,7 +206,9 @@ class RuntimeMessages:
         ):
             return []
         from .combat_timed_expiration import expire_timed_effects
+        from .combat_characteristic_reconciliation import characteristic_signatures
 
+        before = characteristic_signatures(self.fight)
         next_action = self.action_id + 1
         if next_action >= 2**31:
             raise ValueError("Fight action sequence exhausted")
@@ -206,6 +221,7 @@ class RuntimeMessages:
             action_id=next_action,
             runtime_factory=self.expiration_runtime_factory,
         )
+        packets = list(packets) + self._changed_stat_packets(before)
         if packets:
             self.action_id = next_action
         return packets + ([self._flush()] if packets else [])
@@ -216,7 +232,9 @@ class RuntimeMessages:
                 actor_id=actor.id, round_number=timeline_round(self.fight), phase="end"
             )
         from .combat_timed_expiration import prepare_timed_expiration
+        from .combat_characteristic_reconciliation import characteristic_signatures
 
+        before = characteristic_signatures(self.fight)
         next_action = self.action_id + 1
         candidate, events = self.turn_end_provider(
             self.fight, actor_id=actor.id, action_id=next_action
@@ -232,13 +250,38 @@ class RuntimeMessages:
                 action_id=next_action,
                 runtime_factory=self.expiration_runtime_factory,
             )
-        if set(candidate.actors) != set(self.fight.actors):
-            raise ValueError("Turn-end policy changed actor roster")
+        previous_ids = set(self.fight.actors)
+        candidate_ids = set(candidate.actors)
+        if previous_ids - candidate_ids:
+            raise ValueError("Turn-end policy removed an actor")
+        # Native end callbacks may summon a replacement. Accept only births
+        # registered by the native factory and introduced in this transaction;
+        # arbitrary provider roster edits must still fail before publication.
+        deliveries = getattr(candidate, "native_summon_creation_deliveries", {})
+        registrations = getattr(candidate, "native_summon_registrations", {})
+        packets = list(events) + list(expiry)
+        for identity in candidate_ids - previous_ids:
+            evidence = deliveries.get(identity)
+            if (
+                identity not in registrations
+                or not isinstance(evidence, dict)
+                or type(evidence.get("opcode")) is not int
+                or not isinstance(evidence.get("payload_hex"), str)
+            ):
+                raise ValueError("Missing native turn-end actor creation delivery")
+            try:
+                packet = (evidence["opcode"], bytes.fromhex(evidence["payload_hex"]))
+            except ValueError as error:
+                raise ValueError(
+                    "Malformed native turn-end actor creation delivery"
+                ) from error
+            if packet not in packets:
+                raise ValueError("Missing native turn-end actor creation delivery")
         from .combat_area_boundary import adopt_fight
 
+        packets.extend(self._changed_stat_packets(before, state=candidate))
         adopt_fight(self.fight, candidate)
         self.action_id = next_action
-        packets = list(events) + list(expiry)
         return packets + ([self._flush()] if packets else [])
 
     @native_delivery_boundary
@@ -253,6 +296,10 @@ class RuntimeMessages:
         if self.turn_start_provider is not None and self.area_started_turn == boundary:
             return []  # Already committed: neither timers nor callbacks repeat.
         packets = []
+        restore_initial = getattr(
+            self, "native_initial_timeline_restore_pending", False
+        )
+        initial_recovery = restore_initial and self.fight.turn_id == 1
         # SU.bhO advances the round and enters BETWEEN_FIGHTER_TURNS.
         # Round boundaries follow complete timeline cycles, not individual actors.
         current_round = timeline_round(self.fight)
@@ -281,6 +328,9 @@ class RuntimeMessages:
             return packets
         boundary = (self.fight.turn_id, actor.id)
         if self.turn_start_provider is not None and self.area_started_turn != boundary:
+            from .combat_characteristic_reconciliation import characteristic_signatures
+
+            before_callbacks = characteristic_signatures(self.fight)
             action_id = self.action_id + 1
             candidate, callbacks = self.turn_start_provider(
                 self.fight, actor_id=actor.id, action_id=action_id
@@ -289,23 +339,35 @@ class RuntimeMessages:
             self.area_started_turn = boundary
             self.action_id = action_id
             packets.extend(callbacks)
-            if callbacks:
+            # The current actor receives its existing full snapshot below.
+            # Reconcile other actors changed by the same callback transaction.
+            callbacks_sync = self._changed_stat_packets(
+                before_callbacks,
+                exclude=() if self.fight.current is None else (self.fight.current.id,),
+            )
+            packets.extend(callbacks_sync)
+            if callbacks or callbacks_sync:
                 packets.append(self._flush())
             actor = self.fight.current
             if actor is None:
                 self.turn_deadline = self.deadline_turn = None
                 return packets
+        from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
         if (
             self.stats_serializer is not None
             or self.runtime_stats_serializer is not None
-        ):
+        ) and actor.id not in hidden_snapshot_actor_ids(self.fight):
             stats = (
                 self.runtime_stats_serializer(actor, self.fight)
                 if self.runtime_stats_serializer is not None
                 else self.stats_serializer(actor)
             )
             packets.append((12873, actor_state(12873, self.fight.id, actor.id, stats)))
-        if new_round:
+        # A first-turn 12053 below carries the current round and replaces SU.
+        # Sending 13477 beside it queues a separate asynchronous SU.bhO advance;
+        # its completion can run after recovery has already set ON_FIGHTER_TURN.
+        if new_round and not initial_recovery:
             packets.extend(
                 [
                     (13477, self._prefix() + struct.pack(">h", current_round)),
@@ -314,9 +376,6 @@ class RuntimeMessages:
             )
         removed = getattr(self.fight, "native_timeline_removed", ())
         delivered_count = getattr(self, "native_timeline_removal_delivery_count", 0)
-        restore_initial = getattr(
-            self, "native_initial_timeline_restore_pending", False
-        )
         if len(removed) > delivered_count or restore_initial:
             # Native aTS overlaps death animation: its queue resumes after
             # 250ms, while SU removal waits for the full animation callback.
@@ -333,6 +392,15 @@ class RuntimeMessages:
                         struct.pack(">i", self.fight.id),
                         deadline_ms=int(time.time() * 1000)
                         + current_turn_duration(self.fight, self.duration),
+                        excluded_actor_ids=(
+                            getattr(
+                                self,
+                                "native_initial_timeline_restore_excluded_actor_ids",
+                                (),
+                            )
+                            if initial_recovery
+                            else ()
+                        ),
                     ),
                     action_transition(self.fight.id),
                     self._flush(),
@@ -340,6 +408,7 @@ class RuntimeMessages:
             )
             self.native_timeline_removal_delivery_count = len(removed)
             self.native_initial_timeline_restore_pending = False
+            self.native_initial_timeline_restore_excluded_actor_ids = ()
             if not arm_deadline:
                 self.native_timeline_restore_pending_turn = self.fight.turn_id
             if arm_deadline:
@@ -419,20 +488,77 @@ class RuntimeMessages:
         from .combat_phase import action_transition
 
         packets.append(action_transition(self.fight.id))
-        if initialization_packets:
-            packets.extend(initialization_packets)
-            packets.append(self._flush())
         # Joining PCs may have equal INIT but different effective levels. The
         # client recomputes placement order as actor snapshots arrive; publish
-        # the complete owned Ready timeline before its first actor advance.
+        # the owned Ready timeline before its first actor advance.
         # Recovery/ACTION restores the existing turn, never begins another one.
-        owners = {
-            actor.owner_id
+        baseline_players = {
+            actor.id
             for actor in self.fight.actors.values()
-            if actor.controlled and actor.id in actor_payloads
+            if actor.controlled
+            and actor.id in actor_payloads
+            and not getattr(actor, "native_summon_source", None)
         }
-        self.native_initial_timeline_restore_pending = len(owners) > 1
-        packets.extend(self.turn_started())
+        self.native_initial_timeline_restore_pending = len(baseline_players) > 1
+        self.native_initial_timeline_restore_excluded_actor_ids = (
+            tuple(sorted(added)) if self.native_initial_timeline_restore_pending else ()
+        )
+        if self.native_initial_timeline_restore_pending:
+            # 12053 must install the baseline before client-side 307 creation
+            # observers enroll these newborn actors in Tc/SU. Its projection
+            # excludes only the exact registered initial birth deliveries.
+            turn_packets = tuple(self.turn_started())
+            recovery_indices = [
+                index
+                for index, (opcode, _) in enumerate(turn_packets)
+                if opcode == 12053
+            ]
+            if len(recovery_indices) != 1:
+                raise ValueError("Initial timeline restore did not emit one recovery")
+            recovery_index = recovery_indices[0]
+            action_index = next(
+                (
+                    index
+                    for index in range(recovery_index + 1, len(turn_packets))
+                    if turn_packets[index][0] == 12514
+                ),
+                None,
+            )
+            if action_index is None:
+                raise ValueError(
+                    "Initial timeline restore omitted its native action barrier"
+                )
+            flush_index = next(
+                (
+                    index
+                    for index in range(action_index + 1, len(turn_packets))
+                    if turn_packets[index][0] == 13420
+                ),
+                None,
+            )
+            if flush_index is None:
+                raise ValueError(
+                    "Initial timeline restore omitted its native action barrier"
+                )
+            if action_index != recovery_index + 1 or flush_index != action_index + 1:
+                raise ValueError(
+                    "Initial timeline restore changed its native action barrier"
+                )
+            # Install the baseline before 307, then keep initialization and
+            # turn-start callbacks/stats ahead of the original ACTION binding.
+            # Any skip-turn packets remain after that binding as usual.
+            packets.extend(turn_packets[recovery_index : recovery_index + 1])
+            if initialization_packets:
+                packets.extend(initialization_packets)
+                packets.append(self._flush())
+            packets.extend(turn_packets[:recovery_index])
+            packets.extend(turn_packets[action_index : flush_index + 1])
+            packets.extend(turn_packets[flush_index + 1 :])
+        else:
+            if initialization_packets:
+                packets.extend(initialization_packets)
+                packets.append(self._flush())
+            packets.extend(self.turn_started())
         return packets
 
     def _synchronize_pre_end_death(self, actor_id, previous_turn):

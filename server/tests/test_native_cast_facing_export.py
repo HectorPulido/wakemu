@@ -16,13 +16,15 @@ class CastFacingExportTest(unittest.TestCase):
         record = module.extract('params={"useCast",true}\nexecuteScript(1040,params)')
         self.assertTrue(record["turnCasterTowardTargetCell"])
         self.assertFalse(record["useDiags"])
+        self.assertFalse(record["casterAnimOnTarget"])
 
     def test_literal_false_and_diagonal(self):
         record = module.extract(
-            'params={"turnCasterTowardTargetCell",false,"useDiags",true}\nexecuteScript(1040,params)'
+            'params={"turnCasterTowardTargetCell",false,"useDiags",true,"casterAnimOnTarget",true}\nexecuteScript(1040,params)'
         )
         self.assertFalse(record["turnCasterTowardTargetCell"])
         self.assertTrue(record["useDiags"])
+        self.assertTrue(record["casterAnimOnTarget"])
 
     def test_dynamic_and_other_templates_unknown(self):
         for source in (

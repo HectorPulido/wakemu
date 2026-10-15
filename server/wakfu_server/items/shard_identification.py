@@ -5,6 +5,7 @@ server-side 13787 policy was not recovered. This module applies those weights
 as an explicit, configurable local policy; it does not claim upstream parity.
 """
 from wakfu_server import native_catalog as protocol_catalog
+from contextlib import ExitStack
 import hashlib
 import json
 import secrets
@@ -164,7 +165,7 @@ def identify(
     """Apply local 13787 policy once to one owned, unstacked inventory UID.
 
     `status` uses only the client-confirmed 13766 ordinals: 0 success and 2
-    too-high-level. Successful operations separate one unit when necessary,
+    identification outcomes. Successful operations separate one unit when necessary,
     keeping the requested UID and publishing the remainder through the native
     bag snapshot. Capacity failures raise a domain error without charging or
     changing inventory.
@@ -178,8 +179,13 @@ def identify(
     # Element selection also identifies sockets. Share its transaction so
     # the choice, sockets, receipt, and optional charge commit together.
     transaction = store.connection() if db is None else nullcontext(db)
-    with transaction as db:
+    with transaction as db, ExitStack() as mutation_scopes:
         _lease(store, db, account_id, generation, character_id)
+        from wakfu_server.item_mutation import refresh_equipment_after_mutation
+
+        mutation_scopes.enter_context(
+            refresh_equipment_after_mutation(store, db, account_id, character_id, uid)
+        )
         if (
             db.execute(
                 "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f "
@@ -212,13 +218,6 @@ def identify(
             is not None
         ):
             raise ValueError("Socket identification item is offered in an exchange")
-        for build in store.character(account_id, character_id, db)["builds"].values():
-            from wakfu_server.wire import proto_fields
-
-            for tag, value in proto_fields(bytes.fromhex(build["equipment"])):
-                if tag == 10 and dict(proto_fields(value)).get(8) == uid:
-                    raise ValueError("Unequip item before socket identification")
-
         # Serialize duplicates on the owned item row. A receipt never grants
         # access after the UID transfers or is deleted, and current socket
         # state wins over the historical first-identification bytes.
@@ -281,19 +280,6 @@ def identify(
         if character is None:
             raise ValueError("Socket identification owner is unavailable")
         policy, policy_hash = _policy(db)
-        # Status 2 is native-confirmed. The mapping of template item_level to
-        # this gate is an explicit local policy, not an asserted server rule.
-        if character["level"] < template["item_level"]:
-            return dict(
-                uid=uid,
-                status=2,
-                shard_state=None,
-                applied=False,
-                elements=_current_elements(db, uid),
-                cost_kamas=policy["cost_kamas"],
-                receipt_id=None,
-            )
-
         cost = policy["cost_kamas"]
         wallet = db.execute(
             "SELECT kamas FROM account_wallets WHERE account_id=%s FOR UPDATE",

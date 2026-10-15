@@ -36,7 +36,22 @@ def corpse_collect_actions(monster_ref):
     raise ValueError("Corpse breed missing native collection catalog")
 
 
-def world_actor(monster, *, name=None, group_id, direction=3, members=None, dead=False):
+def world_actor(
+    monster,
+    *,
+    name=None,
+    group_id,
+    direction=3,
+    members=None,
+    dead=False,
+    summon_identity=False,
+):
+    """Encode eHj format-11 appearance for an owned world actor.
+
+    ``summon_identity`` is reserved for the reconnect snapshot bridge: it
+    permits the positive native fighter UID while keeping the exact NPC bje
+    appearance. The following saved 307 descriptor applies summon authority.
+    """
     if type(dead) is not bool:
         raise ValueError("Native death state must be explicit")
     verified = owned_instance(
@@ -50,7 +65,7 @@ def world_actor(monster, *, name=None, group_id, direction=3, members=None, dead
         team=monster["team"],
         instance_id=monster["instance_id"],
     )
-    if monster != verified or monster["id"] >= 0:
+    if monster != verified or (monster["id"] >= 0 and not summon_identity):
         raise ValueError("Expected verified own negative NPC instance")
     if (
         type(group_id) is not int
@@ -114,7 +129,7 @@ def world_actor(monster, *, name=None, group_id, direction=3, members=None, dead
             member != actual
             or member["map_id"] != monster["map_id"]
             or member["instance_id"] != monster["instance_id"]
-            or member["id"] >= 0
+            or (member["id"] >= 0 and not summon_identity)
         ):
             raise ValueError("Group member is not a verified own NPC on this map")
     out += struct.pack(">qH", group_id, len(members)) + b"".join(
@@ -133,8 +148,14 @@ def world_actor(monster, *, name=None, group_id, direction=3, members=None, dead
     return out
 
 
-def spawn_monster(monster, *, group_id, name=None, direction=3):
-    blob = world_actor(monster, group_id=group_id, name=name, direction=direction)
+def spawn_monster(monster, *, group_id, name=None, direction=3, summon_identity=False):
+    blob = world_actor(
+        monster,
+        group_id=group_id,
+        name=name,
+        direction=direction,
+        summon_identity=summon_identity,
+    )
     if len(blob) > 65535:
         raise ValueError("NPC appearance too large")
     return b"\x00\x01" + struct.pack(">BqH", 1, monster["id"], len(blob)) + blob

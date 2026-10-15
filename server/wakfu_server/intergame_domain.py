@@ -35,6 +35,13 @@ class Intergame:
             raise PermissionError("Invalid intergame authentication")
         token = secrets.token_urlsafe(32)
         with self.store.connection() as db:
+            owner = db.execute(
+                "SELECT account_id FROM tokens WHERE digest=%s AND kind='api'",
+                (self.store.digest(api_key),),
+            ).fetchone()
+            if owner is None:
+                raise PermissionError("Intergame session expired; reconnect to the game")
+            require_access(db, owner["account_id"], self.store.now())
             row = db.execute(
                 "SELECT t.account_id,t.generation FROM tokens t JOIN sessions s "
                 "ON s.account_id=t.account_id AND s.generation=t.generation "
@@ -46,7 +53,6 @@ class Intergame:
                 raise PermissionError(
                     "Intergame session expired; reconnect to the game"
                 )
-            require_access(db, row["account_id"], self.store.now())
             db.execute(
                 "DELETE FROM intergame_tokens WHERE expires_at<=%s", (self.store.now(),)
             )
@@ -65,6 +71,13 @@ class Intergame:
         if type(token) is not str or not 20 <= len(token) <= 512:
             raise PermissionError("Invalid intergame token")
         with self.store.connection() as db:
+            owner = db.execute(
+                "SELECT account_id FROM intergame_tokens WHERE digest=%s",
+                (self.store.digest(token),),
+            ).fetchone()
+            if owner is None:
+                raise PermissionError("Intergame token expired or consumed")
+            require_access(db, owner["account_id"], self.store.now())
             row = db.execute(
                 "SELECT t.account_id,t.generation FROM intergame_tokens t JOIN sessions s "
                 "ON s.account_id=t.account_id AND s.generation=t.generation "
@@ -73,7 +86,6 @@ class Intergame:
             ).fetchone()
             if row is None:
                 raise PermissionError("Intergame token expired or consumed")
-            require_access(db, row["account_id"], self.store.now())
             db.execute(
                 "DELETE FROM intergame_tokens WHERE digest=%s",
                 (self.store.digest(token),),
@@ -81,8 +93,8 @@ class Intergame:
             return dict(row)
 
     def _authorize(self, db, identity):
-        _authorize(self.store, db, identity["account_id"], identity["generation"])
         require_access(db, identity["account_id"], self.store.now())
+        _authorize(self.store, db, identity["account_id"], identity["generation"])
 
     def active(self, identity):
         with self.store.connection() as db:

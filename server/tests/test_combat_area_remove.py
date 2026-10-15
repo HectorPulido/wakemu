@@ -1,4 +1,5 @@
 import unittest
+import struct
 from types import SimpleNamespace
 from unittest.mock import patch
 from wakfu_server.combat_area_remove import (
@@ -41,6 +42,8 @@ class AreaRemovalTests(unittest.TestCase):
         self.assertEqual(select_removal_area(fight, -1, 901, (0, 0, 0))["uid"], 901)
 
     def test_real_843_packet_and_exact_area_callback_after_unregister(self):
+        from wakfu_server.combat_effect_removal import _identity_fields
+
         fight = self.fixture()
         packets = []
         seen = []
@@ -55,7 +58,11 @@ class AreaRemovalTests(unittest.TestCase):
         )
         handler.events = SimpleNamespace(
             removed=lambda row: seen.append(
-                (row["uid"], row["uid"] in fight.native_effect_areas)
+                (
+                    row["uid"],
+                    row["uid"] in fight.native_effect_areas,
+                    len(packets),
+                )
             )
         )
         invocation = EffectInvocation(300001, 1, 7, 901, (0, 0, 0))
@@ -66,10 +73,22 @@ class AreaRemovalTests(unittest.TestCase):
             self.assertTrue(
                 handler({"effect_class": 843}, {"parameters": [-1]}, invocation)
             )
-        self.assertEqual(seen, [(901, False)])
+        self.assertEqual(seen, [(901, False, 1)])
         self.assertEqual(set(fight.native_effect_areas), {902})
         self.assertEqual(packets[0][0], 12613)
-        self.assertEqual(packets[0][1][12], 1)
+        body = packets[0][1]
+        self.assertEqual(struct.unpack_from(">iii", body), (11, 2, -1))
+        self.assertEqual(body[12], 1)  # eIK: execute this decoded native removal.
+        effect_class, payload_size = struct.unpack_from(">ih", body, 13)
+        self.assertEqual(effect_class, 843)
+        payload = body[19 : 19 + payload_size]
+        self.assertEqual(len(payload), payload_size)
+        identity = _identity_fields(payload)
+        self.assertEqual(
+            {key: identity[key] for key in (1, 2, 3, 4, 6, 7)},
+            {1: 999, 2: 999, 3: 300001, 4: 0, 6: 7, 7: 901},
+        )
+        self.assertEqual(len(body), 19 + payload_size)
 
     def test_911_cell_route_uses_same_native_removal_and_complete_area_order(self):
         from wakfu_server.combat_global_pv_collections import (

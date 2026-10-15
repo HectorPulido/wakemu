@@ -1122,9 +1122,12 @@ class SharedCombatTests(unittest.TestCase):
         self.join()
         self.shared.fight.phase = "finished"
         self.shared.fight.winner = 0
+        # A minimal native 12691 CLEAR snapshot still names the exact owning
+        # character. The shared fight must route each owner's payload only to
+        # that owner's account batch.
         batches = {
-            self.one.account_id: ((12755, b"left-report"),),
-            self.two.account_id: ((12755, b"right-report"),),
+            self.one.account_id: ((12691, struct.pack(">qB", 10, 3)),),
+            self.two.account_id: ((12691, struct.pack(">qB", 20, 3)),),
         }
         self.assertTrue(
             self.registry.settle_finished(
@@ -1140,6 +1143,8 @@ class SharedCombatTests(unittest.TestCase):
         right_batches = self.registry.drain(self.fight.id, self.two)
         self.assertEqual(left_batches[-1].packets, batches[self.one.account_id])
         self.assertEqual(right_batches[-1].packets, batches[self.two.account_id])
+        self.assertEqual(struct.unpack(">qB", left_batches[-1].packets[0][1]), (10, 3))
+        self.assertEqual(struct.unpack(">qB", right_batches[-1].packets[0][1]), (20, 3))
         self.assertFalse(self.registry.mark_returned(self.fight.id, self.one))
         self.assertFalse(self.registry.mark_returned(self.fight.id, self.one))
         self.assertTrue(self.registry.mark_returned(self.fight.id, self.two))

@@ -194,6 +194,58 @@ class ServerAdapterTests(unittest.TestCase):
         self.assertEqual(context.caster_target_distance, 1)
         self.assertTrue(context.is_in_alignment)
 
+    def test_equal_aliases_share_projection_only_within_one_condition(self):
+        from unittest.mock import patch
+        from wakfu_server.combat_retained_runtime import (
+            native_retained_condition_effects,
+        )
+
+        actor = self.preview.actors[7]
+        invocation = EffectInvocation(339526, 1, 7, 7, actor.position)
+        with patch(
+            "wakfu_server.combat_retained_runtime.native_retained_condition_effects",
+            wraps=native_retained_condition_effects,
+        ) as retained:
+            first = self.adapter.condition(self.preview, {}, None, invocation)
+            self.assertIs(first.actors["caster"], first.actors["target"])
+            self.assertEqual(retained.call_count, 1)
+            actor.effect_stats[2] = 2
+            second = self.adapter.condition(self.preview, {}, None, invocation)
+            self.assertEqual(retained.call_count, 2)
+            self.assertEqual(second.actors["caster"].characteristics["AP"], 2)
+            self.assertIsNot(first.actors["caster"], second.actors["caster"])
+
+    def test_selection_reuses_actors_but_recomputes_cell_context(self):
+        from unittest.mock import patch
+        from wakfu_server.combat_condition_selection_scope import (
+            condition_actor_selection_scope,
+        )
+        from wakfu_server.combat_retained_runtime import (
+            native_retained_condition_effects,
+        )
+
+        invocation = EffectInvocation(339526, 1, 7, None, (1, 0, 0))
+        with patch(
+            "wakfu_server.combat_retained_runtime.native_retained_condition_effects",
+            wraps=native_retained_condition_effects,
+        ) as retained:
+            with condition_actor_selection_scope():
+                first = self.adapter.condition(self.preview, {}, None, invocation)
+                second = self.adapter.condition(
+                    self.preview, {}, None, replace(invocation, cell=(4, 0, 0))
+                )
+                self.assertIs(first.actors["caster"], second.actors["caster"])
+                self.assertNotEqual(
+                    first.caster_target_distance, second.caster_target_distance
+                )
+                self.assertEqual(retained.call_count, 1)
+            self.preview.actors[7].effect_stats[2] = 2
+            with condition_actor_selection_scope():
+                third = self.adapter.condition(self.preview, {}, None, invocation)
+            self.assertEqual(retained.call_count, 2)
+            self.assertEqual(third.actors["caster"].characteristics["AP"], 2)
+            self.assertIsNot(first.actors["caster"], third.actors["caster"])
+
     def test_distance_to_empty_cell_uses_native_radius_and_not_target_actor(self):
         from wakfu_server.combat_conditions import evaluate_condition
 
@@ -287,6 +339,11 @@ class ServerAdapterTests(unittest.TestCase):
             evaluate_condition('GetCharacterDirection("target") == -1', context)
         )
         self.assertFalse(evaluate_condition('IsOnBorderCell("target")', context))
+        # faV is an eHg EFFECT_AREA; eNC must return false rather than
+        # demanding player/companion authority from this registered area.
+        self.assertTrue(context.actors["target"].is_native_ehg)
+        self.assertFalse(context.actors["target"].is_challenger)
+        self.assertFalse(evaluate_condition('IsChallenger("target")', context))
 
     def test_border_cell_reads_exact_qi_snapshot_and_never_invents_cell_occupancy(self):
         from wakfu_server.combat_conditions import evaluate_condition, UnknownCondition

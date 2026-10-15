@@ -35,10 +35,15 @@ def fake_fighter_constructor(definition, level=None, *, allow_hp=False):
             raise ValueError(
                 "Native faW characteristic constructor authority unavailable"
             )
+        from .combat_fake_fighter_owner_copy import damage_only_mask
         from .combat_fake_fighter_resources import _owned_resources_constructor
 
-        characteristic_ids = tuple(
-            _owned_resources_constructor(definition, level)["characteristics"]
+        characteristic_ids = (
+            (20,)
+            if damage_only_mask(definition) is not None
+            else tuple(
+                _owned_resources_constructor(definition, level)["characteristics"]
+            )
         )
     height = _int(p[8])
     return dict(
@@ -56,7 +61,10 @@ def fake_fighter_constructor(definition, level=None, *, allow_hp=False):
 
 
 def verified_fake_fighter(row, definition):
-    has_hp = "native_faw_hp_constructor" in row
+    has_hp = (
+        "native_faw_hp_constructor" in row
+        or "native_faw_damage_only_constructor" in row
+    )
     expected = fake_fighter_constructor(definition, row.get("level"), allow_hp=has_hp)
     if row.get("native_faw_constructor") != expected:
         raise ValueError("Missing native faW constructor snapshot")

@@ -426,7 +426,157 @@ class HeroesPostgresTests(PostgresCase):
         self.assertEqual(self.main["id"], roster["leader_id"])
         self.assertEqual(self.main["id"], session["character_id"])
 
-    def test_roster_mutations_reject_active_combat_and_active_rift(self):
+    def test_switch_inside_dungeon_preserves_membership_and_allows_inventory(self):
+        heroes.add(
+            self.store,
+            self.account,
+            self.generation,
+            self.main["id"],
+            self.hero_a["id"],
+        )
+        ids = [self.main["id"], self.hero_a["id"]]
+        with self.store.connection() as db:
+            party = db.execute(
+                "SELECT p.* FROM player_parties p JOIN player_party_members m "
+                "ON m.party_id=p.id WHERE m.character_id=%s",
+                (ids[0],),
+            ).fetchone()
+            run = db.execute(
+                "INSERT INTO dungeon_instances(party_id,party_revision,created_by_character_id,"
+                "template_id,definition_id,entry_map_id,entry_object_id,entry_destination_id,start_map_id) "
+                "VALUES(%s,%s,%s,1,1,527,1,1,312) RETURNING *",
+                (party["id"], party["revision"], ids[0]),
+            ).fetchone()
+            for index, identity in enumerate(ids):
+                db.execute(
+                    "INSERT INTO dungeon_instance_members(instance_id,party_id,character_id,"
+                    "session_generation,party_revision,role) VALUES(%s,%s,%s,%s,%s,%s)",
+                    (
+                        run["instance_id"],
+                        party["id"],
+                        identity,
+                        self.generation,
+                        party["revision"],
+                        "leader" if index == 0 else "member",
+                    ),
+                )
+            db.execute(
+                "UPDATE characters SET map_id=312,instance_id=%s WHERE id=ANY(%s)",
+                (run["instance_id"], ids),
+            )
+            members_before = db.execute(
+                "SELECT * FROM dungeon_instance_members WHERE instance_id=%s ORDER BY character_id",
+                (run["instance_id"],),
+            ).fetchall()
+        selected = heroes.switch_main(self.store, self.account, self.generation, *ids)[
+            "leader"
+        ]
+        self.assertEqual(
+            (selected["map_id"], selected["instance_id"]), (312, run["instance_id"])
+        )
+        from wakfu_server.inventory_items import grant
+        from wakfu_server.inventory_bags import equip
+
+        container = selected["inventory_containers"][0]["uid"]
+        item = grant(
+            self.store,
+            self.account,
+            self.generation,
+            selected["id"],
+            reference=2603,
+            quantity=1,
+            container=container,
+            slot=0,
+            allowed_references={2603},
+        )
+        equip(
+            self.store,
+            self.account,
+            self.generation,
+            selected["id"],
+            struct.pack(">qqqb", item["uid"], container, selected["id"], 2),
+        )
+        heroes.switch_main(self.store, self.account, self.generation, ids[1], ids[0])
+        with self.store.connection() as db:
+            self.assertEqual(
+                run,
+                db.execute(
+                    "SELECT * FROM dungeon_instances WHERE instance_id=%s",
+                    (run["instance_id"],),
+                ).fetchone(),
+            )
+            self.assertEqual(
+                members_before,
+                db.execute(
+                    "SELECT * FROM dungeon_instance_members WHERE instance_id=%s ORDER BY character_id",
+                    (run["instance_id"],),
+                ).fetchall(),
+            )
+
+    def test_switch_inside_rift_rebinds_owner_without_changing_progress(self):
+        heroes.add(
+            self.store,
+            self.account,
+            self.generation,
+            self.main["id"],
+            self.hero_a["id"],
+        )
+        ids = [self.main["id"], self.hero_a["id"]]
+        with self.store.connection() as db:
+            run = db.execute(
+                "INSERT INTO rift_instances(wave_definition_id,owner_character_id,members,catalog,policy,seed,status) "
+                "VALUES(1,%s,%s,%s,%s,'heroes-switch','entered') RETURNING *",
+                (ids[0], Jsonb(ids), Jsonb({}), Jsonb({})),
+            ).fetchone()
+            db.execute(
+                "UPDATE characters SET instance_id=%s WHERE id=ANY(%s)",
+                (run["instance_id"], ids),
+            )
+        for old, new in (ids, ids[::-1]):
+            heroes.switch_main(self.store, self.account, self.generation, old, new)
+            with self.store.connection() as db:
+                current = db.execute(
+                    "SELECT * FROM rift_instances WHERE instance_id=%s",
+                    (run["instance_id"],),
+                ).fetchone()
+            self.assertEqual(current["owner_character_id"], new)
+            for key in run:
+                if key not in ("owner_character_id", "revision"):
+                    self.assertEqual(current[key], run[key], key)
+
+    def test_switch_still_rejects_combat_and_mismatched_frozen_membership(self):
+        heroes.add(
+            self.store,
+            self.account,
+            self.generation,
+            self.main["id"],
+            self.hero_a["id"],
+        )
+        ids = [self.main["id"], self.hero_a["id"]]
+        with self.store.connection() as db:
+            fight = db.execute(
+                "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
+            ).fetchone()["id"]
+            db.execute(
+                "INSERT INTO combat_fight_participants(fight_id,character_id,account_id,team) VALUES(%s,%s,%s,0)",
+                (fight, ids[0], self.account),
+            )
+        with self.assertRaisesRegex(ValueError, "during combat"):
+            heroes.switch_main(self.store, self.account, self.generation, *ids)
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE combat_fights SET status='finished' WHERE id=%s", (fight,)
+            )
+            db.execute(
+                "INSERT INTO rift_instances(wave_definition_id,owner_character_id,members,catalog,policy,seed,status) "
+                "VALUES(1,%s,%s,%s,%s,'heroes-mismatch','entered')",
+                (ids[0], Jsonb([ids[0]]), Jsonb({}), Jsonb({})),
+            )
+        with self.assertRaisesRegex(ValueError, "frozen rift membership"):
+            heroes.switch_main(self.store, self.account, self.generation, *ids)
+        self.assertEqual(self._roster()["leader"]["id"], ids[0])
+
+    def test_roster_mutations_reject_combat_but_ignore_stale_other_instance(self):
         with self.store.connection() as db:
             fight = db.execute(
                 "INSERT INTO combat_fights(status) VALUES('active') RETURNING id"
@@ -452,14 +602,14 @@ class HeroesPostgresTests(PostgresCase):
                 "VALUES(1,%s,%s,%s,%s,'heroes-test','running') RETURNING instance_id",
                 (self.main["id"], Jsonb([self.main["id"]]), Jsonb({}), Jsonb({})),
             ).fetchone()["instance_id"]
-        with self.assertRaisesRegex(ValueError, "active rift"):
-            heroes.add(
-                self.store,
-                self.account,
-                self.generation,
-                self.main["id"],
-                self.hero_a["id"],
-            )
+        result = heroes.add(
+            self.store,
+            self.account,
+            self.generation,
+            self.main["id"],
+            self.hero_a["id"],
+        )
+        self.assertTrue(result["applied"])
 
 
 if __name__ == "__main__":

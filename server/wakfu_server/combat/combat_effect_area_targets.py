@@ -16,6 +16,22 @@ class NativeAreaTarget:
     native_movement_blocking: bool = False
     native_is_obstacle: bool = False
     native_los_height: int = 0
+    native_targeting_bcR: bool | None = None
+
+
+def native_area_targeting_bcR(row):
+    """Qq(Qr) copies Qr.bcR (exported aKa.bcR), never a subtype default."""
+    from .combat_effect_area import native_effect_areas
+    from .combat_area_contracts import AREA_CONTRACTS
+
+    definition = native_effect_areas().get(str(row.get("reference")))
+    if (
+        not isinstance(definition, dict)
+        or type(definition.get("raw_bcR")) is not bool
+        or row.get("native_area_contract") != AREA_CONTRACTS.get(definition.get("type"))
+    ):
+        raise ValueError("Missing native Qq targeting bcR prototype authority")
+    return definition["raw_bcR"]
 
 
 def area_targets(fight):
@@ -29,6 +45,10 @@ def area_targets(fight):
             else None
         )
         owner = fight.actors.get(row["owner_id"])
+        if owner is None and row["owner_id"] is not None:
+            from .combat_state_managers import registered_area_pv
+
+            owner = registered_area_pv(fight, row["owner_id"])
         border = row.get("native_area_contract") == "faP"
         environment = row.get("native_environment_source") is not None
         if environment:
@@ -52,6 +72,7 @@ def area_targets(fight):
                 -1 if border or environment else area_affiliation(fight, row),
                 row["owner_id"],
                 direction=row["direction"],
+                native_targeting_bcR=native_area_targeting_bcR(row),
                 native_obstacle_id=row.get("native_obstacle_id", -1),
                 native_movement_blocking=constructor["movement_blocking"]
                 if constructor is not None
@@ -64,6 +85,8 @@ def area_targets(fight):
                     if row.get("native_area_contract") == "faW"
                     else constructor["bcK_value"]
                     if row.get("native_area_contract") == "fbd"
+                    else row["native_simple_constructor"]["bcK_value"]
+                    if row.get("native_area_contract") == "fbb"
                     else 0
                 ),
             )
@@ -89,12 +112,15 @@ def retained_area_source_target(fight, identity):
         row.get("owner_id"),
         direction=row["direction"],
         native_los_height=pv.native_los_height,
+        native_targeting_bcR=native_area_targeting_bcR(row),
     )
 
 
 def area_target_context(target):
     if not isinstance(target, NativeAreaTarget):
         raise ValueError("Unknown native area target")
+    if type(target.native_targeting_bcR) is not bool:
+        raise ValueError("Missing actual native Qq targeting bcR")
     # faW/bcQ inherit faV.bEe=true and Qq.bcL=0. Their registered
     # obstacle byte and bcO/bcP override remain distinct from Qq defaults.
     return dict(
@@ -103,7 +129,7 @@ def area_target_context(target):
         is_eHH=False,
         is_amO=True,
         bEe=True,
-        bcR=False,
+        bcR=target.native_targeting_bcR,
         bcN=target.native_obstacle_id,
         bcO=target.native_is_obstacle,
         bcP=target.native_movement_blocking,

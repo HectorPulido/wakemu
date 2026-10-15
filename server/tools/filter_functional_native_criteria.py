@@ -54,10 +54,10 @@ def main():
         if raw not in checked:
             try:
                 value = evaluate_condition(
-                    "false and (" + raw + ")", syntax_only_context()
+                    raw, syntax_only_context(), validate_only=True
                 )
-                if value is not False:
-                    raise ValueError("False wrapper did not short-circuit")
+                if value is not True:
+                    raise ValueError("Native criterion validation failed")
                 checked[raw] = True
             except Exception as error:
                 checked[raw] = False
@@ -100,7 +100,7 @@ def main():
             )
             candidate[
                 "criteria_validation_method"
-            ] = "Unchanged evaluate_condition(false AND native expression) validates all AST branches before short circuit; exact sealed characteristic aliases, empty actor mapping never queried."
+            ] = "evaluate_condition(validate_only=True) validates the parsed native AST, including local bindings and trailing semicolons, without evaluation; exact sealed characteristic aliases, empty actor mapping never queried."
             candidate["requires_reachable_effect_criteria_supported_review"] = False
             candidate["qualification_mode"] = "FUNCTIONAL_NATIVE_CONTEXT"
             accepted.append(candidate)

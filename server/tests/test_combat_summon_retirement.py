@@ -246,6 +246,44 @@ class SummonRetirementTests(unittest.TestCase):
         self.assertEqual(after["available"], [True, *before["available"][1:]])
         self.assertEqual(fight.native_summon_retirements[summon.id]["captured"], True)
 
+    def test_captured_slot_can_be_consumed_by_successor_after_retirement(self):
+        from wakfu_server.combat_summon_retirement import retired_summon_ids
+
+        fight, owner, _, first = self.fight(ko=0, origin="captured")
+        fight.apply_effect_damage(owner.id, first.id, first.hp)
+        _, _, _, successor = self.fight(ko=0, origin="captured")
+        successor.id = 902
+        successor.position = (2, 1, 0)
+        register_fresh_summon_obstacle(fight, successor)
+        fight.actors[successor.id] = successor
+        register_global_fighter(fight, successor.id)
+        fight.order.insert(1, successor.id)
+        row = deepcopy(fight.native_summon_registrations[first.id])
+        row["actor_id"] = successor.id
+        fight.native_summon_registrations[successor.id] = row
+        for component in ("native_captured_rosters", "native_captured_roster_updates"):
+            getattr(fight, component)[str(owner.id)]["available"][0] = False
+
+        self.assertEqual(retired_summon_ids(fight), frozenset((first.id,)))
+        self.assertEqual(
+            fight.native_captured_rosters[str(owner.id)]["available"][0], False
+        )
+        fight.apply_effect_damage(owner.id, successor.id, successor.hp)
+        self.assertEqual(retired_summon_ids(fight), frozenset((first.id, successor.id)))
+        self.assertEqual(
+            fight.native_captured_rosters[str(owner.id)]["available"][0], True
+        )
+
+    def test_captured_retired_slot_unavailable_without_successor_is_rejected(self):
+        from wakfu_server.combat_summon_retirement import retired_summon_ids
+
+        fight, owner, _, summon = self.fight(ko=0, origin="captured")
+        fight.apply_effect_damage(owner.id, summon.id, summon.hp)
+        for component in ("native_captured_rosters", "native_captured_roster_updates"):
+            getattr(fight, component)[str(owner.id)]["available"][0] = False
+        with self.assertRaisesRegex(ValueError, "slot is not released"):
+            retired_summon_ids(fight)
+
     def test_unregistered_actor_and_non_summon_death_are_not_retired(self):
         fight, owner, enemy, summon = self.fight(registered=False)
         summon.hp = 0

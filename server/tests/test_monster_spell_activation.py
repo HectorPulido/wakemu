@@ -197,21 +197,25 @@ class NpcCatalogPreservationTests(unittest.TestCase):
             / "wakfu_server/combat/combat_npc_attack.py"
         )
         tree = ast.parse(path.read_text())
-        function = next(
+        functions = [
             node
             for node in tree.body
-            if isinstance(node, ast.FunctionDef) and node.name == "npc_runtime_catalog"
-        )
+            if isinstance(node, ast.FunctionDef)
+            and node.name in {"npc_runtime_catalog", "_npc_runtime_catalog"}
+        ]
         namespace = {
             "lru_cache": lru_cache,
             "__package__": "wakfu_server.combat",
             "npc_spell_catalog": lambda: document,
         }
         exec(
-            compile(ast.Module(body=[function], type_ignores=[]), str(path), "exec"),
+            compile(ast.Module(body=functions, type_ignores=[]), str(path), "exec"),
             namespace,
         )
         attack = SimpleNamespace(npc_runtime_catalog=namespace["npc_runtime_catalog"])
+        attack.npc_runtime_catalog.cache_clear = namespace[
+            "_npc_runtime_catalog"
+        ].cache_clear
         merge_path = path.with_name("combat_effect_runtime.py")
         merge_tree = ast.parse(merge_path.read_text())
         merge_function = next(
@@ -247,7 +251,10 @@ class NpcCatalogPreservationTests(unittest.TestCase):
         }
         attack.npc_runtime_catalog.cache_clear()
         try:
-            with patch.dict(sys.modules, modules):
+            with patch.dict(sys.modules, modules), patch(
+                "wakfu_server.maps.dungeon_scaling_catalog.merge",
+                side_effect=lambda effects: effects,
+            ):
                 return attack.npc_runtime_catalog(imported=imported)
         finally:
             attack.npc_runtime_catalog.cache_clear()

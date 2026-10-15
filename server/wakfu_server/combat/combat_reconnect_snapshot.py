@@ -22,7 +22,7 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
     from .combat_recovery import timeline
     from .combat_phase import action_transition
     from .combat_spectator_snapshot import _retained_carrier_packets
-    from .combat_wire import bootstrap, topology, actor_state
+    from .combat_wire import bootstrap, topology, actor_state, initial_timeline
 
     runtime = shared.runtime
     deadline = runtime.turn_deadline
@@ -43,11 +43,29 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
     from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
 
     departed = hidden_snapshot_actor_ids(fight)
+    registrations = getattr(fight, "native_summon_registrations", {})
+    births = getattr(fight, "native_summon_creation_deliveries", {})
+    birth_packets = []
+    birth_ids = set()
+    for identity in registrations:
+        if identity not in fight.actors or identity in departed:
+            continue
+        birth = births.get(identity)
+        if (
+            not isinstance(birth, dict)
+            or type(birth.get("opcode")) is not int
+            or not isinstance(birth.get("payload_hex"), str)
+        ):
+            raise ValueError("Owned reconnect lacks actual summon creation payload")
+        birth_packets.append((birth["opcode"], bytes.fromhex(birth["payload_hex"])))
+        birth_ids.add(identity)
     for actor in fight.actors.values():
         if actor.id in departed:
             continue
         stats, effects = actor_payload(fight, actor, session)
         payloads[actor.id] = (stats, effects)
+        if actor.id in birth_ids:
+            continue  # Its exact birth enrolls the actor, once, after bootstrap.
         participants.append(
             dict(
                 actor_id=actor.id,
@@ -65,7 +83,16 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
         myo=context["terrain_effect_id"],
         myp=context["terrain_instance_id"],
         myD=topology(context["arena"]),
-        myG=current_timeline,
+        # No current-member substitution: INITIAL has the native -1 sentinel.
+        # Full recovery below restores real counters and even a summon turn.
+        myG=(
+            initial_timeline(
+                [identity for identity in fight.order if identity not in birth_ids],
+                [identity for identity in fight.order if identity not in birth_ids],
+            )
+            if birth_ids
+            else current_timeline
+        ),
         myI=context["leaders"][0],
         myJ=context["leaders"][1],
         compact=False,
@@ -81,19 +108,10 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
         struct.pack(">BBiBh", 1, 0, 6, 0, len(current_timeline)) + current_timeline
     )
     packets = [(12847, bootstrap(value))]
-    registrations = getattr(fight, "native_summon_registrations", {})
-    births = getattr(fight, "native_summon_creation_deliveries", {})
-    for identity in registrations:
-        if identity not in fight.actors or identity in departed:
-            continue
-        birth = births.get(identity)
-        if (
-            not isinstance(birth, dict)
-            or type(birth.get("opcode")) is not int
-            or not isinstance(birth.get("payload_hex"), str)
-        ):
-            raise ValueError("Owned reconnect lacks actual summon creation payload")
-        packets.append((birth["opcode"], bytes.fromhex(birth["payload_hex"])))
+    packets.extend(birth_packets)
+    if birth_packets:
+        # Close the native creation group before authoritative SU restoration.
+        packets.append((13420, struct.pack(">i", fight.id)))
     # Restore current PA and retained remote-effect state after creation. These
     # are snapshot streams, never the gameplay effect dispatcher.
     for identity, (stats, effects) in payloads.items():
@@ -106,8 +124,10 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
     packets.extend(
         (
             (12233, struct.pack(">i", fight.id)),
-            action_transition(fight.id),
             (12053, struct.pack(">ih", fight.id, len(recovery)) + recovery),
+            # cvn resets native delivery before restoring the timeline;
+            # restore ACTION last, after placement and recovery processing.
+            action_transition(fight.id),
         )
     )
     packets.extend(_retained_carrier_packets(fight, runtime.native_action_id))

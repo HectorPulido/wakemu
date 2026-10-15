@@ -11,6 +11,58 @@ from psycopg.pq import TransactionStatus
 from .friendly_duel_wire import cancellation, decode_answer, decode_challenge, invite
 
 
+def owned_duel_target(store, session, target_id):
+    """Resolve an explicitly challenged hero under its selected main lease."""
+    from wakfu_server.characters.heroes import load_roster
+
+    with store.connection() as db:
+        store.lock_character(
+            db, session.account_id, session.generation, session.character_id
+        )
+        roster = load_roster(db, store, session.account_id, session.character_id)
+        return next(
+            (hero for hero in roster["heroes"] if hero["id"] == target_id), None
+        )
+
+
+def _answer_target(store, session, body):
+    """Native replies name the challenger; bind the target from its invitation."""
+    from types import SimpleNamespace
+
+    request = decode_answer(body)
+    if request["challenger_character_id"] != session.character_id:
+        return session
+    with store.connection() as db:
+        store.lock_character(
+            db, session.account_id, session.generation, session.character_id
+        )
+        rows = db.execute(
+            "SELECT target_character_id FROM friendly_duel_invitations "
+            "WHERE challenger_account_id=%s AND challenger_character_id=%s "
+            "AND target_account_id=%s AND target_generation=%s AND challenger_generation=%s "
+            "AND status='pending' AND expires_at>%s",
+            (
+                session.account_id,
+                session.character_id,
+                session.account_id,
+                session.generation,
+                session.generation,
+                store.now(),
+            ),
+        ).fetchall()
+    if not rows:
+        return session
+    if len(rows) != 1:
+        raise ValueError("Duel answer has ambiguous pending actor targets")
+    if owned_duel_target(store, session, rows[0]["target_character_id"]) is None:
+        raise ValueError("Duel target no longer belongs to the selected hero company")
+    return SimpleNamespace(
+        account_id=session.account_id,
+        character_id=rows[0]["target_character_id"],
+        generation=session.generation,
+    )
+
+
 def flush_answer_positions(store, target_session, request_body, flush):
     """Flush only a pending invitation's owners before reading their positions.
 
@@ -20,6 +72,7 @@ def flush_answer_positions(store, target_session, request_body, flush):
     request = decode_answer(request_body)
     if not request["accepted"]:
         return
+    target_session = _answer_target(store, target_session, request_body)
     target = _session_fields(target_session)
     with store.connection() as db:
         invitation = db.execute(
@@ -76,10 +129,26 @@ def _session_fields(session):
 def _lock_pair(store, db, first, second):
     a = _session_fields(first)
     b = _session_fields(second)
-    if a[0] == b[0] or a[1] == b[1]:
-        raise ValueError("Friendly duel requires two distinct account owners")
+    if a[1] == b[1]:
+        raise ValueError("Friendly duel requires distinct actors")
+    same_owner = a[0] == b[0]
+    if same_owner:
+        if a[2] != b[2]:
+            raise ValueError("Owned duel actors require the same live session")
+        from wakfu_server.characters.heroes import follow_main
+
+        store.lock_character(db, a[0], a[2], a[1])
+        roster = follow_main(db, store, a[0], a[2], a[1])
+        if b[1] not in {hero["id"] for hero in roster["heroes"]}:
+            raise ValueError("Duel target is not an active owned hero")
     for account, character, generation in sorted((a, b)):
-        store.lock_character(db, account, generation, character)
+        store.lock_character(
+            db,
+            account,
+            generation,
+            character,
+            selected=not same_owner or character == a[1],
+        )
     left = store.character(a[0], a[1], db)
     right = store.character(b[0], b[1], db)
     if (
@@ -125,6 +194,18 @@ def invite_challenge(
         a, b, source, recipient = _lock_pair(
             store, db, challenger_session, target_session
         )
+        if (
+            a[0] == b[0]
+            and db.execute(
+                "SELECT id FROM friendly_duel_invitations WHERE challenger_account_id=%s "
+                "AND challenger_character_id=%s AND target_account_id=%s "
+                "AND status='pending' AND expires_at>%s FOR UPDATE",
+                (a[0], a[1], a[0], now),
+            ).fetchone()
+        ):
+            raise ValueError(
+                "Selected session already has an unresolved owned duel invitation"
+            )
         # A reply has no nonce. Keep one unresolved request per target and
         # pair, so a stale reply cannot select among concurrent invitations.
         # Expiry is a fixed boundary, not a new reply on every retry. Using
@@ -381,6 +462,7 @@ def answer_challenge(
     store, target_session, request_body, *, prepare_duel=None, prewarm_duel=None
 ):
     """Wrap SQL commit so a pre-registered in-memory fight can be undone."""
+    target_session = _answer_target(store, target_session, request_body)
     rollback_callbacks = []
     prepared_terrain = None
     if prewarm_duel is not None:
@@ -510,12 +592,10 @@ def settle(
             "FOR UPDATE OF i,f",
             (candidate.id,),
         ).fetchone()
-        if duel is None or len(members) != 2:
+        if duel is None or len(members) < 2:
             raise ValueError("Fight is not a complete friendly duel")
-        if {row["character_id"] for row in members} != {
-            duel["challenger_character_id"],
-            duel["target_character_id"],
-        }:
+        leader_ids = {duel["challenger_character_id"], duel["target_character_id"]}
+        if not leader_ids <= {row["character_id"] for row in members}:
             raise ValueError("Friendly duel roster differs from its consent")
         from wakfu_server.equipment_stats import effective_character
         from wakfu_server.health_policy import visible
@@ -530,11 +610,26 @@ def settle(
         }
         if set(actors) != {row["character_id"] for row in members}:
             raise ValueError("Friendly duel runtime roster is incomplete")
+        leaders_by_team = {
+            actors[identity].team: actors[identity] for identity in leader_ids
+        }
+        if set(leaders_by_team) != {0, 1} or any(
+            row["team"] not in leaders_by_team
+            or row["account_id"] != leaders_by_team[row["team"]].owner_id
+            or actors[row["character_id"]].team != row["team"]
+            or actors[row["character_id"]].owner_id != row["account_id"]
+            for row in members
+        ):
+            raise ValueError("Friendly duel member is outside its consenting company")
         winner = next(
-            actor.id for actor in actors.values() if actor.team == candidate.winner
+            actor.id
+            for actor in actors.values()
+            if actor.id in leader_ids and actor.team == candidate.winner
         )
         loser = next(
-            actor.id for actor in actors.values() if actor.team != candidate.winner
+            actor.id
+            for actor in actors.values()
+            if actor.id in leader_ids and actor.team != candidate.winner
         )
         if reason == "disconnect" and disconnected_character_id != loser:
             raise ValueError("Disconnected duelist must be the losing owner")
@@ -551,7 +646,7 @@ def settle(
             maximum = effective["max_hp"]
             prefix = (
                 "challenger"
-                if actor_id == duel["challenger_character_id"]
+                if actors[actor_id].team == actors[duel["challenger_character_id"]].team
                 else "target"
             )
             original_position = (
@@ -643,8 +738,10 @@ def return_packets(
         db.execute(
             "UPDATE fight_health_exits SET return_acknowledged_at="
             "COALESCE(return_acknowledged_at,%s) "
-            "WHERE fight_id=%s AND character_id=%s AND reason='return'",
-            (store.now(), fight.id, character_id),
+            "WHERE fight_id=%s AND reason='return' AND character_id IN "
+            "(SELECT character_id FROM combat_fight_participants "
+            "WHERE fight_id=%s AND account_id=%s AND session_generation=%s)",
+            (store.now(), fight.id, fight.id, account_id, generation),
         )
         member = db.execute(
             "SELECT account_id FROM combat_fight_participants "

@@ -3,6 +3,7 @@
 Socket generation/identification (13787) is intentionally separate: this
 module only accepts masks supported by the item's verified elemental effects.
 """
+from contextlib import ExitStack
 import struct
 
 from wakfu_server.inventory_items import _lease
@@ -107,8 +108,13 @@ def select(store, account_id, generation, character_id, body):
     uid = request["uid"]
     damage = request["damage_elements"]
     resistance = request["resistance_elements"]
-    with store.connection() as db:
+    with store.connection() as db, ExitStack() as mutation_scopes:
         _lease(store, db, account_id, generation, character_id)
+        from wakfu_server.item_mutation import refresh_equipment_after_mutation
+
+        mutation_scopes.enter_context(
+            refresh_equipment_after_mutation(store, db, account_id, character_id, uid)
+        )
         item = db.execute(
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s FOR UPDATE",
             (uid, character_id),
@@ -129,12 +135,6 @@ def select(store, account_id, generation, character_id, body):
             ).fetchone()
         ):
             raise ValueError("Cannot select elements during an active exchange")
-
-        character = store.character(account_id, character_id, db)
-        for build in character["builds"].values():
-            for tag, value in proto_fields(bytes.fromhex(build["equipment"])):
-                if tag == 10 and dict(proto_fields(value)).get(8) == uid:
-                    raise ValueError("Unequip item before selecting its elements")
 
         from .shard_identification import _catalog as socket_templates, identify
 
