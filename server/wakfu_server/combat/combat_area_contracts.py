@@ -10,6 +10,7 @@ AREA_CONTRACTS = {
     "ENUTROF_DEPOSIT": "faU",
     "WALL": "fbd",
     "TRAP": "fbc",
+    "SIMPLE": "fbb",
 }
 SUPPORTED_AREA_CONTRACTS = frozenset(AREA_CONTRACTS.values())
 

@@ -82,6 +82,17 @@ def _retained_carrier_packets(fight, action_id):
             raise ValueError("Retained effect has no current native manager")
         if target_id in hidden or manager_id in hidden:
             continue
+        area = getattr(fight, "native_owned_area_effects", {}).get(uid)
+        if (
+            area is not None
+            and area.get("executed") is True
+            and area.get("native_private_area") is None
+            and area["area_uid"] not in getattr(fight, "native_effect_areas", {})
+        ):
+            # Qs retirement leaves its creating eYQ in the authoritative Qf.
+            # Replaying that creator executes eYQ.c and resurrects the removed
+            # spatial object. Preserve Qf ownership, omit its retired visual.
+            continue
         if entry.effect_class == 310:
             opcode, body = 12613, state_carrier_application(
                 fight.id,

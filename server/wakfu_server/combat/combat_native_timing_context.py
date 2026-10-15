@@ -92,7 +92,11 @@ def native_state_timeline(fight, clock_actor_id):
         raise ValueError("Native timing requires an active actor turn")
     order = tuple(fight.order)
     records = getattr(fight, "native_summon_registrations", {})
-    excluded = set()
+    excluded = {
+        identity
+        for identity, member in fight.actors.items()
+        if 114 in getattr(member, "native_fight_properties", ())
+    }
     for identity, row in records.items():
         if identity not in fight.actors or row.get("actor_id") != identity:
             raise ValueError("Stale native summoned timeline registration")
@@ -105,8 +109,20 @@ def native_state_timeline(fight, clock_actor_id):
         if member.hp > 0 and identity not in excluded
     }
     deferred = getattr(fight, "_resolution_depth", 0) > 0
+    # eWl/SQ/Tc and property37 insert additional occurrences in this cycle.
+    # The saved base is the authority for restoring the next cycle, not a
+    # deduplicated view of the current order (which may have been rotated).
+    base = getattr(fight, "native_base_turn_order", None)
+    extra_turn_cycle = (
+        isinstance(base, (list, tuple))
+        and bool(base)
+        and all(type(identity) is int for identity in base)
+        and len(set(base)) == len(base)
+        and set(base) <= set(fight.actors)
+        and set(order) <= set(base)
+    )
     if (
-        len(set(order)) != len(order)
+        (len(set(order)) != len(order) and not extra_turn_cycle)
         or not eligible <= set(order)
         or not set(order) <= set(fight.actors)
         or (not deferred and set(order) != eligible)
@@ -139,8 +155,13 @@ def native_state_timeline(fight, clock_actor_id):
         )
         if not registered_off_play:
             raise ValueError("Missing state clock actor")
+    # SU.bhN counts cycles. A repeated activation increments turn_count but
+    # must not advance retained timers, including after the base is restored.
+    round_number = getattr(fight, "native_timeline_round", actor.turn_count)
+    if type(round_number) is not int or not 1 <= round_number < 32768:
+        raise ValueError("Missing authoritative native timeline round")
     return StateTimeline(
-        actor.turn_count,
+        round_number,
         actor.id,
         fight.turn_index,
         order.index(clock_actor_id) if clock_actor_id in order else -1,

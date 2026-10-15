@@ -144,6 +144,10 @@ class NativeServerRuntimeAdapter:
         else:
             raise ValueError("Unknown native area criterion target identity")
         args = dict(target_kind=kind, target_id=identity, cell=invocation.cell)
+        if name == "HasEffectAreaProperty":
+            from .combat_area_predicates import has_effect_area_property
+
+            return has_effect_area_property(preview, property_id=value, **args)
         if name == "IsAreaType":
             return is_area_type(preview, area_type=value, **args)
         if name == "IsSpecificArea":
@@ -182,11 +186,15 @@ class NativeServerRuntimeAdapter:
             **args,
         )
 
-    def _actor(self, preview, actor):
+    def _actor(self, preview, actor, *, projected_authority=None):
         _snapshot(actor)
         if not isinstance(actor.effect_minima, dict):
             raise ValueError("Missing native characteristic minima")
-        value = self.actor_authority(preview, actor)
+        value = (
+            self.actor_authority(preview, actor)
+            if projected_authority is None
+            else projected_authority
+        )
         if not isinstance(value, NativeActorAuthority):
             raise ValueError("Missing native actor property authority")
         if any(
@@ -215,6 +223,38 @@ class NativeServerRuntimeAdapter:
     ):
         aliases = {}
         null_aliases = set()
+        # Alias roles can identify the same PV. A pure cell-filter scope may
+        # reuse this projection; outside it every evaluation starts fresh.
+        from .combat_condition_selection_scope import current_condition_actor_cache
+
+        condition_actor_by_identity = current_condition_actor_cache(self, preview)
+        if condition_actor_by_identity is None:
+            condition_actor_by_identity = {}
+
+        def authority_for(actor):
+            key = ("authority", actor.id)
+            if key not in condition_actor_by_identity:
+                from .combat_ordinary_authority import OrdinaryActorAuthority
+                from .combat_summon import RegisteredSummonAuthority
+
+                if type(self.actor_authority) in (
+                    OrdinaryActorAuthority,
+                    RegisteredSummonAuthority,
+                ):
+                    authority, world, fight = self.actor_authority.condition_projection(
+                        preview, actor
+                    )
+                    condition_actor_by_identity[key] = self._actor(
+                        preview, actor, projected_authority=authority
+                    )
+                    condition_actor_by_identity[("properties", actor.id)] = (
+                        world,
+                        fight,
+                    )
+                else:
+                    condition_actor_by_identity[key] = self._actor(preview, actor)
+            return condition_actor_by_identity[key]
+
         native_cell_argument = getattr(invocation, "native_target_cell_argument", False)
         if native_cell_argument:
             from dataclasses import is_dataclass
@@ -227,7 +267,7 @@ class NativeServerRuntimeAdapter:
                 )
         caster_actor = native_actor(preview, invocation.caster_id)
         controller_id = (
-            self._actor(preview, caster_actor).native_controller_id
+            authority_for(caster_actor).native_controller_id
             if caster_actor is not None
             else None
         )
@@ -251,6 +291,9 @@ class NativeServerRuntimeAdapter:
             if identity is None:
                 if name != "castercontroller":
                     null_aliases.add(name)
+                continue
+            if identity in condition_actor_by_identity:
+                aliases[name] = condition_actor_by_identity[identity]
                 continue
             actor = native_actor(preview, identity)
             if actor is None:
@@ -280,6 +323,8 @@ class NativeServerRuntimeAdapter:
                 typed = dict(
                     # Registered faW/bcQ area PV is not a biB player.
                     is_player=False,
+                    # faV.a(eHh) reports EFFECT_AREA, never a player/companion.
+                    is_challenger=False,
                     is_native_fighter=False,
                     is_native_ehg=True,
                     is_character=False,
@@ -299,8 +344,9 @@ class NativeServerRuntimeAdapter:
                         state_sources=(),
                         **typed,
                     )
+                condition_actor_by_identity[identity] = aliases[name]
                 continue
-            authority = self._actor(preview, actor)
+            authority = authority_for(actor)
             from .combat_characteristic_conditions import characteristic_ids
 
             ids = characteristic_ids()
@@ -340,6 +386,7 @@ class NativeServerRuntimeAdapter:
                 is_abandonning=native_departure_flag(actor, "abandonning"),
                 is_fleeing=native_departure_flag(actor, "fleeing"),
                 is_off_play=authority.targeting.get("baG"),
+                is_out_of_play=authority.targeting.get("baK"),
                 is_native_ehg=authority.targeting.get("is_eGj"),
                 is_in_play=authority.targeting.get("baF"),
                 is_dead=(
@@ -366,7 +413,11 @@ class NativeServerRuntimeAdapter:
                 direction=actor.direction,
                 native_instance_id=authority.native_instance_id,
                 world_properties=(
-                    frozenset(self.actor_authority.world_properties(preview, actor))
+                    condition_actor_by_identity[("properties", actor.id)][0]
+                    if ("properties", actor.id) in condition_actor_by_identity
+                    else frozenset(
+                        self.actor_authority.world_properties(preview, actor)
+                    )
                     if callable(getattr(self.actor_authority, "world_properties", None))
                     else getattr(actor, "native_world_properties", None)
                 ),
@@ -374,7 +425,9 @@ class NativeServerRuntimeAdapter:
                     actor, "native_world_property_since_ms", None
                 ),
                 fight_properties=(
-                    frozenset(self.actor_authority.properties(preview, actor))
+                    condition_actor_by_identity[("properties", actor.id)][1]
+                    if ("properties", actor.id) in condition_actor_by_identity
+                    else frozenset(self.actor_authority.properties(preview, actor))
                     if callable(getattr(self.actor_authority, "properties", None))
                     else getattr(actor, "native_fight_properties", None)
                 ),
@@ -392,6 +445,7 @@ class NativeServerRuntimeAdapter:
                     if identity in actor.effect_maxima
                 },
             )
+            condition_actor_by_identity[identity] = aliases[name]
         source = native_actor(preview, invocation.caster_id)
         target = native_actor(preview, invocation.target_id)
         if source is None:
@@ -565,6 +619,7 @@ class NativeServerRuntimeAdapter:
             state_level=-1,
             owner="",
             breed_reference=None,
+            world_property_reference=None,
             own_team_states=False,
             human_only=False,
         ):
@@ -661,6 +716,10 @@ class NativeServerRuntimeAdapter:
                     if not human_actor_type(metadata.native_actor_type):
                         continue
                 properties = self.actor_authority.properties(preview, candidate)
+                if relation == "world_property":
+                    world = self.actor_authority.world_properties(preview, candidate)
+                    if world_property_reference not in world:
+                        continue
                 states = (
                     registered_state_carriers(preview, candidate)
                     if relation == "state"
@@ -822,6 +881,23 @@ class NativeServerRuntimeAdapter:
                 breed_reference=reference,
             )
 
+        def fighters_world_property_range_query(maximum, selector, reference):
+            from .combat_world_properties import registry
+
+            reference = ((reference + (1 << 31)) % (1 << 32)) - (1 << 31)
+            if str(reference) not in registry():
+                return 0  # eKu: eHQ.Qm returned null.
+            return native_range_query(
+                0,
+                maximum,
+                selector,
+                False,
+                False,
+                relation="world_property",
+                in_play=False,
+                world_property_reference=reference,
+            )
+
         def fighters_max_level_query(kind, in_play_only):
             from .combat_max_level_conditions import fighters_max_level
             from .combat_summon_initialization import detached_actor
@@ -840,6 +916,25 @@ class NativeServerRuntimeAdapter:
                     )
                 )
             return fighters_max_level(rows, kind, in_play_only)
+
+        def fighters_min_level_query(kind, in_play_only):
+            from .combat_max_level_conditions import fighters_min_level
+            from .combat_summon_initialization import detached_actor
+
+            if source is not None and detached_actor(preview, source.id) is not None:
+                raise ValueError("Native fighter minimum requires actual fight context")
+            rows = []
+            for candidate in native_actor_population(preview):
+                metadata = self._actor(preview, candidate)
+                rows.append(
+                    (
+                        metadata.native_actor_type,
+                        metadata.native_in_play,
+                        self.actor_authority.properties(preview, candidate),
+                        candidate.effective_level,
+                    )
+                )
+            return fighters_min_level(rows, kind, in_play_only)
 
         def player_max_level_query():
             from .combat_max_level_conditions import player_max_level
@@ -2030,6 +2125,20 @@ class NativeServerRuntimeAdapter:
             ai_has_cast_spell_query=ai_has_cast_spell_query,
             world_property_now_ms=time.time_ns() // 1_000_000,
             current_fighter_id=preview.current.id if preview.current is not None else 0,
+            equipment_type_query=(
+                (
+                    lambda references, target, inventory: self.actor_authority.has_equipment_type(
+                        preview,
+                        preview.actors.get(invocation.target_id, source)
+                        if target
+                        else source,
+                        references,
+                        inventory,
+                    )
+                )
+                if callable(getattr(self.actor_authority, "has_equipment_type", None))
+                else None
+            ),
             item_quantity_query=(
                 (
                     lambda references: self.actor_authority.item_quantity(
@@ -2043,7 +2152,9 @@ class NativeServerRuntimeAdapter:
             line_of_sight_query=line_of_sight_query,
             valid_path_query=valid_path_query,
             fighters_breed_range_query=fighters_breed_range_query,
+            fighters_world_property_range_query=fighters_world_property_range_query,
             fighters_max_level_query=fighters_max_level_query,
+            fighters_min_level_query=fighters_min_level_query,
             player_max_level_query=player_max_level_query,
             human_allies_range_query=human_allies_range_query,
             human_enemies_range_query=human_enemies_range_query,

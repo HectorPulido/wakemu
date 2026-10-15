@@ -43,6 +43,10 @@ def combat_return(
         entity_template=entity_template,
         roster_template=roster_template,
     )
+    # The preceding world bootstrap recomputes the selected native biB sheet.
+    # Format10 restores its current HP but carries no HP maximum. Publish the
+    # owned limits after that bootstrap, just as for the loaded heroes below.
+    packets.append(hero_wire.statistics(character))
     participants = set(participant_ids)
     for hero in roster:
         if hero["id"] != character["id"] and hero["id"] in participants:

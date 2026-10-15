@@ -1,14 +1,13 @@
 """Native achievement rewards inside a caller-owned, authorized transaction.
 
 The caller locks account before character and owns replay protection, savepoints,
-commit and publication. Capacity errors do not mutate inventory. Item rewards
-use fresh slots so no specific item metadata is merged or discarded.
+commit and publication. Capacity errors do not mutate inventory. Item rewards preflight all eligible bags and merge only identical plain stacks.
 """
 from psycopg.pq import TransactionStatus
 
 
 class RewardCapacity(ValueError):
-    """The native reward fits no available base-bag slots; retry later."""
+    """The native reward fits no eligible inventory capacity; retry later."""
 
 
 def validate(reward):
@@ -52,7 +51,6 @@ def grant(db, store, character, reward):
 
 def _item(db, store, character, reference, quantity):
     from wakfu_server.inventory_move import ACQUISITION_STACKS as STACKS
-    from wakfu_server.inventory_items import insertion
     from wakfu_server.inventory_uids import allocate
     from wakfu_server.inventory_elements import create, save
 
@@ -69,26 +67,73 @@ def _item(db, store, character, reference, quantity):
     )
     if is_mount:
         maximum = 1
-    bag = db.execute(
-        "SELECT * FROM inventory_containers WHERE character_id=%s AND kind=0 FOR UPDATE",
-        (character["id"],),
-    ).fetchone()
-    if bag is None:
-        raise RewardCapacity("Missing base bag for achievement reward")
-    occupied = {
-        row["slot"]
+    from wakfu_server.combat_drop_delivery import (
+        _binding_rows,
+        _container_can_hold,
+        _effective_bound,
+        _equipped_uids,
+        _save_binding,
+        _template_bound,
+        _item_proto,
+    )
+    from wakfu_server.inventory_elements import hydrate, masks
+    import struct
+
+    containers = [
+        dict(row)
         for row in db.execute(
-            "SELECT slot FROM inventory_items WHERE container=%s", (bag["uid"],)
+            "SELECT * FROM inventory_containers WHERE character_id=%s ORDER BY kind,uid FOR UPDATE",
+            (character["id"],),
+        ).fetchall()
+    ]
+    eligible = [bag for bag in containers if _container_can_hold(bag, character["id"])]
+    items = hydrate(
+        db,
+        [
+            dict(row)
+            for row in db.execute(
+                "SELECT * FROM inventory_items WHERE character_id=%s ORDER BY uid FOR UPDATE",
+                (character["id"],),
+            ).fetchall()
+        ],
+    )
+    bindings = _binding_rows(db, items)
+    excluded = _equipped_uids(store, character["account_id"], character["id"], db)
+    excluded.update(
+        row["uid"]
+        for row in db.execute(
+            "SELECT uid FROM inventory_item_shards WHERE uid=ANY(%s)",
+            ([item["uid"] for item in items],),
         )
-    }
-    available = [slot for slot in range(bag["capacity"]) if slot not in occupied]
-    required = (quantity + maximum - 1) // maximum
-    if required > len(available):
-        raise RewardCapacity("Insufficient base-bag slots for achievement reward")
+    )
+    selection = create(reference)
+    selected_masks = None if selection is None else masks(selection)
+    bound = _template_bound(reference)
+    eligible_ids = {bag["uid"] for bag in eligible}
+    compatible = []
+    for item in items:
+        item["bound"] = bindings.get(item["uid"], False)
+        if (
+            not is_mount
+            and rule["minimal_mergeable"]
+            and item["container"] in eligible_ids
+            and item["uid"] not in excluded
+            and item["reference"] == reference
+            and _effective_bound(item) == bound
+            and masks(item) == selected_masks
+        ):
+            compatible.append(item)
+    merges, placements = _plan_item_capacity(
+        eligible, items, compatible, quantity, maximum
+    )
     packets = []
-    remaining = quantity
-    for slot in available[:required]:
-        amount = min(remaining, maximum)
+    for item, amount in merges:
+        db.execute(
+            "UPDATE inventory_items SET quantity=quantity+%s WHERE uid=%s",
+            (amount, item["uid"]),
+        )
+        packets.append((12470, struct.pack(">qh", item["uid"], amount)))
+    for bag, slot, amount in placements:
         uid = allocate(db)
         db.execute(
             "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) "
@@ -98,17 +143,51 @@ def _item(db, store, character, reference, quantity):
         item = dict(
             db.execute("SELECT * FROM inventory_items WHERE uid=%s", (uid,)).fetchone()
         )
-        elements = create(reference)
-        if elements is not None:
-            save(db, uid, elements)
-            item.update(elements)
+        if selection is not None:
+            save(db, uid, selection)
+            item.update(selection)
+        _save_binding(db, uid, reference, bound)
+        item["bound"] = bound
         if is_mount:
             from wakfu_server.mount_inventory import initialize
 
             item["mount"] = initialize(db, uid, character["id"], store.now())
-        packets.append(insertion(item, notification=True))
-        remaining -= amount
+        proto = _item_proto(item)
+        packets.append(
+            (
+                12471,
+                struct.pack(">qhI", item["container"], item["slot"], len(proto))
+                + proto
+                + b"\x01",
+            )
+        )
     return packets
+
+
+def _plan_item_capacity(containers, items, compatible, quantity, maximum):
+    """Preflight the complete reward without allocating UIDs or mutating rows."""
+    remaining = quantity
+    merges, placements = [], []
+    for item in compatible:
+        amount = min(remaining, max(0, maximum - item["quantity"]))
+        if amount:
+            merges.append((item, amount))
+            remaining -= amount
+    occupied = {(item["container"], item["slot"]) for item in items}
+    for bag in containers:
+        for slot in range(bag["capacity"]):
+            if remaining == 0:
+                break
+            if (bag["uid"], slot) in occupied:
+                continue
+            amount = min(remaining, maximum)
+            placements.append((bag, slot, amount))
+            remaining -= amount
+    if remaining:
+        raise RewardCapacity(
+            "Insufficient eligible inventory capacity for achievement reward"
+        )
+    return merges, placements
 
 
 def _title(db, character, title_id):

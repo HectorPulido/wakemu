@@ -1,0 +1,499 @@
+{
+  "effects": {
+    "105267": {
+      "variant": 0,
+      "children": [],
+      "criteria": "",
+      "area_class": "anD",
+      "parameters": [
+        2778.0,
+        0.0
+      ],
+      "area_native": "point",
+      "effect_class": 933,
+      "removal_flag": "NONE",
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 1,
+      "application_flag": "NONE",
+      "probability_base": 100.0,
+      "native_hmi_actions": {
+        "rzc": [
+          {
+            "id": 1247,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=1247, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzd": [],
+        "rze": [],
+        "rzf": [
+          {
+            "id": 1247,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=1247, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzg": [],
+        "rzh": [
+          {
+            "id": 1247,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=1247, m_targetOnly=false, m_isInstant=false} "
+          }
+        ]
+      },
+      "native_effect_flags": [
+        1,
+        17
+      ],
+      "native_execution_mode": 2,
+      "probability_per_level": 0.0,
+      "native_target_selector": {
+        "mask": 1,
+        "class": "fcE"
+      },
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "esr": false,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "clock_on_caster": false,
+        "clock_on_target": true
+      },
+      "native_localization_enabled": false
+    },
+    "272571": {
+      "variant": 0,
+      "children": [],
+      "criteria": "",
+      "area_class": "anD",
+      "parameters": [],
+      "area_native": "point",
+      "effect_class": 400,
+      "removal_flag": "NONE",
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "maximum_level": 1,
+      "minimum_level": 1,
+      "parameter_count": 0,
+      "application_flag": "NONE",
+      "probability_base": 100.0,
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [
+          {
+            "id": 4085,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4085, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzf": [
+          {
+            "id": 4085,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4085, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzg": [],
+        "rzh": [
+          {
+            "id": 4085,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4085, m_targetOnly=false, m_isInstant=false} "
+          }
+        ]
+      },
+      "native_effect_flags": [
+        17
+      ],
+      "native_execution_mode": 2,
+      "probability_per_level": 0.0,
+      "native_target_selector": {
+        "mask": 1,
+        "class": "fcE"
+      },
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "esr": false,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "clock_on_caster": false,
+        "clock_on_target": true
+      },
+      "native_localization_enabled": false
+    },
+    "272574": {
+      "variant": 0,
+      "children": [],
+      "criteria": "",
+      "area_class": "anD",
+      "parameters": [],
+      "area_native": "point",
+      "effect_class": 400,
+      "removal_flag": "NONE",
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "maximum_level": 1,
+      "minimum_level": 1,
+      "parameter_count": 0,
+      "application_flag": "NONE",
+      "probability_base": 100.0,
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [
+          {
+            "id": 4089,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4089, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzf": [
+          {
+            "id": 4089,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4089, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzg": [],
+        "rzh": [
+          {
+            "id": 4089,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4089, m_targetOnly=false, m_isInstant=false} "
+          }
+        ]
+      },
+      "native_effect_flags": [
+        17
+      ],
+      "native_execution_mode": 2,
+      "probability_per_level": 0.0,
+      "native_target_selector": {
+        "mask": 1,
+        "class": "fcE"
+      },
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "esr": false,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "clock_on_caster": false,
+        "clock_on_target": true
+      },
+      "native_localization_enabled": false
+    },
+    "272577": {
+      "variant": 0,
+      "children": [],
+      "criteria": "",
+      "area_class": "anD",
+      "parameters": [],
+      "area_native": "point",
+      "effect_class": 400,
+      "removal_flag": "NONE",
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "maximum_level": 1,
+      "minimum_level": 1,
+      "parameter_count": 0,
+      "application_flag": "NONE",
+      "probability_base": 100.0,
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [
+          {
+            "id": 4094,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4094, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzf": [
+          {
+            "id": 4094,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4094, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzg": [],
+        "rzh": [
+          {
+            "id": 4094,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4094, m_targetOnly=false, m_isInstant=false} "
+          }
+        ]
+      },
+      "native_effect_flags": [
+        17
+      ],
+      "native_execution_mode": 2,
+      "probability_per_level": 0.0,
+      "native_target_selector": {
+        "mask": 1,
+        "class": "fcE"
+      },
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "esr": false,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "clock_on_caster": false,
+        "clock_on_target": true
+      },
+      "native_localization_enabled": false
+    },
+    "292958": {
+      "variant": 0,
+      "children": [],
+      "criteria": "not IsCarrying(\"target\")",
+      "area_class": "anD",
+      "parameters": [],
+      "area_native": "point",
+      "effect_class": 400,
+      "removal_flag": "NONE",
+      "target_masks": [
+        null,
+        null,
+        [
+          1010,
+          1030
+        ],
+        null,
+        null,
+        null,
+        null
+      ],
+      "maximum_level": 3,
+      "minimum_level": 3,
+      "parameter_count": 0,
+      "application_flag": "NONE",
+      "probability_base": 100.0,
+      "native_hmi_actions": {
+        "rzc": [
+          {
+            "id": 4269,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4269, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzd": [],
+        "rze": [],
+        "rzf": [
+          {
+            "id": 4269,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4269, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzg": [],
+        "rzh": [
+          {
+            "id": 4269,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=4269, m_targetOnly=false, m_isInstant=false} "
+          }
+        ]
+      },
+      "native_effect_flags": [
+        17
+      ],
+      "native_execution_mode": 2,
+      "probability_per_level": 0.0,
+      "native_target_selector": {
+        "mask": 0,
+        "class": "fcE"
+      },
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "esr": true,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "clock_on_caster": false,
+        "clock_on_target": true
+      },
+      "native_localization_enabled": false
+    },
+    "380625": {
+      "variant": 0,
+      "children": [],
+      "criteria": "",
+      "area_class": "anD",
+      "parameters": [],
+      "area_native": "point",
+      "effect_class": 400,
+      "removal_flag": "NONE",
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameter_count": 0,
+      "application_flag": "NONE",
+      "probability_base": 100.0,
+      "native_hmi_actions": {
+        "rzc": [
+          {
+            "id": 5629,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=5629, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzd": [],
+        "rze": [],
+        "rzf": [
+          {
+            "id": 5629,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=5629, m_targetOnly=false, m_isInstant=false} "
+          }
+        ],
+        "rzg": [],
+        "rzh": [
+          {
+            "id": 5629,
+            "aYc": false,
+            "aYd": false,
+            "type": "APPEARANCE_CHANGE",
+            "native": "HMIAction{m_id=5629, m_targetOnly=false, m_isInstant=false} "
+          }
+        ]
+      },
+      "native_effect_flags": [],
+      "native_execution_mode": 2,
+      "probability_per_level": 0.0,
+      "native_target_selector": {
+        "mask": 1,
+        "class": "fcE"
+      },
+      "native_definition_class": "eVy",
+      "native_timing_definition": {
+        "esr": false,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0,
+        "clock_on_caster": false,
+        "clock_on_target": true
+      },
+      "native_localization_enabled": false
+    }
+  },
+  "bosses": {
+    "2768": {
+      "name": "Gran Jalat\u00f3 Salvaje",
+      "effects": [
+        105267
+      ]
+    },
+    "4924": {
+      "name": "Javeho",
+      "effects": [
+        272571,
+        272574,
+        272577
+      ]
+    },
+    "5107": {
+      "name": "Viuda Negra",
+      "effects": [
+        292958
+      ]
+    },
+    "5589": {
+      "name": "Toross Mordal",
+      "effects": [
+        380625
+      ]
+    }
+  }
+}

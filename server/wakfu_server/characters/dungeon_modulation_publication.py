@@ -1,4 +1,6 @@
 """Publish an authoritative dungeon or restored owned build through native codecs."""
+import struct
+
 from protocol_codec import Reader
 from wakfu_server import builds, wire
 from wakfu_server.characters import hero_wire
@@ -43,17 +45,43 @@ def packets(character, fixture_provider, *, owned_characters=None, owned_hero=Fa
         raise ValueError("Native equipment registry omits the published character")
     if any(row["account_id"] != character["account_id"] for row in roster):
         raise ValueError("Native build publication includes a foreign account")
-    registry = (
-        hero_wire.activate(template, character)
-        if owned_hero
-        else (
-            12666,
-            wire.adapt(12666, original_owned, character["account_id"], character),
-        )
-    )
     equipment = (12393, wire.attribute_sheets(fixture_provider(12393), roster))
     appearance = hero_wire.refresh(template, character)
     from wakfu_server.combat_lifecycle import outside_progression
 
     progression = outside_progression(character)
-    return (registry, equipment, selection, appearance, progression)
+    if owned_hero:
+        # A hero needs the native activation envelope to register its owned
+        # biB. The main character is already registered; do not replace that
+        # object during a modulation boundary because the world bio registry
+        # and the selected-master reference must remain the same actor.
+        return (
+            hero_wire.activate(template, character),
+            equipment,
+            selection,
+            appearance,
+            progression,
+        )
+
+    # Update the already-registered main actor's independent build registries
+    # in place. 12666 is a full owned-actor bootstrap and replaces the native
+    # biB; that can leave the selected master detached from its world bio actor
+    # just as combat attaches a Fight to the world actor.
+    aptitudes = builds.aptitude_registry(character)
+    build_set = builds.build_set(character, b"")
+    build_registry = (
+        12996,
+        struct.pack(">qI", character["id"], len(build_set)) + build_set,
+    )
+    aptitude_registry = (
+        12103,
+        struct.pack(">qI", character["id"], len(aptitudes)) + aptitudes,
+    )
+    return (
+        equipment,
+        aptitude_registry,
+        build_registry,
+        selection,
+        appearance,
+        progression,
+    )

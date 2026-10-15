@@ -46,13 +46,17 @@ def expand_session_rows(db, store, rows):
     return sorted(result, key=lambda row: row["id"])
 
 
-def _idle(db, identities):
+def _outside_combat(db, identities):
     if db.execute(
         "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
         "WHERE p.character_id=ANY(%s) AND f.status IN ('placement','active') LIMIT 1",
         (list(identities),),
     ).fetchone():
         raise ValueError("Hero roster cannot change during combat")
+
+
+def _idle(db, identities):
+    _outside_combat(db, identities)
     if db.execute(
         "SELECT 1 FROM rift_instances WHERE status IN ('entered','running') "
         "AND EXISTS(SELECT 1 FROM jsonb_array_elements_text(members) m WHERE m::bigint=ANY(%s)) LIMIT 1",
@@ -166,7 +170,7 @@ def add(store, account_id, generation, main_character_id, hero_id):
         initialize_decks(db, store.character(account_id, hero_id, db))
         roster = load_roster(db, store, account_id, main_character_id)
         identities = [main_character_id, hero_id] + [r["id"] for r in roster["heroes"]]
-        _idle(db, identities)
+        _outside_combat(db, identities)
         if any(r["id"] == hero_id for r in roster["heroes"]):
             return dict(roster, applied=False)
         if len(roster["heroes"]) >= NATIVE_HERO_CAP:
@@ -175,6 +179,11 @@ def add(store, account_id, generation, main_character_id, hero_id):
             "SELECT 1 FROM player_party_members WHERE character_id=%s", (hero_id,)
         ).fetchone():
             raise ValueError("Hero already belongs to an ordinary player party")
+        from wakfu_server.characters.hero_instance_membership import reconcile
+
+        reconcile(
+            db, store, account_id, generation, roster["leader"], hero, joining=True
+        )
         slot = next(
             i for i in range(NATIVE_HERO_CAP) if i not in roster.get("slots", ())
         )
@@ -216,7 +225,22 @@ def remove(store, account_id, generation, main_character_id, hero_id):
         ):
             raise ValueError("Hero removal character unavailable or foreign")
         roster = load_roster(db, store, account_id, main_character_id)
-        _idle(db, [main_character_id] + [r["id"] for r in roster["heroes"]])
+        _outside_combat(db, [main_character_id] + [r["id"] for r in roster["heroes"]])
+        companion = next(
+            (row for row in roster["heroes"] if row["id"] == hero_id), None
+        )
+        if companion is not None:
+            from wakfu_server.characters.hero_instance_membership import reconcile
+
+            reconcile(
+                db,
+                store,
+                account_id,
+                generation,
+                roster["leader"],
+                companion,
+                joining=False,
+            )
         removed = db.execute(
             "DELETE FROM account_hero_slots WHERE account_id=%s AND character_id=%s RETURNING slot",
             (account_id, hero_id),
@@ -282,6 +306,36 @@ def select_main(store, account_id, generation, main_character_id):
         return load_roster(db, store, account_id, main_character_id)
 
 
+def _switch_instance_authority(db, main_character_id, hero_id):
+    """Preserve frozen participants while changing their account's input owner."""
+    identities = [main_character_id, hero_id]
+    memberships = db.execute(
+        "SELECT instance_id,character_id FROM dungeon_instance_members "
+        "WHERE character_id=ANY(%s) AND status='active' FOR UPDATE",
+        (identities,),
+    ).fetchall()
+    if memberships and (
+        len(memberships) != 2 or len({row["instance_id"] for row in memberships}) != 1
+    ):
+        raise ValueError("Selected hero does not share the active dungeon membership")
+    runs = db.execute(
+        "SELECT instance_id,owner_character_id,members FROM rift_instances "
+        "WHERE status IN ('entered','running') AND EXISTS("
+        "SELECT 1 FROM jsonb_array_elements_text(members) m "
+        "WHERE m::bigint=ANY(%s)) ORDER BY instance_id FOR UPDATE",
+        (identities,),
+    ).fetchall()
+    for run in runs:
+        if not set(identities).issubset(run["members"]):
+            raise ValueError("Selected hero does not share the frozen rift membership")
+        if run["owner_character_id"] == main_character_id:
+            db.execute(
+                "UPDATE rift_instances SET owner_character_id=%s,revision=revision+1 "
+                "WHERE instance_id=%s",
+                (hero_id, run["instance_id"]),
+            )
+
+
 def switch_main(store, account_id, generation, main_character_id, hero_id):
     """Atomically change the selected main and swap its real hero slot."""
     if type(hero_id) is not int or hero_id <= 0:
@@ -301,7 +355,10 @@ def switch_main(store, account_id, generation, main_character_id, hero_id):
         )
         if slot is None:
             raise ValueError("Only an active owned hero can become main")
-        _idle(db, [main_character_id] + [hero["id"] for hero in roster["heroes"]])
+        _outside_combat(
+            db, [main_character_id] + [hero["id"] for hero in roster["heroes"]]
+        )
+        _switch_instance_authority(db, main_character_id, hero_id)
         leader = roster["leader"]
         db.execute(
             "UPDATE characters SET map_id=%s,instance_id=%s,x=%s,y=%s,z=%s WHERE id=%s",

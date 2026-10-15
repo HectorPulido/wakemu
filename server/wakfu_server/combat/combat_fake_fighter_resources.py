@@ -161,6 +161,10 @@ def _owned_resources_constructor(definition, level):
 
 def fake_fighter_characteristics(row, definition):
     """Return the complete actual faW PC population, never fighter defaults."""
+    from .combat_fake_fighter_owner_copy import damage_only_mask, characteristics
+
+    if damage_only_mask(definition) is not None:
+        return characteristics(row, definition)
     hp = fake_fighter_hp_state(row, definition)
     resources = _owned_resources_constructor(definition, row.get("level"))
     result = {HP_CHARACTERISTIC: hp}

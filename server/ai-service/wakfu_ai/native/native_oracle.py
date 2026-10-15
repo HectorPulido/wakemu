@@ -1038,9 +1038,29 @@ class NativeOracle:
                 candidate, transaction, stats_serializer=stats_serializer
             )
         elif kind == "move":
+            from wakfu_server.combat_movement_runtime import movement_stats_snapshot
+
             private, effects, _ = self.preview(runtime, action, forecast=False)
             packets = list(effects) + [candidate._flush()]
+            from wakfu_server.combat_snapshot_actor_visibility import (
+                hidden_snapshot_actor_ids,
+            )
+
+            hidden = hidden_snapshot_actor_ids(private.fight)
             for actor in private.fight.actors.values():
+                if actor.id in hidden:
+                    continue
+                stats = stats_serializer(actor, private.fight)
+                previous = runtime.fight.actors.get(actor.id)
+                if previous is not None and (
+                    actor.id == runtime.fight.current.id
+                    or actor.position == previous.position
+                ):
+                    stats = movement_stats_snapshot(
+                        stats,
+                        stats_serializer(previous, runtime.fight),
+                        position_owned=actor.id == runtime.fight.current.id,
+                    )
                 packets.append(
                     (
                         12873,
@@ -1048,7 +1068,7 @@ class NativeOracle:
                             12873,
                             private.fight.id,
                             actor.id,
-                            stats_serializer(actor, private.fight),
+                            stats,
                         ),
                     )
                 )

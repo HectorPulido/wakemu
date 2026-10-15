@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from wakfu_server.combat_qi_fight import (
     current_registry,
@@ -119,17 +120,119 @@ class NativeQIFightLifecycleTests(unittest.TestCase):
             register_effect_area_obstacle(fight, None, constructor)
 
     def test_fight_move_hook_updates_native_qi_position_and_occupancy(self):
-        fight, pc, _ = self.fixture(radii=(0, 0))
+        fight, pc, npc = self.fixture(radii=(0, 0))
+        npc.position = (3, 0, 0)
+        fight.walkable = {(x, 0, 0) for x in range(4)}
+        fight.placement = {0: {pc.position}, 1: {npc.position}}
+        fight.native_qi_snapshot = {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 1,
+            "cell_masks": [0] * 4,
+        }
         self.initialize(fight)
-        fight.ready(1)
-        self.assertEqual(fight.current.id, pc.id)
-
+        fight.phase = "active"
+        fight.order = [pc.id, npc.id]
+        fight.turn_index = 0
+        fight.turn_id = 1
+        pc.turn_count = 1
         fight.move(1, pc.id, [(1, 0, 0)])
 
         self.assertEqual(pc.position, (1, 0, 0))
         occupancy = current_registry(fight).snapshot()
         self.assertEqual(occupancy.U(0, 0), frozenset())
         self.assertEqual(occupancy.U(1, 0), frozenset({pc.native_obstacle_id}))
+
+    @patch(
+        "wakfu_server.combat.combat_trove_byte_set.protocol_catalog.load",
+        return_value={
+            "initial_capacity": 23,
+            "initial_compact_removes": 10,
+            "load_factor": 0.5,
+            "auto_compaction_factor": 0.5,
+            "prime_capacities": [3, 5, 7, 11, 17, 23, 31],
+        },
+    )
+    def test_ordinary_movement_respects_qi_radius_and_temporary_exclusions(
+        self, _contract
+    ):
+        fight, pc, npc = self.fixture(radii=(0, 1))
+        # Put the blocker on the far edge so (1,0) is walkable and its exact
+        # actor coordinate differs from the QI radius footprint.
+        npc.position = (1, 1, 0)
+        fight.walkable = {(x, y, 0) for x in range(4) for y in range(4)}
+        fight.edges = {
+            (source, target)
+            for source in fight.walkable
+            for target in fight.walkable
+            if abs(source[0] - target[0]) + abs(source[1] - target[1]) == 1
+        }
+        fight.placement = {0: {pc.position}, 1: {npc.position}}
+        fight.native_qi_snapshot = {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 4,
+            "cell_masks": [0] * 16,
+        }
+        self.initialize(fight)
+        fight.phase = "active"
+        fight.order = [pc.id, npc.id]
+        fight.turn_index = 0
+        fight.turn_id = 1
+        pc.turn_count = 1
+
+        from wakfu_server.combat.combat_tactical_ai import _distances
+
+        self.assertNotIn((1, 0, 0), _distances(fight, pc.position, pc.id))
+        with self.assertRaisesRegex(ValueError, "Invalid combat movement path"):
+            fight.move(1, pc.id, [(1, 0, 0)])
+        self.assertEqual(pc.position, (0, 0, 0))
+        self.assertEqual(pc.mp, 3)
+
+        fight.native_qi_movement_override = True
+        fight.native_qi_snapshot["cell_masks"][1] = 768
+        self.assertNotIn((1, 0, 0), _distances(fight, pc.position, pc.id))
+        with self.assertRaisesRegex(ValueError, "Invalid combat movement path"):
+            fight.move(1, pc.id, [(1, 0, 0)])
+        fight.native_qi_snapshot["cell_masks"][1] = 0
+
+        # biN can make an occupied actor cell passable. When owned QI exists,
+        # movement must not reapply the legacy HP/exact-coordinate heuristic.
+        exact, mover, blocker = self.fixture(arena=False, radii=(0, 0))
+        mover.position = (0, 1, 0)
+        blocker.position = (1, 1, 0)
+        exact.walkable = {(0, 1, 0), (1, 1, 0), (2, 1, 0)}
+        exact.edges = {
+            ((0, 1, 0), (1, 1, 0)),
+            ((1, 1, 0), (0, 1, 0)),
+            ((1, 1, 0), (2, 1, 0)),
+            ((2, 1, 0), (1, 1, 0)),
+        }
+        exact.placement = {0: {mover.position}, 1: {blocker.position}}
+        exact.native_qi_snapshot = {
+            "x": 0,
+            "y": 1,
+            "width": 3,
+            "height": 1,
+            "cell_masks": [0] * 3,
+        }
+        self.initialize(exact)
+        exact.phase = "active"
+        exact.order = [mover.id, blocker.id]
+        exact.turn_index = 0
+        exact.turn_id = 1
+        mover.turn_count = 1
+        exact.native_qi_ignored_slots = [blocker.native_obstacle_id]
+        exact.move(1, mover.id, [(1, 1, 0)])
+        self.assertEqual(mover.position, blocker.position)
+
+        fight.native_qi_movement_override = False
+        fight.native_qi_ignored_slots = [npc.native_obstacle_id]
+        self.assertIn((1, 0, 0), _distances(fight, pc.position, pc.id))
+        fight.move(1, pc.id, [(1, 0, 0)])
+        self.assertEqual(pc.position, (1, 0, 0))
 
     def test_current_registry_rejects_dead_or_unregistered_actor(self):
         fight, pc, npc = self.fixture()

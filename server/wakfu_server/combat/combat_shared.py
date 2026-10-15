@@ -6,6 +6,8 @@ not remain authoritative. Runtime/codec factories never send or persist inside
 these transactions: they produce owned packet batches before the FSM commits.
 """
 import struct
+import time
+from copy import copy
 from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -356,14 +358,39 @@ class Registry:
         controlled = {
             actor.id: actor for actor in fight.actors.values() if actor.controlled
         }
-        if len(sessions) != 2 or set(controlled) != {
-            session.character_id for session in sessions
-        }:
-            raise ValueError("A duel requires exactly two controlled owners")
-        if len({session.account_id for session in sessions}) != 2:
-            raise ValueError("Duel owners must be distinct accounts")
-        if {controlled[session.character_id].team for session in sessions} != {0, 1}:
-            raise ValueError("A duel requires opposing owner teams")
+        owners = {session.account_id: session for session in sessions}
+        nominated = (
+            None if not isinstance(join_context, dict) else join_context.get("leaders")
+        )
+        if nominated is None:
+            nominated = {
+                controlled[session.character_id].team: session.character_id
+                for session in sessions
+                if session.character_id in controlled
+            }
+        if (
+            not sessions
+            or len(owners) != len(sessions)
+            or not isinstance(nominated, dict)
+            or set(nominated) != {0, 1}
+            or len(set(nominated.values())) != 2
+            or not set(nominated.values()) <= set(controlled)
+        ):
+            raise ValueError("A duel requires both consenting team leaders")
+        for team, identity in nominated.items():
+            if (
+                controlled[identity].team != team
+                or controlled[identity].owner_id not in owners
+            ):
+                raise ValueError("Duel leader is outside its consenting session")
+        for actor in controlled.values():
+            leader = (
+                controlled[nominated[actor.team]] if actor.team in nominated else None
+            )
+            if leader is None or actor.owner_id != leader.owner_id:
+                raise ValueError("Duel actor is outside its consenting owner's team")
+        if not {session.character_id for session in sessions} <= set(controlled):
+            raise ValueError("Duel omitted its selected session actor")
         map_instances = {(session.map_id, session.instance_id) for session in sessions}
         if len(map_instances) != 1:
             raise ValueError("Duel sessions must share map and instance")
@@ -399,6 +426,7 @@ class Registry:
             shared.auto_locked = auto_locked
             shared.join_context = join_context
             shared.is_duel = True
+            shared.duel_leaders = dict(nominated)
             shared.sequence = 1
             for session in sessions:
                 shared.participants[session.account_id] = session
@@ -407,6 +435,8 @@ class Registry:
                     [Batch(shared.sequence, initial_packets[session.account_id])]
                 )
                 self.by_character[session.character_id] = fight.id
+            for actor in controlled.values():
+                self.by_character[actor.id] = fight.id
             self.fights[fight.id] = shared
             self.by_actor.update((actor_id, fight.id) for actor_id in fight.actors)
             return shared
@@ -968,14 +998,45 @@ class Registry:
                 raise ValueError("Session already current")
             if self.live_session(previous):
                 raise ValueError("Previous combat owner lease still live")
+            recover_pending_turn = False
             if shared.settlement_ready:
                 packets = shared.settlement_batches.get(session.account_id)
                 if packets is None:
                     raise ValueError("Settled owner packets are unavailable")
                 packets = self._packets(packets)
             else:
+                candidate = candidate_runtime = candidate_ack = None
+                recover_pending_turn = bool(
+                    recover_disconnected
+                    and not shared.connected
+                    and shared.fight.phase == "active"
+                    and shared.runtime is not None
+                    and getattr(shared.runtime, "awaiting_ack", None) is not None
+                )
+                bootstrap_shared = shared
+                if recover_pending_turn:
+                    # Stage recovery on private copies. The durable lease fence
+                    # can fail, so neither the live FSM nor its ACK barrier may
+                    # be touched before persistence succeeds.
+                    candidate, candidate_runtime = deepcopy(
+                        (shared.fight, shared.runtime)
+                    )
+                    candidate_ack = deepcopy(shared.ack)
+                    candidate_ack.cancel_for_recovery()
+                    candidate_view = copy(shared)
+                    candidate_view.fight = candidate
+                    candidate_view.runtime = candidate_runtime
+                    candidate_view.ack = candidate_ack
+                    candidate_view.reconnect_turn_end_packets = None
+                    candidate_view.reconnect_remaining_turn_seconds = None
+                    bootstrap_shared = candidate_view
+                    candidate_runtime.recover(
+                        session.account_id,
+                        struct.pack(">i", candidate.id),
+                        now_ms=int(time.time() * 1000),
+                    )
                 packets = self._packets(
-                    bootstrap_packets(shared.fight, shared, session)
+                    bootstrap_packets(bootstrap_shared.fight, bootstrap_shared, session)
                 )
             if (
                 shared.ack is not None
@@ -985,6 +1046,14 @@ class Registry:
                 raise ValueError("Combat ACK owner differs from takeover lease")
             if persist_takeover is not None:
                 persist_takeover(previous)
+            if recover_pending_turn:
+                shared.fight, shared.runtime, shared.ack = (
+                    candidate,
+                    candidate_runtime,
+                    candidate_ack,
+                )
+                shared.reconnect_turn_end_packets = None
+                shared.reconnect_remaining_turn_seconds = None
             shared.participants[session.account_id] = session
             if recover_disconnected:
                 remaining = getattr(shared, "reconnect_remaining_turn_seconds", None)
@@ -1358,8 +1427,8 @@ class Registry:
                 for current in shared.fight.actors.values()
                 if current.controlled and current.team != actor.team
             ]
-            if len(opponents) != 1:
-                raise ValueError("Duel disconnect does not match the two-owner roster")
+            if not opponents or len({other.team for other in opponents}) != 1:
+                raise ValueError("Duel disconnect has no single opposing team")
             shared.fight.phase = "finished"
             shared.fight.winner = opponents[0].team
             shared.fight._event(

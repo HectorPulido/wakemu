@@ -30,8 +30,8 @@ def movement_blocking_area(row):
         if type(value) is not bool:
             raise ValueError("Missing native Qq.bcP constructor authority")
         return value
-    if contract in ("faZ", "faY", "faN", "faX", "faU", "fbc", "faP"):
-        # First six inherit Qq.bcP=false. Registered faP is independently
+    if contract in ("faZ", "faY", "faN", "faX", "faU", "fbc", "faP", "fbb"):
+        # Plain subtypes inherit Qq.bcP=false. Registered faP is independently
         # validated by _rows as the audited nonblocking border constructor.
         return False
     raise ValueError("Unknown native Qq.bcP contract")

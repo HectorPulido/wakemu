@@ -89,8 +89,10 @@ class CombatSessionAdapter:
         from psycopg.pq import TransactionStatus
 
         sessions = tuple(sessions)
-        if len(sessions) != 2:
-            raise ValueError("A duel requires two live sessions")
+        if not sessions or len({session.account_id for session in sessions}) != len(
+            sessions
+        ):
+            raise ValueError("Duel transport sessions must be unique and live")
         if db is not None and db.info.transaction_status != TransactionStatus.INTRANS:
             raise ValueError(
                 "Duel registration requires the active acceptance transaction"
@@ -110,19 +112,21 @@ class CombatSessionAdapter:
                     (fight.id,),
                 )
             )
+        owners = {session.account_id: session for session in sessions}
         expected = {
-            (session.account_id, session.character_id, session.generation)
-            for session in sessions
+            (actor.owner_id, actor.id, owners[actor.owner_id].generation)
+            for actor in fight.actors.values()
+            if actor.controlled and actor.owner_id in owners
         }
         actual = {
             (row["account_id"], row["character_id"], row["session_generation"])
             for row in rows
         }
         if (
-            len(rows) != 2
+            len(rows) != len(expected)
             or actual != expected
             or any(
-                row["selected_character_id"] != row["character_id"]
+                row["selected_character_id"] != owners[row["account_id"]].character_id
                 or row["expires_at"] <= self.store.now()
                 for row in rows
             )

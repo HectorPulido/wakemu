@@ -30,15 +30,55 @@ def mirror_cast_facing(caster, plan, *, fight=None, contracts=None):
         return False
     target = plan["target"]
     # aiL computes Java signed-int deltas before aBA.bXz.
-    delta = tuple(
-        ((int(target[i]) - caster.position[i] + (1 << 31)) % (1 << 32)) - (1 << 31)
-        for i in range(2)
-    )
+    delta = _java_xy_delta(caster.position, target)
     direction = cast_direction(*delta, diagonals=record["useDiags"])
     if direction is None:
         return False  # aiL ignores the native NONE result.
     if fight is None or fight.actors.get(caster.id) is not caster:
         raise ValueError("Casting facing requires the actual registered preview actor")
+    from .combat_carrying import set_registered_direction
+
+    set_registered_direction(fight, caster, direction)
+    return True
+
+
+def _java_xy_delta(position, target):
+    """aiL subtracts signed Java ints before choosing a facing sector."""
+    return tuple(
+        ((int(target[i]) - int(position[i]) + (1 << 31)) % (1 << 32)) - (1 << 31)
+        for i in range(2)
+    )
+
+
+def finish_mirrored_cast_facing(
+    caster,
+    plan,
+    *,
+    fight,
+    contracts=None,
+):
+    """Persist 1040's delayed cardinal look-at before actor refresh serialization.
+
+    The common Lua template first turns diagonally for cast presentation, then
+    schedules an unconditional cardinal look-at after the caster animation.
+    """
+    record = (native_cast_facing() if contracts is None else contracts).get(
+        str(plan["spell_id"])
+    )
+    if (
+        record is None
+        or record.get("status") != "verified"
+        or record.get("template") != 1040
+        or not record.get("useDiags", False)
+        or record.get("casterAnimOnTarget", False)
+    ):
+        return False
+    if fight is None or fight.actors.get(caster.id) is not caster:
+        raise ValueError("Casting finish facing requires the registered preview actor")
+    dx, dy = _java_xy_delta(caster.position, plan["target"])
+    direction = cast_direction(dx, dy, diagonals=False)
+    if direction is None:
+        return False  # aiL ignores the native NONE result for same-cell look-at.
     from .combat_carrying import set_registered_direction
 
     set_registered_direction(fight, caster, direction)

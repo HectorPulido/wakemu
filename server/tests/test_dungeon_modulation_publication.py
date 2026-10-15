@@ -28,17 +28,57 @@ class DungeonModulationPublicationTests(unittest.TestCase):
         ) as sheets, patch.object(
             publication.hero_wire, "refresh", return_value=(13046, b"fresh-public")
         ) as appearance, patch(
+            "wakfu_server.builds.aptitude_registry", return_value=b"fresh-aptitudes"
+        ) as aptitudes, patch(
+            "wakfu_server.builds.build_set", return_value=b"fresh-build-set"
+        ) as build_set, patch(
             "wakfu_server.combat_lifecycle.outside_progression",
             return_value=(12436, b"fresh-health"),
         ):
             result = publication.packets(self.character, self.fixture)
         self.assertEqual(
-            [opcode for opcode, _ in result], [12666, 12393, 13811, 13046, 12436]
+            [opcode for opcode, _ in result],
+            [12393, 12103, 12996, 13811, 13046, 12436],
         )
-        self.assertEqual(result[2][1], struct.pack(">qb", 7, 127))
-        owned.assert_called_once_with(12666, self.original, 9, self.character)
+        self.assertEqual(
+            result[1][1],
+            struct.pack(">qI", 7, len(b"fresh-aptitudes")) + b"fresh-aptitudes",
+        )
+        self.assertEqual(
+            result[2][1],
+            struct.pack(">qI", 7, len(b"fresh-build-set")) + b"fresh-build-set",
+        )
+        self.assertEqual(result[3][1], struct.pack(">qb", 7, 127))
+        owned.assert_not_called()
         sheets.assert_called_once_with(b"sheets", (self.character,))
+        aptitudes.assert_called_once_with(self.character)
+        build_set.assert_called_once_with(self.character, b"")
         appearance.assert_called_once_with(self.template, self.character)
+
+    def test_main_modulation_refreshes_existing_identity_without_full_bootstrap(self):
+        self.character["dungeon_modulation"] = {"effective_level": 50}
+        with patch.object(
+            publication.wire,
+            "adapt",
+            side_effect=AssertionError("12666 replaces actor"),
+        ), patch.object(
+            publication.wire, "attribute_sheets", return_value=b"equipment"
+        ), patch.object(
+            publication.hero_wire, "refresh", return_value=(13046, b"appearance")
+        ), patch(
+            "wakfu_server.builds.aptitude_registry", return_value=b"aptitudes"
+        ), patch(
+            "wakfu_server.builds.build_set", return_value=b"builds"
+        ), patch(
+            "wakfu_server.combat_lifecycle.outside_progression",
+            return_value=(12436, b"health"),
+        ):
+            packets = publication.packets(self.character, self.fixture)
+        self.assertNotIn(12666, [opcode for opcode, _ in packets])
+        self.assertEqual(
+            [opcode for opcode, _ in packets],
+            [12393, 12103, 12996, 13811, 13046, 12436],
+        )
 
     def test_restored_owned_selection_uses_identical_publication_path(self):
         self.character.update(active_build_index=0, builds={}, dungeon_modulation=None)
@@ -53,7 +93,7 @@ class DungeonModulationPublicationTests(unittest.TestCase):
             return_value=(12436, b"hp"),
         ):
             result = publication.packets(self.character, self.fixture)
-        self.assertEqual(result[2][1], struct.pack(">qb", 7, 0))
+        self.assertEqual(result[3][1], struct.pack(">qb", 7, 0))
 
     def test_foreign_roster_and_missing_selected_build_fail_before_encoding(self):
         with patch.object(publication.wire, "adapt") as encode:

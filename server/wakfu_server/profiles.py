@@ -11,7 +11,7 @@ def profile_root(name=None):
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,40}", name):
         raise ValueError("Invalid local profile name")
     return (
-        ROOT / ".runtime/local"
+        ROOT / ".local-state/wakemu/world"
         if name == "main"
-        else ROOT / ".runtime/local/instances" / name
+        else ROOT / ".local-state/wakemu/instances" / name
     )

@@ -302,6 +302,7 @@ class Fight:
             self.ready_owners.discard(owner_id)
         event = self._event("ready", owner_id=owner_id, ready=bool(ready))
         if owners <= self.ready_owners:
+            # Native property114 actors remain in QI/the roster, without turns.
             self.order = initial_order(
                 self.id,
                 [
@@ -312,6 +313,7 @@ class Fight:
                         effective_level=a.effective_level,
                     )
                     for a in self.actors.values()
+                    if 114 not in getattr(a, "native_fight_properties", ())
                 ],
             )
             from .combat_timeline_snapshot import initialize
@@ -437,15 +439,25 @@ class Fight:
         actor_id = actor.id
         origin = actor.position
         cost = 0
-        occupied = {
-            a.position for a in self.actors.values() if a.id != actor_id and a.hp > 0
-        }
+        from .combat_qi_movement import movement_blocked_cells
+
+        qi_blocked = movement_blocked_cells(self, actor, path)
+        occupied = (
+            None
+            if qi_blocked is not None
+            else {
+                a.position
+                for a in self.actors.values()
+                if a.id != actor_id and a.hp > 0
+            }
+        )
         for target in path:
             step = abs(target[0] - origin[0]) + abs(target[1] - origin[1])
             if (
                 len(target) != 3
                 or target not in self.walkable
-                or target in occupied
+                or (occupied is not None and target in occupied)
+                or (qi_blocked is not None and target in qi_blocked)
                 or step != 1
             ):
                 raise ValueError("Invalid combat movement path")

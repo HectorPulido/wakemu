@@ -103,6 +103,7 @@ class ConditionActor:
         None  # Native eHh PLAYER_CHARACTER or COMPANION, not team.
     )
     is_character: bool | None = None  # eHg.a(eHh.CHARACTER), includes NPCs.
+    is_out_of_play: bool | None = None  # eGj.baK, actual OUT_OF_PLAY roster.
     is_off_play: bool | None = None  # eHg.baG; distinct from KO/dead/inPlay roster.
     is_native_ehg: bool | None = None  # Registered faV is eHg, plain Qq need not be.
     is_in_play: bool | None = None  # Actual eHg.baF, not positive HP.
@@ -248,7 +249,9 @@ class ConditionContext:
     )
     dungeon_difficulty_query: object = None  # eJV current eGj.drG optional GN.
     random_number_query: object = None  # eLb transaction-owned uniform index.
+    fighters_world_property_range_query: object = None
     fighters_breed_range_query: object = None  # eKt/eKn complete fUQ breed roster.
+    fighters_min_level_query: object = None  # eKs filters shared with eKr.
     fighters_max_level_query: object = None  # eKr native type/in-play/114 filters.
     player_max_level_query: object = None  # eKW global eEL.pab configuration.
     human_allies_range_query: object = None  # eKz exact aGJ 0/5 filter.
@@ -265,6 +268,7 @@ class ConditionContext:
     own_team_state_range_query: object = None  # eKS filters state caster affiliation.
     state_max_level_query: object = None  # eLt FIRST-PV-level maximum over fUQ/Qs.
     state_range_query: object = None  # eLr complete actor + Qq carrier population.
+    equipment_type_query: object = None  # eMm selected equipment type ancestry.
     item_quantity_query: object = None  # eKE current source actor inventory.
     null_actor_aliases: frozenset[str] = frozenset()  # Proven selected eHg null.
     state_null_fallback_absent: bool | None = None  # Qe context is not ePy.
@@ -318,7 +322,9 @@ def _condition_root(criteria):
         return error.root
 
 
-def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
+def evaluate_condition(
+    criteria: str, context: ConditionContext, *, validate_only: bool = False
+) -> bool:
     """Evaluate the proven subset; raise UnknownCondition for all other input.
 
     Validate every branch before evaluation, including short-circuited branches,
@@ -402,7 +408,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         ):
             raise UnknownCondition("Unsupported native numeric expression")
         name, args = node.func.id, node.args
-        if name == "IsPvp":
+        if name in ("IsPvp", "IsNeoServer"):
             return  # Original eOL constructor ignores parsed arguments.
         if name == "GetBooleanSystemConfiguration":
             if (
@@ -551,7 +557,10 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                             "Native random exclusions require integers"
                         )
             return
-        if name == "GetFightersWithBreedInRange":
+        if name in (
+            "GetFightersWithBreedInRange",
+            "GetFightersWithWorldPropertyInRange",
+        ):
             if (
                 len(args) != 3
                 or not isinstance(args[1], ast.Constant)
@@ -688,6 +697,16 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             and not args
         ):
             return
+        if name == "GetFighterId":
+            if (
+                len(args) != 1
+                or not isinstance(args[0], ast.Constant)
+                or type(args[0].value) is not str
+            ):
+                raise UnknownCondition(
+                    "GetFighterId requires one native string selector"
+                )
+            return
         if name == "GetPhysicalRadius":
             if len(args) != 1 or not is_selector(args[0]):
                 raise UnknownCondition(
@@ -748,7 +767,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             ):
                 raise UnknownCondition("Unsupported GetRealLevel selector")
             return
-        if name == "GetFightersMaxLevel":
+        if name in ("GetFightersMaxLevel", "GetFightersMinLevel"):
             if (
                 len(args) > 2
                 or (
@@ -902,14 +921,18 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 else result
             )
         name, args = node.func.id, node.args
-        if name in ("IsPvp", "GetBooleanSystemConfiguration"):
+        if name in ("IsPvp", "IsNeoServer", "GetBooleanSystemConfiguration"):
             from .combat_system_conditions import evaluate_system_predicate
 
             try:
                 value = evaluate_system_predicate(
                     context,
-                    name,
-                    args[0].value if name == "GetBooleanSystemConfiguration" else None,
+                    "GetBooleanSystemConfiguration" if name == "IsNeoServer" else name,
+                    "server.group.isneo"
+                    if name == "IsNeoServer"
+                    else args[0].value
+                    if name == "GetBooleanSystemConfiguration"
+                    else None,
                 )
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
@@ -975,6 +998,13 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 return result
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
+        if name == "GetFighterId":
+            actor = context.actors.get(args[0].value.lower())
+            if actor is None or actor.is_native_ehg is False:
+                return -1  # eKl: eII.a null result.
+            if type(actor.actor_id) is not int:
+                raise UnknownCondition("Missing native fighter identity")
+            return actor.actor_id
         if name == "GetCurrentFighterId":
             value = context.current_fighter_id
             if type(value) is not int or not -(1 << 63) <= value < (1 << 63):
@@ -1123,8 +1153,16 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 )
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
-        if name == "GetFightersWithBreedInRange":
-            if not callable(context.fighters_breed_range_query):
+        if name in (
+            "GetFightersWithBreedInRange",
+            "GetFightersWithWorldPropertyInRange",
+        ):
+            query = (
+                context.fighters_breed_range_query
+                if name == "GetFightersWithBreedInRange"
+                else context.fighters_world_property_range_query
+            )
+            if not callable(query):
                 raise UnknownCondition("Missing complete native breed range authority")
             maximum, breed = number(args[0]), number(args[2])
             if type(maximum) is not int or type(breed) is not int:
@@ -1132,7 +1170,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "Native breed range requires evaluated long values"
                 )
             try:
-                return context.fighters_breed_range_query(maximum, args[1].value, breed)
+                return query(maximum, args[1].value, breed)
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
         if name == "GetAlliesCount":
@@ -1473,10 +1511,12 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if type(value) is not int or not -32768 <= value <= 32767:
                 raise UnknownCondition("Invalid native current eZR.fRR short")
             return value
-        if name in ("GetFightersMaxLevel", "GetPlayerMaxLevel"):
+        if name in ("GetFightersMaxLevel", "GetFightersMinLevel", "GetPlayerMaxLevel"):
             query = (
                 context.fighters_max_level_query
                 if name == "GetFightersMaxLevel"
+                else context.fighters_min_level_query
+                if name == "GetFightersMinLevel"
                 else context.player_max_level_query
             )
             if not callable(query):
@@ -1489,7 +1529,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                         args[0].value if args else "player",
                         args[1].value if len(args) == 2 else True,
                     )
-                    if name == "GetFightersMaxLevel"
+                    if name in ("GetFightersMaxLevel", "GetFightersMinLevel")
                     else query()
                 )
             except ValueError as error:
@@ -1671,7 +1711,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if name == "IsSpecific":
                 name = "IsSpecificArea"  # eQb lexical aliases share one token.
             args = node.args
-            if name in ("IsPvp", "GetBooleanSystemConfiguration"):
+            if name in ("IsPvp", "IsNeoServer", "GetBooleanSystemConfiguration"):
                 check_number(node)
                 return
             if name in ("IsActivatedByElement", "IsActivatedBySpell"):
@@ -1739,12 +1779,14 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "IsOnBorderCell",
                     "HasLineOfSight",
                     "IsOffPlay",
+                    "IsOutOfPlay",
                     "IsDead",
                     "IsAbandonning",
                     "IsFleeing",
                     "IsInPlay",
                     "IsEnemy",
                     "IsEnnemy",
+                    "HasEquipmentType",
                     "HasFightProperty",
                     "HasWorldProperty",
                     "IsOwnSummon",
@@ -1760,12 +1802,14 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     "IsHero",
                     "AIHasCastSpell",
                     "IsChallenger",
+                    "IsCompanion",
                     "IsObstacle",
                     "IsOnEffectAreaType",
                     "CellContainsEffectAreaType",
                     "CellContainsSpecificEffectArea",
                     "IsOwnSpecificArea",
                     "IsAreaType",
+                    "HasEffectAreaProperty",
                     "IsSpecificArea",
                     "IsOwnDeposit",
                     "IsOwnArea",
@@ -1900,7 +1944,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     )
                 check_number(args[0])
                 return
-            if name in ("IsAreaType", "IsSpecificArea"):
+            if name in ("IsAreaType", "IsSpecificArea", "HasEffectAreaProperty"):
                 if len(args) != 1:
                     raise UnknownCondition("Native area identity requires one long")
                 check_number(args[0])
@@ -1954,6 +1998,16 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                         "IsPlayer requires zero or one native string selector"
                     )
                 return
+            if name == "IsCompanion":
+                if (
+                    len(args) != 1
+                    or not isinstance(args[0], ast.Constant)
+                    or type(args[0].value) is not str
+                ):
+                    raise UnknownCondition(
+                        "IsCompanion requires one native string selector"
+                    )
+                return
             if name == "IsChallenger":
                 # eNC preserves its string and calls eII.a, including actual
                 # triggering actors/controller; eNZ/eND use another selector.
@@ -1987,7 +2041,8 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if name == "HasEffectWithSpecificId":
                 if (
                     len(args) != 2
-                    or not is_selector(args[0])
+                    or not isinstance(args[0], ast.Constant)
+                    or type(args[0].value) is not str
                     or not isinstance(args[1], ast.Constant)
                     or type(args[1].value) is not int
                 ):
@@ -2035,6 +2090,22 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                     raise UnknownCondition("Unsupported native IsOwnSummon arguments")
                 return
             args = node.args
+            if name == "HasEquipmentType":
+                if not args:
+                    raise UnknownCondition("HasEquipmentType requires numeric types")
+                numeric = 0
+                for arg in args:
+                    if isinstance(arg, ast.Constant) and type(arg.value) is str:
+                        if arg.value.lower() not in ("target", "inventory"):
+                            raise UnknownCondition(
+                                "Unsupported native equipment slot selector"
+                            )
+                    else:
+                        check_number(arg)
+                        numeric += 1
+                if not numeric:
+                    raise UnknownCondition("HasEquipmentType requires numeric types")
+                return
             if name == "HasFightProperty":
                 if not (
                     len(args) == 1
@@ -2055,6 +2126,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 return
             if name in (
                 "IsOffPlay",
+                "IsOutOfPlay",
                 "IsDead",
                 "IsInPlay",
                 "IsAbandonning",
@@ -2263,7 +2335,8 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         if (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)
-            and node.func.id in ("IsPvp", "GetBooleanSystemConfiguration")
+            and node.func.id
+            in ("IsPvp", "IsNeoServer", "GetBooleanSystemConfiguration")
         ):
             return number(node) == 0
         if isinstance(node, ast.IfExp):
@@ -2566,6 +2639,18 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             if type(actor.is_player) is not bool:
                 raise UnknownCondition("Missing native PLAYER kind")
             return actor.is_player
+        if name == "IsCompanion":
+            actor = context.actors.get(node.args[0].value.lower())
+            if actor is None or actor.is_native_ehg is False:
+                return False
+            # eNG/eHh: companions and player characters are disjoint;
+            # eNC's existing authority is exactly their union.
+            if (
+                type(actor.is_challenger) is not bool
+                or type(actor.is_player) is not bool
+            ):
+                raise UnknownCondition("Missing native companion kind authority")
+            return actor.is_challenger and not actor.is_player
         if name == "IsChallenger":
             # eNC defaults to target, unlike IsCharacter's caster default.
             from .combat_challenger_predicate import native_challenger
@@ -2610,7 +2695,8 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 )
             return identity in actor.retained_action_ids
         if name == "HasEffectWithSpecificId":
-            selector = node.args[0].value.lower()
+            # eMj stores only equalsIgnoreCase("target"), then eII.b.
+            selector = "target" if node.args[0].value.lower() == "target" else "caster"
             actor = context.actors.get(selector)
             if actor is None:
                 if selector == "target" and context.effect_target_absent is True:
@@ -2819,7 +2905,13 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 )
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
-        if name in ("IsAreaType", "IsSpecificArea", "IsOwnDeposit", "IsOwnArea"):
+        if name in (
+            "IsAreaType",
+            "IsSpecificArea",
+            "IsOwnDeposit",
+            "IsOwnArea",
+            "HasEffectAreaProperty",
+        ):
             if not callable(context.area_identity_query):
                 raise UnknownCondition("Missing native area identity target authority")
             value = (
@@ -2916,6 +3008,28 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 )
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
+        if name == "HasEquipmentType":
+            if not callable(context.equipment_type_query):
+                raise UnknownCondition("Missing native equipment type authority")
+            flags = {
+                arg.value.lower()
+                for arg in node.args
+                if isinstance(arg, ast.Constant) and type(arg.value) is str
+            }
+            values = tuple(
+                number(arg)
+                for arg in node.args
+                if not (isinstance(arg, ast.Constant) and type(arg.value) is str)
+            )
+            try:
+                result = context.equipment_type_query(
+                    values, "target" in flags, "inventory" in flags
+                )
+                if type(result) is not bool:
+                    raise ValueError("Invalid native equipment type result")
+                return result
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
         if name == "HasFightProperty":
             selector = node.args[0].value.lower() if len(node.args) == 2 else "caster"
             identity = (node.args[-1].value + 128) % 256 - 128
@@ -2986,7 +3100,7 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
                 else "caster"
             )
             return life_predicate(context, name, selector)
-        if name == "IsOffPlay":
+        if name in ("IsOffPlay", "IsOutOfPlay"):
             selector = (
                 "target"
                 if node.args and node.args[0].value.lower() == "target"
@@ -2995,9 +3109,10 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
             actor = context.actors.get(selector)
             if actor is None:
                 return False
-            if type(actor.is_off_play) is not bool:
-                raise UnknownCondition("Missing native baG offplay authority")
-            return actor.is_off_play
+            value = actor.is_out_of_play if name == "IsOutOfPlay" else actor.is_off_play
+            if type(value) is not bool:
+                raise UnknownCondition("Missing native life roster authority: " + name)
+            return value
 
         if name == "HasLineOfSight":
             if not callable(context.line_of_sight_query):
@@ -3187,4 +3302,4 @@ def evaluate_condition(criteria: str, context: ConditionContext) -> bool:
         )
 
     check(root)
-    return bool(run(root))
+    return True if validate_only else bool(run(root))

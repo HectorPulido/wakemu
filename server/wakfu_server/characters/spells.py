@@ -9,15 +9,29 @@ from protocol_codec import Reader
 
 _DATA = protocol_catalog.load(DATA_ROOT / "spells.json")
 SPELLS = {r["id"]: r for r in _DATA["spells"]}
+_PINNED_SPELLS = SPELLS
 # Client fzc: six initial active slots; remaining slots and passive slots unlock
 # at these exact levels. Spell unlock levels come separately from bdata 66.
 ACTIVE_SLOT_LEVELS = (0, 0, 0, 0, 0, 0, 10, 20, 30, 40, 60, 80)
 PASSIVE_SLOT_LEVELS = (10, 30, 50, 100, 150, 200)
 
 
+@lru_cache(maxsize=64)
+def _breed_spell_records(breed):
+    """Keep ordered references into the process-pinned immutable catalog."""
+    return tuple(
+        r
+        for r in _PINNED_SPELLS.values()
+        if r["breed"] == breed or (r["breed"] == -2 and r["kind"] == "passive")
+    )
+
+
 def available_spells(breed, level):
     if type(breed) is not int or type(level) is not int or level < 1:
         raise ValueError("Invalid spell owner breed or level")
+    if SPELLS is _PINNED_SPELLS:
+        return [r for r in _breed_spell_records(breed) if r["unlock_level"] <= level]
+    # Explicit replacement catalogs must never reuse the pinned catalog index.
     return [
         r
         for r in SPELLS.values()

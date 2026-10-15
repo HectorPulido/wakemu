@@ -203,6 +203,151 @@ class SequentialAreaMovementTests(unittest.TestCase):
         retained = native_retained_condition_effects(fight, actor.id)
         self.assertIn(152028, {row[0] for row in retained})
 
+    def test_native_npc_crossing_two_ref48_cells_applies_loss_once(self):
+        """The real NPC oracle replays entry and repeat callbacks per cell."""
+        from collections import deque
+        from pathlib import Path
+        import sys
+
+        ai_root = str(Path(__file__).resolve().parents[1] / "ai-service")
+        ai_tests = str(Path(ai_root) / "tests")
+        for import_path in (ai_root, ai_tests):
+            if import_path not in sys.path:
+                sys.path.insert(0, import_path)
+
+        from test_native_oracle import NativeOracleTests
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_effect_area import native_effect_areas
+        from wakfu_server.combat_effect_area_catalog import area_effect_catalog
+
+        fixture = NativeOracleTests.wonejo_fixture(
+            compact=True,
+            terrain_effect_id=48,
+            map_id=312,
+            player_position=(10, -4, 0),
+            monster_position=(10, -5, 0),
+            monster_ref=2616,
+            monster_level=4,
+        )
+        fight, actor = fixture.fight, fixture.npc
+        area_definition = native_effect_areas()["48"]
+        self.assertEqual(area_definition["entry_masks"], [10001, 10008, 10000])
+        self.assertEqual(area_definition["effect_ids"], [177618])
+        native_effects = area_effect_catalog()["effects"]
+        self.assertEqual(native_effects["177618"]["children"], [177619, 177620])
+        self.assertEqual(
+            native_effects["177618"]["criteria"],
+            'not HasEffectWithSpecificId("target", 177620)',
+        )
+        self.assertEqual(native_effects["177619"]["effect_class"], 55)
+        self.assertEqual(native_effects["177619"]["parameters"][0], 4.0)
+        border_cells = fight.native_border_constructor["arena"]["native_border_cells"]
+        self.assertTrue(border_cells)
+        border = {tuple(cell) for cell in border_cells}
+
+        # Find one paid route that enters two adjacent border cells. Keep the
+        # test tied to this encounter's selected terrain and directed edges.
+        occupied = {
+            other.position
+            for other in fight.actors.values()
+            if other.id != actor.id and other.hp > 0
+        }
+        pending = deque([(actor.position, ())])
+        visited = {actor.position}
+        path = None
+        while pending:
+            cell, route = pending.popleft()
+            if len(route) >= 2 and route[-1] in border and route[-2] in border:
+                path = route
+                break
+            if len(route) >= actor.mp:
+                continue
+            for _, destination in sorted(
+                edge for edge in fight.edges if edge[0] == cell
+            ):
+                if destination in occupied or destination in visited:
+                    continue
+                visited.add(destination)
+                pending.append((destination, route + (destination,)))
+        self.assertIsNotNone(path, "no two-cell border route fits the NPC MP")
+        before_border_pair = actor.position if len(path) == 2 else path[-3]
+        self.assertNotIn(before_border_pair, border)
+
+        # Make this NPC the active server-controlled actor so the exercised
+        # path is NativeOracle.preview's production AI movement branch.
+        fight.order = [actor.id, fixture.pc.id]
+        fight.turn_index = 0
+        runtime = RuntimeMessages(fight)
+        deck = __import__(
+            "wakfu_server.spells", fromlist=["default_deck"]
+        ).default_deck(fixture.character)
+        oracle = NativeOracleTests.oracle_for(
+            runtime,
+            fixture.character,
+            fixture.monster,
+            deck,
+            flags={"native_area_callbacks": True, "native_start_events": False},
+        )
+        private, _, _ = oracle.preview(
+            runtime,
+            {"type": "move", "path": [list(cell) for cell in path]},
+            forecast=False,
+        )
+
+        moved = private.fight.actors[actor.id]
+        self.assertEqual(moved.position, path[-1])
+        # Native ref48 requests four AP; eVZ applies half before the target's
+        # live willpower modifier and stochastic rounding. The area has no
+        # fighter caster, so its caster willpower is zero.
+        from wakfu_server.combat_parameters import _float32
+
+        target_willpower = actor.effect_stats[86]
+        expected_raw_loss = _float32(
+            _float32(4 * 0.5) * _float32(1 - _float32(target_willpower / 100))
+        )
+        self.assertEqual(actor.ap, 6)
+        self.assertEqual(target_willpower, 0)
+        self.assertEqual(expected_raw_loss, 2.0)
+        actual_loss = actor.ap - moved.ap
+        self.assertGreater(actual_loss, 0)
+        self.assertEqual((actor.ap, moved.ap, actual_loss), (6, 4, 2))
+        border_area = next(
+            row
+            for row in private.fight.native_effect_areas.values()
+            if row.get("reference") == 48
+        )
+        border_footprint = {tuple(cell) for cell in border_area["native_cells_xy"]}
+        self.assertTrue(all(tuple(cell[:2]) in border_footprint for cell in path[-2:]))
+        from wakfu_server.combat_retained_runtime import (
+            native_retained_condition_effects,
+        )
+
+        retained = native_retained_condition_effects(private.fight, actor.id)
+        retained_ids = [row[0] for row in retained]
+        self.assertEqual(retained_ids.count(177620), 1)
+        self.assertEqual(border_area["remaining_activations"], -1)
+
+        # Separately exercise an actor already standing on the glyph when its
+        # native turn-start callback is delivered. The installed mask includes
+        # 10000, and this fresh clone has no retained once-marker from movement.
+        from wakfu_server.combat_qi_fight import move_registered_actor
+
+        standing = copy.deepcopy(fight)
+        standing_actor = standing.actors[actor.id]
+        move_registered_actor(standing, standing_actor, path[-1])
+        standing.order = [actor.id, fixture.pc.id]
+        standing.turn_index = 0
+        started, _ = oracle.start_boundary(
+            standing,
+            actor_id=actor.id,
+            action_id=runtime.action_id + 1,
+            forecast=True,
+        )
+        started_actor = started.actors[actor.id]
+        self.assertEqual((standing_actor.ap, started_actor.ap), (6, 4))
+        started_markers = native_retained_condition_effects(started, actor.id)
+        self.assertEqual([row[0] for row in started_markers].count(177620), 1)
+
     def test_callback_keeps_ordinary_route_cost_and_path(self):
         actor = Actor(7, 0, (0, 0, 0), 100, 6, 4, 20, 60, 3, True)
         enemy = Actor(8, 1, (4, 0, 0), 100, 6, 4, 10, 60)

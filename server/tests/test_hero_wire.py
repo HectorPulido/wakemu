@@ -227,8 +227,18 @@ class HeroWireTests(unittest.TestCase):
             and isinstance(node.func.value, ast.Name)
             and node.func.value.id == "hero_wire"
         ]
-        self.assertEqual(1, len(refresh))
-        self.assertEqual("OWNED_HERO_TEMPLATE", refresh[0].args[0].id)
+        self.assertTrue(refresh)
+        for call in refresh:
+            self.assertIsInstance(call.args[0], ast.Name)
+            self.assertEqual("OWNED_HERO_TEMPLATE", call.args[0].id)
+        # Selecting a hero must refresh that actor. Build saves may also
+        # refresh an equipped hero without being another selection path.
+        self.assertTrue(
+            any(
+                isinstance(call.args[1], ast.Name) and call.args[1].id == "character"
+                for call in refresh
+            )
+        )
         for owner in (join_world, publication):
             calls = [
                 node

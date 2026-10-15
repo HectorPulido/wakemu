@@ -26,7 +26,7 @@ def area_damage_has_no_resources(fight, identity):
         from .combat_fake_fighter import verified_fake_fighter
 
         constructor = verified_fake_fighter(row, definition)
-        if constructor["characteristic_ids"]:
+        if 1 in constructor["characteristic_ids"]:
             from .combat_fake_fighter_resources import fake_fighter_hp_state
 
             fake_fighter_hp_state(row, definition)

@@ -51,6 +51,39 @@ def _blob(field, data):
     return _varint(field << 3 | 2) + _varint(len(data)) + data
 
 
+class _UncacheableRetainedRecord(Exception):
+    pass
+
+
+@lru_cache(maxsize=2048)
+def _cached_retained_record(items, value_types):
+    # Only immutable, bounded metadata belongs here. The type tuple keeps
+    # malformed bool/int aliases distinct for the live view's strict checks.
+    for (key, value), value_type in zip(items, value_types):
+        if (
+            type(key) is not str
+            or len(key) > 64
+            or value_type not in (int, bool, str, type(None))
+            or (value_type is str and len(value) > 128)
+            or (value_type is int and value.bit_length() > 64)
+        ):
+            raise _UncacheableRetainedRecord
+    return RetainedEffect(**dict(items))
+
+
+def _retained_record(record):
+    """Reuse frozen metadata by content; never cache fight ownership or views."""
+    if type(record) is not dict or len(record) > 17:
+        return RetainedEffect(**record)
+    try:
+        return _cached_retained_record(
+            tuple(record.items()), tuple(map(type, record.values()))
+        )
+    except (_UncacheableRetainedRecord, TypeError):
+        # Preserve constructor behavior for unsupported/unhashable inputs.
+        return RetainedEffect(**record)
+
+
 def native_retained_condition_effects(fight, actor_id):
     """Read the complete tracked Qf population without storing runtime objects on Fight."""
     if (
@@ -76,7 +109,7 @@ def native_retained_condition_effects(fight, actor_id):
     view = NativeRetainedEffectView(
         fight,
         [
-            RetainedEffect(**fight.native_retained_records[uid])
+            _retained_record(fight.native_retained_records[uid])
             for uid in fight.native_retained_order
         ],
         population_verified_complete=True,
@@ -638,6 +671,8 @@ class NativeRetainedRuntime:
                         192,
                         196,
                         808,
+                        300,  # eXD owns retained push/pull payloads; removal does not reverse movement.
+                        301,
                         303,
                         308,
                         307,
@@ -1525,7 +1560,7 @@ class NativeRetainedRuntime:
         return NativeRetainedEffectView(
             self.fight,
             [
-                RetainedEffect(**self.fight.native_retained_records[uid])
+                _retained_record(self.fight.native_retained_records[uid])
                 for uid in self.fight.native_retained_order
             ],
             population_verified_complete=self.fight.native_retained_tracking,

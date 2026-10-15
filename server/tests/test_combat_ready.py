@@ -97,6 +97,79 @@ class ReadyTests(unittest.TestCase):
         self.assertIsNone(messages)
         self.assertEqual(packets, ())
 
+    def test_ready_serializes_same_owner_heroes_against_the_preview_fight(self):
+        from wakfu_server.combat_actor import actual_actor_stats
+
+        cells = {(0, 0, 0), (1, 0, 0), (2, 0, 0)}
+        fight = Fight(
+            19,
+            [
+                Actor(100, 0, (0, 0, 0), 60, 6, 3, 100, 1, 1, True),
+                Actor(101, 0, (1, 0, 0), 55, 6, 3, 90, 1, 1, True),
+                Actor(-200, 1, (2, 0, 0), 20, 4, 2, 10, 1),
+            ],
+            cells,
+            {0: {(0, 0, 0), (1, 0, 0)}, 1: {(2, 0, 0)}},
+        )
+        for actor in fight.actors.values():
+            actor.native_controlled_by_ai = False
+        characters = {
+            actor.id: {
+                "id": actor.id,
+                "account_id": 1,
+                "level": 1,
+                "breed": 8,
+                "hp": actor.hp,
+                "max_hp": actor.max_hp,
+                "x": actor.position[0],
+                "y": actor.position[1],
+                "z": actor.position[2],
+                "map_id": 527,
+            }
+            for actor in fight.actors.values()
+            if actor.controlled
+        }
+
+        def serialize(actor, state):
+            if not actor.controlled:
+                return b"npc"
+            return actual_actor_stats(
+                characters[actor.id],
+                actor,
+                state.id,
+                wp_current=0,
+                wp_maximum=0,
+                fight=state,
+            )
+
+        def legacy_serializer(actor):
+            if not actor.controlled:
+                return b"npc"
+            return actual_actor_stats(
+                characters[actor.id],
+                actor,
+                fight.id,
+                wp_current=0,
+                wp_maximum=0,
+                fight=fight,
+            )
+
+        candidate, messages, packets = prepare_ready(
+            fight,
+            1,
+            True,
+            initialize=lambda preview, action: (preview, ()),
+            stats_serializer=legacy_serializer,
+            runtime_stats_serializer=serialize,
+            effects_serializer=lambda: b"\0\0",
+        )
+
+        self.assertEqual(candidate.phase, "active")
+        self.assertEqual(set(candidate.order), {100, 101, -200})
+        self.assertEqual(fight.phase, "placement")
+        self.assertIs(messages.fight, candidate)
+        self.assertTrue(any(op == 13912 for op, _ in packets))
+
     def test_initial_creation_delivery_accounts_for_new_actor_without_empty_snapshot(
         self,
     ):

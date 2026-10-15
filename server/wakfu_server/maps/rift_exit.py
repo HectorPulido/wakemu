@@ -38,10 +38,24 @@ def _exit(
         store.lock_character(db, account_id, generation, character_id)
         character = store.character(account_id, character_id, db)
         run = rift_runtime._run(db, character["instance_id"])
+        from wakfu_server.characters.hero_instance_membership import rift_company
+
+        company = rift_company(db, account_id, character_id, run["instance_id"])
+        company_owned = (
+            db.execute(
+                "SELECT 1 FROM characters WHERE id=ANY(%s) AND account_id=%s LIMIT 1",
+                (run["members"], account_id),
+            ).fetchone()
+            is not None
+        )
         if (
             character_id not in run["members"]
-            or character["map_id"] != run["catalog"]["map_id"]
-        ):
+            and not (
+                run["status"] in ("won", "lost", "closed")
+                and company_owned
+                and character_id in company
+            )
+        ) or character["map_id"] != run["catalog"]["map_id"]:
             raise ValueError("Character is outside its owned rift")
         if run["status"] == "running" or fighting(character_id):
             raise ValueError("Cannot leave a running rift fight")
@@ -66,16 +80,7 @@ def _exit(
         ids = (
             run["members"]
             if run["status"] == "entered"
-            else [character_id]
-            + [
-                row["character_id"]
-                for row in db.execute(
-                    "SELECT h.character_id FROM account_hero_slots h JOIN account_hero_rosters r USING(account_id) "
-                    "WHERE h.account_id=%s AND r.leader_id=%s",
-                    (account_id, character_id),
-                ).fetchall()
-                if row["character_id"] in run["members"]
-            ]
+            else sorted(company | {character_id})
         )
         if run["status"] == "entered" and run["owner_character_id"] != character_id:
             raise ValueError("Only the owner may cancel an unstarted rift")

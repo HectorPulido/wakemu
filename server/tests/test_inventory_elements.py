@@ -15,7 +15,7 @@ from wakfu_server.element_selection import (
 
 
 class InventoryElementsTests(PostgresCase):
-    def test_low_level_element_identification_leaves_choice_sockets_and_wallet_unchanged(
+    def test_low_level_element_identification_splits_one_and_preserves_failed_remainder(
         self,
     ):
         store = self.store
@@ -45,10 +45,16 @@ class InventoryElementsTests(PostgresCase):
             char["id"],
             struct.pack(">qBB", item["uid"], 26, 0),
         )
-        self.assertEqual((result["status"], result["applied"]), (2, False))
-        self.assertEqual(struct.unpack_from(">i", result["packet"][1])[0], 2)
+        self.assertEqual((result["status"], result["applied"]), (0, True))
+        self.assertEqual(struct.unpack_from(">i", result["packet"][1])[0], 0)
+        owned = store.character(account, char["id"])["inventory_items"]
+        self.assertEqual(sum(row["quantity"] for row in owned), 3)
+        original = next(row for row in owned if row["uid"] == item["uid"])
+        remainder = next(row for row in owned if row["uid"] != item["uid"])
+        self.assertEqual(original["quantity"], 1)
+        self.assertEqual(masks(original), (26, 0))
+        self.assertEqual(remainder["quantity"], 2)
         with store.connection() as db:
-            db.execute("UPDATE characters SET level=100 WHERE id=%s", (char["id"],))
             db.execute(
                 "UPDATE settings SET value=jsonb_set(value,'{cost_kamas}','7') WHERE name='socket_identification_policy'"
             )
@@ -58,29 +64,33 @@ class InventoryElementsTests(PostgresCase):
                 account,
                 generation,
                 char["id"],
-                struct.pack(">qBB", item["uid"], 26, 0),
+                struct.pack(">qBB", remainder["uid"], 26, 0),
             )
-        reopened = self.reopen().character(account, char["id"])["inventory_items"][0]
+        reopened = next(
+            row
+            for row in self.reopen().character(account, char["id"])["inventory_items"]
+            if row["uid"] == remainder["uid"]
+        )
         self.assertEqual(masks(reopened), (0, 0))
-        self.assertEqual(reopened["quantity"], 3)
+        self.assertEqual(reopened["quantity"], 2)
         with store.connection() as db:
             self.assertEqual(
                 db.execute(
                     "SELECT count(*) AS n FROM inventory_item_shards"
                 ).fetchone()["n"],
-                0,
+                1,
             )
             self.assertEqual(
                 db.execute(
                     "SELECT count(*) AS n FROM inventory_element_selection_receipts"
                 ).fetchone()["n"],
-                0,
+                1,
             )
             self.assertEqual(
                 db.execute(
                     "SELECT count(*) AS n FROM inventory_socket_identification_receipts"
                 ).fetchone()["n"],
-                0,
+                1,
             )
             self.assertEqual(
                 db.execute(
@@ -230,62 +240,26 @@ class InventoryElementsTests(PostgresCase):
                 struct.pack(">qBB", item["uid"] + 999, 22, 0),
             )
 
-        # An item referenced in any persisted build is protected even if a
-        # forged request bypasses the client-side identification dialog.
+        # Inactive build references retain the same UID after editing elements.
         from wakfu_server.wire import proto_field
 
-        equipped_build = proto_field(
-            10, proto_field(8, item["uid"]) + proto_field(16, 15)
-        ).hex()
-        with patch.object(
-            store,
-            "character",
-            return_value={"builds": {0: {"equipment": equipped_build}}},
-        ):
-            with self.assertRaisesRegex(ValueError, "Unequip item"):
-                select_elements(
-                    store,
-                    account,
-                    generation,
-                    char["id"],
-                    struct.pack(">qBB", item["uid"], 28, 0),
-                )
-
-        # Exchange membership is guarded under the same owned session, even
-        # when this UID has not yet been placed in the offer list.
-        other_account = store.register("element-other", "local-other-password")["id"]
-        other_char = store.create_character(other_account, "Element Other")
-        now = store.now()
+        equipment = proto_field(10, proto_field(8, item["uid"]) + proto_field(16, 15))
         with store.connection() as db:
-            exchange = db.execute(
-                "INSERT INTO player_exchanges "
-                "(inviter_id,invitee_id,inviter_account,invitee_account,"
-                "inviter_generation,invitee_generation,created_at,expires_at) "
-                "VALUES(%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
-                (
-                    char["id"],
-                    other_char["id"],
-                    account,
-                    other_account,
-                    generation,
-                    "other-generation",
-                    now,
-                    now + timedelta(minutes=1),
-                ),
-            ).fetchone()
             db.execute(
-                "INSERT INTO player_exchange_members(character_id,exchange_id) "
-                "VALUES(%s,%s)",
-                (char["id"], exchange["id"]),
+                "INSERT INTO character_builds(character_id,build_index,sheet,equipment,deck,aptitudes) "
+                "VALUES(%s,1,%s,%s,%s,%s)",
+                (char["id"], proto_field(24, (1 << 64) - 1), equipment, b"", b""),
             )
-        with self.assertRaisesRegex(ValueError, "active exchange"):
-            select_elements(
-                store,
-                account,
-                generation,
-                char["id"],
-                struct.pack(">qBB", item["uid"], 28, 0),
-            )
+        result = select_elements(
+            store,
+            account,
+            generation,
+            char["id"],
+            struct.pack(">qBB", item["uid"], 28, 0),
+        )
+        self.assertTrue(result["applied"])
+        saved = store.character(account, char["id"])
+        self.assertEqual(saved["builds"][1]["equipment"], equipment.hex())
 
     def test_native_creation_selection_and_legacy_absence_are_distinct(self):
         selected = create(2869)

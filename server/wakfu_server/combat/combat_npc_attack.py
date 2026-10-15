@@ -243,8 +243,14 @@ def npc_spell_catalog():
     return protocol_catalog.load(DATA_ROOT / "native-npc-spell-effect-trees.json")
 
 
-@lru_cache(maxsize=2)
 def npc_runtime_catalog(*, imported=True):
+    # Default and explicit True calls must share one compiled object. Otherwise
+    # those aliases evict the baseline from a cache intended for two variants.
+    return _npc_runtime_catalog(imported)
+
+
+@lru_cache(maxsize=2)
+def _npc_runtime_catalog(imported):
     from .combat_server_spell import compiled_runtime_catalog
     from .combat_static_catalogs import CompiledEffects
     from .combat_effect_runtime import _merge_effects
@@ -262,3 +268,7 @@ def npc_runtime_catalog(*, imported=True):
         dungeon_scaling_catalog.merge(_merge_effects(base.source_effects, document)),
         base.source_states,
     )
+
+
+npc_runtime_catalog.cache_clear = _npc_runtime_catalog.cache_clear
+npc_runtime_catalog.cache_info = _npc_runtime_catalog.cache_info

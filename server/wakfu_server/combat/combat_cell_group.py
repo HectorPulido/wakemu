@@ -143,14 +143,27 @@ def native_cell_group_population(fight, effect, values, invocation):
 
 
 def select_cell_group(
-    values, cells, *, caster_position, condition, rng, criterion_present=True
+    values,
+    cells,
+    *,
+    caster_position,
+    condition,
+    rng,
+    criterion_present=True,
+    reuse_condition_actors=False,
 ):
     mode = cell_group_mode(values)
     cells = list(cells)
     if type(criterion_present) is not bool:
         raise ValueError("Missing actual native eYk fKT presence")
     if mode.filter_cells and criterion_present:
-        cells = [cell for cell in cells if condition(cell)]
+        from .combat_condition_selection_scope import condition_actor_selection_scope
+
+        # Native criterion callbacks only query state. End the scope before
+        # RNG and child execution, either of which can change fight state.
+        # Arbitrary callbacks suspend and invalidate any enclosing memo.
+        with condition_actor_selection_scope(enabled=reuse_condition_actors):
+            cells = [cell for cell in cells if condition(cell)]
     if not cells:
         return CellGroupSelection((), 0)
     if mode.shuffle:

@@ -1,5 +1,6 @@
 .DS_Store
 .runtime/
+/.local-state/
 __pycache__/
 .pytest_cache/
 *.pyc

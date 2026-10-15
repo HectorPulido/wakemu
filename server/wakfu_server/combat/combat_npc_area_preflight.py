@@ -55,7 +55,7 @@ def qualified_roots(fight, request, rule, effects):
             continue
         if "self" in policy["relations"]:
             return None
-        if mask in (9, 129, 257, (1 << 50) | 9):
+        if mask in (9, 25, 129, 257, (1 << 50) | 9):
             if policy["in_area"] is not True:
                 return None
             # Parse the real geometry, never turn an unknown area into a radius.
@@ -85,6 +85,102 @@ def qualified_roots(fight, request, rule, effects):
             return None
         result[reference] = effect
     return result
+
+
+def qualified_area_roots(fight, request, rule, effects):
+    """Recognize immediate zero-range roots selecting actual native Qq areas.
+
+    fcj's anchor fighter cannot satisfy an area-only selector. This NPC policy
+    asks the unchanged resolver for real registered area recipients instead.
+    It does not turn an empty cell or a fighter into an area.
+    """
+    caster = fight.actors.get(request.get("actor_id"))
+    if (
+        caster is None
+        or caster.controlled
+        or caster.hp <= 0
+        or getattr(caster, "native_summon_source", None) is not None
+        or getattr(caster, "is_summon", False)
+        or getattr(caster, "pve_withdrawn", False)
+        or tuple(request.get("target", ())) != tuple(caster.position)
+        or rule.get("minimum") != 0
+        or rule.get("maximum") != 0
+    ):
+        return None
+    roots = rule.get("roots")
+    if not isinstance(roots, (list, tuple)) or not roots:
+        return None
+    selected = {}
+    for reference in roots:
+        effect = effects.get(str(reference))
+        # Immediate area removal may accompany ordinary fighter roots.
+        # Keep its actual geometry and area selector; never substitute actors.
+        if isinstance(effect, dict) and effect.get("effect_class") == 1021:
+            from .combat_effect_targets import area_offsets
+
+            if (
+                effect.get("children")
+                or effect.get("native_target_selector") != {"class": "fcE", "mask": 65}
+                or effect.get("application_flag") != "NONE"
+                or effect.get("removal_flag") != "NONE"
+                or not isinstance(effect.get("target_masks"), (list, tuple))
+                or len(effect["target_masks"]) != 7
+                or any(effect["target_masks"])
+            ):
+                return None
+            offsets = area_offsets(
+                effect,
+                origin=caster.position,
+                reference=request["target"],
+                direction=caster.direction,
+            )
+            if not offsets:
+                return None
+            selected[reference] = effect
+            continue
+        if (
+            not isinstance(effect, dict)
+            or effect.get("effect_class") != 330
+            or effect.get("parameter_count") != 0
+            or not isinstance(effect.get("parameters"), (list, tuple))
+            or bool(effect["parameters"])
+            or not effect.get("children")
+            or effect.get("native_target_selector")
+            not in (
+                {"class": "fcE", "mask": 64},
+                {"class": "fcE", "mask": (1 << 51) | 64},
+            )
+            or effect.get("area_class") != "anD"
+            or effect.get("area_native") != "point"
+            or effect.get("application_flag") != "NONE"
+            or effect.get("removal_flag") != "NONE"
+            or not isinstance(effect.get("target_masks"), (list, tuple))
+            or len(effect["target_masks"]) != 7
+            or any(effect["target_masks"])
+        ):
+            return None
+        selected[reference] = effect
+    return selected
+
+
+def eligible_area_recipients(dispatcher, effect, invocation, fight):
+    from .combat_conditions import evaluate_condition
+    from .combat_state_managers import registered_area_pv
+
+    recipients = []
+    for selected in dispatcher.resolve(effect, invocation):
+        identity = selected.target_id
+        if identity in fight.actors or identity not in getattr(
+            fight, "native_effect_areas", {}
+        ):
+            continue
+        if registered_area_pv(fight, identity) is None:
+            continue
+        if evaluate_condition(
+            effect["criteria"], dispatcher.condition_context(selected)
+        ):
+            recipients.append(identity)
+    return tuple(recipients)
 
 
 def transfer_children(effect, effects):
@@ -193,9 +289,21 @@ def npc_cast_condition(adapter, fight, request, *, factory, enabled):
         if decision.get("result") != "twE" or decision.get("aligned") is not True:
             return decision
         effects = factory.effects
-        roots = qualified_roots(fight, request, rule, effects)
-        if roots is None:
+        roots = {}
+        area_references = set()
+        references = rule.get("roots")
+        if not isinstance(references, (tuple, list)) or not references:
             return decision
+        for reference in references:
+            root_rule = dict(rule, roots=(reference,))
+            qualified = qualified_roots(fight, request, root_rule, effects)
+            if qualified is None:
+                qualified = qualified_area_roots(fight, request, root_rule, effects)
+                if qualified is None:
+                    return decision
+                area_references.update(qualified)
+            roots.update(qualified)
+        area_only = bool(roots) and set(roots) == area_references
         from .combat_casting_context import (
             NativeOwnedCastingContext,
             cast_cell_condition,
@@ -221,7 +329,12 @@ def npc_cast_condition(adapter, fight, request, *, factory, enabled):
                 request["actor_id"],
                 tuple(request["target"]),
             )
-            recipients[reference] = eligible_recipients(
+            recipient_query = (
+                eligible_area_recipients
+                if reference in area_references
+                else eligible_recipients
+            )
+            recipients[reference] = recipient_query(
                 dispatcher, effect, invocation, preview
             )
         if not any(recipients.values()):
@@ -247,7 +360,13 @@ def npc_cast_condition(adapter, fight, request, *, factory, enabled):
         result = casting.eligibility(trace=trace)
         diagnostic = dict(decision.get("diagnostic") or {})
         diagnostic["wakemu_npc_area_policy"] = dict(
-            producer="wakemu-npc-direct-self-centered-recipients-v1",
+            producer=(
+                "wakemu-npc-zero-range-area-recipients-v1"
+                if area_only
+                else "wakemu-npc-mixed-area-fighter-recipients-v1"
+                if area_references
+                else "wakemu-npc-direct-self-centered-recipients-v1"
+            ),
             original_anchor_result=decision["result"],
             recipients=recipients,
             trace=trace,

@@ -1,4 +1,6 @@
+import struct
 import unittest
+from unittest.mock import patch
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_stat_handler import NativeStatHandler, StatExecutionContext
 from wakfu_server.combat_maximum_resource import NativeMaximumResourceHandler
@@ -93,6 +95,75 @@ class MaximumResourceTests(unittest.TestCase):
         self.assertEqual((preview.actors[7].mp, preview.actors[7].max_mp), (3, 3))
         self.assertEqual(self.actor.mp, 4)
         self.assertEqual([op for op, _ in packets], [13560])
+
+    def test_mp_gain_handler_snapshot_and_native_client_clamp_agree(self):
+        from wakfu_server.combat_actor_snapshot import _int32
+        from wakfu_server.combat_snapshot_wire import snapshot_characteristics
+        from wakfu_server.combat_wire import actor_state, decode_actor_state
+        from wakfu_server.combat_resource_pa_notifications import RAW_SOURCE
+
+        identities = (1, 2, 3, 4, 35)
+        definitions = {
+            "characteristics": {
+                str(identity): {"hard_minimum": 0, "hard_maximum": 100}
+                for identity in identities
+            }
+        }
+        copy_metadata = {
+            "fresh_characteristics": {
+                str(identity): {"over_max_current": False} for identity in identities
+            }
+        }
+        actor = self.actor
+        actor.effect_stats.update({1: actor.hp, 35: actor.initiative})
+        actor.effect_minima.update({1: 0, 35: 0})
+        actor.effect_maxima.update({1: actor.max_hp, 35: 100})
+        actor.effect_base_minima = dict(actor.effect_minima)
+        actor.effect_base_maxima.update({1: actor.max_hp, 35: 100})
+        actor.effect_percentages.update({1: 0, 35: 0})
+        actor.effect_resource_raw_currents = {2: actor.ap, 3: actor.mp}
+        actor.native_resource_raw_current_source = RAW_SOURCE
+
+        with patch(
+            "wakfu_server.combat.combat_maximum_resource.native_actor_catalog",
+            return_value=definitions,
+        ), patch(
+            "wakfu_server.combat.combat_actor_snapshot.native_actor_catalog",
+            return_value=definitions,
+        ), patch(
+            "wakfu_server.combat.combat_character_copy_metadata.native_copy_characteristics",
+            return_value=copy_metadata,
+        ), patch(
+            "wakfu_server.combat.combat_resource_pa_notifications.notify_resource_pa"
+        ):
+            self.apply(amount=2)
+            payload = snapshot_characteristics(actor)
+            envelope = decode_actor_state(
+                12873, actor_state(12873, self.fight.id, actor.id, payload)
+            )
+
+        blob = envelope["state"]
+        count = struct.unpack_from(">H", blob)[0]
+        rows = {
+            row[0]: row[1:]
+            for row in (
+                struct.unpack_from(">Biiii", blob, 2 + index * 17)
+                for index in range(count)
+            )
+        }
+        raw_current, raw_minimum, raw_maximum, percentage = rows[3]
+        percent_product = _int32(raw_maximum * percentage)
+        percent_adjustment = (
+            abs(percent_product) // 100 * (1 if percent_product >= 0 else -1)
+        )
+        effective_maximum = min(100, max(0, _int32(raw_maximum + percent_adjustment)))
+        effective_minimum = min(100, max(0, raw_minimum))
+
+        # Native fff.aYS clamps raw current against aYU()/aYW().
+        client_current = max(effective_minimum, min(effective_maximum, raw_current))
+        self.assertEqual((actor.mp, actor.max_mp), (5, 5))
+        self.assertEqual((raw_current, raw_maximum, percentage), (5, 5, 0))
+        self.assertEqual(client_current, actor.mp)
 
     def test_hp_maximum_removal_preserves_one_hp_when_delta_exceeds_current(self):
         actor = self.actor

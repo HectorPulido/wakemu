@@ -71,8 +71,10 @@ class CombatReturnLevelPublicationTests(unittest.TestCase):
         ), patch.object(
             hero_wire, "refresh", return_value=(13046, b"hero")
         ) as refresh_hero, patch.object(
-            hero_wire, "statistics", return_value=(15548, b"stats")
-        ):
+            hero_wire,
+            "statistics",
+            side_effect=[(13046, b"main stats"), (13046, b"hero stats")],
+        ) as statistics:
             packets = level_publication.combat_return(
                 main,
                 [main, hero, unused],
@@ -81,9 +83,37 @@ class CombatReturnLevelPublicationTests(unittest.TestCase):
                 roster_template=b"roster",
             )
         self.assertEqual(
-            packets, [(15548, b"main"), (13046, b"hero"), (15548, b"stats")]
+            packets,
+            [
+                (15548, b"main"),
+                (13046, b"main stats"),
+                (13046, b"hero"),
+                (13046, b"hero stats"),
+            ],
         )
         refresh_hero.assert_called_once_with(b"template", hero)
+        self.assertEqual(
+            [call.args[0] for call in statistics.call_args_list], [main, hero]
+        )
+
+    def test_selected_actor_limits_refresh_even_without_loaded_heroes(self):
+        from wakfu_server.characters import hero_wire
+
+        main = {"id": 29, "account_id": 2, "level": 3, "hp": 80, "max_hp": 80}
+        with patch.object(
+            level_publication, "refresh", return_value=[(15548, b"main")]
+        ), patch.object(
+            hero_wire, "statistics", return_value=(13046, b"owned limits")
+        ) as statistics:
+            packets = level_publication.combat_return(
+                main,
+                [main],
+                participant_ids=(29,),
+                entity_template=b"template",
+                roster_template=b"roster",
+            )
+        self.assertEqual(packets, [(15548, b"main"), (13046, b"owned limits")])
+        statistics.assert_called_once_with(main)
 
     def test_private_scene_hero_refresh_retains_selected_scene_projection(self):
         from wakfu_server.characters import hero_wire

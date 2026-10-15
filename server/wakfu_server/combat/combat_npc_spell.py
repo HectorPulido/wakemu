@@ -217,7 +217,10 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
     from .combat_geometry_snapshot import source_snapshot
     from .combat_effect_dispatch import EffectInvocation
     from .combat_active_spell import active_spell_scope
-    from .combat_cast_facing import mirror_cast_facing
+    from .combat_cast_facing import (
+        finish_mirrored_cast_facing,
+        mirror_cast_facing,
+    )
     from .combat_spells import cast_animation, cast_notification
 
     actor = fight.current
@@ -272,6 +275,7 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
             )
             for reference in rule["roots"]
         )
+    finish_mirrored_cast_facing(caster, plan, fight=preview)
     consume_usage(preview, plan)
     preview._event(
         "npc_cast",

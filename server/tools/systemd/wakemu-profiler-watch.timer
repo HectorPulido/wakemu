@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep Wakemu continuous profiler attached after deployments
+
+[Timer]
+OnBootSec=30
+OnUnitInactiveSec=30
+AccuracySec=5
+Unit=wakemu-profiler-watch.service
+
+[Install]
+WantedBy=timers.target

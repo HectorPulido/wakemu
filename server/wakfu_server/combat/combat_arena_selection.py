@@ -312,6 +312,7 @@ def _select_compact_encounter(
     memoize,
 ):
     selected, ambiguous = encounter_component(geometry, origin, memoize=memoize)
+    component = selected
     # Relocated opponents belong to the local encounter, not their former
     # world positions. Keeping those positions can force a long native detour
     # around walls or bridges and split the visible fight into distant wings.
@@ -379,6 +380,18 @@ def _select_compact_encounter(
     )
     if automatic_size and not preferred <= selected and best_fallback is not None:
         selected = best_fallback
+    # A budgeted BFS can stop halfway through a frontier, leaving native floor
+    # cells blocked inside the published rectangle. Close the crop over the
+    # original unambiguous component without expanding its bounds or budget.
+    xmin, ymin, xmax, ymax = _bounds(selected)
+    cropped = {
+        cell
+        for cell in component
+        if xmin <= cell[0] <= xmax and ymin <= cell[1] <= ymax
+    }
+    selected = reachable(origin, cropped, geometry.outgoing) & reachable(
+        origin, cropped, geometry.incoming
+    )
     if len(selected) <= len(originals):
         raise ValueError(
             "Native reachable encounter component lacks participant capacity"

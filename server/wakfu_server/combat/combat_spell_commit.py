@@ -42,7 +42,15 @@ def commit_spell_transaction(
             raise ValueError("Effect packet belongs to another combat action")
     packets = list(transaction.packets)
     packets.append(runtime._flush())
+    from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
+
+    hidden = hidden_snapshot_actor_ids(transaction.fight)
     for actor in transaction.fight.actors.values():
+        # Native final-death delivery still needs the client's registered QK
+        # byte. Publishing an already retired obstacle=-1 first prevents
+        # QI.g(QK) from clearing its former slot and occupied cells.
+        if actor.id in hidden:
+            continue
         started = time.monotonic()
         stats = stats_serializer(actor, transaction.fight)
         stage("serialize_actor", started, actor_id=actor.id)

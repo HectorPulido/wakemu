@@ -60,7 +60,10 @@ class NativeKillHandler:
         ):
             raise ValueError("Invalid native eXc fight/caster")
         if invocation.target_id not in self.fight.actors:
-            raise ValueError("Native eXc null/nonfighter manager delivery unsupported")
+            if not self._no_hp_area(invocation.target_id):
+                raise ValueError(
+                    "Native eXc null/nonfighter manager delivery unsupported"
+                )
         context = self.context(effect, invocation)
         if (
             not isinstance(context, StatExecutionContext)
@@ -70,6 +73,14 @@ class NativeKillHandler:
         ):
             raise ValueError("Unverified native eXc execution guards")
         return context
+
+    def _no_hp_area(self, identity):
+        # eXc.c asks PV.a(sgC) before touching HP. The existing area guard
+        # proves absent HP/armor from an actual registered native prototype;
+        # HP-owning walls/fake fighters and unknown recipients remain errors.
+        from .combat_area_damage_guard import area_damage_has_no_resources
+
+        return area_damage_has_no_resources(self.fight, identity)
 
     def _events(self, effect):
         masks = effect.get("target_masks")
@@ -180,6 +191,31 @@ class NativeKillHandler:
                 return False
             if live.retained != context.retained:
                 raise ValueError("Native eXc retention changed during L2")
+        if invocation.target_id not in self.fight.actors:
+            if not self._no_hp_area(invocation.target_id):
+                raise ValueError("Changed native eXc area characteristic authority")
+            if context.retained:
+                raise ValueError("Retained no-HP eXc area ownership is unaudited")
+            # eXc.c -> fRS: no HP assignment, property or KO clock operation,
+            # and no application packet. Preserve the real runner lifecycle.
+            if runner is not None:
+                runner.notification_suppressed = True
+                runner.finish_application()
+            if self.event_lifecycle is not None:
+                for channel in (3, 4):
+                    self.event_lifecycle.phase(
+                        effect,
+                        invocation,
+                        uid=uid,
+                        value=runner.value,
+                        channel=channel,
+                        _event_ids=self._events(effect),
+                        runner_modifier=runner,
+                    )
+            from .combat_runner_callbacks import notify_runner_value
+
+            notify_runner_value(invocation, 0 if runner is None else runner.value)
+            return True
         actor = self.fight.actors[invocation.target_id]
         hp, hp_min, hp_raw_min, hp_percent = self._snapshot(actor, 1)
         clock, clock_min, clock_raw_min, clock_percent = self._snapshot(actor, 14)

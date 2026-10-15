@@ -5,6 +5,7 @@ outcomes remain explicit experiment policy in ``settings``; this module does
 not describe those choices as upstream server rules.
 """
 from wakfu_server import native_catalog as protocol_catalog
+from contextlib import ExitStack
 import hashlib
 import json
 import secrets
@@ -431,8 +432,13 @@ def mutate(
     ):
         raise ValueError("Native sublimation action/opcode mismatch")
     randbelow = secrets.randbelow if randbelow is None else randbelow
-    with store.connection() as db:
+    with store.connection() as db, ExitStack() as mutation_scopes:
         _lease(store, db, account_id, generation, character_id)
+        from wakfu_server.item_mutation import refresh_equipment_after_mutation
+
+        mutation_scopes.enter_context(
+            refresh_equipment_after_mutation(store, db, account_id, character_id, uid)
+        )
         _guard(db, character_id)
         item = db.execute(
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s FOR UPDATE",
@@ -466,16 +472,12 @@ def mutate(
             "SELECT level FROM characters WHERE id=%s AND account_id=%s",
             (character_id, account_id),
         ).fetchone()
-        if character_level is None or character_level["level"] < template["item_level"]:
-            raise ValueError(
-                "Socket mutation target exceeds the local character-level gate"
-            )
+        if character_level is None:
+            raise ValueError("Socket mutation owner is unavailable")
         if db.execute(
             "SELECT 1 FROM player_exchange_items WHERE uid=%s LIMIT 1", (uid,)
         ).fetchone():
             raise ValueError("Socket target is offered in an exchange")
-        if _equipped(store, db, account_id, character_id, uid):
-            raise ValueError("Unequip socket target before mutation")
         shard = db.execute(
             "SELECT shard_state FROM inventory_item_shards WHERE uid=%s FOR UPDATE",
             (uid,),
@@ -750,8 +752,15 @@ def install_bonus(store, account_id, generation, character_id, body):
     bonus does not refund previously consumed shards.
     """
     target_uid, updates = _decode_bonus_install(body)
-    with store.connection() as db:
+    with store.connection() as db, ExitStack() as mutation_scopes:
         _lease(store, db, account_id, generation, character_id)
+        from wakfu_server.item_mutation import refresh_equipment_after_mutation
+
+        mutation_scopes.enter_context(
+            refresh_equipment_after_mutation(
+                store, db, account_id, character_id, target_uid
+            )
+        )
         _guard(db, character_id)
         item = db.execute(
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s FOR UPDATE",
@@ -771,16 +780,12 @@ def install_bonus(store, account_id, generation, character_id, body):
             "SELECT level FROM characters WHERE id=%s AND account_id=%s",
             (character_id, account_id),
         ).fetchone()
-        if level_row is None or level_row["level"] < template["item_level"]:
-            raise ValueError(
-                "Socket bonus target exceeds the local character-level gate"
-            )
+        if level_row is None:
+            raise ValueError("Socket bonus owner is unavailable")
         if db.execute(
             "SELECT 1 FROM player_exchange_items WHERE uid=%s LIMIT 1", (target_uid,)
         ).fetchone():
             raise ValueError("Socket bonus target is offered in an exchange")
-        if _equipped(store, db, account_id, character_id, target_uid):
-            raise ValueError("Unequip socket bonus target before mutation")
         shard = db.execute(
             "SELECT shard_state FROM inventory_item_shards WHERE uid=%s FOR UPDATE",
             (target_uid,),

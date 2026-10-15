@@ -18,7 +18,11 @@ def extract(source):
     if len(calls) != 1 or len(blocks) != 1:
         return {"status": "pending", "reason": "No unique literal1040 params"}
     result = {"status": "verified", "template": 1040}
-    for key, default in (("turnCasterTowardTargetCell", True), ("useDiags", False)):
+    for key, default in (
+        ("turnCasterTowardTargetCell", True),
+        ("useDiags", False),
+        ("casterAnimOnTarget", False),
+    ):
         values = re.findall(r'"' + key + r'"\s*,\s*([^,\n}]+)', blocks[0])
         if len(values) > 1 or (values and values[0].strip() not in ("true", "false")):
             return {

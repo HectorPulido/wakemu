@@ -28,7 +28,9 @@ def settings():
         api_url=config.get(
             "api_url", os.environ.get("WAKFU_LOCAL_API_URL", "http://127.0.0.1:18081")
         ).rstrip("/"),
-        runtime_root=resolved(config.get("runtime_root", str(ROOT / ".runtime/local"))),
+        runtime_root=resolved(
+            config.get("runtime_root", str(ROOT / ".local-state/wakemu/world"))
+        ),
         runner=resolved(
             config.get("runner", str(ROOT / "client-tools/local-client.sh"))
         ),
@@ -40,7 +42,11 @@ def profile_root(name="main"):
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,40}", name):
         raise ValueError("Invalid local profile name")
     root = settings()["runtime_root"]
-    return root if name == "main" else root / "instances" / name
+    if name == "main":
+        return root
+    if root == ROOT / ".local-state/wakemu/world":
+        return ROOT / ".local-state/wakemu/instances" / name
+    return root / "instances" / name
 
 
 def request(path, body):

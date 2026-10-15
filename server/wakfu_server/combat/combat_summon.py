@@ -484,6 +484,14 @@ class RegisteredSummonAuthority:
             native_in_play=life["baF"],
         )
 
+    def has_equipment_type(self, preview, actor, references, inventory=False):
+        self(preview, actor)
+        if actor.id in getattr(preview, "native_summon_registrations", {}):
+            raise ValueError("Missing native summoned equipment component authority")
+        return self._call_ordinary(
+            preview, self.ordinary.has_equipment_type, actor, references, inventory
+        )
+
     def item_quantity(self, preview, actor, references):
         self(preview, actor)
         records = getattr(preview, "native_summon_registrations", {})
@@ -515,6 +523,15 @@ class RegisteredSummonAuthority:
         records = getattr(preview, "native_summon_registrations", {})
         if actor.id in records:
             raise ValueError("Native summoned property callbacks remain unaudited")
+        if identity in (5, 18):
+            from .combat_ordinary_authority import visibility_property_side_effect
+
+            # Ordinary roster validation excludes registered summons, but QI
+            # mutation must reach the real transaction rather than its view.
+            native = self(preview, actor)
+            return visibility_property_side_effect(
+                preview, native.targeting["bcN"], applying=applying
+            )
         # Use the actual preview, not the roster-filtered view: timeline writes
         # belong to the same transaction. Ordinary __call__ rejects extra actors.
         if records:
@@ -536,6 +553,34 @@ class RegisteredSummonAuthority:
         self(preview, actor)
         return self._call_ordinary(preview, self.ordinary.world_property_counts, actor)
 
+    def _condition_ordinary_property(self, kind):
+        from .combat_ordinary_authority import OrdinaryActorAuthority
+
+        if type(self.ordinary) is OrdinaryActorAuthority:
+            return getattr(self.ordinary, "_condition_" + kind + "_properties")
+        return (
+            self.ordinary.properties
+            if kind == "fight"
+            else self.ordinary.world_properties
+        )
+
+    def condition_projection(self, preview, actor):
+        """Reuse this call's validated actor while reading its native properties."""
+        authority = self(preview, actor)
+        from .combat_native_actor_lookup import detached_authority
+
+        if detached_authority(preview, actor) is not None:
+            return (
+                authority,
+                self.world_properties(preview, actor),
+                self.properties(preview, actor),
+            )
+        return (
+            authority,
+            self._condition_world_properties(preview, actor),
+            self._condition_fight_properties(preview, actor),
+        )
+
     def properties(self, preview, actor):
         from .combat_native_actor_lookup import detached_authority
 
@@ -545,6 +590,9 @@ class RegisteredSummonAuthority:
                 raise ValueError("Missing detached native fight-property source")
             return frozenset(live)
         self(preview, actor)
+        return self._condition_fight_properties(preview, actor)
+
+    def _condition_fight_properties(self, preview, actor):
         records = getattr(preview, "native_summon_registrations", {})
         if actor.id in records:
             live = getattr(actor, "native_fight_properties", None)
@@ -562,7 +610,9 @@ class RegisteredSummonAuthority:
         return (
             records[actor.id]["fight_properties"]
             if actor.id in records
-            else self._call_ordinary(preview, self.ordinary.properties, actor)
+            else self._call_ordinary(
+                preview, self._condition_ordinary_property("fight"), actor
+            )
         )
 
     def world_properties(self, preview, actor):
@@ -574,11 +624,16 @@ class RegisteredSummonAuthority:
                 raise ValueError("Missing detached native world-property source")
             return frozenset(live)
         self(preview, actor)
+        return self._condition_world_properties(preview, actor)
+
+    def _condition_world_properties(self, preview, actor):
         records = getattr(preview, "native_summon_registrations", {})
         return (
             records[actor.id]["world_properties"]
             if actor.id in records
-            else self._call_ordinary(preview, self.ordinary.world_properties, actor)
+            else self._call_ordinary(
+                preview, self._condition_ordinary_property("world"), actor
+            )
         )
 
 

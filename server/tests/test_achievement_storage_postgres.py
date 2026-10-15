@@ -10,6 +10,19 @@ class AchievementStoragePostgresTests(PostgresCase):
         self.account = self.store.register("achievement-owner", "local-password")["id"]
         self.character = self.store.create_character(self.account, "Achievement Owner")
 
+    def fill_real_inventory(self, db):
+        from wakfu_server.inventory_move import ACQUISITION_STACKS
+
+        maximum = ACQUISITION_STACKS[2021]["maximum"]
+        for bag in db.execute(
+            "SELECT * FROM inventory_containers WHERE character_id=%s",
+            (self.character["id"],),
+        ).fetchall():
+            db.execute(
+                "INSERT INTO inventory_items(character_id,reference,quantity,container,slot) SELECT %s,2021,%s,%s,s FROM generate_series(0,%s) s ON CONFLICT(container,slot) DO UPDATE SET quantity=EXCLUDED.quantity",
+                (self.character["id"], maximum, bag["uid"], bag["capacity"] - 1),
+            )
+
     def test_progress_authority_roundtrip_event_dedupe_conflict_and_rollback(self):
         with self.store.connection() as db:
             initial = storage.load_locked(db, self.character["id"])
@@ -108,11 +121,7 @@ class AchievementStoragePostgresTests(PostgresCase):
             self.assertEqual([op for op, _ in packets], [12471])
             current = self.store.character(self.account, self.character["id"], db)
             self.assertEqual(len(current["inventory_items"]), 1)
-            # Reducing only the test bag capacity avoids generating hundreds of units.
-            db.execute(
-                "UPDATE inventory_containers SET capacity=1 WHERE character_id=%s AND kind=0",
-                (self.character["id"],),
-            )
+            self.fill_real_inventory(db)
             before = db.execute(
                 "SELECT count(*) AS n FROM inventory_items WHERE character_id=%s",
                 (self.character["id"],),
@@ -197,11 +206,7 @@ class AchievementStoragePostgresTests(PostgresCase):
         generation = self.store.begin_session(self.account)
         self.store.select_character(self.account, generation, self.character["id"])
         with self.store.connection() as db:
-            db.execute(
-                "UPDATE inventory_containers SET capacity=1 WHERE character_id=%s AND kind=0",
-                (self.character["id"],),
-            )
-            rewards.grant(db, self.store, self.character, dict(aeV=5, ckl=[2021, 1]))
+            self.fill_real_inventory(db)
             occupied = self.store.character(self.account, self.character["id"], db)[
                 "inventory_items"
             ][0]["uid"]
@@ -261,7 +266,12 @@ class AchievementStoragePostgresTests(PostgresCase):
                 "inventory_items"
             ]
             self.assertEqual(
-                [(row["reference"], row["quantity"]) for row in items], [(7361, 5)]
+                [
+                    (row["reference"], row["quantity"])
+                    for row in items
+                    if row["reference"] == 7361
+                ],
+                [(7361, 5)],
             )
 
     def test_bootstrap_captures_keys_without_acknowledging_later_events(self):

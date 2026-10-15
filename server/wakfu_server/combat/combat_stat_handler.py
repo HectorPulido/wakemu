@@ -520,6 +520,10 @@ class NativeStatHandler:
             from .combat_turn_suppression import remove_turn_suppression
 
             return remove_turn_suppression(self, uid)
+        if entry.get("family") == "eXD":
+            from .combat_displacement_retention import remove_retained_displacement
+
+            return remove_retained_displacement(self, uid)
         if entry.get("family") == "eWl":
             from .combat_additional_turn import remove_additional_turn
 

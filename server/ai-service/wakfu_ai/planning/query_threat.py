@@ -41,6 +41,8 @@ def forecast(
         ),
     )
     forecasts, details, sequence = [], [], 0
+    observed_actor_hp_loss = 0
+    observed_ally_hp_loss = {}
 
     def request(operation, key, **fields):
         nonlocal sequence
@@ -179,6 +181,25 @@ def forecast(
             unsupportedPlans=0,
         )
         forecasts.append(entry)
+        # Sum independent per-rival worst HP losses as a conservative danger
+        # budget, not evidence of a jointly executable lethal sequence.
+        # Native outcomes already include armor and damage mitigation.
+        for identity, original in source.items():
+            if original["team"] != friendly:
+                continue
+            loss = max(
+                (
+                    max(0, original["hp"] - outcome[identity]["hp"])
+                    for _, outcome in outcomes
+                ),
+                default=0,
+            )
+            if identity == actor_id:
+                observed_actor_hp_loss += loss
+            else:
+                observed_ally_hp_loss[identity] = (
+                    observed_ally_hp_loss.get(identity, 0) + loss
+                )
         risk, trace = estimate(source, actor_id, [entry], weights)
         details.append(
             dict(
@@ -195,6 +216,8 @@ def forecast(
         risk=total if complete else None,
         knownLowerBound=total,
         complete=complete,
+        observedActorHpLoss=observed_actor_hp_loss,
+        observedAllyHpLoss=observed_ally_hp_loss,
         rivals=details,
         unknownDependencies=sorted(
             {reason for detail in details for reason in detail["unknownDependencies"]}

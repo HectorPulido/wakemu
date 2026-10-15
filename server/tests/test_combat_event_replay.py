@@ -111,6 +111,9 @@ class NativeEventReplayTests(unittest.TestCase):
         self.retention.metadata["effects"]["308265"][
             "event_reverse_subscription"
         ] = False
+        # This regression exercises criterion actor rebinding. A blank native
+        # criterion has no reason to request a context, so make it explicit.
+        self.effects["308265"]["criteria"] = "1 == 1"
         contexts = []
         activations = []
         registered_container = row["native_retained_container"]

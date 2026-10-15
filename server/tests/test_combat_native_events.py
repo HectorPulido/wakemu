@@ -64,6 +64,47 @@ class NativeEventSelectionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_group_registration_flags([1], active=False)
 
+    def test_authenticated_eYy865_children_preserve_parent_flags(self):
+        for flags in ([4, 22], [4, 22, 29]):
+            definition = {
+                "effect_class": 865,
+                "native_effect_flags": list(flags),
+                "children": [392622, 392984],
+            }
+            with self.subTest(flags=flags):
+                validate_group_registration_flags(
+                    flags, active=True, effect=definition, reference=5722
+                )
+
+    def test_eYy865_flag_gate_rejects_incomplete_or_forged_metadata(self):
+        valid_flags = [4, 22, 29]
+        base = {
+            "effect_class": 865,
+            "native_effect_flags": valid_flags,
+            "children": [392622, 392984],
+        }
+        invalid = (
+            {**base, "native_effect_flags": [4, 22]},
+            {**base, "effect_class": 864},
+            {**base, "children": [392622]},
+            {**base, "children": [392622, 0]},
+            {**base, "native_effect_flags": [4, 22, 29, 777]},
+        )
+        for definition in invalid:
+            with self.subTest(definition=definition):
+                with self.assertRaises(ValueError):
+                    validate_group_registration_flags(
+                        valid_flags,
+                        active=True,
+                        effect=definition,
+                        reference=5722,
+                    )
+
+        with self.assertRaises(ValueError):
+            validate_group_registration_flags(
+                valid_flags, active=True, effect=base, reference=0
+            )
+
     def test_actual_ezr_enum_rebinding_matches_native_probe(self):
         args = dict(
             original_caster=81,

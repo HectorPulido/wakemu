@@ -34,10 +34,19 @@ def prepare_ready(
         return preview, None, ()
     # Capture the native baseline before innates modify characteristics. Empty
     # effect snapshots must precede initialization, otherwise they erase states.
-    payloads = {
-        actor.id: (stats_serializer(actor), effects_serializer())
-        for actor in preview.actors.values()
-    }
+    payloads = {}
+    for actor in preview.actors.values():
+        # The preview owns the actor instances being serialized. Runtime
+        # serializers receive the matching Fight explicitly so identity-bound
+        # state (such as completed QI retirement) is read from that same
+        # transactional snapshot. Keep the legacy one-argument callback for
+        # callers that do not provide a runtime serializer.
+        stats = (
+            runtime_stats_serializer(actor, preview)
+            if runtime_stats_serializer is not None
+            else stats_serializer(actor)
+        )
+        payloads[actor.id] = (stats, effects_serializer())
     preview, initialization = initialize(preview, 1)
     messages = RuntimeMessages(
         preview,
