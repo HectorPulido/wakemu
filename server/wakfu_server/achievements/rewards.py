@@ -54,6 +54,11 @@ def _item(db, store, character, reference, quantity):
     from wakfu_server.inventory_uids import allocate
     from wakfu_server.inventory_elements import create, save
 
+    from wakfu_server.items import quest_inventory
+
+    if reference in quest_inventory.REFERENCES:
+        result = quest_inventory.grant(db, character["id"], reference, quantity)
+        return [result["quest_packet"]]
     rule = STACKS.get(reference)
     if rule is None or type(rule.get("maximum")) is not int or rule["maximum"] < 1:
         raise ValueError("Missing native reward item stack rule")

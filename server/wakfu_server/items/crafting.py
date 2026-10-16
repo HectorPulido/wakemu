@@ -196,6 +196,7 @@ def _plan(store, db, account_id, character_id, catalog, recipe, batch_count):
 
     _lock_inventory(db, character_id)
     character = store.character(account_id, character_id, db)
+    _annotate_product_metadata(db, character["inventory_items"])
     protected = _offered_uids(db, character_id)
     material_plan = plan(
         catalog,
@@ -210,6 +211,50 @@ def _plan(store, db, account_id, character_id, catalog, recipe, batch_count):
     if protected.intersection(row["uid"] for row in material_plan["consumed"]):
         raise ValueError("Crafting cannot consume an offered item")
     return character, material_plan
+
+
+def _annotate_product_metadata(db, items):
+    """Expose nondefault persisted unit state to the product merge guard.
+
+    Ingredient consumption is unchanged. Metadata equal to a new product's
+    native defaults remains compatible; marked or unknown units stay distinct.
+    """
+    from wakfu_server.exchange_rules import ITEMS
+    from wakfu_server.recycling import CATALOG
+
+    by_uid = {item["uid"]: item for item in items}
+    if not by_uid:
+        return
+    for row in db.execute(
+        "SELECT uid,bound,template_reference FROM inventory_item_bindings WHERE uid=ANY(%s)",
+        (list(by_uid),),
+    ):
+        item = by_uid[row["uid"]]
+        expected = (
+            ITEMS.get(str(item["reference"]), {})
+            .get("binding_template", {})
+            .get("default_eKo")
+        )
+        if (
+            type(expected) is not bool
+            or row["template_reference"] != item["reference"]
+            or type(row["bound"]) is not bool
+            or (row["bound"] or expected) != expected
+        ):
+            item["native_craft_binding_state"] = dict(row)
+    for row in db.execute(
+        "SELECT uid,unidentified,socketed FROM inventory_item_recycling_state WHERE uid=ANY(%s)",
+        (list(by_uid),),
+    ):
+        item = by_uid[row["uid"]]
+        expected = CATALOG.get(str(item["reference"]), {}).get("template_gjv")
+        if (
+            type(expected) is not bool
+            or row["unidentified"] is not None
+            and row["unidentified"] is not expected
+            or row["socketed"] not in (None, False)
+        ):
+            item["native_craft_recycling_state"] = dict(row)
 
 
 def _request(opcode, body):

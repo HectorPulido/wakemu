@@ -13,6 +13,16 @@ class SelectedTaskCards:
     def __init__(self):
         self._published = None
         self._dirty = True
+        self.section = "overview"
+        self.page = 1
+
+    def select_view(self, section, page):
+        from .sections import SECTIONS
+
+        if section not in SECTIONS or type(page) is not int or page < 1:
+            raise ValueError("Invalid objective section or page")
+        self.section, self.page = section, page
+        self._dirty = True
 
     def needs_refresh(self, account_id, generation, selected_character_id):
         identity = (account_id, generation, selected_character_id)
@@ -52,6 +62,11 @@ class SelectedTaskCards:
             and self._published[0] == identity
         ):
             return False
+        from . import external
+
+        view = (
+            {"section": self.section, "page": self.page} if external.enabled() else {}
+        )
         packet = application.publication(
             store,
             account_id,
@@ -60,6 +75,7 @@ class SelectedTaskCards:
             existing_packages=existing_packages,
             cap_reached=cap_reached,
             definitions=definitions,
+            **view,
         )
         if self._published == (identity, packet):
             self._dirty = False

@@ -12,19 +12,27 @@ def learn(store, account_id, generation, character_id, body):
         raise ValueError("Invalid emote learning action or item UID")
     with store.connection() as db:
         db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
-        store.lock_character(db, account_id, generation, character_id)
+        from .inventory_owner import lock_inventory_character, lock_item_owner
+
+        lock_inventory_character(store, db, account_id, generation, character_id)
         prior = db.execute(
             "SELECT * FROM emote_learning_receipts WHERE account_id=%s AND source_uid=%s",
             (account_id, source_uid),
         ).fetchone()
         if prior is not None:
-            if prior["character_id"] != character_id or prior["action_id"] != action_id:
+            character_id = lock_inventory_character(
+                store, db, account_id, generation, prior["character_id"]
+            )
+            if prior["action_id"] != action_id:
                 raise ValueError("Emote learning replay does not match request")
             return {
                 "character": store.character(account_id, character_id, db),
                 "packets": [emotes.snapshot(db, account_id)],
                 "applied": False,
             }
+        character_id = lock_item_owner(
+            store, db, account_id, generation, character_id, (source_uid,)
+        )
         item = db.execute(
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s FOR UPDATE",
             (source_uid, character_id),

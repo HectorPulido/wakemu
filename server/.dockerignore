@@ -20,6 +20,11 @@ wakfu_server/__pycache__/
 !ecology-service/
 !ecology-service/Dockerfile
 !ecology-service/service.py
+!objectives-service/
+!objectives-service/Dockerfile
+!objectives-service/service.py
+!objectives-service/static/
+!objectives-service/static/**
 
 !migrations/
 !migrations/*.sql
@@ -50,3 +55,5 @@ wakfu_server/__pycache__/
 
 !wakfu_server/combat/native-spatial937-source.json
 **/._*
+
+!wakfu_server/items/native_quest_items.json

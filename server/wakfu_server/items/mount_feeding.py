@@ -13,6 +13,7 @@ from psycopg.pq import TransactionStatus
 from psycopg.types.json import Jsonb
 
 from . import mount_feeding_wire
+from .inventory_owner import lock_item_owner
 
 
 def feed(store, account_id, generation, character_id, body, *, in_fight):
@@ -34,7 +35,9 @@ def feed(store, account_id, generation, character_id, body, *, in_fight):
 
     request_hash = sha256(body).digest()
     with store.connection() as db:
-        store.lock_character(db, account_id, generation, character_id)
+        character_id = lock_item_owner(
+            store, db, account_id, generation, character_id, [request["pet_uid"]]
+        )
         if db.info.transaction_status != TransactionStatus.INTRANS:
             raise ValueError("Feeding requires the owned transaction")
         active = db.execute(

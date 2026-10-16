@@ -10,6 +10,7 @@ import json
 import mimetypes
 import os
 from pathlib import Path
+import re
 import secrets
 import threading
 import time
@@ -213,6 +214,72 @@ def make_server(service, host="127.0.0.1", port=0, credentials=None, static_dir=
                     self.respond(200, dict(ok=True), self.cookie("", expired=True))
                     return
                 query = parse_qs(parsed.query)
+                if path.startswith("/api/objectives/"):
+                    from wakfu_server import admin_objectives
+
+                    segments = path.removeprefix("/api/objectives/").split("/")
+                    resource = segments[0]
+                    if self.command == "POST" and segments == ["player-launch"]:
+                        data = self.body()
+                        if set(data) != {"character_id"}:
+                            raise ValueError("Expected a character identifier")
+                        result = admin_objectives.player_launch(
+                            service.store, data["character_id"]
+                        )
+                        code = 200
+                    elif (
+                        self.command == "GET"
+                        and len(segments) == 1
+                        and resource
+                        in (
+                            "health",
+                            "definitions",
+                            "progress",
+                            "events",
+                            "rewards",
+                            "reward-policies",
+                            "rankings",
+                            "challenge-profiles",
+                        )
+                    ):
+                        upstream_path = (
+                            "/health" if resource == "health" else "/v1/" + resource
+                        )
+                        code, result = admin_objectives.request(
+                            "GET", upstream_path, parsed.query
+                        )
+                    elif (
+                        self.command == "PUT"
+                        and len(segments) == 2
+                        and resource
+                        in ("definitions", "reward-policies", "challenge-profiles")
+                    ):
+                        key = unquote(segments[1])
+                        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}", key):
+                            raise ValueError("Invalid objective key")
+                        data = self.body(256 * 1024)
+                        data["operator"] = session["username"]
+                        code, result = admin_objectives.request(
+                            "PUT", "/v1/" + resource + "/" + key, payload=data
+                        )
+                    elif (
+                        self.command == "POST"
+                        and len(segments) == 3
+                        and resource == "events"
+                        and segments[2] == "retry"
+                    ):
+                        if not segments[1].isdigit() or int(segments[1]) < 1:
+                            raise ValueError("Invalid event identifier")
+                        data = self.body()
+                        data["operator"] = session["username"]
+                        code, result = admin_objectives.request(
+                            "POST", "/v1/events/" + segments[1] + "/retry", payload=data
+                        )
+                    else:
+                        self.respond(405, dict(error="Method not allowed"))
+                        return
+                    self.respond(code, result)
+                    return
                 options = dict(
                     q=query.get("q", query.get("search", [""]))[0],
                     limit=int(query.get("limit", ["50"])[0]),
@@ -395,6 +462,8 @@ def make_server(service, host="127.0.0.1", port=0, credentials=None, static_dir=
             )
 
         def services(self):
+            from wakfu_server import admin_objectives
+
             result = {}
             for name, default in (
                 ("world", "http://world:18081"),
@@ -412,6 +481,11 @@ def make_server(service, host="127.0.0.1", port=0, credentials=None, static_dir=
                     )
                 except Exception:
                     result[name] = dict(ok=False)
+            code, state = admin_objectives.request("GET", "/health")
+            result["objectives"] = dict(
+                ok=code == 200
+                and (state.get("ok") is True or state.get("status") == "ok")
+            )
             return result
 
         def static(self, path):
@@ -444,6 +518,7 @@ def make_server(service, host="127.0.0.1", port=0, credentials=None, static_dir=
         do_GET = handle_request
         do_POST = handle_request
         do_PATCH = handle_request
+        do_PUT = handle_request
         do_DELETE = handle_request
 
     return ThreadingHTTPServer((host, port), Handler)

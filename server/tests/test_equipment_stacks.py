@@ -137,7 +137,7 @@ class EquipmentStackTests(PostgresCase):
         self.assertEqual(saved["inventory_items"], again["inventory_items"])
 
     def test_full_bag_keeps_stack_and_one_slot_creates_usable_original(self):
-        from wakfu_server.equipment_stacks import normalize
+        from wakfu_server.equipment_stacks import ensure_singleton, normalize
 
         account, generation, char, item = self.setup_stack(4)
         with self.store.connection() as db:
@@ -151,6 +151,7 @@ class EquipmentStackTests(PostgresCase):
                 "INSERT INTO inventory_items(character_id,reference,quantity,container,slot) VALUES(%s,100,5,%s,0)",
                 (char["id"], bag),
             )
+            # Login normalization leaves ordinary unidentified stacks intact.
             self.assertEqual(normalize(db, char["id"]), [])
             self.assertEqual(
                 db.execute(
@@ -161,7 +162,8 @@ class EquipmentStackTests(PostgresCase):
             db.execute(
                 "UPDATE inventory_containers SET capacity=2 WHERE uid=%s", (bag,)
             )
-            self.assertEqual(normalize(db, char["id"]), [item["uid"]])
+            unit = ensure_singleton(db, char["id"], item["uid"])
+            self.assertEqual((unit["uid"], unit["quantity"]), (item["uid"], 1))
             rows = list(
                 db.execute(
                     "SELECT * FROM inventory_items WHERE character_id=%s AND reference=%s",
@@ -174,20 +176,14 @@ class EquipmentStackTests(PostgresCase):
             )
 
     def test_effective_equipment_stack_limit_keeps_resource_rules(self):
-        from wakfu_server.inventory_move import (
-            ACQUISITION_STACKS as STACKS,
-            EQUIPMENT_RULES,
-        )
+        from wakfu_server.equipment import RULES
+        from wakfu_server.inventory_move import ACQUISITION_STACKS
 
+        _account, _generation, _character, item = self.setup_stack()
+        self.assertIn(item["reference"], RULES)
+        self.assertGreater(ACQUISITION_STACKS[item["reference"]]["maximum"], 1)
         self.assertTrue(
-            all(STACKS[ref]["maximum"] == 1 for ref in EQUIPMENT_RULES if ref in STACKS)
-        )
-        self.assertTrue(
-            any(
-                rule["maximum"] > 1
-                for ref, rule in STACKS.items()
-                if ref not in EQUIPMENT_RULES
-            )
+            any(rule["maximum"] > 1 for rule in ACQUISITION_STACKS.values())
         )
 
     def test_save_build_splits_requested_uid_and_bad_sheet_rolls_back(self):
@@ -231,5 +227,8 @@ class EquipmentStackTests(PostgresCase):
         )
         units = [row for row in saved["inventory_items"] if row["reference"] == 2021]
         self.assertEqual(sum(row["quantity"] for row in units), 3)
-        self.assertTrue(all(row["quantity"] == 1 for row in units))
+        self.assertEqual(sorted(row["quantity"] for row in units), [1, 2])
+        self.assertEqual(
+            next(row["quantity"] for row in units if row["uid"] == gear["uid"]), 1
+        )
         self.assertEqual(saved["builds"][0]["equipment"], equipment.hex())

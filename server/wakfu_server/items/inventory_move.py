@@ -11,16 +11,13 @@ STACKS = {
     for entry in protocol_catalog.load(DATA_ROOT / "item-stack-rules.json")["items"]
 }
 
-# Equipment must reach the native build editor as individual owned units.
-# Resources keep their native maximum; all acquisition writers share STACKS.
-from wakfu_server.equipment import RULES as EQUIPMENT_RULES
+# Plain unidentified equipment retains native stack capacity. Identification
+# and build selection split one owned unit at their existing boundaries.
+ACQUISITION_STACKS = STACKS
 
-ACQUISITION_STACKS = {
-    reference: dict(rule, maximum=1, native_maximum=rule["maximum"])
-    if reference in EQUIPMENT_RULES
-    else rule
-    for reference, rule in STACKS.items()
-}
+
+class EquippedTransferError(ValueError):
+    """An ownership transfer requires removing a selected equipment unit."""
 
 
 def decode(body):
@@ -73,26 +70,74 @@ def transfer(store, account_id, generation, character_id, body):
                     applied=False,
                 )
         item = db.execute(
-            "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
-            (request["uid"], character_id),
+            "SELECT * FROM inventory_items WHERE uid=%s FOR UPDATE",
+            (request["uid"],),
         ).fetchone()
         destination = db.execute(
-            "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s",
-            (request["destination"], character_id),
+            "SELECT * FROM inventory_containers WHERE uid=%s FOR UPDATE",
+            (request["destination"],),
         ).fetchone()
         source = db.execute(
-            "SELECT * FROM inventory_containers WHERE uid=%s AND character_id=%s",
-            (request["source"], character_id),
+            "SELECT * FROM inventory_containers WHERE uid=%s FOR UPDATE",
+            (request["source"],),
         ).fetchone()
         if (
             item is None
             or source is None
             or destination is None
+            or item["character_id"] != source["character_id"]
             or item["container"] != source["uid"]
             or source["kind"] not in (0, 1, 2, 3)
             or destination["kind"] not in (0, 1, 2, 3)
         ):
             raise ValueError("Foreign item/container or unsupported container type")
+        owners = {source["character_id"], destination["character_id"]}
+        allowed = {character_id}
+        allowed.update(
+            row["character_id"]
+            for row in db.execute(
+                "SELECT h.character_id FROM account_hero_slots h "
+                "JOIN account_hero_rosters r USING(account_id) "
+                "WHERE h.account_id=%s AND r.leader_id=%s FOR UPDATE OF h,r",
+                (account_id, character_id),
+            )
+        )
+        if not owners <= allowed:
+            raise ValueError("Inventory transfer requires the active owned hero roster")
+        owned_characters = {}
+        for owner in sorted(owners):
+            if (
+                db.execute(
+                    "SELECT id FROM characters WHERE id=%s AND account_id=%s FOR UPDATE",
+                    (owner, account_id),
+                ).fetchone()
+                is None
+            ):
+                raise ValueError("Foreign inventory transfer owner")
+            owned_characters[owner] = store.character(account_id, owner, db)
+        cross_owner = source["character_id"] != destination["character_id"]
+        if cross_owner:
+            from wakfu_server.wire import proto_fields
+
+            for owned in owned_characters.values():
+                for build in owned["builds"].values():
+                    for tag, value in proto_fields(bytes.fromhex(build["equipment"])):
+                        if (
+                            tag == 10
+                            and dict(proto_fields(value)).get(8) == item["uid"]
+                        ):
+                            raise EquippedTransferError(
+                                "Desequip the selected unit before transferring ownership"
+                            )
+            if (
+                db.execute(
+                    "SELECT 1 FROM player_exchange_items i JOIN player_exchanges e ON e.id=i.exchange_id "
+                    "WHERE i.uid=%s AND e.state IN ('invitation','active') LIMIT 1",
+                    (item["uid"],),
+                ).fetchone()
+                is not None
+            ):
+                raise ValueError("Offered item cannot change inventory owner")
         rule = STACKS.get(item["reference"])
         if rule is None or not 1 <= item["quantity"] <= rule.get(
             "native_maximum", rule["maximum"]
@@ -126,6 +171,69 @@ def transfer(store, account_id, generation, character_id, body):
             "SELECT * FROM inventory_items WHERE container=%s AND slot=%s",
             (destination["uid"], position),
         ).fetchone()
+        if cross_owner and other is not None:
+            for owned in owned_characters.values():
+                for build in owned["builds"].values():
+                    for tag, value in proto_fields(bytes.fromhex(build["equipment"])):
+                        if (
+                            tag == 10
+                            and dict(proto_fields(value)).get(8) == other["uid"]
+                        ):
+                            raise EquippedTransferError(
+                                "Desequip the destination unit before exchanging ownership"
+                            )
+            if (
+                db.execute(
+                    "SELECT 1 FROM player_exchange_items i JOIN player_exchanges e ON e.id=i.exchange_id "
+                    "WHERE i.uid=%s AND e.state IN ('invitation','active') LIMIT 1",
+                    (other["uid"],),
+                ).fetchone()
+                is not None
+            ):
+                raise ValueError("Offered destination cannot change inventory owner")
+        unit_ids = [item["uid"]] + ([] if other is None else [other["uid"]])
+        bindings = {
+            row["uid"]: dict(row)
+            for row in db.execute(
+                "SELECT * FROM inventory_item_bindings WHERE uid=ANY(%s)", (unit_ids,)
+            )
+        }
+        recycling = {
+            row["uid"]: dict(row)
+            for row in db.execute(
+                "SELECT * FROM inventory_item_recycling_state WHERE uid=ANY(%s)",
+                (unit_ids,),
+            )
+        }
+        if cross_owner:
+            from wakfu_server.exchange_rules import ITEMS
+
+            for unit in (item,) if other is None else (item, other):
+                definition = ITEMS.get(str(unit["reference"]), {})
+                template = definition.get("binding_template", {})
+                scope = template.get("enum")
+                binding = bindings.get(unit["uid"], {})
+                initial_bound = template.get("default_eKo")
+                persisted_bound = binding.get("bound", False)
+                if (
+                    type(initial_bound) is not bool
+                    or type(persisted_bound) is not bool
+                    or scope
+                    not in (
+                        "NOT_BOUND",
+                        "BOUND_ON_EQUIP_TO_CHARACTER",
+                        "BOUND_ON_PICKUP_TO_CHARACTER",
+                        "BOUND_ON_EQUIP_TO_ACCOUNT",
+                        "BOUND_ON_PICKUP_TO_ACCOUNT",
+                    )
+                    or (initial_bound or persisted_bound)
+                    and scope
+                    not in (
+                        "BOUND_ON_EQUIP_TO_ACCOUNT",
+                        "BOUND_ON_PICKUP_TO_ACCOUNT",
+                    )
+                ):
+                    raise ValueError("Character-bound item cannot change hero owner")
         socketed = {
             row["uid"]
             for row in db.execute(
@@ -158,17 +266,34 @@ def transfer(store, account_id, generation, character_id, body):
             source_item, target_item = hydrate(db, [dict(item), dict(other)])
             if masks(source_item) != masks(target_item):
                 raise ValueError("Native element selections differ; units cannot merge")
+            for metadata in (bindings, recycling):
+                states = [
+                    {
+                        key: value
+                        for key, value in metadata.get(unit["uid"], {}).items()
+                        if key != "uid"
+                    }
+                    for unit in (item, other)
+                ]
+                if states[0] != states[1]:
+                    raise ValueError(
+                        "Native item binding/recycling states differ; units cannot merge"
+                    )
             if (
-                other["character_id"] != character_id
+                other["character_id"] != destination["character_id"]
                 or not 1 <= other["quantity"] <= rule["maximum"]
             ):
                 raise ValueError("Invalid destination stack ownership or quantity")
             # A minimal build selects individual units; a merge must not leave
             # persisted selection references dangling or turn one unit into a stack.
-            from .wire import proto_fields
+            from wakfu_server.wire import proto_fields
 
-            character = store.character(account_id, character_id, db)
-            for build in character["builds"].values():
+            builds = [
+                build
+                for owned in owned_characters.values()
+                for build in owned["builds"].values()
+            ]
+            for build in builds:
                 for tag, value in proto_fields(bytes.fromhex(build["equipment"])):
                     if tag == 10 and dict(proto_fields(value)).get(8) in (
                         item["uid"],
@@ -196,12 +321,17 @@ def transfer(store, account_id, generation, character_id, body):
                 "UPDATE inventory_items SET slot=32767 WHERE uid=%s", (item["uid"],)
             )
             db.execute(
-                "UPDATE inventory_items SET container=%s,slot=%s WHERE uid=%s",
-                (source["uid"], item["slot"], other["uid"]),
+                "UPDATE inventory_items SET character_id=%s,container=%s,slot=%s WHERE uid=%s",
+                (source["character_id"], source["uid"], item["slot"], other["uid"]),
             )
             db.execute(
-                "UPDATE inventory_items SET container=%s,slot=%s WHERE uid=%s",
-                (destination["uid"], position, item["uid"]),
+                "UPDATE inventory_items SET character_id=%s,container=%s,slot=%s WHERE uid=%s",
+                (
+                    destination["character_id"],
+                    destination["uid"],
+                    position,
+                    item["uid"],
+                ),
             )
         elif clone is not None:
             db.execute(
@@ -212,7 +342,7 @@ def transfer(store, account_id, generation, character_id, body):
                 "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(%s,%s,%s,%s,%s,%s)",
                 (
                     clone,
-                    character_id,
+                    destination["character_id"],
                     item["reference"],
                     quantity,
                     destination["uid"],
@@ -221,14 +351,29 @@ def transfer(store, account_id, generation, character_id, body):
             )
         else:
             db.execute(
-                "UPDATE inventory_items SET container=%s,slot=%s WHERE uid=%s",
-                (destination["uid"], position, item["uid"]),
+                "UPDATE inventory_items SET character_id=%s,container=%s,slot=%s WHERE uid=%s",
+                (
+                    destination["character_id"],
+                    destination["uid"],
+                    position,
+                    item["uid"],
+                ),
             )
         if clone is not None:
             from .inventory_elements import copy as copy_elements
 
             if not merge:
                 copy_elements(db, item["uid"], clone)
+                db.execute(
+                    "INSERT INTO inventory_item_bindings(uid,bound,template_reference) "
+                    "SELECT %s,bound,template_reference FROM inventory_item_bindings WHERE uid=%s",
+                    (clone, item["uid"]),
+                )
+                db.execute(
+                    "INSERT INTO inventory_item_recycling_state(uid,unidentified,socketed) "
+                    "SELECT %s,unidentified,socketed FROM inventory_item_recycling_state WHERE uid=%s",
+                    (clone, item["uid"]),
+                )
             db.execute(
                 "UPDATE inventory_reserved_uids SET used_request=%s WHERE uid=%s",
                 (body, clone),
@@ -237,6 +382,7 @@ def transfer(store, account_id, generation, character_id, body):
         # trigger inventory duplication. Persistence needs no success mutation.
         return dict(
             character=store.character(account_id, character_id, db),
+            affected_characters=tuple(sorted(owners)),
             packets=[],
             applied=True,
         )
@@ -256,5 +402,6 @@ def reload_inventory(store, account_id, character):
     return dict(
         character,
         inventory_containers=saved["inventory_containers"],
+        quest_items=saved["quest_items"],
         inventory_items=saved["inventory_items"],
     )

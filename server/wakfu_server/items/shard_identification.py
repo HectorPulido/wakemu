@@ -13,7 +13,7 @@ from contextlib import nullcontext
 
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.wire import proto_field
-from .inventory_items import _lease
+from .inventory_owner import lock_item_owner
 from .inventory_shards import save, validate
 
 CATALOG_PATH = DATA_ROOT / "item-socket-templates.json"
@@ -180,7 +180,9 @@ def identify(
     # the choice, sockets, receipt, and optional charge commit together.
     transaction = store.connection() if db is None else nullcontext(db)
     with transaction as db, ExitStack() as mutation_scopes:
-        _lease(store, db, account_id, generation, character_id)
+        character_id = lock_item_owner(
+            store, db, account_id, generation, character_id, (uid,)
+        )
         from wakfu_server.item_mutation import refresh_equipment_after_mutation
 
         mutation_scopes.enter_context(
@@ -240,6 +242,7 @@ def identify(
 
             ensure_singleton(db, character_id, uid)
             return dict(
+                character_id=character_id,
                 uid=uid,
                 status=0,
                 shard_state=state,
@@ -261,6 +264,7 @@ def identify(
 
             ensure_singleton(db, character_id, uid)
             return dict(
+                character_id=character_id,
                 uid=uid,
                 status=0,
                 shard_state=state,
@@ -316,6 +320,7 @@ def identify(
             ),
         ).fetchone()
         return dict(
+            character_id=character_id,
             uid=uid,
             status=0,
             shard_state=state,

@@ -5,6 +5,7 @@ import json
 import struct
 from pathlib import Path
 from .inventory_items import _lease, decode_use
+from .inventory_owner import lock_item_owner
 from .wire import proto_fields
 
 RULES = {
@@ -21,7 +22,9 @@ def destroy(store, account_id, generation, character_id, body):
     if uid <= 0:
         raise ValueError("Invalid destroyed item UID")
     with store.connection() as db:
-        _lease(store, db, account_id, generation, character_id)
+        character_id = lock_item_owner(
+            store, db, account_id, generation, character_id, [uid]
+        )
         item = db.execute(
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s",
             (uid, character_id),

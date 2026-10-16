@@ -156,6 +156,12 @@ class ShopService:
                 ),
                 None,
             )
+            from wakfu_server.items.quest_inventory import (
+                REFERENCES as QUEST_REFERENCES,
+            )
+
+            if article["item_ref"] in QUEST_REFERENCES:
+                destination = (bags[0]["uid"], 0)
             if destination is None:
                 raise ValueError("Inventory full; free one slot before purchasing")
             wallet = db.execute(

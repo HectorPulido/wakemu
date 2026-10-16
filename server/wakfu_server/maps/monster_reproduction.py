@@ -5,7 +5,7 @@ from contextlib import nullcontext
 
 
 def dungeon_population(store, instance_id):
-    """Dungeon rosters are authored encounters, never breeding ecosystems.
+    """Dungeon and finite challenge rosters are authored encounters.
 
     Match the durable run regardless of room map or active/completed status.
     Public instance zero needs no database lookup; other private populations
@@ -13,6 +13,10 @@ def dungeon_population(store, instance_id):
     """
     if instance_id == 0:
         return False
+    from wakfu_server.objectives.challenges import is_challenge_instance
+
+    if is_challenge_instance(instance_id):
+        return True
     with store.connection() as db:
         return (
             db.execute(

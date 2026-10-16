@@ -70,8 +70,10 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
             x=1,
             y=2,
             z=0,
+            level=200,
             hp=420,
             active_build_index=2,
+            builds={2: {}},
             direction=6,
         )
         self.world = World(self.character, self.peer)
@@ -126,7 +128,8 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
         self.apply()
         untouched = copy.deepcopy(self.character)
         packets = self.manager.packets_for(self.character, "lease", self.peer)
-        self.assertEqual([opcode for opcode, _ in packets], [13046])
+        self.assertEqual([opcode for opcode, _ in packets], [13046, 13811, 13046])
+        self.assertEqual(packets[0], packets[2])
         self.assertEqual(self.character, untouched)
         # A failed send leaves the same pending update available for retry.
         self.assertEqual(
@@ -149,6 +152,8 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
         self.character["_published_territory_stat_bonuses"] = {33: 60, 36: 60}
         self.apply(bonuses={})
         packets = self.manager.packets_for(self.character, "lease", self.peer)
+        self.assertEqual([opcode for opcode, _ in packets], [13046, 13811, 13046])
+        self.assertEqual(packets[0], packets[2])
         self.assertTrue(
             self.manager.acknowledge(self.character, "lease", self.peer, packets)
         )
@@ -192,8 +197,12 @@ class RegionalBonusUpdatesTests(unittest.TestCase):
 
     def test_current_owner_hp_build_and_direction_are_used_and_fenced(self):
         self.apply()
-        self.character.update(hp=200, active_build_index=3, direction=4)
+        self.character.update(
+            hp=200, active_build_index=3, builds={2: {}, 3: {}}, direction=4
+        )
         packets = self.manager.packets_for(self.character, "lease", self.peer)
+        self.assertEqual([opcode for opcode, _ in packets], [13046, 13811, 13046])
+        self.assertEqual(packets[0], packets[2])
         self.assertIn(b"(200, 3, 4,", packets[0][1])
         self.character["hp"] = 210
         self.assertFalse(

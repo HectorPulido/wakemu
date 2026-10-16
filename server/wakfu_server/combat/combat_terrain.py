@@ -70,6 +70,7 @@ def local_arena(
     prepared_terrain=None,
     stage_callback=None,
     automatic_cell_budget=2500,
+    size_range=(7, 20),
 ):
     stage_started, stage_cpu = time.monotonic(), time.thread_time()
 
@@ -119,17 +120,31 @@ def local_arena(
     if compact:
         # Callers may supply a stable seed for retries; new fights vary by default.
         formation = random.Random(variation_seed)
+        dimensions_include_border = minimum_dimensions is None
         if minimum_dimensions is None:
-            minimum_width = formation.randint(5, 7)
-            minimum_height = formation.randint(5, 7)
+            if (
+                not isinstance(size_range, (tuple, list))
+                or len(size_range) != 2
+                or any(type(value) is not int for value in size_range)
+                or not 7 <= size_range[0] <= size_range[1] <= 50
+            ):
+                raise ValueError("Invalid combat arena size range")
+            # Draw uniformly among feasible full-rectangle side lengths.
+            maximum = min(size_range[1], int(automatic_cell_budget**0.5))
+            if maximum < size_range[0]:
+                raise ValueError("Combat arena minimum exceeds rectangle budget")
+            minimum_width = minimum_height = formation.randint(size_range[0], maximum)
         else:
             minimum_width, minimum_height = minimum_dimensions
         selected = compact_encounter(
             geometry,
             player_position,
             members,
-            minimum_cells=minimum_width * minimum_height,
+            minimum_cells=(minimum_width - 2) * (minimum_height - 2)
+            if dimensions_include_border
+            else minimum_width * minimum_height,
             minimum_dimensions=(minimum_width, minimum_height),
+            dimensions_include_border=dimensions_include_border,
             spread_opponents=relocate_monsters,
             automatic_cell_budget=automatic_cell_budget,
         )

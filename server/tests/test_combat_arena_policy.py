@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from wakfu_server.combat_arena_policy import cell_budget
+from wakfu_server.combat_arena_policy import cell_budget, size_range
 from wakfu_server.combat_arena_selection import compact_encounter
 from test_combat_adaptive_arena import grid
 
@@ -25,6 +25,32 @@ class CombatArenaPolicyTests(unittest.TestCase):
         db.execute.return_value.fetchone.return_value = None
         with self.assertRaises(ValueError):
             cell_budget(db)
+
+    def test_arena_size_range_is_read_and_validated_on_each_read(self):
+        db = Mock()
+        db.execute.return_value.fetchone.side_effect = [
+            {"value": {"minimum": 7, "maximum": 20}},
+            {"value": {"minimum": 8, "maximum": 12}},
+        ]
+        self.assertEqual(size_range(db), (7, 20))
+        self.assertEqual(size_range(db), (8, 12))
+        for invalid in (
+            None,
+            20,
+            {"minimum": 6, "maximum": 20},
+            {"minimum": 15, "maximum": 14},
+            {"minimum": 7, "maximum": 51},
+            {"minimum": True, "maximum": 20},
+            {"minimum": 7, "maximum": 20, "extra": 1},
+        ):
+            db.execute.return_value.fetchone.side_effect = None
+            db.execute.return_value.fetchone.return_value = {"value": invalid}
+            with self.subTest(value=invalid), self.assertRaises(ValueError):
+                size_range(db)
+        db.execute.return_value.fetchone.side_effect = None
+        db.execute.return_value.fetchone.return_value = None
+        with self.assertRaises(ValueError):
+            size_range(db)
 
     def test_configured_budget_preserves_automatic_rectangle_selection(self):
         terrain = grid(45, 45)

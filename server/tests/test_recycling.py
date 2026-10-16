@@ -315,9 +315,14 @@ class RecyclingAuthorityTests(PostgresCase):
         literal_false = self.add_item(owner, 13598)
         with self.assertRaisesRegex(ValueError, "not recyclable|DELETE"):
             self.request(owner, literal_false["uid"], rng=lambda: 0.1)
-        achievement = self.add_item(owner, 17496, slot=1)
+        # 17496 is now a personal quest-purse token, not a physical inventory
+        # row. Preserve the native unknown-achievement DELETE guard directly.
+        from wakfu_server.exchange_rules import ITEMS
+        from wakfu_server.recycling import _delete_criterion_allows
+
+        criterion = ITEMS["17496"]["raw_criteria"]["DELETE"]
         with self.assertRaisesRegex(ValueError, "Unsupported native recycling DELETE"):
-            self.request(owner, achievement["uid"], rng=lambda: 0.1)
+            _delete_criterion_allows(criterion, owner["character"]["instance_id"])
 
         def set_instance(target, instance_id):
             with self.store.connection() as db:

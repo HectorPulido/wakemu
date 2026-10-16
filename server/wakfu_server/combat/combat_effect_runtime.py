@@ -2090,6 +2090,8 @@ class NativeEffectRuntimeFactory:
 
         if os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1") == "1":
             stat.area_events = dispatcher.native_area_events
+            if self.displacement_authority is not None:
+                displacement.area_events = dispatcher.native_area_events
             if retention is not None:
                 area_handler.on_created = dispatcher.native_area_events.created
                 area_removal.events = dispatcher.native_area_events

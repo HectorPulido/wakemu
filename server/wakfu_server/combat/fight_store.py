@@ -273,6 +273,14 @@ def settle_shared(
         started = time.monotonic()
         _trace_stage(trace, "award_callback_started", fight.id, operation="settle")
         packets = settle(db, rows, fight)
+        from wakfu_server.custom_tasks.external import enabled as objectives_enabled
+
+        if objectives_enabled():
+            from wakfu_server.objectives.challenges import settle_fight
+
+            # The finished fight, normal rewards and private challenge receipt
+            # commit together. Replays retain the original attempt and score.
+            settle_fight(db, fight)
         _trace_stage(
             trace,
             "award_callback_finished",

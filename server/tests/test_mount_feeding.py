@@ -11,6 +11,7 @@ from wakfu_server import inventory_items, mount_codec, mount_feeding, mount_feed
 from wakfu_server.items.inventory_items import grant
 from wakfu_server.wire import proto_fields
 from wakfu_server import native_catalog
+from wakfu_server.characters import heroes
 
 
 class MountFeedingTests(PostgresCase):
@@ -137,6 +138,28 @@ class MountFeedingTests(PostgresCase):
                 )
             )
         self.assertEqual(after, before)
+
+    def test_mount_feed_resolves_active_hero_pet_and_food_from_selected_main(self):
+        main = self.store.create_character(self.account, "Feed Main")
+        self.store.select_character(self.account, self.generation, main["id"])
+        heroes.add(
+            self.store, self.account, self.generation, main["id"], self.character["id"]
+        )
+        self._configure(18378, "xp")
+
+        result = mount_feeding.feed(
+            self.store,
+            self.account,
+            self.generation,
+            main["id"],
+            mount_feeding_wire.encode_request(self.food["uid"], self.pet["uid"], 1),
+            in_fight=False,
+        )
+
+        self.assertEqual(result["character"]["id"], self.character["id"])
+        self.assertEqual(
+            self.store.character(self.account, main["id"])["inventory_items"], []
+        )
 
     def test_seeded_food_policy_matches_every_model_native_catalog_entry(self):
         catalog = json.loads(

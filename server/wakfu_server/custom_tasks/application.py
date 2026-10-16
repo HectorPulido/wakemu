@@ -11,7 +11,9 @@ def publication(
     *,
     existing_packages,
     cap_reached,
-    definitions=None
+    definitions=None,
+    section="overview",
+    page=1
 ):
     """Return native13369 only after the owned selected-session transaction commits.
 
@@ -36,8 +38,20 @@ def publication(
     with store.connection() as db:
         # selected=True forbids projecting another owned hero under this lease.
         store.lock_character(db, account_id, generation, character_id, selected=True)
-        snapshot = service.snapshot(db, account_id, character_id, definitions)
-        packet = presentation.publication(
+        from . import external
+
+        if external.enabled():
+            snapshot = service.snapshot(
+                db, account_id, character_id, definitions, section=section, page=page
+            )
+        else:
+            snapshot = service.snapshot(db, account_id, character_id, definitions)
+        presenter = (
+            presentation.bounded_publication
+            if external.enabled()
+            else presentation.publication
+        )
+        packet = presenter(
             snapshot, existing_packages=existing_packages, cap_reached=cap_reached
         )
     # Context exit commits first. Any commit failure propagates without a packet.

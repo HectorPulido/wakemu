@@ -46,15 +46,31 @@ class QuickTransferTests(unittest.TestCase):
             fixture.apply(decode_deposit(batch([(10, 0, 2), (10, 1, 8)])))
         self.assertEqual((fixture.inventory, fixture.chest), before)
 
-    def test_duplicate_or_invalid_destinations_reject(self):
+    def test_duplicate_source_target_or_invalid_destinations_reject(self):
         for rows in (
             [(10, 0, 1), (10, 0, 2)],
-            [(10, 0, 1), (11, 0, 2)],
             [(10, -1, 1), (10, -1, 2)],
             [(10, -2, 1)],
         ):
             with self.subTest(rows=rows), self.assertRaises(ValueError):
                 decode_deposit(batch(rows))
+
+    def test_distinct_source_uids_merge_into_one_compatible_destination(self):
+        fixture = self.fixture()
+        fixture.inventory = [
+            fixtures.entry(uid=10, quantity=2, slot=0),
+            fixtures.entry(uid=11, quantity=3, slot=1),
+        ]
+        fixture.chest["items"][0]["item"]["quantity"] = 97
+        inventory, chest = fixture.apply(
+            decode_deposit(batch([(10, 0, 1), (11, 0, 1)]))
+        )
+        self.assertEqual(chest["items"][0]["item"]["quantity"], 99)
+        self.assertEqual(chest["items"][0]["item"]["uid"], 20)
+        self.assertEqual(
+            sorted((row["item"]["uid"], row["item"]["quantity"]) for row in inventory),
+            [(10, 1), (11, 2)],
+        )
 
     def test_action_result_uses_original_enum_values(self):
         self.assertEqual(action_result(), (13301, b"\x00"))
@@ -106,3 +122,56 @@ class ChestVariedItemsTests(unittest.TestCase):
         ):
             self.assertEqual(_equipment_positions(character), {100: [(0, 3), (2, 7)]})
             self.assertEqual(_equipped(character), {100})
+
+
+class DepositEquippedFilterTests(unittest.TestCase):
+    def setUp(self):
+        from wakfu_server.haven_chest import deposit_requests
+        from wakfu_server.wire import proto_field
+
+        self.deposit_requests = deposit_requests
+        equipment = proto_field(10, proto_field(8, 10) + proto_field(16, 3))
+        self.character = {
+            "id": 42,
+            "inventory_items": [
+                dict(uid=10, character_id=42, container=80, quantity=4),
+                dict(uid=11, character_id=42, container=80, quantity=5),
+            ],
+            "inventory_containers": [
+                dict(uid=80, character_id=42, kind=0),
+            ],
+            "builds": {2: {"equipment": equipment.hex()}},
+        }
+        self.chest = dict(
+            id=CID,
+            capacity=10,
+            compartments=[dict(id=CID, capacity=10, offset=0)],
+        )
+
+    def request(self, uid, quantity, slot=0):
+        return dict(compartment=CID, uid=uid, quantity=quantity, slot=slot)
+
+    def test_filter_skips_equipped_item_from_any_build_and_keeps_valid_rows(self):
+        accepted, skipped = self.deposit_requests(
+            self.character,
+            self.chest,
+            [self.request(10, 4), self.request(11, 5, slot=1)],
+        )
+        self.assertEqual(accepted, [self.request(11, 5, slot=1)])
+        self.assertEqual(skipped, [10])
+
+    def test_all_equipped_rows_become_noop_candidates(self):
+        accepted, skipped = self.deposit_requests(
+            self.character, self.chest, [self.request(10, 4)]
+        )
+        self.assertEqual(accepted, [])
+        self.assertEqual(skipped, [10])
+
+    def test_invalid_foreign_or_overspent_equipped_rows_still_reject_batch(self):
+        for request, message in (
+            (self.request(999, 1), "unavailable or foreign"),
+            (self.request(10, 5), "exceeds owned source"),
+        ):
+            with self.subTest(request=request):
+                with self.assertRaisesRegex(ValueError, message):
+                    self.deposit_requests(self.character, self.chest, [request])

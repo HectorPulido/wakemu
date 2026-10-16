@@ -118,7 +118,9 @@ def _retained_carrier_packets(fight, action_id):
     return tuple(packets)
 
 
-def current_snapshot(fight, shared, *, actor_payload, deadline_ms=None):
+def current_snapshot(
+    fight, shared, *, actor_payload, deadline_ms=None, public_pvp_duel=False
+):
     """Return a native cva bootstrap and safe current retained state packets.
 
     `actor_payload(fight, actor)` must produce the same authoritative `(stats,
@@ -128,7 +130,9 @@ def current_snapshot(fight, shared, *, actor_payload, deadline_ms=None):
     """
     if not callable(actor_payload):
         raise ValueError("Authoritative native actor serializer is required")
-    if getattr(shared, "is_duel", False):
+    if type(public_pvp_duel) is not bool:
+        raise ValueError("Invalid public PvP spectator policy")
+    if getattr(shared, "is_duel", False) and not public_pvp_duel:
         raise ValueError("Private duel snapshots are not publicly observable")
     context = getattr(shared, "join_context", None)
     if not isinstance(context, dict):

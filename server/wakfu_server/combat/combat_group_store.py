@@ -171,7 +171,11 @@ class PersistentGroups:
                     "JOIN dungeon_room_spawn_receipts s ON s.instance_id=r.instance_id "
                     "AND s.room_order=r.current_room WHERE r.instance_id=g.instance_id "
                     "AND r.status='active' AND s.asset_map_id=g.map_id "
-                    "AND s.group_id=g.group_id)) ORDER BY g.group_id",
+                    "AND s.group_id=g.group_id)) AND ("
+                    "NOT EXISTS (SELECT 1 FROM objectives_challenge_runs c WHERE c.instance_id=g.instance_id) "
+                    "OR EXISTS (SELECT 1 FROM objectives_challenge_runs c WHERE c.instance_id=g.instance_id "
+                    "AND c.map_id=g.map_id AND c.group_id=g.group_id AND c.status='available' "
+                    "AND c.returned_at IS NULL)) ORDER BY g.group_id",
                     (map_id, instance_id),
                 )
             ]
@@ -256,6 +260,16 @@ class PersistentGroups:
                 raise ValueError("Only defeated groups can respawn")
             if row.get("ecology_admin_removed_ids"):
                 raise ValueError("Administratively removed groups cannot respawn")
+            if db.execute(
+                "SELECT 1 FROM objectives_challenge_runs WHERE map_id=%s "
+                "AND instance_id=%s AND group_id=%s",
+                key,
+            ).fetchone():
+                raise ValueError("Finite challenge groups cannot respawn")
+            from wakfu_server.objectives.hunts import is_hunt
+
+            if is_hunt(db, key):
+                raise ValueError("Finite public hunt groups cannot respawn")
             db.execute(
                 "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,revision=revision+1,defeated_at=NULL WHERE map_id=%s AND instance_id=%s AND group_id=%s",
                 key,

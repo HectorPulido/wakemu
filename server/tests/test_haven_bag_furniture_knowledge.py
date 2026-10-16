@@ -37,6 +37,9 @@ class Store:
             self.items, self.refs, self.receipts = before
             raise
 
+    def now(self):
+        return 0
+
     def lock_character(self, db, account, generation, character):
         if (account, generation, character) != (7, 11, 42):
             raise ValueError("Invalid session")
@@ -50,6 +53,20 @@ class Store:
 
     def execute(self, sql, args=()):
         sql = " ".join(sql.split())
+        if sql.startswith("SELECT character_id FROM sessions"):
+            return Result([{"character_id": 42}] if args[:2] == (7, 11) else [])
+        if sql.startswith("SELECT id FROM characters"):
+            return Result([{"id": 42}] if args == (42, 7) else [])
+        if sql.startswith("SELECT uid,character_id FROM inventory_items"):
+            return Result(
+                [
+                    dict(uid=uid, character_id=self.items[uid]["character_id"])
+                    for uid in args[0]
+                    if uid in self.items
+                ]
+            )
+        if sql.startswith("SELECT 1 FROM account_hero_slots"):
+            return Result()
         if sql.startswith("SELECT id FROM accounts"):
             return Result([{"id": 7}])
         if sql.startswith("SELECT * FROM furniture_learning_receipts"):

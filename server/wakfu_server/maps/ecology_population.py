@@ -79,7 +79,9 @@ def snapshot(
     groups = (
         db.execute(
             "SELECT members FROM combat_groups WHERE map_id=%s AND instance_id=%s "
-            "AND status!='defeated'",
+            "AND status!='defeated' AND NOT EXISTS(SELECT 1 FROM objectives_public_hunts h "
+            "WHERE h.map_id=combat_groups.map_id AND combat_groups.instance_id=0 "
+            "AND h.group_id=combat_groups.group_id)",
             (map_id, instance_id),
         )
         if "monster" in kinds

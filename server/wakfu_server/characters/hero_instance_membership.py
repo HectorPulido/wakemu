@@ -47,6 +47,13 @@ def _rift_destination(character, run):
 def reconcile(db, store, account_id, generation, leader, hero, *, joining):
     """Called inside the roster transaction, before slot mutation is committed."""
     from wakfu_server.characters.heroes import _outside_combat
+    from wakfu_server.objectives.challenges import is_challenge_instance
+
+    if any(is_challenge_instance(member["instance_id"]) for member in (leader, hero)):
+        # The attempt captures its competitors and each return position before
+        # entry. A roster mutation would admit an unranked helper or strand a
+        # newly activated hero without a return receipt.
+        raise ValueError("Leave the weekly challenge before changing active heroes")
 
     if joining:
         foreign = db.execute(

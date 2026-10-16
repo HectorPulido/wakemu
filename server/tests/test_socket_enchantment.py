@@ -11,6 +11,7 @@ from wakfu_server.socket_enchantment import (
     _native_pattern_matches,
 )
 from wakfu_server.wire import proto_field, proto_fields
+from wakfu_server.characters import heroes
 
 
 def socket_blob(*, color=1, charges=0, sublimation=0):
@@ -139,6 +140,27 @@ class SocketEnchantmentTests(PostgresCase):
                 ),
                 1,
             )
+
+    def test_socket_mutation_resolves_active_hero_uid_from_selected_main(self):
+        main = self.store.create_character(self.account, "Socket Main")
+        self.store.select_character(self.account, self.generation, main["id"])
+        heroes.add(
+            self.store, self.account, self.generation, main["id"], self.char["id"]
+        )
+
+        result = mutate(
+            self.store,
+            self.account,
+            self.generation,
+            main["id"],
+            12365,
+            struct.pack(">qBq", self.target["uid"], 0, self.sacrifice["uid"]),
+        )
+
+        self.assertEqual(result["character_id"], self.char["id"])
+        self.assertEqual(
+            self.store.character(self.account, main["id"])["inventory_items"], []
+        )
 
     def test_bonus_response_failure_rolls_back_shards_state_fee_and_receipt(self):
         from unittest.mock import patch
@@ -378,9 +400,15 @@ class SocketEnchantmentTests(PostgresCase):
         body = struct.pack(">qB", self.target["uid"], 1) + struct.pack(
             ">Bii", 0, 27097, 1
         )
-        first = install_bonus(
-            self.store, self.account, self.generation, self.char["id"], body
+        main = self.store.create_character(self.account, "Socket Bonus Main")
+        self.store.select_character(self.account, self.generation, main["id"])
+        heroes.add(
+            self.store, self.account, self.generation, main["id"], self.char["id"]
         )
+        first = install_bonus(
+            self.store, self.account, self.generation, main["id"], body
+        )
+        self.assertEqual(first["character_id"], self.char["id"])
         slot_blob = dict(proto_fields(first["shard_state"]))[10]
         slot = dict(proto_fields(slot_blob))
         self.assertEqual((slot[88], slot[112]), (27097, 1))
@@ -405,7 +433,7 @@ class SocketEnchantmentTests(PostgresCase):
                 1,
             )
         retry = install_bonus(
-            self.store, self.account, self.generation, self.char["id"], body
+            self.store, self.account, self.generation, main["id"], body
         )
         self.assertFalse(retry["applied"])
         with self.store.connection() as db:

@@ -95,4 +95,6 @@ def snapshot_characteristics(actor):
                     f"effective={current} minimum={effective_minimum} maximum={effective}"
                 )
         out.append(struct.pack(">Biiii", identity, wire_current, minimum, maximum, pct))
-    return struct.pack(">H", len(out)) + b"".join(out)
+    from .combat_characteristic_order import health_dependency_order
+
+    return health_dependency_order(struct.pack(">H", len(out)) + b"".join(out))

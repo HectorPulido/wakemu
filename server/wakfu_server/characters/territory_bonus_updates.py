@@ -236,9 +236,9 @@ class RegionalBonusUpdates:
         bonuses = dict(snapshot.regions.get(region, {}))
         if character.get("_published_territory_stat_bonuses") == bonuses:
             return []
-        from wakfu_server.territory_bonuses import world_packet
+        from wakfu_server.territory_bonuses import world_packets
 
-        packet = world_packet(dict(character, territory_stat_bonuses=bonuses))
+        packets = world_packets(dict(character, territory_stat_bonuses=bonuses))
         if not self._fence(character, generation, peer):
             return []
         fingerprint = tuple(
@@ -258,10 +258,10 @@ class RegionalBonusUpdates:
                 snapshot,
                 fingerprint,
                 bonuses,
-                (packet,),
+                packets,
                 region,
             )
-        return [packet]
+        return list(packets)
 
     def acknowledge(self, character, generation, peer, packets):
         """Commit only an exact successfully sent batch for the captured lease."""
@@ -280,13 +280,11 @@ class RegionalBonusUpdates:
                 return False
         if snapshot.observed_at <= character.get("_territory_context_refreshed_at", 0):
             return False
-        from wakfu_server.territory_bonuses import world_packet
+        from wakfu_server.territory_bonuses import world_packets
 
         # Sending normally stays on the owner session thread, but reject a
         # changed HP/build/equipment projection if a caller breaks that rule.
-        if (world_packet(dict(character, territory_stat_bonuses=bonuses)),) != pending[
-            3
-        ]:
+        if world_packets(dict(character, territory_stat_bonuses=bonuses)) != pending[3]:
             return False
         # The world projection method merges derived fields only. It must fence
         # the exact generation, peer and coordinates without writing sockets.

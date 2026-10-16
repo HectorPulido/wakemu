@@ -153,6 +153,10 @@ def minimal_entity(body, character):
             from wakfu_server.haven_bag import own_bag
 
             replacement = own_bag(character)
+        elif section["name"] == "INVENTORIES":
+            from wakfu_server.items.quest_inventory import section as quest_section
+
+            replacement = quest_section(character)
         elif section["name"] == "BAGS":
             from wakfu_server.inventory import bags
 
@@ -287,8 +291,11 @@ def complete_public_characteristics(payload):
             )
             row = (row[0], current, native["minimum"], maximum, 0)
         rows[row[0]] = row
-    return struct.pack(">H", len(rows)) + b"".join(
-        struct.pack(">Biiii", *row) for _, row in sorted(rows.items())
+    from wakfu_server.combat_characteristic_order import health_dependency_order
+
+    return health_dependency_order(
+        struct.pack(">H", len(rows))
+        + b"".join(struct.pack(">Biiii", *row) for _, row in sorted(rows.items()))
     )
 
 
