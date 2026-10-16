@@ -8,7 +8,7 @@ absolute progression/inventory/account unlock state; reconnect recovers that
 state without replaying grants.
 """
 from wakfu_server.achievements import rewards
-from . import completion_rewards
+from . import completion_rewards, external
 
 
 def deliver(store, account_id, generation, character_id):
@@ -40,15 +40,26 @@ def deliver(store, account_id, generation, character_id):
             is not None
         ):
             raise ValueError("Custom rewards require post-game delivery")
-        completion_rewards.materialize(db, character_id)
-        pending = db.execute(
-            "SELECT r.* FROM character_custom_task_reward_outbox r "
-            "JOIN character_custom_task_progress p USING(character_id,task_key) "
-            "WHERE r.character_id=%s AND r.delivered_at IS NULL "
-            "AND p.completed_at IS NOT NULL "
-            "ORDER BY r.task_key,r.reward_index FOR UPDATE OF r",
-            (character_id,),
-        ).fetchall()
+        external_mode = external.enabled()
+        if external_mode:
+            pending = db.execute(
+                "SELECT r.* FROM objectives_rewards r "
+                "JOIN objectives_progress p USING(character_id,definition_key,period_key) "
+                "WHERE r.character_id=%s AND r.delivered_at IS NULL "
+                "AND p.completed_at IS NOT NULL "
+                "ORDER BY r.definition_key,r.period_key,r.reward_index FOR UPDATE OF r",
+                (character_id,),
+            ).fetchall()
+        else:
+            completion_rewards.materialize(db, character_id)
+            pending = db.execute(
+                "SELECT r.* FROM character_custom_task_reward_outbox r "
+                "JOIN character_custom_task_progress p USING(character_id,task_key) "
+                "WHERE r.character_id=%s AND r.delivered_at IS NULL "
+                "AND p.completed_at IS NOT NULL "
+                "ORDER BY r.task_key,r.reward_index FOR UPDATE OF r",
+                (character_id,),
+            ).fetchall()
         packets, delivered, blocked = [], [], []
         for row in pending:
             reward = row["payload"]
@@ -65,7 +76,11 @@ def deliver(store, account_id, generation, character_id):
                 raise ValueError("Invalid custom reward entitlement payload")
             else:
                 rewards.validate(reward)
-            identity = (row["task_key"], row["reward_index"])
+            identity = (
+                (row["definition_key"], row["period_key"], row["reward_index"])
+                if external_mode
+                else (row["task_key"], row["reward_index"])
+            )
             try:
                 with db.transaction():
                     character = store.character(account_id, character_id, db)
@@ -88,13 +103,21 @@ def deliver(store, account_id, generation, character_id):
                         granted = [(12753, account_kamas_update(wallet["kamas"]))]
                     else:
                         granted = rewards.grant(db, store, character, reward)
-                    changed = db.execute(
-                        "UPDATE character_custom_task_reward_outbox "
-                        "SET delivered_at=CURRENT_TIMESTAMP WHERE character_id=%s "
-                        "AND task_key=%s AND reward_index=%s AND delivered_at IS NULL "
-                        "RETURNING reward_index",
-                        (character_id, *identity),
-                    ).fetchone()
+                    if external_mode:
+                        changed = db.execute(
+                            "UPDATE objectives_rewards SET delivered_at=CURRENT_TIMESTAMP "
+                            "WHERE character_id=%s AND definition_key=%s AND period_key=%s "
+                            "AND reward_index=%s AND delivered_at IS NULL RETURNING reward_index",
+                            (character_id, *identity),
+                        ).fetchone()
+                    else:
+                        changed = db.execute(
+                            "UPDATE character_custom_task_reward_outbox "
+                            "SET delivered_at=CURRENT_TIMESTAMP WHERE character_id=%s "
+                            "AND task_key=%s AND reward_index=%s AND delivered_at IS NULL "
+                            "RETURNING reward_index",
+                            (character_id, *identity),
+                        ).fetchone()
                     if changed is None:
                         raise ValueError("Custom reward receipt changed while locked")
             except rewards.RewardCapacity:

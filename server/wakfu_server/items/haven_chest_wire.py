@@ -45,7 +45,7 @@ class _Reader:
 def decode_deposit(body):
     reader = _Reader(body)
     (count,) = reader.number("h")
-    if not 1 <= count <= 16:
+    if not 1 <= count <= 32767:
         raise ValueError("Invalid deposit group count")
     result, used = [], set()
     for _ in range(count):
@@ -55,8 +55,9 @@ def decode_deposit(body):
             raise ValueError("Invalid deposit item count")
         for _ in range(rows):
             uid, slot, quantity = reader.number("qhh")
-            # Native quick transfer splits one UID across explicit target slots.
-            target = (compartment, slot, uid if slot == -1 else None)
+            # Native bmH quick transfer can split one source across slots and
+            # merge distinct source UIDs into the same compatible target.
+            target = (compartment, slot, uid)
             if uid <= 0 or target in used or slot < -1 or quantity <= 0:
                 raise ValueError("Invalid or duplicate chest deposit")
             used.add(target)
@@ -101,6 +102,44 @@ def decode_withdraw(body):
     return actor, result
 
 
+def decode_relocate(body):
+    """13050/cqh with foT rows; FF destination identity means source tab."""
+    reader = _Reader(body)
+    compartment = reader.string()
+    (count,) = reader.number("h")
+    if not 1 <= count <= 32767:
+        raise ValueError("Invalid chest relocation count")
+    result, used = [], set()
+    for _ in range(count):
+        slot, quantity = reader.number("hh")
+        (length,) = reader.number("b")
+        if length == -1:
+            destination_compartment = compartment
+        elif 1 <= length <= 64:
+            try:
+                destination_compartment = reader.take(length).decode("ascii")
+            except UnicodeDecodeError as error:
+                raise ValueError("Invalid chest relocation identity") from error
+        else:
+            raise ValueError("Invalid chest relocation identity")
+        (destination,) = reader.number("i")
+        key = (slot, destination_compartment, destination)
+        if slot < 0 or quantity <= 0 or destination < 0 or key in used:
+            raise ValueError("Invalid or duplicate chest relocation")
+        used.add(key)
+        result.append(
+            dict(
+                compartment=compartment,
+                slot=slot,
+                quantity=quantity,
+                destination_compartment=destination_compartment,
+                destination=destination,
+            )
+        )
+    reader.finish()
+    return result
+
+
 def _varint(value):
     if type(value) is not int or value < 0:
         raise ValueError("Invalid chest protobuf integer")
@@ -141,18 +180,33 @@ def bootstrap(chest):
     capacity = chest["capacity"]
     if type(capacity) is not int or not 1 <= capacity <= 32767:
         raise ValueError("Invalid chest capacity")
-    if any(entry["slot"] >= capacity for entry in chest["items"]):
+    if any(
+        type(entry["slot"]) is not int or not 0 <= entry["slot"] < capacity
+        for entry in chest["items"]
+    ):
         raise ValueError("Chest item exceeds capacity")
-    compartment = (
-        _blob(1, chest["id"].encode("ascii"))
-        + _scalar(2, chest["account_id"])
-        + _blob(3, b"Haven chest")
-        + _scalar(5, 0)
-        + _scalar(7, capacity)
-        + _scalar(8, 0)
-        + _blob(9, item_list(chest["items"]))
-    )
-    return 318, struct.pack(">hI", 1, len(compartment)) + compartment + b"\x01"
+    from .haven_chest_layout import compartments
+
+    encoded = []
+    for tab in compartments(chest):
+        offset = tab["offset"]
+        entries = [
+            dict(entry, slot=entry["slot"] - offset)
+            for entry in chest["items"]
+            if offset <= entry["slot"] < offset + tab["capacity"]
+        ]
+        name = "Haven chest" if tab["index"] == 0 else f"Haven chest {tab['index'] + 1}"
+        compartment = (
+            _blob(1, tab["id"].encode("ascii"))
+            + _scalar(2, chest["account_id"])
+            + _blob(3, name.encode("ascii"))
+            + _scalar(5, tab["index"])
+            + _scalar(7, tab["capacity"])
+            + _scalar(8, 0)
+            + _blob(9, item_list(entries))
+        )
+        encoded.append(struct.pack(">I", len(compartment)) + compartment)
+    return 318, struct.pack(">h", len(encoded)) + b"".join(encoded) + b"\x01"
 
 
 def contents(chest):
@@ -160,15 +214,30 @@ def contents(chest):
 
     This is a delta codec. Use action_result() to acknowledge snapshot responses.
     """
-    identity = chest["id"].encode("ascii")
-    blob = item_list(chest["items"])
-    return (
-        13929,
-        struct.pack(">hB", 1, len(identity))
-        + identity
-        + struct.pack(">I", len(blob))
-        + blob,
-    )
+    from .haven_chest_layout import compartments
+
+    if any(
+        type(entry["slot"]) is not int or not 0 <= entry["slot"] < chest["capacity"]
+        for entry in chest["items"]
+    ):
+        raise ValueError("Chest item exceeds capacity")
+    encoded = []
+    for tab in compartments(chest):
+        identity = tab["id"].encode("ascii")
+        offset = tab["offset"]
+        entries = [
+            dict(entry, slot=entry["slot"] - offset)
+            for entry in chest["items"]
+            if offset <= entry["slot"] < offset + tab["capacity"]
+        ]
+        blob = item_list(entries)
+        encoded.append(
+            struct.pack(">B", len(identity))
+            + identity
+            + struct.pack(">I", len(blob))
+            + blob
+        )
+    return 13929, struct.pack(">h", len(encoded)) + b"".join(encoded)
 
 
 def action_result(*, rejected=False):

@@ -13,7 +13,7 @@ import struct
 
 from wakfu_server.wire import proto_field, proto_fields
 
-from .inventory_items import _lease
+from .inventory_owner import lock_item_owner
 from .inventory_shards import validate
 
 # Native bqI counts inventory reference 27083 for the common shard reserve.
@@ -342,6 +342,7 @@ def _published_state(
     character = store.character(account_id, character_id, db)
     packet = synchronization(character)
     result = dict(
+        character_id=character_id,
         uid=uid,
         operation=operation,
         shard_state=state,
@@ -433,7 +434,9 @@ def mutate(
         raise ValueError("Native sublimation action/opcode mismatch")
     randbelow = secrets.randbelow if randbelow is None else randbelow
     with store.connection() as db, ExitStack() as mutation_scopes:
-        _lease(store, db, account_id, generation, character_id)
+        character_id = lock_item_owner(
+            store, db, account_id, generation, character_id, [uid]
+        )
         from wakfu_server.item_mutation import refresh_equipment_after_mutation
 
         mutation_scopes.enter_context(
@@ -753,7 +756,9 @@ def install_bonus(store, account_id, generation, character_id, body):
     """
     target_uid, updates = _decode_bonus_install(body)
     with store.connection() as db, ExitStack() as mutation_scopes:
-        _lease(store, db, account_id, generation, character_id)
+        character_id = lock_item_owner(
+            store, db, account_id, generation, character_id, [target_uid]
+        )
         from wakfu_server.item_mutation import refresh_equipment_after_mutation
 
         mutation_scopes.enter_context(
@@ -907,6 +912,7 @@ def install_bonus(store, account_id, generation, character_id, body):
                 from wakfu_server.inventory_items import equipment_inventory
 
                 return dict(
+                    character_id=character_id,
                     uid=target_uid,
                     operation="install_bonus",
                     shard_state=state,
@@ -1017,6 +1023,7 @@ def install_bonus(store, account_id, generation, character_id, body):
 
         inventory_packet = synchronization(character)
         publication = dict(
+            character_id=character_id,
             uid=target_uid,
             operation="install_bonus",
             shard_state=state,

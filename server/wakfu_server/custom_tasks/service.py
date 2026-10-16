@@ -41,6 +41,15 @@ def settle(db, account_id, character_id, event_key, event, definitions=None):
     Exact event replays are no-ops, conflicting facts reject even if all tasks
     are disabled. Completion and reward reservation occur only once per key.
     """
+    from . import external
+
+    if external.enabled():
+        payload, _ = engine.event_signature(event)
+        if event_key != engine.canonical_event_key(payload):
+            raise ValueError(
+                "Custom task event key does not match canonical source identity"
+            )
+        return external.enqueue_fact(db, account_id, character_id, event_key, payload)
     rules = _definitions(db, definitions)
     catalog.text(event_key, 256)
     payload, signature = engine.event_signature(event)
@@ -103,14 +112,18 @@ def settle(db, account_id, character_id, event_key, event, definitions=None):
     return {"replayed": False, "updated": updated, "completed": completed}
 
 
-def snapshot(db, account_id, character_id, definitions=None):
+def snapshot(db, account_id, character_id, definitions=None, *, section=None, page=1):
     """Read an owned view, hiding disabled tasks without deleting earned history.
 
     This is server-owned data for an in-game presenter; it does not alter the
     installed native achievement/mission catalog or send a journal packet.
     """
-    rules = _definitions(db, definitions)
+    from . import external
+
     _owner(db, account_id, character_id, False)
+    if external.enabled():
+        return external.snapshot(db, character_id, section=section, page=page)
+    rules = _definitions(db, definitions)
     rows = db.execute(
         "SELECT * FROM character_custom_task_progress WHERE character_id=%s",
         (character_id,),

@@ -438,6 +438,9 @@ class Store:
         from wakfu_server.inventory_items import load as load_items
 
         result["inventory_items"] = load_items(db, character_id)
+        from wakfu_server.items.quest_inventory import load as load_quest_items
+
+        result["quest_items"] = load_quest_items(db, character_id)
         from wakfu_server.characters.exploration_secrets import load as load_secrets
 
         result["exploration_secrets"] = load_secrets(db)
@@ -944,6 +947,19 @@ class Store:
 
     def transition_map(self, account_id, generation, character_id, source, destination):
         """Compare-and-set an owned world location without reviving stale sessions."""
+        with self.connection() as db:
+            return self.transition_map_in_transaction(
+                db, account_id, generation, character_id, source, destination
+            )
+
+    def transition_map_in_transaction(
+        self, db, account_id, generation, character_id, source, destination
+    ):
+        """Share a normal map transition with an authenticated action receipt."""
+        from psycopg.pq import TransactionStatus
+
+        if db.info.transaction_status != TransactionStatus.INTRANS:
+            raise ValueError("Map transitions require an active transaction")
         keys = ("map_id", "instance_id", "x", "y", "z")
         if any(type(destination.get(key)) is not int for key in keys):
             raise ValueError("Invalid map destination")
@@ -959,23 +975,22 @@ class Store:
             or destination["instance_id"] >= (1 << 63)
         ):
             raise ValueError("Invalid map destination")
-        with self.connection() as db:
-            db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
-            self.lock_character(db, account_id, generation, character_id)
-            current = self.character(account_id, character_id, db)
-            if any(current[key] != source[key] for key in keys):
-                raise ValueError("Map origin is desynchronized")
-            db.execute(
-                "UPDATE characters SET map_id=%s,instance_id=%s,x=%s,y=%s,z=%s WHERE id=%s",
-                (*[destination[key] for key in keys], character_id),
-            )
-            from wakfu_server.characters.heroes import follow_main
+        db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
+        self.lock_character(db, account_id, generation, character_id)
+        current = self.character(account_id, character_id, db)
+        if any(current[key] != source[key] for key in keys):
+            raise ValueError("Map origin is desynchronized")
+        db.execute(
+            "UPDATE characters SET map_id=%s,instance_id=%s,x=%s,y=%s,z=%s WHERE id=%s",
+            (*[destination[key] for key in keys], character_id),
+        )
+        from wakfu_server.characters.heroes import follow_main
 
-            follow_main(db, self, account_id, generation, character_id)
-            from wakfu_server.characters.dungeon_modulation_health import reconcile
+        follow_main(db, self, account_id, generation, character_id)
+        from wakfu_server.characters.dungeon_modulation_health import reconcile
 
-            reconcile(self, db, [character_id])
-            return self.character(account_id, character_id, db)
+        reconcile(self, db, [character_id])
+        return self.character(account_id, character_id, db)
 
     def account_kamas(self, account_id):
         from wakfu_server.combat_rewards import wallet

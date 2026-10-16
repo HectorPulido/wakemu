@@ -38,7 +38,7 @@ class DungeonModulationPublicationTests(unittest.TestCase):
             result = publication.packets(self.character, self.fixture)
         self.assertEqual(
             [opcode for opcode, _ in result],
-            [12393, 12103, 12996, 13811, 13046, 12436],
+            [12393, 12103, 12996, 13811, 13046, 12436, 13811, 12436],
         )
         self.assertEqual(
             result[1][1],
@@ -49,6 +49,9 @@ class DungeonModulationPublicationTests(unittest.TestCase):
             struct.pack(">qI", 7, len(b"fresh-build-set")) + b"fresh-build-set",
         )
         self.assertEqual(result[3][1], struct.pack(">qb", 7, 127))
+        self.assertEqual(result[-3][0], 12436)
+        self.assertEqual(result[-2], result[3])
+        self.assertEqual(result[-1], result[-3])
         owned.assert_not_called()
         sheets.assert_called_once_with(b"sheets", (self.character,))
         aptitudes.assert_called_once_with(self.character)
@@ -77,7 +80,7 @@ class DungeonModulationPublicationTests(unittest.TestCase):
         self.assertNotIn(12666, [opcode for opcode, _ in packets])
         self.assertEqual(
             [opcode for opcode, _ in packets],
-            [12393, 12103, 12996, 13811, 13046, 12436],
+            [12393, 12103, 12996, 13811, 13046, 12436, 13811, 12436],
         )
 
     def test_restored_owned_selection_uses_identical_publication_path(self):
@@ -139,5 +142,9 @@ class DungeonModulationPublicationTests(unittest.TestCase):
         ):
             result = publication.packets(self.character, self.fixture, owned_hero=True)
         self.assertEqual(result[0], (12093, b"hero"))
+        self.assertEqual(
+            [opcode for opcode, _ in result],
+            [12093, 12393, 13811, 13046, 12436, 13811, 12436],
+        )
         activate.assert_called_once_with(self.template, self.character)
         main.assert_not_called()

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="dark">
+  <title>Wakemu · Adventures</title>
+  <link rel="stylesheet" href="/player/adventures.css">
+  <script src="/player/adventures.js" defer></script>
+</head>
+<body>
+  <main class="adventures" aria-label="Adventures">
+    <header class="masthead">
+      <div class="brand">Adventures <span id="week" class="week"></span></div>
+      <nav class="tabs" role="tablist" aria-label="Adventure sections">
+        <button class="tab selected" id="tab-board" type="button" role="tab" aria-selected="true" aria-controls="panel-board" data-tab="board"><span aria-hidden="true">⌖</span> <span>Board</span></button>
+        <button class="tab" id="tab-pvp" type="button" role="tab" aria-selected="false" aria-controls="panel-pvp" tabindex="-1" data-tab="pvp"><span aria-hidden="true">⚔</span> <span>PvP</span></button>
+        <button class="tab" id="tab-achievements" type="button" role="tab" aria-selected="false" aria-controls="panel-achievements" tabindex="-1" data-tab="achievements"><span aria-hidden="true">♙</span> <span>Achievements</span><span class="badge" id="achievement-badge" hidden></span></button>
+        <button class="tab" id="tab-first_steps" type="button" role="tab" aria-selected="false" aria-controls="panel-first_steps" tabindex="-1" data-tab="first_steps"><span aria-hidden="true">✧</span> <span>First steps</span><span class="badge" id="first-steps-badge" hidden></span></button>
+      </nav>
+    </header>
+    <div id="connection" class="connection" role="status" aria-live="polite">Connecting to your adventure…</div>
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <div id="fatal" class="fatal" role="alert" hidden></div>
+    <div id="panels" hidden>
+      <section class="panel" id="panel-board" role="tabpanel" aria-labelledby="tab-board" tabindex="0"></section>
+      <section class="panel" id="panel-pvp" role="tabpanel" aria-labelledby="tab-pvp" tabindex="0" hidden></section>
+      <section class="panel" id="panel-achievements" role="tabpanel" aria-labelledby="tab-achievements" tabindex="0" hidden></section>
+      <section class="panel" id="panel-first_steps" role="tabpanel" aria-labelledby="tab-first_steps" tabindex="0" hidden></section>
+    </div>
+    <footer class="player-footer"><span id="actor"></span><span id="live" hidden><i aria-hidden="true"></i> Live progress</span></footer>
+  </main>
+</body>
+</html>

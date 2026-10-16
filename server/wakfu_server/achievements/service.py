@@ -126,6 +126,42 @@ def settle(db, store, character, fight, original_monsters):
                 db, character["id"], identity, "once", reward["d"], reward
             )
         storage.store(db, character["id"], after)
+        from wakfu_server.custom_tasks.external import enqueue_fact
+
+        enqueue_fact(
+            db,
+            character["account_id"],
+            character["id"],
+            f"combat-completed:{fight.id}",
+            {
+                "kind": "combat_completed",
+                "fight_id": fight.id,
+                "fight_kind": "pve",
+                "won": True,
+                "map_id": character["map_id"],
+                "dungeon_id": event["completed_dungeon_id"],
+            },
+        )
+        if event["completed_dungeon_id"] is not None:
+            enqueue_fact(
+                db,
+                character["account_id"],
+                character["id"],
+                f"dungeon-completed:{fight.id}",
+                {
+                    "kind": "dungeon_completed",
+                    "fight_id": fight.id,
+                    "dungeon_id": event["completed_dungeon_id"],
+                },
+            )
+        for achievement_id in completed:
+            enqueue_fact(
+                db,
+                character["account_id"],
+                character["id"],
+                f"achievement-completed:{achievement_id}",
+                {"kind": "achievement_completed", "achievement_id": achievement_id},
+            )
         packets.extend(
             wire.changes(character["id"], before, after, objectives, completed, now_ms)
         )

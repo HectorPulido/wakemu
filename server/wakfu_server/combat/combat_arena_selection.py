@@ -194,6 +194,7 @@ def compact_encounter(
     minimum_dimensions=(5, 5),
     spread_opponents=False,
     automatic_cell_budget=MAX_CELL_BUDGET,
+    dimensions_include_border=False,
 ):
     """Local encounter formation on one mutually reachable native component.
 
@@ -207,6 +208,8 @@ def compact_encounter(
         raise ValueError("Automatic encounter minimum exceeds the cell budget")
     if type(spread_opponents) is not bool:
         raise ValueError("Invalid opposing formation spread policy")
+    if type(dimensions_include_border) is not bool:
+        raise ValueError("Invalid arena rectangle dimension policy")
     if (
         not isinstance(minimum_dimensions, (tuple, list))
         or len(minimum_dimensions) != 2
@@ -239,6 +242,7 @@ def compact_encounter(
         minimum_cells,
         tuple(minimum_dimensions),
         spread_opponents,
+        dimensions_include_border,
     )
     if memoize:
         with _compact_encounters_lock:
@@ -256,6 +260,7 @@ def compact_encounter(
         minimum_dimensions,
         spread_opponents,
         memoize,
+        dimensions_include_border,
     )
     if memoize:
         frozen = _freeze_compact_encounter(result)
@@ -310,6 +315,7 @@ def _select_compact_encounter(
     minimum_dimensions,
     spread_opponents,
     memoize,
+    dimensions_include_border,
 ):
     selected, ambiguous = encounter_component(geometry, origin, memoize=memoize)
     component = selected
@@ -321,7 +327,12 @@ def _select_compact_encounter(
         if automatic_size and spread_opponents
         else _preferred_originals(origin, originals, selected, cell_budget)
     )
-    target_cells = max(minimum_cells, 12 + max(12, len(originals)) + 12)
+    target_cells = max(
+        minimum_cells,
+        (1 + max(12, len(originals)) + 12)
+        if dimensions_include_border
+        else (12 + max(12, len(originals)) + 12),
+    )
     rectangle = None
     if automatic_size:
         rectangle = _rectangular_encounter(

@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 
 class ElementSelectionDispatchTests(unittest.TestCase):
-    def run_branch(self, *, fight=None, error=None, opcode=12487):
+    def run_branch(self, *, fight=None, error=None, opcode=12487, owner_id=7):
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"
         tree = ast.parse(source.read_text())
         branch = next(
@@ -44,13 +44,14 @@ class ElementSelectionDispatchTests(unittest.TestCase):
             return_value={
                 "packet": (13766, b"chosen"),
                 "uid": 31,
+                "character_id": owner_id,
                 "applied": True,
                 "status": 0,
                 "cost_kamas": 0,
             },
             side_effect=error,
         )
-        reload = Mock(return_value={"id": 7, "inventory_items": ["updated"]})
+        reload = Mock(return_value={"id": owner_id, "inventory_items": ["updated"]})
         namespace = dict(
             fight=fight,
             select_elements=select,
@@ -107,6 +108,17 @@ class ElementSelectionDispatchTests(unittest.TestCase):
                 (13078, b"owned-equipment"),
             ],
         )
+
+    def test_hero_mutation_refreshes_owner_without_switching_selected_main(self):
+        result = self.run_branch(owner_id=8)
+        result["select_elements"].assert_called_once_with(
+            result["STORE"], 5, 11, 7, b"request"
+        )
+        result["reload_inventory"].assert_called_once_with(5, 8)
+        self.assertEqual(result["character"]["id"], 7)
+        self.assertEqual(result["character"].get("inventory_items"), None)
+        self.assertEqual(result["send"].call_args_list[0].args[-2], 999)
+        self.assertEqual(result["record"].call_args.kwargs["actor_id"], 8)
 
     def test_combat_rejects_before_selection_or_inventory_change(self):
         result = self.run_branch(fight=object())

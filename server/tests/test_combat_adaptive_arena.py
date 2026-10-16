@@ -95,7 +95,7 @@ class AdaptiveArenaTests(unittest.TestCase):
             decoded["cell_flags"].count(255), decoded["width"] * decoded["height"] - 24
         )
 
-    def test_all_nine_seeded_formation_dimensions_are_selected(self):
+    def test_all_fourteen_seeded_square_sizes_have_outer_border_and_twelve_slots(self):
         from wakfu_server.combat_terrain import local_arena
 
         geometry = grid(30, 30)
@@ -118,44 +118,128 @@ class AdaptiveArenaTests(unittest.TestCase):
                 return_value={"map_id": 777},
             ),
         ):
-            for width in range(5, 8):
-                for height in range(5, 8):
-                    with self.subTest(width=width, height=height):
+            for side in range(7, 21):
+                with self.subTest(side=side):
+                    instances = []
 
-                        def formation(seed):
-                            self.assertEqual(seed, 90)
-                            instance = Mock()
-                            instance.randint.side_effect = (width, height)
-                            return instance
+                    def formation(seed):
+                        self.assertEqual(seed, 90)
+                        instance = Mock()
+                        instance.randint.return_value = side
+                        instances.append(instance)
+                        return instance
 
-                        with patch(
-                            "wakfu_server.combat_terrain.random.Random",
-                            side_effect=formation,
-                        ) as seeded_random:
-                            result = local_arena(
-                                777,
-                                90,
-                                (15, 15, 0),
-                                (16, 15, 0),
-                                variation_seed=90,
-                            )
-                        seeded_random.assert_called_once_with(90)
-                        self.assertGreaterEqual(
-                            len(result["validated_cells"]), max(width * height, 36)
+                    with patch(
+                        "wakfu_server.combat_terrain.random.Random",
+                        side_effect=formation,
+                    ) as seeded_random:
+                        result = local_arena(
+                            777,
+                            90,
+                            (15, 15, 0),
+                            (16, 15, 0),
+                            variation_seed=90,
                         )
-                        self.assertGreaterEqual(result["width"], width)
-                        self.assertGreaterEqual(result["height"], height)
-                        zones = result["placement_cells"]
-                        self.assertEqual(len(zones[0]), 12)
-                        self.assertEqual(len(zones[1]), 12)
-                        self.assertFalse(zones[0] & zones[1])
-                        self.assertFalse(
-                            (zones[0] | zones[1])
-                            & cardinal_border_cells(result["validated_cells"])
-                        )
-                        self.assertFalse(
-                            (zones[0] | zones[1]) & result["native_border_cells"]
-                        )
+                    seeded_random.assert_called_once_with(90)
+                    instances[0].randint.assert_called_once_with(7, 20)
+                    self.assertEqual((result["width"], result["height"]), (side, side))
+                    self.assertGreaterEqual(
+                        len(result["validated_cells"]),
+                        max((side - 2) ** 2, 25),
+                    )
+                    zones = result["placement_cells"]
+                    self.assertEqual(len(zones[0]), 12)
+                    self.assertEqual(len(zones[1]), 12)
+                    self.assertFalse(zones[0] & zones[1])
+                    self.assertFalse(
+                        (zones[0] | zones[1])
+                        & cardinal_border_cells(result["validated_cells"])
+                    )
+                    self.assertFalse(
+                        (zones[0] | zones[1]) & result["native_border_cells"]
+                    )
+
+    def test_random_size_draw_is_seeded_once_and_retry_repeats_exact_arena(self):
+        from wakfu_server.combat_terrain import local_arena
+
+        geometry = grid(40, 40)
+        with self.local_arena_fixtures(geometry):
+            first = local_arena(777, 90, (20, 20, 0), (21, 20, 0), variation_seed=90)
+            retry = local_arena(777, 90, (20, 20, 0), (21, 20, 0), variation_seed=90)
+        self.assertEqual(first["validated_cells"], retry["validated_cells"])
+        self.assertEqual(first["placement_cells"], retry["placement_cells"])
+        self.assertEqual(first["cell_masks"], retry["cell_masks"])
+
+    def test_random_size_range_clamps_to_budget_and_rejects_invalid_policy(self):
+        from wakfu_server.combat_terrain import local_arena
+
+        geometry = grid(20, 20)
+        with self.local_arena_fixtures(geometry):
+            with patch("wakfu_server.combat_terrain.random.Random") as seeded:
+                seeded.return_value.randint.return_value = 7
+                result = local_arena(
+                    777,
+                    1,
+                    (10, 10, 0),
+                    (11, 10, 0),
+                    variation_seed=1,
+                    size_range=(7, 20),
+                    automatic_cell_budget=49,
+                )
+                seeded.return_value.randint.assert_called_once_with(7, 7)
+                self.assertEqual((result["width"], result["height"]), (7, 7))
+            for invalid in ((6, 20), (21, 20), (7, 51), (7, 20, 21), (7, 7.0)):
+                with self.subTest(size_range=invalid), self.assertRaises(ValueError):
+                    local_arena(
+                        777,
+                        1,
+                        (10, 10, 0),
+                        (11, 10, 0),
+                        variation_seed=1,
+                        size_range=invalid,
+                    )
+
+    def test_irregular_terrain_keeps_native_cap_and_explicit_duel_dimensions_legacy(
+        self,
+    ):
+        # A large open component with a wall opening exercises the irregular
+        # crop path; the selected geometry must stay inside both native terrain
+        # and the configured area budget.
+        cells = {(x, y, 0) for x in range(40) for y in range(40) if x != 20 or y == 20}
+        edges = [
+            (cell, (cell[0] + dx, cell[1] + dy, 0))
+            for cell in cells
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+            if (cell[0] + dx, cell[1] + dy, 0) in cells
+        ]
+        geometry = {"map_id": 777, "cells": cells, "edges": edges}
+        with self.local_arena_fixtures(geometry):
+            selected = compact_encounter(
+                geometry,
+                (8, 20, 0),
+                [(9, 20, 0)],
+                minimum_cells=25,
+                minimum_dimensions=(7, 7),
+                dimensions_include_border=True,
+                automatic_cell_budget=49,
+            )
+        self.assertLessEqual(len(selected["cells"]), 49)
+        self.assertTrue(selected["cells"] <= cells)
+        self.assertEqual(
+            (selected["bounds"][2] - selected["bounds"][0] + 1)
+            * (selected["bounds"][3] - selected["bounds"][1] + 1),
+            49,
+        )
+
+        duel = compact_encounter(
+            grid(45, 45),
+            (20, 20, 0),
+            [(22, 20, 0)],
+            minimum_cells=900,
+            minimum_dimensions=(30, 30),
+            automatic_cell_budget=900,
+        )
+        self.assertEqual(len(duel["cells"]), 900)
 
     def test_corridor_falls_back_to_native_edge_slots_without_entry_failure(self):
         from wakfu_server.combat_terrain import local_arena
@@ -192,7 +276,14 @@ class AdaptiveArenaTests(unittest.TestCase):
         ]
         geometry = {"map_id": 777, "cells": cells, "edges": edges}
         with self.local_arena_fixtures(geometry):
-            result = local_arena(777, 42, (8, 10, 0), (12, 10, 0), variation_seed=12)
+            result = local_arena(
+                777,
+                42,
+                (8, 10, 0),
+                (12, 10, 0),
+                variation_seed=12,
+                minimum_dimensions=(5, 5),
+            )
 
         zones = result["placement_cells"]
         self.assertEqual(len(zones[0]), 12)

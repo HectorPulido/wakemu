@@ -4,9 +4,46 @@ from postgres_case import PostgresCase
 from wakfu_server.inventory_items import grant
 from wakfu_server.inventory_actions import destroy, use_request, RULES
 from wakfu_server.wire import proto_field
+from wakfu_server.characters import heroes
 
 
 class InventoryActionsTests(PostgresCase):
+    def test_destroy_targets_active_hero_uid_without_changing_selected_main(self):
+        store = self.store
+        account = store.register("destroy-active-hero", "local-password")["id"]
+        main = store.create_character(account, "Destroy Main")
+        hero = store.create_character(account, "Destroy Hero")
+        generation = store.begin_session(account)
+        store.select_character(account, generation, hero["id"])
+        item = grant(
+            store,
+            account,
+            generation,
+            hero["id"],
+            reference=2021,
+            quantity=2,
+            container=hero["inventory_containers"][0]["uid"],
+            slot=0,
+            allowed_references={2021},
+        )
+        store.select_character(account, generation, main["id"])
+        heroes.add(store, account, generation, main["id"], hero["id"])
+
+        result = destroy(
+            store, account, generation, main["id"], struct.pack(">q", item["uid"])
+        )
+
+        self.assertEqual(result["character"]["id"], hero["id"])
+        self.assertEqual(
+            result["packets"], [(12470, struct.pack(">qh", item["uid"], -2))]
+        )
+        self.assertEqual(
+            self.reopen().character(account, hero["id"])["inventory_items"], []
+        )
+        self.assertEqual(
+            self.store.character(account, main["id"])["inventory_items"], []
+        )
+
     def test_destroy_complete_stack_reconnect_and_duplicate_request(self):
         store = self.store
         account = store.register("destroy-owner", "local-password")["id"]

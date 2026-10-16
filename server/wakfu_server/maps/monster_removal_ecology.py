@@ -56,6 +56,26 @@ def finish(
         != (generation, fight_id, revision)
     ):
         return {"applied": False, "packets": [], "receipts": []}
+    # Dedicated challenge actors are finite, owned encounter resources. They
+    # must never change public ecological population, affinity or birth quotas.
+    challenge = db.execute(
+        "SELECT attempt_id FROM objectives_challenge_runs WHERE map_id=%s "
+        "AND instance_id=%s AND group_id=%s",
+        key,
+    ).fetchone()
+    if challenge is not None:
+        applied = groups.finish(lease, defeated=defeated, db=db)
+        return {"applied": applied, "packets": [], "receipts": []}
+    # Public hunts are finite event actors, not ecological breeding stock.
+    # Their authoritative group lease settles account rewards in this transaction.
+    from wakfu_server.objectives import hunts
+
+    if hunts.is_hunt(db, key):
+        hunts.settle_group(db, key, fight_id, defeated)
+        applied = groups.finish(lease, defeated=defeated, db=db)
+        if not applied:
+            raise ValueError("Public hunt group lease changed during settlement")
+        return {"applied": True, "packets": [], "receipts": []}
     evaluations = []
     unresolved = False
     if defeated:

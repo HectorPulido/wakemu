@@ -26,6 +26,7 @@ def pending(store, account_id, character):
         character,
         inventory_containers=saved["inventory_containers"],
         inventory_items=saved["inventory_items"],
+        quest_items=saved.get("quest_items", []),
         kamas=balance,
     )
     purchased = {order["item_uid"] for order in orders}
@@ -34,6 +35,9 @@ def pending(store, account_id, character):
         for item in refreshed["inventory_items"]
         if item["uid"] in purchased
     ]
+    from wakfu_server.items.quest_inventory import changes as quest_changes
+
+    packets.extend(quest_changes(character, refreshed))
     packets.extend(
         [
             synchronization(refreshed),

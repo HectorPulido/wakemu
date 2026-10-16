@@ -445,6 +445,14 @@ def _answer_challenge_inner(
         prepared, rollback = prepare_duel(db, fight_id, row, source, recipient)
         if not callable(rollback):
             raise ValueError("Duel runtime preparation must provide rollback")
+        from wakfu_server.custom_tasks.external import enabled as objectives_enabled
+
+        if objectives_enabled():
+            from wakfu_server.objectives.pvp import mark_fight_started
+
+            mark_fight_started(
+                db, fight_id, a[0], a[1], b[0], b[1], fight=prepared.get("fight")
+            )
         return {
             "accepted": True,
             "fight_id": fight_id,
@@ -696,6 +704,33 @@ def settle(
             or outcome["loser_character_id"] != loser
         ):
             raise ValueError("Conflicting friendly duel result replay")
+        from wakfu_server.custom_tasks.external import enabled as objectives_enabled
+
+        if objectives_enabled():
+            from wakfu_server.objectives.pvp import record_result
+
+            record_result(db, candidate.id, winner, loser, reason, fight=candidate)
+        from wakfu_server.custom_tasks.external import enqueue_fact
+
+        for member in members:
+            identity = member["character_id"]
+            opponent = loser if member["team"] == candidate.winner else winner
+            enqueue_fact(
+                db,
+                member["account_id"],
+                identity,
+                f"pvp-completed:{candidate.id}",
+                {
+                    "kind": "pvp_completed",
+                    "fight_id": candidate.id,
+                    "fight_kind": "duel",
+                    "won": member["team"] == candidate.winner,
+                    "reason": reason,
+                    "map_id": duel["map_id"],
+                    "opponent_character_id": opponent,
+                    "same_account": actors[winner].owner_id == actors[loser].owner_id,
+                },
+            )
         # Deliberately no fight_rewards, kamas, drop, or ecology writes here.
         return {
             "fight_id": candidate.id,

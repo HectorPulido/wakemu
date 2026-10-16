@@ -20,6 +20,11 @@ def grant(db, character, reference, quantity):
         or not 1 <= quantity <= 32767
     ):
         raise ValueError("Invalid harvest product")
+    from . import quest_inventory
+
+    if reference in quest_inventory.REFERENCES:
+        item = quest_inventory.grant(db, character["id"], reference, quantity)
+        return dict(item=item, packet=item["quest_packet"])
     rule = STACKS.get(reference)
     if rule is None or quantity > rule["maximum"]:
         raise ValueError("Unsupported native harvest stack quantity")

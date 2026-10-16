@@ -103,6 +103,9 @@ def actor_stats(
         )
     else:
         stats = characteristics_payload
+    from .combat_characteristic_order import health_dependency_order
+
+    stats = health_dependency_order(stats)
     position = struct.pack(
         ">iihqBB",
         character["x"],
@@ -178,6 +181,9 @@ def monster_actor_stats(
         )
     else:
         stats = characteristics_payload
+    from .combat_characteristic_order import health_dependency_order
+
+    stats = health_dependency_order(stats)
     position = struct.pack(
         ">iihqBB", actor["x"], actor["y"], actor["z"], actor["map_id"], direction, 0
     )

@@ -417,13 +417,22 @@ def recycle(store, account_id, generation, character_id, body, *, fight=None, rn
     random_draw = secrets.SystemRandom().random if rng is None else rng
 
     with store.connection() as db:
-        store.lock_character(db, account_id, generation, character_id)
+        from .inventory_owner import (
+            InventoryItemOwnershipError,
+            lock_inventory_character,
+            lock_item_owner,
+        )
+
+        lock_inventory_character(store, db, account_id, generation, character_id)
         prior = db.execute(
-            "SELECT * FROM item_recycling_receipts WHERE account_id=%s AND character_id=%s "
+            "SELECT * FROM item_recycling_receipts WHERE account_id=%s "
             "AND request_hash=%s",
-            (account_id, character_id, digest),
+            (account_id, digest),
         ).fetchone()
         if prior is not None:
+            character_id = lock_inventory_character(
+                store, db, account_id, generation, prior["character_id"]
+            )
             if prior["request_uids"] != uids:
                 raise ValueError("Recycling receipt hash collision")
             character = store.character(account_id, character_id, db)
@@ -437,6 +446,14 @@ def recycle(store, account_id, generation, character_id, body, *, fight=None, rn
                 receipt=dict(prior),
             )
 
+        try:
+            character_id = lock_item_owner(
+                store, db, account_id, generation, character_id, uids
+            )
+        except InventoryItemOwnershipError as error:
+            raise ValueError(
+                "Recycling selection contains a foreign or missing item"
+            ) from error
         if (
             db.execute(
                 "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "

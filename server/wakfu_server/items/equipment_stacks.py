@@ -66,10 +66,10 @@ def ensure_singleton(db, character_id, uid):
 
 
 def normalize(db, character_id, *, uids=None):
-    """Preserve original UIDs, options and full-bag remainders atomically.
+    """Repair identified legacy stacks without splitting unidentified equipment.
 
-    The caller owns the character write lock. Only ordinary inventory bags are
-    used; a full inventory retains every unit in its original stack.
+    The caller owns the character write lock. Ordinary native stacks remain
+    intact until an action identifies or equips one unit.
     """
     from .equipment import RULES
     from .inventory_uids import allocate
@@ -80,6 +80,23 @@ def normalize(db, character_id, *, uids=None):
             (character_id,),
         )
     )
+    if uids is None:
+        identities = [item["uid"] for item in items]
+        uids = {
+            row["uid"]
+            for row in db.execute(
+                "SELECT uid FROM inventory_item_shards WHERE uid=ANY(%s)",
+                (identities,),
+            )
+        }
+        uids.update(
+            row["uid"]
+            for row in db.execute(
+                "SELECT uid FROM inventory_item_elements WHERE uid=ANY(%s) "
+                "AND (damage_elements<>0 OR resistance_elements<>0)",
+                (identities,),
+            )
+        )
     occupied = {(row["container"], row["slot"]) for row in items}
     free = [
         (bag["uid"], slot)
@@ -137,4 +154,17 @@ def for_sheet(db, character_id, blob):
         for tag, value in proto_fields(blob)
         if tag == 10 and isinstance(value, bytes)
     }
-    return normalize(db, character_id, uids=uids) if uids else []
+    if any(type(uid) is not int or uid <= 0 for uid in uids):
+        raise ValueError("Invalid equipment sheet item UID")
+    changed = []
+    for uid in sorted(uids):
+        item = db.execute(
+            "SELECT quantity FROM inventory_items WHERE uid=%s AND character_id=%s",
+            (uid, character_id),
+        ).fetchone()
+        if item is None:
+            raise ValueError("Equipment sheet item is unavailable or foreign")
+        if item["quantity"] > 1:
+            ensure_singleton(db, character_id, uid)
+            changed.append(uid)
+    return changed

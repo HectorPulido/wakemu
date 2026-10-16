@@ -169,6 +169,11 @@ def evaluate(
                     None if character is None else character.get("inventory_items"),
                     args,
                 )
+                from wakfu_server.items.quest_inventory import (
+                    quantity as quest_quantity,
+                )
+
+                quantity += quest_quantity(character, args)
                 # Native eKE counts bag/character quest inventory first and
                 # then flX account quest quantities, preserving int32 overflow.
                 return (

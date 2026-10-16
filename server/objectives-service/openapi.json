@@ -1,0 +1,956 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Wakemu Objectives Service",
+    "version": "1.1.0",
+    "description": "Durable account objectives, assigned daily/weekly missions, public world hunts, hourly account PvP and global weekly objective-point rankings. Reusable 30-day account links follow the actual selected World character; game actions require a live eligible session."
+  },
+  "servers": [
+    {
+      "url": "http://objectives:8094"
+    },
+    {
+      "url": "http://127.0.0.1:18086",
+      "description": "Local player and service API"
+    }
+  ],
+  "security": [
+    {
+      "serviceBearer": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "serviceBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "playerBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Account-scoped player bearer from /player-api/session. Resolves the actual selected World character on every request; never use the private service token."
+      },
+      "adminCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "wakemu_admin"
+      },
+      "adminCsrf": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token"
+      }
+    },
+    "schemas": {
+      "PlayerCredential": {
+        "type": "object",
+        "required": [
+          "token",
+          "expires_at",
+          "character_id"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The original reusable link deadline; reconnects do not shorten it or extend it."
+          },
+          "character_id": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "PlayerActionReceipt": {
+        "type": "object",
+        "required": [
+          "id",
+          "action_key",
+          "status",
+          "result",
+          "created_at",
+          "completed_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action_key": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "succeeded",
+              "rejected"
+            ]
+          },
+          "result": {
+            "type": "object"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Authenticated snapshot"
+          },
+          "401": {
+            "description": "Missing or invalid bearer token"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        }
+      }
+    },
+    "/v1/definitions": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Authenticated snapshot"
+          },
+          "401": {
+            "description": "Missing or invalid bearer token"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        }
+      }
+    },
+    "/v1/progress": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Authenticated snapshot"
+          },
+          "401": {
+            "description": "Missing or invalid bearer token"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "character_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/v1/events": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Authenticated snapshot"
+          },
+          "401": {
+            "description": "Missing or invalid bearer token"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "character_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          },
+          {
+            "name": "before_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/v1/rewards": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Authenticated snapshot"
+          },
+          "401": {
+            "description": "Missing or invalid bearer token"
+          },
+          "503": {
+            "description": "Service unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "character_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          }
+        ]
+      }
+    },
+    "/v1/definitions/{key}": {
+      "put": {
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "definition",
+                  "expected_revision"
+                ],
+                "properties": {
+                  "definition": {
+                    "type": "object"
+                  },
+                  "expected_revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "operator": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated definition row"
+          },
+          "400": {
+            "description": "Invalid definition"
+          },
+          "409": {
+            "description": "Revision or immutable semantics conflict"
+          }
+        }
+      }
+    },
+    "/v1/events/{id}/retry": {
+      "post": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operator": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pending event reset and worker notified"
+          },
+          "404": {
+            "description": "No pending event"
+          }
+        }
+      }
+    },
+    "/v1/reward-policies": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Authenticated resource rows"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/challenge-profiles": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Authenticated resource rows"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/rankings": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Authenticated resource rows"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "parameters": [
+          {
+            "name": "week",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "America/Bogota Monday date"
+          },
+          {
+            "name": "bracket",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          }
+        ]
+      }
+    },
+    "/v1/reward-policies/{key}": {
+      "put": {
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "policy",
+                  "expected_revision"
+                ],
+                "properties": {
+                  "policy": {
+                    "type": "object"
+                  },
+                  "expected_revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "operator": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated resource with revision"
+          },
+          "400": {
+            "description": "Invalid resource"
+          },
+          "409": {
+            "description": "Revision conflict"
+          }
+        }
+      }
+    },
+    "/v1/challenge-profiles/{key}": {
+      "put": {
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "definition",
+                  "expected_revision"
+                ],
+                "properties": {
+                  "definition": {
+                    "type": "object"
+                  },
+                  "expected_revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "operator": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated resource with revision"
+          },
+          "400": {
+            "description": "Invalid resource"
+          },
+          "409": {
+            "description": "Revision conflict"
+          }
+        }
+      }
+    },
+    "/player-api/config": {
+      "get": {
+        "summary": "Read admitted parent origins",
+        "security": [],
+        "responses": {
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Missing or expired player credential"
+          },
+          "403": {
+            "description": "Origin is not admitted for embedding"
+          },
+          "503": {
+            "description": "Service unavailable"
+          },
+          "200": {
+            "description": "Explicit embedding origins",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "embed_origins"
+                  ],
+                  "properties": {
+                    "embed_origins": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uri"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/player-api/session": {
+      "post": {
+        "summary": "Exchange a reusable player link",
+        "security": [],
+        "responses": {
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Missing or expired player credential"
+          },
+          "403": {
+            "description": "Origin is not admitted for embedding"
+          },
+          "503": {
+            "description": "Service unavailable"
+          },
+          "200": {
+            "description": "Account player bearer and current or offline-fallback character",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerCredential"
+                }
+              }
+            }
+          }
+        },
+        "description": "New account links are reusable for 30 days, including offline and after reconnecting. Their original character is only an offline fallback; the current selected owned World character is resolved by the server. Legacy one-use links remain supported. Player credentials grant no management authority.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "token"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{43}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/player-api/adventures": {
+      "get": {
+        "summary": "Read Adventures for the link character",
+        "security": [
+          {
+            "playerBearer": []
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Missing or expired player credential"
+          },
+          "403": {
+            "description": "Origin is not admitted for embedding"
+          },
+          "503": {
+            "description": "Service unavailable"
+          },
+          "200": {
+            "description": "Player snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "actor",
+                    "connection",
+                    "sections",
+                    "ranking",
+                    "actions",
+                    "challenge",
+                    "pvp_history",
+                    "week_key",
+                    "generated_at",
+                    "completed_achievements",
+                    "hunt",
+                    "pvp"
+                  ],
+                  "properties": {
+                    "actor": {
+                      "type": "object"
+                    },
+                    "connection": {
+                      "type": "object",
+                      "required": [
+                        "online",
+                        "actions_available",
+                        "reason"
+                      ],
+                      "properties": {
+                        "online": {
+                          "type": "boolean"
+                        },
+                        "actions_available": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "sections": {
+                      "type": "object",
+                      "required": [
+                        "board",
+                        "daily",
+                        "weekly",
+                        "almanax",
+                        "achievements",
+                        "first_steps",
+                        "pvp",
+                        "missions"
+                      ],
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "object"
+                        }
+                      }
+                    },
+                    "ranking": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "challenge": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "pvp_history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "week_key": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "generated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "completed_achievements": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "hunt": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Current public-world boss/archmonster/dominant hunt, with name, level, map clue, expiry, rewards and points. Never contains a private weekly-entry action."
+                    },
+                    "pvp": {
+                      "type": "object",
+                      "required": [
+                        "current",
+                        "history"
+                      ],
+                      "properties": {
+                        "current": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "description": "At most one hourly challenge between distinct connected accounts. Character levels differ by at most 20% of the lower level, including actual effective combat rosters."
+                        },
+                        "history": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          },
+                          "description": "Completed hourly challenges showing winner and loser; unrelated friendly duels are not this history."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Account-wide progress and assigned missions, readable offline. Uses the currently selected World character when connected. Only active assignments appear as daily/weekly missions. Public hunt and the single hourly PvP event are authoritative state, not generic mission substitutes. Weekly ranking sums exactly-once objective points."
+      }
+    },
+    "/player-api/actions": {
+      "post": {
+        "summary": "Request an allowlisted game action",
+        "security": [
+          {
+            "playerBearer": []
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Missing or expired player credential"
+          },
+          "403": {
+            "description": "Origin is not admitted for embedding"
+          },
+          "503": {
+            "description": "Service unavailable"
+          },
+          "200": {
+            "description": "Existing terminal receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerActionReceipt"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Action reserved; poll its receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerActionReceipt"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Character offline, conflicting idempotency key, or pending action limit"
+          }
+        },
+        "description": "Submit a server-published key, never coordinates or commands. The server binds the request to the actual selected account character and current World generation. Reuse request_id for lost-response retries even after changing characters or reconnecting. World executes and commits the outcome; HTTP 202 is only pending. PvP meet/watch actions require the authoritative current challenge; world hunts have no teleport-to-target action.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action_key",
+                  "request_id"
+                ],
+                "properties": {
+                  "action_key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "request_id": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/player-api/actions/{id}": {
+      "get": {
+        "summary": "Read an owned action receipt",
+        "security": [
+          {
+            "playerBearer": []
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Missing or expired player credential"
+          },
+          "403": {
+            "description": "Origin is not admitted for embedding"
+          },
+          "503": {
+            "description": "Service unavailable"
+          },
+          "200": {
+            "description": "Receipt for this account and character",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerActionReceipt"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Receipt unavailable or foreign"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/api/objectives/player-launch": {
+      "servers": [
+        {
+          "url": "http://127.0.0.1:18084",
+          "description": "Local administrator"
+        }
+      ],
+      "post": {
+        "summary": "Generate a reusable player URL from the administrator",
+        "security": [
+          {
+            "adminCookie": [],
+            "adminCsrf": []
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Malformed request"
+          },
+          "403": {
+            "description": "Invalid administrator CSRF token"
+          },
+          "503": {
+            "description": "Service unavailable"
+          },
+          "401": {
+            "description": "Missing or expired administrator session"
+          },
+          "200": {
+            "description": "Reusable account-scoped player URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "url",
+                    "valid_days"
+                  ],
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "valid_days": {
+                      "type": "integer",
+                      "const": 30
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Operator endpoint on the admin service. Works for existing offline characters. Used by Open Adventures and Copy link in the character dialog.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "character_id"
+                ],
+                "properties": {
+                  "character_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

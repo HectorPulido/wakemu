@@ -40,7 +40,9 @@ class Intergame:
                 (self.store.digest(api_key),),
             ).fetchone()
             if owner is None:
-                raise PermissionError("Intergame session expired; reconnect to the game")
+                raise PermissionError(
+                    "Intergame session expired; reconnect to the game"
+                )
             require_access(db, owner["account_id"], self.store.now())
             row = db.execute(
                 "SELECT t.account_id,t.generation FROM tokens t JOIN sessions s "

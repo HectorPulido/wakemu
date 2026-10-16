@@ -134,6 +134,14 @@ def task_packages(snapshot):
             f"{escape(row['description'], quote=False)}\n{status}: {count}/{target}\n"
             f"{TASK_CLAIM_NOTICE}"
         )
+        if key in {
+            "objectives.navigation",
+            "objectives.empty",
+            "objectives.weekly.ranking",
+        }:
+            # Server navigation cards are informative, not earnable objectives.
+            title = escape(row["title"], quote=False)
+            description = escape(row["description"], quote=False)
         packages.append(GiftPackage(title, description))
     if len({package.title for package in packages}) != len(packages):
         raise ValueError("Duplicate visible custom task title")
@@ -146,3 +154,54 @@ def publication(snapshot, *, existing_packages=(), cap_reached=False):
         raise ValueError("Existing native gift packages must be explicit")
     merged = list(existing_packages) + task_packages(snapshot)
     return MESSAGE_ID, encode(merged, cap_reached=cap_reached)
+
+
+def bounded_publication(snapshot, *, existing_packages=(), cap_reached=False):
+    """Fit external projections in native gift limits; keep genuine gifts first.
+
+    The complete projection remains available through the objectives API. This
+    bound is presentation only and never drops progress, facts or entitlements.
+    """
+    packages = list(existing_packages)
+    body = encode(packages, cap_reached=cap_reached)
+    titles = {package.title for package in packages}
+    omitted = 0
+    for row in snapshot:
+        package = task_packages([row])[0]
+        if package.title in titles:
+            package = GiftPackage(
+                package.title + " [" + row["key"] + "]", package.description
+            )
+        encoded_size = len(encode([package])) - 3
+        if len(packages) >= MAX_PACKAGES or len(body) + encoded_size > MAX_BODY_BYTES:
+            omitted += 1
+            continue
+        packages.append(package)
+        titles.add(package.title)
+        body = encode(packages, cap_reached=cap_reached)
+    if omitted:
+        notice_title = "Additional objectives"
+        suffix = 2
+        while notice_title in titles:
+            notice_title = f"Additional objectives ({suffix})"
+            suffix += 1
+        while True:
+            notice = GiftPackage(
+                notice_title,
+                f"{omitted} additional objectives are available in the objectives API. "
+                "Their progress and automatic rewards remain active.",
+            )
+            notice_size = len(encode([notice])) - 3
+            if (
+                len(packages) < MAX_PACKAGES
+                and len(body) + notice_size <= MAX_BODY_BYTES
+            ):
+                packages.append(notice)
+                body = encode(packages, cap_reached=cap_reached)
+                break
+            if len(packages) <= len(existing_packages):
+                break
+            packages.pop()
+            omitted += 1
+            body = encode(packages, cap_reached=cap_reached)
+    return MESSAGE_ID, body

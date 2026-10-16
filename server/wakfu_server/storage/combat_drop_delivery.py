@@ -13,6 +13,19 @@ from psycopg.pq import TransactionStatus
 from wakfu_server.inventory_move import ACQUISITION_STACKS as STACKS
 
 
+def _identified_uids(db, items):
+    """Socket state belongs to one unit and must never absorb plain drops."""
+    uids = [item["uid"] for item in items]
+    if not uids:
+        return set()
+    return {
+        row["uid"]
+        for row in db.execute(
+            "SELECT uid FROM inventory_item_shards WHERE uid=ANY(%s)", (uids,)
+        )
+    }
+
+
 def _integer(value, name, minimum=0, maximum=(1 << 63) - 1):
     if type(value) is not int or not minimum <= value <= maximum:
         raise ValueError(f"Invalid {name}")
@@ -340,6 +353,7 @@ def apply(store, db, batch):
             ).fetchall()
         ],
     )
+    identified = _identified_uids(db, items)
     item_bindings = _binding_rows(db, items)
     for item in items:
         item["bound"] = item_bindings.get(item["uid"], False)
@@ -364,10 +378,18 @@ def apply(store, db, batch):
         remaining = entry.quantity
         selected_masks = None if selection is None else _selection_key(selection)
         inventory_quantity = 0
+        from wakfu_server.items import quest_inventory
+
+        if entry.item_reference in quest_inventory.REFERENCES:
+            quest_inventory.grant(db, character_id, entry.item_reference, remaining)
+            inventory_quantity = remaining
+            remaining = 0
         for target in sorted(by_uid.values(), key=lambda row: row["uid"]):
             if (
-                not rule["minimal_mergeable"]
+                remaining == 0
+                or not rule["minimal_mergeable"]
                 or target["uid"] in equipped
+                or target["uid"] in identified
                 or target["reference"] != entry.item_reference
                 or _effective_bound(target) != drop_bound
                 or _selection_key(target) != selected_masks
@@ -605,7 +627,7 @@ def _record_transfer(
     )
 
 
-def _bulk_self_transfer(db, character_id, rows):
+def _bulk_self_transfer(store, account_id, db, character_id, rows):
     """Move a native Get All UID selection into this same character's bags.
 
     The client sends the current actor as both cpX source and destination.
@@ -639,6 +661,8 @@ def _bulk_self_transfer(db, character_id, rows):
             ).fetchall()
         ],
     )
+    excluded = _identified_uids(db, contents)
+    excluded.update(_equipped_uids(store, account_id, character_id, db))
     bindings = _binding_rows(db, contents)
     by_container = {uid: {} for uid in container_by_uid}
     for item in contents:
@@ -670,7 +694,8 @@ def _bulk_self_transfer(db, character_id, rows):
                 for slot in sorted(by_container[container["uid"]]):
                     target = by_container[container["uid"]][slot]
                     if (
-                        target["reference"] != selected["reference"]
+                        target["uid"] in excluded
+                        or target["reference"] != selected["reference"]
                         or _effective_bound(target) != selected["bound"]
                         or masks(target) != selected_masks
                     ):
@@ -852,6 +877,8 @@ def claim(store, account_id, generation, character_id, body):
         from wakfu_server.inventory_elements import hydrate
 
         hydrated = hydrate(db, [dict(row) for row in slots])
+        excluded = _identified_uids(db, hydrated)
+        excluded.update(_equipped_uids(store, account_id, character_id, db))
         bindings = _binding_rows(db, hydrated)
         by_slot = {row["slot"]: dict(row) for row in hydrated}
         if position < -1 or position >= container["capacity"]:
@@ -871,6 +898,7 @@ def claim(store, account_id, generation, character_id, body):
             target["bound"] = bindings.get(target["uid"], False)
             compatible = (
                 rule["minimal_mergeable"]
+                and target["uid"] not in excluded
                 and target["reference"] == source["reference"]
                 and _effective_bound(target) == selected["bound"]
                 and masks(target) == selected_masks
@@ -1010,7 +1038,7 @@ def bulk_transfer(store, account_id, generation, character_id, body):
         if len(rows) != len(request["uids"]):
             raise ValueError("12294 includes a foreign or unavailable temporary UID")
         if request["destination_character"] == character_id:
-            _bulk_self_transfer(db, character_id, rows)
+            _bulk_self_transfer(store, account_id, db, character_id, rows)
             _record_transfer(db, character_id, 2, body, character_id)
             character, packets = _inventory_snapshot(
                 store, account_id, character_id, db

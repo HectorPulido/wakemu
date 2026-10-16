@@ -36,13 +36,18 @@ def learn(store, account_id, generation, character_id, body, *, kind="cosmetic")
     with store.connection() as db:
         # Account cosmetics are shared; use the same lock order as preset writers.
         db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
-        store.lock_character(db, account_id, generation, character_id)
+        from .inventory_owner import lock_inventory_character, lock_item_owner
+
+        lock_inventory_character(store, db, account_id, generation, character_id)
         prior = db.execute(
             f"SELECT * FROM {receipt_table} WHERE account_id=%s AND source_uid=%s",
             (account_id, source_uid),
         ).fetchone()
         if prior is not None:
-            if prior["action_id"] != action_id or prior["character_id"] != character_id:
+            character_id = lock_inventory_character(
+                store, db, account_id, generation, prior["character_id"]
+            )
+            if prior["action_id"] != action_id:
                 raise ValueError("Cosmetic learning receipt does not match request")
             record = load(db, account_id)
             return {
@@ -50,6 +55,9 @@ def learn(store, account_id, generation, character_id, body, *, kind="cosmetic")
                 "packets": [snapshot(record)],
                 "applied": False,
             }
+        character_id = lock_item_owner(
+            store, db, account_id, generation, character_id, (source_uid,)
+        )
         item = db.execute(
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s FOR UPDATE",
             (source_uid, character_id),
@@ -151,27 +159,44 @@ def learn_item(store, account_id, generation, character_id, body):
     if not isinstance(body, bytes) or len(body) != 12:
         raise ValueError("Item learning requires exactly 12 request bytes")
     action_id, source_uid = struct.unpack(">iq", body)
+    if action_id <= 0 or source_uid <= 0:
+        raise ValueError("Invalid item learning action or item UID")
+    from .inventory_owner import lock_inventory_character, lock_item_owner
+
+    routes = (
+        ("cosmetic", "native_cosmetic_learning_actions", "cosmetic_learning_receipts"),
+        ("title", "native_title_learning_actions", "title_learning_receipts"),
+        ("emote", "native_emote_learning_actions", "emote_learning_receipts"),
+    )
     with store.connection() as db:
-        store.lock_character(db, account_id, generation, character_id)
+        db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
+        lock_inventory_character(store, db, account_id, generation, character_id)
         row = None
-        for kind, action_table, receipt_table in (
-            (
-                "cosmetic",
-                "native_cosmetic_learning_actions",
-                "cosmetic_learning_receipts",
-            ),
-            ("title", "native_title_learning_actions", "title_learning_receipts"),
-            ("emote", "native_emote_learning_actions", "emote_learning_receipts"),
-        ):
-            candidate = db.execute(
-                f"SELECT 1 FROM {receipt_table} WHERE account_id=%s AND source_uid=%s "
-                f"UNION ALL SELECT 1 FROM inventory_items i JOIN {action_table} n "
-                "ON n.item_ref=i.reference WHERE i.uid=%s AND i.character_id=%s LIMIT 1",
-                (account_id, source_uid, source_uid, character_id),
-            ).fetchone()
-            if candidate:
+        # A successful request may already have consumed its last source unit.
+        # Dispatch by its account-owned receipt before resolving a live UID.
+        for kind, _, receipt_table in routes:
+            if db.execute(
+                f"SELECT 1 FROM {receipt_table} WHERE account_id=%s AND source_uid=%s",
+                (account_id, source_uid),
+            ).fetchone():
                 row = kind
                 break
+        furniture_receipt = db.execute(
+            "SELECT 1 FROM furniture_learning_receipts WHERE account_id=%s AND source_uid=%s",
+            (account_id, source_uid),
+        ).fetchone()
+        if row is None and furniture_receipt is None:
+            character_id = lock_item_owner(
+                store, db, account_id, generation, character_id, (source_uid,)
+            )
+            for kind, action_table, _ in routes:
+                if db.execute(
+                    f"SELECT 1 FROM inventory_items i JOIN {action_table} n "
+                    "ON n.item_ref=i.reference WHERE i.uid=%s AND i.character_id=%s",
+                    (source_uid, character_id),
+                ).fetchone():
+                    row = kind
+                    break
     if row == "emote":
         from wakfu_server.emote_learning import learn as learn_emote
 

@@ -77,21 +77,29 @@ def learn(store, account_id, generation, character_id, body):
     if action_id <= 0 or source_uid <= 0:
         raise ValueError("Invalid furniture learning action or item UID")
     with store.connection() as db:
-        store.lock_character(db, account_id, generation, character_id)
-        # Different characters of the same account share this collection.
+        # Use account -> session -> owner order for shared collections.
         db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
+        from .inventory_owner import lock_inventory_character, lock_item_owner
+
+        lock_inventory_character(store, db, account_id, generation, character_id)
         prior = db.execute(
             "SELECT * FROM furniture_learning_receipts WHERE account_id=%s AND source_uid=%s",
             (account_id, source_uid),
         ).fetchone()
         if prior is not None:
-            if prior["action_id"] != action_id or prior["character_id"] != character_id:
+            character_id = lock_inventory_character(
+                store, db, account_id, generation, prior["character_id"]
+            )
+            if prior["action_id"] != action_id:
                 raise ValueError("Furniture learning receipt does not match request")
             return {
                 "character": store.character(account_id, character_id, db),
                 "packets": [_snapshot(db, account_id)],
                 "applied": False,
             }
+        character_id = lock_item_owner(
+            store, db, account_id, generation, character_id, (source_uid,)
+        )
         item = db.execute(
             "SELECT * FROM inventory_items WHERE uid=%s AND character_id=%s FOR UPDATE",
             (source_uid, character_id),

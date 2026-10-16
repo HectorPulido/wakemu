@@ -396,6 +396,10 @@ def wander_location(
     emit(opcode,body) targets this map/instance; no session sender needed.
     Call at an explicit few-second interval, not on every server idle tick.
     """
+    from wakfu_server.objectives.challenges import is_challenge_instance
+
+    if is_challenge_instance(instance_id):
+        return []
     players = [
         p for p in players if (p["map_id"], p["instance_id"]) == (map_id, instance_id)
     ]

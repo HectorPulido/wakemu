@@ -254,10 +254,17 @@ def refresh_world(store, character: dict) -> list[tuple[int, bytes]]:
     # Serialize before changing live state so failed serialization is retried.
     # The native exploration codec uses fightID=-1 and preserves owned HP,
     # equipment, aptitudes and the selected build rather than template stats.
-    packet = world_packet(attached)
+    packets = world_packets(attached)
     character["territory_stat_bonuses"] = bonuses
     character["_published_territory_stat_bonuses"] = dict(bonuses)
-    return [packet]
+    return list(packets)
+
+
+def world_packets(character: dict) -> tuple[tuple[int, bytes], ...]:
+    """Synchronize bounds, native HUD bindings and exploration resources."""
+    from wakfu_server.characters.world_characteristic_publication import packets
+
+    return packets(character, world_packet(character))
 
 
 def world_packet(character: dict) -> tuple[int, bytes]:

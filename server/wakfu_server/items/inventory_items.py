@@ -73,6 +73,15 @@ def grant(
         raise ValueError("Invalid owned item grant")
     with store.connection() if db is None else nullcontext(db) as db:
         _lease(store, db, account_id, generation, character_id)
+        from . import quest_inventory
+
+        if reference in quest_inventory.REFERENCES:
+            from .inventory_uids import allocate
+
+            result = quest_inventory.grant(db, character_id, reference, quantity)
+            # A shop receipt has an opaque purchase identity, not a bag unit.
+            result["uid"] = allocate(db)
+            return result
         mount_model = db.execute(
             "SELECT model_id FROM mount_models WHERE reference=%s", (reference,)
         ).fetchone()
@@ -219,6 +228,8 @@ def item_form(item):
 
 
 def insertion(item, *, notification=False):
+    if item.get("quest_item"):
+        return item["quest_packet"]
     proto = item_proto(item)
     return (
         12471,

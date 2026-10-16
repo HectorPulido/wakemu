@@ -6,7 +6,7 @@ module only accepts masks supported by the item's verified elemental effects.
 from contextlib import ExitStack
 import struct
 
-from wakfu_server.inventory_items import _lease
+from .inventory_owner import lock_item_owner
 from wakfu_server.equipment_stats import CATALOG
 from wakfu_server.wire import proto_fields
 
@@ -109,7 +109,19 @@ def select(store, account_id, generation, character_id, body):
     damage = request["damage_elements"]
     resistance = request["resistance_elements"]
     with store.connection() as db, ExitStack() as mutation_scopes:
-        _lease(store, db, account_id, generation, character_id)
+        character_id = lock_item_owner(
+            store, db, account_id, generation, character_id, (uid,)
+        )
+        if (
+            db.execute(
+                "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f "
+                "ON f.id=p.fight_id WHERE p.character_id=%s "
+                "AND f.status IN ('placement','active') LIMIT 1",
+                (character_id,),
+            ).fetchone()
+            is not None
+        ):
+            raise ValueError("Elemental selection is unavailable during combat")
         from wakfu_server.item_mutation import refresh_equipment_after_mutation
 
         mutation_scopes.enter_context(
@@ -152,6 +164,7 @@ def select(store, account_id, generation, character_id, body):
                 from .shard_identification_wire import response
 
                 return dict(
+                    character_id=character_id,
                     uid=uid,
                     applied=False,
                     status=socket_result["status"],
@@ -218,6 +231,7 @@ def select(store, account_id, generation, character_id, body):
             shard_state = validate(bytes(shard_row["shard_state"]))
 
         return dict(
+            character_id=character_id,
             uid=uid,
             damage_elements=damage,
             resistance_elements=resistance,

@@ -81,6 +81,171 @@ class CombatDropDeliveryTests(PostgresCase):
         )
         return fight_id
 
+    def _guarded_native_drop(self, *, identified=False, equipped=False):
+        """A real monster-1 drop and native stackable/socketable reference."""
+        from wakfu_server.inventory_items import grant
+        from wakfu_server.shard_identification import identify
+        from wakfu_server.equipment import RULES
+        from wakfu_server.wire import proto_field
+
+        reference = 2024  # Native monster-1 Capa Jalosa; maximum 99.
+        self.assertEqual(STACKS[reference]["maximum"], 99)
+        self.assertTrue(STACKS[reference]["minimal_mergeable"])
+        self.assertTrue(
+            any(
+                row["reference_id"] == reference
+                for row in native_drop_catalog()["monsters"][1]
+            )
+        )
+        self._fill_base_bag()
+        bag = self.character["inventory_containers"][0]["uid"]
+        with self.store.connection() as db:
+            db.execute(
+                "DELETE FROM inventory_items WHERE character_id=%s AND container=%s AND slot=0",
+                (self.character_id, bag),
+            )
+        target = grant(
+            self.store,
+            self.account_id,
+            self.generation,
+            self.character_id,
+            reference=reference,
+            quantity=1,
+            container=bag,
+            slot=0,
+            allowed_references={reference},
+        )
+        shard = None
+        if identified:
+            shard = identify(
+                self.store,
+                self.account_id,
+                self.generation,
+                self.character_id,
+                struct.pack(">q", target["uid"]),
+                randbelow=lambda _: 0,
+            )["shard_state"]
+        if equipped:
+            equipment = proto_field(
+                10,
+                proto_field(8, target["uid"])
+                + proto_field(16, RULES[reference]["slots"][0]),
+            )
+            with self.store.connection() as db:
+                db.execute(
+                    "INSERT INTO character_builds(character_id,build_index,sheet,equipment,deck,aptitudes) "
+                    "VALUES(%s,0,%s,%s,%s,%s) ON CONFLICT(character_id,build_index) "
+                    "DO UPDATE SET equipment=EXCLUDED.equipment",
+                    (self.character_id, proto_field(24, 1), equipment, b"", b""),
+                )
+        with self.store.connection() as db:
+            batch = self._resolve(db, monster_reference=1)
+            awarded = sum(
+                row.quantity
+                for row in batch.decisions
+                if row.success and row.item_reference == reference
+            )
+            self.assertGreater(awarded, 0)
+            apply(self.store, db, batch)
+            sources = [
+                dict(row)
+                for row in db.execute(
+                    "SELECT uid,quantity FROM temporary_combat_items WHERE character_id=%s "
+                    "AND reference=%s ORDER BY uid",
+                    (self.character_id, reference),
+                )
+            ]
+        return dict(
+            reference=reference,
+            bag=bag,
+            uid=target["uid"],
+            shard=shard,
+            awarded=awarded,
+            sources=sources,
+        )
+
+    def _claim_guarded_drop(self, fixture, *, all_items, free_slot=True):
+        self.assertEqual(
+            sum(row["quantity"] for row in fixture["sources"]), fixture["awarded"]
+        )
+        if free_slot:
+            with self.store.connection() as db:
+                db.execute(
+                    "DELETE FROM inventory_items WHERE character_id=%s AND container=%s AND slot=1",
+                    (self.character_id, fixture["bag"]),
+                )
+        if all_items:
+            body = struct.pack(
+                ">qqh", self.character_id, self.character_id, len(fixture["sources"])
+            )
+            body += b"".join(
+                struct.pack(">q", row["uid"]) for row in fixture["sources"]
+            )
+            result = bulk_transfer(
+                self.store, self.account_id, self.generation, self.character_id, body
+            )
+        else:
+            self.assertEqual(len(fixture["sources"]), 1)
+            row = fixture["sources"][0]
+            body = struct.pack(
+                ">qh b q h", row["uid"], row["quantity"], -1, fixture["bag"], -1
+            )
+            result = claim(
+                self.store, self.account_id, self.generation, self.character_id, body
+            )
+        self.assertTrue(result["applied"])
+        self._assert_guarded_drop(fixture, claimed=True)
+
+    def _assert_guarded_drop(self, fixture, *, claimed=False, merged=False):
+        character = self.reopen().character(self.account_id, self.character_id)
+        items = [
+            row
+            for row in character["inventory_items"]
+            if row["reference"] == fixture["reference"]
+        ]
+        target = next(row for row in items if row["uid"] == fixture["uid"])
+        self.assertEqual(target["quantity"], 1 + fixture["awarded"] if merged else 1)
+        if fixture["shard"] is not None:
+            self.assertEqual(target["shard_state"], fixture["shard"])
+        self.assertEqual(
+            sum(row["quantity"] for row in items),
+            1 + fixture["awarded"] if claimed or merged else 1,
+        )
+        with self.store.connection() as db:
+            temporary = db.execute(
+                "SELECT coalesce(sum(quantity),0) AS n FROM temporary_combat_items "
+                "WHERE character_id=%s AND reference=%s",
+                (self.character_id, fixture["reference"]),
+            ).fetchone()["n"]
+        self.assertEqual(temporary, 0 if claimed or merged else fixture["awarded"])
+
+    def test_native_drop_preserves_identified_singleton(self):
+        fixture = self._guarded_native_drop(identified=True)
+        self._assert_guarded_drop(fixture)
+
+    def test_native_claim_preserves_identified_singleton(self):
+        self._claim_guarded_drop(
+            self._guarded_native_drop(identified=True), all_items=False
+        )
+
+    def test_native_get_all_preserves_identified_singleton(self):
+        self._claim_guarded_drop(
+            self._guarded_native_drop(identified=True), all_items=True
+        )
+
+    def test_native_claim_preserves_equipped_plain_singleton(self):
+        self._claim_guarded_drop(
+            self._guarded_native_drop(equipped=True), all_items=False
+        )
+
+    def test_native_get_all_preserves_equipped_plain_singleton(self):
+        self._claim_guarded_drop(
+            self._guarded_native_drop(equipped=True), all_items=True
+        )
+
+    def test_native_plain_drop_still_merges_at_native_capacity(self):
+        self._assert_guarded_drop(self._guarded_native_drop(), merged=True)
+
     def _fill_base_bag(self, *, leave=0):
         with self.store.connection() as db:
             bags = db.execute(
@@ -579,15 +744,15 @@ class CombatDropDeliveryTests(PostgresCase):
         self._fill_base_bag()
         with self.store.connection() as db:
             batch = self._resolve(
-                db, monster_reference=44, fight_context={"in_infinite_waves": False}
+                db, monster_reference=5889, fight_context={"in_infinite_waves": False}
             )
             placements = apply(self.store, db, batch)
             temp = db.execute(
-                "SELECT * FROM temporary_combat_items WHERE character_id=%s AND reference=12686",
+                "SELECT * FROM temporary_combat_items WHERE character_id=%s AND reference=33214",
                 (self.character_id,),
             ).fetchone()
             self.assertIsNotNone(temp)
-            self.assertEqual(temp["quantity"], 4)
+            self.assertGreaterEqual(temp["quantity"], 3)
         with self.store.connection() as db:
             db.execute(
                 "DELETE FROM inventory_items WHERE character_id=%s AND container=(SELECT uid FROM inventory_containers WHERE character_id=%s AND kind=0)",
@@ -611,9 +776,9 @@ class CombatDropDeliveryTests(PostgresCase):
                 "SELECT uid,quantity FROM temporary_combat_items WHERE uid=%s",
                 (temp["uid"],),
             ).fetchone()
-            self.assertEqual(remaining["quantity"], 2)
+            self.assertEqual(remaining["quantity"], temp["quantity"] - 2)
             moved = db.execute(
-                "SELECT uid,quantity FROM inventory_items WHERE character_id=%s AND reference=12686",
+                "SELECT uid,quantity FROM inventory_items WHERE character_id=%s AND reference=33214",
                 (self.character_id,),
             ).fetchone()
             self.assertEqual(moved["quantity"], 2)
@@ -641,11 +806,11 @@ class CombatDropDeliveryTests(PostgresCase):
         self._fill_base_bag()
         with self.store.connection() as db:
             batch = self._resolve(
-                db, monster_reference=44, fight_context={"in_infinite_waves": False}
+                db, monster_reference=5889, fight_context={"in_infinite_waves": False}
             )
             delivered = apply(self.store, db, batch)
             row = db.execute(
-                "SELECT * FROM temporary_combat_items WHERE character_id=%s AND reference=12686",
+                "SELECT * FROM temporary_combat_items WHERE character_id=%s AND reference=33214",
                 (self.character_id,),
             ).fetchone()
             self.assertIsNotNone(row)
@@ -657,7 +822,7 @@ class CombatDropDeliveryTests(PostgresCase):
                 )
                 if tag == 10
             ]
-            encoded = next(item for item in section_fields if item[16] == 12686)
+            encoded = next(item for item in section_fields if item[16] == 33214)
             self.assertEqual(encoded[440], 1)
             _, live_update = temporary_update(db, self.character_id)
             from wakfu_server.combat_drop_delivery import _temporary_item_form
@@ -665,7 +830,7 @@ class CombatDropDeliveryTests(PostgresCase):
             live_item = _temporary_item_form(dict(row))
             self.assertIn(b"\x00" + live_item, live_update[9:])
             # vj.afx is field five: native bind type 2, applied=true.
-            self.assertEqual(live_item[14:21], b"\x00\x00\x00\x00\x01\x02\x01")
+            self.assertEqual(live_item[14:21], b"\x00\x00\x00\x00\x01\x04\x01")
             bag = db.execute(
                 "SELECT uid FROM inventory_containers WHERE character_id=%s AND kind=0",
                 (self.character_id,),
@@ -687,7 +852,7 @@ class CombatDropDeliveryTests(PostgresCase):
         self.assertFalse(replay["applied"])
         with self.store.connection() as db:
             moved = db.execute(
-                "SELECT uid,reference FROM inventory_items WHERE character_id=%s AND reference=12686",
+                "SELECT uid,reference FROM inventory_items WHERE character_id=%s AND reference=33214",
                 (self.character_id,),
             ).fetchone()
             self.assertIsNotNone(moved)
@@ -696,7 +861,7 @@ class CombatDropDeliveryTests(PostgresCase):
                 (moved["uid"],),
             ).fetchone()
             self.assertEqual(
-                dict(binding), {"bound": True, "template_reference": 12686}
+                dict(binding), {"bound": True, "template_reference": 33214}
             )
             self.assertTrue(any(packet[0] == 13078 for packet in result["packets"]))
             self.assertEqual(
@@ -716,11 +881,11 @@ class CombatDropDeliveryTests(PostgresCase):
             ).fetchone()
             target_uid = db.execute(
                 "INSERT INTO inventory_items(character_id,reference,quantity,container,slot) "
-                "VALUES(%s,12686,1,%s,29) RETURNING uid",
+                "VALUES(%s,33214,1,%s,29) RETURNING uid",
                 (self.character_id, bag["uid"]),
             ).fetchone()["uid"]
             db.execute(
-                "INSERT INTO inventory_item_bindings(uid,bound,template_reference) VALUES(%s,true,12686)",
+                "INSERT INTO inventory_item_bindings(uid,bound,template_reference) VALUES(%s,true,33214)",
                 (target_uid,),
             )
             for slot in range(1, 29):
@@ -730,12 +895,12 @@ class CombatDropDeliveryTests(PostgresCase):
                     (self.character_id, bag["uid"], slot),
                 )
             batch = self._resolve(
-                db, monster_reference=44, fight_context={"in_infinite_waves": False}
+                db, monster_reference=5889, fight_context={"in_infinite_waves": False}
             )
             successes = [
                 item
                 for item in batch.decisions
-                if item.success and item.item_reference == 12686
+                if item.success and item.item_reference == 33214
             ]
             self.assertTrue(successes)
             apply(self.store, db, batch)

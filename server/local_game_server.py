@@ -511,6 +511,21 @@ def receive(connection, count, on_idle=None):
     data = bytearray()
     while len(data) < count:
         try:
+            objectives_updates = getattr(connection, "objectives_updates", None)
+            if objectives_updates is not None and not connection.pending():
+                import select
+
+                readable, _, _ = select.select(
+                    (connection, objectives_updates.reader), (), (), 1.0
+                )
+                if objectives_updates.reader in readable:
+                    objectives_updates.drain()
+                    if on_idle is not None and not on_idle():
+                        raise ValueError("Session expired or replaced")
+                if connection not in readable:
+                    if not readable and on_idle is not None and not on_idle():
+                        raise ValueError("Session expired or replaced")
+                    continue
             chunk = connection.recv(count - len(data))
         except socket.timeout:
             if on_idle is None or not on_idle():
@@ -837,7 +852,14 @@ def monster_corpse_snapshot(map_id, instance_id, *, peer=None, peers=()):
 
 
 @PROFILER.profile("world.join")
-def join_world(generation, connection, character, *, hydrate_heroes=True):
+def join_world(
+    generation,
+    connection,
+    character,
+    *,
+    hydrate_heroes=True,
+    defer_scene_snapshot=False,
+):
     from wakfu_server.profession_store import ensure_all_learned
 
     profession = ensure_all_learned(
@@ -851,10 +873,11 @@ def join_world(generation, connection, character, *, hydrate_heroes=True):
     for packet in HAVEN_BAG_EXTERIORS.snapshots(character):
         send(connection, "world", *packet)
     send_planting_context(connection, character)
-    for packet in PLANTINGS.snapshots(
-        character["map_id"], character["instance_id"], position=character
-    ):
-        send(connection, "world", *packet)
+    if not defer_scene_snapshot:
+        for packet in PLANTINGS.snapshots(
+            character["map_id"], character["instance_id"], position=character
+        ):
+            send(connection, "world", *packet)
     from wakfu_server.maps import npc_world, npc_placements
 
     with STORE.connection() as db:
@@ -910,15 +933,16 @@ def join_world(generation, connection, character, *, hydrate_heroes=True):
             character["map_id"], character["instance_id"], peer=connection
         ):
             send(connection, "world", *packet)
-        for group in COMBAT_GROUPS.available(
-            character["map_id"], character["instance_id"]
-        ):
-            send(
-                connection,
-                "world",
-                12608,
-                spawn_group(group["members"], group_id=group["key"][2]),
-            )
+        if not defer_scene_snapshot:
+            for group in COMBAT_GROUPS.available(
+                character["map_id"], character["instance_id"]
+            ):
+                send(
+                    connection,
+                    "world",
+                    12608,
+                    spawn_group(group["members"], group_id=group["key"][2]),
+                )
     for packet in HARVESTS.availability_snapshot(
         character["map_id"], character["instance_id"]
     ):
@@ -1396,10 +1420,13 @@ def session(raw, peer, service, context):
             ranch_session.validate_lease(generation)
         return session.refresh(character, saved)
 
-    def refresh_item_mutation_character():
+    def refresh_item_mutation_character(owner_id=None):
         from wakfu_server.combat_lifecycle import outside_progression
 
-        updated = refresh_owned_character(STORE.character(account_id, character["id"]))
+        owner_id = character["id"] if owner_id is None else owner_id
+        updated = STORE.character(account_id, owner_id)
+        if owner_id == character["id"]:
+            updated = refresh_owned_character(updated)
         send(connection, service, *outside_progression(updated, wp=COMBAT_TEST_WP))
         return updated
 
@@ -1778,6 +1805,9 @@ def session(raw, peer, service, context):
     from wakfu_server.custom_tasks.gift_source import current_local_gifts
 
     custom_task_cards = SelectedTaskCards()
+    objectives_poll_at = 0.0
+    objectives_hunt_poll_at = 0.0
+    objectives_projection = None
 
     def deliver_custom_task_rewards(*, bootstrap=False):
         """Separate committed selected-character grant; never inside gameplay TX."""
@@ -1898,6 +1928,506 @@ def session(raw, peer, service, context):
             existing_packages=gifts.packages,
             cap_reached=gifts.cap_reached,
         )
+
+    def poll_external_objectives():
+        """Consume asynchronous objective changes only in a ready world scene."""
+        nonlocal objectives_poll_at, objectives_hunt_poll_at, objectives_projection
+        from wakfu_server.custom_tasks import external
+
+        if not external.enabled():
+            return
+        now = time.monotonic()
+        if loaded and now >= objectives_hunt_poll_at:
+            from wakfu_server.objectives import hunts
+
+            objectives_hunt_poll_at = now + 1.0
+            hunts.publish(STORE, COMBAT_GROUPS, WORLD)
+        if not (
+            loaded
+            and character is not None
+            and fight is None
+            and combat_session is None
+            and hero_switch_pending is None
+            and spectator_session is None
+        ):
+            return
+        updates = getattr(connection, "objectives_updates", None)
+        if updates is not None:
+            updates.character_id = character["id"]
+        notified = updates is not None and updates.dirty.is_set()
+        if now < objectives_poll_at and not notified:
+            return
+        if updates is not None:
+            updates.dirty.clear()
+        objectives_poll_at = now + 1.0
+        drain_objectives_player_actions()
+        from wakfu_server.custom_tasks import service as task_service
+
+        from wakfu_server.custom_tasks.exploration import observe
+        from wakfu_server.objectives.progression import (
+            observe as observe_account_progression,
+        )
+
+        observe(STORE, account_id, generation, character["id"])
+        observe_account_progression(STORE, account_id, generation, character["id"])
+        with STORE.connection() as db:
+            snapshot = task_service.snapshot(
+                db,
+                account_id,
+                character["id"],
+                section=custom_task_cards.section,
+                page=custom_task_cards.page,
+            )
+            pending = external.pending_rewards(db, character["id"])
+        identity = (account_id, generation, character["id"], snapshot)
+        if pending:
+            deliver_custom_task_rewards()
+        from wakfu_server.objectives.notices import deliver as deliver_objective_notices
+        from wakfu_server.ecology_feedback import information
+
+        with STORE.connection() as db:
+            deliver_objective_notices(
+                db,
+                account_id,
+                generation,
+                character["id"],
+                lambda text: send(connection, service, *information(text)),
+            )
+        if notified or identity != objectives_projection:
+            custom_task_cards.changed(character["id"], (character["id"],))
+            publish_custom_task_cards()
+            objectives_projection = identity
+
+    def execute_objectives_command(text, *, browser_action=None):
+        """Public objective navigation and fenced private weekly challenge entry."""
+        nonlocal character, position, movement_state
+        from wakfu_server.command_permissions import authorize_command
+        from wakfu_server.custom_tasks import external
+        from wakfu_server.ecology_feedback import information
+
+        arguments = text.split()
+        command = arguments[0].lower() if arguments else ""
+        try:
+            authorize_command(STORE, account_id, text)
+            if not external.enabled():
+                raise ValueError("The objectives service is not enabled.")
+            if not (
+                loaded
+                and character is not None
+                and fight is None
+                and combat_session is None
+                and hero_switch_pending is None
+                and spectator_session is None
+            ):
+                raise ValueError("Objectives require a ready scene outside combat.")
+            if command == "!adventures":
+                if len(arguments) != 1:
+                    raise ValueError("Usage: !adventures")
+                from wakfu_server.custom_tasks.player_actions import launch_url
+
+                with STORE.connection() as db:
+                    url = launch_url(db, account_id, character["id"], generation)
+                send(connection, service, *information("Open your adventures: " + url))
+                return {"success": True, "message": "Adventures link created."}
+            if command == "!tasks":
+                from wakfu_server.custom_tasks.sections import parse
+
+                section, page = parse(arguments[1:])
+                custom_task_cards.select_view(section, page)
+                publish_custom_task_cards()
+                send(
+                    connection,
+                    service,
+                    *information(
+                        "Gifts window updated. Use !tasks <section> <page> to browse objectives."
+                    ),
+                )
+                return {"success": True, "message": "Objectives view updated."}
+            if (
+                command != "!challenge"
+                or len(arguments) != 2
+                or arguments[1].lower() not in ("weekly", "return", "abandon")
+            ):
+                raise ValueError("Usage: !challenge weekly | return | abandon")
+            if bag_session is not None or ranch_session is not None:
+                raise ValueError(
+                    "Leave your private scene before entering a weekly challenge."
+                )
+            from wakfu_server.objectives import challenges
+            from wakfu_server.combat_terrain import map_geometry
+
+            action = arguments[1].lower()
+            with POSITIONS.account_barrier(account_id):
+                flush_positions(account_id=account_id)
+                with COMBAT_GROUPS.lock:
+                    with STORE.connection() as db:
+                        db.execute(
+                            "SELECT id FROM accounts WHERE id=%s FOR UPDATE",
+                            (account_id,),
+                        )
+                        STORE.lock_character(
+                            db, account_id, generation, character["id"], selected=True
+                        )
+                        if browser_action is not None:
+                            from wakfu_server.custom_tasks.player_actions import (
+                                lock_running,
+                            )
+
+                            lock_running(db, browser_action)
+                        if action == "weekly":
+                            run = challenges.enter_weekly(
+                                db,
+                                COMBAT_GROUPS,
+                                account_id,
+                                character["id"],
+                                geometry_loader=map_geometry,
+                            )
+                        else:
+                            run = challenges.current_run(
+                                db, account_id, character["id"]
+                            )
+                            challenges.return_from_challenge(
+                                db,
+                                account_id,
+                                character["id"],
+                                abandon=action == "abandon",
+                            )
+                        moved_ids = tuple(
+                            row["character_id"]
+                            for row in db.execute(
+                                "SELECT character_id FROM objectives_challenge_members WHERE attempt_id=%s",
+                                (run["attempt_id"],),
+                            ).fetchall()
+                        )
+                        saved = STORE.character(account_id, character["id"], db)
+                        if browser_action is not None:
+                            from wakfu_server.custom_tasks.player_actions import finish
+
+                            if not finish(
+                                db,
+                                browser_action,
+                                {
+                                    "success": True,
+                                    "message": "Weekly challenge action completed.",
+                                    "map_id": saved["map_id"],
+                                    "instance_id": saved.get("instance_id", 0),
+                                },
+                            ):
+                                raise ValueError(
+                                    "Adventures action is no longer executable."
+                                )
+                for member_id in moved_ids:
+                    POSITIONS.release(account_id, generation, member_id)
+            cancel_crafting()
+            WORLD.leave(character["id"], generation)
+            character = saved
+            POSITIONS.attach(account_id, generation, character)
+            position = {key: character[key] for key in ("x", "y", "z")}
+            movement_state = Movement(position)
+            for packet in owned_native_bootstrap(character):
+                send(connection, service, *packet)
+            join_world(generation, connection, character)
+            mark_static_sync_pending()
+            send(
+                connection,
+                service,
+                *information(
+                    "Weekly challenge ready. Defeat the private group, then use !challenge return."
+                    if action == "weekly"
+                    else "Returned from the weekly challenge."
+                ),
+            )
+            return {
+                "success": True,
+                "message": "Weekly challenge action completed.",
+                "map_id": character["map_id"],
+                "instance_id": character.get("instance_id", 0),
+            }
+        except (ValueError, PermissionError) as error:
+            send(connection, service, *information(str(error)))
+            record(
+                event="objectives_command_rejected",
+                actor_id=character["id"],
+                command=command,
+                reason=str(error),
+            )
+            return {"success": False, "error": str(error)}
+
+    def drain_objectives_player_actions():
+        """Browser requests run on this socket's scene-owning dispatcher only."""
+        from wakfu_server.custom_tasks import player_actions
+
+        if not (
+            loaded
+            and character is not None
+            and fight is None
+            and combat_session is None
+            and hero_switch_pending is None
+            and spectator_session is None
+            and not static_sync_pending
+            and not world_snapshot_pending
+        ):
+            return
+        identity = {
+            "account_id": account_id,
+            "character_id": character["id"],
+            "generation": generation,
+        }
+        with STORE.connection() as db:
+            action = player_actions.claim(db, identity)
+        if action is None:
+            return
+        target = action["target"]
+        if target.get("kind") == "weekly" and target.get("action") in (
+            "weekly",
+            "return",
+            "abandon",
+        ):
+            result = execute_objectives_command(
+                "!challenge " + target["action"], browser_action=action
+            )
+        elif target.get("kind") == "travel":
+            result = execute_objectives_travel(action)
+        elif target.get("kind") == "pvp":
+            result = execute_objectives_pvp(action)
+        else:
+            result = {"success": False, "error": "Unsupported adventures action."}
+        with STORE.connection() as db:
+            player_actions.finish(db, action, result)
+
+    def execute_objectives_travel(
+        action, *, resolve_destination=None, related_accounts=(), defer_receipt=False
+    ):
+        """Resolve curated public arrivals again and commit receipt with travel."""
+        nonlocal character, position, movement_state
+        from wakfu_server.custom_tasks import player_actions
+        from wakfu_server.objectives import player_travel
+        from wakfu_server.ecology_feedback import information
+        from contextlib import ExitStack
+
+        try:
+            if (
+                bag_session is not None
+                or ranch_session is not None
+                or character.get("instance_id", 0)
+            ):
+                raise ValueError(
+                    "Leave your private instance before using adventures travel."
+                )
+            accounts = sorted(set((account_id, *related_accounts)))
+            with ExitStack() as barriers:
+                for owner_id in accounts:
+                    barriers.enter_context(POSITIONS.account_barrier(owner_id))
+                    flush_positions(account_id=owner_id)
+                with STORE.connection() as db:
+                    db.execute(
+                        "SELECT id FROM accounts WHERE id=ANY(%s) ORDER BY id FOR UPDATE",
+                        (accounts,),
+                    )
+                    STORE.lock_character(
+                        db, account_id, generation, character["id"], selected=True
+                    )
+                    player_actions.lock_running(db, action)
+                    if (
+                        db.execute(
+                            "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+                            "WHERE p.character_id=%s AND f.status IN ('placement','active') "
+                            "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals w WHERE w.fight_id=p.fight_id "
+                            "AND w.character_id=p.character_id) LIMIT 1",
+                            (character["id"],),
+                        ).fetchone()
+                        is not None
+                    ):
+                        raise ValueError(
+                            "Finish your current combat before travelling."
+                        )
+                    cost = 0
+                    if resolve_destination is None:
+                        spec = player_travel.resolve(db, action, action["action_key"])
+                        destination, cost = spec["target"], spec["cost_kamas"]
+                        if action["target"] != {
+                            "kind": "travel",
+                            "destination": destination,
+                            "cost_kamas": cost,
+                        }:
+                            raise ValueError(
+                                "This destination or price changed; refresh adventures before travelling."
+                            )
+                        remaining_kamas = player_actions.charge_travel(db, action, cost)
+                    else:
+                        destination = resolve_destination(db, action)
+                    saved = STORE.transition_map_in_transaction(
+                        db,
+                        account_id,
+                        generation,
+                        character["id"],
+                        character,
+                        destination,
+                    )
+                    result = {
+                        "success": True,
+                        "message": "Travel completed.",
+                        "map_id": saved["map_id"],
+                        "instance_id": saved.get("instance_id", 0),
+                        "cost_kamas": cost,
+                    }
+                    if defer_receipt:
+                        db.execute(
+                            "UPDATE objectives_player_actions SET status='pending' "
+                            "WHERE id=%s AND status='running'",
+                            (action["id"],),
+                        )
+                    elif not player_actions.finish(db, action, result):
+                        raise ValueError("Adventures action is no longer executable.")
+                    moved_ids = (character["id"],) + tuple(
+                        row["character_id"]
+                        for row in db.execute(
+                            "SELECT character_id FROM account_hero_slots WHERE account_id=%s",
+                            (account_id,),
+                        ).fetchall()
+                    )
+                for member_id in moved_ids:
+                    POSITIONS.release(account_id, generation, member_id)
+            cancel_crafting()
+            WORLD.leave(character["id"], generation)
+            character = saved
+            POSITIONS.attach(account_id, generation, character)
+            position = {key: character[key] for key in ("x", "y", "z")}
+            movement_state = Movement(position)
+            for packet in owned_native_bootstrap(character):
+                send(connection, service, *packet)
+            join_world(
+                generation,
+                connection,
+                character,
+                defer_scene_snapshot=character["map_id"] != 9,
+            )
+            mark_static_sync_pending()
+            if cost:
+                send(
+                    connection,
+                    service,
+                    12753,
+                    wire.account_kamas_update(remaining_kamas),
+                )
+            return result
+        except (ValueError, PermissionError) as error:
+            send(connection, service, *information(str(error)))
+            record(
+                event="objectives_travel_rejected",
+                actor_id=character["id"],
+                reason=str(error),
+            )
+            return {"success": False, "error": str(error)}
+
+    def execute_objectives_pvp(action):
+        """Meet selected opponents or observe the real event-bound native duel."""
+        nonlocal character, spectator_session, spectator_fight_id
+        from wakfu_server.custom_tasks import player_actions
+        from wakfu_server.objectives import pvp
+        from wakfu_server.combat_terrain import map_geometry
+
+        def destination(db, queued):
+            current = pvp.resolve(db, queued, queued["action_key"])["target"]
+            if current["event_id"] != queued["target"]["event_id"]:
+                raise ValueError("Hourly PvP event changed.")
+            if current["action"] == "meet":
+                opponent = db.execute(
+                    "SELECT c.* FROM sessions s JOIN characters c ON c.id=s.character_id "
+                    "AND c.account_id=s.account_id WHERE s.account_id=%s AND s.character_id=%s "
+                    "AND s.generation=%s AND s.expires_at>CURRENT_TIMESTAMP FOR UPDATE OF s,c",
+                    (
+                        current["opponent_account_id"],
+                        current["opponent_character_id"],
+                        current["opponent_generation"],
+                    ),
+                ).fetchone()
+                if opponent is None:
+                    raise ValueError("The PvP opponent is no longer available.")
+                if (
+                    db.execute(
+                        "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+                        "WHERE p.character_id=%s AND f.status IN ('placement','active') LIMIT 1",
+                        (opponent["id"],),
+                    ).fetchone()
+                    is not None
+                ):
+                    raise ValueError("The PvP opponent is currently fighting.")
+            else:
+                invitation = db.execute(
+                    "SELECT map_id,instance_id,challenger_x AS x,challenger_y AS y,challenger_z AS z "
+                    "FROM friendly_duel_invitations WHERE fight_id=%s AND status='accepted'",
+                    (current["fight_id"],),
+                ).fetchone()
+                if invitation is None:
+                    raise ValueError("The hourly PvP fight is no longer available.")
+                opponent = invitation
+            occupied = [
+                tuple(row[key] for key in ("x", "y", "z"))
+                for row in db.execute(
+                    "SELECT c.x,c.y,c.z FROM sessions s JOIN characters c ON c.id=s.character_id "
+                    "WHERE s.expires_at>CURRENT_TIMESTAMP AND c.map_id=%s AND c.instance_id=0",
+                    (opponent["map_id"],),
+                ).fetchall()
+            ]
+            return player_actions.nearby_public_floor(
+                map_geometry(opponent["map_id"]), opponent, occupied=occupied
+            )
+
+        try:
+            with STORE.connection() as db:
+                current = pvp.resolve(db, action, action["action_key"])["target"]
+            if current["action"] == "meet":
+                return execute_objectives_travel(
+                    action,
+                    resolve_destination=destination,
+                    related_accounts=(current["opponent_account_id"],),
+                )
+            if (character["map_id"], character.get("instance_id", 0)) != (
+                current["map_id"],
+                current["instance_id"],
+            ):
+                return execute_objectives_travel(
+                    action, resolve_destination=destination, defer_receipt=True
+                )
+            shared = COMBAT_SESSIONS.registry.lookup(current["fight_id"])
+            if not public_objectives_duel(shared):
+                raise ValueError("This fight is not a public hourly PvP challenge.")
+            with STORE.connection() as db:
+                player_actions.lock_running(db, action)
+                pvp.resolve(db, action, action["action_key"])
+                observer = spectator_session_for_current_character()
+                if spectator_waiting_for_ack(shared):
+                    db.execute(
+                        "UPDATE objectives_player_actions SET status='pending' WHERE id=%s "
+                        "AND status='running'",
+                        (action["id"],),
+                    )
+                    return {
+                        "success": True,
+                        "message": "Waiting for the current native action.",
+                    }
+                publish_spectator_state(shared)
+                delivery = SPECTATORS.enter(
+                    observer,
+                    current["fight_id"],
+                    authorize=lambda _session, _fight_id: True,
+                )
+                result = {
+                    "success": True,
+                    "message": "Watching hourly PvP.",
+                    "fight_id": current["fight_id"],
+                }
+                if not player_actions.finish(db, action, result):
+                    SPECTATORS.disconnect(observer)
+                    raise ValueError("Adventures action is no longer executable.")
+            spectator_session = observer
+            spectator_fight_id = current["fight_id"]
+            for packet in delivery.packets:
+                send(connection, service, *packet)
+            return result
+        except (ValueError, PermissionError, KeyError) as error:
+            return {"success": False, "error": str(error)}
 
     def publish_heroes(roster):
         from wakfu_server.characters import hero_wire, hero_private_scene
@@ -2733,6 +3263,11 @@ def session(raw, peer, service, context):
                     can_loot=True,
                     fight_context=drop_context,
                 )
+                from wakfu_server.items.quest_inventory import changes as quest_changes
+
+                before_loot = STORE.character(
+                    member["account_id"], member["character_id"], db
+                )
                 combat_drop_delivery.apply(STORE, db, batch)
                 saved = STORE.character(
                     member["account_id"], member["character_id"], db
@@ -2740,6 +3275,7 @@ def session(raw, peer, service, context):
                 return {
                     "loots": combat_drops.report_loots(batch),
                     "packets": [
+                        *quest_changes(before_loot, saved),
                         synchronization(saved),
                         equipment_inventory(saved),
                         combat_drop_delivery.temporary_update(
@@ -2918,13 +3454,17 @@ def session(raw, peer, service, context):
                     fight, character, TEST_MONSTERS
                 ),
             )
+            from wakfu_server.items.quest_inventory import changes as quest_changes
+
+            before_loot = STORE.character(account_id, character["id"], db)
             combat_drop_delivery.apply(STORE, db, batch)
             saved = STORE.character(account_id, character["id"], db)
             return {
                 "loots": combat_drops.report_loots(batch),
                 "packets": [
+                    *quest_changes(before_loot, saved),
                     synchronization(saved),
-                    (13078, equipment_inventory(saved)),
+                    equipment_inventory(saved),
                     combat_drop_delivery.temporary_update(db, character["id"]),
                 ],
             }
@@ -3136,6 +3676,32 @@ def session(raw, peer, service, context):
             authorize_command(STORE, issuer, text)
             text, target = parse_target(text)
             command = canonical_command(text.split()[0])
+            from wakfu_server.custom_tasks import external as objectives_mode
+
+            if objectives_mode.enabled() and command in (
+                "!astrub",
+                "!tp",
+                "!nivel",
+                "!item",
+                "!kamas",
+                "!mob",
+            ):
+                from wakfu_server.objectives.challenges import mark_scene_test
+
+                with STORE.connection() as challenge_db:
+                    source = challenge_db.execute(
+                        "SELECT c.instance_id,r.attempt_id FROM characters c "
+                        "JOIN objectives_challenge_runs r ON r.instance_id=c.instance_id "
+                        "AND r.map_id=c.map_id AND r.owner_account_id=c.account_id "
+                        "AND r.returned_at IS NULL WHERE c.id=%s AND c.account_id=%s",
+                        (character["id"], account_id),
+                    ).fetchone()
+                    if source is not None:
+                        if command in ("!astrub", "!tp"):
+                            raise ValueError(
+                                "Use !challenge abandon before leaving the weekly challenge."
+                            )
+                        mark_scene_test(challenge_db, source["instance_id"])
             if command in ("!winfight", "!losefight"):
                 from wakfu_server.combat.combat_test_commands import finish
 
@@ -3143,6 +3709,13 @@ def session(raw, peer, service, context):
                     raise ValueError("Uso: !winfight | !losefight")
                 if issuer != account_id:
                     raise ValueError("El comando solo afecta al combate propio")
+                from wakfu_server.custom_tasks import external as objectives_mode
+
+                if objectives_mode.enabled() and fight is not None:
+                    from wakfu_server.objectives.challenges import mark_test_fight
+
+                    with STORE.connection() as challenge_db:
+                        mark_test_fight(challenge_db, fight.id)
                 if combat_session is not None:
                     refresh_shared_combat()
                     COMBAT_SESSIONS.execute(
@@ -3774,12 +4347,30 @@ def session(raw, peer, service, context):
                 current_fight, actor, owner_session
             ),
             deadline_ms=deadline_ms,
+            public_pvp_duel=public_objectives_duel(shared),
         )
         if getattr(shared.fight, "rift_wave_state", None) is not None:
             from wakfu_server.rift_combat_adapter import world_snapshot
 
             return tuple(world_snapshot(shared.fight)) + tuple(packets)
         return packets
+
+    def public_objectives_duel(shared):
+        if not getattr(shared, "is_duel", False):
+            return False
+        from wakfu_server.custom_tasks.external import enabled
+
+        if not enabled():
+            return False
+        with STORE.connection() as db:
+            return (
+                db.execute(
+                    "SELECT 1 FROM objectives_pvp_events WHERE fight_id=%s "
+                    "AND status IN ('in_fight','completed','expired')",
+                    (shared.fight.id,),
+                ).fetchone()
+                is not None
+            )
 
     def spectator_waiting_for_ack(shared):
         runtime = getattr(shared, "runtime", None)
@@ -3794,7 +4385,13 @@ def session(raw, peer, service, context):
     @PROFILER.profile("combat.spectator_publish")
     def publish_spectator_state(shared, event_packets=()):
         """Publish current state plus only the shared batches after its cursor."""
-        if not COMBAT_TEST or shared is None or getattr(shared, "is_duel", False):
+        if (
+            not COMBAT_TEST
+            or shared is None
+            or (
+                getattr(shared, "is_duel", False) and not public_objectives_duel(shared)
+            )
+        ):
             return
         try:
             if shared.fight.phase == "finished" and not getattr(
@@ -3853,7 +4450,8 @@ def session(raw, peer, service, context):
                     participant_sessions=participants,
                     revision=max(1, shared.sequence),
                     snapshot_packets=packets,
-                    visible=not getattr(shared, "is_duel", False),
+                    visible=not getattr(shared, "is_duel", False)
+                    or public_objectives_duel(shared),
                 )
             elif shared.fight.phase == "finished":
                 revision = max(shared.sequence, current.revision + 1)
@@ -4383,6 +4981,7 @@ def session(raw, peer, service, context):
                 cancel_environment()
             complete_environment_occupation()
             publish_environment_scene()
+            poll_external_objectives()
             if spectator_session is not None and spectator_fight_id is not None:
                 try:
                     if character is None or (
@@ -4633,6 +5232,12 @@ def session(raw, peer, service, context):
             connection.settimeout(1)
             connection = Connection(connection)
             connection.trace_id = connection_trace_id
+            from wakfu_server.custom_tasks import external as external_objectives
+
+            if service == "world" and external_objectives.enabled():
+                from wakfu_server.custom_tasks.external_updates import subscribe
+
+                connection.objectives_updates = subscribe(STORE, STOPPING)
             if service == "world":
                 from wakfu_server.interactive_publication import InteractivePublication
 
@@ -5567,30 +6172,36 @@ def session(raw, peer, service, context):
                             lambda packets: send_batch(connection, service, packets),
                         )
                         saved = result["character"]
-                        character = (
-                            active_private_session().refresh(character, saved)
-                            if active_private_session() is not None
-                            and active_private_session().owns(character)
-                            else saved
-                        )
+                        if saved["id"] == character["id"]:
+                            character = refresh_owned_character(saved)
+                            saved = character
                         if result["applied"]:
                             # PET attaches the actor observer to the refreshed
                             # rich item model. XP itself belongs to ProtoPet.
-                            WORLD.update(
-                                generation,
-                                character,
-                                *wire.refresh_player(PLAYER_TEMPLATE, character),
-                            )
+                            if saved["id"] == character["id"]:
+                                WORLD.update(
+                                    generation,
+                                    character,
+                                    *wire.refresh_player(PLAYER_TEMPLATE, character),
+                                )
+                            else:
+                                from wakfu_server.characters.hero_wire import refresh
+
+                                send(
+                                    connection,
+                                    service,
+                                    *refresh(OWNED_HERO_TEMPLATE, saved),
+                                )
                             from wakfu_server.combat_lifecycle import (
                                 outside_progression,
                             )
 
-                            send(connection, service, *outside_progression(character))
-                            for packet in mount_snapshot(character):
+                            send(connection, service, *outside_progression(saved))
+                            for packet in mount_snapshot(saved):
                                 send(connection, service, *packet)
                         record(
                             event="mount_food_fed",
-                            actor_id=character["id"],
+                            actor_id=saved["id"],
                             applied=result["applied"],
                             replayed=result["replayed"],
                             xp_delta=result["xp_delta"],
@@ -6052,17 +6663,13 @@ def session(raw, peer, service, context):
                             body,
                         )
                         saved = result["character"]
-                        character = (
-                            active_private_session().refresh(character, saved)
-                            if active_private_session() is not None
-                            and active_private_session().owns(character)
-                            else saved
-                        )
+                        if saved["id"] == character["id"]:
+                            character = refresh_owned_character(saved)
                         for message_id, message_body in result["packets"]:
                             send(connection, service, message_id, message_body)
                         record(
                             event="item_learned",
-                            actor_id=character["id"],
+                            actor_id=saved["id"],
                         )
                     except ValueError as error:
                         record(
@@ -6856,16 +7463,21 @@ def session(raw, peer, service, context):
                         TEST_MONSTERS = tuple(selected_group["members"])
                         TEST_MONSTERS_BY_ID = {m["id"]: m for m in TEST_MONSTERS}
                         entry_stage("group_selected")
-                        from wakfu_server.combat_arena_policy import cell_budget
+                        from wakfu_server.combat_arena_policy import (
+                            cell_budget,
+                            size_range,
+                        )
 
                         with STORE.connection() as arena_policy_db:
                             arena_cell_budget = cell_budget(arena_policy_db)
+                            arena_size_range = size_range(arena_policy_db)
                         arena = local_arena(
                             character["map_id"],
                             character["id"],
                             (character["x"], character["y"], character["z"]),
                             [(m["x"], m["y"], m["z"]) for m in TEST_MONSTERS],
                             automatic_cell_budget=arena_cell_budget,
+                            size_range=arena_size_range,
                             stage_callback=lambda stage, elapsed_ms, thread_cpu_ms: record(
                                 event="combat_arena_stage",
                                 stage=stage,
@@ -7039,6 +7651,19 @@ def session(raw, peer, service, context):
                                 group_lease, members = COMBAT_GROUPS.claim(
                                     TEST_GROUP_KEY, generation, candidate.id
                                 )
+                                from wakfu_server.custom_tasks import (
+                                    external as objectives_mode,
+                                )
+
+                                if objectives_mode.enabled():
+                                    from wakfu_server.objectives.challenges import (
+                                        bind_fight,
+                                    )
+
+                                    with STORE.connection() as challenge_db:
+                                        bind_fight(
+                                            challenge_db, *TEST_GROUP_KEY, candidate.id
+                                        )
                                 WORLD.emit_location(
                                     TEST_GROUP_KEY[0],
                                     TEST_GROUP_KEY[1],
@@ -9170,13 +9795,17 @@ def session(raw, peer, service, context):
                         result = identify(
                             STORE, account_id, generation, character["id"], body
                         )
-                        previous_items = character.get("inventory_items", [])
-                        character = refresh_item_mutation_character()
-                        if previous_items != character["inventory_items"]:
-                            send(connection, service, *synchronization(character))
+                        updated_owner = refresh_item_mutation_character(
+                            result["character_id"]
+                        )
+                        if updated_owner["id"] == character["id"]:
+                            character = updated_owner
+                        send(connection, service, *synchronization(updated_owner))
                         send(connection, service, *response(result))
                         if result["status"] == 0:
-                            send(connection, service, *equipment_inventory(character))
+                            send(
+                                connection, service, *equipment_inventory(updated_owner)
+                            )
                         if result["cost_kamas"] > 0 and result["status"] == 0:
                             with STORE.connection() as db:
                                 balance = db.execute(
@@ -9186,7 +9815,7 @@ def session(raw, peer, service, context):
                             send(connection, service, 12753, struct.pack(">q", balance))
                         record(
                             event="inventory_socket_identification",
-                            actor_id=character["id"],
+                            actor_id=result["character_id"],
                             uid=result["uid"],
                             status=result["status"],
                             applied=result["applied"],
@@ -9222,12 +9851,14 @@ def session(raw, peer, service, context):
                         result = select_elements(
                             STORE, account_id, generation, character["id"], body
                         )
-                        previous_items = character.get("inventory_items", [])
-                        character = refresh_item_mutation_character()
-                        if previous_items != character["inventory_items"]:
-                            send(connection, service, *synchronization(character))
+                        updated_owner = refresh_item_mutation_character(
+                            result["character_id"]
+                        )
+                        if updated_owner["id"] == character["id"]:
+                            character = updated_owner
+                        send(connection, service, *synchronization(updated_owner))
                         send(connection, service, *result["packet"])
-                        send(connection, service, *equipment_inventory(character))
+                        send(connection, service, *equipment_inventory(updated_owner))
                         if result.get("cost_kamas", 0) > 0:
                             send(
                                 connection,
@@ -9237,7 +9868,7 @@ def session(raw, peer, service, context):
                             )
                         record(
                             event="inventory_elements_selected",
-                            actor_id=character["id"],
+                            actor_id=result["character_id"],
                             uid=result["uid"],
                             applied=result["applied"],
                         )
@@ -9283,18 +9914,22 @@ def session(raw, peer, service, context):
                                 opcode,
                                 body,
                             )
-                        character = refresh_item_mutation_character()
+                        updated_owner = refresh_item_mutation_character(
+                            result["character_id"]
+                        )
+                        if updated_owner["id"] == character["id"]:
+                            character = updated_owner
                         response_packets = (
-                            bonus_installation_packets(character["id"], result)
+                            bonus_installation_packets(updated_owner["id"], result)
                             if opcode == 13269
-                            else packets(character["id"], result)
+                            else packets(updated_owner["id"], result)
                         )
                         for message_id, message_body in response_packets:
                             send(connection, service, message_id, message_body)
                         send(connection, service, *result["equipment_packet"])
                         record(
                             event="inventory_socket_enchantment_changed",
-                            actor_id=character["id"],
+                            actor_id=updated_owner["id"],
                             uid=result["uid"],
                             operation=result["operation"],
                             applied=result["applied"],
@@ -9517,20 +10152,22 @@ def session(raw, peer, service, context):
                             fight=fight,
                         )
                         saved = result["character"]
-                        character = (
-                            active_private_session().refresh(character, saved)
-                            if active_private_session() is not None
-                            and active_private_session().owns(character)
-                            else saved
-                        )
-                        # Replace both native bags and their rich UID registry.
-                        # Do not combine this snapshot with additive grant packets.
-                        send(connection, service, *synchronization(character))
-                        send(connection, service, *equipment_inventory(character))
+                        if saved["id"] == character["id"]:
+                            character = (
+                                active_private_session().refresh(character, saved)
+                                if active_private_session() is not None
+                                and active_private_session().owns(character)
+                                else saved
+                            )
+                            saved = character
+                        # The UID-only request may target a loaded owned hero.
+                        # Preserve the selected main and publish the actual owner.
+                        send(connection, service, *synchronization(saved))
+                        send(connection, service, *equipment_inventory(saved))
                         send(connection, service, *result["packets"][-1])
                         record(
                             event="inventory_recycled",
-                            actor_id=character["id"],
+                            actor_id=saved["id"],
                             applied=result["applied"],
                         )
                     except (
@@ -9550,6 +10187,66 @@ def session(raw, peer, service, context):
                             actor_id=character["id"],
                             reason=type(error).__name__,
                         )
+                elif opcode == 13057 and loaded:
+                    from psycopg import Error as DatabaseError
+                    from psycopg_pool import PoolTimeout
+                    from wakfu_server.items import exchange_machine
+                    from wakfu_server.inventory_move import synchronization
+                    from wakfu_server.inventory_items import equipment_inventory
+                    from wakfu_server.ecology_feedback import information
+
+                    try:
+                        request = exchange_machine.decode(body)
+                        POSITIONS.flush(
+                            account_id=account_id,
+                            generation=generation,
+                            character_id=character["id"],
+                        )
+                        station = exchange_machine.station(character, request)
+                        result = exchange_machine.purchase(
+                            STORE,
+                            account_id,
+                            generation,
+                            character["id"],
+                            body,
+                            location=character,
+                            station=station,
+                            blocked=environment_blocked(),
+                        )
+                        saved = result["character"]
+                        if saved["id"] == character["id"]:
+                            character = refresh_owned_character(saved)
+                            saved = character
+                        send(connection, service, *synchronization(saved))
+                        send(connection, service, *equipment_inventory(saved))
+                        for packet in result["packets"]:
+                            send(connection, service, *packet)
+                        record(
+                            event="exchange_machine_purchased",
+                            **request,
+                        )
+                    except (
+                        ValueError,
+                        UnicodeError,
+                        DatabaseError,
+                        PoolTimeout,
+                    ) as error:
+                        send(
+                            connection,
+                            service,
+                            *information(
+                                str(error)
+                                if isinstance(error, ValueError)
+                                else "Exchange purchase is temporarily unavailable."
+                            ),
+                        )
+                        record(
+                            event="exchange_machine_purchase_rejected",
+                            actor_id=character["id"],
+                            reason=str(error)
+                            if isinstance(error, ValueError)
+                            else type(error).__name__,
+                        )
                 elif opcode == 12490 and loaded:
                     from wakfu_server.inventory_actions import destroy
                     from wakfu_server.inventory_move import (
@@ -9562,20 +10259,15 @@ def session(raw, peer, service, context):
                             STORE, account_id, generation, character["id"], body
                         )
                         saved = result["character"]
-                        character = (
-                            active_private_session().refresh(character, saved)
-                            if active_private_session() is not None
-                            and active_private_session().owns(character)
-                            else saved
-                        )
+                        if saved["id"] == character["id"]:
+                            character = refresh_owned_character(saved)
+                            saved = character
                         for message_id, message_body in result["packets"]:
                             send(connection, service, message_id, message_body)
-                        record(
-                            event="inventory_item_destroyed", actor_id=character["id"]
-                        )
+                        record(event="inventory_item_destroyed", actor_id=saved["id"])
                         from wakfu_server.inventory_items import equipment_inventory
 
-                        send(connection, service, *equipment_inventory(character))
+                        send(connection, service, *equipment_inventory(saved))
                     except ValueError as error:
                         character = reload_inventory(STORE, account_id, character)
                         message_id, message_body = synchronization(character)
@@ -9587,6 +10279,7 @@ def session(raw, peer, service, context):
                         )
                 elif opcode == 12804 and loaded:
                     from wakfu_server.inventory_move import (
+                        EquippedTransferError,
                         transfer,
                         synchronization,
                         reload_inventory,
@@ -9606,11 +10299,50 @@ def session(raw, peer, service, context):
                         record(event="inventory_item_moved", actor_id=character["id"])
                         from wakfu_server.inventory_items import equipment_inventory
 
-                        send(connection, service, *equipment_inventory(character))
+                        for owner_id in result.get(
+                            "affected_characters", (character["id"],)
+                        ):
+                            owner = (
+                                character
+                                if owner_id == character["id"]
+                                else STORE.character(account_id, owner_id)
+                            )
+                            send(connection, service, *equipment_inventory(owner))
                     except ValueError as error:
+                        if isinstance(error, EquippedTransferError):
+                            from wakfu_server.ecology_feedback import information
+
+                            send(
+                                connection,
+                                service,
+                                *information(
+                                    "You cannot transfer an equipped item. Unequip it first."
+                                ),
+                            )
                         character = reload_inventory(STORE, account_id, character)
                         message_id, message_body = synchronization(character)
                         send(connection, service, message_id, message_body)
+                        from wakfu_server.characters import (
+                            heroes,
+                            hero_wire,
+                            hero_private_scene,
+                        )
+                        from wakfu_server.inventory_items import equipment_inventory
+
+                        with STORE.connection() as db:
+                            roster = heroes.load_roster(
+                                db, STORE, account_id, character["id"]
+                            )
+                        roster = hero_private_scene.project(
+                            roster, active_private_session(), character, generation
+                        )
+                        for hero in roster["heroes"]:
+                            send(
+                                connection,
+                                service,
+                                *hero_wire.refresh(OWNED_HERO_TEMPLATE, hero),
+                            )
+                            send(connection, service, *equipment_inventory(hero))
                         record(
                             event="inventory_move_rejected",
                             actor_id=character["id"],
@@ -9671,7 +10403,13 @@ def session(raw, peer, service, context):
                             character
                         ):
                             send(connection, service, message_id, message_body)
-                        join_world(generation, connection, character)
+                        # Publish heavy dynamic entities once, after map-ready.
+                        join_world(
+                            generation,
+                            connection,
+                            character,
+                            defer_scene_snapshot=character["map_id"] != 9,
+                        )
                         mark_static_sync_pending()
                         record(
                             event="native_map_transition",
@@ -10062,7 +10800,13 @@ def session(raw, peer, service, context):
                         )
                         for message_id, message_body in messages:
                             send(connection, service, message_id, message_body)
-                        join_world(generation, connection, character)
+                        # Publish heavy dynamic entities once, after map-ready.
+                        join_world(
+                            generation,
+                            connection,
+                            character,
+                            defer_scene_snapshot=character["map_id"] != 9,
+                        )
                         mark_static_sync_pending()
                         record(
                             event="map_transition",
@@ -10528,7 +11272,7 @@ def session(raw, peer, service, context):
                             opcode=opcode,
                             reason=type(error).__name__,
                         )
-                elif opcode in (12038, 12551) and loaded:
+                elif opcode in (12038, 12551, 13050) and loaded:
                     from wakfu_server.haven_chest import transfer as transfer_chest
                     from wakfu_server.haven_chest_wire import (
                         action_result as chest_action_result,
@@ -10562,9 +11306,13 @@ def session(raw, peer, service, context):
                         # cells) and refreshes cYz; rich state uses item_proto.
                         # BAGS + registry reconcile the client's pending move
                         # from authoritative state without entity rebuilds.
+                        for owner in result.get("inventory_characters", (character,)):
+                            for packet in (
+                                sync_chest_inventory(owner),
+                                chest_registry(owner),
+                            ):
+                                send(connection, service, *packet)
                         for packet in (
-                            sync_chest_inventory(character),
-                            chest_registry(character),
                             chest_bootstrap(result["chest"]),
                             chest_action_result(),
                         ):
@@ -10593,12 +11341,19 @@ def session(raw, peer, service, context):
                             current_chest = load_chest(
                                 STORE, account_id, generation, character["id"]
                             )
-                            for packet in (
-                                sync_chest_inventory(character),
-                                chest_registry(character),
-                                chest_bootstrap(current_chest),
-                            ):
-                                send(connection, service, *packet)
+                            from wakfu_server.characters import heroes
+
+                            with STORE.connection() as db:
+                                roster = heroes.load_roster(
+                                    db, STORE, account_id, character["id"]
+                                )
+                            for owner in (character, *roster["heroes"]):
+                                for packet in (
+                                    sync_chest_inventory(owner),
+                                    chest_registry(owner),
+                                ):
+                                    send(connection, service, *packet)
+                            send(connection, service, *chest_bootstrap(current_chest))
                 elif opcode == 12686 and loaded:
                     from wakfu_server.maps import dungeon_stele
                     from wakfu_server.ecology_feedback import information
@@ -12583,6 +13338,9 @@ def session(raw, peer, service, context):
                 elif opcode == 12366 and loaded:
                     text = decode_body("out", opcode, body)["text"].strip()
                     local_command = text.split(None, 1)[0].lower() if text else ""
+                    if local_command in ("!tasks", "!challenge", "!adventures"):
+                        execute_objectives_command(text)
+                        continue
                     if local_command == "!nacion":
                         from psycopg import Error as DatabaseError
                         from psycopg_pool import PoolTimeout
@@ -12749,6 +13507,9 @@ def session(raw, peer, service, context):
             WORLD.deactivate_ecology(character["id"], generation)
         publication_connection = locals().get("connection")
         if isinstance(publication_connection, Connection):
+            updates = getattr(publication_connection, "objectives_updates", None)
+            if updates is not None:
+                updates.close()
             publication_connection.instance_publications.invalidate()
         if guild_chest_session is not None:
             guild_chest_session.close()

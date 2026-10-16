@@ -3,7 +3,7 @@ import struct
 
 from protocol_codec import Reader
 from wakfu_server import builds, wire
-from wakfu_server.characters import hero_wire
+from wakfu_server.characters import hero_wire, world_characteristic_publication
 
 
 def owned_hero_role(db, account_id, character_id):
@@ -50,6 +50,9 @@ def packets(character, fixture_provider, *, owned_characters=None, owned_hero=Fa
     from wakfu_server.combat_lifecycle import outside_progression
 
     progression = outside_progression(character)
+    progression_packets = world_characteristic_publication.packets(
+        character, progression
+    )
     if owned_hero:
         # A hero needs the native activation envelope to register its owned
         # biB. The main character is already registered; do not replace that
@@ -60,7 +63,7 @@ def packets(character, fixture_provider, *, owned_characters=None, owned_hero=Fa
             equipment,
             selection,
             appearance,
-            progression,
+            *progression_packets,
         )
 
     # Update the already-registered main actor's independent build registries
@@ -83,5 +86,5 @@ def packets(character, fixture_provider, *, owned_characters=None, owned_hero=Fa
         build_registry,
         selection,
         appearance,
-        progression,
+        *progression_packets,
     )

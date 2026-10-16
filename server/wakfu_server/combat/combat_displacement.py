@@ -314,6 +314,7 @@ class NativeDisplacementHandler:
         self.fight, self.packets, self.action_id = fight, packets, action_id
         self.allocate_uid, self.authority = allocate_uid, authority
         self.event_lifecycle = None
+        self.area_events = None
         self.selected_surface = selected_surface
         self.context = context
         self.draw_direction = draw_direction
@@ -1050,6 +1051,10 @@ class NativeDisplacementHandler:
             for actor, position in changed
             if actor.position != position
         ]
+        positions_before = {
+            identity: tuple(actor.position)
+            for identity, actor in self.fight.actors.items()
+        }
         for actor, position in changed:
             if (
                 kind in ("push", "pull", "move_away_cell", "approach_cell")
@@ -1082,6 +1087,18 @@ class NativeDisplacementHandler:
             and self.event_lifecycle is not None
         ):
             self.event_lifecycle.register_applied(effect, invocation, uid)
+        if self.area_events is not None:
+            # Forced relocation must notify Qs just like walking and throwing.
+            # Freeze the committed transitions before callbacks: a trap may
+            # displace another fighter recursively. Include carried partners
+            # moved by the shared QI relocation, without replaying their moves.
+            transitions = tuple(
+                (identity, before, tuple(self.fight.actors[identity].position))
+                for identity, before in positions_before.items()
+                if before != tuple(self.fight.actors[identity].position)
+            )
+            for identity, before, after in transitions:
+                self.area_events.movement(identity, from_cell=before, to_cell=after)
         if collision is not None:
             displaced, collider, loss_ap = collision
             self.collision_executor(

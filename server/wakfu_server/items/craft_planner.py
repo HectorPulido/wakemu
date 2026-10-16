@@ -236,12 +236,14 @@ def plan(
         key=lambda bag: (bag["kind"], bag["uid"]),
     )
     from wakfu_server.inventory_move import ACQUISITION_STACKS
+    from wakfu_server.inventory_elements import create as product_elements
 
     for reference, total in sorted(product_totals.items()):
         rule = ACQUISITION_STACKS.get(reference)
         if rule is None or type(rule.get("maximum")) is not int or rule["maximum"] <= 0:
             raise ValueError("Unknown native crafting product stack rule")
         remaining = total
+        initial_elements = product_elements(reference) or {}
         if rule.get("minimal_mergeable") is True:
             for _, _, uid, existing_ref, _ in sorted(eligible):
                 target = final_items.get(uid)
@@ -249,7 +251,11 @@ def plan(
                     target is None
                     or existing_ref != reference
                     or uid in protected
-                    or set(target) - _BASE_ITEM_FIELDS
+                    or set(target) - _BASE_ITEM_FIELDS - set(initial_elements)
+                    or any(
+                        target.get(key) != value
+                        for key, value in initial_elements.items()
+                    )
                 ):
                     continue
                 moved = min(remaining, rule["maximum"] - target["quantity"])

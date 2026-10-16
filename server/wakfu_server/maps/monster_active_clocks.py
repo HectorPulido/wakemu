@@ -29,6 +29,12 @@ def observe(
         or not generation
     ):
         raise ValueError("Invalid monster maturation observation")
+    # The reserved finite-challenge namespace is not a living ecosystem.
+    # Never create growth/birth clocks for its frozen encounter roster.
+    from wakfu_server.objectives.challenges import is_challenge_instance
+
+    if is_challenge_instance(instance_id):
+        return []
     configuration = policy_provider(store) if present else None
     with store.connection() as db:
         if not present:
@@ -40,7 +46,9 @@ def observe(
             return []
         groups = db.execute(
             "SELECT group_id,members,status FROM combat_groups "
-            "WHERE map_id=%s AND instance_id=%s FOR UPDATE",
+            "WHERE map_id=%s AND instance_id=%s AND NOT EXISTS("
+            "SELECT 1 FROM objectives_public_hunts h WHERE h.map_id=combat_groups.map_id "
+            "AND combat_groups.instance_id=0 AND h.group_id=combat_groups.group_id) FOR UPDATE",
             (map_id, instance_id),
         ).fetchall()
         from psycopg.types.json import Jsonb
