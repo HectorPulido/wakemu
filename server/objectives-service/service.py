@@ -51,6 +51,7 @@ class Handler(BaseHTTPRequestHandler):
         ).encode()
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -85,6 +86,21 @@ class Handler(BaseHTTPRequestHandler):
         query = parse_qs(parsed.query)
         try:
             with connect() as db:
+                if parsed.path == "/v1/player/gamedock-launch" and self.command == "POST":
+                    from wakfu_server.objectives import gamedock, player_auth
+                    from wakfu_server.storage.store import Store
+                    size = int(self.headers.get("Content-Length", "0"))
+                    if not 1 <= size <= 4096:
+                        raise ValueError("Invalid request size")
+                    credentials = json.loads(self.rfile.read(size))
+                    store = Store(DATABASE_URL)
+                    try:
+                        result = gamedock.launch(store, credentials)
+                    except player_auth.Unauthorized:
+                        return self.send_json(401, {"error": "Native account verification failed"})
+                    finally:
+                        store.close()
+                    return self.send_json(200, result)
                 if not mutation and parsed.path == "/health":
                     return self.send_json(200, status(db))
                 if parsed.path == "/v1/challenge-profiles" and not mutation:
