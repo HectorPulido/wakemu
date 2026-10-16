@@ -50,7 +50,7 @@
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const response = await fetch(apiRoot + path, { ...options, headers, signal: controller.signal, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' });
+      const response = await fetch(apiRoot + path, { ...options, headers, signal: controller.signal, credentials: 'same-origin', cache: 'no-store', referrerPolicy: 'no-referrer' });
       let data;
       try { data = await response.json(); } catch (_) { data = {}; }
       if (!response.ok) {
