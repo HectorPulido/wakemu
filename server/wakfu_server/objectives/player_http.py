@@ -91,6 +91,14 @@ def dispatch(handler, connect, static_root):
             raise ValueError("Expected a JSON object")
         return value
 
+    if urlsplit(handler.path).path == "/player" and handler.command == "GET":
+        query = urlsplit(handler.path).query
+        handler.send_response(308)
+        handler.send_header("Location", "/player/" + ("?" + query if query else ""))
+        handler.send_header("Cache-Control", "no-store")
+        handler.send_header("Content-Length", "0")
+        handler.end_headers()
+        return
     if not allowed:
         return reply(403, {"error": "Embedding origin is not allowed"})
     if handler.command == "OPTIONS":

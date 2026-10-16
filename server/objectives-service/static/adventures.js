@@ -19,7 +19,7 @@
   let failures = 0;
   const pending = new Map();
   const zoneExpansion = new Map();
-  const apiRoot = '/player-api';
+  const apiRoot = location.pathname.replace(/\/player\/?$/, '') + '/player-api';
 
   function node(tag, className, text) {
     const element = document.createElement(tag);

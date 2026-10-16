@@ -951,6 +951,74 @@
           }
         }
       }
+    },
+    "/v1/player/gamedock-launch": {
+      "post": {
+        "summary": "Issue an account Adventures link for a trusted GameDock bridge",
+        "description": "Operator-only server-to-server endpoint. Verifies existing native account credentials and account access without logging in, creating game tokens, changing the selected character, or replacing a World session. Credentials must never be sent to the iframe or logged.",
+        "security": [
+          {
+            "serviceBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 32
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "minLength": 8,
+                    "maxLength": 256
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reusable account-scoped launch token, valid for 30 days",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "valid_days": {
+                      "type": "integer",
+                      "enum": [
+                        30
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid service authorization or native account credentials"
+          },
+          "400": {
+            "description": "Invalid or oversized request"
+          }
+        }
+      }
     }
   }
 }
