@@ -120,7 +120,17 @@ class OrdinaryActorAuthority:
             if getattr(candidate, "pve_withdrawn", False)
         }
         monsters = self._monster_sources(preview)
-        if set(preview.actors) - withdrawn != set(self.characters) | set(monsters):
+        population = set(preview.actors)
+        sources = set(self.characters) | set(monsters)
+        missing_sources = population - sources
+        if missing_sources and not sources - population:
+            from .combat_pve_departure import retired_pve_actor_ids
+
+            # Some providers retain every owned source; others omit actors
+            # after an attested withdrawal. Preserve both identity layouts,
+            # never treating an arbitrary withdrawal flag as source authority.
+            missing_sources -= retired_pve_actor_ids(preview)
+        if sources - population or missing_sources:
             raise ValueError(
                 "Ordinary authority roster changed: summons/wrapped actors need native registration"
             )
@@ -291,6 +301,15 @@ class OrdinaryActorAuthority:
             native_selected_cosmetics=selected_cosmetics,
             native_active_cosmetics=active_cosmetics,
         )
+        from dataclasses import replace
+        from wakfu_server.characters.owned_social_context import (
+            current as social_context,
+        )
+
+        if player:
+            metadata = replace(
+                metadata, native_social_context=social_context(preview, source)
+            )
         from .combat_controller_registry import current_controller_authority
 
         return current_controller_authority(preview, actor, metadata)

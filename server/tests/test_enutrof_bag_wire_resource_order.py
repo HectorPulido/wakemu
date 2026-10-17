@@ -42,6 +42,8 @@ class EnutrofBagWireResourceOrderTests(unittest.TestCase):
                     wp_maximum=actor.effect_maxima[4],
                 )
 
+            before = runtime.fight.actors[9]
+            initial_mp = (before.mp, before.max_mp)
             packets, result = original_move(
                 runtime,
                 owner_id,
@@ -51,7 +53,7 @@ class EnutrofBagWireResourceOrderTests(unittest.TestCase):
                 **kwargs
             )
             actor = runtime.fight.actors[9]
-            deliveries.append((packets, actor.mp, actor.max_mp))
+            deliveries.append((packets, actor.mp, actor.max_mp, initial_mp))
             return packets, result
 
         with patch.object(fixture_type, "fixture", fixture), patch.object(
@@ -59,8 +61,14 @@ class EnutrofBagWireResourceOrderTests(unittest.TestCase):
         ):
             movement_case.EnutrofTwoOwnerBagMovementTests().test_ally_last_paid_mp_retires_one_bag_and_preserves_other_owner_areas()
 
+        from wakfu_server.combat_retained_runtime import native_retained_metadata
+
+        reward_metadata = native_retained_metadata()["effects"]["384633"]
+        self.assertEqual(reward_metadata["effect_class"], 41)
+        self.assertIs(reward_metadata["subscription"], False)
+        self.assertEqual(reward_metadata["parameters"], [1.0, 0.0, 1.0, 0.0, 0.0, 0.0])
         checked = 0
-        for packets, server_mp, server_maximum in deliveries:
+        for packets, server_mp, server_maximum, initial_mp in deliveries:
             has_reward = any(
                 kind == 12613
                 and struct.unpack_from(">i", body, 13)[0] == 41
@@ -70,46 +78,64 @@ class EnutrofBagWireResourceOrderTests(unittest.TestCase):
             if not has_reward:
                 continue
             checked += 1
-            current = maximum = None
-            trace = []
-            for kind, body in packets:
-                if kind == 12873:
-                    envelope = decode_actor_state(kind, body)
-                    if envelope["actor_id"] != 9:
-                        continue
-                    # Native eHf3: XP8 + position20 + fight10 follow tag1.
-                    blob, offset = envelope["state"], 39
-                    count = struct.unpack_from(">H", blob, offset)[0]
-                    rows = {
-                        row[0]: row[1:]
-                        for row in (
-                            struct.unpack_from(">Biiii", blob, offset + 2 + i * 17)
-                            for i in range(count)
+
+            def project(ordered):
+                current, maximum = initial_mp
+                trace = []
+                reward_positions, snapshot_positions = [], []
+                for index, (kind, body) in enumerate(ordered):
+                    if kind == 12873:
+                        envelope = decode_actor_state(kind, body)
+                        if envelope["actor_id"] != 9:
+                            continue
+                        blob = envelope["state"]
+                        # Movement owns position and normally publishes native
+                        # ALL_CHARACTERISTICS40; changed metadata keeps full3.
+                        self.assertIn(blob[0], (3, 40))
+                        offset = 1 if blob[0] == 40 else 39
+                        count = struct.unpack_from(">H", blob, offset)[0]
+                        rows = {
+                            row[0]: row[1:]
+                            for row in (
+                                struct.unpack_from(">Biiii", blob, offset + 2 + i * 17)
+                                for i in range(count)
+                            )
+                        }
+                        current, _, maximum, percentage = rows[3]
+                        self.assertEqual(percentage, 0)
+                        snapshot_positions.append(index)
+                        trace.append((kind, current, maximum))
+                    elif kind == 12613 and struct.unpack_from(">i", body, 13)[0] == 41:
+                        messages = {}
+                        fields = _identity_fields(body[19:], messages=messages)
+                        if fields.get(3) != 384633 or fields.get(7) != 9:
+                            continue
+                        additional = _identity_fields(
+                            messages[8], integer_fields=(10, 31, 32)
                         )
-                    }
-                    current, _, maximum, percentage = rows[3]
-                    self.assertEqual(percentage, 0)
-                    trace.append((kind, current, maximum))
-                elif kind == 12613 and struct.unpack_from(">i", body, 13)[0] == 41:
-                    messages = {}
-                    fields = _identity_fields(body[19:], messages=messages)
-                    if fields.get(3) != 384633 or fields.get(7) != 9:
-                        continue
-                    additional = _identity_fields(
-                        messages[8], integer_fields=(10, 31, 32)
-                    )
-                    self.assertIsNotNone(current, trace)
-                    self.assertEqual(
-                        (fields[4], additional[10], additional[31]), (1, 1, 1)
-                    )
-                    self.assertIn(body[12], (0, 1))
-                    if body[12]:
-                        # An executable delivery invokes eWN.c: PA.op, then
-                        # PA.nG when decoded rCl is true. A retained delivery
-                        # with execute=false only materializes its carrier;
-                        # the authoritative PA snapshot already owns values.
+                        self.assertEqual(
+                            (fields[4], additional[10], additional[31]), (1, 1, 1)
+                        )
+                        self.assertIn(body[12], (0, 1))
+                        # Original aVo.cYg(false) applies unsubscribed eWN too.
+                        # The execute bit alone does not make this delta inert.
                         maximum += fields[4]
                         current = min(maximum, current + additional[10])
-                    trace.append((kind, bool(body[12]), current, maximum))
-            self.assertEqual((current, maximum), (server_mp, server_maximum), trace)
+                        reward_positions.append(index)
+                        trace.append((kind, bool(body[12]), current, maximum))
+                return (current, maximum), trace, reward_positions, snapshot_positions
+
+            projected, trace, rewards, snapshots = project(packets)
+            self.assertEqual(len(rewards), 1, trace)
+            self.assertEqual(len(snapshots), 1, trace)
+            self.assertLess(rewards[0], snapshots[0], trace)
+            self.assertEqual(projected, (server_mp, server_maximum), trace)
+
+            # Preserve all other packet order; reproduce the old final-PA-first
+            # bug using this actual native reward/snapshot tape, not fake values.
+            old_order = list(packets)
+            final_snapshot = old_order.pop(snapshots[0])
+            old_order.insert(rewards[0], final_snapshot)
+            old_projected, old_trace, _, _ = project(old_order)
+            self.assertNotEqual(old_projected, (server_mp, server_maximum), old_trace)
         self.assertEqual(checked, 1)

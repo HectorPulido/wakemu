@@ -94,6 +94,9 @@ def execute_ordered_group(
         return ()
     if not mode.on_target and cell_targets is None:
         raise UnsupportedEffectGroup("Cell class330 requires the native parent area")
+    from .combat_random_group import NativeRandomProbabilityExhausted
+    import logging
+
     calls = []
     successes = 0
     for child_id in children:
@@ -115,7 +118,16 @@ def execute_ordered_group(
                 target_id if mode.on_target and mode.transmit_target else None,
                 cell,
             )
-            successes += int(bool(execute_child(invocation)))
+            try:
+                applied = execute_child(invocation)
+            except NativeRandomProbabilityExhausted as error:
+                # Original eYg catches child.a exceptions, logs and returns.
+                # Keep native random rejection; never swallow authority errors.
+                logging.getLogger(__name__).error(
+                    "Native ordered group stopped at child %s: %s", child_id, error
+                )
+                return tuple(calls)
+            successes += int(bool(applied))
             calls.append(invocation)
     return tuple(calls)
 

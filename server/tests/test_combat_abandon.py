@@ -61,6 +61,107 @@ def setup_abandon_state(store):
 
 
 class AbandonTests(PostgresCase):
+    def test_committed_abort_publishes_one_spectator_terminal_without_npc_settlement(
+        self,
+    ):
+        import ast
+        from pathlib import Path
+        from types import SimpleNamespace
+        from wakfu_server.combat_spectator_events import is_normal_finish_packet
+        from wakfu_server.performance_profiler import PROFILER
+
+        store, account, generation, character, fight, runtime = setup_abandon_state(
+            self.store
+        )
+        self.assertIsNone(combat_abandon.committed_abandon_team(runtime))
+        result = combat_abandon.prepare(
+            store, account, generation, character, runtime, b""
+        )
+        self.assertTrue(result["applied"])
+        with store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT status FROM combat_fights WHERE id=%s", (fight.id,)
+                ).fetchone()["status"],
+                "aborted",
+            )
+        self.assertEqual(combat_abandon.committed_abandon_team(runtime), 0)
+        source = Path(__file__).resolve().parents[1] / "local_game_server.py"
+        tree = ast.parse(source.read_text())
+        (function,) = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "publish_spectator_state"
+        ]
+        for events in (tuple(result["packets"]), ()):
+            with self.subTest(retry_without_events=not events):
+                deliveries, errors = [], []
+                registry = SimpleNamespace(
+                    fights={fight.id: SimpleNamespace(revision=1)},
+                    publish_terminal=lambda identity, **kwargs: deliveries.append(
+                        (identity, kwargs)
+                    ),
+                )
+                scope = {
+                    "COMBAT_TEST": True,
+                    "PROFILER": PROFILER,
+                    "SPECTATORS": registry,
+                    "spectator_waiting_for_ack": lambda shared: False,
+                    "record": lambda **kwargs: errors.append(kwargs),
+                }
+                exec(
+                    compile(
+                        ast.fix_missing_locations(
+                            ast.Module(body=[function], type_ignores=[])
+                        ),
+                        str(source),
+                        "exec",
+                    ),
+                    scope,
+                )
+                shared = SimpleNamespace(
+                    fight=fight,
+                    runtime=runtime,
+                    settlement_ready=False,
+                    participants={},
+                    sequence=2,
+                )
+                scope["publish_spectator_state"](shared, events)
+                self.assertEqual(errors, [])
+                self.assertEqual(len(deliveries), 1)
+                identity, delivery = deliveries[0]
+                self.assertEqual(identity, fight.id)
+                terminals = [
+                    packet for packet in delivery["event_packets"] if packet[0] == 12238
+                ]
+                self.assertEqual(len(terminals), 1)
+                self.assertTrue(is_normal_finish_packet(terminals[0], fight.id))
+                self.assertFalse(shared.settlement_ready)
+
+    def test_committed_abort_projection_rejects_foreign_and_withdrawn_continuation(
+        self,
+    ):
+        from copy import deepcopy
+
+        store, account, generation, character, fight, runtime = setup_abandon_state(
+            self.store
+        )
+        combat_abandon.prepare(store, account, generation, character, runtime, b"")
+        for invalid in ("foreign_owner", "missing_actor", "withdrawn_actor", "winner"):
+            with self.subTest(invalid=invalid):
+                candidate = deepcopy(runtime)
+                if invalid == "foreign_owner":
+                    candidate.abandon_owner = (account + 1, character["id"])
+                elif invalid == "missing_actor":
+                    candidate.abandon_owner = (account, character["id"] + 1000)
+                elif invalid == "withdrawn_actor":
+                    candidate.fight.actors[character["id"]].pve_withdrawn = True
+                else:
+                    candidate.fight.winner = 1
+                with self.assertRaises(ValueError):
+                    combat_abandon.committed_abandon_team(candidate)
+
     def test_returns_persist_all_owned_hero_health_atomically(self):
         from wakfu_server import combat_lifecycle
 

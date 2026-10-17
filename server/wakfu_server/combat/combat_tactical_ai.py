@@ -663,9 +663,9 @@ class NativeProvider:
                     )
                 )
             packets.append(candidate._flush())
-            packets = candidate.prepare_delivery(packets)
             candidate.fight = preview.fight
             candidate.action_id += 2 if self.area_provider is not None else 1
+            packets = candidate.prepare_delivery(packets)
         if source != _source_key(runtime, self):
             raise ValueError("Combat changed while preparing NPC delivery")
         adopt_runtime(runtime, candidate)

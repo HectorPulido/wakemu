@@ -39,64 +39,16 @@ def validate_turn_boundary_context(context, *, fight=None):
 
 def _deliver(dispatcher, *, actor_id, phase, event_id, suppression_phase=None):
     fight = dispatcher.native_retention.fight
-    actor = fight.current
-    if fight.phase != "active" or actor is None or actor.id != actor_id:
-        raise ValueError("Turn boundary requires the actual active actor")
-    if not fight.native_start_event_delivered:
-        raise ValueError("Native participant initialization/start is incomplete")
-    key = f"{fight.turn_id}:{actor_id}:{phase}"
-    deliveries = getattr(fight, "native_turn_event_deliveries", {})
-    if key in deliveries:
-        raise ValueError("Owned turn boundary already delivered")
-    context = validate_turn_boundary_context(
-        dict(
-            policy=TURN_BOUNDARY_POLICY,
-            actor_id=actor_id,
-            turn_id=fight.turn_id,
-            phase=phase,
-            event_id=event_id,
-        ),
-        fight=fight,
+    from .combat_turn_boundary import prepare_turn_delivery, execute_turn_delivery
+
+    plan = prepare_turn_delivery(
+        fight,
+        actor_id=actor_id,
+        phase=phase,
+        event_id=event_id,
+        suppression_phase=suppression_phase,
     )
-    authority = dispatcher.native_clone_authority
-    outcomes = []
-    from .combat_turn_suppression import turn_phase_suppressed
-
-    suppressed = turn_phase_suppressed(actor, suppression_phase or phase)
-    # Local/reversed subscribers belong to the actor at this boundary. Global
-    # subscribers receive the same boundary in each participant's manager.
-    recipients = [(actor_id, 6), (actor_id, 60)]
-    from .combat_native_actor_lookup import native_actor_population
-
-    # Native global delivery captures the registered IN_PLAY/OFF_PLAY PV
-    # population. Retained OUT_OF_PLAY corpses remain in fight.actors for
-    # history, but their managers cannot receive new global turn reactions.
-    recipients += [(candidate.id, 61) for candidate in native_actor_population(fight)]
-    if suppressed:
-        recipients = []  # fbX.A/z returns before native QP/QO phase delivery.
-    from .combat_external_turn_recipient import owned_turn_recipient_scope
-
-    with owned_turn_recipient_scope(fight, context):
-        for identity, channel in recipients:
-            outcomes.extend(
-                dispatcher.replay_event(
-                    NativeExternalEvent(
-                        identity, (event_id,), channel, turn_boundary_context=context
-                    ),
-                    authority=authority,
-                )
-            )
-    # Caller operates on an unpublished preview: exception discards all effects.
-    deliveries = dict(deliveries)
-    deliveries[key] = {
-        "actor_id": actor_id,
-        "turn_id": fight.turn_id,
-        "event_id": event_id,
-        "phase": phase,
-        "suppressed": suppressed,
-    }
-    fight.native_turn_event_deliveries = deliveries
-    return tuple(outcomes)
+    return execute_turn_delivery(dispatcher, plan)
 
 
 def deliver_turn_start(dispatcher, *, actor_id):

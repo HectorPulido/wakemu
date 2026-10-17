@@ -5,6 +5,10 @@ native context. No breed or spell whitelist; wire value is actual HP+virtual
 HP healed, not the requested amount or discarded overflow.
 """
 from dataclasses import dataclass, replace
+from .combat_vitality_execution import (
+    plan_healing_consumption,
+    apply_healing_consumption,
+)
 from .combat_runner_target import bind_runner_target, runner_target_invocation
 from .combat_damage_handler import _snapshot
 from .combat_healing_parameters import (
@@ -13,8 +17,6 @@ from .combat_healing_parameters import (
 )
 from .combat_damage_healing import (
     healing_amount,
-    consume_healing,
-    healing_resistance_after,
     HEAL_ELEMENTS,
 )
 from .combat_healing_effect import direct_healing
@@ -307,58 +309,7 @@ class NativeHealingHandler:
         context = self.context(effect, invocation)
         if not context.executable:
             return False
-        result = consume_healing(
-            amount,
-            target_hp=target.hp,
-            target_max_hp=target.max_hp,
-            target_virtual_hp=target_stats[92],
-            target_max_virtual_hp=target.effect_maxima[92],
-            undead=context.undead,
-            bypass_undead=context.bypass_undead,
-            frozen_stats=tuple(("target", k) for k in target.effect_frozen),
-        )
-        from .combat_hp_raw import hp_raw_present, hp_shift_result
-
-        if hp_raw_present(target):
-            from .combat_casting_range import int32
-
-            _, hp_after, hp_actual = hp_shift_result(target, amount)
-            remainder = int32(amount - hp_actual)
-            virtual_requested = None
-            if target.effect_maxima[92] <= 0:
-                virtual_after, virtual_actual = target_stats[92], 0
-            elif getattr(target, "native_copy_pa_source", None) is not None:
-                from .combat_copied_pa import copied_shift_result
-
-                _, virtual_after, virtual_actual = copied_shift_result(
-                    target, 92, remainder
-                )
-                virtual_requested = remainder
-            else:
-                virtual_actual = (
-                    0
-                    if 92 in target.effect_frozen
-                    else min(remainder, target.effect_maxima[92] - target_stats[92])
-                )
-                virtual_after = target_stats[92] + virtual_actual
-            result.update(
-                value=int32(hp_actual + virtual_actual),
-                hp_gain=hp_actual,
-                hp_requested=amount,
-                virtual_hp_gain=virtual_actual,
-                virtual_hp_requested=virtual_requested,
-                target_hp=hp_after,
-                target_virtual_hp=virtual_after,
-            )
-        result["target_heal_resistance"] = healing_resistance_after(
-            result["value"],
-            target_max_hp=target.max_hp,
-            current=target_stats[32],
-            enabled=context.resistance_enabled,
-            frozen=32 in target.effect_frozen,
-            minimum=context.resistance_minimum,
-            maximum=context.resistance_maximum,
-        )
+        result = plan_healing_consumption(amount, target, target_stats, context)
         pending_retained = None
         from .combat_native_timing_context import native_definition_timing
 
@@ -387,19 +338,7 @@ class NativeHealingHandler:
             restored=result["value"],
             base_uid=invocation.base_uid,
         )
-        self.fight.apply_effect_healing(
-            source.id, target.id, result.get("hp_requested", result["hp_gain"])
-        )
-        if getattr(target, "native_copy_pa_source", None) is not None:
-            from .combat_copied_pa import shift_copied_current, set_copied_current
-
-            if result["virtual_hp_requested"] is not None:
-                shift_copied_current(
-                    self.fight, target, 92, result["virtual_hp_requested"]
-                )
-            set_copied_current(self.fight, target, 32, result["target_heal_resistance"])
-        target_stats[92] = result["target_virtual_hp"]
-        target_stats[32] = result["target_heal_resistance"]
+        apply_healing_consumption(self.fight, source, target, result, target_stats)
         runner.set_applied(result["value"])
         if not runner.notification_suppressed:
             self.packets.append((12613, packet))

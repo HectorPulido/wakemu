@@ -75,3 +75,42 @@ class NativeMovementQIBoundaryTests(unittest.TestCase):
         self.assertEqual(private.fight.actors[fixture.npc.id].position, path[-1])
         self.assertEqual(fixture.fight.native_qi_slots, before)
         self.assertEqual(fixture.npc.position, path[0])
+
+    def test_actual_move_commit_retains_delivery_cleanup_in_moved_preview(self):
+        from wakfu_server.combat_pending_restoration import SOURCE
+        from wakfu_server.combat_qi_snapshot import NativeQISnapshot
+
+        fixture = fixture_module.NativeOracleTests.wonejo_fixture()
+        qi = NativeQISnapshot(fixture.fight.native_qi_snapshot)
+        routes = sorted(
+            (source, target)
+            for source, target in fixture.fight.edges
+            if source in fixture.fight.walkable
+            and target in fixture.fight.walkable
+            and source[2] == target[2]
+            and abs(source[0] - target[0]) + abs(source[1] - target[1]) == 1
+            and fixture.pc.position not in (source, target)
+            and qi.aK(*source[:2])
+            and qi.aK(*target[:2])
+        )
+        self.assertTrue(routes)
+        source, target = routes[0]
+        move_registered_actor(fixture.fight, fixture.npc, source)
+        freeze_terrain(fixture.fight)
+        fixture.pc.native_death_status = dict(
+            getattr(fixture.pc, "native_death_status", {}), pending_restoration=SOURCE
+        )
+        runtime = RuntimeMessages(fixture.fight)
+        oracle = fixture_module.NativeOracleTests.oracle_for(
+            runtime, fixture.character, fixture.monster, default_deck(fixture.character)
+        )
+        fight, actor = runtime.fight, fixture.pc
+        packets = oracle.commit(
+            {"type": "move", "path": [list(target)]},
+            stats_serializer=lambda *args: b"",
+        )
+        self.assertTrue(packets)
+        self.assertIs(runtime.fight, fight)
+        self.assertIs(runtime.fight.actors[actor.id], actor)
+        self.assertEqual(runtime.fight.actors[fixture.npc.id].position, target)
+        self.assertNotIn("pending_restoration", actor.native_death_status)

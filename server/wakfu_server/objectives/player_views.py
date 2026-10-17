@@ -1,4 +1,6 @@
 """Player-only projection of definitions, progress and public challenge results."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from datetime import datetime, timezone
 from . import repository, rankings, player_auth, player_actions, assignments, points
 from .schedules import period_key
@@ -73,7 +75,9 @@ def snapshot(db, identity):
     }
     for row in definitions:
         definition = row["definition"]
-        band = definition.get("level_range", dict(minimum=1, maximum=200))
+        band = definition.get(
+            "level_range", dict(minimum=1, maximum=MAX_CHARACTER_LEVEL)
+        )
         if not definition["enabled"] or (
             definition["key"] not in assigned_keys
             and not band["minimum"] <= actor["level"] <= band["maximum"]

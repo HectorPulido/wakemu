@@ -46,6 +46,26 @@ class NativeEventSource:
     )
 
     def validate(self):
+        from .combat_movement_payment_events import valid_movement_descriptor
+
+        movement_payment = valid_movement_descriptor(
+            self.cost_source, caster_id=self.caster_id, target_id=self.target_id
+        )
+        if movement_payment:
+            costs = self.cost_source["action_costs"]
+            identifiers = tuple(
+                sorted(
+                    {0, 74}
+                    | ({65} if costs["mp"] else set())
+                    | ({55} if costs["ap"] else set())
+                )
+            )
+            if (
+                self.event_ids != identifiers
+                or self.value != costs["ap"] | (costs["mp"] << 8)
+                or self.channel not in (3, 4, 30, 40, 31, 41)
+            ):
+                raise ValueError("Movement eWf source differs from its payment")
         synthetic_payment = (
             self.uid == -1
             and self.generic_effect == -1
@@ -58,9 +78,14 @@ class NativeEventSource:
             and self.cost_source.get("runner_class") == "eWf"
             and self.cost_source.get("spell_context") == {"present": False}
             and (
-                self.cost_source.get("paid_ability_policy") is None
-                or self.cost_source["paid_ability_policy"]
+                (
+                    self.cost_source.get("paid_ability_policy") is None
+                    and self.cost_source.get("movement_payment_policy") is None
+                )
+                or movement_payment
+                or self.cost_source.get("paid_ability_policy")
                 == {"payer_id": self.caster_id, "mi": True, "mh": False}
+                and self.cost_source.get("movement_payment_policy") is None
                 and self.caster_id == self.target_id
             )
             and isinstance(self.cost_source.get("action_costs"), dict)

@@ -609,7 +609,7 @@ class WireTests(unittest.TestCase):
         self.assertEqual(level_xp(1), 0)
         self.assertEqual(level_xp(200), 59929868921)
         self.assertTrue(all(level_xp(n) < level_xp(n + 1) for n in range(1, 200)))
-        for invalid in (0, 201, True, 1.0):
+        for invalid in (0, 246, True, 1.0):
             with self.assertRaises(ValueError):
                 level_xp(invalid)
         self.assertEqual(

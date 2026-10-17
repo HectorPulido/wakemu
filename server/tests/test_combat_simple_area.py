@@ -20,6 +20,7 @@ def simple_definition(reference, *, area_type="SIMPLE", native_class="bcW", type
         native_type_id=type_id,
         native_container_type=3,
         raw_bde=2,
+        raw_bcR=False,
         properties=[],
         native_fight_properties=[],
         native_area_properties=[],

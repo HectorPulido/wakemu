@@ -175,3 +175,37 @@ class OwnedEquipmentFactoryTests(unittest.TestCase):
         self.assertIs(base.state_catalog, original_states)
         self.assertIsNot(private.effects, base.effects)
         self.assertIsNot(private.state_catalog, base.state_catalog)
+
+    def test_repeated_same_catalog_wrapper_preserves_one_private_factory(self):
+        from copy import copy
+
+        base = self.fixture.native.factory(self.fixture.compiled)
+        wrapped = OwnedEquipmentRuntimeFactory(base, self.fixture.compiled)
+        self.assertIs(wrapped._factory, base._factory)
+        private = copy(wrapped)
+        self.assertIsNot(private._factory, wrapped._factory)
+        original_effects = wrapped.effects
+        private.effects = dict(private.effects)
+        self.assertIs(wrapped.effects, original_effects)
+        self.assertIsNot(private.effects, original_effects)
+
+    def test_private_factory_rejects_genuinely_different_native_point_offsets(self):
+        from copy import copy
+        from wakfu_server.combat_native_area_metadata import native_point_area_metadata
+
+        _, (pinned, _) = self.fixture.pin()
+        private = copy(self.fixture.native.factory(self.fixture.compiled))
+        metadata = native_point_area_metadata()
+        reference = next(
+            key
+            for key, effect in private.effects.items()
+            if effect.get("area_class") in ("anE", "anJ") and key in metadata
+        )
+        changed = dict(
+            private.effects[reference], native_area_points=[[987654, 987654]]
+        )
+        private.effects = dict(private.effects, **{reference: changed})
+        with self.assertRaisesRegex(
+            ValueError, "Conflicting native point area offsets"
+        ):
+            private(pinned, {"native_retained_container": {"present": False}})

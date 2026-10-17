@@ -9,6 +9,7 @@ from psycopg.types.json import Jsonb
 
 from postgres_case import PostgresCase
 from wakfu_server.objectives import hunts
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 
 
 class _World:
@@ -51,6 +52,32 @@ class ObjectivesHuntsPostgresTests(PostgresCase):
                 (Jsonb({"701": "Map 701", "702": "Private Map 702"}),),
             )
             self._seed_native_catalog(db)
+
+    def test_only_online_level245_player_still_schedules_existing_native_hunt(self):
+        self.assertEqual(MAX_CHARACTER_LEVEL, 245)
+        now = datetime.now(timezone.utc)
+        with self.store.connection() as db:
+            db.execute("UPDATE characters SET level=245 WHERE id=%s", (self.character,))
+            online = db.execute(
+                "SELECT c.level FROM sessions s JOIN characters c ON c.id=s.character_id "
+                "AND c.account_id=s.account_id WHERE s.expires_at>%s AND c.deleted_at IS NULL",
+                (now,),
+            ).fetchall()
+            self.assertEqual([row["level"] for row in online], [245])
+            hunt = hunts.tick(db, now)
+            self.assertIsNotNone(hunt)
+            self.assertEqual(
+                (hunt["monster_ref"], hunt["level"], hunt["status"]),
+                (10, 10, "pending"),
+            )
+            # Player eligibility changes; the reviewed NPC inventory is not
+            # inflated to player245 or given a broader native admission cap.
+            self.assertEqual(
+                db.execute(
+                    "SELECT level FROM characters WHERE id=%s", (self.character,)
+                ).fetchone()["level"],
+                245,
+            )
 
     @staticmethod
     def _seed_native_catalog(db):

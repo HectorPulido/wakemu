@@ -5,6 +5,7 @@ import inspect
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
+from protocol_codec import decode_body
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_shared import Registry, Session, Transition
 from wakfu_server.combat_multiplayer_wire import (
@@ -42,7 +43,28 @@ class SharedCombatTests(unittest.TestCase):
         self.assertEqual(observed, [True])
         self.assertIs(self.registry.lookup_character(21), shared)
         packets = self.registry.drain(99, self.one)[0].packets
-        self.assertEqual([op for op, body in packets], [12608, 13091, 13091, 13026])
+        self.assertEqual([op for op, body in packets], [12608, 13091, 13091, 13652])
+        placement = decode_body("in", packets[-1][0], packets[-1][1])
+        self.assertEqual(placement["fight_id"], 99)
+        self.assertTrue(placement["force_immediate"])
+        self.assertEqual(len(packets[-1][1]), 79)
+        expected_positions = {
+            10: (0, 0, 0),
+            -200: (3, 0, 0),
+            20: (1, 0, 0),
+            21: (2, 0, 0),
+        }
+        self.assertEqual(
+            {
+                row["actor_id"]: (row["x"], row["y"], row["z"])
+                for row in placement["actors"]
+            },
+            expected_positions,
+        )
+        self.assertEqual(
+            {actor.id: actor.position for actor in shared.fight.actors.values()},
+            expected_positions,
+        )
         self.assertEqual(set(shared.participants), {1, 2})
 
     def test_same_account_heroes_have_one_session_and_all_character_aliases(self):
@@ -571,7 +593,23 @@ class SharedCombatTests(unittest.TestCase):
         self.assertEqual(f.actors[20].position, (1, 0, 0))
         first = self.registry.drain(99, self.one)
         second = self.registry.drain(99, self.two)
-        self.assertEqual([p[0] for p in first[0].packets], [13091, 13026])
+        self.assertEqual([p[0] for p in first[0].packets], [13091, 13652])
+        placement = decode_body("in", *first[0].packets[-1])
+        self.assertEqual(placement["fight_id"], 99)
+        self.assertTrue(placement["force_immediate"])
+        self.assertEqual(len(first[0].packets[-1][1]), 61)
+        expected_positions = {10: (0, 0, 0), -200: (3, 0, 0), 20: (1, 0, 0)}
+        self.assertEqual(
+            {
+                row["actor_id"]: (row["x"], row["y"], row["z"])
+                for row in placement["actors"]
+            },
+            expected_positions,
+        )
+        self.assertEqual(
+            {actor.id: actor.position for actor in f.actors.values()},
+            expected_positions,
+        )
         self.assertEqual(decode_added(first[0].packets[0][1])["actor_id"], 20)
         self.assertEqual([p[0] for p in second[0].packets], [12847])
         self.assertEqual(first[0].sequence, second[0].sequence)

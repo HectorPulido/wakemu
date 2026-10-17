@@ -277,17 +277,9 @@ def current_registry(fight, *, pending_area_id=None):
 
 def move_registered_actor(fight, actor, destination):
     """Publish an actual actor coordinate update together with QI relocation."""
-    if getattr(fight, "native_qi_slots", None) is not None:
-        # The complete population may include proved OFF_PLAY actors; an
-        # unregistered HP0 never bypasses QI lifecycle validation.
-        registry = current_registry(fight)
-        from .combat_carrying import move_carrying_registered
+    from .combat_position_mutation import move_actor_position
 
-        move_carrying_registered(fight, actor, tuple(destination), registry)
-    actor.position = tuple(destination)
-    if getattr(actor, "native_physical_position", None) is not None:
-        # Native eGj.a(x,y,z) mutates the same pGF returned by efR().
-        actor.native_physical_position = tuple(destination)
+    move_actor_position(fight, actor, destination)
 
 
 def register_effect_area_obstacle(fight, row, constructor):

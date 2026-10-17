@@ -1,6 +1,6 @@
 import unittest
 from types import SimpleNamespace
-from server.tests import test_combat_effect_area_events as area_event_tests
+import test_combat_effect_area_events as area_event_tests
 from wakfu_server.combat_effect_area_targets import NativeAreaTarget
 
 

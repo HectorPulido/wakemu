@@ -1,4 +1,5 @@
 """Public native monster hunts, transactional spawning and once-per-account wins."""
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 import hashlib
@@ -118,8 +119,8 @@ def tick(db, now=None):
     if type(lifetime) is not int or not 60 <= lifetime <= 86400:
         raise ValueError("Invalid public hunt lifetime")
     players = db.execute(
-        "SELECT DISTINCT s.account_id,c.level FROM sessions s JOIN characters c ON c.id=s.character_id AND c.account_id=s.account_id WHERE s.expires_at>%s AND c.deleted_at IS NULL AND c.level BETWEEN 1 AND 200 ORDER BY s.account_id",
-        (now,),
+        "SELECT DISTINCT s.account_id,c.level FROM sessions s JOIN characters c ON c.id=s.character_id AND c.account_id=s.account_id WHERE s.expires_at>%s AND c.deleted_at IS NULL AND c.level BETWEEN 1 AND %s ORDER BY s.account_id",
+        (now, MAX_CHARACTER_LEVEL),
     ).fetchall()
     if not players:
         return None

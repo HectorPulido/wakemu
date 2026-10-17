@@ -47,7 +47,7 @@ class MultipleTargetGroupTests(unittest.TestCase):
         self.assertEqual([r.target_id for r in result], [4, 3, 2])
 
     def test_dispatcher_runs_all_children_with_direct_pv_actual_height(self):
-        from server.tests.test_combat_effect_dispatch import effect
+        from test_combat_effect_dispatch import effect
 
         seen = []
         effects = {

@@ -4,6 +4,8 @@ Emitter stores the native source container descriptor. Resolution happens only
 in the transaction preview after event rebinding, using the listener's actual
 caster/target and its current eHl snapshot. No payment event is fabricated.
 """
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from wakfu_server import native_catalog as protocol_catalog
 from copy import deepcopy
 from wakfu_server.paths import DATA_ROOT
@@ -78,7 +80,7 @@ class LiveEventCostAuthority:
         if (
             type(identity) is not int
             or type(level) is not int
-            or not 1 <= level <= 200
+            or not 1 <= level <= MAX_CHARACTER_LEVEL
             or row is None
             or level > len(row["levels"])
         ):

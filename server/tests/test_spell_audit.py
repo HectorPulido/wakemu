@@ -1,6 +1,7 @@
 import unittest
 from wakfu_server import native_catalog as protocol_catalog
 from wakfu_server.paths import DATA_ROOT
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from wakfu_server.spell_audit import inspect_spell, catalog, costs_catalog
 
 
@@ -15,7 +16,7 @@ class NativeSpellAuditTests(unittest.TestCase):
         self.assertEqual(set(data["spells"]), native_ids)
         self.assertEqual(set(costs_catalog()), native_ids)
         for spell in data["spells"].values():
-            self.assertEqual(len(spell["levels"]), 200)
+            self.assertEqual(len(spell["levels"]), MAX_CHARACTER_LEVEL)
             for _minimum, _maximum, roots in spell["levels"]:
                 for reference in roots:
                     self.assertIn(str(reference), data["effects"])

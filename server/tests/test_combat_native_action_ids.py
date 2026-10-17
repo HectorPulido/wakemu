@@ -1,6 +1,5 @@
 import struct
 import unittest
-from types import SimpleNamespace
 from wakfu_server.combat_native_action_ids import (
     MAX_NATIVE_ACTION_ID,
     NATIVE_ACTION_PACKETS,
@@ -10,6 +9,20 @@ from wakfu_server.combat_runtime_messages import RuntimeMessages
 
 
 class NativeActionIdTests(unittest.TestCase):
+    def runtime(self):
+        from wakfu_server.combat_state import Actor, Fight
+
+        owner = Actor(100, 0, (0, 0, 0), 86, 6, 3, 100, 1, 1, True)
+        enemy = Actor(-200, 1, (1, 0, 0), 20, 4, 2, 10, 1)
+        fight = Fight(
+            91,
+            [owner, enemy],
+            {owner.position, enemy.position},
+            {0: {owner.position}, 1: {enemy.position}},
+        )
+        fight.ready(1)
+        return RuntimeMessages(fight)
+
     def block(self):
         header = struct.pack(">iii", 91, 228, -1)
         return [
@@ -58,7 +71,7 @@ class NativeActionIdTests(unittest.TestCase):
         self.assertEqual(original, self.block())
 
     def test_prepared_delivery_is_not_renumbered_at_second_boundary(self):
-        wire = RuntimeMessages(SimpleNamespace(id=91))
+        wire = self.runtime()
         packets = wire.prepare_delivery(self.block())
         again = wire.prepare_delivery(packets)
         self.assertIs(again, packets)
@@ -66,25 +79,38 @@ class NativeActionIdTests(unittest.TestCase):
         self.assertEqual(wire.action_id, 0)
 
     def test_validation_failure_preserves_runtime_counter_and_authoritative_hp(self):
-        fight = SimpleNamespace(id=91, hp=86)
-        wire = RuntimeMessages(fight)
+        from wakfu_server.combat_reproduction_state import encode_state
+
+        wire = self.runtime()
+        fight = wire.fight
+        owner = fight.actors[100]
+        before = encode_state(wire)
         malformed = self.block() + [(12613, struct.pack(">iii", 92, 228, -1))]
         with self.assertRaisesRegex(ValueError, "another fight"):
             wire.prepare_delivery(malformed)
-        self.assertEqual((wire.native_action_id, fight.hp), (0, 86))
+        self.assertEqual((wire.native_action_id, owner.hp), (0, 86))
+        self.assertEqual(encode_state(wire), before)
+        self.assertIs(wire.fight, fight)
+        self.assertIs(fight.actors[100], owner)
 
     def test_exhaustion_does_not_wrap_or_partially_publish(self):
-        wire = RuntimeMessages(SimpleNamespace(id=91))
+        from wakfu_server.combat_reproduction_state import encode_state
+
+        wire = self.runtime()
         wire.native_action_id = MAX_NATIVE_ACTION_ID - 1
+        before = encode_state(wire)
         with self.assertRaisesRegex(ValueError, "exhausted"):
             wire.prepare_delivery(self.block())
         self.assertEqual(wire.native_action_id, MAX_NATIVE_ACTION_ID - 1)
+        self.assertEqual(encode_state(wire), before)
         final = wire.prepare_delivery(self.block()[:1])
         self.assertEqual(
             final.native_actions[0]["native_action_id"], MAX_NATIVE_ACTION_ID
         )
+        before = encode_state(wire)
         with self.assertRaisesRegex(ValueError, "exhausted"):
             wire.prepare_delivery(self.block()[:1])
+        self.assertEqual(encode_state(wire), before)
 
     def test_invalid_start_and_truncated_packet_reject(self):
         for previous in (None, True, -1, 1 << 31):

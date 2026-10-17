@@ -548,6 +548,16 @@ class NativeTacticalPreviewTests(unittest.TestCase):
         before = fight_snapshot(runtime.fight, runtime=runtime)
 
         self.assertEqual(owned_spells(runtime.fight, provider.monsters), {5767: 8})
+        from wakfu_server.combat_native_spell_casting import native_casting_table
+
+        casting, casting_index = native_casting_table(5767, 8)
+        self.assertEqual(casting["levels"][casting_index][:2], [1, 1])
+        self.assertIs(casting["allow_self"], False)
+        first_candidate = next(provider.actions(runtime.fight))
+        self.assertEqual(first_candidate["type"], "cast")
+        self.assertEqual(first_candidate["spellId"], 5767)
+        self.assertEqual(first_candidate["targetId"], fixture.npc.id)
+        self.assertEqual(first_candidate["target"], list(fixture.npc.position))
         with patch("wakfu_server.combat_los.authoritative_visible", return_value=True):
             request = build_request(
                 runtime, provider, max_previews=2, budget_ms=5000, depth=1
@@ -560,12 +570,12 @@ class NativeTacticalPreviewTests(unittest.TestCase):
         self.assertTrue(any(action["type"] == "move" for action in actions))
         self.assertFalse(any(action["type"] == "cast" for action in actions))
         self.assertGreater(request["producerTrace"]["rejected"], 0)
-        self.assertTrue(
-            any(
-                reason.startswith("Unsupported native NPC effect roots:")
-                for reason in request["producerTrace"]["rejectedReasons"]
-            ),
+        # The first coarse self candidate has distance0, outside the actual
+        # range1..1 with allow_self=false. Native fcj must reject at twI before
+        # effect-root support, leaving the second preview for certified movement.
+        self.assertEqual(
             request["producerTrace"]["rejectedReasons"],
+            {"Native spell casting eligibility rejected: twI": 1},
         )
         from tests.test_ai_service import planner
 

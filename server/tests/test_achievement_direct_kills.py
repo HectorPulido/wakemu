@@ -17,7 +17,6 @@ def state():
 
 class AchievementDirectKillTests(unittest.TestCase):
     def test_installed_catalog_preserves_variable_breed_provenance(self):
-        catalog.load.cache_clear()
         rules = catalog.load()
         self.assertEqual(len(rules["definitions"]), 30)
         self.assertEqual(

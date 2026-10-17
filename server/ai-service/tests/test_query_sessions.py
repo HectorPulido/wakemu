@@ -1083,6 +1083,7 @@ class NativeQueryRoundTripTests(unittest.TestCase):
         oracle.preview = tracked_preview
         from unittest.mock import patch
 
+        npc_ap_before = runtime.fight.actors[fixture.npc.id].ap
         with patch("wakfu_server.combat_los.authoritative_visible", return_value=True):
             decision = session.decide(max_queries=128)
 
@@ -1095,7 +1096,7 @@ class NativeQueryRoundTripTests(unittest.TestCase):
         self.assertEqual(observed[-1], decision["action"])
         self.assertEqual(encode(runtime), source_before)
         self.assertEqual(runtime.fight.actors[7].hp, 60)
-        self.assertEqual(runtime.fight.actors[fixture.npc.id].ap, 3)
+        self.assertEqual(runtime.fight.actors[fixture.npc.id].ap, npc_ap_before)
 
 
 if __name__ == "__main__":

@@ -63,7 +63,9 @@ def commit_spell_transaction(
     if source_snapshot(runtime.fight) != transaction.source_state:
         raise ValueError("Combat changed while serializing the spell")
     stage("revalidate_source", started)
-    delivery = runtime.prepare_delivery(packets)
-    runtime.fight = transaction.fight
-    runtime.action_id = transaction.action_id
-    return delivery
+    return runtime.prepare_fight_delivery(
+        packets,
+        transaction.fight,
+        action_id=transaction.action_id,
+        operation="commit_spell_transaction",
+    )

@@ -4,6 +4,8 @@ Owned build metadata, equipment and selection remain durable and unmodified.
 The formula is configurable server policy, not official automatic-build parity.
 """
 
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
+
 NATIVE_BANDS = (20, 35, 50, 65, 80, 95, 110, 125, 140, 155, 170, 185, 200, 215, 230)
 
 
@@ -51,7 +53,7 @@ def load_context(db, character):
 
 def capped_level(owned_level, context):
     """Compute only the bound; callers still need a complete native projection."""
-    if type(owned_level) is not int or not 1 <= owned_level <= 200:
+    if type(owned_level) is not int or not 1 <= owned_level <= MAX_CHARACTER_LEVEL:
         raise ValueError("Invalid owned character/build level")
     if context is None or not context["competitive"]:
         return owned_level
@@ -95,7 +97,8 @@ def validate_policy(policy):
             not isinstance(thresholds, list)
             or len(thresholds) > limit
             or any(
-                type(level) is not int or not 1 <= level <= 200 for level in thresholds
+                type(level) is not int or not 1 <= level <= MAX_CHARACTER_LEVEL
+                for level in thresholds
             )
             or thresholds != sorted(set(thresholds))
         ):
@@ -109,7 +112,7 @@ def validate_policy(policy):
 
 def profile_stats(level, policy):
     """Add the same explicit flat profile to native world and combat stats."""
-    if type(level) is not int or not 1 <= level <= 200:
+    if type(level) is not int or not 1 <= level <= MAX_CHARACTER_LEVEL:
         raise ValueError("Invalid automatic modulation level")
     policy = validate_policy(policy)
     stats = {

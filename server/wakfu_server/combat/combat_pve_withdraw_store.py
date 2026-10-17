@@ -120,6 +120,114 @@ def persist(
     )
 
 
+def _complete_owned_health_return(store, db, session, fight_id):
+    """Finish only certified withdrawal health, once, inside its return TX.
+
+    An abort receipt alone never revives a character. The matching account's
+    complete ordinary withdrawal roster, selected lease and unchanged dead
+    exit baseline establish the exploration continuation. Combat actors and
+    encounter outcome remain untouched.
+    """
+    from wakfu_server import health_policy
+
+    participants = tuple(
+        db.execute(
+            "SELECT character_id,session_generation FROM combat_fight_participants "
+            "WHERE fight_id=%s AND account_id=%s ORDER BY character_id FOR UPDATE",
+            (fight_id, session.account_id),
+        )
+    )
+    withdrawals = tuple(
+        db.execute(
+            "SELECT character_id,session_generation,health_returned_at FROM combat_pve_withdrawals "
+            "WHERE fight_id=%s AND account_id=%s ORDER BY character_id FOR UPDATE",
+            (fight_id, session.account_id),
+        )
+    )
+    member_ids = {row["character_id"] for row in participants}
+    if (
+        not member_ids
+        or session.character_id not in member_ids
+        or member_ids != {row["character_id"] for row in withdrawals}
+        or any(row["session_generation"] != session.generation for row in withdrawals)
+    ):
+        raise ValueError("Withdrawal health return lacks the complete owned roster")
+    withdrawal_by_id = {row["character_id"]: row for row in withdrawals}
+    for member in participants:
+        identity = member["character_id"]
+        store.lock_character(
+            db,
+            session.account_id,
+            session.generation,
+            identity,
+            selected=identity == session.character_id,
+        )
+        exit_row = db.execute(
+            "SELECT reason,generation,created_at,return_acknowledged_at "
+            "FROM fight_health_exits WHERE fight_id=%s AND character_id=%s FOR UPDATE",
+            (fight_id, identity),
+        ).fetchone()
+        if (
+            exit_row is None
+            or exit_row["reason"] != "abort"
+            or exit_row["generation"] != member["session_generation"]
+        ):
+            raise ValueError("Withdrawal health return lacks its original exit receipt")
+        if withdrawal_by_id[identity]["health_returned_at"] is not None:
+            continue
+        character = store.character(session.account_id, identity, db)
+        if character["health_dead"]:
+            baseline = db.execute(
+                "SELECT initial_hp,initial_damage,started_at,coefficient "
+                "FROM character_regeneration WHERE character_id=%s FOR UPDATE",
+                (identity,),
+            ).fetchone()
+            newer = db.execute(
+                "SELECT 1 FROM fight_health_exits WHERE character_id=%s "
+                "AND fight_id<>%s AND created_at>=%s LIMIT 1",
+                (identity, fight_id, exit_row["created_at"]),
+            ).fetchone()
+            active = db.execute(
+                "SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
+                "WHERE p.character_id=%s AND p.fight_id<>%s AND f.status IN ('placement','active') "
+                "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals w "
+                "WHERE w.fight_id=p.fight_id AND w.character_id=p.character_id) LIMIT 1",
+                (identity, fight_id),
+            ).fetchone()
+            if (
+                character["hp"] != 0
+                or baseline is None
+                or baseline["initial_hp"] != 0
+                or baseline["initial_damage"] != character["hp_damage"]
+                or baseline["coefficient"] != 0
+                or baseline["started_at"] != exit_row["created_at"]
+                or newer is not None
+                or active is not None
+            ):
+                raise ValueError(
+                    "Dead withdrawal health no longer matches its exit baseline"
+                )
+            # Reuse the explicit Wakemu one-HP exploration policy only after
+            # the owned withdrawal continuation, never a generic abort/tick.
+            damage, dead = health_policy.recover_finished_return(
+                character["max_hp"], character["hp_damage"], True
+            )
+            hp = health_policy.apply_damage(db, character, damage, dead)
+            now = store.now()
+            db.execute(
+                "INSERT INTO character_regeneration(character_id,initial_hp,started_at,coefficient,last_at) "
+                "VALUES(%s,%s,%s,1,%s) ON CONFLICT(character_id) DO UPDATE SET "
+                "initial_hp=excluded.initial_hp,started_at=excluded.started_at,"
+                "coefficient=excluded.coefficient,last_at=excluded.last_at",
+                (identity, hp, now, now),
+            )
+        db.execute(
+            "UPDATE combat_pve_withdrawals SET health_returned_at=%s "
+            "WHERE fight_id=%s AND character_id=%s AND health_returned_at IS NULL",
+            (store.now(), fight_id, identity),
+        )
+
+
 def acknowledge(store, session, fight_id):
     """Native return ACK frees only the withdrawn participant's UI receipt."""
     with store.connection() as db:
@@ -140,6 +248,7 @@ def acknowledge(store, session, fight_id):
         ).fetchone()
         if row is None:
             raise ValueError("No owned PvE withdrawal continuation")
+        _complete_owned_health_return(store, db, session, fight_id)
         return store.character(session.account_id, session.character_id, db)
 
 
@@ -182,6 +291,7 @@ def recover(store, session, fight_id, previous_generation):
                 previous_generation,
             ),
         )
+        _complete_owned_health_return(store, db, session, fight_id)
         return store.character(session.account_id, session.character_id, db)
 
 
@@ -190,9 +300,27 @@ def recover_pending(store, session):
     with store.connection() as db:
         pending = tuple(
             db.execute(
-                "SELECT fight_id,session_generation FROM combat_pve_withdrawals "
-                "WHERE account_id=%s AND character_id=%s AND returned_at IS NULL "
-                "ORDER BY fight_id",
+                "SELECT w.fight_id,w.session_generation FROM combat_pve_withdrawals w "
+                "WHERE w.account_id=%s AND w.character_id=%s AND (w.returned_at IS NULL OR EXISTS("
+                "SELECT 1 FROM combat_pve_withdrawals m JOIN fight_health_exits e "
+                "ON e.fight_id=m.fight_id AND e.character_id=m.character_id "
+                "JOIN characters c ON c.id=m.character_id "
+                "JOIN character_regeneration r ON r.character_id=c.id "
+                "WHERE m.fight_id=w.fight_id AND m.account_id=w.account_id "
+                "AND e.reason='abort' AND m.health_returned_at IS NULL "
+                "AND c.health_dead AND c.hp=0 AND r.initial_hp=0 AND r.coefficient=0 "
+                "AND r.initial_damage=c.hp_damage AND r.started_at=e.created_at "
+                "AND NOT EXISTS(SELECT 1 FROM fight_health_exits newer "
+                "WHERE newer.character_id=c.id AND newer.fight_id<>w.fight_id "
+                "AND newer.created_at>=e.created_at) "
+                "AND NOT EXISTS(SELECT 1 FROM combat_fight_participants other "
+                "JOIN combat_fights live ON live.id=other.fight_id "
+                "WHERE other.character_id=c.id AND other.fight_id<>w.fight_id "
+                "AND live.status IN ('placement','active') "
+                "AND NOT EXISTS(SELECT 1 FROM combat_pve_withdrawals retired "
+                "WHERE retired.fight_id=other.fight_id "
+                "AND retired.character_id=other.character_id)))) "
+                "ORDER BY w.fight_id",
                 (session.account_id, session.character_id),
             )
         )
@@ -219,4 +347,5 @@ def recover_pending(store, session):
                     row["session_generation"],
                 ),
             )
+            _complete_owned_health_return(store, db, session, row["fight_id"])
         return store.character(session.account_id, session.character_id, db)

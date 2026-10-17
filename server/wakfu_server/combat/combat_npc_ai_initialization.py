@@ -11,6 +11,7 @@ def initial_ai_actors(fight, monsters):
         return frozenset()
     from .combat_npc_attack import npc_spell_catalog
     from .combat_npc_activation import imports_enabled
+    from .combat_npc_event_controller import event_controller_record
     from wakfu_server.monsters import native_abilities
 
     policy = npc_spell_catalog().get("activation_policy")
@@ -26,13 +27,21 @@ def initial_ai_actors(fight, monsters):
             or getattr(actor, "native_summon_action_book", None) is not None
         ):
             continue
+        abilities = native_abilities(monster["ref"], actor.effective_level)
+        if (
+            not abilities
+            and event_controller_record(policy, monster["ref"], actor.effective_level)
+            is not None
+        ):
+            result.add(identity)
+            continue
         # The same owned repertoire and activation gate select the real
         # NativeProvider/ai-service cast implementation for this fresh NPC.
         if any(
             imports_enabled(
                 policy, monster["ref"], actor.effective_level, ability["spell_id"]
             )
-            for ability in native_abilities(monster["ref"], actor.effective_level)
+            for ability in abilities
         ):
             result.add(identity)
     return frozenset(result)

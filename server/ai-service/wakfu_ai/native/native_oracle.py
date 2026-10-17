@@ -15,6 +15,7 @@ import inspect
 import json
 import random
 import struct
+from wakfu_server.combat_input_observation import observe_rng
 
 from ..context.native_context import encode, encode_bytes
 from .native_stats import NativeStats
@@ -346,7 +347,9 @@ class NativeOracle:
         rng = (
             self._rng(private, dict(boundary="start", actorId=actor_id))
             if forecast
-            else random.Random()
+            else observe_rng(
+                "native_oracle.start_boundary", random.Random(), external=False
+            )
         )
         factory, _ = self.factory(private, action_id, rng)
         dispatcher, packets = factory(
@@ -369,7 +372,9 @@ class NativeOracle:
         rng = (
             self._rng(private, dict(boundary="end", actorId=actor_id))
             if forecast
-            else random.Random()
+            else observe_rng(
+                "native_oracle.end_boundary", random.Random(), external=False
+            )
         )
         factory, _ = self.factory(private, action_id, rng)
         dispatcher, packets = factory(
@@ -721,7 +726,11 @@ class NativeOracle:
             or any(type(c) is not int for c in target)
         ):
             raise ValueError("Native caster does not own requested spell/level/target")
-        rng = self._rng(fight, action) if forecast else random.Random()
+        rng = (
+            self._rng(fight, action)
+            if forecast
+            else observe_rng("native_oracle.cast", random.Random(), external=False)
+        )
         compiled = None
         if actor.id not in self.characters:
             descriptor = self.descriptor(fight, actor)
@@ -862,6 +871,10 @@ class NativeOracle:
             # runtime providers are intentionally absent from checkpoints.
             # Bind the same complete owned actor authority as native casts.
             movement_rng = random.Random()
+            if not forecast:
+                movement_rng = observe_rng(
+                    "native_oracle.movement", movement_rng, external=False
+                )
             movement_factory, _ = self.factory(
                 private.fight,
                 private.action_id + 2,
@@ -981,6 +994,15 @@ class NativeOracle:
         raise ValueError("Unsupported native oracle action")
 
     def commit(self, action, *, stats_serializer):
+        from wakfu_server.combat_npc_reproduction import npc_commit_scope
+
+        with npc_commit_scope(self, action, stats_serializer) as capture:
+            packets = self._commit(action, stats_serializer=stats_serializer)
+            if capture is not None:
+                capture.packets(packets)
+            return packets
+
+    def _commit(self, action, *, stats_serializer):
         """Stage all native packets before adopting the selected live action.
 
         This runs only on the encounter owner thread. End-turn ACKs remain
@@ -1073,8 +1095,8 @@ class NativeOracle:
                     )
                 )
             packets.append(candidate._flush())
-            packets = candidate.prepare_delivery(packets)
             candidate.fight, candidate.action_id = private.fight, private.action_id
+            packets = candidate.prepare_delivery(packets)
         else:
             raise ValueError("Unsupported native commit action")
         # AI actions use the same death presentation boundary as player casts.

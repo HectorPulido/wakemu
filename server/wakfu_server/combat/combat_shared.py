@@ -7,8 +7,9 @@ these transactions: they produce owned packet batches before the FSM commits.
 """
 import struct
 import time
-from copy import copy
+import os
 from collections import deque
+from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import dataclass, field
 from threading import Lock, RLock
@@ -42,6 +43,9 @@ class Session:
 class Batch:
     sequence: int
     packets: tuple
+    # Owned constructors and recovery carriers rehydrate only their recipient.
+    # Genuine runtime broadcasts retain the public event stream by default.
+    public_events: bool = True
 
 
 @dataclass(frozen=True)
@@ -103,8 +107,35 @@ class Registry:
         # must not reserve its character ID against a later encounter.
         self.join_aliases = {}
 
+    def _lease_live(self, session):
+        if not os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+            return self.live_session(session)
+        try:
+            from .combat_shared_incident_capture import observe_shared_lease
+        except Exception:
+            return self.live_session(session)
+
+        try:
+            result = self.live_session(session)
+        except BaseException as error:
+            observe_shared_lease(session, error=error)
+            self._observe_npc_lease(session, error=error)
+            raise
+        observe_shared_lease(session, result=result)
+        self._observe_npc_lease(session, result=result)
+        return result
+
+    @staticmethod
+    def _observe_npc_lease(session, **observation):
+        try:
+            from .combat_npc_publication import observe_npc_publication_lease
+
+            observe_npc_publication_lease(session, **observation)
+        except Exception:
+            pass
+
     def _live(self, session):
-        if not isinstance(session, Session) or not self.live_session(session):
+        if not isinstance(session, Session) or not self._lease_live(session):
             raise ValueError("Stale combat session lease")
 
     def _member(self, shared, session):
@@ -117,19 +148,21 @@ class Registry:
             raise ValueError("Session does not own this fight membership")
 
     @staticmethod
+    def _observe_delivery(method, *args, **kwargs):
+        if not os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+            return None
+        try:
+            from . import combat_delivery_observation
+
+            return getattr(combat_delivery_observation, method)(*args, **kwargs)
+        except Exception:
+            return None
+
+    @staticmethod
     def _packets(packets):
-        packets = tuple(packets)
-        if any(
-            not isinstance(p, tuple)
-            or len(p) != 2
-            or type(p[0]) is not int
-            or not 0 <= p[0] <= 0xFFFF
-            or not isinstance(p[1], bytes)
-            or len(p[1]) > 0xFFFFFFFF - 6
-            for p in packets
-        ):
-            raise ValueError("Combat batch must contain native opcode/body pairs")
-        return packets
+        from .combat_delivery_boundary import native_packets
+
+        return native_packets(packets)
 
     def _broadcast(self, shared, packets, *, exclude=()):
         packets = self._packets(packets)
@@ -143,6 +176,13 @@ class Registry:
         shared.sequence += 1
         for account in shared.connected - set(exclude):
             shared.outboxes[account].append(Batch(shared.sequence, packets))
+            if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                self._observe_delivery(
+                    "record_enqueue",
+                    shared.fight.id,
+                    shared.participants.get(account),
+                    shared.outboxes[account][-1],
+                )
         return shared.sequence
 
     def _retire_join_aliases_locked(self, shared):
@@ -189,7 +229,7 @@ class Registry:
     def _has_live_team_member_locked(self, shared, team):
         for owner in shared.connected:
             participant = shared.participants.get(owner)
-            if participant is None or not self.live_session(participant):
+            if participant is None or not self._lease_live(participant):
                 continue
             if any(
                 actor.controlled
@@ -223,24 +263,24 @@ class Registry:
 
     def _accepted_ack(self, shared, runtime):
         """Stage the presentation barrier before adopting any accepted action."""
-        pending = getattr(runtime, "awaiting_ack", None)
-        barrier = deepcopy(shared.ack)
-        if pending is None:
-            if barrier.turn is not None:
-                raise ValueError("Accepted action cleared a pending shared turn ACK")
-            return barrier
-        if barrier.turn == pending:
-            # Preserve both the original membership fence and received ACKs.
-            return barrier
-        if barrier.turn is not None:
-            raise ValueError("Accepted action replaced a pending shared turn ACK")
-        sessions = [
-            session
-            for account, session in shared.participants.items()
-            if account in shared.connected and self.live_session(session)
-        ]
-        barrier.arm(pending, sessions)
-        return barrier
+        from .combat_delivery_boundary import accepted_ack
+
+        return accepted_ack(shared, runtime, self._lease_live)
+
+    def _prepare_publication(self, shared, candidate, runtime, packets, *, operation):
+        """Complete native preparation before publishing any candidate state."""
+        from .combat_delivery_boundary import PreparedPublication
+        from .combat_invariant_observation import observe_prepared_boundary
+
+        candidate, runtime, packets = self._prepare_accepted(
+            shared, candidate, runtime, packets
+        )
+        packets = self._synchronize_defeated_current(
+            shared, candidate, runtime, packets
+        )
+        ack = self._accepted_ack(shared, runtime)
+        observe_prepared_boundary(candidate, runtime, operation=operation, ack=ack)
+        return PreparedPublication(candidate, runtime, self._packets(packets), ack)
 
     @staticmethod
     def _synchronize_defeated_current(shared, candidate, runtime, packets):
@@ -432,8 +472,29 @@ class Registry:
                 shared.participants[session.account_id] = session
                 shared.connected.add(session.account_id)
                 shared.outboxes[session.account_id] = deque(
-                    [Batch(shared.sequence, initial_packets[session.account_id])]
+                    [
+                        Batch(
+                            shared.sequence,
+                            initial_packets[session.account_id],
+                            public_events=False,
+                        )
+                    ]
                 )
+                if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                    self._observe_delivery(
+                        "record_bootstrap",
+                        fight.id,
+                        session,
+                        initial_packets[session.account_id],
+                        sequence=shared.sequence,
+                        producer="register_duel",
+                    )
+                    self._observe_delivery(
+                        "record_enqueue",
+                        fight.id,
+                        session,
+                        shared.outboxes[session.account_id][-1],
+                    )
                 self.by_character[session.character_id] = fight.id
             for actor in controlled.values():
                 self.by_character[actor.id] = fight.id
@@ -512,7 +573,7 @@ class Registry:
                     or shared.settlement_ready
                     or shared.fight.phase not in ("placement", "active")
                     or any(
-                        self.live_session(owner)
+                        self._lease_live(owner)
                         for owner in shared.participants.values()
                     )
                 ):
@@ -702,10 +763,27 @@ class Registry:
                 self._retire_join_aliases_locked(shared)
                 sequence = self._broadcast(
                     shared,
-                    [*notifications, (13026, placement_positions(candidate))],
+                    [*notifications, (13652, placement_positions(candidate))],
                     exclude=(session.account_id,),
                 )
-                shared.outboxes[session.account_id].append(Batch(sequence, own_packets))
+                shared.outboxes[session.account_id].append(
+                    Batch(sequence, own_packets, public_events=False)
+                )
+                if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                    self._observe_delivery(
+                        "record_bootstrap",
+                        candidate.id,
+                        session,
+                        own_packets,
+                        sequence=sequence,
+                        producer="join",
+                    )
+                    self._observe_delivery(
+                        "record_enqueue",
+                        candidate.id,
+                        session,
+                        shared.outboxes[session.account_id][-1],
+                    )
                 return shared
 
     def execute(
@@ -717,6 +795,7 @@ class Registry:
         *,
         expected_sequence=None,
         require_turn=True,
+        incident_request=None,
     ):
         """operation(candidateFSM,runtime)->packets; mutation commits once.
 
@@ -726,63 +805,125 @@ class Registry:
         """
         shared = self.lookup(fight_id)
         with shared.lock:
-            self._member(shared, session)
-            if expected_sequence is not None and expected_sequence != shared.sequence:
-                raise ValueError("Stale shared combat sequence")
-            actor = shared.fight.actors.get(actor_id)
-            if (
-                actor is None
-                or not actor.controlled
-                or actor.owner_id != session.account_id
-                or actor.hp <= 0
-            ):
-                raise ValueError("Foreign/dead combat actor")
-            if require_turn and (
-                shared.fight.current is None or shared.fight.current.id != actor_id
-            ):
-                raise ValueError("Not current owned turn")
-            candidate, runtime = deepcopy((shared.fight, shared.runtime))
-            candidate, runtime, packets = self._transition(
-                operation(candidate, runtime), candidate, runtime
-            )
-            candidate, runtime, packets = self._prepare_accepted(
-                shared, candidate, runtime, packets
-            )
-            packets = self._synchronize_defeated_current(
-                shared, candidate, runtime, packets
-            )
-            next_ack = self._accepted_ack(shared, runtime)
-            shared.fight = candidate
-            shared.runtime = runtime
-            shared.ack = next_ack
-            self._retire_join_aliases_locked(shared)
-            return self._broadcast(shared, packets)
+            incident_context = nullcontext()
+            if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                try:
+                    from .combat_shared_incident_capture import shared_incident_scope
 
-    def execute_server(self, fight_id, actor_id, operation, *, expected_sequence):
+                    incident_context = shared_incident_scope(
+                        shared,
+                        self,
+                        dict(
+                            type="execute",
+                            session=session,
+                            actor_id=actor_id,
+                            expected_sequence=expected_sequence,
+                            require_turn=require_turn,
+                            wire_request=incident_request,
+                        ),
+                    )
+                except Exception:
+                    pass
+            with incident_context as incident:
+                self._member(shared, session)
+                if (
+                    expected_sequence is not None
+                    and expected_sequence != shared.sequence
+                ):
+                    raise ValueError("Stale shared combat sequence")
+                actor = shared.fight.actors.get(actor_id)
+                if (
+                    actor is None
+                    or not actor.controlled
+                    or actor.owner_id != session.account_id
+                    or actor.hp <= 0
+                ):
+                    raise ValueError("Foreign/dead combat actor")
+                if require_turn and (
+                    shared.fight.current is None or shared.fight.current.id != actor_id
+                ):
+                    raise ValueError("Not current owned turn")
+                candidate, runtime = deepcopy((shared.fight, shared.runtime))
+                candidate, runtime, packets = self._transition(
+                    operation(candidate, runtime), candidate, runtime
+                )
+                if incident is not None:
+                    incident.packets(packets)
+                prepared = self._prepare_publication(
+                    shared, candidate, runtime, packets, operation="Registry.execute"
+                )
+                shared.fight = prepared.fight
+                shared.runtime = prepared.runtime
+                shared.ack = prepared.ack
+                packets = prepared.packets
+                self._retire_join_aliases_locked(shared)
+                sequence = self._broadcast(shared, packets)
+                if incident is not None:
+                    incident.result(sequence)
+                return sequence
+
+    def execute_server(
+        self,
+        fight_id,
+        actor_id,
+        operation,
+        *,
+        expected_sequence,
+        incident_runtime=None,
+        incident_packets=(),
+        incident_session=None,
+        incident_recipe="chosen-native-commit",
+        incident_turn_id=None,
+    ):
         """Internal AI only; no route accepts this method from a player packet."""
         shared = self.lookup(fight_id)
         with shared.lock:
-            if expected_sequence != shared.sequence:
-                raise ValueError("Stale server combat sequence")
-            actor = shared.fight.current
-            if actor is None or actor.id != actor_id or actor.controlled:
-                raise ValueError("Not current server-controlled turn")
-            candidate, runtime = deepcopy((shared.fight, shared.runtime))
-            candidate, runtime, packets = self._transition(
-                operation(candidate, runtime), candidate, runtime
-            )
-            candidate, runtime, packets = self._prepare_accepted(
-                shared, candidate, runtime, packets
-            )
-            packets = self._synchronize_defeated_current(
-                shared, candidate, runtime, packets
-            )
-            next_ack = self._accepted_ack(shared, runtime)
-            shared.fight = candidate
-            shared.runtime = runtime
-            shared.ack = next_ack
-            self._retire_join_aliases_locked(shared)
-            return self._broadcast(shared, packets)
+            incident_context = nullcontext()
+            if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                try:
+                    from .combat_npc_publication import npc_publication_scope
+
+                    incident_context = npc_publication_scope(
+                        shared,
+                        self,
+                        actor_id,
+                        expected_sequence,
+                        prepared_runtime=incident_runtime,
+                        prepared_packets=incident_packets,
+                        initiating_session=incident_session,
+                        recipe=incident_recipe,
+                        turn_id=incident_turn_id,
+                    )
+                except Exception:
+                    pass
+            with incident_context as incident:
+                if expected_sequence != shared.sequence:
+                    raise ValueError("Stale server combat sequence")
+                actor = shared.fight.current
+                if actor is None or actor.id != actor_id or actor.controlled:
+                    raise ValueError("Not current server-controlled turn")
+                candidate, runtime = deepcopy((shared.fight, shared.runtime))
+                candidate, runtime, packets = self._transition(
+                    operation(candidate, runtime), candidate, runtime
+                )
+                if incident is not None:
+                    incident.transition(candidate, runtime, packets)
+                prepared = self._prepare_publication(
+                    shared,
+                    candidate,
+                    runtime,
+                    packets,
+                    operation="Registry.execute_server",
+                )
+                shared.fight = prepared.fight
+                shared.runtime = prepared.runtime
+                shared.ack = prepared.ack
+                packets = prepared.packets
+                self._retire_join_aliases_locked(shared)
+                sequence = self._broadcast(shared, packets)
+                if incident is not None:
+                    incident.result(sequence)
+                return sequence
 
     def lease_active(self, group_lease):
         """Group recovery callback: shared lifecycle, not starter socket lifetime.
@@ -815,7 +956,7 @@ class Registry:
             sessions = [
                 s
                 for a, s in shared.participants.items()
-                if a in shared.connected and self.live_session(s)
+                if a in shared.connected and self._lease_live(s)
             ]
             shared.ack.arm(turn, sessions)
 
@@ -827,32 +968,51 @@ class Registry:
         """
         shared = self.lookup(fight_id)
         with shared.lock:
-            self._member(shared, session)
-            prior_rift_ack = (
-                deepcopy(shared.ack)
-                if getattr(shared.fight, "rift_wave_state", None) is not None
-                else None
-            )
-            if not shared.ack.accept(session, body):
-                return False
-            candidate, runtime = deepcopy((shared.fight, shared.runtime))
-            try:
-                candidate, runtime, packets = self._transition(
-                    release_packets(candidate, runtime, body), candidate, runtime
+            incident_context = nullcontext()
+            if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                try:
+                    from .combat_shared_incident_capture import shared_incident_scope
+
+                    incident_context = shared_incident_scope(
+                        shared,
+                        self,
+                        dict(type="shared_ack", session=session, body=body),
+                    )
+                except Exception:
+                    pass
+            with incident_context as incident:
+                self._member(shared, session)
+                prior_rift_ack = (
+                    deepcopy(shared.ack)
+                    if getattr(shared.fight, "rift_wave_state", None) is not None
+                    else None
                 )
-                candidate, runtime, packets = self._prepare_accepted(
-                    shared, candidate, runtime, packets
-                )
-            except Exception:
-                if prior_rift_ack is not None:
-                    shared.ack = prior_rift_ack
-                raise
-            shared.fight = candidate
-            shared.runtime = runtime
-            shared.ack.release()
-            self._retire_join_aliases_locked(shared)
-            self._broadcast(shared, packets)
-            return True
+                if not shared.ack.accept(session, body):
+                    if incident is not None:
+                        incident.result(False)
+                    return False
+                candidate, runtime = deepcopy((shared.fight, shared.runtime))
+                try:
+                    candidate, runtime, packets = self._transition(
+                        release_packets(candidate, runtime, body), candidate, runtime
+                    )
+                    if incident is not None:
+                        incident.packets(packets)
+                    candidate, runtime, packets = self._prepare_accepted(
+                        shared, candidate, runtime, packets
+                    )
+                except Exception:
+                    if prior_rift_ack is not None:
+                        shared.ack = prior_rift_ack
+                    raise
+                shared.fight = candidate
+                shared.runtime = runtime
+                shared.ack.release()
+                self._retire_join_aliases_locked(shared)
+                self._broadcast(shared, packets)
+                if incident is not None:
+                    incident.result(True)
+                return True
 
     def expire_current_turn(self, fight_id, session, *, now_ms):
         """Run a timed shared turn end once and publish it to the whole roster.
@@ -891,14 +1051,9 @@ class Registry:
             candidate, runtime, packets = self._prepare_accepted(
                 shared, candidate, runtime, packets
             )
-            next_ack = deepcopy(shared.ack)
-            if runtime.awaiting_ack is not None:
-                sessions = [
-                    participant
-                    for account, participant in shared.participants.items()
-                    if account in shared.connected and self.live_session(participant)
-                ]
-                next_ack.arm(runtime.awaiting_ack, sessions)
+            from .combat_delivery_boundary import accepted_ack
+
+            next_ack = accepted_ack(shared, runtime, self._lease_live)
             shared.fight = candidate
             shared.runtime = runtime
             shared.ack = next_ack
@@ -924,6 +1079,8 @@ class Registry:
             queue = shared.outboxes[session.account_id]
             batches = list(queue)
             queue.clear()
+            if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                self._observe_delivery("record_drain", fight_id, session, batches)
             return batches
 
     def dispatch_connected(self, fight_id, deliver):
@@ -934,6 +1091,7 @@ class Registry:
         """
         shared = self.lookup(fight_id)
         with shared.dispatch_lock:
+            dispatch_observation = None
             with shared.lock:
                 recipients = []
                 for account in sorted(shared.connected):
@@ -944,15 +1102,37 @@ class Registry:
                     batches = tuple(queue)
                     queue.clear()
                     recipients.append((session, batches))
+                if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                    dispatch_observation = self._observe_delivery(
+                        "begin_dispatch", fight_id, recipients
+                    )
             failure = None
             for session, batches in recipients:
                 try:
                     deliver(session, batches)
                 except Exception as error:
+                    if dispatch_observation is not None:
+                        self._observe_delivery(
+                            "record_dispatch_attempt",
+                            dispatch_observation,
+                            session,
+                            batches,
+                            error=error,
+                        )
                     # One broken peer must not prevent the other connected
                     # owners from receiving their already-drained batches.
                     if failure is None:
                         failure = error
+                else:
+                    if dispatch_observation is not None:
+                        self._observe_delivery(
+                            "record_dispatch_attempt",
+                            dispatch_observation,
+                            session,
+                            batches,
+                        )
+            if dispatch_observation is not None:
+                self._observe_delivery("finish_dispatch", dispatch_observation)
             if failure is not None:
                 raise failure
             return tuple(session for session, _ in recipients)
@@ -996,48 +1176,24 @@ class Registry:
                 )
             if previous.generation == session.generation:
                 raise ValueError("Session already current")
-            if self.live_session(previous):
+            if self._lease_live(previous):
                 raise ValueError("Previous combat owner lease still live")
-            recover_pending_turn = False
-            if shared.settlement_ready:
-                packets = shared.settlement_batches.get(session.account_id)
-                if packets is None:
-                    raise ValueError("Settled owner packets are unavailable")
-                packets = self._packets(packets)
-            else:
-                candidate = candidate_runtime = candidate_ack = None
-                recover_pending_turn = bool(
-                    recover_disconnected
-                    and not shared.connected
-                    and shared.fight.phase == "active"
-                    and shared.runtime is not None
-                    and getattr(shared.runtime, "awaiting_ack", None) is not None
-                )
-                bootstrap_shared = shared
-                if recover_pending_turn:
-                    # Stage recovery on private copies. The durable lease fence
-                    # can fail, so neither the live FSM nor its ACK barrier may
-                    # be touched before persistence succeeds.
-                    candidate, candidate_runtime = deepcopy(
-                        (shared.fight, shared.runtime)
-                    )
-                    candidate_ack = deepcopy(shared.ack)
-                    candidate_ack.cancel_for_recovery()
-                    candidate_view = copy(shared)
-                    candidate_view.fight = candidate
-                    candidate_view.runtime = candidate_runtime
-                    candidate_view.ack = candidate_ack
-                    candidate_view.reconnect_turn_end_packets = None
-                    candidate_view.reconnect_remaining_turn_seconds = None
-                    bootstrap_shared = candidate_view
-                    candidate_runtime.recover(
-                        session.account_id,
-                        struct.pack(">i", candidate.id),
-                        now_ms=int(time.time() * 1000),
-                    )
-                packets = self._packets(
-                    bootstrap_packets(bootstrap_shared.fight, bootstrap_shared, session)
-                )
+            from .combat_delivery_boundary import prepare_reconnect
+
+            prepared = prepare_reconnect(
+                shared,
+                session,
+                bootstrap_packets,
+                recover_disconnected=recover_disconnected,
+                now_ms=int(time.time() * 1000),
+            )
+            packets = prepared.packets
+            recover_pending_turn = prepared.recovered_pending_turn
+            candidate, candidate_runtime, candidate_ack = (
+                prepared.fight,
+                prepared.runtime,
+                prepared.ack,
+            )
             if (
                 shared.ack is not None
                 and session.account_id in shared.ack.expected
@@ -1065,8 +1221,24 @@ class Registry:
                 shared.ack.expected[session.account_id] = session.generation
             shared.connected.add(session.account_id)
             shared.outboxes[session.account_id] = deque(
-                [Batch(shared.sequence, packets)]
+                [Batch(shared.sequence, packets, public_events=False)]
             )
+            if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                self._observe_delivery(
+                    "record_bootstrap",
+                    fight_id,
+                    session,
+                    packets,
+                    sequence=shared.sequence,
+                    producer="takeover",
+                    previous_generation=previous.generation,
+                )
+                self._observe_delivery(
+                    "record_enqueue",
+                    fight_id,
+                    session,
+                    shared.outboxes[session.account_id][-1],
+                )
             return shared
 
     def disconnect(self, session):
@@ -1090,20 +1262,24 @@ class Registry:
                         ):
                             barrier.expected.pop(session.account_id)
                             barrier.received.discard(session.account_id)
+                            # Transport departure is already committed. Keep
+                            # its membership fence even if private turn release
+                            # fails, so a remaining owner's real ACK can retry.
+                            shared.ack = barrier
                             if barrier.complete:
                                 import struct
 
                                 candidate, runtime = deepcopy(
                                     (shared.fight, shared.runtime)
                                 )
-                                counter = barrier.release()
+                                counter = barrier.turn
                                 packets = self._packets(
                                     runtime.acknowledge_turn(struct.pack(">i", counter))
                                 )
+                                barrier.release()
                                 shared.fight, shared.runtime = candidate, runtime
                                 self._retire_join_aliases_locked(shared)
                                 self._broadcast(shared, packets)
-                            shared.ack = barrier
                     if (
                         not shared.connected
                         and not getattr(shared, "is_duel", False)
@@ -1277,7 +1453,7 @@ class Registry:
                 ):
                     return None
                 previous = receipt["session"]
-                if previous.generation != session.generation and self.live_session(
+                if previous.generation != session.generation and self._lease_live(
                     previous
                 ):
                     raise ValueError("Previous PvE withdrawal lease is still active")
@@ -1340,10 +1516,11 @@ class Registry:
                 return False
             with shared.lock:
                 runtime = shared.runtime
+                from .combat_pve_withdraw import live_owner_accounts
+
                 if (
                     getattr(shared, "is_duel", False)
-                    or set(shared.participants) - set(shared.withdrawals)
-                    != {session.account_id}
+                    or live_owner_accounts(shared.fight) - {session.account_id}
                     or shared.participants.get(session.account_id) != session
                     or runtime is None
                     or getattr(runtime, "abandon_owner", None)
@@ -1373,10 +1550,11 @@ class Registry:
                 return False
             with shared.lock:
                 runtime = shared.runtime
+                from .combat_pve_withdraw import live_owner_accounts
+
                 if (
                     getattr(shared, "is_duel", False)
-                    or set(shared.participants) - set(shared.withdrawals)
-                    != {session.account_id}
+                    or live_owner_accounts(shared.fight) - {session.account_id}
                     or shared.participants.get(session.account_id) != session
                     or session.account_id in shared.connected
                     or runtime is None
@@ -1504,14 +1682,9 @@ class Registry:
                 if shared.settlement_ready:
                     return False
                 batches = prepare_packets(shared)
-                if not isinstance(batches, dict) or set(batches) != set(
-                    shared.participants
-                ):
-                    raise ValueError("Shared settlement did not cover its roster")
-                checked = {
-                    account: self._packets(packets)
-                    for account, packets in batches.items()
-                }
+                from .combat_delivery_boundary import settlement_batches
+
+                checked = settlement_batches(batches, shared.participants)
                 # Only enqueue after the callback has completed its durable
                 # transaction and every owner payload has passed validation.
                 for account in sorted(shared.participants):
@@ -1600,7 +1773,7 @@ class Registry:
                 or getattr(shared, "is_duel", False)
             ):
                 return None
-            if self.live_session(previous):
+            if self._lease_live(previous):
                 raise ValueError("Previous settled owner lease is still live")
             result = persist(previous, shared)
             shared.participants[session.account_id] = session

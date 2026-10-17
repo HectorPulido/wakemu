@@ -1,4 +1,6 @@
 """Authoritative account achievement observations from persisted native progress."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 import hashlib
 from .catalog import canonical
 
@@ -16,8 +18,8 @@ def definitions():
                 f"Reach character level {threshold}",
                 f"Reach level {threshold} with any undeleted character on your account."
                 + (
-                    " This milestone becomes attainable when the server supports level 245; the current cap is 200."
-                    if threshold == 245
+                    f" This milestone becomes attainable when the server supports level {threshold}; the current cap is {MAX_CHARACTER_LEVEL}."
+                    if threshold > MAX_CHARACTER_LEVEL
                     else ""
                 ),
                 CHARACTER_EVENT,

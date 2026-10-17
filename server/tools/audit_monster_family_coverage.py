@@ -196,12 +196,14 @@ def supported_families(registry, setters):
     """Read actual handler registrations without importing DB-backed modules."""
     constants = {
         "DAMAGE_FAMILIES": literal_assignment(
-            COMBAT / "combat_damage_healing.py", "DAMAGE_FAMILIES"
+            COMBAT / "combat_damage_contracts.py", "DAMAGE_FAMILIES"
         ),
         "HEAL_ELEMENTS": literal_assignment(
-            COMBAT / "combat_damage_healing.py", "HEAL_ELEMENTS"
+            COMBAT / "combat_damage_contracts.py", "HEAL_ELEMENTS"
         ),
-        "FAMILIES": literal_assignment(COMBAT / "combat_displacement.py", "FAMILIES"),
+        "FAMILIES": literal_assignment(
+            COMBAT / "combat_displacement_geometry.py", "FAMILIES"
+        ),
         "SET_CURRENT_FAMILIES": list(map(int, setters["effects"])),
     }
     families = set(map(int, registry["effects"]))
@@ -303,6 +305,8 @@ def main():
             args.setters.resolve(),
             COMBAT / "combat_effect_runtime.py",
             COMBAT / "combat_effect_dispatch.py",
+            COMBAT / "combat_displacement_geometry.py",
+            COMBAT / "combat_damage_contracts.py",
             Path(__file__).resolve(),
         ]
     }

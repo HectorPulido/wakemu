@@ -12,12 +12,15 @@ import re
 import shutil
 from pathlib import Path
 import subprocess
+import sys
 import zipfile
 
 from convert_spell_effect_trees import convert as convert_spells, read_effects
 from convert_combat_states import convert as convert_states
+from combat_operation_sources import operation_source_paths
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "server"))
 EXPORTERS = (
     "ExportMonsterCombatData",
     "ExportMonsterEncyclopedia",
@@ -256,19 +259,31 @@ def dependency_closure(
         else:
             pending += [("effect", str(ref)) for ref in row.get("children", [])]
             family = row["effect_class"]
-            target = (
-                "state"
-                if family in (304, 321)
-                else "spell"
-                if family in (426, 649)
-                else None
-            )
-            if target:
-                for ref in parameter_candidates(
-                    row, 2 if family == 649 else 0, (zero_effects or {}).get(key)
-                ):
+            from wakfu_server.combat_operation_registry import dependency_specs
+
+            for spec in dependency_specs(family):
+                target = spec.kind
+                if target not in seen:
+                    # The historical narrow schema cannot resolve areas or
+                    # summon profiles; report them instead of dropping edges.
+                    seen[target] = set()
+                if spec.fixed_reference is not None:
+                    candidates = (spec.fixed_reference,)
+                else:
+                    candidates = parameter_candidates(
+                        row, spec.parameter_index, (zero_effects or {}).get(key)
+                    )
+                for ref in candidates:
+                    if spec.transform == "signed-short":
+                        ref = ((ref + 32768) % 65536) - 32768
                     links.add((int(key), family, target, ref))
-                    pending.append((target, str(ref)))
+                    if target not in ("spell", "state", "effect"):
+                        seen[target].add(str(ref))
+                        missing.add(target + ":" + str(ref))
+                    elif spec.relation != "removes":
+                        pending.append((target, str(ref)))
+                    elif str(ref) not in states:
+                        missing.add("state:" + str(ref))
     return dict(
         spell_ids=sorted(map(int, seen["spell"])),
         state_ids=sorted(map(int, seen["state"])),
@@ -616,6 +631,7 @@ def extract(output):
             Path(__file__),
             ROOT / "server/tools/convert_spell_effect_trees.py",
             ROOT / "server/tools/convert_combat_states.py",
+            *operation_source_paths(),
         ]
     }
     write(output / "provenance.json", provenance)
@@ -750,6 +766,9 @@ def main():
     )
     inventory["provenance"] = provenance
     inventory["inventory_builder_sha256"] = digest(Path(__file__))
+    inventory["operation_sources_sha256"] = {
+        str(path.relative_to(ROOT)): digest(path) for path in operation_source_paths()
+    }
     write(output / "inventory.json.gz", inventory)
     report(
         output, inventory, args.focus_name or ["miaumiau", "miamiau", "tofu", "jalat"]

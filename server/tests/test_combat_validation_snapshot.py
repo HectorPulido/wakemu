@@ -12,6 +12,33 @@ spec.loader.exec_module(snapshot_tool)
 
 
 class ValidationSnapshotTests(unittest.TestCase):
+    def test_impact_scenario_input_is_frozen_without_other_internal_reports(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            reports = root / "agents_docs/reports/combat-resilience-phase1-2"
+            reports.mkdir(parents=True)
+            source = reports / "source-scenarios.json"
+            source.write_text('{"scenarios": [{"id": "fixture"}]}\n')
+            (reports / "unrelated.json").write_text('{"private": true}\n')
+            destination = Path(temporary) / "snapshot"
+            snapshot_tool.snapshot(root, destination)
+            frozen = destination / source.relative_to(root)
+            self.assertEqual(frozen.read_bytes(), source.read_bytes())
+            from tools.combat_baseline_inventory import source_manifest
+
+            self.assertEqual(
+                source_manifest(destination)["validation_snapshot"]["status"],
+                "verified",
+            )
+            source.write_text("{}\n")
+            self.assertIn('"fixture"', frozen.read_text())
+            self.assertFalse(
+                (destination / reports.relative_to(root) / "unrelated.json").exists()
+            )
+            source.unlink()
+            source.symlink_to(reports / "unrelated.json")
+            self.assertNotIn(source.relative_to(root), snapshot_tool.files(root))
+
     def test_movement_fixture_service_sources_are_frozen_without_configuration(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repo"
@@ -65,6 +92,72 @@ class ValidationSnapshotTests(unittest.TestCase):
                 (
                     destination / "docs/reports/combat-inventory/" "unreferenced.json"
                 ).exists()
+            )
+
+    def test_native_ai_test_fixtures_required_by_server_tests_are_included(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            tests = root / "server/tests"
+            fixtures = root / "server/ai-service/tests/fixtures"
+            tests.mkdir(parents=True)
+            fixtures.mkdir(parents=True)
+            (tests / "test_ai_service.py").write_text(
+                "# Enables SDK fixture snapshot\n"
+            )
+            (fixtures.parent / "test_native_oracle.py").write_text(
+                "NATIVE_FIXTURE = True\n"
+            )
+            (fixtures / "native.json").write_text('{"actor_id": 7}\n')
+            private = Path(temporary) / "private.json"
+            private.write_text('{"private": true}\n')
+            (fixtures / "private.json").symlink_to(private)
+            (fixtures / ".env").write_text("PRIVATE_CONFIGURATION=true\n")
+            destination = Path(temporary) / "snapshot"
+            snapshot_tool.snapshot(root, destination)
+            captured = destination / "server/ai-service/tests"
+            self.assertEqual(
+                (captured / "test_native_oracle.py").read_text(),
+                "NATIVE_FIXTURE = True\n",
+            )
+            self.assertTrue((captured / "fixtures/native.json").is_file())
+            self.assertFalse((captured / "fixtures/private.json").exists())
+            self.assertFalse((captured / "fixtures/.env").exists())
+
+    def test_full_server_snapshot_contains_migrations_services_and_static_audit_sources(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            expected = {
+                "server/migrations/001_initial.sql": "CREATE TABLE example(id integer);\n",
+                "server/admin-service/service.py": "SERVICE = True\n",
+                "server/admin-service/static/index.html": "<main>Example</main>\n",
+                "server/test-fixtures/combat/example.json": "{}\n",
+                "sniffer/audit-capture.py": "AUDIT = True\n",
+                "client-tools/local-client.sh": "#!/bin/sh\n",
+                "compose.yaml": "services: {}\n",
+                "docs/example.md": "# Example\n",
+            }
+            for relative, contents in expected.items():
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(contents)
+            private = root / "server/admin-service/.env"
+            private.write_text("PASSWORD=private\n")
+            binary = root / "client/lib/wakfu-client.jar"
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b"client")
+            outside = Path(temporary) / "private.py"
+            outside.write_text("PRIVATE = True\n")
+            (root / "server/admin-service/external.py").symlink_to(outside)
+            destination = Path(temporary) / "snapshot"
+            snapshot_tool.snapshot(root, destination, full_server=True)
+            for relative, contents in expected.items():
+                self.assertEqual((destination / relative).read_text(), contents)
+            self.assertFalse((destination / private.relative_to(root)).exists())
+            self.assertFalse((destination / binary.relative_to(root)).exists())
+            self.assertFalse(
+                (destination / "server/admin-service/external.py").exists()
             )
 
     def test_report_fixture_cannot_follow_symlink_into_private_data(self):

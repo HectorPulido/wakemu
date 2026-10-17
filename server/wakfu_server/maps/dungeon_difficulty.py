@@ -4,6 +4,8 @@ Native Stasis selections range from the definition minimum through ten. The
 competitive target is the installed eQS ceiling band for the native dungeon
 level. Human labels and a player's numerical reduction do not select this mode.
 """
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 import struct
 
 from psycopg.types.json import Jsonb
@@ -304,7 +306,7 @@ def freeze_encounter(db, instance_id, fight_id, *, expected_selection_revision=N
 
 def encounter_context(db, fight_id, *, effective_level):
     """Return only durable native criteria authority for this winning actor."""
-    _integer(effective_level, "winning actor level", 1, 200)
+    _integer(effective_level, "winning actor level", 1, MAX_CHARACTER_LEVEL)
     row = db.execute(
         "SELECT snapshot FROM dungeon_encounter_difficulties WHERE fight_id=%s",
         (fight_id,),

@@ -4,6 +4,16 @@ from .combat_stat_effects import owned_effect_application
 from .combat_observation_delivery import evaluated_application_from_observation
 
 
+def immediate_death_script_packets(fight, actors, action_id):
+    """Restore public immediate PI operands for the recipient's visible roster."""
+    packets = []
+    for actor in actors:
+        packet = immediate_death_script_packet(fight, actor, action_id)
+        if packet is not None:
+            packets.append(packet)
+    return tuple(packets)
+
+
 def immediate_death_script_packet(fight, actor, action_id):
     record = getattr(actor, "native_immediate_death_script", None)
     if record is None:

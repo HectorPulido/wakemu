@@ -86,9 +86,13 @@ class Handler(BaseHTTPRequestHandler):
         query = parse_qs(parsed.query)
         try:
             with connect() as db:
-                if parsed.path == "/v1/player/gamedock-launch" and self.command == "POST":
+                if (
+                    parsed.path == "/v1/player/gamedock-launch"
+                    and self.command == "POST"
+                ):
                     from wakfu_server.objectives import gamedock, player_auth
                     from wakfu_server.storage.store import Store
+
                     size = int(self.headers.get("Content-Length", "0"))
                     if not 1 <= size <= 4096:
                         raise ValueError("Invalid request size")
@@ -97,7 +101,9 @@ class Handler(BaseHTTPRequestHandler):
                     try:
                         result = gamedock.launch(store, credentials)
                     except player_auth.Unauthorized:
-                        return self.send_json(401, {"error": "Native account verification failed"})
+                        return self.send_json(
+                            401, {"error": "Native account verification failed"}
+                        )
                     finally:
                         store.close()
                     return self.send_json(200, result)

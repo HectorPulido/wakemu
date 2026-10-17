@@ -12,7 +12,7 @@ from wakfu_server.equipment_damage import (
     _stats,
 )
 
-DAMAGE_FAMILIES = (1, 2, 3, 4, 5, 917, 1083)
+from .combat_damage_contracts import DAMAGE_FAMILIES, HEAL_ELEMENTS
 
 
 def light_damage_element(source_stats):
@@ -39,10 +39,6 @@ def stasis_resistance_element(target_stats):
     if not candidates:
         raise ValueError("Missing native STASIS resistance characteristics")
     return min(candidates, key=lambda item: target[item[1]])[0]
-
-
-# eXv24 inherits healing consumption but derives value without elemental mastery.
-HEAL_ELEMENTS = {24: None, 25: 1, 251: 5, 253: 3, 258: 4, 259: 2, 1084: 6}
 
 
 def _amount(value):

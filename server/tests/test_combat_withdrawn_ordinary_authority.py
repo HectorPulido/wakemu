@@ -12,7 +12,7 @@ import test_combat_spell_transaction as spell_fixtures
 from wakfu_server.combat_actor_snapshot import build_player_snapshot
 
 
-def shared_fixture(*, native_qi=False):
+def shared_fixture(*, native_qi=False, initialize_start=False):
     fixture = spell_fixtures.SpellTransactionTests()
     first, monster, fight = fixture.native_server_fixture(15, 1, native_qi=native_qi)
     first_cell = (-8, -7, -1) if native_qi else (-1, 0, 0)
@@ -70,9 +70,30 @@ def shared_fixture(*, native_qi=False):
         )
 
         template = fight
+        participants = [withdrawn, template.actors[-7], actor]
+        if initialize_start:
+            # Construct genuinely fresh participants before the production
+            # placement snapshot initializer; template snapshots are immutable.
+            participants = [
+                Actor(
+                    item.id,
+                    item.team,
+                    item.position,
+                    item.hp,
+                    item.ap,
+                    item.mp,
+                    item.initiative,
+                    item.effective_level,
+                    item.owner_id,
+                    item.controlled,
+                    max_hp=item.max_hp,
+                    direction=item.direction,
+                )
+                for item in participants
+            ]
         fight = Fight(
             template.id,
-            [withdrawn, template.actors[-7], actor],
+            participants,
             template.walkable,
             {0: {first_cell, second_cell}, 1: {monster_cell}},
             template.edges,
@@ -83,18 +104,70 @@ def shared_fixture(*, native_qi=False):
         )
         freeze_terrain(fight)
         initialize_global_pv_collections(fight, tuple(fight.actors))
-        install_fresh_actor_slots(
-            fight,
-            prepare_fresh_actor_slots(
+        if initialize_start:
+            from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
+
+            # Use the placement producer's complete snapshot/QI/UID boundary
+            # before class initialization creates its first retained effects.
+            initialize_fight_snapshots(
                 fight,
-                physical_radii={
-                    identity: item.physical_radius
-                    for identity, item in fight.actors.items()
-                },
-            ),
-        )
+                characters={7: first, 8: second},
+                monsters={-7: monster},
+                wp_resources={identity: (6, 6) for identity in fight.actors},
+                running_effects={identity: () for identity in fight.actors},
+                initial_effect_uid=1,
+            )
+        else:
+            install_fresh_actor_slots(
+                fight,
+                prepare_fresh_actor_slots(
+                    fight,
+                    physical_radii={
+                        identity: item.physical_radius
+                        for identity, item in fight.actors.items()
+                    },
+                ),
+            )
         fight.ready(3)
         fight.ready(4)
+        if initialize_start:
+            from wakfu_server.combat_server_spell import prepare_server_initialization
+
+            source_monster = dict(
+                monster,
+                x=monster_cell[0],
+                y=monster_cell[1],
+                z=monster_cell[2],
+                direction=3,
+                wp=6,
+                max_wp=6,
+                level=1,
+            )
+            characters = {7: first, 8: second}
+            decks = {7: encode_deck([6266], []), 8: second_deck}
+            fight, _ = prepare_server_initialization(
+                first,
+                {-7: source_monster},
+                fight,
+                3,
+                decks[7],
+                action_id=1,
+                player_characters=characters,
+                deck_blobs=decks,
+                rng=random.Random(11),
+            )
+            fight, _ = prepare_server_initialization(
+                second,
+                {-7: source_monster},
+                fight,
+                4,
+                decks[8],
+                action_id=2,
+                fight_start=True,
+                player_characters=characters,
+                deck_blobs=decks,
+                rng=random.Random(12),
+            )
         from wakfu_server.combat_pve_withdraw import plan
         from wakfu_server.combat_runtime_messages import RuntimeMessages
         from wakfu_server.combat_shared import Session
@@ -120,7 +193,8 @@ def shared_fixture(*, native_qi=False):
     fight.turn_index = 0
     fight.turn_id = 1
     fight._check_positions()
-    fight.native_effect_uid_next = 1
+    if not initialize_start:
+        fight.native_effect_uid_next = 1
     fight.native_obstacle_cells = frozenset()
     return first, second, monster, fight, second_deck
 
@@ -338,6 +412,200 @@ class WithdrawnOrdinaryAuthorityTests(unittest.TestCase):
         authority = RegisteredSummonAuthority(lambda *_args: None)
         with self.assertRaisesRegex(ValueError, "Withdrawn PvE actor"):
             authority(fight, summon)
+
+    @staticmethod
+    def population_authority(first, second, monster, deck, *, retain_withdrawn):
+        from wakfu_server.combat_ordinary_authority import OrdinaryActorAuthority
+
+        characters = {8: second}
+        if retain_withdrawn:
+            characters[7] = first
+        return OrdinaryActorAuthority(
+            characters=characters,
+            monsters={-7: monster},
+            decks={identity: [6266] for identity in characters},
+            excluded_decks={identity: [] for identity in characters},
+            deck_blobs={identity: deck for identity in characters},
+        )
+
+    def test_full_and_certified_pruned_sources_preserve_active_authority_and_history(
+        self,
+    ):
+        from wakfu_server.combat_geometry_snapshot import source_snapshot
+        from wakfu_server.combat_pve_departure import retired_pve_actor_ids
+
+        for retain_withdrawn in (True, False):
+            with self.subTest(retain_withdrawn=retain_withdrawn):
+                first, second, monster, fight, deck = shared_fixture(native_qi=True)
+                authority = self.population_authority(
+                    first, second, monster, deck, retain_withdrawn=retain_withdrawn
+                )
+                before = deepcopy(source_snapshot(fight))
+                source_ids = set(authority.characters) | set(authority.monsters)
+                self.assertTrue(authority(fight, fight.actors[8]).is_player)
+                self.assertFalse(authority(fight, fight.actors[-7]).is_player)
+                self.assertEqual(source_snapshot(fight), before)
+                self.assertEqual(
+                    set(authority.characters) | set(authority.monsters), source_ids
+                )
+                self.assertEqual(set(fight.actors), {7, 8, -7})
+                self.assertEqual(retired_pve_actor_ids(fight), {7})
+                self.assertEqual(fight.actors[7].hp, 0)
+                with self.assertRaisesRegex(ValueError, "Withdrawn PvE actor"):
+                    authority(fight, fight.actors[7])
+                self.assertEqual(source_snapshot(fight), before)
+
+    def test_remaining_player_and_npc_end_turn_with_full_and_pruned_owned_sources(self):
+        from wakfu_server.combat_geometry_snapshot import source_snapshot
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_server_spell import prepare_server_turn_end
+        from wakfu_server.combat_timeline_snapshot import current_wire_turn
+
+        for retain_withdrawn in (True, False):
+            for current in (8, -7):
+                with self.subTest(retain_withdrawn=retain_withdrawn, current=current):
+                    first, second, monster, fight, deck = shared_fixture(
+                        native_qi=True, initialize_start=True
+                    )
+                    self.assertTrue(fight.native_start_event_delivered)
+                    self.assertEqual(set(fight.native_class_initializations), {7, 8})
+                    fight.turn_index = fight.order.index(current)
+                    historical = deepcopy(source_snapshot(fight)["actors"]["7"])
+                    population = set(fight.actors)
+                    characters = {8: second}
+                    if retain_withdrawn:
+                        characters[7] = first
+                    decks = {identity: deck for identity in characters}
+                    provider_calls = []
+
+                    def turn_end(preview, *, actor_id, action_id):
+                        before = deepcopy(source_snapshot(preview))
+                        prepared, packets = prepare_server_turn_end(
+                            second,
+                            {-7: monster},
+                            preview,
+                            deck,
+                            actor_id=actor_id,
+                            action_id=action_id,
+                            player_characters=characters,
+                            deck_blobs=decks,
+                            rng=random.Random(13),
+                        )
+                        self.assertEqual(source_snapshot(preview), before)
+                        self.assertIsNot(prepared, preview)
+                        provider_calls.append(actor_id)
+                        return prepared, packets
+
+                    runtime = RuntimeMessages(
+                        fight, turn_end_provider=turn_end, clock=lambda: 0.0
+                    )
+                    previous_turn = fight.turn_id
+                    if current == 8:
+                        packets = runtime.end_turn(4, current, current_wire_turn(fight))
+                    else:
+                        packets = runtime.end_server_turn(current, previous_turn)
+                    self.assertEqual(provider_calls, [current])
+                    self.assertEqual(
+                        [opcode for opcode, _ in packets][-2:], [12502, 13420]
+                    )
+                    end = next(
+                        payload for opcode, payload in packets if opcode == 12502
+                    )
+                    self.assertEqual(
+                        struct.unpack_from(">qii", end, 12), (current, -1, 0)
+                    )
+                    self.assertEqual(fight.current.id, -7 if current == 8 else 8)
+                    self.assertGreater(fight.turn_id, previous_turn)
+                    self.assertEqual(runtime.awaiting_ack, previous_turn)
+                    self.assertEqual(set(fight.actors), population)
+                    self.assertEqual(source_snapshot(fight)["actors"]["7"], historical)
+                    self.assertNotIn(7, fight.order)
+                    self.assertTrue(runtime.pending)
+                    self.assertTrue(
+                        runtime.acknowledge_turn(struct.pack(">i", previous_turn))
+                    )
+                    self.assertIsNone(runtime.awaiting_ack)
+                    self.assertEqual(runtime.pending, [])
+
+    def test_foreign_withdrawn_flag_and_unregistered_actor_cannot_bypass_population(
+        self,
+    ):
+        from wakfu_server.combat_geometry_snapshot import source_snapshot
+
+        for withdrawn in (False, True):
+            with self.subTest(withdrawn=withdrawn):
+                first, second, monster, fight, deck = shared_fixture(native_qi=True)
+                authority = self.population_authority(
+                    first, second, monster, deck, retain_withdrawn=False
+                )
+                foreign = Actor(99, 0, (0, 1, 0), 20, 3, 3, 1, 1, 4, False)
+                foreign.pve_withdrawn = withdrawn
+                if withdrawn:
+                    foreign.hp = 0
+                fight.actors[99] = foreign
+                before = deepcopy(source_snapshot(fight))
+                with self.assertRaisesRegex(ValueError, "roster changed"):
+                    authority(fight, fight.actors[8])
+                self.assertEqual(source_snapshot(fight), before)
+                self.assertIn(99, fight.actors)
+
+    def test_uncertified_pruned_withdrawn_source_is_not_silently_accepted(self):
+        from wakfu_server.combat_geometry_snapshot import source_snapshot
+
+        first, second, monster, fight, deck = shared_fixture()
+        authority = self.population_authority(
+            first, second, monster, deck, retain_withdrawn=False
+        )
+        before = deepcopy(source_snapshot(fight))
+        self.assertTrue(fight.actors[7].pve_withdrawn)
+        self.assertFalse(getattr(fight, "native_pve_departures", {}))
+        with self.assertRaisesRegex(ValueError, "roster changed"):
+            authority(fight, fight.actors[8])
+        self.assertEqual(source_snapshot(fight), before)
+
+    def test_stale_owned_departure_and_missing_actor_source_fail_without_mutation(self):
+        from wakfu_server.combat_geometry_snapshot import source_snapshot
+
+        for malformed in ("stale_departure", "missing_actor"):
+            with self.subTest(malformed=malformed):
+                first, second, monster, fight, deck = shared_fixture(native_qi=True)
+                authority = self.population_authority(
+                    first,
+                    second,
+                    monster,
+                    deck,
+                    retain_withdrawn=malformed == "missing_actor",
+                )
+                if malformed == "stale_departure":
+                    fight.native_pve_departures[7]["source"] = "foreign"
+                    reason = "departure authority"
+                else:
+                    del fight.actors[7]
+                    reason = "roster changed"
+                before = deepcopy(source_snapshot(fight))
+                with self.assertRaisesRegex(ValueError, reason):
+                    authority(fight, fight.actors[8])
+                self.assertEqual(source_snapshot(fight), before)
+
+    def test_known_ordinary_ko_and_native_offplay_keep_existing_life_semantics(self):
+        import test_combat_ordinary_authority as native_life
+
+        # Reuse the original creation/death-provenance fixture and its real
+        # owned death transition, not a fabricated withdrawal for an HP0 actor.
+        fixture = native_life.OrdinaryAuthorityTests(
+            methodName="test_selector_life_uses_owned_creation_and_departure_registration"
+        )
+        fixture.setUpClass()
+        fixture.setUp()
+        try:
+            fixture.test_selector_life_uses_owned_creation_and_departure_registration()
+            self.assertEqual(fixture.preview.actors[-7].hp, 0)
+            self.assertFalse(
+                getattr(fixture.preview.actors[-7], "pve_withdrawn", False)
+            )
+            self.assertIn(-7, fixture.authority.monsters)
+        finally:
+            fixture.doCleanups()
 
 
 if __name__ == "__main__":

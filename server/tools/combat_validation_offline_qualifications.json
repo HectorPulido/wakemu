@@ -1,0 +1,229 @@
+{
+  "schema": "audited-offline-modules-v1",
+  "modules": {
+    "test_combat_transaction_rng": {
+      "scope": "transaction-rng-offline-audit-v1",
+      "test_ids": [
+        "test_combat_transaction_rng.TransactionRNGTests.test_nested_failure_restores_shared_transaction_owner",
+        "test_combat_transaction_rng.TransactionRNGTests.test_server_entry_restores_critical_draw_before_factory_creation",
+        "test_combat_transaction_rng.TransactionRNGTests.test_success_advances_owner_and_custom_factory_has_no_inferred_rng"
+      ],
+      "source": {
+        "server/tests/test_combat_transaction_rng.py": "b10e20a650dd5449856065f6061e5c300bcc319366c99baad8c90f1697c5e7a4",
+        "server/wakfu_server/__init__.py": "45bdec94c2af41c1c7aab7ec2460035da11e39b1336792069e4bf635d086d948",
+        "server/wakfu_server/combat/combat_transaction_rng.py": "cb93d2e4810ecdd9d9823236a6fd0b1cc2fd15128ecd133e339d2d8fb60d7fdb",
+        "server/wakfu_server/combat/combat_random_transaction.py": "df19ec602ba06f546306563b9d97f9e17ac6c8fba4c517b009e614a4111f969b"
+      },
+      "fixtures": {},
+      "catalog": {},
+      "oracles": {},
+      "rng": {
+        "producer": "stdlib.random.Random",
+        "seeds": [
+          9
+        ],
+        "ownership": "new-local-owner-per-test",
+        "uncontrolled_consumed_entropy": false,
+        "unused_stdlib_singleton": "excluded"
+      },
+      "deterministic": true,
+      "external_state": "none",
+      "resolution": {
+        "stdlib_search_dirs": [
+          "server/tests",
+          "server",
+          "server/tools",
+          "."
+        ],
+        "imports": {
+          "test_combat_transaction_rng": {
+            "origin": "server/tests/test_combat_transaction_rng.py",
+            "search_dirs": [
+              "server/tests",
+              "server",
+              "server/tools",
+              "."
+            ]
+          },
+          "wakfu_server": {
+            "origin": "server/wakfu_server/__init__.py",
+            "search_dirs": [
+              "server/tests",
+              "server",
+              "server/tools",
+              "."
+            ]
+          },
+          "wakfu_server.combat_transaction_rng": {
+            "origin": "server/wakfu_server/combat/combat_transaction_rng.py",
+            "search_dirs": [
+              "server/wakfu_server",
+              "server/wakfu_server/combat"
+            ]
+          },
+          "wakfu_server.combat_random_transaction": {
+            "origin": "server/wakfu_server/combat/combat_random_transaction.py",
+            "search_dirs": [
+              "server/wakfu_server",
+              "server/wakfu_server/combat"
+            ]
+          }
+        }
+      }
+    },
+    "test_combat_area_movement_plan": {
+      "scope": "area-movement-plan-offline-audit-v1",
+      "test_ids": [
+        "test_combat_area_movement_plan.AreaMovementPlanTests.test_definition_validation_preserves_input_order_before_callback_delivery",
+        "test_combat_area_movement_plan.AreaMovementPlanTests.test_destination_radius_and_origin_point_have_distinct_authority",
+        "test_combat_area_movement_plan.AreaMovementPlanTests.test_empty_delivery_and_invalid_native_radius_do_not_invent_events",
+        "test_combat_area_movement_plan.AreaMovementPlanTests.test_plan_retains_original_rows_across_removal_and_new_registration",
+        "test_combat_area_movement_plan.AreaMovementPlanTests.test_registered_transitions_preserve_native_group_and_source_order"
+      ],
+      "source": {
+        "server/tests/test_combat_area_movement_plan.py": "0a5ee9aaf15cf1e5d6c11633bcef8084cebf434b54a4a2deadac442e3d3372c1",
+        "server/wakfu_server/__init__.py": "45bdec94c2af41c1c7aab7ec2460035da11e39b1336792069e4bf635d086d948",
+        "server/wakfu_server/combat/combat_area_event_contracts.py": "21fc52dbc1df779a094cf0691814dfa87a94b58bcba87d8abfbbf42a96f5c07c",
+        "server/wakfu_server/combat/combat_effect_area_geometry.py": "f082008bb39199b061053ab68042c4de936f27d89d9e97d89f2c961fe39b6d95",
+        "server/wakfu_server/combat/combat_area_contracts.py": "44829eee57f40400fae6e700be34573a9ea3b7d2b94754e1b31bd5e8a912e0a1"
+      },
+      "fixtures": {},
+      "catalog": {},
+      "oracles": {},
+      "rng": {
+        "producer": "none",
+        "ownership": "no-random-provider-consumed",
+        "uncontrolled_consumed_entropy": false
+      },
+      "deterministic": true,
+      "external_state": "none",
+      "resolution": {
+        "stdlib_search_dirs": [
+          "server/tests",
+          "server",
+          "server/tools",
+          ".",
+          "server/wakfu_server",
+          "server/wakfu_server/combat"
+        ],
+        "imports": {
+          "test_combat_area_movement_plan": {
+            "origin": "server/tests/test_combat_area_movement_plan.py",
+            "search_dirs": [
+              "server/tests",
+              "server",
+              "server/tools",
+              "."
+            ]
+          },
+          "wakfu_server": {
+            "origin": "server/wakfu_server/__init__.py",
+            "search_dirs": [
+              "server/tests",
+              "server",
+              "server/tools",
+              "."
+            ]
+          },
+          "wakfu_server.combat_area_event_contracts": {
+            "origin": "server/wakfu_server/combat/combat_area_event_contracts.py",
+            "search_dirs": [
+              "server/wakfu_server",
+              "server/wakfu_server/combat"
+            ]
+          },
+          "wakfu_server.combat_effect_area_geometry": {
+            "origin": "server/wakfu_server/combat/combat_effect_area_geometry.py",
+            "search_dirs": [
+              "server/wakfu_server",
+              "server/wakfu_server/combat"
+            ]
+          },
+          "wakfu_server.combat_area_contracts": {
+            "origin": "server/wakfu_server/combat/combat_area_contracts.py",
+            "search_dirs": [
+              "server/wakfu_server",
+              "server/wakfu_server/combat"
+            ]
+          }
+        }
+      }
+    },
+    "test_combat_displacement_geometry": {
+      "scope": "displacement-geometry-offline-audit-v1",
+      "test_ids": [
+        "test_combat_displacement_geometry.DisplacementGeometryTests.test_all_families_and_native_parameter_growth",
+        "test_combat_displacement_geometry.DisplacementGeometryTests.test_native_bounds_and_context_rejections",
+        "test_combat_displacement_geometry.DisplacementGeometryTests.test_native_facing_and_float32_sector_boundaries",
+        "test_combat_displacement_geometry.DisplacementGeometryTests.test_native_random_push_draws_once_and_pull_never_draws",
+        "test_combat_displacement_geometry.DisplacementGeometryTests.test_new_native_3217_4536_root118972_parameter_witness"
+      ],
+      "source": {
+        "server/tests/test_combat_displacement_geometry.py": "681a5b80d7869ab752a817f8b067b2f834060dbc964a9ad0dc7fd8fbd23eb305",
+        "server/wakfu_server/__init__.py": "45bdec94c2af41c1c7aab7ec2460035da11e39b1336792069e4bf635d086d948",
+        "server/wakfu_server/combat/combat_displacement_geometry.py": "10d825d87cbab90305b1d62046032175decd4d0555d045f94dfaa92c6fead7d4",
+        "server/wakfu_server/combat/combat_parameters.py": "e2c5ffc5e744ebd77e34d295172d4a3277076664251a87e68eb3f25faca81059"
+      },
+      "fixtures": {},
+      "catalog": {},
+      "oracles": {},
+      "rng": {
+        "producer": "explicit-scripted-direction-callback",
+        "draws": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "ownership": "new-local-callback-and-list-per-case",
+        "uncontrolled_consumed_entropy": false
+      },
+      "deterministic": true,
+      "external_state": "none",
+      "resolution": {
+        "stdlib_search_dirs": [
+          "server/tests",
+          "server",
+          "server/tools",
+          ".",
+          "server/wakfu_server",
+          "server/wakfu_server/combat"
+        ],
+        "imports": {
+          "test_combat_displacement_geometry": {
+            "origin": "server/tests/test_combat_displacement_geometry.py",
+            "search_dirs": [
+              "server/tests",
+              "server",
+              "server/tools",
+              "."
+            ]
+          },
+          "wakfu_server": {
+            "origin": "server/wakfu_server/__init__.py",
+            "search_dirs": [
+              "server/tests",
+              "server",
+              "server/tools",
+              "."
+            ]
+          },
+          "wakfu_server.combat_displacement_geometry": {
+            "origin": "server/wakfu_server/combat/combat_displacement_geometry.py",
+            "search_dirs": [
+              "server/wakfu_server",
+              "server/wakfu_server/combat"
+            ]
+          },
+          "wakfu_server.combat_parameters": {
+            "origin": "server/wakfu_server/combat/combat_parameters.py",
+            "search_dirs": [
+              "server/wakfu_server",
+              "server/wakfu_server/combat"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

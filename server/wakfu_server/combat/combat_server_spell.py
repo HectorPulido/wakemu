@@ -17,6 +17,7 @@ from .combat_effect_runtime import NativeEffectRuntimeFactory
 from .combat_native_timing_context import NativeEffectTimingProvider
 from .combat_spell_transaction import prepare_spell_transaction
 from .combat_random_transaction import rollback_external_rng
+from .combat_input_observation import observe_rng, observe_authority
 
 
 @lru_cache(maxsize=1)
@@ -112,6 +113,9 @@ def server_runtime(
 ):
     """One transaction-owned RNG shared by ordinary and relative decisions."""
     transaction_rng = random.Random() if rng is None else rng
+    transaction_rng = observe_rng(
+        "server_runtime", transaction_rng, external=rng is not None
+    )
     if player_characters is None:
         player_characters = {character["id"]: character}
     else:
@@ -124,6 +128,19 @@ def server_runtime(
         deck_blobs = dict(deck_blobs)
     if set(deck_blobs) != set(player_characters):
         raise ValueError("Every controlled player requires its own deck snapshot")
+    observe_authority(
+        "server_runtime.authority",
+        dict(
+            character=character,
+            monsters=monsters,
+            deck_blob=deck_blob,
+            player_characters=player_characters,
+            deck_blobs=deck_blobs,
+            action_id=action_id,
+            critical=critical,
+            compiled_is_default=compiled is None,
+        ),
+    )
     decks = {}
     deck_caps = {}
     for actor_id, source in player_characters.items():
@@ -195,7 +212,9 @@ def server_runtime(
         condition_context=adapter.condition,
         draw_integer=lambda total: transaction_rng.randrange(total),
     )
-    return factory, adapter
+    from .combat_owned_equipment_factory import OwnedEquipmentRuntimeFactory
+
+    return OwnedEquipmentRuntimeFactory(factory, compiled), adapter
 
 
 @rollback_external_rng
@@ -222,6 +241,9 @@ def prepare_server_spell(
         request, character, fight, owner_id, deck_blob
     )
     transaction_rng = random.Random() if rng is None else rng
+    transaction_rng = observe_rng(
+        "player_spell.before_critical", transaction_rng, external=rng is not None
+    )
     if critical is None:
         decision = choose_critical(
             actor,
@@ -311,9 +333,46 @@ def prepare_server_initialization(
     initial = plan(owned, deck_blob, catalog(), states)
     if type(fight_start) is not bool:
         raise ValueError("Explicit fight_start policy must be boolean")
-    preview, packets = initialize_transaction(
-        fight, initial, factory, states, owner_id=owner_id
+    from .combat_owned_equipment_pin import pin_transaction
+    from .combat_owned_equipment import initialize_transaction as initialize_equipment
+
+    # Wakemu ordering: snapshot-owned flat gear first, qualified permanent
+    # equipment states, class and aptitude initialization, then fight-start1003.
+    # No claim is made about an unrecovered original server ordering caller.
+    preview, equipment = pin_transaction(
+        fight,
+        owned,
+        None,
+        compiled_runtime_catalog(),
+        characteristic_registry(),
+        owner_id=owner_id,
+        ordinary_only=True,
     )
+    from wakfu_server.characters.owned_social_context import pin as pin_social_context
+
+    pin_social_context(preview, character)
+    equipment_factory, _ = server_runtime(
+        character,
+        monsters,
+        deck_blob,
+        action_id=action_id,
+        critical=False,
+        rng=rng,
+        player_characters=player_characters,
+        deck_blobs=deck_blobs,
+        compiled=equipment["compiled"],
+    )
+    preview, equipment_packets = initialize_equipment(
+        preview,
+        actor.id,
+        equipment,
+        equipment_factory,
+        owner_id=owner_id,
+    )
+    preview, packets = initialize_transaction(
+        preview, initial, factory, states, owner_id=owner_id
+    )
+    packets = equipment_packets + packets
     from .combat_aptitude_initialization import (
         initialize_transaction as initialize_aptitudes,
     )

@@ -241,104 +241,16 @@ class RegisteredSummonAuthority:
                 )
 
     def register(self, preview, actor, registration, *, new_order, new_turn_index):
-        from .combat_summon_placement import native_summon_placement
+        from .combat_summon_lifecycle import register_summon
 
-        if (
-            preview.phase != "active"
-            or not isinstance(actor, Actor)
-            or not isinstance(registration, SummonRegistration)
-            or actor.id != registration.actor_id
-            or actor.id in preview.actors
-            or actor.id <= 0
-            or registration.caster_id not in preview.actors
-            or registration.controller_id not in (*preview.actors, actor.id)
-            or not native_summon_placement(preview, actor)
-        ):
-            raise ValueError("Invalid owned summon registration")
-        # Native big.a/fdt registers QK identities even at a shared cell.
-        # Spell criteria own placement legality; creation can precede a carry
-        # transition in the same ordered group. Validate its exact QI slot
-        # below instead of imposing an additional living-cell restriction.
-        metadata = registration.authority
-        self._fresh_relationships(actor, vars(registration), metadata)
-        if (
-            metadata.is_summon is not True
-            or metadata.summon_root_id is None
-            or metadata.is_player is not False
-            or metadata.is_carried is not False
-            or metadata.targeting.get("bcN") != actor.native_obstacle_id
-            or type(actor.native_obstacle_id) is not int
-            or not 0 <= actor.native_obstacle_id <= 126
-            or not fresh_summon_slot_owned(preview, actor)
-            or actor.effect_stats is None
-            or actor.effect_maxima is None
-            or actor.effect_minima is None
-            or actor.effect_frozen is None
-            or actor.physical_radius is None
-            or actor.spell_ap_cost_modifiers is None
-            or actor.spell_range_modifiers is None
-        ):
-            raise ValueError("Summon requires complete native actor authority/snapshot")
-        # fbX.C consults ffe114 NOT_PRESENT_IN_TIMELINE before fem.a.
-        expected = Counter(preview.order)
-        if 114 not in registration.fight_properties:
-            expected[actor.id] += 1
-        if (
-            Counter(new_order) != expected
-            or type(new_turn_index) is not int
-            or not 0 <= new_turn_index < len(new_order)
-            or new_order[new_turn_index] != preview.current.id
-        ):
-            raise ValueError(
-                "Missing native timeline insertion preserving current actor"
-            )
-        controller = (
-            actor
-            if registration.controller_id == actor.id
-            else preview.actors[registration.controller_id]
+        return register_summon(
+            self,
+            preview,
+            actor,
+            registration,
+            new_order=new_order,
+            new_turn_index=new_turn_index,
         )
-        if (
-            actor.controlled != controller.controlled
-            or actor.owner_id != controller.owner_id
-        ):
-            raise ValueError("Summon controller/account mismatch")
-        base_order = getattr(preview, "native_base_turn_order", None)
-        next_base = None
-        if base_order is not None:
-            # Tc.pw counts duplicate IDs before the current-round insertion.
-            # SX.n/feq.b insert into the base list at slot minus that count.
-            if (
-                getattr(preview, "native_timeline_policy", None) != "feq"
-                or len(base_order) != len(set(base_order))
-                or set(base_order) != set(preview.order)
-            ):
-                raise ValueError("Missing native extra-turn base timeline authority")
-            next_base = list(base_order)
-            if 114 not in registration.fight_properties:
-                slot = list(new_order).index(actor.id)
-                prefix = preview.order[:slot]
-                base_slot = slot - (len(prefix) - len(set(prefix)))
-                next_base.insert(base_slot, actor.id)
-        row = dict(vars(registration))
-        row["authority"] = dict(vars(metadata))
-        records = getattr(preview, "native_summon_registrations", {})
-        if actor.id in records:
-            raise ValueError("Duplicate summon registration")
-        if 114 not in registration.fight_properties:
-            from .combat_timeline_snapshot import insert
-
-            insert(preview, actor.id, list(new_order).index(actor.id))
-        preview.actors[actor.id] = actor
-        if hasattr(preview, "native_global_pv_collections"):
-            from .combat_global_pv_collections import register_global_fighter
-
-            register_global_fighter(
-                preview, actor.id, controller_id=registration.controller_id
-            )
-        preview.native_summon_registrations = {**records, actor.id: row}
-        preview.order, preview.turn_index = list(new_order), new_turn_index
-        if next_base is not None:
-            preview.native_base_turn_order = next_base
 
     def retire(self, preview, actor_id, *, new_order, new_turn_index):
         """Retire an already-dead owned summon after native timeline cleanup.

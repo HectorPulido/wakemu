@@ -8,7 +8,7 @@ from pathlib import Path
 import shutil
 
 
-def files(root):
+def files(root, *, full_server=False):
     result = set()
     # Domain modules also import top-level codecs and protocol helpers.
     # Capture Python sources, without copying runtime/service configuration.
@@ -38,9 +38,70 @@ def files(root):
                 and "__pycache__" not in path.parts
             ):
                 result.add(path.relative_to(root))
+        # Server regressions import native oracle/session fixtures from this
+        # directory without running the separate AI suite. Those fixtures are
+        # required inputs of the server validation snapshot too.
+        for path in (root / "server/ai-service/tests").rglob("*"):
+            if (
+                path.is_file()
+                and not path.is_symlink()
+                and "__pycache__" not in path.parts
+                and path.suffix in (".py", ".json", ".gz", ".bin", ".csv")
+            ):
+                result.add(path.relative_to(root))
     for path in (root / "server/protocol").rglob("*"):
         if path.is_file() and path.suffix in (".json", ".gz", ".csv", ".tsv", ".txt"):
             result.add(path.relative_to(root))
+    for path in (root / "server/migrations").glob("*.sql"):
+        if path.is_file():
+            result.add(path.relative_to(root))
+    for path in (root / "server/test-fixtures").rglob("*"):
+        if path.is_file() and path.suffix in (".json", ".gz", ".bin", ".csv", ".tsv"):
+            result.add(path.relative_to(root))
+    # Optional, version-assessed guide input used by impact observation. Freeze
+    # this one declared input without copying unrelated internal reports.
+    scenario_input = (
+        root / "agents_docs/reports/combat-resilience-phase1-2/source-scenarios.json"
+    )
+    if scenario_input.is_file():
+        result.add(scenario_input.relative_to(root))
+    if full_server:
+        # Complete server validation also inspects service assets, native probe
+        # sources, launcher scripts and repository documentation. These are
+        # source inputs only; no client binaries or runtime configuration.
+        allowed = {
+            ".py",
+            ".json",
+            ".gz",
+            ".bin",
+            ".csv",
+            ".tsv",
+            ".txt",
+            ".sql",
+            ".sh",
+            ".html",
+            ".css",
+            ".js",
+            ".svg",
+            ".png",
+            ".java",
+            ".md",
+            ".yaml",
+            ".yml",
+        }
+        for directory in ("server", "sniffer", "client-tools", "tools", "docs"):
+            for path in (root / directory).rglob("*"):
+                if path.is_file() and (
+                    path.suffix in allowed or path.name == "Dockerfile"
+                ):
+                    result.add(path.relative_to(root))
+        for path in root.iterdir():
+            if path.is_file() and (
+                path.name in ("README.md", "AGENTS.md")
+                or path.name.startswith(("compose", "docker-compose"))
+                and path.suffix in (".yaml", ".yml")
+            ):
+                result.add(path.relative_to(root))
     # Some regressions consume published audit evidence as input fixtures.
     # Capture only explicitly named files in the combat report directory.
     reports = root / "docs/reports/combat-inventory"
@@ -63,10 +124,27 @@ def files(root):
             candidate = reports / name
             if candidate.is_file() and not candidate.is_symlink():
                 result.add(candidate.relative_to(root))
-    return sorted(result)
+
+    def safe(relative):
+        path = root / relative
+        return (
+            not any(
+                part.startswith(".")
+                or part in {"__pycache__", "node_modules", "secrets", "credentials"}
+                for part in relative.parts
+            )
+            and not any(
+                parent.is_symlink()
+                for parent in (path, *path.parents)
+                if parent != root.parent
+            )
+            and path.resolve().is_relative_to(root.resolve())
+        )
+
+    return sorted(relative for relative in result if safe(relative))
 
 
-def snapshot(root, destination, *, attempts=5):
+def snapshot(root, destination, *, attempts=5, full_server=False):
     root, destination = root.resolve(), destination.resolve()
     if (
         destination.exists()
@@ -79,7 +157,7 @@ def snapshot(root, destination, *, attempts=5):
     copied = {}
     try:
         for attempt in range(attempts):
-            current = files(root)
+            current = files(root, full_server=full_server)
             for relative in current:
                 raw = (root / relative).read_bytes()
                 digest = hashlib.sha256(raw).hexdigest()
@@ -96,11 +174,12 @@ def snapshot(root, destination, *, attempts=5):
                 str(relative): hashlib.sha256(
                     (root / relative).read_bytes()
                 ).hexdigest()
-                for relative in files(root)
+                for relative in files(root, full_server=full_server)
             }
             if after == copied:
                 manifest = dict(
                     scope="Offline unit/audit source and data copy; no service configuration or live database",
+                    full_server=full_server,
                     source_root=str(root),
                     snapshot_root=str(destination),
                     created_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -127,5 +206,12 @@ if __name__ == "__main__":
         "--root", type=Path, default=Path(__file__).resolve().parents[2]
     )
     parser.add_argument("--destination", type=Path, required=True)
+    parser.add_argument(
+        "--full-server",
+        action="store_true",
+        help="Include server services/assets and repository source inputs used by the complete suite",
+    )
     args = parser.parse_args()
-    print(json.dumps(snapshot(args.root, args.destination)))
+    print(
+        json.dumps(snapshot(args.root, args.destination, full_server=args.full_server))
+    )

@@ -1,0 +1,118 @@
+{
+  "documents": {
+    "monsters.json": {
+      "published_sha256": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4",
+      "sha256": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4"
+    },
+    "native-npc-spell-effect-trees.json": {
+      "published_sha256": "7aec221de3b2b5b641f08b261f6e63f6618f16115ce9b6bfdc3ee617a69821b8",
+      "sha256": "7aec221de3b2b5b641f08b261f6e63f6618f16115ce9b6bfdc3ee617a69821b8"
+    },
+    "native-spell-casting.json": {
+      "published_sha256": "0e6ef6f9f3bd4f3c4192a77673fd0598034e51d1149364d66f5f24f5ff6095c9",
+      "sha256": "0e6ef6f9f3bd4f3c4192a77673fd0598034e51d1149364d66f5f24f5ff6095c9"
+    }
+  },
+  "effect": {
+    "definition": {
+      "application_flag": "NONE",
+      "area_class": "anD",
+      "area_native": "point",
+      "children": [],
+      "criteria": "",
+      "effect_class": 300,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "native_definition_class": "eVy",
+      "native_effect_flags": [
+        17
+      ],
+      "native_execution_mode": 2,
+      "native_hmi_actions": {
+        "rzc": [],
+        "rzd": [],
+        "rze": [],
+        "rzf": [],
+        "rzg": [],
+        "rzh": []
+      },
+      "native_localization_enabled": true,
+      "native_target_selector": {
+        "class": "fcE",
+        "mask": 9
+      },
+      "native_timing_definition": {
+        "clock_on_caster": false,
+        "clock_on_target": true,
+        "esr": false,
+        "ryE": 0,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0
+      },
+      "parameter_count": 2,
+      "parameters": [
+        3.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "probability_base": 100.0,
+      "probability_per_level": 0.0,
+      "removal_flag": "NONE",
+      "target_masks": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "variant": 0
+    },
+    "reference": 186717
+  },
+  "monster": {
+    "maximum_level": 42,
+    "minimum_level": 42,
+    "name": "Pescador del Nemotilus",
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 5864
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 5868
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 5866
+      }
+    ],
+    "reference": 4157
+  },
+  "qualification": "Native exported definition and normal server-execution consumer; no live activation, original-Java rerun or complete encounter claim.",
+  "release": "08523b7b8f2dd2e7c5fcac816bfcc7e31f777beb61acb0d76913bfcd568007f8",
+  "schema": "wakemu-native-consumer-evidence-v1",
+  "spell": {
+    "conditional_count": 0,
+    "costs": [
+      2,
+      0,
+      0
+    ],
+    "criterion": "not IsBreedId(\"target\", 4152)",
+    "evaluation_level": 42,
+    "level_table": [
+      1,
+      1,
+      [
+        186717
+      ]
+    ],
+    "reference": 5868
+  }
+}

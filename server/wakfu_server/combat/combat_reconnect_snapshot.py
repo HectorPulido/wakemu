@@ -1,7 +1,8 @@
 """Read-only owned reconnect presentation of the current shared fight.
 
 The bootstrap restores client objects. Retained carriers are installed without
-executing children; the server FSM, ACK barrier and resource ledger stay intact.
+executing children; immediate public PI operands restore their recorded value.
+The server FSM, ACK barrier and resource ledger stay intact.
 """
 from .combat_environment_glyphs import environment_sections
 import struct
@@ -22,7 +23,8 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
     from .combat_recovery import timeline
     from .combat_phase import action_transition
     from .combat_spectator_snapshot import _retained_carrier_packets
-    from .combat_wire import bootstrap, topology, actor_state, initial_timeline
+    from .combat_wire import bootstrap, topology, actor_state
+    from .combat_delivery_boundary import initial_summon_timeline
 
     runtime = shared.runtime
     deadline = runtime.turn_deadline
@@ -86,12 +88,7 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
         # No current-member substitution: INITIAL has the native -1 sentinel.
         # Full recovery below restores real counters and even a summon turn.
         myG=(
-            initial_timeline(
-                [identity for identity in fight.order if identity not in birth_ids],
-                [identity for identity in fight.order if identity not in birth_ids],
-            )
-            if birth_ids
-            else current_timeline
+            initial_summon_timeline(fight, birth_ids) if birth_ids else current_timeline
         ),
         myI=context["leaders"][0],
         myJ=context["leaders"][1],
@@ -100,7 +97,14 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
         myH=[],
         myM=[],
         myN=[],
-        myK=environment_sections(fight),
+        myK=environment_sections(
+            fight,
+            viewer_id=(
+                session.character_id
+                if getattr(fight, "native_environment_glyph_constructors", ())
+                else None
+            ),
+        ),
     )
     # cvb owned fight creation, followed by the existing native phase transition
     # contract and cvn recovery. Never use spectator cva/12044 for an owner.
@@ -131,16 +135,15 @@ def owned_snapshot(fight, shared, session, *, actor_payload):
         )
     )
     packets.extend(_retained_carrier_packets(fight, runtime.native_action_id))
-    from .combat_death_script_snapshot import immediate_death_script_packet
+    from .combat_death_script_snapshot import immediate_death_script_packets
 
-    for actor in fight.actors.values():
-        if actor.id in departed:
-            continue
-        immediate = immediate_death_script_packet(
-            fight, actor, runtime.native_action_id
+    packets.extend(
+        immediate_death_script_packets(
+            fight,
+            (actor for actor in fight.actors.values() if actor.id not in departed),
+            runtime.native_action_id,
         )
-        if immediate is not None:
-            packets.append(immediate)
+    )
     if runtime.awaiting_ack is not None:
         if shared.ack.turn != runtime.awaiting_ack:
             raise ValueError("Owned reconnect has inconsistent native ACK boundary")

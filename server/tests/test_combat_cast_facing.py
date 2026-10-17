@@ -59,7 +59,7 @@ class CastFacingTest(unittest.TestCase):
     def test_original_cardinal_and_diagonal_vector_matrix(self):
         path = (
             Path(__file__).parents[2]
-            / "agents_docs/reports/combat-inventory/native-cast-facing-probe.tsv"
+            / "server/tests/fixtures/native_combat_oracles/cast-facing.tsv"
         )
         for line in path.read_text().splitlines():
             dx, dy, cardinal, diagonal = map(int, line.split())

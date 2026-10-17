@@ -3,6 +3,8 @@
 This report accepts committed local XP/kamas receipts and generates no loot. It preserves real participant
 identity and does not copy official result, reward or fight instance data.
 """
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 import struct
 from wakfu_server.wire import proto_field
 
@@ -83,7 +85,7 @@ def _player(actor, metadata):
             type(end) is not int
             or type(won) is not int
             or not 0 <= won <= end < 2**63
-            or not 1 <= start_level <= end_level <= 200
+            or not 1 <= start_level <= end_level <= MAX_CHARACTER_LEVEL
         ):
             raise ValueError("Invalid committed XP totals")
         if end < level_xp(end_level) or end - won < level_xp(start_level):

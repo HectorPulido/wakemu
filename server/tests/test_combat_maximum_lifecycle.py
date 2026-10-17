@@ -1,8 +1,8 @@
 import unittest
 from dataclasses import replace
 from types import SimpleNamespace
-from server.tests import test_combat_maximum_resource as resource_tests
-from server.tests import test_combat_effect_dispatch as dispatch_tests
+import test_combat_maximum_resource as resource_tests
+import test_combat_effect_dispatch as dispatch_tests
 from wakfu_server.combat_effect_dispatch import EffectDispatcher
 from wakfu_server.combat_conditions import ConditionContext
 from wakfu_server.combat_runner_callbacks import runner_value_scope

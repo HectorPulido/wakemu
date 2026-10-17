@@ -4,6 +4,8 @@ This module does not discover a fight roster or attach itself to combat. The
 caller supplies the authoritative terminal roster snapshot and leases the
 transaction that will also write the existing fight reward receipt.
 """
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from wakfu_server.reward_rates import MAX_REWARD_RATE_BP
 from dataclasses import dataclass
 from hashlib import sha256
@@ -68,7 +70,12 @@ def _normalize_context(context, character_id):
         raw = _record(raw, name="winner")
         if set(raw) != {"level", "player", "eligible", "character_id", "wisdom"}:
             raise ValueError("Winner has unknown or missing fields")
-        level = _integer(raw["level"], "winner level", 1, 200)
+        level = _integer(
+            raw["level"],
+            "winner level",
+            1,
+            MAX_CHARACTER_LEVEL if raw["player"] is True else 32767,
+        )
         for key in ("player", "eligible"):
             if type(raw[key]) is not bool:
                 raise ValueError(f"Invalid winner {key}")

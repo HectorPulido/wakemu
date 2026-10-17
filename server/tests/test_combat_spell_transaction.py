@@ -390,6 +390,7 @@ class SpellTransactionTests(unittest.TestCase):
         target_distance=2,
         target_position=None,
         variation_seed=None,
+        compact=None,
     ):
         from wakfu_server.combat_actor_snapshot import (
             build_player_snapshot,
@@ -477,6 +478,7 @@ class SpellTransactionTests(unittest.TestCase):
                 # both actor seeds instead of selecting a relocated formation.
                 relocate_monsters=False,
                 variation_seed=variation_seed,
+                compact=compact,
             )
         caster_snapshot = npc_snapshot = None
         if native_qi:
@@ -569,6 +571,70 @@ class SpellTransactionTests(unittest.TestCase):
         self.assertEqual(tuple(row["position"]), actor.position[:2])
         self.assertEqual(row["radius"], actor.physical_radius)
         self.assertEqual(row["identity"], ["actor", actor.id])
+
+    def test_level245_owned_native_cast_uses_full_curve_without_mutating_source(self):
+        import random
+        from wakfu_server.combat_server_spell import (
+            prepare_server_spell,
+            prepare_server_initialization,
+        )
+        from wakfu_server.combat_los import authoritative_visible
+        from wakfu_server.combat_obstacle_condition import footprint
+        from wakfu_server.spell_audit import costs_catalog
+
+        character, monster, fight = self.native_server_fixture(
+            8,
+            245,
+            full_health=True,
+            native_qi=True,
+            target_ref=4168,
+            target_level=190,
+        )
+        deck = encode_deck([4780])
+        fight, _ = prepare_server_initialization(
+            character,
+            {-7: monster},
+            fight,
+            3,
+            deck,
+            action_id=1,
+            rng=random.Random(1),
+            fight_start=True,
+        )
+        caster, target = fight.actors[7], fight.actors[-7]
+        before = (caster.ap, caster.mp, caster.hp, target.hp)
+
+        def line_of_sight(origin, destination, current):
+            return authoritative_visible(
+                character["map_id"],
+                origin,
+                destination,
+                current,
+                blocking_footprints={
+                    actor.id: footprint(actor.position, actor.physical_radius)
+                    for actor in current.actors.values()
+                    if actor.hp > 0
+                },
+            )
+
+        result = prepare_server_spell(
+            struct.pack(">qqiih", 7, (7 << 32) | 4780, *target.position),
+            character,
+            {-7: monster},
+            fight,
+            3,
+            deck,
+            action_id=2,
+            line_of_sight=line_of_sight,
+            critical=False,
+            rng=random.Random(1),
+        )
+        ap_cost = costs_catalog()["4780"]["levels"][244][0]
+        self.assertGreater(ap_cost, 0)
+        self.assertEqual(result.fight.actors[7].ap, before[0] - ap_cost)
+        self.assertLess(result.fight.actors[-7].hp, before[3])
+        self.assertEqual(result.fight.actors[7].effective_level, 245)
+        self.assertEqual((caster.ap, caster.mp, caster.hp, target.hp), before)
 
     def test_server_entry_conditional_spell_damage_and_displacement_share_transaction(
         self,

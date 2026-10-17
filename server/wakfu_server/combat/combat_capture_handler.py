@@ -1,5 +1,6 @@
 """eYG320 capture into the actual caster eHP.drI component; no synthetic kills."""
 from dataclasses import replace
+from copy import copy
 from wakfu_server.characters.captured_roster import OwnedCapturedRoster
 from .combat_capture_slot import add_fresh_capture
 from .combat_captured_profiles import native_captured_profiles
@@ -171,6 +172,10 @@ class NativeCaptureHandler:
                     execution_status=status,
                     executed=True,
                 )
+                from .combat_captured_descriptor_binding import clear_descriptor_actor
+
+                fresh_component = copy(self.fight)
+                clear_descriptor_actor(fresh_component, caster.id, amount)
                 records = dict(getattr(self.fight, "native_captured_rosters", {}))
                 updates = dict(
                     getattr(self.fight, "native_captured_roster_updates", {})
@@ -182,6 +187,9 @@ class NativeCaptureHandler:
                     self.fight.native_captured_rosters,
                     self.fight.native_captured_roster_updates,
                 ) = (records, updates)
+                self.fight.native_captured_descriptor_actor_ids = (
+                    fresh_component.native_captured_descriptor_actor_ids
+                )
                 target.native_fight_property_counts = fight_counts
                 target.native_fight_properties = frozenset(
                     k for k, v in fight_counts.items() if v != 0

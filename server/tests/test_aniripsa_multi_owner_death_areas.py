@@ -10,7 +10,9 @@ from copy import deepcopy
     os.environ.get("WAKFU_TEST_GRANTEDCAST") == "1", "native runtime opt-in"
 )
 class AniripsaMultiOwnerDeathAreasTests(unittest.TestCase):
-    def test_actual_two_cunejo_deaths_and_one_owner_replacement_are_isolated(self):
+    def test_actual_two_cunejo_deaths_replace_only_owner_and_release_unreferenced_manager(
+        self,
+    ):
         from xelor_multiowner_fixture import TwoXelorFixture
         from tools.combat_audit_turns import advance_actual_turn
         from tools.class_spell_eligible_targets import eligible_cast_targets
@@ -231,11 +233,31 @@ class AniripsaMultiOwnerDeathAreasTests(unittest.TestCase):
         self.assertIn(first_uid, areas(7))
         self.assertIn(second_uid, areas(8))
         foreign = deepcopy(areas(8)[second_uid])
+        first_effect_uid = areas(7)[first_uid]["effect_uid"]
         replacement_summon, replacement_uid = create_and_kill(7)
         self.assertNotEqual(replacement_summon, first_summon)
         self.assertNotEqual(replacement_uid, first_uid)
         self.assertNotIn(first_uid, runtime.fight.native_effect_areas)
-        self.assertIn(first_uid, runtime.fight.native_retired_area_managers)
+        # Native removed Qq has no surviving ledger/Qf/PL users: it must be
+        # released, not kept as an eternal retirement receipt.
+        self.assertNotIn(first_uid, runtime.fight.native_retired_area_managers)
+        self.assertNotIn(first_effect_uid, runtime.fight.native_owned_area_effects)
+        self.assertFalse(
+            any(
+                row.get("manager_id") == first_uid
+                or (
+                    row.get("container_kind") == "effect_area"
+                    and row.get("container_id") == first_uid
+                )
+                for row in runtime.fight.native_retained_records.values()
+            )
+        )
+        self.assertFalse(
+            any(
+                row.get("target_id") == first_uid
+                for row in runtime.fight.native_owned_state_containers.values()
+            )
+        )
         self.assertIn(replacement_uid, areas(7))
         self.assertIn(second_uid, areas(8))
         for key in (

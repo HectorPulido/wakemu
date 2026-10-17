@@ -1,4 +1,6 @@
 """Versioned level-band rewards expanded into frozen native entitlements."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 import hashlib
 import json
 import secrets
@@ -6,7 +8,7 @@ from psycopg.types.json import Jsonb
 from .catalog import integer, key, validate_reward
 
 
-def validate_policy(policy):
+def validate_policy(policy, *, allow_historical_200=False):
     if (
         type(policy) is not dict
         or set(policy) != {"bands"}
@@ -19,11 +21,11 @@ def validate_policy(policy):
         if type(band) is not dict or set(band) != {"minimum", "maximum", "rewards"}:
             raise ValueError("Invalid reward band")
         if (
-            integer(band["minimum"], 200) != expected
-            or integer(band["maximum"], 200) < expected
+            integer(band["minimum"], MAX_CHARACTER_LEVEL) != expected
+            or integer(band["maximum"], MAX_CHARACTER_LEVEL) < expected
         ):
             raise ValueError(
-                "Reward bands must cover levels 1 through 200 without gaps or overlaps"
+                f"Reward bands must cover levels 1 through {MAX_CHARACTER_LEVEL} without gaps or overlaps"
             )
         expected = band["maximum"] + 1
         if (
@@ -38,8 +40,12 @@ def validate_policy(policy):
             if reward.get("kind") == "scaled":
                 raise ValueError("Nested reward policy references are forbidden")
             validate_reward(reward)
-    if expected != 201:
-        raise ValueError("Reward bands must cover levels 1 through 200")
+    if expected != MAX_CHARACTER_LEVEL + 1 and not (
+        allow_historical_200 and expected == 201
+    ):
+        raise ValueError(
+            f"Reward bands must cover levels 1 through {MAX_CHARACTER_LEVEL}"
+        )
     return policy
 
 
@@ -115,8 +121,12 @@ def native_items(db, policy):
 
 
 def expand(db, policy_row, level):
-    integer(level, 200)
-    policy = validate_policy(policy_row["policy"])
+    integer(level, MAX_CHARACTER_LEVEL)
+    policy = validate_policy(policy_row["policy"], allow_historical_200=True)
+    if level > policy["bands"][-1]["maximum"]:
+        raise ValueError(
+            "Frozen reward policy does not cover the source character level"
+        )
     equipment = native_items(db, policy)
     band = next(b for b in policy["bands"] if b["minimum"] <= level <= b["maximum"])
     rewards = []

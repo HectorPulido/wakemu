@@ -4,7 +4,6 @@ from pathlib import Path
 import hashlib
 import json
 import sys
-from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -37,52 +36,88 @@ class _Transport:
 
 
 def _runtime():
-    pc = SimpleNamespace(
+    from wakfu_server.combat_state import Actor, Fight
+    from wakfu_server.combat_runtime_messages import RuntimeMessages
+    from wakfu_server.combat_actor_snapshot import (
+        build_player_snapshot,
+        build_npc_snapshot,
+    )
+    from wakfu_server.combat_global_pv_collections import (
+        initialize_global_pv_collections,
+    )
+    from wakfu_server.combat_qi_fight import (
+        prepare_fresh_actor_slots,
+        install_fresh_actor_slots,
+    )
+
+    # Use the same ordinary breed15/5525 construction contract as the native
+    # NPC attack fixture; feature providers do not substitute actor authority.
+    pc = Actor(101, 1, (0, 0, 0), 60, 6, 3, 20, 1, 7, True, direction=2)
+    npc = Actor(-23, 0, (2, 0, 0), 20, 6, 3, 10, 1, direction=4)
+    character = dict(
         id=101,
-        team=1,
-        controlled=True,
-        position=(0, 0, 0),
-        hp=30,
-        max_hp=30,
-        ap=6,
-        mp=3,
-        effect_stats={4: 2, 97: 0},
-        direction=2,
+        account_id=7,
+        breed=15,
+        level=1,
+        map_id=1134,
+        hp=60,
+        max_hp=60,
+        builds={},
+        inventory_items=[],
     )
-    npc = SimpleNamespace(
-        id=-23,
-        team=0,
-        controlled=False,
-        position=(2, 0, 0),
-        hp=20,
-        max_hp=20,
-        ap=6,
-        mp=3,
-        effect_stats={4: 1, 97: 0},
-        direction=4,
+    monster = dict(id=-23, ref=5525, level=1, map_id=1134, wp=0)
+    build_player_snapshot(
+        character,
+        pc,
+        wp_current=2,
+        wp_maximum=6,
+        running_effects=(),
+    ).install(pc)
+    build_npc_snapshot(
+        monster,
+        npc,
+        wp_current=0,
+        wp_maximum=0,
+        running_effects=(),
+    ).install(npc)
+    cells = {(0, 0, 0), (1, 0, 0), (2, 0, 0)}
+    fight = Fight(
+        88,
+        [pc, npc],
+        cells,
+        {1: {pc.position}, 0: {npc.position}},
+        {((0, 0, 0), (1, 0, 0)), ((1, 0, 0), (2, 0, 0))},
     )
-    fight = SimpleNamespace(
-        id=88,
-        actors={101: pc, -23: npc},
-        phase="active",
-        current=pc,
-        turn_id=3,
-        sequence=5,
-        walkable=frozenset({(0, 0, 0), (1, 0, 0), (2, 0, 0)}),
-        edges=frozenset({((0, 0, 0), (1, 0, 0)), ((1, 0, 0), (2, 0, 0))}),
-        native_summon_registrations={},
+    fight.native_qi_snapshot = dict(x=0, y=0, width=7, height=1, cell_masks=[0] * 7)
+    initialize_global_pv_collections(fight, tuple(fight.actors))
+    install_fresh_actor_slots(
+        fight,
+        prepare_fresh_actor_slots(
+            fight,
+            physical_radii={
+                actor.id: actor.physical_radius for actor in fight.actors.values()
+            },
+        ),
     )
-    return SimpleNamespace(
-        fight=fight, action_id=7, feature_value=12, pending=[], awaiting_ack=None
-    )
+    fight.ready(7)
+    fight.native_effect_uid_next = 1
+    fight.native_obstacle_cells = frozenset()
+    runtime = RuntimeMessages(fight)
+    runtime.action_id = 7
+    runtime.feature_value = 12
+    runtime.fixture_character = character
+    runtime.fixture_monster = monster
+    return runtime
 
 
 def _oracle(runtime, provider=None):
+    from wakfu_server.spells import default_deck
+
     return NativeOracle(
         runtime,
-        characters={101: {"id": 101}},
-        monsters={-23: {"id": -23}},
-        decks={101: {}},
+        characters={101: runtime.fixture_character},
+        monsters={-23: runtime.fixture_monster},
+        decks={101: default_deck(runtime.fixture_character)},
         excluded_decks={101: frozenset()},
         viewer_id=101,
         flags={},
@@ -285,7 +320,7 @@ class OutcomeFeatureTests(unittest.TestCase):
             transport,
             None,
             policy={
-                "featureWeights": {"glyph_control": 2},
+                "featureWeights": {"glyph_control": 2, "owned_state_progress": 0},
                 "limits": {
                     "depth": 1,
                     "beam": 4,

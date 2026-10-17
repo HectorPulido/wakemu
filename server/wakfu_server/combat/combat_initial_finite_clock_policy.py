@@ -16,7 +16,20 @@ def bind_initial_finite_clocks(fight, catalog=None):
     if fight.phase != "active" or fight.current is None:
         return ()
     order = tuple(fight.order)
-    if len(set(order)) != len(order) or fight.current.id not in order:
+    base = getattr(fight, "native_base_turn_order", None)
+    # eWl/SQ/Tc may repeat current-cycle slots while retaining a unique base.
+    # Match native_state_timeline authority without changing either order.
+    extra_turn_cycle = (
+        isinstance(base, (list, tuple))
+        and bool(base)
+        and all(type(identity) is int for identity in base)
+        and len(set(base)) == len(base)
+        and set(base) <= set(fight.actors)
+        and set(order) <= set(base)
+    )
+    if (
+        len(set(order)) != len(order) and not extra_turn_cycle
+    ) or fight.current.id not in order:
         raise ValueError("Missing real registered finite-clock timeline")
     provenance = {
         identity
@@ -31,7 +44,8 @@ def bind_initial_finite_clocks(fight, catalog=None):
         if row.get("actor_id") == identity
     )
     changes = []
-    for identity in order:
+    # Collect each pending state once before the atomic publication below.
+    for identity in dict.fromkeys(order):
         actor = fight.actors[identity]
         if identity not in provenance:
             continue

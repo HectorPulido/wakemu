@@ -1,0 +1,83 @@
+{
+  "schema": "wakemu-historical-native-combat-oracles-v1",
+  "recovered_utc": "2026-10-17T00:18:31.092580+00:00",
+  "purpose": "Portable unchanged historical oracle inputs; provenance limits remain explicit.",
+  "fixtures": [
+    {
+      "fixture": "server/tests/fixtures/native_combat_oracles/cast-facing.tsv",
+      "bytes": 1564,
+      "sha256": "75b02e2cf55d4f499aea289932c0e4a1aabd2b66116667728adf966eac05a51b",
+      "source_artifact": {
+        "path": "agents_docs/reports/combat-inventory/native-cast-facing-probe.tsv",
+        "bytes": 1564,
+        "sha256": "75b02e2cf55d4f499aea289932c0e4a1aabd2b66116667728adf966eac05a51b"
+      },
+      "output_sha256": "75b02e2cf55d4f499aea289932c0e4a1aabd2b66116667728adf966eac05a51b",
+      "acquisition": "unchanged historical artifact byte copy; no native probe execution during recovery",
+      "probe": {
+        "path": "sniffer/java/ProbeNativeCastFacing.java",
+        "sha256": "56d88f7ada8a1d7cf16e9ef029a7580dc4718630782cc9ebc362b32efefbb05a",
+        "identity_scope": "current checked-in probe source observed during recovery; historical generating invocation not recovered"
+      },
+      "installed_jar_observation": {
+        "path": "client/lib/wakfu-client.jar",
+        "sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+        "observation": "current installed JAR bytes observed read-only during recovery; not proof this exact JAR generated the historical outputs"
+      },
+      "historical_generating_jar_sha256": null,
+      "native_boundary": "121 original vector observations; native aBA.bXz and aBA.bo; NONE binding guard is explicit.",
+      "fresh_native_execution": false
+    },
+    {
+      "fixture": "server/tests/fixtures/native_combat_oracles/additional-turn.json",
+      "bytes": 2507,
+      "sha256": "c37f88f863456cbd87eaa22bbf2f41653e9bcc3ba9623cf3f0e4c1fbf82c4a39",
+      "source_artifact": {
+        "path": "agents_docs/reports/combat-inventory/native-additional-turn-cases-20261008.json",
+        "bytes": 2507,
+        "sha256": "c37f88f863456cbd87eaa22bbf2f41653e9bcc3ba9623cf3f0e4c1fbf82c4a39"
+      },
+      "output_sha256": "c37f88f863456cbd87eaa22bbf2f41653e9bcc3ba9623cf3f0e4c1fbf82c4a39",
+      "acquisition": "unchanged historical artifact byte copy; no native probe execution during recovery",
+      "probe": {
+        "path": "sniffer/java/ProbeNativeAdditionalTurn.java",
+        "sha256": "3fe5322cc5a4354ef6b03a6e1045c40f3f53f38b976f11801d576debe32a0196",
+        "identity_scope": "current checked-in probe source observed during recovery; historical generating invocation not recovered"
+      },
+      "installed_jar_observation": {
+        "path": "client/lib/wakfu-client.jar",
+        "sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+        "observation": "current installed JAR bytes observed read-only during recovery; not proof this exact JAR generated the historical outputs"
+      },
+      "historical_generating_jar_sha256": null,
+      "native_boundary": "45 observations; original Tc/SQ slot/list mutation, eWl.c raw gate source-transcribed.",
+      "fresh_native_execution": false
+    },
+    {
+      "fixture": "server/tests/fixtures/native_combat_oracles/deferred314-wire-oracle.txt",
+      "bytes": 585,
+      "sha256": "0dee17ad23e9e1ed84dcdf0ccd47387c5451d48a3d0242067e1444fb096f9081",
+      "source_artifact": {
+        "path": "server/tests/fixtures/next_central_recovery/native314-wire-oracle.log",
+        "bytes": 585,
+        "sha256": "0dee17ad23e9e1ed84dcdf0ccd47387c5451d48a3d0242067e1444fb096f9081"
+      },
+      "output_sha256": "0dee17ad23e9e1ed84dcdf0ccd47387c5451d48a3d0242067e1444fb096f9081",
+      "acquisition": "unchanged historical artifact byte copy; no native probe execution during recovery",
+      "probe": {
+        "status": "unknown",
+        "path": null,
+        "sha256": null,
+        "historical_generating_invocation": null
+      },
+      "installed_jar_observation": {
+        "path": "client/lib/wakfu-client.jar",
+        "sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+        "observation": "current installed JAR bytes observed read-only during recovery; not proof this exact JAR generated the historical outputs"
+      },
+      "historical_generating_jar_sha256": null,
+      "native_boundary": "Two equal historical prototype wire payloads; exact original eYQ producer command unknown. Not qualified by unrelated current probes.",
+      "fresh_native_execution": false
+    }
+  ]
+}

@@ -1,5 +1,9 @@
 """biB.dnN -> eHR/bPo.fxn: restore availability during owned PC teardown."""
 from dataclasses import replace
+from .combat_captured_descriptor_binding import (
+    descriptor_actor_id,
+    clear_descriptor_actor,
+)
 from wakfu_server.characters.captured_roster import (
     OwnedCapturedRoster,
     roster_from_character,
@@ -55,7 +59,7 @@ def restore_departing_roster(fight, character):
 
 
 def release_captured_slot_on_retirement(fight, actor, owner_id, slot):
-    """eGj.ad/eHU.pZ/Z(slot,true) component step after attested retirement.
+    """fcb.aP exact pY/Z(slot,true)/Qn/lZ(-1) component step after attested retirement.
 
     The caller owns the Wakemu settled-death policy and QI spatial removal.
     This source-backed component step preserves descriptors and selection.
@@ -95,14 +99,31 @@ def release_captured_slot_on_retirement(fight, actor, owner_id, slot):
     if original is None:
         raise ValueError("Missing actual captured retirement roster")
     roster = OwnedCapturedRoster.from_record(original, expected_owner_id=owner_id)
+    known, bound_actor = descriptor_actor_id(fight, owner_id, slot)
+    matches = [
+        index
+        for index in range(10)
+        if descriptor_actor_id(fight, owner_id, index) == (True, actor.id)
+    ]
+    if len(matches) > 1:
+        raise ValueError("Captured actor UID aliases multiple descriptors")
+    if matches:
+        slot = matches[0]  # Native pY scans all ten descriptors by UID.
+        known = True
+    elif known:
+        return False  # Native pY exact UID miss: released/replaced descriptor.
     descriptor = roster.slots[slot]
-    if descriptor is None or descriptor.profile_id != source.get("ref"):
+    if descriptor is None or (not known and descriptor.profile_id != source.get("ref")):
         raise ValueError("Captured retirement slot descriptor changed")
     if roster.available[slot]:
+        if known:
+            clear_descriptor_actor(fight, owner_id, slot)
         return False  # Already released; no duplicate update or descriptor mutation.
     flags = list(roster.available)
     flags[slot] = True
     record = replace(roster, available=tuple(flags)).to_record()
     fight.native_captured_rosters = {**overlays, key: record}
     fight.native_captured_roster_updates = {**updates, key: record}
+    if known:
+        clear_descriptor_actor(fight, owner_id, slot)
     return True

@@ -249,8 +249,23 @@ def build_player_snapshot(
     evaluated = bonuses(adjusted, build_index=build_index)
     from .combat_initialization_policy import partition_unsupported_equipment
 
+    from .combat_equipment_snapshot_roles import snapshot_roles
+
+    roles = snapshot_roles(adjusted, evaluated["unsupported"])
+    static_unsupported = [
+        row
+        for row in evaluated["unsupported"]
+        if not isinstance(row, dict)
+        or (
+            row.get("uid"),
+            row.get("reference"),
+            row.get("effect_id"),
+            row.get("generic"),
+        )
+        not in roles
+    ]
     rejected, skipped = partition_unsupported_equipment(
-        evaluated["unsupported"], enabled=dev_skip_unsupported
+        static_unsupported, enabled=dev_skip_unsupported
     )
     if initialization_warnings is not None and not isinstance(
         initialization_warnings, list

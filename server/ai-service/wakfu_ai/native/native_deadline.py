@@ -3,6 +3,18 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 import time
 
+try:
+    from wakfu_server.combat_input_observation import observe_clock
+except ModuleNotFoundError as error:
+    # The standalone planner has no world engine on its import path. Only
+    # that exact absence is optional; broken world dependencies must surface.
+    if error.name != "wakfu_server":
+        raise
+
+    def observe_clock(label, value):
+        return value
+
+
 _ACTIVE = ContextVar("wakfu_native_ai_deadline", default=None)
 
 
@@ -11,7 +23,7 @@ def remaining():
     if active is None:
         return None
     deadline, clock = active
-    value = deadline - clock()
+    value = deadline - observe_clock("native_deadline.monotonic", clock())
     if value <= 0:
         raise TimeoutError("Native AI turn deadline reached")
     return value

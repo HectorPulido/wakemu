@@ -1,0 +1,498 @@
+{
+  "guide_source": {
+    "accessed": "2026-10-16",
+    "applicability": "Narrow intent independently matches installed native definitions; exact guide version/classic equivalence and other arithmetic are not certified.",
+    "author": "Timtoobias",
+    "bounded_intent_paraphrase": "Peace Armor provides access to Teleportation.",
+    "declared_server_scope": "neo-servers",
+    "declared_version": null,
+    "id": "feca-guide",
+    "published": "2026-02-17",
+    "read_section": "Protecteur / Armure de la paix",
+    "title": "Guide Feca sur Wakfu, builds, sorts et astuces",
+    "url": "https://guidactik.com/wakfu/guide-feca-sur-wakfu-builds-sorts-et-astuces/"
+  },
+  "limitations": [
+    "Cached published document bytes and extraction provenance are independently hash-checked, not a fresh Java export or raw SQL re-read.",
+    "Guide is usage intent; native definitions supply exact parameters.",
+    "No network access is required at test execution.",
+    "Other six researched candidate scenarios remain unqualified."
+  ],
+  "native_documents": {
+    "breed-innate-definitions.json": {
+      "sha256": "99d83aa956797dfdb8746e485dbe267574ef606bf23c71416244e7393558c25d",
+      "size": 5640,
+      "source_declaration": "Installed aKe.cle -> aZL/eGG/eGH -> big.a(eGH); triples reference,level,protected iff third==0"
+    },
+    "combat-state-definitions.json": {
+      "sha256": "845f211b808b9ce20a14b25f3e3068480094243c507e4aaa8f9da5fad5bca7b9",
+      "size": 269576853,
+      "source_declaration": "ExportCombatStates.java: offline aNv, bbV/fyZ/fyW; native durations and level-filtered effects"
+    },
+    "granted-spell-effect-trees.json": {
+      "sha256": "2d07839bdf094a23cd6cba02da6853766bc21f82244b59a1d2fcdc3bfb903477",
+      "size": 14203360,
+      "source_declaration": "ExportGrantedSpellEffectTrees.java offline native bPS/fG, aKX closure, aNw/eVn. All649 references derived from spell/state effects; parameter reference slopes are zero; recursive closure reached fixed point. All native spell levels exported."
+    },
+    "native-spell-casting.json": {
+      "sha256": "0e6ef6f9f3bd4f3c4192a77673fd0598034e51d1149364d66f5f24f5ff6095c9",
+      "size": 34394282,
+      "source_declaration": "Installed aNr/bPS/fyF/fyP casting and conditional tables, offline; eligibility corrected/augmented from original fyP/fyF: free_cell=cwU; path_option=cwN"
+    }
+  },
+  "native_facts": {
+    "breed": {
+      "breed": 1,
+      "cle": [
+        6381,
+        1,
+        0,
+        4464,
+        1,
+        0,
+        7560,
+        1,
+        0
+      ],
+      "clf": [
+        6982,
+        6971,
+        6973,
+        6979
+      ],
+      "clg": [
+        3,
+        3,
+        0,
+        4,
+        3,
+        2
+      ],
+      "clh": 2,
+      "innate_states": [
+        {
+          "level_parameter": 1,
+          "protected": true,
+          "reference": 6381
+        },
+        {
+          "level_parameter": 1,
+          "protected": true,
+          "reference": 4464
+        },
+        {
+          "level_parameter": 1,
+          "protected": true,
+          "reference": 7560
+        }
+      ],
+      "name_bdata": "FECA",
+      "resources": {
+        "AP": 6,
+        "HP_base": 50,
+        "MP": 3,
+        "WP": 6
+      }
+    },
+    "grant_from_state": {
+      "children": [],
+      "criteria": "",
+      "effect_class": 649,
+      "effect_id": 303696,
+      "native_effect_flags": [],
+      "native_execution_mode": 2,
+      "native_target_selector": {
+        "class": "fcE",
+        "mask": 1
+      },
+      "native_timing_definition": {
+        "clock_on_caster": false,
+        "clock_on_target": true,
+        "esr": false,
+        "ryE": -1,
+        "ryF": 0.0,
+        "ryG": false,
+        "ryH": 0,
+        "ryI": 0.0
+      },
+      "parameters": [
+        2.0,
+        0.0,
+        -1.0,
+        0.0,
+        7052.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      "variant": 0
+    },
+    "initialization_grant_chain": {
+      "effect_path": [
+        299680,
+        299681
+      ],
+      "effects": {
+        "299680": {
+          "children": [
+            299681
+          ],
+          "criteria": "",
+          "effect_class": 330,
+          "native_effect_flags": [
+            17
+          ],
+          "native_execution_mode": 2,
+          "native_target_selector": {
+            "class": "fcE",
+            "mask": 3
+          },
+          "native_timing_definition": {
+            "clock_on_caster": false,
+            "clock_on_target": true,
+            "esr": false,
+            "ryE": -1,
+            "ryF": 0.0,
+            "ryG": false,
+            "ryH": 0,
+            "ryI": 0.0
+          },
+          "parameters": [
+            0.0,
+            0.0
+          ],
+          "variant": 0
+        },
+        "299681": {
+          "children": [],
+          "criteria": "not HasEffectWithActionId(\"caster\", 933)\nand GetInstanceId() <> 862",
+          "effect_class": 649,
+          "native_effect_flags": [
+            17
+          ],
+          "native_execution_mode": 2,
+          "native_target_selector": {
+            "class": "fcE",
+            "mask": 3
+          },
+          "native_timing_definition": {
+            "clock_on_caster": false,
+            "clock_on_target": true,
+            "esr": false,
+            "ryE": -1,
+            "ryF": 0.0,
+            "ryG": false,
+            "ryH": 0,
+            "ryI": 0.0
+          },
+          "parameters": [
+            2.0,
+            0.0,
+            -1.0,
+            0.0,
+            7009.0,
+            0.0,
+            -1.0,
+            0.0
+          ],
+          "variant": 0
+        }
+      },
+      "state_effect_ids": [
+        299680,
+        299701,
+        303116,
+        398428
+      ],
+      "state_reference": 6381
+    },
+    "peace_armor_state": {
+      "clock_actor": "target",
+      "duration_base": 3,
+      "duration_per_level": 0,
+      "effect_ids": [
+        299492,
+        299493,
+        303696
+      ],
+      "maximum_level": 500,
+      "name": "Armadura de la Paz",
+      "skip_turn_timer": false,
+      "tick_at_turn_end": false
+    },
+    "spell_effect_chain": {
+      "303132": {
+        "children": [
+          303133,
+          303134
+        ],
+        "criteria": "",
+        "effect_class": 330,
+        "native_effect_flags": [],
+        "native_execution_mode": 2,
+        "native_target_selector": {
+          "class": "fcE",
+          "mask": 1
+        },
+        "native_timing_definition": {
+          "clock_on_caster": false,
+          "clock_on_target": true,
+          "esr": false,
+          "ryE": 0,
+          "ryF": 0.0,
+          "ryG": false,
+          "ryH": 0,
+          "ryI": 0.0
+        },
+        "parameters": [
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "variant": 0
+      },
+      "303133": {
+        "children": [
+          306364,
+          303137,
+          303135
+        ],
+        "criteria": "GetTeamId(\"caster\") <> GetTeamId(\"target\")\r\nand not HasFightProperty(\"target\", 11)",
+        "effect_class": 330,
+        "native_effect_flags": [],
+        "native_execution_mode": 2,
+        "native_target_selector": {
+          "class": "fcE",
+          "mask": 140737488355337
+        },
+        "native_timing_definition": {
+          "clock_on_caster": false,
+          "clock_on_target": true,
+          "esr": false,
+          "ryE": 0,
+          "ryF": 0.0,
+          "ryG": false,
+          "ryH": 0,
+          "ryI": 0.0
+        },
+        "parameters": [],
+        "variant": 0
+      },
+      "303134": {
+        "children": [
+          306366,
+          303131,
+          306367
+        ],
+        "criteria": "not IsCarried()\r\nand not HasFightProperty(\"caster\", 11)\r\nand IsTargetCellFree()\r\nand GetEnnemyCountInRange(1, 1, \"target\") >= 1",
+        "effect_class": 330,
+        "native_effect_flags": [],
+        "native_execution_mode": 2,
+        "native_target_selector": {
+          "class": "fcE",
+          "mask": 1
+        },
+        "native_timing_definition": {
+          "clock_on_caster": false,
+          "clock_on_target": true,
+          "esr": false,
+          "ryE": 0,
+          "ryF": 0.0,
+          "ryG": false,
+          "ryH": 0,
+          "ryI": 0.0
+        },
+        "parameters": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "variant": 0
+      },
+      "304927": {
+        "children": [
+          304928
+        ],
+        "criteria": "GetEffectCaster() == GetEffectTarget()",
+        "effect_class": 999,
+        "native_effect_flags": [
+          17
+        ],
+        "native_execution_mode": 2,
+        "native_target_selector": {
+          "class": "fcE",
+          "mask": 8195
+        },
+        "native_timing_definition": {
+          "clock_on_caster": false,
+          "clock_on_target": true,
+          "esr": false,
+          "ryE": 0,
+          "ryF": 0.0,
+          "ryG": false,
+          "ryH": 0,
+          "ryI": 0.0
+        },
+        "parameters": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          0.0
+        ],
+        "variant": 0
+      },
+      "304928": {
+        "children": [],
+        "criteria": "",
+        "effect_class": 304,
+        "native_effect_flags": [],
+        "native_execution_mode": 2,
+        "native_target_selector": {
+          "class": "fcE",
+          "mask": 8195
+        },
+        "native_timing_definition": {
+          "clock_on_caster": false,
+          "clock_on_target": true,
+          "esr": false,
+          "ryE": 0,
+          "ryF": 0.0,
+          "ryG": false,
+          "ryH": 0,
+          "ryI": 0.0
+        },
+        "parameters": [
+          6364.0,
+          0.0,
+          0.0,
+          1.0,
+          -1.0,
+          0.0
+        ],
+        "variant": 0
+      },
+      "304934": {
+        "children": [],
+        "criteria": "False",
+        "effect_class": 649,
+        "native_effect_flags": [],
+        "native_execution_mode": 2,
+        "native_target_selector": {
+          "class": "fcE",
+          "mask": 1
+        },
+        "native_timing_definition": {
+          "clock_on_caster": false,
+          "clock_on_target": true,
+          "esr": false,
+          "ryE": -1,
+          "ryF": 0.0,
+          "ryG": false,
+          "ryH": 0,
+          "ryI": 0.0
+        },
+        "parameters": [
+          2.0,
+          0.0,
+          -1.0,
+          0.0,
+          7052.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        "variant": 0
+      }
+    },
+    "spells": {
+      "7009": {
+        "cast_criterion_raw": "",
+        "maximum_level": 245,
+        "selected_level": 200,
+        "selected_level_costs_ap_mp_wp": [
+          2,
+          0,
+          1
+        ],
+        "selected_level_range_and_roots": [
+          0,
+          0,
+          [
+            304927,
+            304929,
+            304934
+          ]
+        ]
+      },
+      "7052": {
+        "cast_criterion_raw": "(not #IsCarried()# and not #HasFightProperty(\"caster\", 11)# and #IsTargetCellFree()# and #GetEnnemyCountInRange(1, 1, \"target\")# >= 1) or (#IsEnemy()# and not #HasFightProperty(\"target\", 11)#)",
+        "maximum_level": 245,
+        "selected_level": 1,
+        "selected_level_costs_ap_mp_wp": [
+          0,
+          0,
+          1
+        ],
+        "selected_level_range_and_roots": [
+          1,
+          4,
+          [
+            303132
+          ]
+        ]
+      }
+    }
+  },
+  "qualification": "native-mapping-only; acceptance requires a separate hash-bound focused passing receipt",
+  "scenario_id": "feca-peace-teleport-grant-lifecycle-qualified",
+  "schema": "wakemu-guide-native-interaction-evidence-v1",
+  "scope": "Only Peace Armor enables a temporary Teleportation grant, legal teleport succeeds, and actual owner-turn advancement retires state/grant. Not a full guide rotation or visual acceptance.",
+  "target_identity": {
+    "catalog_authority": "postgresql-published-release",
+    "documented_marketing_version": "1.93.1+79",
+    "installed_jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+    "installed_marketing_version_confirmation": "unresolved; version absent in inspected JAR/config metadata",
+    "native_export_jar_provenance_match": true,
+    "native_export_provenance_path": "granted-spell-effect-trees.json.provenance.class_summon_dependency_import.source_sha256.client/lib/wakfu-client.jar",
+    "published_catalog_revision": "08523b7b8f2dd2e7c5fcac816bfcc7e31f777beb61acb0d76913bfcd568007f8"
+  },
+  "test_contract": {
+    "assertion_witness": "FecaGrantPipelineTests.test_peace_armor_grants_teleport_and_retires_it_on_actual_expiry",
+    "expected_assertions": [
+      "Initialization grants7009 only.",
+      "Preview preserves original fight snapshot.",
+      "7009 selfcast installs state6364 and grants7052 at level1; costs2AP/1WP.",
+      "7052 moves caster to selected legal adjacent-to-enemy cell; costs0AP/1WP.",
+      "Twelve actual timeline advances retire state6364 and grant7052;7009 remains and fight stays active."
+    ],
+    "fixture_limits": [
+      "Explicit fixture Feca/AP6/MP3/WP6 matches native breed defaults. No post-cast resource top-up or native cost modification.",
+      "Seeded RNG and supplied LOS=true isolate grant/movement/lifecycle interaction; LOS validation is not covered.",
+      "Twelve advances traverse a four-actor timeline; not a claim of twelve caster turns or universal duration.",
+      "Existing test does not attempt a post-expiry cast, validate renderer parity or assert guide resistance/glyph arithmetic."
+    ],
+    "fixture_path": "server/tests/test_combat_aptitude_healing_runtime.py",
+    "fixture_source_sha256": "ad3cfaa6dd2af349645e33b323101c819771b5d1e05c95e66f62e6ec61b9f474",
+    "path": "server/tests/test_feca_grant_pipeline.py",
+    "runtime_opt_in": "WAKFU_TEST_GRANTEDCAST=1",
+    "source_sha256": "2adff9de853dba6a78402d1a1d8a792c2ef71029966a09173dfb4fbce6acfe5a"
+  }
+}

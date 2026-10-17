@@ -40,7 +40,8 @@ def placement_messages(
     terrain_instance_id,
     leaders,
     kind=2,
-    duration_ms=60000
+    duration_ms=60000,
+    viewer_id=None,
 ):
     """Validated placement envelopes; actor_payloads ID->(native myE,myF).
 
@@ -121,7 +122,7 @@ def placement_messages(
         myH=[],
         myM=[],
         myN=[],
-        myK=environment_sections(fight),
+        myK=environment_sections(fight, viewer_id=viewer_id),
     )
     messages = [
         (13652, placement_positions(fight)),
@@ -174,7 +175,7 @@ def create_placement(
     terrain_effect_id,
     terrain_instance_id,
     placement_cells=None,
-    duration_ms=60000
+    duration_ms=60000,
 ):
     """Combine authoritative local PC/NPC state into FSM and placement messages.
 
@@ -360,6 +361,7 @@ def create_placement(
         terrain_instance_id=terrain_instance_id,
         leaders={0: pc.id, 1: npcs[0].id},
         duration_ms=duration_ms,
+        viewer_id=pc.id,
     )
     return fight, messages
 

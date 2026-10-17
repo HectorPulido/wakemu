@@ -1,7 +1,7 @@
 """Native fcj free-center gate consumes registered QK occupancy."""
 import unittest
-from server.tests import test_combat_casting_eligibility as eligibility_fixture
-from server.tests import test_combat_use_gate_conditions as context_fixture
+import test_combat_casting_eligibility as eligibility_fixture
+import test_combat_use_gate_conditions as context_fixture
 from wakfu_server.combat_casting_eligibility import (
     NativeCastingFlags,
     native_casting_eligibility,

@@ -66,7 +66,7 @@ def _remove_owned_areas(preview, packets, handler, action_id, uids, retention=No
     removal.remove(tuple(uids))
 
 
-def prepare_timed_expiration(
+def _prepare_timed_expiration_shared(
     fight,
     *,
     actor_id,
@@ -125,56 +125,20 @@ def prepare_timed_expiration(
             )
     elif getattr(fight, "native_delay_queue", {}).get("entries"):
         raise ValueError("Delayed Qe boundary requires actual runtime factory")
-    due = []
-    for actor in state_managers(preview):
-        for entry in actor.state_ledger.entries:
-            if _due(entry.timer, actor_id, round_number, phase, round_cleanup):
-                due.append((entry.uid, "state", actor.id))
-    for uid, entry in preview.owned_stat_effects.items():
-        timer = entry.get("timer")
-        if timer is not None:
-            timer = StateTimer(**timer)
-            if (
-                type(timer.actor_id) is not int
-                or timer.actor_id not in preview.actors
-                or type(timer.expiration_round) is not int
-                or not -32768 <= timer.expiration_round <= 32767
-                or timer.phase not in ("start", "end")
-            ):
-                raise ValueError("Invalid owned native effect timer")
-            if _due(timer, actor_id, round_number, phase, round_cleanup):
-                due.append((uid, "stat", entry["target_id"]))
-    for uid, entry in preview.native_owned_group_effects.items():
-        timer = entry.get("timer")
-        if timer is not None and _due(
-            StateTimer(**timer), actor_id, round_number, phase, round_cleanup
-        ):
-            due.append((uid, "group", entry["target_id"]))
-    for uid, entry in getattr(preview, "native_owned_area_effects", {}).items():
-        raw = entry.get("timer")
-        if raw is None:
-            continue
-        timer = StateTimer(**raw)
-        if (
-            type(timer.actor_id) is not int
-            or timer.actor_id not in preview.actors
-            or type(timer.expiration_round) is not int
-            or not -32768 <= timer.expiration_round <= 32767
-            or timer.phase not in ("start", "end")
-        ):
-            raise ValueError("Invalid owned native area timer")
-        if _due(timer, actor_id, round_number, phase, round_cleanup):
-            due.append((uid, "area", entry["target_id"]))
+    from .combat_expiration_boundary import collect_expiration_due, order_expiration_due
+
+    due = collect_expiration_due(
+        preview,
+        actor_id=actor_id,
+        round_number=round_number,
+        phase=phase,
+        round_cleanup=round_cleanup,
+    )
     # Native TC stores callbacks in application order. The local owned UID
     # sequence follows application order; state carriers precede their children.
     with preview.effect_resolution():
-        order = {uid: index for index, uid in enumerate(preview.native_retained_order)}
-        ordered = (
-            sorted(due, key=lambda item: order.get(item[0], item[0]))
-            if preview.native_retained_tracking and order
-            else sorted(due)
-        )
-        for uid, kind, target_id in ordered:
+        expiration = order_expiration_due(preview, due)
+        for uid, kind, target_id in expiration.entries:
             if kind == "area":
                 if uid not in getattr(preview, "native_owned_area_effects", {}):
                     continue
@@ -260,6 +224,11 @@ def prepare_timed_expiration(
         uid for uid in preview.native_retained_order if uid in live
     ]
     return preview, packets
+
+
+def prepare_timed_expiration(fight, **clock):
+    """Prepare the owned expiration boundary before adoption."""
+    return _prepare_timed_expiration_shared(fight, **clock)
 
 
 def expire_timed_effects(fight, **clock):

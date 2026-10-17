@@ -8,11 +8,16 @@ from wakfu_server import native_catalog as protocol_catalog
 import json
 import struct
 from copy import deepcopy
+from .combat_entry_executor import (
+    entry_route,
+    execute_entry_roots,
+    private_entry_preview,
+    seal_entry_transaction,
+)
 from functools import lru_cache
 from wakfu_server.paths import DATA_ROOT
 from wakfu_server.equipment import validate_sheet
 from .combat_effect_dispatch import EffectInvocation
-from .combat_spell_transaction import SpellTransaction
 from .combat_geometry_snapshot import source_snapshot
 from .combat_random_transaction import rollback_external_rng
 
@@ -138,6 +143,11 @@ def prepare_server_weapon(
     from .combat_critical import choose_critical
 
     transaction_rng = random.Random() if rng is None else rng
+    from .combat_input_observation import observe_rng
+
+    transaction_rng = observe_rng(
+        "player_weapon.before_critical", transaction_rng, external=rng is not None
+    )
     decision = choose_critical(
         actor,
         rng=transaction_rng,
@@ -213,8 +223,9 @@ def prepare_server_weapon(
         and not line_of_sight(actor.position, cell, fight)
     ):
         raise ValueError("Weapon target has no verified native line of sight")
-    source = source_snapshot(fight)
-    preview = deepcopy(fight)
+    source, preview = private_entry_preview(
+        fight, snapshot=source_snapshot, clone=deepcopy
+    )
     caster = preview.actors[actor.id]
     start = len(preview.events)
     plan = dict(
@@ -243,15 +254,17 @@ def prepare_server_weapon(
         caster.mp -= costs["mp"]
     caster.effect_stats.update({2: caster.ap, 3: caster.mp, 4: stats[4] - costs["wp"]})
     dispatcher, packets = factory(preview, plan)
-    with preview.effect_resolution():
-        outcomes = tuple(
-            dispatcher.execute(
-                EffectInvocation(
-                    ref, rule["item_level"], caster.id, plan["target_id"], cell
-                )
-            )
-            for ref in roots
-        )
+    outcomes = execute_entry_roots(
+        preview,
+        plan,
+        caster,
+        dispatcher,
+        roots,
+        route="weapon",
+        invocation_factory=EffectInvocation,
+        native_level_source=lambda: rule["item_level"],
+        native_cell=cell,
+    )
     packet = animation(
         fight.id,
         action_id,
@@ -262,13 +275,13 @@ def prepare_server_weapon(
         critical,
     )
     plan["critical_decision"] = decision.diagnostic()
-    return SpellTransaction(
+    return seal_entry_transaction(
         preview,
         plan,
         caster.effect_stats[4],
         outcomes,
         ((13509, packet), *packets),
-        tuple(preview.events[start:]),
+        start,
         source,
         action_id,
     )

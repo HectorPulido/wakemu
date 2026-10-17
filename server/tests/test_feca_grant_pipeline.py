@@ -60,6 +60,7 @@ class FecaGrantPipelineTests(unittest.TestCase):
         self.assertEqual(granted_spells(fight, 7)[7052]["level"], 1)
         self.assertEqual(armor.plan["costs"]["ap"], 2)
         self.assertEqual(armor.plan["costs"]["wp"], 1)
+        retired_uid = granted_spells(fight, 7)[7052]["uid"]
         teleport = cast(7052, (-8, -8, -1), 11)
         self.assertEqual(teleport.fight.actors[7].position, (-8, -8, -1))
         self.assertEqual(teleport.plan["costs"]["ap"], 0)
@@ -105,3 +106,19 @@ class FecaGrantPipelineTests(unittest.TestCase):
         )
         self.assertEqual(set(granted_spells(runtime.fight, 7)), {7009})
         self.assertEqual(runtime.fight.phase, "active")
+
+        # A stale client action must fail at the ordinary ownership boundary,
+        # after genuine timer expiry, without paying or mutating any graph.
+        from wakfu_server.combat_reproduction_state import encode_state
+
+        fight = runtime.fight
+        self.assertEqual(fight.current.id, 7)
+        rejected_before = encode_state(runtime)
+        actor_aliases = {identity: actor for identity, actor in fight.actors.items()}
+        rng_before = rng.getstate()
+        with self.assertRaisesRegex(ValueError, "another actor or expired grant"):
+            cast(retired_uid, (-9, -9, -1), runtime.action_id + 1)
+        self.assertEqual(encode_state(runtime), rejected_before)
+        self.assertEqual(rng.getstate(), rng_before)
+        for identity, actor in actor_aliases.items():
+            self.assertIs(fight.actors[identity], actor)

@@ -5,13 +5,21 @@ and are published only to the exact server map/instance audience. Duels remain
 ineligible; private fights are never visible in another owned instance.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from threading import RLock
 import struct
 import time
 
-from .combat_multiplayer_wire import external, external_marker_actor_id
+from .combat_multiplayer_wire import (
+    decode_added,
+    decode_external,
+    decode_removed,
+    external,
+    external_marker_actor_id,
+    removed,
+)
 from .combat_wire import decode_topology, topology
+from .combat_pve_departure import retired_pve_actor_ids
 
 
 def _native_map_partitions(cells):
@@ -108,6 +116,9 @@ class Marker:
     actor_body: bytes
     body: bytes
     phase_code: int
+    member_packets: tuple = ()
+    public_member_ids: tuple = ()
+    retired_member_ids: tuple = ()
 
 
 class ExternalFightMarkers:
@@ -209,7 +220,23 @@ class ExternalFightMarkers:
         actors = getattr(fight, "actors", None)
         if not isinstance(actors, dict) or len(actors) < 2 or len(actors) > 32767:
             return None
-        leader_ids = (leaders.get(0), leaders.get(1))
+        retired = retired_pve_actor_ids(fight)
+        leader_ids = [leaders.get(0), leaders.get(1)]
+        for team, leader_id in enumerate(leader_ids):
+            if leader_id in retired:
+                # Select only an actual remaining owned participant of this
+                # team; historical actors cannot nominate a world leader.
+                candidates = sorted(
+                    session.character_id
+                    for session in participants.values()
+                    if session.character_id not in retired
+                    and session.character_id in actors
+                    and actors[session.character_id].team == team
+                )
+                if not candidates:
+                    return None
+                leader_ids[team] = candidates[0]
+        leader_ids = tuple(leader_ids)
         if (
             any(
                 type(actor_id) is not int or actor_id not in actors
@@ -259,7 +286,8 @@ class ExternalFightMarkers:
                 or actor.team not in (0, 1)
             ):
                 return None
-            teams.append((actor_id, actor.team))
+            if actor_id not in retired:
+                teams.append((actor_id, actor.team))
         if (
             actors[leader_ids[0]].team != 0
             or actors[leader_ids[1]].team != 1
@@ -302,7 +330,7 @@ class ExternalFightMarkers:
         }
         return external(payload)
 
-    def update(self, shared, *, now_ms=None, now_monotonic=None):
+    def update(self, shared, *, now_ms=None, now_monotonic=None, member_packet=None):
         """Publish a marker once; retain later state for new map entrants.
 
         Ineligible fights remove a previously visible marker. A marker is never
@@ -339,6 +367,7 @@ class ExternalFightMarkers:
                         0, int((now_monotonic - started) * 1000)
                     )
                     self.started_at_ms[fight_id] = started_at_ms
+                retired = retired_pve_actor_ids(fight)
                 encoded = self._body(shared, started_at_ms=started_at_ms)
             except (KeyError, TypeError, ValueError, OverflowError, struct.error):
                 encoded = None
@@ -360,11 +389,58 @@ class ExternalFightMarkers:
                 fight_id,
                 shared.map_id,
                 shared.instance_id,
-                frozenset(session.character_id for session in sessions),
+                frozenset(
+                    session.character_id
+                    for session in sessions
+                    if session.character_id not in retired
+                ),
                 actor_packet[1],
                 body,
                 phase_code,
             )
+            roster = dict(decode_external(marker.body)["teams"])
+            public_ids = tuple(
+                identity
+                for identity, actor in fight.actors.items()
+                if identity in roster
+                and getattr(actor, "controlled", False)
+                and identity not in getattr(fight, "native_summon_registrations", {})
+                and not getattr(actor, "is_summon", False)
+                and getattr(actor, "native_summon_source", None) is None
+            )
+            marker = replace(
+                marker,
+                public_member_ids=public_ids,
+                retired_member_ids=tuple(sorted(retired)),
+            )
+            if member_packet is not None:
+                prepared = []
+                for identity in public_ids:
+                    actor = fight.actors[identity]
+                    packet = member_packet(actor, fight)
+                    if (
+                        type(packet) is not tuple
+                        or len(packet) != 2
+                        or packet[0] != 13091
+                        or type(packet[1]) is not bytes
+                    ):
+                        raise ValueError("Invalid native public member packet")
+                    decoded = decode_added(packet[1])
+                    if (
+                        packet[0] != 13091
+                        or decoded["fight_id"] != fight_id
+                        or decoded["actor_id"] != identity
+                        or decoded["actor_type"] != 0
+                        or decoded["team"] != roster[identity]
+                    ):
+                        raise ValueError(
+                            "Public member packet differs from native roster"
+                        )
+                    prepared.append((identity, packet))
+                marker = replace(marker, member_packets=tuple(prepared))
+            # Without a current serializer, no prior packet is relabeled as
+            # current. Fresh13753 snapshots remain valid; incremental repair
+            # fails closed below if an authoritative member packet is missing.
             if current is not None:
                 phase_changed_to_action = current.phase_code == 1 and phase_code == 2
                 # Keep phase, turn, and roster fresh for a later join without
@@ -422,12 +498,24 @@ class ExternalFightMarkers:
                 and exclude_character_id not in marker.participant_character_ids
             )
 
-    def world_snapshots(self, map_id, instance_id, *, exclude_character_id=None):
+    def world_snapshots(
+        self,
+        map_id,
+        instance_id,
+        *,
+        exclude_character_id=None,
+        known_phases=None,
+        known_rosters=None,
+        unbound_members=None,
+        only_fight_id=None
+    ):
         """Return actor registrations immediately before their 13753 markers.
 
         Both packets are captured under one lock, so a late entrant cannot get
         a marker body from one roster revision and the NPC group from another.
         Existing ``snapshots`` remains marker-only for explicit marker replay.
+        A retained recipient scene supplies its actually published fight phases:
+        existing contexts are updated, never recreated; ended contexts are removed.
         """
         if (
             type(map_id) is not int
@@ -440,16 +528,77 @@ class ExternalFightMarkers:
             )
         ):
             raise ValueError("Invalid public marker snapshot scope")
+        if known_phases is not None and (
+            not isinstance(known_phases, dict)
+            or any(
+                type(key) is not int or key <= 0 or value not in (1, 2)
+                for key, value in known_phases.items()
+            )
+        ):
+            raise ValueError("Invalid recipient marker publication cursor")
         with self.lock:
             packets = []
+            visible = set()
             for _, marker in sorted(self.markers.items()):
+                if only_fight_id is not None and marker.fight_id != only_fight_id:
+                    continue
                 if (
                     marker.map_id != map_id
                     or marker.instance_id != instance_id
                     or exclude_character_id in marker.participant_character_ids
                 ):
                     continue
-                packets.extend(((12608, marker.actor_body), (13753, marker.body)))
+                visible.add(marker.fight_id)
+                previous = (
+                    None if known_phases is None else known_phases.get(marker.fight_id)
+                )
+                if previous is None:
+                    packets.extend(((12608, marker.actor_body), (13753, marker.body)))
+                else:
+                    if known_rosters is not None:
+                        known = known_rosters.get(marker.fight_id, {})
+                        unbound = (unbound_members or {}).get(marker.fight_id, ())
+                        current = dict(decode_external(marker.body)["teams"])
+                        retired = set(marker.retired_member_ids)
+                        if set(known) - set(current) - retired:
+                            raise ValueError(
+                                "Native external roster removal lacks certified authority"
+                            )
+                        for identity in sorted(set(known) & retired):
+                            # Native cvB constructor context, consumed by cvM;
+                            # ckX's external action ignores these two fields.
+                            # Authority is certified withdrawal, never absence.
+                            packets.append(
+                                removed(
+                                    marker.fight_id,
+                                    identity,
+                                    action_id=0,
+                                    action_context=-1,
+                                )
+                            )
+                        available = dict(marker.member_packets)
+                        for identity in marker.public_member_ids:
+                            if (
+                                identity in known
+                                and known[identity]
+                                != dict(decode_external(marker.body)["teams"])[identity]
+                            ):
+                                raise ValueError(
+                                    "Native external team transition is not qualified"
+                                )
+                            if identity not in known or identity in unbound:
+                                if identity not in available:
+                                    raise ValueError(
+                                        "Current native public member packet is unavailable"
+                                    )
+                                packets.append(available[identity])
+                    if previous == 1 and marker.phase_code == 2:
+                        packets.append((12233, struct.pack(">i", marker.fight_id)))
+            if known_phases is not None:
+                for fight_id in sorted(set(known_phases) - visible):
+                    if only_fight_id is not None and fight_id != only_fight_id:
+                        continue
+                    packets.append((12238, _remove_body(fight_id)))
             return tuple(packets)
 
 
@@ -457,3 +606,96 @@ def _remove_body(fight_id):
     # Native cvF cleanup; huN=true denotes a map marker removal without a
     # fight-result presentation. These IDs are never reused for another fight.
     return struct.pack(">iiiB", fight_id, 1, -1, 1)
+
+
+class MarkerPublications:
+    """External contexts actually written to one connection's retained scene.
+
+    All access is under Connection.write_lock. Native spectator entry/leave
+    keeps this scene; a new owner/map lease or fresh world join resets it.
+    """
+
+    def __init__(self):
+        self.scope = None
+        self.phases = {}
+        self.rosters = {}
+        self.unbound = {}
+
+    def reset(self, scope):
+        self.scope = scope
+        self.phases.clear()
+        self.rosters.clear()
+        self.unbound.clear()
+
+    def snapshot(self, scope):
+        if scope != self.scope:
+            self.reset(scope)
+        return dict(self.phases)
+
+    def roster_snapshot(self, scope):
+        self.snapshot(scope)
+        return {identity: dict(roster) for identity, roster in self.rosters.items()}
+
+    def unbound_snapshot(self, scope):
+        self.snapshot(scope)
+        return {identity: frozenset(rows) for identity, rows in self.unbound.items()}
+
+    def after_write(self, data, scope):
+        self.snapshot(scope)
+        if scope is None:
+            return
+        offset = 0
+        while offset < len(data):
+            if len(data) - offset < 6:
+                raise ValueError("Truncated marker publication frame")
+            length, opcode = struct.unpack_from(">IH", data, offset)
+            if length < 6 or offset + length > len(data):
+                raise ValueError("Invalid marker publication frame")
+            body = data[offset + 6 : offset + length]
+            offset += length
+            if opcode == 13753:
+                marker = decode_external(body)
+                self.phases[marker["fight_id"]] = marker["phase_code"]
+                self.rosters[marker["fight_id"]] = dict(marker["teams"])
+                self.unbound[marker["fight_id"]] = set()
+            elif opcode == 12608:
+                # ctE replaces even an existing native actor object. Its world
+                # appearance has fightID=-1, so cgN skips external reattachment.
+                from protocol_codec import Reader
+
+                reader = Reader(body)
+                reader.number("B")
+                count = reader.number("B")
+                for _ in range(count):
+                    reader.number("B")
+                    identity = reader.number("q")
+                    reader.take(reader.number("H"))
+                    for fight_id, roster in self.rosters.items():
+                        if identity in roster:
+                            self.unbound.setdefault(fight_id, set()).add(identity)
+                reader.finish()
+            elif opcode == 13091:
+                member = decode_added(body)
+                fight_id = member["fight_id"]
+                if fight_id in self.phases:
+                    self.rosters.setdefault(fight_id, {})[member["actor_id"]] = member[
+                        "team"
+                    ]
+                    self.unbound.setdefault(fight_id, set()).discard(member["actor_id"])
+            elif opcode == 12347:
+                member = decode_removed(body)
+                fight_id = member["fight_id"]
+                if fight_id in self.phases:
+                    # This records published removal, not native animation or
+                    # callback completion. Authoritative fight history stays.
+                    self.rosters.setdefault(fight_id, {}).pop(member["actor_id"], None)
+                    self.unbound.setdefault(fight_id, set()).discard(member["actor_id"])
+            elif opcode == 12233 and len(body) == 4:
+                fight_id = struct.unpack(">i", body)[0]
+                if fight_id in self.phases:
+                    self.phases[fight_id] = 2
+            elif opcode == 12238 and len(body) == 13 and body[-1] == 1:
+                fight_id = struct.unpack_from(">i", body)[0]
+                self.phases.pop(fight_id, None)
+                self.rosters.pop(fight_id, None)
+                self.unbound.pop(fight_id, None)

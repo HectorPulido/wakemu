@@ -1,0 +1,82 @@
+{
+  "native_summon_registration": {
+    "actor_id": 208,
+    "authority": {
+      "breed_id": 3251,
+      "deck_spell_ids": [],
+      "excluded_deck_spell_ids": [],
+      "is_carried": false,
+      "is_carrying": false,
+      "is_challenger": false,
+      "is_player": false,
+      "is_summon": true,
+      "native_account_id": 0,
+      "native_active_cosmetics": null,
+      "native_actor_type": 1,
+      "native_ai_control_baseline": true,
+      "native_captured_roster": null,
+      "native_constructor_in_fight": null,
+      "native_controlled_by_ai": false,
+      "native_controller_id": 15,
+      "native_copied_equipment_operand": 0,
+      "native_in_play": null,
+      "native_instance_id": 1134,
+      "native_is_ehp": false,
+      "native_npc_prototype_ref": 3251,
+      "native_primary_character_id": 0,
+      "native_real_level": 200,
+      "native_selected_cosmetics": null,
+      "native_sex": 0,
+      "native_spellbook": null,
+      "native_summon_counts_complete": false,
+      "native_summoned_from_symbiot": false,
+      "occupant_blocks": true,
+      "summon_count": 0,
+      "summon_counts_by_breed": {},
+      "summon_root_id": 15,
+      "targeting": {
+        "UNTARGETTABLE_BY_OTHER": false,
+        "bEe": true,
+        "baG": false,
+        "baK": false,
+        "bcN": 4,
+        "buX": false,
+        "dTE": true,
+        "dpr_id": 15,
+        "dpu_id": 15,
+        "is_Qq": false,
+        "is_amO": true,
+        "is_eGj": true,
+        "is_eHH": true
+      }
+    },
+    "caster_id": 15,
+    "controller_id": 15,
+    "fight_properties": [
+      28,
+      78,
+      101
+    ],
+    "world_properties": [
+      4,
+      7
+    ]
+  },
+  "native_summon_source": {
+    "caster_id": 15,
+    "controller_id": 15,
+    "direction": 5,
+    "level": 200,
+    "native_relation_source": "big.new_bje.fdt_initial_registration",
+    "native_symbiot_source": "eZl.new_eHD.pRO_false",
+    "ref": 3251
+  },
+  "schema": 1,
+  "source": {
+    "checkpoint_sha256": "c34005b8af99db16324c090e901502000d689adce3d399ba76b6899ec181872f",
+    "fight_id": 227,
+    "kind": "native-world-fight-checkpoint",
+    "projection": "Only native summon source/registration; no account/session/capture data",
+    "revision": 82
+  }
+}

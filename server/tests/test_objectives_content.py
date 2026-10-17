@@ -1,4 +1,6 @@
 """Level-band policy and player objectives section projection contracts."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 import json
 from pathlib import Path
 import unittest
@@ -16,7 +18,11 @@ def band_policy():
                 "maximum": 99,
                 "rewards": [{"kind": "kamas", "amount": 100}],
             },
-            {"minimum": 100, "maximum": 200, "rewards": [{"aeV": 5, "ckl": [2021, 1]}]},
+            {
+                "minimum": 100,
+                "maximum": MAX_CHARACTER_LEVEL,
+                "rewards": [{"aeV": 5, "ckl": [2021, 1]}],
+            },
         ]
     }
 
@@ -149,7 +155,8 @@ class ObjectivesContentTests(unittest.TestCase):
         ]
         self.assertEqual(len(weekly_challenge), 1)
         self.assertEqual(
-            weekly_challenge[0]["level_range"], {"minimum": 1, "maximum": 200}
+            weekly_challenge[0]["level_range"],
+            {"minimum": 1, "maximum": MAX_CHARACTER_LEVEL},
         )
         self.assertTrue(
             weekly_challenge[0]["objectives"][0]["filters"].get("ranked") is True
@@ -190,7 +197,7 @@ class ObjectivesContentTests(unittest.TestCase):
                     },
                     {
                         "minimum": 100,
-                        "maximum": 200,
+                        "maximum": MAX_CHARACTER_LEVEL,
                         "rewards": [{"kind": "kamas", "amount": 1}],
                     },
                 ]

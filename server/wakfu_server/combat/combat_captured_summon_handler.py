@@ -21,6 +21,7 @@ from .combat_captured_summon_codec import (
     CapturedDescriptor,
     captured_summon_application,
 )
+from .combat_captured_descriptor_binding import bind_descriptor_actor
 from .combat_summon import fresh_summon_insertion
 
 
@@ -194,6 +195,8 @@ class NativeCapturedSummonHandler(NativeSummonHandler):
                 self.fight, actor, plan
             ),
             commit_roster=commit,
+            bind_descriptor=bind_descriptor_actor,
+            current_roster=lambda preview: self._roster(caster),
         )
         creation_packet_index = len(self.packets)
         actor = pipeline.execute(

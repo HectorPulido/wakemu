@@ -1,4 +1,6 @@
 """Current-client fight actor serialization from local authoritative values."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 import struct
 from wakfu_server.progression import character_xp
 
@@ -68,7 +70,7 @@ def actor_stats(
         raise ValueError("Invalid fight team")
     if type(direction) is not int or not 0 <= direction < 8:
         raise ValueError("Invalid fight direction")
-    if not 1 <= character["level"] <= 200:
+    if not 1 <= character["level"] <= MAX_CHARACTER_LEVEL:
         raise ValueError("Invalid fight level")
     if not 0 < character["id"] < (1 << 63) or not 0 < character["account_id"] < (
         1 << 63

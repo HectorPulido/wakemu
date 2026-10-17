@@ -3,6 +3,8 @@
 World owns scene readiness, session fencing and transactional movement. Browser
 input selects a stable action key; it never supplies coordinates or a price.
 """
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 import hashlib
 import json
 import re
@@ -190,7 +192,7 @@ def _eligible(db, identity):
         "SELECT key,definition FROM objectives_definitions ORDER BY key"
     ).fetchall():
         rule = row["definition"]
-        band = rule.get("level_range", {"minimum": 1, "maximum": 200})
+        band = rule.get("level_range", {"minimum": 1, "maximum": MAX_CHARACTER_LEVEL})
         if (
             rule["enabled"]
             and band["minimum"] <= actor["level"] <= band["maximum"]

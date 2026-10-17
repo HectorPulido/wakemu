@@ -50,6 +50,42 @@ class ConsoleTests(PostgresCase):
             self.store, self.groups, self.account, self.generation, self.char, text
         )
 
+    def test_level245_persists_native_book_and_preserves_wounds_and_build_caps(self):
+        from wakfu_server import health, health_store, builds, wire
+        from wakfu_server.progression import level_xp
+        from wakfu_server.spells import owned_spell_records
+
+        wounded = health_store.sync(
+            self.store,
+            self.account,
+            self.generation,
+            self.char["id"],
+            self.char["hp"],
+            self.char["hp"] - 7,
+        )
+        self.char = wounded
+        result = self.run_command("!level 245")
+        updated = self.reopen().character(self.account, self.char["id"])
+        self.assertEqual((updated["level"], updated["xp"]), (245, level_xp(245)))
+        self.assertEqual(updated["max_hp"], health.maximum(updated["breed"], 245))
+        self.assertEqual(updated["hp_damage"], 7)
+        self.assertEqual(updated["hp"], updated["max_hp"] - 7)
+        self.assertTrue(owned_spell_records(updated))
+        self.assertTrue(all(row[2] == 245 for row in owned_spell_records(updated)))
+        self.assertEqual(result["character"]["level"], 245)
+        sheet = b"".join(
+            wire.proto_field(tag, value)
+            for tag, value in ((8, 0), (18, b"Capped"), (24, 200), (56, 0))
+        )
+        capped = dict(updated, builds={0: dict(sheet=sheet.hex())})
+        self.assertEqual(builds.effective_sheet_level(capped, 0), 200)
+        with self.assertRaises(ValueError):
+            self.run_command("!level 246")
+        after = self.store.character(self.account, self.char["id"])
+        self.assertEqual(
+            (after["level"], after["xp"], after["hp_damage"]), (245, level_xp(245), 7)
+        )
+
     def test_kamas_absolute_wallet_packet_and_durable_addition(self):
         import struct
 
@@ -159,7 +195,7 @@ class ConsoleTests(PostgresCase):
         with self.assertRaises(ValueError):
             self.run_command("!nivel 1")
         with self.assertRaises(ValueError):
-            self.run_command("!nivel 201")
+            self.run_command("!nivel 246")
         self.store.begin_session(self.account)
         with self.assertRaises(ValueError):
             self.run_command("!nivel 7")

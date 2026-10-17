@@ -352,7 +352,13 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         join = _function(self.tree, "join_world")
         from wakfu_server.performance_profiler import PROFILER
 
-        scene_db = object()
+        class EmptySceneRows(list):
+            def fetchall(self):
+                return list(self)
+
+        # Actual position-only NPC and administrative-removal scene queries
+        # see no rows in this marker-focused world fixture.
+        scene_db = SimpleNamespace(execute=lambda *_args, **_kwargs: EmptySceneRows())
         namespace = {
             "STORE": SimpleNamespace(connection=lambda: nullcontext(scene_db)),
             "COMBAT_TEST": True,
@@ -373,6 +379,35 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
             compile(ast.Module(body=[join], type_ignores=[]), str(SERVER), "exec"),
             namespace,
         )
+        # Fresh joins require the actual connection's retained native scene,
+        # unlike the prior bare object fixture. Use its production constructor.
+        connection_type = next(
+            node
+            for node in self.tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "Connection"
+        )
+        namespace["threading"] = threading
+        namespace["record"] = lambda **_row: None
+        exec(
+            compile(
+                ast.fix_missing_locations(
+                    ast.Module(body=[connection_type], type_ignores=[])
+                ),
+                str(SERVER),
+                "exec",
+            ),
+            namespace,
+        )
+        observer_peer = namespace["Connection"](
+            SimpleNamespace(sendall=lambda _data: None)
+        )
+        scope = (2, "observer-generation", 99, 1134, 0)
+        observer_peer.native_instance_scope = lambda: scope
+        observer_peer.marker_publications.after_write(
+            struct.pack(">IH", len(packet[1]) + 6, packet[0]) + packet[1],
+            scope,
+        )
+        self.assertEqual(observer_peer.marker_publications.snapshot(scope), {53: 1})
 
         with patch.object(
             npc_world, "load_scene", return_value=()
@@ -387,7 +422,7 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
         ):
             namespace["join_world"](
                 "observer-generation",
-                object(),
+                observer_peer,
                 {
                     "id": 99,
                     "account_id": 2,
@@ -401,6 +436,9 @@ class ExternalMarkerDispatchTests(unittest.TestCase):
             )
 
         load_scene.assert_called_once_with(scene_db, 1134, 0)
+        # The fixture send sink records native packet ordering separately;
+        # this assertion covers fresh-scene reset, not transport after_write.
+        self.assertEqual(observer_peer.marker_publications.snapshot(scope), {})
         observer_events = [event for event in events if event[0] is not owner_peer]
         marker_index = next(
             index

@@ -239,7 +239,13 @@ def persist_aborted_fight(store, account_id, generation, character, fight):
 
 
 def persist_aborted_shared_fight(
-    store, shared, *, groups=None, reconnecting_session=None
+    store,
+    shared,
+    *,
+    groups=None,
+    reconnecting_session=None,
+    requesting_session=None,
+    db=None,
 ):
     """Atomically persist all owners' final HP and abort a disconnected PvE fight.
 
@@ -248,6 +254,7 @@ def persist_aborted_shared_fight(
     participant generation plus exact entry-health CAS still fences its write.
     """
     from .fight_store import abort
+    from contextlib import nullcontext
 
     fight = shared.fight
     sessions = tuple(
@@ -289,8 +296,21 @@ def persist_aborted_shared_fight(
         )
     ):
         raise ValueError("Shared fight controlled actors do not match its roster")
+    if requesting_session is not None:
+        from .combat_pve_withdraw import live_owner_accounts
+
+        if (
+            reconnecting_session is not None
+            or shared.participants.get(requesting_session.account_id)
+            != requesting_session
+            or requesting_session.account_id not in shared.connected
+            or live_owner_accounts(fight) - {requesting_session.account_id}
+        ):
+            raise ValueError(
+                "Explicit shared abort requires the final live owned session"
+            )
     results = {}
-    with store.connection() as db:
+    with store.connection() if db is None else nullcontext(db) as db:
         fight_row = db.execute(
             "SELECT status FROM combat_fights WHERE id=%s FOR UPDATE", (fight.id,)
         ).fetchone()
@@ -309,8 +329,68 @@ def persist_aborted_shared_fight(
                 (fight.id,),
             )
         )
+        certified_returned = set()
+        if requesting_session is not None:
+            exits = {
+                row["character_id"]: row
+                for row in db.execute(
+                    "SELECT e.character_id,e.reason,e.return_acknowledged_at,w.returned_at, "
+                    "w.character_id AS withdrawn_id,w.account_id AS withdrawn_account, "
+                    "w.session_generation AS withdrawn_generation "
+                    "FROM fight_health_exits e LEFT JOIN combat_pve_withdrawals w "
+                    "ON w.fight_id=e.fight_id AND w.character_id=e.character_id "
+                    "WHERE e.fight_id=%s FOR UPDATE OF e",
+                    (fight.id,),
+                )
+            }
+            for owner in set(shared.returned) | set(shared.withdrawals):
+                actors = [
+                    fight.actors[identity]
+                    for account, identity in controlled_roster
+                    if account == owner
+                ]
+                if not actors or any(
+                    not getattr(actor, "pve_withdrawn", False) for actor in actors
+                ):
+                    raise ValueError("Returned shared owner lacks native retirement")
+                receipt = shared.withdrawals.get(owner)
+                for actor in actors:
+                    row = exits.get(actor.id)
+                    if row is None:
+                        raise ValueError(
+                            "Retired shared owner lacks durable health exit"
+                        )
+                    if receipt is not None:
+                        if (
+                            row["reason"] != "abort"
+                            or row["withdrawn_id"] != actor.id
+                            or row["withdrawn_account"] != owner
+                            or row["withdrawn_generation"]
+                            != receipt["session"].generation
+                        ):
+                            raise ValueError(
+                                "Retired shared owner lacks its owned native continuation"
+                            )
+                    elif (
+                        row["return_acknowledged_at"] is None
+                        and row["returned_at"] is None
+                    ):
+                        raise ValueError(
+                            "Returned shared owner lacks durable native return"
+                        )
+                certified_returned.add(owner)
+        frozen_generations = {
+            (row["account_id"], row["character_id"]): row["session_generation"]
+            for row in durable_rows
+        }
         expected_roster = {
-            (owner, identity, sessions_by_account[owner].generation)
+            (
+                owner,
+                identity,
+                frozen_generations.get((owner, identity))
+                if owner in certified_returned
+                else sessions_by_account[owner].generation,
+            )
             for owner, identity in controlled_roster
         }
         durable_roster = {
@@ -319,7 +399,7 @@ def persist_aborted_shared_fight(
         }
         if durable_roster != expected_roster:
             raise ValueError("Shared fight roster or generation changed")
-        if set(shared.connected):
+        if set(shared.connected) and requesting_session is None:
             raise ValueError("Shared fight still has connected owners")
 
         # begin_session locks the account row before inserting/replacing the
@@ -334,11 +414,20 @@ def persist_aborted_shared_fight(
             ):
                 raise ValueError("Fight participant account is unavailable")
         for session in sessions:
+            if session.account_id in certified_returned:
+                continue  # Durable historical return cannot rewrite a newer selected character.
             lease = db.execute(
                 "SELECT generation,character_id,expires_at FROM sessions "
                 "WHERE account_id=%s FOR UPDATE",
                 (session.account_id,),
             ).fetchone()
+            if session == requesting_session and (
+                lease is None
+                or lease["generation"] != session.generation
+                or lease["character_id"] != session.character_id
+                or lease["expires_at"] <= store.now()
+            ):
+                raise ValueError("Explicit shared abort requester lease changed")
             replacement = (
                 reconnecting_session is not None
                 and reconnecting_session.account_id == session.account_id
@@ -367,6 +456,8 @@ def persist_aborted_shared_fight(
                     "Fight participant is no longer the selected character"
                 )
         for owner, identity in sorted(controlled_roster):
+            if owner in certified_returned:
+                continue
             if (
                 db.execute(
                     "SELECT id FROM characters WHERE account_id=%s AND id=%s "
@@ -380,6 +471,10 @@ def persist_aborted_shared_fight(
         rows_by_identity = {
             (row["account_id"], row["character_id"]): row for row in durable_rows
         }
+        if fight_row["status"] == "aborted" and requesting_session is not None:
+            raise ValueError(
+                "Explicit abort already committed; owned continuation required"
+            )
         if fight_row["status"] == "aborted":
             exits = {
                 (row["character_id"], row["reason"])
@@ -398,6 +493,9 @@ def persist_aborted_shared_fight(
                 raise ValueError("Aborted shared fight has incomplete health receipts")
 
         for owner, identity in sorted(controlled_roster):
+            if owner in certified_returned:
+                results[identity] = dict(applied=False)
+                continue
             session = sessions_by_account[owner]
             row = rows_by_identity[(owner, identity)]
             baseline = {
@@ -432,7 +530,7 @@ def persist_aborted_shared_fight(
                 session_character_id=session.character_id,
             )
 
-        anchor = sessions[0]
+        anchor = requesting_session if requesting_session is not None else sessions[0]
         if fight_row["status"] != "aborted" and not abort(
             store,
             anchor.account_id,

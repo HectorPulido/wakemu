@@ -9,7 +9,12 @@ class HealthTests(unittest.TestCase):
         for breed in health.BASE_HEALTH:
             self.assertEqual(health.maximum(int(breed), 1), 60)
             self.assertEqual(health.maximum(int(breed), 200), 2050)
-        for breed, level in ((17, 1), (8, 0), (8, 201)):
+        from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
+
+        self.assertEqual(
+            health.maximum(8, MAX_CHARACTER_LEVEL), 50 + 10 * MAX_CHARACTER_LEVEL
+        )
+        for breed, level in ((17, 1), (8, 0), (8, MAX_CHARACTER_LEVEL + 1)):
             with self.assertRaises(ValueError):
                 health.maximum(breed, level)
 

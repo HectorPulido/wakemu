@@ -26,11 +26,14 @@ class FightStartEventsTests(unittest.TestCase):
     def test_ready_boundary_all_managers_once_without_source_uid(self):
         fight, dispatcher, delivered = self.fixture()
         self.assertEqual(
-            deliver_fight_start(dispatcher, initialized_actor_ids=(7, -7)), (True,) * 9
+            deliver_fight_start(dispatcher, initialized_actor_ids=(7, -7)), (True,) * 12
         )
-        self.assertEqual([e.manager_actor_id for e in delivered], [7] * 6 + [-7] * 3)
         self.assertEqual(
-            [e.event_ids for e in delivered], [(1028,)] * 3 + [(1003,)] * 6
+            [e.manager_actor_id for e in delivered],
+            [7] * 3 + [-7] * 3 + [7] * 3 + [-7] * 3,
+        )
+        self.assertEqual(
+            [e.event_ids for e in delivered], [(1028,)] * 6 + [(1003,)] * 6
         )
         self.assertTrue(
             all(e.uid is None and e.channel in (6, 60, 61) for e in delivered)
@@ -51,7 +54,7 @@ class FightStartEventsTests(unittest.TestCase):
         dispatcher.replay_event = observe
         self.assertEqual(fight.native_table_turn, 0)
         deliver_fight_start(dispatcher, initialized_actor_ids=(7, -7))
-        self.assertEqual(observed, [(1, 1)] * 9)
+        self.assertEqual(observed, [(1, 1)] * 12)
 
     def test_invalid_native_round_rejects_without_counter_or_event_mutation(self):
         for native_round, table_turn in (

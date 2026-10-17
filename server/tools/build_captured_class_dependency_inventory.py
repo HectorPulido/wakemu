@@ -2,13 +2,18 @@
 import hashlib
 import json
 from pathlib import Path
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "server"))
+from wakfu_server.combat_operation_registry import dependency_specs
+from combat_operation_sources import operation_source_paths
+
 PROFILES = ROOT / "server/protocol/native-class-captured-profiles.json"
 GRAPH = ROOT / ".runtime/combat-review-20261007/class-closure-compact-graph.json"
 OUTPUT = (
     ROOT
-    / "docs/reports/combat-inventory/class-captured-dependency-inventory-20261007.json"
+    / "agents_docs/reports/combat-inventory/class-captured-dependency-inventory-20261007.json"
 )
 
 
@@ -18,7 +23,8 @@ def digest(path):
 
 def build():
     before = {
-        str(p.relative_to(ROOT)): digest(p) for p in (PROFILES, GRAPH, Path(__file__))
+        str(p.relative_to(ROOT)): digest(p)
+        for p in (PROFILES, GRAPH, Path(__file__), *operation_source_paths())
     }
     profiles = json.loads(PROFILES.read_text())["profiles"]
     graph = json.loads(GRAPH.read_text())
@@ -89,29 +95,46 @@ def build():
                     "class_id": 2,
                 }
             )
-        target = {304: "states", 315: "areas", 649: "spells"}.get(family)
-        if target:
+        for spec in dependency_specs(family):
+            if spec.kind == "summon":
+                values = (
+                    [spec.fixed_reference]
+                    if spec.fixed_reference is not None
+                    else references
+                )
+                nested_profiles[reference] = values
+                for child in values:
+                    edges.append(
+                        {
+                            "source": owner,
+                            "target": f"pending-summon-profile:{child}",
+                            "kind": f"native{family}_profile_dependency",
+                            "class_id": 2,
+                        }
+                    )
+                continue
+            target = spec.kind + "s"
             if slope:
                 unknown_scaled.append(reference)
-            for child in references:
-                pending.append((target, str(child)))
+            values = (
+                [spec.fixed_reference]
+                if spec.fixed_reference is not None
+                else references
+            )
+            for child in values:
+                if spec.transform == "signed-short":
+                    child = ((child + 32768) % 65536) - 32768
+                if spec.relation != "removes":
+                    pending.append((target, str(child)))
+                elif str(child) not in graph[target]:
+                    missing.append([target, str(child)])
                 edges.append(
                     {
                         "source": owner,
                         "target": f"{singular[target]}:{child}",
                         "kind": f"legacy_reference_family{family}",
                         "class_id": 2,
-                    }
-                )
-        if family == 307:
-            nested_profiles[reference] = references
-            for child in references:
-                edges.append(
-                    {
-                        "source": owner,
-                        "target": f"pending-summon-profile:{child}",
-                        "kind": "native307_profile_dependency",
-                        "class_id": 2,
+                        "relation": spec.relation,
                     }
                 )
     after = {name: digest(ROOT / name) for name in before}

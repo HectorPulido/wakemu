@@ -3,6 +3,7 @@ import ast
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+from wakfu_server.combat_effective_control import effective_server_controlled
 
 
 class SharedIdleTurnTests(unittest.TestCase):
@@ -44,6 +45,7 @@ class SharedIdleTurnTests(unittest.TestCase):
             ):
                 calls = []
                 env = dict(
+                    effective_server_controlled=effective_server_controlled,
                     fight=SimpleNamespace(
                         phase=phase, current=SimpleNamespace(controlled=controlled)
                     ),

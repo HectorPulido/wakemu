@@ -15,6 +15,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from wakfu_server.paths import DATA_ROOT
+from wakfu_server.combat_input_observation import observe_catalog
 
 LOG = logging.getLogger(__name__)
 CACHE_MAX_BYTES = 2 * 1024 * 1024
@@ -85,8 +86,51 @@ def document_hashes():
 def read_bytes(path):
     if not _live(path):
         return Path(path).read_bytes()
+    return _read_published(_key(path))
+
+
+def _published_document_name(name):
+    """Logical published names never denote filesystem or normalized paths."""
+    if (
+        type(name) is not str
+        or not name
+        or "\\" in name
+        or "\0" in name
+        or any(part in ("", ".", "..") for part in name.split("/"))
+    ):
+        raise ValueError("Invalid published native catalog name")
+    return name
+
+
+def read_published_bytes(name):
+    """Read only a member of the pinned published inventory, never local files.
+
+    Check the authoritative SHA even for a self-consistent Redis payload.
+    """
+    name = _published_document_name(name)
+    revision = release()
+    with _database().connection() as db:
+        row = db.execute(
+            "SELECT sha256 FROM native_catalog_documents WHERE revision=%s AND path=%s",
+            (revision, name),
+        ).fetchone()
+    if row is None:
+        raise FileNotFoundError(name)
+    expected = row["sha256"]
+    if (
+        type(expected) is not str
+        or len(expected) != 64
+        or any(value not in "0123456789abcdef" for value in expected)
+    ):
+        raise ValueError("Invalid published native catalog checksum")
+    raw = _read_published(name)
+    if release() != revision or hashlib.sha256(raw).hexdigest() != expected:
+        raise ValueError("Published native catalog identity changed: " + name)
+    return raw
+
+
+def _read_published(name):
     started = time.monotonic()
-    name = _key(path)
     revision = release()
     redis_started = time.monotonic()
     cache_key = "wakemu:catalog:" + revision + ":" + name
@@ -139,6 +183,7 @@ def read_bytes(path):
 def _observe_read(name, source, raw, started, **stages):
     """Bounded slow-read metadata; never log catalog contents or credentials."""
     elapsed_ms = (time.monotonic() - started) * 1000
+    observe_catalog("read", name, {"size": len(raw), "source": source})
     # Aggregate fixed labels, never individual document paths or cache keys.
     from .performance_profiler import PROFILER
 
@@ -206,7 +251,11 @@ def _exists(revision, name):
 
 
 def exists(path):
-    return _exists(release(), _key(path)) if _live(path) else Path(path).is_file()
+    if not _live(path):
+        return Path(path).is_file()
+    revision = release()
+    name = _key(path)
+    return observe_catalog("exists", name, _exists(revision, name), revision=revision)
 
 
 def record(path, collection, record_key):
@@ -217,9 +266,17 @@ def record(path, collection, record_key):
             return rows.get(str(record_key))
         raise ValueError("Indexed record lookup requires database backend for arrays")
     with _database().connection() as db:
+        revision = release()
         row = db.execute(
             "SELECT payload FROM native_catalog_records WHERE revision=%s "
             "AND path=%s AND collection=%s AND record_key=%s",
-            (release(), _key(path), collection, str(record_key)),
+            (revision, _key(path), collection, str(record_key)),
         ).fetchone()
-    return row["payload"] if row else None
+    return observe_catalog(
+        "record",
+        _key(path),
+        row["payload"] if row else None,
+        revision=revision,
+        collection=collection,
+        record_key=str(record_key),
+    )

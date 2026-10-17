@@ -681,7 +681,7 @@ class QuerySearchTests(unittest.TestCase):
             edges=[],
             effects={501: "none", 502: "none"},
             outcome_features={"glyph_control": 12},
-            feature_weights={"glyph_control": 2},
+            feature_weights={"glyph_control": 2, "owned_state_progress": 0},
             feature_deltas={501: {"glyph_control": 4}, 502: {"glyph_control": -3}},
         )
         result = run_search(session)
