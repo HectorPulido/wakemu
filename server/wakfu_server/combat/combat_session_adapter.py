@@ -8,6 +8,7 @@ accepted action through these ordered registry operations.
 from wakfu_server.combat_shared import Registry, Session
 from wakfu_server.fight_store import join_participant
 from copy import copy
+from .combat_input_observation import observe_authority, observe_fact
 
 
 class CombatSessionAdapter:
@@ -218,7 +219,7 @@ class CombatSessionAdapter:
             decks[actor.id] = deck
         if not characters:
             raise ValueError("Shared fight requires an owned player roster")
-        return characters, decks
+        return observe_authority("combat.player_sources", (characters, decks))
 
     def ready_transition(
         self,
@@ -313,9 +314,17 @@ class CombatSessionAdapter:
             if actor.id in getattr(current, "native_summon_registrations", {}):
                 from .combat_summon_stats import registered_summon_stats
 
-                return registered_summon_stats(
+                observe_fact(
+                    "ready_stats_serializer.summon_context",
+                    dict(
+                        actor_id=actor.id,
+                        map_id=characters[session.character_id]["map_id"],
+                    ),
+                )
+                stats = registered_summon_stats(
                     actor, current, characters[session.character_id]["map_id"]
                 )
+                return observe_fact("ready_stats_serializer.summon", stats)
             if actor.controlled:
                 source = characters.get(actor.id)
                 if source is None:
@@ -332,7 +341,8 @@ class CombatSessionAdapter:
                 )
                 if wp is None or maximum is None:
                     raise ValueError("Missing authoritative combat WP snapshot")
-                return actual_actor_stats(
+                observe_fact("ready_stats_serializer.player_source", source)
+                stats = actual_actor_stats(
                     source,
                     actor,
                     fight.id,
@@ -340,6 +350,7 @@ class CombatSessionAdapter:
                     wp_current=wp,
                     wp_maximum=maximum,
                 )
+                return observe_fact("ready_stats_serializer.player", stats)
             current_monsters = getattr(current, "rift_monsters", monsters)
             monster = current_monsters.get(actor.id)
             if monster is None:
@@ -356,7 +367,8 @@ class CombatSessionAdapter:
             )
             if wp is None or maximum is None:
                 raise ValueError("Missing authoritative combat WP snapshot")
-            return actual_monster_actor_stats(
+            observe_fact("ready_stats_serializer.monster_source", monster)
+            stats = actual_monster_actor_stats(
                 monster,
                 actor,
                 fight.id,
@@ -364,6 +376,7 @@ class CombatSessionAdapter:
                 wp_current=wp,
                 wp_maximum=maximum,
             )
+            return observe_fact("ready_stats_serializer.monster", stats)
 
         def turn_end(preview, *, actor_id, action_id):
             actor = preview.actors[actor_id]
@@ -538,6 +551,7 @@ class CombatSessionAdapter:
             terrain_instance_id=context["terrain_instance_id"],
             leaders=context["leaders"],
             duration_ms=context["duration_ms"],
+            viewer_id=session.character_id,
         )
         if getattr(fight, "rift_wave_state", None) is not None:
             from .rift_combat_adapter import world_snapshot
@@ -695,6 +709,7 @@ class CombatSessionAdapter:
         *,
         expected_sequence=None,
         require_turn=True,
+        incident_request=None,
     ):
         return self.registry.execute(
             fight_id,
@@ -703,6 +718,7 @@ class CombatSessionAdapter:
             operation,
             expected_sequence=expected_sequence,
             require_turn=require_turn,
+            incident_request=incident_request,
         )
 
     def acknowledge(self, session, fight_id, body, release_packets):
@@ -710,6 +726,13 @@ class CombatSessionAdapter:
 
     def expire_current_turn(self, fight_id, session, *, now_ms):
         """Delegate the idle-loop deadline check to the shared fight registry."""
+        shared = self.registry.lookup(fight_id)
+        if (
+            getattr(shared, "full_abandon_owner", None) == session
+            and shared.fight.phase == "finished"
+        ):
+            self.registry._live(session)
+            return False, None
         return self.registry.expire_current_turn(fight_id, session, now_ms=now_ms)
 
     def publish(self, session, fight_id, packets):
@@ -724,6 +747,20 @@ class CombatSessionAdapter:
 
     def disconnect(self, session):
         return self.registry.disconnect(session)
+
+    def abandon_shared_pve(self, session, character, body, *, groups=None, shared=None):
+        """Full no-reward abort, including retained KO owners' own native exits."""
+        from .combat_shared_abandon import prepare
+
+        return prepare(
+            self.store,
+            self.registry,
+            session,
+            character,
+            body,
+            groups=groups,
+            shared=shared,
+        )
 
     def withdraw_pve(self, session, character, body):
         """Prepare the private13952 continuation and preserve other owners."""
@@ -796,7 +833,13 @@ class CombatSessionAdapter:
                 receipt = shared.withdrawals.get(session.account_id)
         if receipt is None or receipt["session"] != session:
             raise ValueError("No owned PvE withdrawal continuation")
-        candidate = deepcopy(receipt["withdrawal"].private_runtime)
+        if getattr(shared, "full_abandon_owner", None) is not None:
+            from .combat_pve_withdraw import _clone_runtime
+
+            original = receipt["withdrawal"].private_runtime
+            candidate = _clone_runtime(original, deepcopy(original.fight))
+        else:
+            candidate = deepcopy(receipt["withdrawal"].private_runtime)
         returned = combat_abandon.return_to_world(
             self.store,
             session.account_id,
@@ -824,6 +867,44 @@ class CombatSessionAdapter:
                     if fight_id in self.registry.fights:
                         raise
                 saved = acknowledge(self.store, session, fight_id)
+        # The private abort callback prepared exploration HP before the
+        # durable withdrawal ACK. Publish only the committed recovered values.
+        if returned["packets"] and saved["hp"] != returned["character"]["hp"]:
+            from .combat_lifecycle import outside_progression
+            from . import health
+
+            previous = returned["character"]
+            old_progression = outside_progression(previous, wp=wp, ap=6, mp=3)
+            old_health = (
+                12436,
+                health.packet(
+                    previous["id"], previous["hp"], 1 if previous["hp"] > 0 else 0
+                ),
+            )
+            progression = outside_progression(saved, wp=wp, ap=6, mp=3)
+            current_health = (
+                12436,
+                health.packet(saved["id"], saved["hp"], 1 if saved["hp"] > 0 else 0),
+            )
+            # Format17/FOR_PHOENIX uses the same13046 opcode. Preserve every
+            # actor teardown byte and replace only the exact prior main fmt3.
+            returned["packets"] = [
+                current_health
+                if packet == old_health
+                else progression
+                if packet == old_progression
+                else packet
+                for packet in returned["packets"]
+            ]
+        if (
+            shared is not None
+            and getattr(shared, "full_abandon_owner", None) is not None
+        ):
+            with shared.lock:
+                shared.connected.discard(session.account_id)
+                shared.outboxes[session.account_id].clear()
+                if receipt.get("full_abort_requester", False):
+                    shared.runtime.abandon_returned = True
         returned["character"] = saved
         return returned
 

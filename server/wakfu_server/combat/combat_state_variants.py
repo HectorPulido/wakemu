@@ -5,11 +5,35 @@ For the others eZk iterates every child, even during a critical spell. Selective
 states use the carrier's actual rHA (Additional19), never the outer cast flag.
 Wakemu additionally partitions structurally paired normal/critical root groups
 by the actual causing execution branch. This is server policy, not a recovered
-original fyW.ox caller; unrelated and mixed state roots preserve native ALL.
+original fyW.ox caller. Unique subscribed pairs inside mixed states use the
+causing branch too; unrelated roots and group descendants preserve native ALL.
 """
 from .combat_state_decurse import RULES
 from .combat_native_container import resolve_state_container, resolve_state_wire_payload
 from .combat_effect_removal import _identity_fields
+
+
+_PAIR_CONTRACT_FIELDS = (
+    "effect_class",
+    "criteria",
+    "parameters",
+    "parameter_count",
+    "target_masks",
+    "native_target_selector",
+    "native_effect_flags",
+    "native_execution_mode",
+    "native_timing_definition",
+    "area_class",
+    "area_native",
+    "probability_base",
+    "probability_per_level",
+    "minimum_level",
+    "maximum_level",
+    "application_flag",
+    "removal_flag",
+    "native_localization_enabled",
+    "native_hmi_actions",
+)
 
 
 def paired_state_variants(state, definitions):
@@ -31,27 +55,7 @@ def paired_state_variants(state, definitions):
         type(variant) is not int or variant not in (0, 1) for variant in variants
     ) or set(variants) != {0, 1}:
         return False
-    fields = (
-        "effect_class",
-        "criteria",
-        "parameters",
-        "parameter_count",
-        "target_masks",
-        "native_target_selector",
-        "native_effect_flags",
-        "native_execution_mode",
-        "native_timing_definition",
-        "area_class",
-        "area_native",
-        "probability_base",
-        "probability_per_level",
-        "minimum_level",
-        "maximum_level",
-        "application_flag",
-        "removal_flag",
-        "native_localization_enabled",
-        "native_hmi_actions",
-    )
+    fields = _PAIR_CONTRACT_FIELDS
     if any(any(field not in row for field in fields) for row in rows):
         return False
     # Matching complete contracts distinguish alternatives from independent
@@ -81,6 +85,60 @@ def paired_state_variants(state, definitions):
     return True
 
 
+def paired_state_callback(state, definitions, effect_reference):
+    """Select a unique subscribed root pair without filtering unrelated roots.
+
+    A mixed state may contain independent stat/instant roots alongside paired
+    event listeners. Full-contract equality and reciprocal uniqueness establish
+    alternatives only for this callback, never for the state's descendants.
+    """
+    roots = getattr(state, "effect_ids", None)
+    if (
+        not isinstance(definitions, dict)
+        or not isinstance(roots, (list, tuple))
+        or effect_reference not in roots
+        or len(set(roots)) != len(roots)
+    ):
+        return False
+    rows = [definitions.get(str(reference)) for reference in roots]
+    if any(
+        not isinstance(row, dict)
+        or any(field not in row for field in _PAIR_CONTRACT_FIELDS)
+        for row in rows
+    ):
+        return False  # An incomplete population cannot prove a unique pair.
+    root = definitions[str(effect_reference)]
+    masks = root["target_masks"]
+    if (
+        root["effect_class"] not in (330, 999)
+        or type(root.get("variant")) is not int
+        or root["variant"] not in (0, 1)
+        or not isinstance(masks, (list, tuple))
+        or len(masks) != 7
+        or not any(masks[:6])
+        or not isinstance(root.get("children"), (list, tuple))
+        or not root["children"]
+    ):
+        return False
+    equivalents = [
+        row
+        for row in rows
+        if all(row[field] == root[field] for field in _PAIR_CONTRACT_FIELDS)
+    ]
+    return (
+        len(equivalents) == 2
+        and all(
+            type(row.get("variant")) is int
+            and row["variant"] in (0, 1)
+            and isinstance(row.get("children"), (list, tuple))
+            and row["children"]
+            and all(type(child) is int and child > 0 for child in row["children"])
+            for row in equivalents
+        )
+        and {row["variant"] for row in equivalents} == {0, 1}
+    )
+
+
 def state_child_variant_mode(
     fight,
     state_uid,
@@ -94,7 +152,10 @@ def state_child_variant_mode(
     if effect_reference is not None and effect_reference not in state.effect_ids:
         return "ALL"
     if state.reference not in RULES["selective_child_states"]:
-        if not paired_state_variants(state, effect_definitions):
+        if not (
+            paired_state_variants(state, effect_definitions)
+            or paired_state_callback(state, effect_definitions, effect_reference)
+        ):
             return "ALL"
         if type(causing_critical) is not bool:
             raise ValueError("Missing actual causing branch for paired state variants")

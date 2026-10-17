@@ -149,7 +149,6 @@ def install_initial_states(
             # big's eZQ constructor precedes its real combat registration.
             # eGj.g/eZk.h migrate the remaining realtime clock to eVw; its
             # state310 timer callback explicitly suppresses combat removal.
-            import time
             from .combat_realtime_state_clock import (
                 register_realtime_state,
                 migrate_realtime_state,
@@ -163,7 +162,9 @@ def install_initial_states(
             if len(entries) != 1 or entries[0].timer is not None:
                 raise ValueError("Missing actual constructor realtime carrier")
             entry = entries[0]
-            now = time.time_ns() // 1000000
+            from .combat_input_observation import wall_time_ns
+
+            now = wall_time_ns("summon.initialize.realtime") // 1000000
             clocks = {}
             register_realtime_state(
                 clocks,

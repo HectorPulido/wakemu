@@ -9,6 +9,7 @@ import json
 import math
 import struct
 from pathlib import Path
+from wakfu_server.character_levels import validate_character_level
 
 BASE_HEALTH = protocol_catalog.load(DATA_ROOT / "base-health.json")["breeds"]
 REGEN_DENOMINATOR_MS = 4000
@@ -17,8 +18,7 @@ REGEN_DENOMINATOR_MS = 4000
 def maximum(breed, level):
     if type(breed) is not int or str(breed) not in BASE_HEALTH:
         raise ValueError("Unsupported character breed")
-    if type(level) is not int or not 1 <= level <= 200:
-        raise ValueError("Character level must be between1 and200")
+    validate_character_level(level)
     stats = BASE_HEALTH[str(breed)]
     return stats["base"] + math.floor(level * stats["per_level"])
 

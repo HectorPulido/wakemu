@@ -195,6 +195,8 @@ class RogueRuntimePipelineTests(unittest.TestCase):
                 data, detonated = self.cast(data, 6495, bomb.position, action_id=12)
                 self.assertEqual(data[2].actors[bomb.id].hp, 0)
                 self.assertFalse(self.summons(data[2], (3795, 3796, 3797)))
+                self.assertEqual(sum(self.powder(data[2])), expected)
+                self.assertEqual(data[2].actors[7].effect_stats[57], expected)
                 before = snapshot(data[2])
                 with self.assertRaises(ValueError):
                     self.cast(data, 6495, bomb.position, action_id=13)

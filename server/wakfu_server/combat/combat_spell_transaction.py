@@ -5,6 +5,12 @@ preview only. No network emission is permitted before this function returns.
 An eligible effect without a handler rejects the entire cast, including costs.
 """
 from copy import deepcopy
+from .combat_entry_executor import (
+    entry_route,
+    execute_entry_roots,
+    private_entry_preview,
+    seal_entry_transaction,
+)
 from dataclasses import dataclass
 from .combat_cast import prepare_spell_cast
 from .combat_effect_dispatch import EffectDispatcher, EffectInvocation
@@ -90,8 +96,9 @@ def _prepare_spell_transaction(
         raise ValueError("Invalid spell action ID")
     if type(critical) is not bool:
         raise ValueError("Missing explicit critical branch")
-    source_state = source_snapshot(fight)
-    preview = deepcopy(fight)
+    source_state, preview = private_entry_preview(
+        fight, snapshot=source_snapshot, clone=deepcopy
+    )
     plan = plan_builder(
         body,
         character,
@@ -106,7 +113,6 @@ def _prepare_spell_transaction(
     caster = preview.actors[plan["actor_id"]]
     from .combat_normal_execution_origin import (
         normal_execution_origin,
-        normal_root_context,
     )
 
     wp_remaining = wp_current - plan["costs"]["wp"]
@@ -147,52 +153,19 @@ def _prepare_spell_transaction(
             "Runtime factory must return dispatcher and private packet list"
         )
     execution_origin = normal_execution_origin(plan)
-    with active_spell_scope(
-        preview, plan["spell_id"], level=plan["evaluation_level"]
-    ), preview.effect_resolution(), cast_event_scope(dispatcher, plan):
-        from .combat_cost_payment_events import replay_paid_spell_costs
-
-        replay_paid_spell_costs(dispatcher, plan)
-        from .combat_breeze_payment_events import replay_paid_breeze_costs
-
-        replay_paid_breeze_costs(dispatcher, plan)
-        from .combat_direct_target import native_direct_target_policies
-
-        root_direct_policies = native_direct_target_policies()
-
-        def _native_explicit_point_root_target(reference):
-            """Preserve a validated native point-root target when policy allows."""
-            return (
-                plan["target_id"] != caster.id
-                and plan["target_id"] in preview.actors
-                and preview.actors[plan["target_id"]].position == tuple(plan["target"])
-                and dispatcher.effects[str(reference)].get("area_class") == "anD"
-                and dispatcher.effects[str(reference)].get("native_target_selector")
-                == {"class": "fcE", "mask": 3}
-                and root_direct_policies.get(str(reference), (None, None))[1] is False
-            )
-
-        outcomes = tuple(
-            dispatcher.execute(
-                EffectInvocation(
-                    reference,
-                    plan["evaluation_level"],
-                    caster.id,
-                    plan["target_id"],
-                    plan["target"],
-                    native_explicit_target=_native_explicit_point_root_target(
-                        reference
-                    ),
-                    native_context_hex=normal_root_context(
-                        execution_origin,
-                        caster_id=caster.id,
-                        spell_id=plan["spell_id"],
-                        level=plan["evaluation_level"],
-                    ).hex(),
-                )
-            )
-            for reference in plan["effect_ids"]
-        )
+    outcomes = execute_entry_roots(
+        preview,
+        plan,
+        caster,
+        dispatcher,
+        None,
+        route=entry_route(caster, "player"),
+        execution_origin=execution_origin,
+        invocation_factory=EffectInvocation,
+        active_scope=active_spell_scope,
+        event_scope=cast_event_scope,
+        roots_source=lambda: plan["effect_ids"],
+    )
     finish_mirrored_cast_facing(caster, plan, fight=preview)
     for opcode, payload in effect_packets:
         if (
@@ -238,13 +211,13 @@ def _prepare_spell_transaction(
     consume_usage(preview, plan)
     if caster.effect_stats is not None and 4 in caster.effect_stats:
         wp_remaining = caster.effect_stats[4]
-    return SpellTransaction(
+    return seal_entry_transaction(
         preview,
         plan,
         wp_remaining,
         outcomes,
         packets,
-        tuple(preview.events[event_start:]),
+        event_start,
         source_state,
         action_id,
     )

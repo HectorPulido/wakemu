@@ -33,6 +33,39 @@ class NpcAreaPolicyEntrypointTests(unittest.TestCase):
         action = dict(
             type="cast", spellId=2794, level=4, target=[0, 0, 0], targetId=-200
         )
+        if player:
+            from tests.test_combat_spell_transaction import SpellTransactionTests
+            from wakfu_server.combat_class_ai_spell import canonical_class_actions
+            from wakfu_server.combat_runtime_messages import RuntimeMessages
+            from wakfu_server.spells import default_deck
+
+            # The player branch resolves actual owned raw UIDs before invoking
+            # its transaction producer; NPC-shaped namespace metadata is not
+            # an owned class actor or an executable player action book.
+            character, monster, fight = SpellTransactionTests().native_server_fixture(
+                5,
+                20,
+                native_qi=True,
+                variation_seed=0,
+            )
+            actor = fight.current
+            deck = default_deck(character)
+            actions = canonical_class_actions(fight, actor, character, deck)
+            spell = next(iter(sorted(actions)))
+            level = actions[spell]["level"]
+            runtime = RuntimeMessages(fight)
+            runtime.action_id = 11
+            oracle.characters = {actor.id: character}
+            oracle.decks = {actor.id: deck}
+            oracle.monsters = {monster["id"]: monster}
+            oracle.owned_spells = Mock(return_value={spell: level})
+            action = dict(
+                type="cast",
+                spellId=spell,
+                level=level,
+                target=list(actor.position),
+                targetId=actor.id,
+            )
         return oracle, runtime, action, factory, adapter
 
     def test_npc_shared_policy_receives_actual_factory_and_activation(self):
@@ -68,7 +101,7 @@ class NpcAreaPolicyEntrypointTests(unittest.TestCase):
 
     def test_player_branch_never_enters_npc_policy(self):
         oracle, runtime, action, _factory, adapter = self.fixture(player=True)
-        transaction = SimpleNamespace(plan=dict(target_id=-200))
+        transaction = SimpleNamespace(plan=dict(target_id=action["targetId"]))
         with patch(
             "wakfu_server.combat_spell_grant.granted_spells", return_value={}
         ), patch(
@@ -79,7 +112,7 @@ class NpcAreaPolicyEntrypointTests(unittest.TestCase):
         ) as policy:
             self.assertIs(oracle.cast(runtime, action), transaction)
             prepare.call_args.kwargs["conditional_context"](
-                dict(actor_id=-200), runtime.fight
+                dict(actor_id=runtime.fight.current.id), runtime.fight
             )
         policy.assert_not_called()
         adapter.cast_condition.assert_called_once()

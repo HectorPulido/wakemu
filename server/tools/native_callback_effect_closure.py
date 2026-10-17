@@ -3,6 +3,13 @@
 Casting-table presence alone does not establish that executable effect trees
 were imported. Policy/retained metadata rows are not effect definitions.
 """
+from pathlib import Path
+import sys
+import hashlib
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from wakfu_server.combat_operation_registry import dependency_specs
+from combat_operation_sources import operation_source_paths
 
 
 def executable_effect(row):
@@ -58,14 +65,22 @@ def callback_effect_closure(casting, effects, seed_spell_ids):
             continue
         pending_effects.extend(effect["children"])
         if effect["effect_class"] == 426:
+            spec = next(spec for spec in dependency_specs(426) if spec.kind == "spell")
             raw = effect["parameters"]
-            if len(raw) < 2:
+            index = 2 * spec.parameter_index
+            if len(raw) < index + 2:
                 raise ValueError("Incomplete native callback spell parameters")
-            if raw[1] != 0:
+            if raw[index + 1] != 0:
                 dynamic_callbacks.add(identity)
-            elif raw[0] > 0 and int(raw[0]) == raw[0]:
-                pending_spells.append(int(raw[0]))
+            elif raw[index] > 0 and int(raw[index]) == raw[index]:
+                pending_spells.append(int(raw[index]))
     return dict(
+        operation_sources_sha256={
+            str(path.relative_to(Path(__file__).resolve().parents[2])): hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+            for path in operation_source_paths()
+        },
         spell_ids=sorted(spell_ids),
         effect_ids=sorted(effect_ids),
         missing_casting_ids=sorted(missing_spells),

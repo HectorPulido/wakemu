@@ -1,4 +1,6 @@
 """Reviewed finite encounter profiles using real enabled native monsters."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from psycopg.types.json import Jsonb
 
 
@@ -32,7 +34,10 @@ def validate_profile(value):
         type(value[k]) is not int for k in ("min_level", "max_level", "map_id")
     ):
         raise ValueError("Invalid challenge profile bounds")
-    if not 1 <= value["min_level"] <= value["max_level"] <= 200 or value["map_id"] <= 0:
+    if (
+        not 1 <= value["min_level"] <= value["max_level"] <= MAX_CHARACTER_LEVEL
+        or value["map_id"] <= 0
+    ):
         raise ValueError("Invalid challenge level range")
     if (
         type(value["anchor"]) is not list

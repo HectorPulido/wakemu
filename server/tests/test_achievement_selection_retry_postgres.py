@@ -15,14 +15,58 @@ class AchievementSelectionRetryPostgresTests(PostgresCase):
         generation = self.store.begin_session(account)
         self.store.select_character(account, generation, identity)
         with self.store.connection() as db:
-            db.execute(
-                "UPDATE inventory_containers SET capacity=1 WHERE character_id=%s AND kind=0",
-                (identity,),
+            from wakfu_server.combat_drop_delivery import _container_can_hold
+            from wakfu_server.inventory_move import ACQUISITION_STACKS
+
+            containers = [
+                dict(row)
+                for row in db.execute(
+                    "SELECT * FROM inventory_containers WHERE character_id=%s ORDER BY kind,uid",
+                    (identity,),
+                ).fetchall()
+            ]
+            self.assertEqual(
+                [
+                    (row["reference"], row["capacity"])
+                    for row in containers
+                    if row["kind"] == 0
+                ],
+                [(2175, 30)],
             )
-            rewards.grant(db, self.store, character, dict(aeV=5, ckl=[2021, 1]))
-            occupied = self.store.character(account, identity, db)["inventory_items"][
-                0
-            ]["uid"]
+            eligible = [row for row in containers if _container_can_hold(row, identity)]
+            # Fill actual native slots through the normal reward producer.
+            # Full stacks cannot merge, and extra eligible bags must also be
+            # full before this case can establish a capacity retry.
+            maximum = min(ACQUISITION_STACKS[2021]["maximum"], 32767)
+            slots = sum(row["capacity"] for row in eligible)
+            rewards.grant(
+                db, self.store, character, dict(aeV=5, ckl=[2021, slots * maximum])
+            )
+            blockers = self.store.character(account, identity, db)["inventory_items"]
+            self.assertEqual(len(blockers), slots)
+            self.assertEqual(
+                {(row["reference"], row["quantity"]) for row in blockers},
+                {(2021, maximum)},
+            )
+            self.assertEqual(
+                {(row["container"], row["slot"]) for row in blockers},
+                {
+                    (bag["uid"], slot)
+                    for bag in eligible
+                    for slot in range(bag["capacity"])
+                },
+            )
+            occupied = blockers[0]["uid"]
+            remaining_blockers = {
+                row["uid"]: (
+                    row["reference"],
+                    row["quantity"],
+                    row["container"],
+                    row["slot"],
+                )
+                for row in blockers
+                if row["uid"] != occupied
+            }
             emote = db.execute(
                 "SELECT emote_id FROM native_emote_definitions WHERE emote_id NOT IN (SELECT emote_id FROM account_emote_knowledge WHERE account_id=%s) ORDER BY emote_id LIMIT 1",
                 (account,),
@@ -54,9 +98,28 @@ class AchievementSelectionRetryPostgresTests(PostgresCase):
             )
         selected = self.store.select_character(account, newer, identity)
         self.assertEqual(
-            [(r["reference"], r["quantity"]) for r in selected["inventory_items"]],
+            [
+                (r["reference"], r["quantity"])
+                for r in selected["inventory_items"]
+                if r["uid"] not in remaining_blockers
+            ],
             [(7361, 5)],
         )
+        self.assertEqual(
+            {
+                row["uid"]: (
+                    row["reference"],
+                    row["quantity"],
+                    row["container"],
+                    row["slot"],
+                )
+                for row in selected["inventory_items"]
+                if row["uid"] in remaining_blockers
+            },
+            remaining_blockers,
+        )
+        self.assertNotIn(occupied, {row["uid"] for row in selected["inventory_items"]})
+        self.assertEqual(selected["inventory_containers"], containers)
         self.assertEqual(selected["xp"], character["xp"] + XP_BY_LEVEL[5])
         self.assertGreaterEqual(selected["level"], 5)
         self.assertGreater(selected["hp"], character["hp"])

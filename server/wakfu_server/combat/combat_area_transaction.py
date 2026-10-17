@@ -102,6 +102,9 @@ def prepare_area_movement(
     actor = fight.actors.get(actor_id)
     if actor is None or tuple(actor.position) != tuple(path[-1]):
         raise ValueError("Effect-area movement requires committed final path")
+    from .combat_movement_payment_events import consume_step_payment
+
+    payment = consume_step_payment(fight, actor_id=actor_id, origin=origin, path=path)
     preview = deepcopy(fight)
     factory, _ = server_runtime(
         character,
@@ -118,10 +121,16 @@ def prepare_area_movement(
     )
     previous = tuple(origin)
     with preview.effect_resolution():
+        from .combat_movement_payment_events import replay_movement_payment
+
         for index, cell in enumerate(path):
             from .combat_qi_fight import move_registered_actor
 
             move_registered_actor(preview, preview.actors[actor_id], cell)
+            if index == 0:
+                replay_movement_payment(dispatcher, payment)
+                if preview.phase != "active" or preview.actors[actor_id].hp <= 0:
+                    break
             from .combat_voluntary_movement_events import deliver_voluntary_movement
 
             deliver_voluntary_movement(

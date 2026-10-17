@@ -2107,4 +2107,12 @@ class NativeEffectRuntimeFactory:
             dispatcher.native_delays = NativeDelayedEffects(
                 dispatcher, retention, healing.event_lifecycle
             )
+        from .combat_operation_registry import bind_runtime_contracts
+
+        dispatcher.operation_contracts = bind_runtime_contracts(
+            handlers,
+            characteristic_registry=self.characteristic_registry,
+            set_current_families=SET_CURRENT_FAMILIES,
+        )
+        dispatcher.operation_support_for_family = dispatcher.operation_contracts.get
         return dispatcher, packets

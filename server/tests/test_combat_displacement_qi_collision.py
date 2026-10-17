@@ -154,7 +154,10 @@ class ForcedCollisionQITests(unittest.TestCase):
             loss_ap=True,
             collision_reactions=effect_class in (300, 301),
         )
-        with patch("wakfu_server.combat_displacement.native_definition_timing"), patch(
+        with patch(
+            "wakfu_server.combat_displacement.native_definition_timing",
+            return_value={"retained": False, "delay": False, "duration": 0},
+        ), patch(
             "wakfu_server.combat_displacement.displacement_geometry",
             return_value=geometry,
         ):

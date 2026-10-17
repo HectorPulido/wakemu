@@ -170,11 +170,9 @@ class StateLedger:
                 raise ValueError("Invalid authoritative state replacement callback")
             for entry in removed:
                 before_replace(entry)
-        removed_uids = {entry.uid for entry in removed}
-        survivors = tuple(
-            entry for entry in self._entries if entry.uid not in removed_uids
-        )
-        self._entries = survivors + ((applied,) if applied.retained else ())
+        from .combat_state_mutation import publish_application
+
+        publish_application(self, applied, removed)
         return StateChange(applied, removed)
 
     def install_realtime_clock(self, uid, *, deadline_ms, in_combat):
@@ -190,16 +188,16 @@ class StateLedger:
         updated = replace(
             entry, realtime_deadline_ms=deadline_ms, realtime_in_combat=in_combat
         )
-        self._entries = tuple(
-            updated if item.uid == uid else item for item in self._entries
-        )
+
+        from .combat_state_mutation import replace_carrier
+
+        replace_carrier(self, entry, updated, by_identity=False)
         return updated
 
     def remove(self, uid):
-        removed = next((entry for entry in self._entries if entry.uid == uid), None)
-        if removed is not None:
-            self._entries = tuple(entry for entry in self._entries if entry.uid != uid)
-        return removed
+        from .combat_state_mutation import remove_carrier
+
+        return remove_carrier(self, uid)
 
     def bind_registered_timer(self, original, updated):
         """Publish a validated first-registration clock without reapplying state."""
@@ -212,9 +210,10 @@ class StateLedger:
             or replace(updated, timer=None) != original
         ):
             raise ValueError("Invalid first-registration state timer binding")
-        self._entries = tuple(
-            updated if entry is original else entry for entry in self._entries
-        )
+
+        from .combat_state_mutation import replace_carrier
+
+        replace_carrier(self, original, updated, by_identity=True)
 
     def expire(self, *, actor_id, round_number, phase, round_cleanup=False):
         """Return exact native-clock removals for the wire/effect dispatcher.
@@ -222,21 +221,16 @@ class StateLedger:
         Unscheduled states stay intact. This never guesses a timer from their
         duration or decrements every state on every fighter's turn.
         """
-        removed = tuple(
-            entry
-            for entry in self._entries
-            if entry.timer is not None
-            and (
-                entry.timer.expires_at_round_cleanup(round_number)
-                if round_cleanup
-                else entry.timer.expires_on(
-                    actor_id=actor_id, round_number=round_number, phase=phase
-                )
-            )
+
+        from .combat_state_mutation import expire_carriers
+
+        return expire_carriers(
+            self,
+            actor_id=actor_id,
+            round_number=round_number,
+            phase=phase,
+            round_cleanup=round_cleanup,
         )
-        ids = {entry.uid for entry in removed}
-        self._entries = tuple(entry for entry in self._entries if entry.uid not in ids)
-        return removed
 
     def condition_actor(self, **context):
         """Expose actual ordered states; deck/type/carry context stays explicit."""

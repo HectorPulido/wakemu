@@ -139,7 +139,7 @@ class NativeAdditionalTurnTests(unittest.TestCase):
         rows = json.loads(
             (
                 Path(__file__).resolve().parents[2]
-                / "docs/reports/combat-inventory/native-additional-turn-cases-20261008.json"
+                / "server/tests/fixtures/native_combat_oracles/additional-turn.json"
             ).read_text()
         )
         self.assertEqual(len(rows), 45)

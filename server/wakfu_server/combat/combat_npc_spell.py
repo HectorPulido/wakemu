@@ -4,7 +4,14 @@ Separate entry point: never impersonates a player or grants a class deck.
 Unknown mandatory branches reject the entire private preview.
 """
 from copy import deepcopy
+from .combat_entry_executor import (
+    entry_route,
+    execute_entry_roots,
+    private_entry_preview,
+    seal_entry_transaction,
+)
 import random
+from .combat_input_observation import observe_rng
 
 
 def owned_spells(fight, monsters, *, character=None, player_characters=None):
@@ -140,7 +147,11 @@ def prepare_npc_spell(
         deck_blob,
         action_id=action_id,
         critical=False,
-        rng=random.Random() if rng is None else rng,
+        rng=observe_rng(
+            "npc_spell",
+            random.Random() if rng is None else rng,
+            external=rng is not None,
+        ),
         compiled=compiled,
         player_characters=player_characters,
         deck_blobs=deck_blobs,
@@ -213,7 +224,6 @@ def prepare_npc_spell(
 def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, action_id):
     """Execute an owned, validated NPC cast on a private transaction snapshot."""
     from .combat_spell_usage import consume_usage
-    from .combat_spell_transaction import SpellTransaction
     from .combat_geometry_snapshot import source_snapshot
     from .combat_effect_dispatch import EffectInvocation
     from .combat_active_spell import active_spell_scope
@@ -226,8 +236,9 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
     actor = fight.current
     spell, level = plan["spell_id"], plan["evaluation_level"]
     # Cheap native validation precedes deep copy/effect dispatch.
-    source = source_snapshot(fight)
-    preview = deepcopy(fight)
+    source, preview = private_entry_preview(
+        fight, snapshot=source_snapshot, clone=deepcopy
+    )
     caster = preview.actors[actor.id]
     start = len(preview.events)
     if getattr(caster, "effect_resource_raw_currents", None) is not None:
@@ -251,30 +262,24 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
     record_authorized_cast(preview, caster.id, spell)
     from .combat_normal_execution_origin import (
         normal_execution_origin,
-        normal_root_context,
     )
 
     execution_origin = normal_execution_origin(plan)
     dispatcher, effect_packets = factory(preview, plan)
-    with active_spell_scope(preview, spell), preview.effect_resolution():
-        outcomes = tuple(
-            dispatcher.execute(
-                EffectInvocation(
-                    reference,
-                    level,
-                    caster.id,
-                    plan["target_id"],
-                    plan["target"],
-                    native_context_hex=normal_root_context(
-                        execution_origin,
-                        caster_id=caster.id,
-                        spell_id=spell,
-                        level=level,
-                    ).hex(),
-                )
-            )
-            for reference in rule["roots"]
-        )
+    outcomes = execute_entry_roots(
+        preview,
+        plan,
+        caster,
+        dispatcher,
+        None,
+        route=entry_route(caster, "npc"),
+        execution_origin=execution_origin,
+        invocation_factory=EffectInvocation,
+        active_scope=active_spell_scope,
+        native_spell_id=spell,
+        native_level=level,
+        roots_source=lambda: rule["roots"],
+    )
     finish_mirrored_cast_facing(caster, plan, fight=preview)
     consume_usage(preview, plan)
     preview._event(
@@ -300,13 +305,13 @@ def prepare_validated_npc_spell(fight, plan, rule, descriptor, *, factory, actio
         )
         for opcode, encoder in ((12588, cast_animation), (12678, cast_notification))
     ) + tuple(effect_packets)
-    return SpellTransaction(
+    return seal_entry_transaction(
         preview,
         plan,
         caster.effect_stats[4],
         outcomes,
         packets,
-        tuple(preview.events[start:]),
+        start,
         source,
         action_id,
     )

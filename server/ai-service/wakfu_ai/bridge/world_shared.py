@@ -5,6 +5,8 @@ import time
 import gzip
 import uuid
 from copy import deepcopy
+from contextlib import nullcontext
+import os
 
 from ..context.native_context import encode_bytes
 from ..planning.team_blackboard import observe, confirm
@@ -93,7 +95,22 @@ def _run_shared_turn(runtime, adapter, session, runner):
             failure = None
             try:
                 if action_index == 12:
-                    packets = native.end_server_turn(actor_id, turn_id)
+                    fallback_context = nullcontext()
+                    if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                        try:
+                            from wakfu_server.combat_npc_publication import (
+                                npc_fallback_scope,
+                            )
+
+                            fallback_context = npc_fallback_scope(
+                                native, actor_id, turn_id
+                            )
+                        except Exception:
+                            pass
+                    with fallback_context as fallback_incident:
+                        packets = native.end_server_turn(actor_id, turn_id)
+                        if fallback_incident is not None:
+                            fallback_incident.packets(packets)
                     diagnostics.append(
                         dict(
                             action={"type": "end_turn"},
@@ -155,6 +172,13 @@ def _run_shared_turn(runtime, adapter, session, runner):
                         actor_id,
                         lambda candidate, runtime: transition,
                         expected_sequence=sequence,
+                        incident_runtime=transition.runtime,
+                        incident_packets=transition.packets,
+                        incident_session=session,
+                        incident_recipe="live-server-end-turn"
+                        if action_index == 12
+                        else "chosen-native-commit",
+                        incident_turn_id=turn_id,
                     )
                 else:
                     # Discard the failed private pair. Earlier published actions
@@ -173,6 +197,9 @@ def _run_shared_turn(runtime, adapter, session, runner):
                         actor_id,
                         end_native_turn,
                         expected_sequence=sequence,
+                        incident_session=session,
+                        incident_recipe="live-server-end-turn",
+                        incident_turn_id=turn_id,
                     )
                 if shared.runtime.awaiting_ack is not None:
                     registry.arm_ack(shared.fight.id, shared.runtime.awaiting_ack)
@@ -200,6 +227,9 @@ def _run_shared_turn(runtime, adapter, session, runner):
                     actor_id,
                     end_native_turn,
                     expected_sequence=shared.sequence,
+                    incident_session=session,
+                    incident_recipe="live-server-end-turn",
+                    incident_turn_id=turn_id,
                 )
                 if shared.runtime.awaiting_ack is not None:
                     registry.arm_ack(shared.fight.id, shared.runtime.awaiting_ack)

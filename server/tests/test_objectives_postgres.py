@@ -1,4 +1,6 @@
 """Durable objective ingress, revisions, retries and one-time period rewards."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import copy
@@ -281,7 +283,7 @@ class ObjectivesPostgresTests(PostgresCase):
                         },
                         {
                             "minimum": 100,
-                            "maximum": 200,
+                            "maximum": MAX_CHARACTER_LEVEL,
                             "rewards": [{"kind": "kamas", "amount": 200}],
                         },
                     ]
@@ -315,7 +317,7 @@ class ObjectivesPostgresTests(PostgresCase):
                         },
                         {
                             "minimum": 100,
-                            "maximum": 200,
+                            "maximum": MAX_CHARACTER_LEVEL,
                             "rewards": [{"kind": "kamas", "amount": 1999}],
                         },
                     ]
@@ -1373,7 +1375,7 @@ class ObjectivesPostgresTests(PostgresCase):
                     "bands": [
                         {
                             "minimum": 1,
-                            "maximum": 200,
+                            "maximum": MAX_CHARACTER_LEVEL,
                             "rewards": [{"kind": "kamas", "amount": 500}],
                         }
                     ]

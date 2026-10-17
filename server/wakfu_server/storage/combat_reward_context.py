@@ -6,6 +6,8 @@ only establishes which actors were players, trusted spawned monsters, or
 registered summons and captures native player Wisdom.
 """
 
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
+
 from wakfu_server.combat_actor_snapshot import native_actor_catalog
 from wakfu_server.monsters import statistics as monster_statistics
 
@@ -122,7 +124,10 @@ def build_context(
         if type(key) is not int or actor.id != key:
             raise ValueError("Fight actor identity mismatch")
         level = _integer(
-            actor.effective_level, "actor level", 1, 200 if actor.controlled else 32767
+            actor.effective_level,
+            "actor level",
+            1,
+            MAX_CHARACTER_LEVEL if actor.controlled else 32767,
         )
         is_summon = _summon(actor)
         monster = monster_rows.get(actor.id)
@@ -213,7 +218,9 @@ def build_drop_context(fight, character, monsters, *, encounter_kind=None):
     """
     if not isinstance(character, dict):
         raise ValueError("Invalid combat drop character")
-    real_level = _integer(character.get("level"), "real character level", 1, 200)
+    real_level = _integer(
+        character.get("level"), "real character level", 1, MAX_CHARACTER_LEVEL
+    )
     build_context(fight, character, monsters)
     actor = fight.actors[character["id"]]
     context = {"downscaled": actor.effective_level < real_level}

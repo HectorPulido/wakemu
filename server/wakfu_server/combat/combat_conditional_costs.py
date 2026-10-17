@@ -6,6 +6,8 @@ unequal overlapping matches ambiguous; reject those instead of inventing order.
 This selects unmodified costs. Live eHl/fyU cost modifiers remain a separate
 explicit caller input; no state/deck facts are inferred from absent context.
 """
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
@@ -50,7 +52,7 @@ def catalog():
 
 
 def resolve_costs(spell_id, level, base, context, *, modifiers=None, rules=None):
-    if type(level) is not int or not 1 <= level <= 200:
+    if type(level) is not int or not 1 <= level <= MAX_CHARACTER_LEVEL:
         raise ValueError("Invalid conditional spell level")
     baseline = tuple(base[k] for k in ("ap", "mp", "wp"))
     if any(type(v) is not int or v < 0 for v in baseline):

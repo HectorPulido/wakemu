@@ -1,4 +1,6 @@
 """Transactional durable ingress, evaluator, definition management and read API."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 import hashlib
 import secrets
 from datetime import datetime, timezone
@@ -69,7 +71,9 @@ def enqueue(db, account_id, character_id, event_key, payload, occurred_at=None):
             if assignments.managed(row["definition"])
             else row["definition"].get("level_range", {"minimum": 1})["minimum"]
             <= owner["level"]
-            <= row["definition"].get("level_range", {"maximum": 200})["maximum"]
+            <= row["definition"].get("level_range", {"maximum": MAX_CHARACTER_LEVEL})[
+                "maximum"
+            ]
         )
     ]
     definitions = [
@@ -280,7 +284,7 @@ def _process_event(db, event, definitions):
                 raise ValueError("Frozen objective definition version is unavailable")
             frozen = version["definition"]
         rule = validate_definition(frozen)
-        band = rule.get("level_range", {"minimum": 1, "maximum": 200})
+        band = rule.get("level_range", {"minimum": 1, "maximum": MAX_CHARACTER_LEVEL})
         if not rule["enabled"]:
             continue
         period = period_key(rule["schedule"], event["occurred_at"])

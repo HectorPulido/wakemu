@@ -4,6 +4,8 @@ from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
+from wakfu_server.combat_state import Actor, Fight
+from wakfu_server.combat_shared import Session
 
 
 class WithdrawalDispatcherTests(unittest.TestCase):
@@ -51,11 +53,22 @@ class WithdrawalDispatcherTests(unittest.TestCase):
         )
 
     def abandon_context(self):
-        fight = SimpleNamespace(id=87, phase="placement")
+        departing = Session(1, 4, "departing-owner", 1134, 0)
+        other = Session(2, 5, "other-owner", 1134, 0)
+        fight = Fight(
+            87,
+            [
+                Actor(4, 0, (0, 0, 0), 42, 6, 3, 100, 1, 1, True),
+                Actor(5, 0, (1, 0, 0), 42, 6, 3, 90, 1, 2, True),
+                Actor(-200, 1, (2, 0, 0), 20, 3, 3, 1, 1),
+            ],
+            {(0, 0, 0), (1, 0, 0), (2, 0, 0)},
+            {0: {(0, 0, 0), (1, 0, 0)}, 1: {(2, 0, 0)}},
+        )
         shared = SimpleNamespace(
             fight=fight,
             runtime=None,
-            participants={1: object(), 2: object()},
+            participants={1: departing, 2: other},
             withdrawals={},
         )
         adapter = Mock()
@@ -64,9 +77,10 @@ class WithdrawalDispatcherTests(unittest.TestCase):
             withdrawal=SimpleNamespace(private_packets=[(12238, b"private")]),
         )
         adapter.withdraw_pve.return_value = receipt
-        return dict(
+        context = dict(
             COMBAT_SESSIONS=adapter,
-            combat_session="departing-owner",
+            combat_session=departing,
+            departing_session=departing,
             character={"id": 4},
             body=b"",
             refresh_shared_combat=lambda: shared,
@@ -81,7 +95,25 @@ class WithdrawalDispatcherTests(unittest.TestCase):
             service="world",
             wire=SimpleNamespace(chat=lambda *args: b"reject"),
             shared_source=shared,
+            publication_order=[],
         )
+
+        def committed_withdrawal(*args):
+            context["publication_order"].append("withdraw-committed")
+            return receipt
+
+        def publish(candidate):
+            self.assertIs(candidate, shared)
+            self.assertEqual(context["publication_order"], ["withdraw-committed"])
+            self.assertIs(context["pve_withdrawal_pending"], receipt)
+            self.assertIs(context["fight"], fight)
+            self.assertEqual(context["combat_session"], context["departing_session"])
+            context["send"].assert_not_called()
+            context["publication_order"].append("marker-published")
+
+        adapter.withdraw_pve.side_effect = committed_withdrawal
+        context["publish_external_marker"] = Mock(side_effect=publish)
+        return context
 
     def test_actual_placement_abandon_without_runtime_preserves_other_owner(self):
         context = self.abandon_context()
@@ -89,7 +121,11 @@ class WithdrawalDispatcherTests(unittest.TestCase):
         other = shared.participants[2]
         exec(self.abandon_code, context)
         context["COMBAT_SESSIONS"].withdraw_pve.assert_called_once_with(
-            "departing-owner", context["character"], b""
+            context["departing_session"], context["character"], b""
+        )
+        context["publish_external_marker"].assert_called_once_with(shared)
+        self.assertEqual(
+            context["publication_order"], ["withdraw-committed", "marker-published"]
         )
         self.assertIsNone(context["fight"])
         self.assertIsNone(context["combat_session"])
@@ -110,8 +146,10 @@ class WithdrawalDispatcherTests(unittest.TestCase):
         context["body"] = b"unexpected"
         exec(self.abandon_code, context)
         context["COMBAT_SESSIONS"].withdraw_pve.assert_not_called()
+        context["publish_external_marker"].assert_not_called()
+        self.assertEqual(context["publication_order"], [])
         self.assertTrue(context["loaded"])
-        self.assertEqual(context["combat_session"], "departing-owner")
+        self.assertEqual(context["combat_session"], context["departing_session"])
         self.assertIsNone(context["pve_withdrawal_pending"])
 
     def context(self):
@@ -122,7 +160,7 @@ class WithdrawalDispatcherTests(unittest.TestCase):
             "character": {"hp": 42},
             "packets": [(123, b"x")],
         }
-        return dict(
+        context = dict(
             pve_withdrawal_pending=receipt,
             COMBAT_SESSIONS=adapter,
             account_id=1,
@@ -145,7 +183,41 @@ class WithdrawalDispatcherTests(unittest.TestCase):
             mark_static_sync_pending=Mock(),
             record=Mock(),
             loaded=False,
+            bag_session=None,
+            ranch_session=None,
+            publish_external_marker=Mock(),
+            STORE=Mock(),
+            fixture=Mock(
+                side_effect=AssertionError("Public return requested private scene")
+            ),
+            time=__import__("time"),
         )
+
+        # Execute the actual public/private refresh boundary. These owned
+        # withdrawal fixtures represent a public-world session, so both private
+        # scene capabilities are explicitly absent rather than undefined.
+        helpers = [
+            next(
+                node
+                for node in ast.walk(self.tree)
+                if isinstance(node, ast.FunctionDef) and node.name == name
+            )
+            for name in (
+                "active_private_session",
+                "refresh_owned_character",
+                "attach_combat_return_position",
+                "combat_return_bootstrap",
+            )
+        ]
+        exec(
+            compile(
+                ast.fix_missing_locations(ast.Module(body=helpers, type_ignores=[])),
+                "<actual-owned-character-refresh>",
+                "exec",
+            ),
+            context,
+        )
+        return context
 
     def test_actual_handler_returns_private_owner_and_clears_pending_only_after_publish(
         self,
@@ -213,6 +285,7 @@ class WithdrawalDispatcherTests(unittest.TestCase):
         exec(code, context)
         context["COMBAT_SESSIONS"].recover_withdrawn_pve.assert_called_once()
         context["release_groups"].assert_not_called()
+        context["publish_external_marker"].assert_not_called()
         context["STORE"].clear_character.assert_called_once_with(1, "lease")
         self.assertIsNone(context["pve_withdrawal_pending"])
         self.assertIsNone(context["character"])
@@ -241,6 +314,11 @@ class WithdrawalDispatcherTests(unittest.TestCase):
             with self.subTest(multiowner=multiowner):
                 context = self.context()
                 shared = sample_shared()
+                shared.fight.actors = {
+                    17: Actor(17, 0, (0, 0, 0), 42, 6, 3, 100, 1, 1, True),
+                    -201: Actor(-201, 1, (2, 0, 0), 20, 3, 3, 1, 1),
+                }
+                owner_session = Session(1, 17, "g1", 1134, 0)
                 shared.withdrawals = {}
                 shared.settlement_ready = False
                 shared.runtime = Mock()
@@ -248,6 +326,9 @@ class WithdrawalDispatcherTests(unittest.TestCase):
 
                 shared.lock = threading.RLock()
                 if multiowner:
+                    shared.fight.actors[18] = Actor(
+                        18, 0, (1, 0, 0), 42, 6, 3, 90, 1, 2, True
+                    )
                     shared.participants[2] = SimpleNamespace(
                         character_id=18, generation="g2"
                     )
@@ -258,7 +339,7 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                     body=b"\x00",
                     fight=shared.fight,
                     fight_messages=shared.runtime,
-                    combat_session="owner",
+                    combat_session=owner_session,
                     group_lease=None,
                     spectator_terminal_pending=None,
                     pve_withdrawal_pending=None,
@@ -303,6 +384,35 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                     context,
                 )
 
+                # Keep the actual marker implementation; observe its boundary
+                # without substituting a successful publication result.
+                actual_publish = context["publish_external_marker"]
+                publication_order = []
+                receipt = context["COMBAT_SESSIONS"].withdraw_pve.return_value
+
+                def committed_withdrawal(*args):
+                    publication_order.append("withdraw-committed")
+                    return receipt
+
+                def observe_publish(candidate):
+                    self.assertIs(candidate, shared)
+                    self.assertEqual(
+                        publication_order,
+                        ["withdraw-committed" if multiowner else "return-committed"],
+                    )
+                    self.assertIs(context["fight"], shared.fight)
+                    self.assertEqual(context["combat_session"], owner_session)
+                    context["send"].assert_not_called()
+                    if multiowner:
+                        self.assertIs(context["pve_withdrawal_pending"], receipt)
+                    actual_publish(candidate)
+                    publication_order.append("marker-published")
+
+                context[
+                    "COMBAT_SESSIONS"
+                ].withdraw_pve.side_effect = committed_withdrawal
+                context["publish_external_marker"] = Mock(side_effect=observe_publish)
+
                 def prepare(*args):
                     shared.fight.phase = "finished"
                     shared.fight.winner = None
@@ -315,9 +425,20 @@ class WithdrawalDispatcherTests(unittest.TestCase):
                     "wakfu_server.combat_abandon.placement_runtime",
                     return_value=shared.runtime,
                 ), patch(
-                    "wakfu_server.combat_abandon.return_to_world"
+                    "wakfu_server.combat_abandon.return_to_world",
+                    side_effect=lambda *args, **kwargs: publication_order.append(
+                        "return-committed"
+                    ),
                 ):
                     exec(code, context)
+                context["publish_external_marker"].assert_called_once_with(shared)
+                self.assertEqual(
+                    publication_order,
+                    [
+                        "withdraw-committed" if multiowner else "return-committed",
+                        "marker-published",
+                    ],
+                )
                 if multiowner:
                     self.assertIsNotNone(markers.location(shared.fight.id))
                     context[

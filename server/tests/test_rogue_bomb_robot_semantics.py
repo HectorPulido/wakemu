@@ -194,8 +194,14 @@ class RogueBombRobotSemanticsTests(unittest.TestCase):
                     import json
                     from pathlib import Path
 
-                    Path(
-                        ".runtime/rogue-qualification-20261011/robot-strengthened/6520-receipts-diagnostic.json"
+                    # Diagnostic storage must not depend on a checkout-private directory.
+                    import tempfile
+
+                    diagnostic_directory = tempfile.TemporaryDirectory()
+                    self.addCleanup(diagnostic_directory.cleanup)
+                    (
+                        Path(diagnostic_directory.name)
+                        / "6520-receipts-diagnostic.json"
                     ).write_text(
                         json.dumps(
                             {

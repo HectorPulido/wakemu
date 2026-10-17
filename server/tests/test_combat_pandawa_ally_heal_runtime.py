@@ -16,6 +16,8 @@ class PandawaAllyHealRuntimeTests(unittest.TestCase):
     def test_cyanotic_heals_actual_injured_ally_at_recipient_start(self):
         from wakfu_server.combat_server_spell import prepare_server_spell
         from wakfu_server.combat_spell_grant import granted_spells
+        from wakfu_server.combat_reproduction_state import encode_state, decode_state
+        from wakfu_server.fight_checkpoint_store import snapshot
 
         gains = {}
         for passive in (None, 8599):
@@ -50,8 +52,14 @@ class PandawaAllyHealRuntimeTests(unittest.TestCase):
                     6107,
                     {e.reference for e in tipsy.fight.actors[8].state_ledger.entries},
                 )
+                # Replay the actual pending native state/retained graph, not a
+                # manually reconstructed heal or a replacement state injection.
+                replayed = decode_state(encode_state(tipsy.fight))
+                self.assertEqual(snapshot(replayed), snapshot(tipsy.fight))
                 before = tipsy.fight.actors[8].hp
                 advanced = self.reach(tipsy.fight, characters, decks, 8)
+                replayed = self.reach(replayed, characters, decks, 8)
+                self.assertEqual(snapshot(replayed), snapshot(advanced))
                 gains[passive] = advanced.actors[8].hp - before
                 if passive == 8599:
                     self.assertGreater(gains[passive], 0)
@@ -63,5 +71,20 @@ class PandawaAllyHealRuntimeTests(unittest.TestCase):
                         6107,
                         {e.reference for e in advanced.actors[8].state_ledger.entries},
                     )
+                # Traverse another real owner/recipient cycle. A replay must
+                # neither resurrect the consumed state nor heal a second time.
+                healed_hp = advanced.actors[8].hp
+                for current in (advanced, replayed):
+                    current = self.reach(current, characters, decks, 7)
+                    current = self.reach(current, characters, decks, 8)
+                    self.assertEqual(current.actors[8].hp, healed_hp)
+                    if passive == 8599:
+                        self.assertFalse(
+                            {6107, 9366}
+                            & {
+                                e.reference
+                                for e in current.actors[8].state_ledger.entries
+                            }
+                        )
         self.assertEqual(gains[None], 0)
         self.assertGreater(gains[8599], gains[None])

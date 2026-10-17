@@ -5,6 +5,8 @@ accepts self and empty-cell targets. Damage execution remains a separate layer
 with a limited audited set. No state changes occur during validation; unknown
 conditional costs are rejected rather than treated as unconditional.
 """
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from wakfu_server import native_catalog as protocol_catalog
 from wakfu_server.paths import DATA_ROOT
 import json
@@ -26,9 +28,11 @@ def decode_cast(body):
 
 def normal_damage_profile(spell_id, level):
     """Native normal branch values; caller must verify its effect conditions."""
-    if str(spell_id) not in _RULES or not 1 <= level <= 200:
+    if str(spell_id) not in _RULES or not 1 <= level <= MAX_CHARACTER_LEVEL:
         raise ValueError("No audited spell damage profile")
     rule = _RULES[str(spell_id)]
+    if level > len(rule["levels"]):
+        raise ValueError("Missing native spell damage profile level")
     minimum, maximum, _ = rule["levels"][level - 1]
     effect = effect_catalog()["effects"][str(rule["generic_effect"])]
     damage = parameter_value(effect["parameters"], 0, level)

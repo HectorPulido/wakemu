@@ -111,6 +111,10 @@ class ConditionActor:
     is_abandonning: bool | None = None  # eGz.pHJ via eGj.fqy.
     is_fleeing: bool | None = None  # eGz.pHK via eGj.frF.
     is_summoned_from_symbiot: bool | None = None  # Actual eHg.dTC creation source.
+    native_social_context: object = (
+        None  # Exact typed admission source, never defaulted.
+    )
+    native_account_id: int | None = None  # Explicit owned creation account.
     native_sex: int | None = None  # Actual eGj.aXz signed byte, independent of breed.
     is_summon: bool | None = None  # eGj.dTE(), not merely an NPC kind.
     summon_root_id: int | None = None  # Identity of eGj.fqK ownership-chain root.
@@ -419,6 +423,22 @@ def evaluate_condition(
                 raise UnknownCondition(
                     "Native Boolean configuration requires one literal string"
                 )
+            return
+        if name in ("GetNationId", "GetGuildLevel"):
+            if (name == "GetGuildLevel" and args) or (
+                name == "GetNationId"
+                and (
+                    len(args) > 1
+                    or (
+                        args
+                        and (
+                            not isinstance(args[0], ast.Constant)
+                            or type(args[0].value) is not str
+                        )
+                    )
+                )
+            ):
+                raise UnknownCondition("Unsupported native social predicate arguments")
             return
         if name == "GetFightModel":
             if args:
@@ -937,6 +957,37 @@ def evaluate_condition(
             except ValueError as error:
                 raise UnknownCondition(str(error)) from error
             return 0 if value else -1  # eIX native Boolean numeric result.
+        if name in ("GetNationId", "GetGuildLevel"):
+            from wakfu_server.characters.owned_social_context import OwnedSocialContext
+
+            selector = (
+                "target"
+                if (
+                    name == "GetNationId" and args and args[0].value.lower() == "target"
+                )
+                else "caster"
+            )
+            actor = context.actors.get(selector)
+            if name == "GetGuildLevel" and (
+                actor is None or actor.is_native_ehg is False
+            ):
+                actor = context.actors.get("target")
+            if actor is None:
+                raise UnknownCondition("Missing native social selected fighter")
+            if name == "GetNationId" and actor.is_native_fighter is False:
+                return 0  # Exact eKN non-eGj branch, not omitted authority.
+            if name == "GetGuildLevel" and actor.is_native_ehg is not True:
+                raise UnknownCondition("Missing native eII.n fighter type")
+            if actor.is_native_fighter is not True or actor.is_player is not True:
+                raise UnknownCondition("Unqualified native social fighter component")
+            receipt = actor.native_social_context
+            if type(receipt) is not OwnedSocialContext:
+                raise UnknownCondition("Missing typed owned social component")
+            try:
+                receipt.require_owner(actor.actor_id, actor.native_account_id)
+            except ValueError as error:
+                raise UnknownCondition(str(error)) from error
+            return receipt.nation_id if name == "GetNationId" else receipt.guild_level
         if name == "GetFightModel":
             if not callable(context.fight_model_query):
                 raise UnknownCondition("Missing authoritative native fight model")

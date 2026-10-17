@@ -6,7 +6,7 @@ from wakfu_server.combat_final_modifier import final_modifier_source
 from wakfu_server.combat_trigger_value_modifier import NativeRunnerAmount
 from wakfu_server.combat_value_transfer import transfer_value_context
 from wakfu_server.combat_maximum_resource import maximum_application_amount
-from server.tests import test_combat_maximum_resource as resource_tests
+import test_combat_maximum_resource as resource_tests
 
 
 class MaximumAmountSourceTests(unittest.TestCase):

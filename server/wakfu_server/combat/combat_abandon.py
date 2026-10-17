@@ -38,6 +38,7 @@ def _participant(account_id, character, runtime):
         or actor.id in summon_ids
         or not actor.controlled
         or actor.owner_id != account_id
+        or getattr(actor, "pve_withdrawn", False)
         or any(member.owner_id != account_id for member in controlled)
     ):
         raise ValueError("Unsupported or foreign abandon participant")
@@ -79,6 +80,37 @@ def _terminal_packets(planned, losing_team):
             struct.pack(">q", identity) for identity in identities
         )
     return [(12238, payload), planned._flush()]
+
+
+def committed_abandon_team(runtime):
+    """Return the team of an owned continuation installed after durable abort.
+
+    prepare installs abandon_owner only after its status/health transaction
+    commits. A pending victory or an absent continuation is not this boundary.
+    """
+    owner = getattr(runtime, "abandon_owner", None)
+    if owner is None:
+        return None
+    fight = getattr(runtime, "fight", None)
+    if (
+        not isinstance(owner, tuple)
+        or len(owner) != 2
+        or any(type(identity) is not int or identity <= 0 for identity in owner)
+        or fight is None
+        or fight.phase != "finished"
+        or fight.winner is not None
+    ):
+        raise ValueError("Invalid committed abandonment continuation")
+    actor = fight.actors.get(owner[1])
+    if (
+        actor is None
+        or not actor.controlled
+        or actor.owner_id != owner[0]
+        or getattr(actor, "pve_withdrawn", False)
+        or actor.team not in (0, 1)
+    ):
+        raise ValueError("Committed abandonment participant is stale")
+    return actor.team
 
 
 def aborted_terminal_packets(fight, runtime=None, *, losing_team):

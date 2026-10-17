@@ -8,10 +8,15 @@ import json
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "server"))
+from wakfu_server.combat_operation_registry import dependency_specs
+from combat_operation_sources import operation_source_paths
+
 PROTOCOL = ROOT / "server/protocol"
-OUT = ROOT / "docs/reports/combat-inventory"
+OUT = ROOT / "agents_docs/reports/combat-inventory"
 
 
 def read(path):
@@ -114,7 +119,7 @@ def main(output=OUT):
             + "\n"
         )
     review = read(review_path)
-    extra_audit_path = ROOT / "docs/reports/class-extra-spells-audit.json"
+    extra_audit_path = ROOT / "agents_docs/reports/class-extra-spells-audit.json"
     extra_audit = read(extra_audit_path) if extra_audit_path.exists() else {}
     extra_rows = []
     for extra in extra_audit.get("extras", []):
@@ -156,7 +161,7 @@ def main(output=OUT):
                 "Review handler registration parser after runtime change: " + marker
             )
     heal_source = (
-        ROOT / "server/wakfu_server/combat/combat_damage_healing.py"
+        ROOT / "server/wakfu_server/combat/combat_damage_contracts.py"
     ).read_text()
     heal_tree = ast.parse(heal_source)
     heal_ids = None
@@ -238,7 +243,20 @@ def main(output=OUT):
             registered.add(family)
     if "kind:parameter_maximumforkindin(1201,1202)" in runtime_source:
         registered.update((1201, 1202))
-    optional = {300, 301, 302, 340, 331, 422}
+    geometry_tree = ast.parse(
+        (
+            ROOT / "server/wakfu_server/combat/combat_displacement_geometry.py"
+        ).read_text()
+    )
+    optional = None
+    for declaration in geometry_tree.body:
+        if isinstance(declaration, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id == "FAMILIES"
+            for target in declaration.targets
+        ):
+            optional = set(ast.literal_eval(declaration.value))
+    if optional is None:
+        raise ValueError("Missing displacement family declaration")
     entry = re.sub(
         r"\s+",
         "",
@@ -254,11 +272,26 @@ def main(output=OUT):
     state_links = {}
     for key, effect in effects.items():
         refs = set()
-        if effect["effect_class"] in (304, 321):
+        specs = [
+            spec
+            for spec in dependency_specs(effect["effect_class"])
+            if spec.kind == "state" and spec.relation != "removes"
+        ]
+        for spec in specs:
+            if spec.fixed_reference is not None:
+                refs.add(str(spec.fixed_reference))
+                continue
             for values in effect.get("parameters_by_level", []):
-                if values:
-                    refs.add(str(int(values[0])))
-            if not refs and effect.get("parameter0_by_level"):
+                if len(values) > spec.parameter_index:
+                    value = int(values[spec.parameter_index])
+                    if spec.transform == "signed-short":
+                        value = ((value + 32768) % 65536) - 32768
+                    refs.add(str(value))
+            if (
+                not refs
+                and spec.parameter_index == 0
+                and effect.get("parameter0_by_level")
+            ):
                 refs.update(str(int(v)) for v in effect["parameter0_by_level"])
         state_links[key] = refs
     state_roots = {
@@ -460,7 +493,7 @@ def main(output=OUT):
         )
     ] + [source, ROOT / "server/wakfu_server/combat/combat_server_spell.py"]
     inputs.extend(sorted((ROOT / "server/wakfu_server/combat").glob("*.py")))
-    inputs.extend([review_path, Path(__file__).resolve()])
+    inputs.extend([review_path, Path(__file__).resolve(), *operation_source_paths()])
     if names_path.exists():
         inputs.append(names_path)
     if extra_audit_path.exists():

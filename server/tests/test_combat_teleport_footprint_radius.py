@@ -44,6 +44,7 @@ class TeleportFootprintTests(unittest.TestCase):
             phase="active",
             current=7,
             actors={7: self.actor},
+            events=[],
             native_effect_areas={},
             native_retired_area_managers={},
             native_carry_pairs={},

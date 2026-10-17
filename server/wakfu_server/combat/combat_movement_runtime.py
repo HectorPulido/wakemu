@@ -129,6 +129,19 @@ def apply_client(
     actor_id, path = decode_request(body)
     fight = runtime.fight
     actor = fight._current_owned(owner_id, actor_id)
+    from .combat_portal_travel import try_apply_portal_travel
+
+    gate = try_apply_portal_travel(
+        runtime,
+        owner_id,
+        actor_id,
+        path,
+        stats_serializer,
+        runtime_stats_serializer=runtime_stats_serializer,
+        step_callback=_step_callback,
+    )
+    if gate is not None:
+        return gate
     origin = actor.position
     direction = direction_after_path(origin, path, getattr(actor, "direction", None))
     # Serialize anticipated owned state before committing, so codec failure

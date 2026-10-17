@@ -97,22 +97,50 @@ class AchievementProjectionPostgresTests(PostgresCase):
 
     def _assert_actual_initial_bootstrap(self, character, expected):
         import base64
-        import json
+        import hashlib
+        import os
         from pathlib import Path
         from protocol_codec import Reader
         from wakfu_server import wire as entity_wire
+        from wakfu_server.postgres import Database
+        from wakfu_server.storage.bootstrap_capture import load
 
-        capture = Path(
-            ".runtime/captures/2026-10-03T03-40-46.413625Z-fe2520f4/decoded/frames.jsonl"
+        # The original carrier is imported runtime authority, not a copied
+        # private capture. Its manifest and every ordered frame are verified.
+        runtime_url = os.environ.get("WAKFU_DATABASE_URL")
+        self.assertTrue(runtime_url, "Original bootstrap runtime database is required")
+        runtime = Database(
+            runtime_url, password_file=os.environ.get("WAKFU_DATABASE_PASSWORD_FILE")
         )
-        original = None
-        with capture.open() as frames:
-            for line in frames:
-                frame = json.loads(line)
-                if frame.get("direction") == "in" and frame.get("opcode") == 12666:
-                    original = base64.b64decode(frame["body_base64"])
-                    break
-        self.assertIsNotNone(original, "Installed owned bootstrap fixture unavailable")
+        try:
+            with runtime.connection() as db:
+                self.assertEqual(
+                    db.execute("SHOW transaction_read_only").fetchone()[
+                        "transaction_read_only"
+                    ],
+                    "on",
+                    "Bootstrap reference acquisition requires a read-only runtime connection",
+                )
+                frames = load(
+                    db,
+                    "native-bootstrap-v1",
+                    expected_source_sha256="061e3c7c2c4dca1d63e1986910b79467a26f0aa52eb86e43d3e1abb8ad8619ba",
+                )
+        finally:
+            runtime.close()
+        originals = [
+            base64.b64decode(frame["body_base64"], validate=True)
+            for frame in frames
+            if frame.get("direction") == "in" and frame.get("opcode") == 12666
+        ]
+        self.assertEqual(
+            len(originals), 1, "Expected one original owned bootstrap carrier"
+        )
+        original = originals[0]
+        self.assertEqual(
+            hashlib.sha256(original).hexdigest(),
+            "a8ba7c9bbe6e1073473d0b9eea4d117ffd5aebb7854fd65e21ae03d45cb7c2b4",
+        )
         published = entity_wire.adapt(12666, original, self.account, character)
         marker = b"private-achievement-boundary-marker"
         control = entity_wire.adapt(

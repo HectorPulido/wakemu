@@ -5,8 +5,26 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "server"))
+from wakfu_server.combat_operation_registry import dependency_specs
+from combat_operation_sources import operation_source_paths
+
+
+def _reference_spec(family):
+    specs = dependency_specs(family)
+    return specs[0] if specs else None
+
+
+def _reference_target(family):
+    spec = _reference_spec(family)
+    if spec is None or spec.relation == "removes":
+        return None
+    return "profiles" if spec.kind == "summon" else spec.kind + "s"
+
+
 CATALOG_PATHS = (
     "native-class-summon-abilities.json",
     "native-class-summon-initial-states.json",
@@ -48,7 +66,8 @@ def compact(document):
     result["effects"] = {}
     for key, row in document.get("effects", {}).items():
         family = row["effect_class"]
-        index = 2 if family == 649 else 0
+        spec = _reference_spec(family)
+        index = spec.parameter_index if spec and spec.parameter_index is not None else 0
         references = (
             sorted(
                 {
@@ -57,7 +76,7 @@ def compact(document):
                     if len(values) > index and type(values[index]) is int
                 }
             )
-            if family in (304, 321, 307, 315, 426, 649)
+            if spec is not None and spec.fixed_reference is None
             else []
         )
         result["effects"][key] = dict(
@@ -66,10 +85,10 @@ def compact(document):
             references=references,
             native_effect_flags=row.get("native_effect_flags"),
         )
-        if family == 994:
-            # Installed eZq/eZn constructs faB; eHI.cmY is fixed2349.
-            result["effects"][key]["references"] = [2349]
-            result["effects"][key]["fixed_profile_source"] = "eZq.eZn.faB.eHI.cmY"
+        if spec is not None and spec.fixed_reference is not None:
+            result["effects"][key]["references"] = [spec.fixed_reference]
+            if family == 994:
+                result["effects"][key]["fixed_profile_source"] = "eZq.eZn.faB.eHI.cmY"
         if family == 307:
             result["effects"][key]["parameter_samples_by_level"] = {
                 str(level): list(values)
@@ -109,15 +128,7 @@ def dependency_closure(tables, monsters, seed_spell_ids, seed_state_ids=()):
             pending += [("effects", str(ref)) for ref in row]
         else:
             pending += [("effects", str(ref)) for ref in row["children"]]
-            target = {
-                304: "states",
-                321: "states",
-                307: "profiles",
-                994: "profiles",
-                315: "areas",
-                426: "spells",
-                649: "spells",
-            }.get(row["family"])
+            target = _reference_target(row["family"])
             if target:
                 if not row["references"]:
                     missing.add("evaluated-references:" + key)
@@ -291,15 +302,7 @@ def resolved_container_domains(tables, monsters, spell, contexts):
                 ("effects", str(child), child_level, child_override)
                 for child in row["children"]
             )
-            target = {
-                304: "states",
-                321: "states",
-                307: "profiles",
-                994: "profiles",
-                315: "areas",
-                426: "spells",
-                649: "spells",
-            }.get(row["family"])
+            target = _reference_target(row["family"])
             if target:
                 for ref in row["references"]:
                     if row["family"] == 307:
@@ -540,6 +543,9 @@ def build_documents(
         inputs[path] = provenance["bundle_documents"][path.name]
     exporter = ROOT / "sniffer/java/ExportOwnedCapturedProfiles.java"
     before = {str(path.relative_to(ROOT)): digest(path) for path in inputs}
+    before.update(
+        {str(path.relative_to(ROOT)): digest(path) for path in operation_source_paths()}
+    )
     if any(
         before[str(path.relative_to(ROOT))] != expected
         for path, expected in inputs.items()
@@ -585,8 +591,9 @@ def build_documents(
         current = tables["effects"][key]
         if current["family"] != row["family"] or current["children"] != row["children"]:
             raise ValueError("Conflicting original zero-level effect " + key)
-        if row["family"] in (304, 321, 307, 315, 426, 649):
-            index = 2 if row["family"] == 649 else 0
+        spec = _reference_spec(row["family"])
+        if spec is not None and spec.fixed_reference is None:
+            index = spec.parameter_index
             if len(row["parameters"]) <= index:
                 raise ValueError("Missing original zero-level reference " + key)
             current["references"] = sorted(
@@ -666,6 +673,9 @@ def build_documents(
     if set(exported["profiles"]) != set(map(str, profile_ids)):
         raise ValueError("Incomplete original summon profile export")
     after = {str(path.relative_to(ROOT)): digest(path) for path in inputs}
+    after.update(
+        {str(path.relative_to(ROOT)): digest(path) for path in operation_source_paths()}
+    )
     after[str(exporter.relative_to(ROOT))] = digest(exporter)
     if after != before:
         raise ValueError("Native summon inputs changed during export")

@@ -118,13 +118,22 @@ class NativeCapturedSummonPipeline:
         create,
         scale_characteristics,
         mark_symbiot,
-        commit_roster
+        commit_roster,
+        bind_descriptor=None,
+        current_roster=None
     ):
         self.profile_descriptor = profile_descriptor
         self.create = create
         self.scale_characteristics = scale_characteristics
         self.mark_symbiot = mark_symbiot
         self.commit_roster = commit_roster
+        self.bind_descriptor = bind_descriptor
+        self.current_roster = current_roster
+        if any(
+            callback is not None and not callable(callback)
+            for callback in (bind_descriptor, current_roster)
+        ):
+            raise ValueError("Invalid live captured descriptor providers")
         if not all(
             callable(callback)
             for callback in (
@@ -159,6 +168,10 @@ class NativeCapturedSummonPipeline:
         )
         if descriptor is None:
             raise ValueError("Missing actual captured profile descriptor/book source")
+        if self.bind_descriptor is not None:
+            self.bind_descriptor(
+                preview, plan.owner_id, plan.selected_slot, plan.actor_id
+            )
         actor = self.create(
             preview,
             plan.specification,
@@ -171,9 +184,14 @@ class NativeCapturedSummonPipeline:
             raise ValueError("Native captured summon factory returned no actor")
         self.scale_characteristics(actor, plan.main_factor, plan.secondary_factor)
         self.mark_symbiot(actor, True)  # eGj.lE(true) only after factory + fan.
-        flags = list(roster.available)
+        live = (
+            self.current_roster(preview) if self.current_roster is not None else roster
+        )
+        if not isinstance(live, OwnedCapturedRoster) or live.owner_id != plan.owner_id:
+            raise ValueError("Missing current captured roster after construction")
+        flags = list(live.available)
         flags[plan.selected_slot] = False
-        self.commit_roster(preview, replace(roster, available=tuple(flags)))
+        self.commit_roster(preview, replace(live, available=tuple(flags)))
         return actor
 
 

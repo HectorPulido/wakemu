@@ -4,6 +4,8 @@ Native bdO initializes every defined objective as incomplete. Unknown IDs are
 not incomplete: native bdM.Bd raises, and our evaluator rejects them too.
 GetInstanceId reads the POSITION world identity, represented by map_id here.
 """
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from functools import lru_cache
 import re
 
@@ -72,7 +74,11 @@ def evaluate(criteria, character, facts, known=None):
         if match:
             # Owned character.level is progression drm, not selected build cmZ.
             level = character.get("level")
-            if type(level) is not int or not 1 <= level <= 200 or level < int(match[1]):
+            if (
+                type(level) is not int
+                or not 1 <= level <= MAX_CHARACTER_LEVEL
+                or level < int(match[1])
+            ):
                 return False
             continue
         return False

@@ -10,7 +10,7 @@ from .combat_turns import initial_order
 from .combat_wire import initial_timeline, topology
 
 
-def _retained_carrier_packets(fight, action_id):
+def _retained_carrier_packets(fight, action_id, *, area_rehydration=None):
     """Reinstall tracked retained effects without re-running child effects."""
     if fight.native_retained_tracking is not True:
         raise ValueError("Spectator snapshot needs a complete retained-effect ledger")
@@ -114,8 +114,42 @@ def _retained_carrier_packets(fight, action_id):
                 uid=uid,
                 running_effect_payload=payload,
             )
+        if (
+            area_rehydration is not None
+            and area is not None
+            and area.get("executed") is True
+            and area.get("native_private_area") is None
+            and area["area_uid"] in getattr(fight, "native_effect_areas", {})
+        ):
+            # The emitted carrier must be the sole native eYQ object. A prior
+            # myF registration with this UID makes Qf.p ignore its visual owner.
+            area_rehydration[uid] = (manager_id, entry.effect_class)
         packets.append((opcode, body))
     return tuple(packets)
+
+
+def _project_rehydrated_area_creators(effects, actor_id, area_rehydration):
+    """Keep remote Qf facts except live area objects constructed by a carrier."""
+    selected = {
+        uid: family
+        for uid, (manager, family) in area_rehydration.items()
+        if manager == actor_id
+    }
+    if not selected:
+        return effects
+    from .combat_remote_effects import decode_remote_effects, encode_remote_effects
+    from .combat_effect_removal import _identity_fields
+
+    kept, seen = [], set()
+    for row in decode_remote_effects(effects):
+        uid = _identity_fields(row.payload, integer_fields=(1,)).get(1)
+        if uid in selected:
+            if row.effect_class != selected[uid] or uid in seen:
+                raise ValueError("Conflicting spectator area creator Qf registration")
+            seen.add(uid)
+        else:
+            kept.append(row)
+    return encode_remote_effects(kept)
 
 
 def current_snapshot(
@@ -193,6 +227,8 @@ def current_snapshot(
             )
         )
 
+    birth_ids = set(getattr(fight, "native_summon_registrations", {})) & set(payloads)
+    restore_summon_timeline = fight.phase == "active" and bool(birth_ids)
     if fight.phase == "placement":
         phase_code = 1  # Native fbZ.PLACEMENT.
         order = initial_order(
@@ -224,6 +260,14 @@ def current_snapshot(
     else:
         raise ValueError("Only live placement or action fights can be observed")
 
+    if restore_summon_timeline:
+        # Native cva feeds myG to SU/Tc before effect births execute. Starting
+        # with the full membership would enroll a timeline summon twice when
+        # its exact creation effect subsequently inserts that member.
+        from .combat_delivery_boundary import initial_summon_timeline
+
+        fight_timeline = initial_summon_timeline(fight, birth_ids)
+
     value = dict(
         fight_id=fight.id,
         kind=2,
@@ -242,12 +286,29 @@ def current_snapshot(
         myK=environment_sections(fight),
     )
     timeline_state = timeline_snapshot(3)
+    area_rehydration = {}
+    state_packets = (
+        _retained_carrier_packets(fight, action_id, area_rehydration=area_rehydration)
+        if fight.phase == "active"
+        else ()
+    )
+    if area_rehydration:
+        for participant in participants:
+            identity = participant["actor_id"]
+            effects = _project_rehydrated_area_creators(
+                participant["myF"], identity, area_rehydration
+            )
+            participant["myF"] = effects
+            payloads[identity] = (payloads[identity][0], effects)
     bootstrap_packet = spectator_bootstrap(
         value, phase_code=phase_code, timeline_snapshot=timeline_state
     )
-    state_packets = (
-        _retained_carrier_packets(fight, action_id) if fight.phase == "active" else ()
-    )
+    if fight.phase == "active":
+        from .combat_death_script_snapshot import immediate_death_script_packets
+
+        state_packets = tuple(state_packets) + immediate_death_script_packets(
+            fight, actors, action_id
+        )
     # Native buK resolves bootstrap roster IDs through bio.jv before applying
     # their stat snapshots. A summon created before this observer arrived has
     # no client entity yet; listing its ID in cva does not construct one.
@@ -285,6 +346,17 @@ def current_snapshot(
         packets.extend(creation_packets)
         packets.append(flush)
     packets.extend(current_packets)
+    if restore_summon_timeline:
+        from .combat_recovery import recovery_packet
+        from .combat_phase import action_transition
+
+        # cjk registers cvn/12053 on the spectator's same fight dispatcher;
+        # cjv restores SU without a participant-owner check. Restore the full
+        # counters/current member only after the native birth queue is closed.
+        packets.append(
+            recovery_packet(fight, struct.pack(">i", fight.id), deadline_ms=deadline_ms)
+        )
+        packets.append(action_transition(fight.id))
     packets.extend(state_packets)
     if state_packets:
         packets.append(flush)

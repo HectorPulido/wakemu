@@ -28,6 +28,12 @@ class OwnedEquipmentRuntimeFactory:
     __slots__ = ("_factory", "_compiled")
 
     def __init__(self, factory, compiled):
+        # Reusing the same canonical definition view must not nest composition.
+        if (
+            type(factory) is OwnedEquipmentRuntimeFactory
+            and factory._compiled is compiled
+        ):
+            factory = factory._factory
         object.__setattr__(self, "_factory", factory)
         object.__setattr__(self, "_compiled", compiled)
 
@@ -68,9 +74,19 @@ class OwnedEquipmentRuntimeFactory:
             # not a process-cache input and may belong to one constructor call.
             from .combat_native_area_metadata import merge_native_point_areas
 
-            effects = merge_native_point_areas(
-                _merge_effects(self._factory.effects, {"effects": definitions})
-            )
+            merged = _merge_effects(self._factory.effects, {"effects": definitions})
+            # Compiled metadata freezes arrays as tuples; the JSON source uses
+            # lists. Normalize that representation before the native equality
+            # guard, which still rejects genuinely different coordinates.
+            merged = {
+                key: dict(
+                    effect, native_area_points=_plain(effect["native_area_points"])
+                )
+                if "native_area_points" in effect
+                else effect
+                for key, effect in merged.items()
+            }
+            effects = merge_native_point_areas(merged)
         nested = copy(self._factory)
         nested.effects = effects
         # Preserve all providers, callbacks and transaction RNG. These two

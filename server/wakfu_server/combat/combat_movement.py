@@ -20,3 +20,15 @@ def movement(fight_id, action_id, actor_id, points, direction, parent_action_id=
     )
     body += b"".join(struct.pack(">iih", *point) for point in points)
     return 13624, body
+
+
+def portal_movement(fight_id, action_id, actor_id, origin, destination, direction):
+    """Original fcC.USE_GATE_TELEPORT ordinal3, cvP13624 ->cjA/aVw.
+
+    amK.bDW supplies the final destination; aVw preserves actor facing.
+    Keep the ordinary STANDARD writer unchanged.
+    """
+    opcode, body = movement(
+        fight_id, action_id, actor_id, [origin, destination], direction
+    )
+    return opcode, body[:21] + b"\x03" + body[22:]

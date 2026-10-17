@@ -1,7 +1,4 @@
 """Actual ally gift, owned turn/movement and recipient attack; no state injection."""
-import gc
-
-gc.disable()
 import json, os, sys
 from pathlib import Path
 from copy import deepcopy

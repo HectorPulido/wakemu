@@ -87,6 +87,7 @@ def ensure_environment_glyphs(fight):
             or definition.get("type") != "GLYPH"
             or definition.get("native_shape_class") != "anD"
             or definition.get("raw_bdh") != []
+            or definition.get("native_area_properties") != [4]
             or definition.get("effect_ids") != [152452]
             or definition.get("entry_masks") != [10001, 10008, 10000]
             or definition.get("exit_masks") != [10002]
@@ -127,8 +128,18 @@ def ensure_environment_glyphs(fight):
     fight.native_environment_glyphs_installed = True
 
 
-def environment_sections(fight):
-    """cvb.myK: prototype + fec.f header + faY.fTl mutable appearance."""
+def environment_sections(fight, *, viewer_id=None):
+    """Project local neutral glyph visibility through the native owner header.
+
+    Prototype910 has INVISIBLE_FOR_ENEMIES. Its faV affiliation defaults to -1
+    without an owner, which hides it from fighters but reveals it to observers.
+    A real participant owner in myK binds the visual carrier to that viewer's
+    team. This projection never changes the authoritative neutral area owner
+    or effects; spectators retain the native null-owner representation.
+    """
+    if viewer_id is not None and viewer_id not in fight.actors:
+        raise ValueError("Environmental glyph viewer is not a fight actor")
+    visual_owner = 0 if viewer_id is None else viewer_id
     installed = getattr(fight, "native_environment_glyphs_installed", False)
     sections = []
     for source in getattr(fight, "native_environment_glyph_constructors", ()):
@@ -138,10 +149,12 @@ def environment_sections(fight):
         if row is not None:
             verify_environment_glyph(fight, row)
         cell = tuple(source["cell"] if row is None else row["cell"])
-        # faY910 aQc initializes rMq=false. The NULL-owner clone retains
-        # its constructor aBn reference (0,0,0); the point shape ignores it.
+        # faY910 aQc initializes rMq=false. Explicit faY.fTl appearance keeps
+        # the aBn reference (0,0,0); the point shape ignores that reference.
         sections.append(
-            struct.pack(">qqiihqhib", REFERENCE, source["uid"], *cell, 0, 0, -1, -1)
+            struct.pack(
+                ">qqiihqhib", REFERENCE, source["uid"], *cell, visual_owner, 0, -1, -1
+            )
             + struct.pack(">Biihb", 0, 0, 0, 0, -1)
         )
     return sections

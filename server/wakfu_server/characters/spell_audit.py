@@ -3,6 +3,8 @@
 This intentionally does not enable spell execution. Even a lone damage effect
 needs targeting, critical, passive and conditional cost/range rules verified.
 """
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from wakfu_server import native_catalog as protocol_catalog
 from .paths import DATA_ROOT
 from functools import lru_cache
@@ -27,12 +29,14 @@ def states_catalog():
 
 
 def inspect_spell(spell_id, level):
-    if type(level) is not int or not 1 <= level <= 200:
+    if type(level) is not int or not 1 <= level <= MAX_CHARACTER_LEVEL:
         raise ValueError("Unsupported spell audit level")
     data = catalog()
     spell = data["spells"].get(str(spell_id))
     if spell is None:
         raise ValueError("Unknown spell audit reference")
+    if level > len(spell["levels"]):
+        raise ValueError("Missing native spell audit level")
     minimum, maximum, roots = spell["levels"][level - 1]
     output = []
     linked_states = []

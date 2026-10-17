@@ -8,7 +8,7 @@ _SCOPE = "_wakemu_committed_movement_recipient_scope"
 def validate_movement_boundary_context(context, *, fight=None):
     if (
         not isinstance(context, dict)
-        or set(context)
+        or set(context) - {"gate_boundary"}
         != {
             "policy",
             "actor_id",
@@ -29,6 +29,25 @@ def validate_movement_boundary_context(context, *, fight=None):
     ):
         raise ValueError("Invalid committed movement boundary facts")
     origin, destination = context["from_cell"], context["to_cell"]
+    gate = None
+    if "gate_boundary" in context:
+        if any(
+            not isinstance(cell, (tuple, list))
+            or len(cell) != 3
+            or any(type(value) is not int for value in cell)
+            for cell in (origin, destination)
+        ):
+            raise ValueError("Invalid committed movement boundary step")
+        from .combat_gate_movement_boundary import validate_gate_boundary_facts
+
+        gate = validate_gate_boundary_facts(context["gate_boundary"])
+        if (
+            gate.actor_id != context["actor_id"]
+            or gate.turn_id != context["turn_id"]
+            or tuple(gate.from_cell) != tuple(origin)
+            or tuple(gate.to_cell) != tuple(destination)
+        ):
+            raise ValueError("Gate receipt differs from movement boundary facts")
     if (
         any(
             not isinstance(cell, (tuple, list))
@@ -36,7 +55,8 @@ def validate_movement_boundary_context(context, *, fight=None):
             or any(type(value) is not int for value in cell)
             for cell in (origin, destination)
         )
-        or abs(origin[0] - destination[0]) + abs(origin[1] - destination[1]) != 1
+        or gate is None
+        and abs(origin[0] - destination[0]) + abs(origin[1] - destination[1]) != 1
     ):
         raise ValueError("Invalid committed movement boundary step")
     if fight is not None:
@@ -51,6 +71,15 @@ def validate_movement_boundary_context(context, *, fight=None):
             or tuple(destination) not in fight.walkable
         ):
             raise ValueError("Committed movement facts differ from actual participant")
+        if gate is not None:
+            from .combat_gate_movement_boundary import current_gate_movement_boundary
+
+            actual = current_gate_movement_boundary(
+                fight, context["actor_id"], origin, destination
+            )
+            if actual is None or actual.facts() != gate.facts():
+                raise ValueError("Unattested native gate movement receipt")
+            return context
         if fight.edges is not None:
             if (tuple(origin), tuple(destination)) not in fight.edges:
                 raise ValueError("Committed movement lacks native terrain edge")

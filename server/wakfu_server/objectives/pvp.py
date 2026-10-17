@@ -1,4 +1,6 @@
 """Hourly selected-account matchups over authoritative consenting native duels."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from psycopg.types.json import Jsonb
@@ -35,7 +37,7 @@ def validate_level_policy(policy):
     ):
         raise ValueError("Invalid PvP level policy")
     minimum = 0 if kind == "absolute" else 1
-    maximum = 100 if kind == "relative" else 200
+    maximum = 100 if kind == "relative" else MAX_CHARACTER_LEVEL
     if not minimum <= policy[field] <= maximum:
         raise ValueError("PvP level policy is out of range")
     return policy
@@ -44,7 +46,8 @@ def validate_level_policy(policy):
 def compatible_levels(policy, first, second):
     validate_level_policy(policy)
     if any(
-        type(level) is not int or not 1 <= level <= 200 for level in (first, second)
+        type(level) is not int or not 1 <= level <= MAX_CHARACTER_LEVEL
+        for level in (first, second)
     ):
         return False
     if policy["type"] == "relative":
@@ -239,16 +242,18 @@ def tick(db, now=None):
         "JOIN character_build_selection selection ON selection.character_id=c.id "
         "LEFT JOIN character_builds build ON build.character_id=c.id AND build.build_index=selection.active_index "
         "WHERE s.expires_at>%s AND c.deleted_at IS NULL "
-        "AND c.instance_id=0 AND c.level BETWEEN 1 AND 200 "
+        "AND c.instance_id=0 AND c.level BETWEEN 1 AND %s "
         "AND NOT EXISTS(SELECT 1 FROM combat_fight_participants p JOIN combat_fights f ON f.id=p.fight_id "
         "WHERE p.account_id=s.account_id AND f.status IN ('placement','active')) "
         "AND NOT EXISTS(SELECT 1 FROM objectives_pvp_events e WHERE e.status='in_fight' "
         "AND s.account_id IN(e.first_account_id,e.second_account_id)) "
         "ORDER BY md5(%s||':'||s.account_id::text),s.account_id",
-        (now, key),
+        (now, MAX_CHARACTER_LEVEL, key),
     ).fetchall()
     players = [_effective_player(player) for player in players]
-    players = [player for player in players if 1 <= player["level"] <= 200]
+    players = [
+        player for player in players if 1 <= player["level"] <= MAX_CHARACTER_LEVEL
+    ]
     policy = level_policy(db)
     pair = next(
         (

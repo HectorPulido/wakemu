@@ -1,4 +1,6 @@
 """Hourly PvP events bind to consenting, durable friendly duels."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from datetime import datetime, timezone
 import json
 import os
@@ -91,7 +93,7 @@ class ObjectivesPvpLevelPolicyTests(unittest.TestCase):
             {"type": "relative", "maximum_percent": 101},
             {"type": "absolute", "maximum_difference": -1},
             {"type": "bracket", "size": 0},
-            {"type": "bracket", "size": 201},
+            {"type": "bracket", "size": MAX_CHARACTER_LEVEL + 1},
         ):
             with self.subTest(policy=policy), self.assertRaises(ValueError):
                 pvp.validate_level_policy(policy)

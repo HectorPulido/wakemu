@@ -1,4 +1,6 @@
 """Durable limited mission selection, frozen once per account and period."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 import hashlib
 from datetime import datetime, timezone
 from .schedules import period_key, DEFAULT_TIMEZONE
@@ -88,7 +90,9 @@ def ensure_for_character(db, account_id, character_id, level, at=None):
         eligible = []
         for row in candidates:
             rule = row["definition"]
-            band = rule.get("level_range", {"minimum": 1, "maximum": 200})
+            band = rule.get(
+                "level_range", {"minimum": 1, "maximum": MAX_CHARACTER_LEVEL}
+            )
             if (
                 not managed(rule)
                 or group_key(rule) != group

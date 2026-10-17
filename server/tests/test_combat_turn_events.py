@@ -240,7 +240,7 @@ class OwnedTurnEndTests(unittest.TestCase):
 
 class RealNativeTurnEndReactionTests(unittest.TestCase):
     def initialized(self, breed, passives):
-        from server.tests.test_combat_spell_transaction import SpellTransactionTests
+        from test_combat_spell_transaction import SpellTransactionTests
         from wakfu_server.combat_server_spell import prepare_server_initialization
         from wakfu_server.spells import encode_deck
         from random import Random
@@ -264,7 +264,7 @@ class RealNativeTurnEndReactionTests(unittest.TestCase):
 
     def test_yopuka_charge_then_owned_end_turn_uses_actual_trigger_identity(self):
         import struct, random
-        from server.tests.test_combat_spell_transaction import SpellTransactionTests
+        from test_combat_spell_transaction import SpellTransactionTests
         from wakfu_server.combat_server_spell import (
             prepare_server_initialization,
             prepare_server_spell,

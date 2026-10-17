@@ -126,9 +126,9 @@ class GenericPopulationLifecycleTests(unittest.TestCase):
             replay_event=replay,
         )
         deliver_fight_start(dispatcher, initialized_actor_ids=(31, 42, -8001))
-        self.assertEqual(len(seen), 15)
+        self.assertEqual(len(seen), 18)
         self.assertTrue(all(row[2:] == (1, 1) for row in seen))
-        self.assertEqual({row[0] for row in seen if row[1] == (1028,)}, {31, 42})
+        self.assertEqual({row[0] for row in seen if row[1] == (1028,)}, {31, 42, -8001})
         self.assertEqual({row[0] for row in seen if row[1] == (1003,)}, {31, 42, -8001})
         self.assertEqual(fight.turn_id, 1)
         self.assertTrue(fight.native_start_event_delivered)

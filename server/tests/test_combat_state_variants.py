@@ -42,7 +42,7 @@ class NativeStateVariantTests(unittest.TestCase):
     def paired_roots(self):
         evidence = (
             Path(__file__).resolve().parents[2]
-            / "docs/reports/combat-inventory/native-cra-beacon-reaction-contract-20261008.json"
+            / "agents_docs/reports/combat-inventory/native-cra-beacon-reaction-contract-20261008.json"
         )
         return json.loads(evidence.read_text())["compiled_paired_root_definitions"]
 

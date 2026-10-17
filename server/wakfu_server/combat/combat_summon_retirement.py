@@ -8,6 +8,7 @@ fully registered summons with exact HP, status, and KO_TIME authority.
 from copy import deepcopy
 
 from .combat_captured_roster_lifecycle import release_captured_slot_on_retirement
+from .combat_captured_descriptor_binding import descriptor_actor_id
 from .combat_global_pv_collections import (
     global_fighter_guards,
     global_fighter_registered,
@@ -271,6 +272,17 @@ def retired_summon_ids(fight, *, registry=None):
             roster = OwnedCapturedRoster.from_record(
                 record_data, expected_owner_id=owner_id
             )
+            # Native pY scans every descriptor by active actor UID. A
+            # cleared historical slot cannot hide a retained UID elsewhere.
+            if any(
+                descriptor_actor_id(fight, owner_id, index) == (True, actor_id)
+                for index in range(10)
+            ):
+                raise ValueError("Retired captured actor still owns a descriptor UID")
+            known_binding, bound_actor = descriptor_actor_id(fight, owner_id, slot)
+            if known_binding:
+                result.add(actor_id)
+                continue  # The current descriptor no longer belongs to this tombstone.
             descriptor = roster.slots[slot]
             # Availability is current component state, not an immutable death
             # fact: a subsequent native324 can consume this released slot.
@@ -364,6 +376,10 @@ def _retire_one(preview, actor_id, *, protected=False):
         )
         preview.native_captured_rosters = probe.native_captured_rosters
         preview.native_captured_roster_updates = probe.native_captured_roster_updates
+        if hasattr(probe, "native_captured_descriptor_actor_ids"):
+            preview.native_captured_descriptor_actor_ids = (
+                probe.native_captured_descriptor_actor_ids
+            )
 
     set_global_fighter_status(preview, actor_id, "OUT_OF_PLAY")
     registry.remove(slot, ("actor", actor_id))
@@ -406,70 +422,6 @@ def _retire_one(preview, actor_id, *, protected=False):
     return True
 
 
-def settle_summon_retirements(fight):
-    """Apply the server OUT_OF_PLAY policy after the outer effect chain settles."""
-    registrations = getattr(fight, "native_summon_registrations", {})
-    if not isinstance(registrations, dict):
-        raise ValueError("Malformed native summon registration checkpoint")
-    if not registrations:
-        return ()
-    existing = retired_summon_ids(fight)
-    candidates = []
-    for actor_id in registrations:
-        if actor_id in existing:
-            continue
-        actor = fight.actors.get(actor_id)
-        if actor is None:
-            raise ValueError("Registered summon actor is missing at death settlement")
-        if actor.hp > 0:
-            continue
-        # PA.on(0), including eYO, does not itself register a death. Elect
-        # retirement from the actual fdy transition, never from HP alone.
-        life = global_fighter_guards(fight, actor_id)
-        if life == dict(baF=True, baG=False, baK=False):
-            continue
-        # Establish complete source and KO facts before treating any missing
-        # information as a policy decision.
-        _registration(fight, actor_id)
-        if _ko_current(actor) != 0:
-            continue
-        candidates.append(actor_id)
-    if not candidates:
-        return ()
-    if getattr(fight, "_resolution_depth", 0) != 0:
-        raise ValueError("Summon retirement cannot run inside a nested effect chain")
-
-    # Preflight every candidate and captured component on a private snapshot;
-    # publish only the lifecycle fields after all candidates validate.
-    preview = deepcopy(fight)
-    retired = []
-    for actor_id in candidates:
-        if _retire_one(preview, actor_id):
-            retired.append(actor_id)
-    if not retired:
-        return ()
-    fight.native_qi_slots = preview.native_qi_slots
-    fight.native_qi_touched_cells = preview.native_qi_touched_cells
-    fight.native_qi_byte_topology = preview.native_qi_byte_topology
-    fight.native_global_pv_collections = preview.native_global_pv_collections
-    if hasattr(preview, "native_captured_rosters"):
-        fight.native_captured_rosters = preview.native_captured_rosters
-    if hasattr(preview, "native_captured_roster_updates"):
-        fight.native_captured_roster_updates = preview.native_captured_roster_updates
-    fight.native_summon_retirements = preview.native_summon_retirements
-    if hasattr(fight, "native_pointer_checkpoint"):
-        fight.native_pointer_checkpoint.commit_topology_from(
-            preview.native_pointer_checkpoint, fight
-        )
-    for actor_id in retired:
-        # Publish the exact QK.M(-1) identity update alongside the QI row
-        # removal; actor objects are retained rather than replaced by preview.
-        fight.actors[actor_id].native_obstacle_id = -1
-    fight.events = preview.events
-    fight.sequence = preview.sequence
-    return tuple(retired)
-
-
 def retire_protected_summon(fight, actor):
     """Server replacement policy after an attested eZG runner has completed.
 
@@ -482,3 +434,9 @@ def retire_protected_summon(fight, actor):
     if actor.hp != 0 or _ko_current(actor) != 0:
         return False
     return _retire_one(fight, actor.id, protected=True)
+
+
+def settle_summon_retirements(fight):
+    from .combat_summon_lifecycle import settle_summons
+
+    return settle_summons(fight)

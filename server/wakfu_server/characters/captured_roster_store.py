@@ -7,7 +7,7 @@ def load(db, character):
     if character["breed"] != 2:
         return None
     schema = db.execute(
-        "SELECT to_regclass('public.character_captured_rosters') AS relation", ()
+        "SELECT to_regclass('character_captured_rosters') AS relation", ()
     ).fetchone()
     if schema is None or schema["relation"] is None:
         # Rolling code delivery before offline DDL: component authority unknown.

@@ -17,6 +17,10 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).parent))
 from build_spell_inventory import literal_handler_families
+from combat_operation_sources import operation_source_paths
+
+sys.path.insert(0, str(ROOT / "server"))
+from wakfu_server.combat_operation_registry import dependency_specs
 
 
 def load(path):
@@ -97,17 +101,18 @@ def build(graph, ledger, innate, routes, profiles=None):
                 continue
             family, children, references = table[key][:3]
             pending += [("effect", value) for value in children]
-            reference_kind = {
-                304: "state",
-                308: "area",  # eYW inherits eYQ prototype reference slot0.
-                314: "area",
-                315: "area",
-                339: "area",
-                649: "spell",
-                307: "summon",
-            }.get(family)
-            if reference_kind:
-                pending += [(reference_kind, value) for value in references]
+            for spec in dependency_specs(family):
+                values = references
+                if spec.fixed_reference is not None:
+                    values = (spec.fixed_reference,)
+                if spec.transform == "signed-short":
+                    values = [((value + 32768) % 65536) - 32768 for value in values]
+                if spec.relation == "removes":
+                    # A removal is an identity dependency, never execution of
+                    # the removed state's effect tree.
+                    seen["removed_state"].update(values)
+                else:
+                    pending += [(spec.kind, value) for value in values]
         families = sorted(
             {
                 effects[str(value)][0]
@@ -171,26 +176,29 @@ def main():
         "--output",
         type=Path,
         default=ROOT
-        / "docs/reports/combat-inventory/class-dependency-coverage-20261007",
+        / "agents_docs/reports/combat-inventory/class-dependency-coverage-20261007",
     )
     args = parser.parse_args()
     graph_path = (
         ROOT / ".runtime/combat-review-20261007/class-closure-compact-graph.json"
     )
     ledger_path = (
-        ROOT / "docs/reports/combat-inventory/verification-ledger-20261007.json"
+        ROOT / "agents_docs/reports/combat-inventory/verification-ledger-20261007.json"
     )
     innate_path = ROOT / "server/protocol/breed-innate-definitions.json"
     runtime_path = ROOT / "server/wakfu_server/combat/combat_effect_runtime.py"
     registry_path = ROOT / "server/protocol/effect-characteristic-registry.json"
-    damage_path = ROOT / "server/wakfu_server/combat/combat_damage_healing.py"
-    displacement_path = ROOT / "server/wakfu_server/combat/combat_displacement.py"
+    damage_path = ROOT / "server/wakfu_server/combat/combat_damage_contracts.py"
+    displacement_path = (
+        ROOT / "server/wakfu_server/combat/combat_displacement_geometry.py"
+    )
     dispatch_path = ROOT / "server/wakfu_server/combat/combat_effect_dispatch.py"
     profiles_path = ROOT / "server/protocol/native-class-summon-abilities.json"
     summon_closure_path = (
         ROOT / "server/protocol/native-class-summon-effect-closure.json"
     )
     paths = [
+        *operation_source_paths(),
         profiles_path,
         summon_closure_path,
         dispatch_path,

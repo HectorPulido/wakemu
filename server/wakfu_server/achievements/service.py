@@ -204,6 +204,8 @@ def track(db, character, achievement_id, enabled):
     ):
         raise ValueError("Unknown or unqualified tracked achievement")
     state = storage.load_locked(db, character["id"])
+    if enabled and achievement_id in state["completed"]:
+        raise ValueError("Completed achievement cannot be tracked")
     tracked = set(state["tracking"])
     if enabled:
         tracked.add(achievement_id)

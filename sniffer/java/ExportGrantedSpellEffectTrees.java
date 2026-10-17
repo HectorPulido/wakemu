@@ -6,7 +6,10 @@ import com.google.gson.Gson;
 public class ExportGrantedSpellEffectTrees {
     static Map<Integer,int[]> groups=new HashMap<>();
     static Map<Integer,String> expressions=new HashMap<>();
+    static int maximumEffectLevel=200;
     static Set<Integer> seen=new HashSet<>();
+    static Set<Integer> pendingSpellReferences=new LinkedHashSet<>();
+    static Set<Integer> exportedSpellReferences=new HashSet<>();
     static List<String> effects=new ArrayList<>(), spells=new ArrayList<>();
     static String ints(int[] values){return Arrays.toString(values).replace(" ","");}
     static Object mask(BitSet value) { return value == null ? null : value.stream().toArray(); }
@@ -94,24 +97,41 @@ public class ExportGrantedSpellEffectTrees {
            .append(Base64.getEncoder().encodeToString(expressions.getOrDefault(ref,"").getBytes(StandardCharsets.UTF_8)))
            .append('\t').append(Arrays.toString(e.fKI()).replace(" ",""))
            .append('\t').append(ints(children)).append('\t').append(e.fKJ());
-        for(short l=1;l<=200;l++) {
+        for(short l=1;l<=maximumEffectLevel;l++) {
             List<Integer> parameters=new ArrayList<>();
             for(int index=0;index<e.fKJ();index++)parameters.add(e.a(index,l,eVh.rpA));
             row.append('\t').append(e.eg(l)).append(':').append(ints(parameters.stream().mapToInt(Integer::intValue).toArray()));
         }
         row.append('\t').append("metadata:").append(Base64.getEncoder().encodeToString(
             new Gson().toJson(metadata(e)).getBytes(StandardCharsets.UTF_8)));
+        if(e.awM()==426 && e.fKJ()>0) {
+            // Original eYZ.c calls parameter0 at literal native level1,
+            // independently of the invoking actor or effect level.
+            int callbackReference=e.a(0,(short)1,eVh.rpA);
+            if(callbackReference>0)pendingSpellReferences.add(callbackReference);
+        }
         effects.add(row.toString());
         for(int child:children)effect(child);
     }
-    public static void main(String[] args)throws Exception {
-        apw.bGL().dd("jar:file:"+Path.of("client/contents/bdata").toAbsolutePath()+"/%d.jar!/%d.bin");
-        apw.bGL().a(new aKX(),new apB<aKX>(){public void load(aKX g){groups.put(g.d(),g.cku());}});
-        apw.bGL().a(new aNw(),new apB<aNw>(){public void load(aNw e){expressions.put(e.aZE(),e.cyi());}});
+    static void configureEffectLevels(String[] args) {
+        if(args.length>2)maximumEffectLevel=Integer.parseInt(args[2]);
+        if(maximumEffectLevel<1 || maximumEffectLevel>245)
+            throw new IllegalArgumentException("Native effect samples must be in1..245");
+    }
+    static void exportPendingSpells() throws Exception {
         var field=fyF.class.getDeclaredField("twf");field.setAccessible(true);
-        for(String idText:Files.readAllLines(Path.of(args[0]))) {
-            int id=Integer.parseInt(idText);bPK s=bPS.elL().IP(id);fyP p=(fyP)field.get(s);
+        while(!pendingSpellReferences.isEmpty()) {
+            int id=pendingSpellReferences.iterator().next();
+            pendingSpellReferences.remove(id);
+            if(!exportedSpellReferences.add(id))continue;
+            String idText=Integer.toString(id);
+            bPK s=bPS.elL().IP(id);
+            if(s==null)throw new IllegalStateException("Missing native callback spell "+id);
+            fyP p=(fyP)field.get(s);
             StringBuilder row=new StringBuilder(idText).append('\t').append(p.cwL()).append('\t').append(p.cwM()).append('\t').append(p.cwN());
+            // Zero is a distinct native root set, never positive index1.
+            var zeroIterator=s.fG((short)0);
+            while(zeroIterator.hasNext())effect(zeroIterator.next().aZE());
             for(short level=1;level<=s.Fq();level++) {
                 List<Integer> roots=new ArrayList<>();var iterator=s.fG(level);
                 while(iterator.hasNext()){int ref=iterator.next().aZE();roots.add(ref);effect(ref);}
@@ -120,6 +140,15 @@ public class ExportGrantedSpellEffectTrees {
             }
             spells.add(row.toString());
         }
+    }
+    public static void main(String[] args)throws Exception {
+        configureEffectLevels(args);
+        apw.bGL().dd("jar:file:"+Path.of("client/contents/bdata").toAbsolutePath()+"/%d.jar!/%d.bin");
+        apw.bGL().a(new aKX(),new apB<aKX>(){public void load(aKX g){groups.put(g.d(),g.cku());}});
+        apw.bGL().a(new aNw(),new apB<aNw>(){public void load(aNw e){expressions.put(e.aZE(),e.cyi());}});
+        for(String idText:Files.readAllLines(Path.of(args[0])))
+            pendingSpellReferences.add(Integer.parseInt(idText));
+        exportPendingSpells();
         Files.write(Path.of(args[1]+"-effects.tsv"),effects);
         Files.write(Path.of(args[1]+"-spells.tsv"),spells);
         System.out.println("Exported "+spells.size()+" native spell trees and "+effects.size()+" effects");

@@ -81,6 +81,41 @@ def decode_added(body):
     return value
 
 
+def removed(fight_id, actor_id, *, action_id, action_context):
+    """Encode cvM/12347 with an explicitly owned cvB header.
+
+    cuQ.fj reads fight_id; cvB.fl reads cbc()/eId(); cvM then reads OO().
+    Native fresh cvB constructor values are 0/-1, but callers must supply
+    their actual context. This removes external membership, not world actors.
+    """
+    if (
+        type(fight_id) is not int
+        or not 0 < fight_id < 2**31
+        or type(actor_id) is not int
+        or actor_id == 0
+        or not -(2**63) <= actor_id < 2**63
+        or any(
+            type(value) is not int or not -(2**31) <= value < 2**31
+            for value in (action_id, action_context)
+        )
+    ):
+        raise ValueError("Invalid native external member removal")
+    return 12347, struct.pack(">iiiq", fight_id, action_id, action_context, actor_id)
+
+
+def decode_removed(body):
+    if not isinstance(body, bytes) or len(body) != 20:
+        raise ValueError("Invalid12347 external member removal length")
+    fight_id, action_id, action_context, actor_id = struct.unpack(">iiiq", body)
+    removed(fight_id, actor_id, action_id=action_id, action_context=action_context)
+    return dict(
+        fight_id=fight_id,
+        action_id=action_id,
+        action_context=action_context,
+        actor_id=actor_id,
+    )
+
+
 def external(value):
     """cuY13753 exact fields; no guesses about neutral myo/myp/jqi/myu semantics.
 

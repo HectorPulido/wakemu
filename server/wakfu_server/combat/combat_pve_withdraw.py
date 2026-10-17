@@ -33,6 +33,48 @@ def _clone_runtime(runtime, fight):
     return clone
 
 
+def live_owner_accounts(fight):
+    """Count living primary players, grouping heroes by their account."""
+    from .combat_terminal_metadata import registered_summon_actor_ids
+
+    summons = registered_summon_actor_ids(fight)
+    if any(
+        actor.id not in summons
+        and (
+            getattr(actor, "native_summon_source", None) is not None
+            or getattr(actor, "is_summon", False) is True
+        )
+        for actor in fight.actors.values()
+    ):
+        raise ValueError("PvE owner roster contains an unregistered native summon")
+    return frozenset(
+        actor.owner_id
+        for actor in fight.actors.values()
+        if actor.controlled
+        and actor.id not in summons
+        and actor.hp > 0
+        and not getattr(actor, "pve_withdrawn", False)
+    )
+
+
+def has_other_live_owner(fight, session):
+    """Validate the requester before choosing an individual or full exit."""
+    from .combat_terminal_metadata import registered_summon_actor_ids
+
+    summons = registered_summon_actor_ids(fight)
+    actor = fight.actors.get(session.character_id)
+    if (
+        actor is None
+        or not actor.controlled
+        or actor.id in summons
+        or actor.owner_id != session.account_id
+        or getattr(actor, "pve_withdrawn", False)
+    ):
+        raise ValueError("Invalid PvE exit owner")
+    other_live = live_owner_accounts(fight) - {session.account_id}
+    return bool(other_live)
+
+
 def plan(session, fight, runtime):
     """Remove one live owner's actors; keep surviving owners and NPCs active.
 
@@ -50,10 +92,18 @@ def plan(session, fight, runtime):
         or (runtime is not None and getattr(runtime, "fight", None) is not fight)
     ):
         raise ValueError("Invalid PvE withdrawal owner or runtime")
+    from .combat_terminal_metadata import registered_summon_actor_ids
+
+    other_accounts = live_owner_accounts(fight) - {session.account_id}
+    summons = registered_summon_actor_ids(fight)
     remaining = [
         member
         for member in fight.actors.values()
-        if member.controlled and member.owner_id != session.account_id and member.hp > 0
+        if member.controlled
+        and member.id not in summons
+        and member.owner_id in other_accounts
+        and member.hp > 0
+        and not getattr(member, "pve_withdrawn", False)
     ]
     if not remaining:
         raise ValueError("Last PvE owner requires full abandonment")

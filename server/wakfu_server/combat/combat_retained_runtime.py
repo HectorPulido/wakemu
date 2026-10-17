@@ -1,4 +1,6 @@
 """Persisted central fresh-cast retention registry, including native groups."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from wakfu_server import native_catalog as protocol_catalog
 from .combat_damage_healing import DAMAGE_FAMILIES
 from .combat_state_managers import state_manager, state_managers
@@ -951,7 +953,7 @@ class NativeRetainedRuntime:
             type(spell) is not int
             or spell <= 0
             or type(level) is not int
-            or not 1 <= level <= 200
+            or not 1 <= level <= MAX_CHARACTER_LEVEL
             or identity != (spell << 16) | (level & 0xFF)
         ):
             return None
@@ -1627,46 +1629,16 @@ class NativeRetainedRuntime:
 
 
 def remove_owned_group(fight, packets, *, action_id, uid):
-    """Common group removal for dispel, state replacement and timer expiry.
+    """Retire an owned group through the shared native mutation boundary."""
 
-    Group removal does not undo its separately owned executed child effects.
-    """
-    row = fight.native_owned_group_effects.get(uid)
-    metadata = fight.native_retained_records.get(uid)
-    if row is None or metadata is None:
-        raise ValueError("Missing centrally owned native group")
-    entry = RetainedEffect(**metadata)
-    payload = running_effect_removal(
-        fight.id,
-        action_id,
-        effect_class=row["effect_class"],
-        target_id=entry.manager_id if row["target_id"] is None else row["target_id"],
-        uid=uid,
-        running_effect_payload=bytes.fromhex(row["payload"]),
-    )
-    manager = entry.manager_id if entry.manager_id is not None else entry.target_id
-    packets.append((13560, payload[:-16] + struct.pack(">qq", manager, uid)))
-    from .combat_native_delay_queue import cancel
+    from .combat_retained_mutation import retire_group
 
-    if hasattr(fight, "native_delay_queue"):
-        cancel(fight.native_delay_queue, uid)
-    del fight.native_owned_group_effects[uid]
-    del fight.native_retained_records[uid]
-    fight.native_retained_order.remove(uid)
+    return retire_group(fight, packets, action_id=action_id, uid=uid)
 
 
 def remove_owned_stat(handler, uid):
-    """Reverse the payload target's stat and address the manager's native Qf."""
-    row = handler.fight.owned_stat_effects.get(uid)
-    if row is None:
-        raise ValueError("Missing owned native stat removal")
-    metadata = handler.fight.native_retained_records.get(uid)
-    manager = row["target_id"] if metadata is None else metadata.get("manager_id")
-    if manager is None:
-        raise ValueError("Missing native retained stat manager identity")
-    handler.remove(uid)
-    if manager != row["target_id"]:
-        opcode, payload = handler.packets[-1]
-        if opcode != 13560 or struct.unpack(">q", payload[-8:])[0] != uid:
-            raise ValueError("Native stat removal outbox identity differs")
-        handler.packets[-1] = (opcode, payload[:-16] + struct.pack(">qq", manager, uid))
+    """Retire native stat ownership while retaining its manager delivery."""
+
+    from .combat_retained_mutation import retire_stat
+
+    return retire_stat(handler, uid)

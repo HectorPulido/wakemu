@@ -192,29 +192,122 @@ class BarrierPvpRuntimeTests(unittest.TestCase):
             barrier_timer = barrier_group.get("timer")
             self.assertEqual(barrier_timer["actor_id"], 8)
             barrier_before = fight.actors[8].hp
+            from wakfu_server.combat_aptitude_initialization import effect_catalog
+            from wakfu_server.combat_damage_handler import NativeDamageHandler
+
+            native_aptitudes = effect_catalog()["effects"]
+            level_group = native_aptitudes["136452"]
+            reduction_effect = native_aptitudes["164892"]
+            self.assertEqual(level_group["effect_class"], 999)
+            self.assertEqual(level_group["children"], [164892])
+            self.assertEqual(level_group["parameters"][14:16], [50.0, 0.0])
+            self.assertEqual(reduction_effect["effect_class"], 430)
+            self.assertEqual(
+                reduction_effect["parameters"], [1.0, 0.0, 0.0, -1.0, 0.0, 0.0]
+            )
+            native_reduction = fight.actors[8].effective_level * 50 // 100
+            self.assertEqual(barrier_group["execution_count"], 1)
+            calculated = []
+            original_calculate = NativeDamageHandler._calculate
+            # Only damage-formula inputs: AP/MP and accumulated class resource67
+            # may change between casts without changing this classic damage.
+            damage_stats = (
+                16,
+                17,
+                20,
+                21,
+                27,
+                28,
+                48,
+                49,
+                52,
+                95,
+                101,
+                102,
+                103,
+                104,
+                105,
+                106,
+                107,
+            )
+
+            def observe_calculation(handler, effect, invocation, **kwargs):
+                result = original_calculate(handler, effect, invocation, **kwargs)
+                if invocation.caster_id == 7 and invocation.target_id == 8:
+                    source = handler.fight.actors[7]
+                    target = handler.fight.actors[8]
+                    context, interpreted, amount = result
+                    calculated.append(
+                        dict(
+                            action_id=action_id,
+                            reference=invocation.reference,
+                            level=invocation.level,
+                            parameters=tuple(effect["parameters"]),
+                            context=context,
+                            flags=tuple(effect["native_effect_flags"]),
+                            source=tuple(
+                                source.effect_stats.get(k, 0) for k in damage_stats
+                            ),
+                            target=tuple(
+                                target.effect_stats.get(k, 0) for k in damage_stats
+                            ),
+                            positions=(source.position, target.position),
+                            source_health=(source.hp, source.max_hp),
+                            additional_final=kwargs.get("additional_final", 0),
+                            amount=amount,
+                        )
+                    )
+                return result
+
             casts = []
             for action_id in (3, 4):
                 target = fight.actors[8]
-                tx = prepare_server_spell(
-                    struct.pack(">qqiih", 7, (7 << 32) | 4775, *target.position),
-                    characters[7],
-                    {},
-                    fight,
-                    3,
-                    attacker_deck,
-                    action_id=action_id,
-                    line_of_sight=lambda *args: True,
-                    critical=False,
-                    rng=random.Random(0),
-                    player_characters=characters,
-                    deck_blobs=decks,
-                )
+                with patch.object(
+                    NativeDamageHandler, "_calculate", observe_calculation
+                ):
+                    tx = prepare_server_spell(
+                        struct.pack(">qqiih", 7, (7 << 32) | 4775, *target.position),
+                        characters[7],
+                        {},
+                        fight,
+                        3,
+                        attacker_deck,
+                        action_id=action_id,
+                        line_of_sight=lambda *args: True,
+                        critical=False,
+                        rng=random.Random(0),
+                        player_characters=characters,
+                        deck_blobs=decks,
+                    )
                 casts.append(tx)
                 fight = tx.fight
             after_barrier_hit = casts[0].fight.actors[8].hp
             after_unshielded_hit = casts[1].fight.actors[8].hp
-            self.assertEqual(after_barrier_hit, barrier_before)
-            self.assertLess(after_unshielded_hit, after_barrier_hit)
+            # Native Qe prepares damage before testing its criterion; skipped
+            # sibling398197 can be calculated without producing a committed hit.
+            # Compare the selected149450 within each actual cast, without making
+            # the number of internal calculation passes a gameplay contract.
+            by_cast = {}
+            for cast_action in (3, 4):
+                selected = [
+                    {key: value for key, value in row.items() if key != "action_id"}
+                    for row in calculated
+                    if row["action_id"] == cast_action and row["reference"] == 149450
+                ]
+                self.assertTrue(selected, calculated)
+                self.assertTrue(all(row == selected[0] for row in selected), calculated)
+                by_cast[cast_action] = selected[0]
+            first_calculation, second_calculation = by_cast[3], by_cast[4]
+            self.assertEqual(first_calculation, second_calculation, calculated)
+            self.assertEqual(first_calculation["reference"], 149450)
+            self.assertEqual(first_calculation["parameters"], (3.0, 0.33))
+            self.assertFalse(first_calculation["context"].critical)
+            self.assertEqual(first_calculation["additional_final"], 0)
+            raw_damage = second_calculation["amount"]
+            self.assertGreater(raw_damage, native_reduction)
+            protected_damage = max(0, raw_damage - native_reduction)
+            self.assertEqual(barrier_before - after_barrier_hit, protected_damage)
+            self.assertEqual(after_barrier_hit - after_unshielded_hit, raw_damage)
             first_remaining_barrier_rows = [
                 row
                 for row in casts[0].fight.native_retained_records.values()
@@ -229,8 +322,8 @@ class BarrierPvpRuntimeTests(unittest.TestCase):
                 ]
                 for tx in casts
             ]
-            self.assertEqual(hit_events[0], [0])
-            self.assertGreater(hit_events[1][-1], 0)
+            self.assertEqual(hit_events[0], [protected_damage])
+            self.assertEqual(hit_events[1], [protected_damage, raw_damage])
             fight = casts[1].fight
             fight, _ = prepare_server_turn_end(
                 characters[7],

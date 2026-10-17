@@ -1,0 +1,56 @@
+{
+  "min_level": 200,
+  "max_level": 200,
+  "spell_ids": [],
+  "initial_state_triples": [
+    4509,
+    1,
+    0,
+    5619,
+    1,
+    0,
+    7998,
+    1,
+    1
+  ],
+  "event_controller": {
+    "schema": "native-event-only-npc-v1",
+    "descriptor": {
+      "reference": 3433,
+      "native_class": "aMb",
+      "min_level": 200,
+      "max_level": 200,
+      "raw_csd": [],
+      "raw_cle": [
+        4509,
+        1,
+        0,
+        5619,
+        1,
+        0,
+        7998,
+        1,
+        1
+      ],
+      "raw_profile_sha256": "3d2e5a5cc01d733a288e4f743864cdac6ae001ee10f0ad120a8ee6c9f7444c08"
+    },
+    "descriptor_sha256": "143528c2225d02d7ee4bae24404af4a8c7ff2f8e6d5eb0dddfbdbac02d61f8ca",
+    "callback_roots": [
+      {
+        "state_id": 4509,
+        "effect_id": 186446,
+        "target_masks": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          [
+            1001
+          ],
+          null
+        ]
+      }
+    ]
+  }
+}

@@ -42,6 +42,11 @@ def deliver_voluntary_movement(dispatcher, *, actor_id, from_cell, to_cell, acti
         to_cell=tuple(to_cell),
         event_id=1005,
     )
+    from .combat_gate_movement_boundary import current_gate_movement_boundary
+
+    gate = current_gate_movement_boundary(fight, actor_id, from_cell, to_cell)
+    if gate is not None:
+        context["gate_boundary"] = gate.facts()
     with committed_movement_recipient_scope(fight, context):
         for identity, channel in recipients:
             outcomes.extend(

@@ -4,6 +4,8 @@ Native identities and admission facts come from the published catalog. Reward
 amounts, curated equipment choices and objective targets are explicit local
 content policy, not claimed upstream quest definitions.
 """
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 import hashlib
 import json
 import re
@@ -63,7 +65,7 @@ BANDS = (
     (161, 180),
     (181, 185),
     (186, 199),
-    (200, 200),
+    (200, MAX_CHARACTER_LEVEL),
 )
 PREFIX = "content-v1"
 
@@ -168,7 +170,7 @@ def _definition(
     *,
     recurrence="once",
     minimum=1,
-    maximum=200,
+    maximum=MAX_CHARACTER_LEVEL,
 ):
     return dict(
         key=f"{PREFIX}.{key}",
@@ -256,10 +258,10 @@ ASSIGNED_MONSTERS = (
     (3394, "Siclick", 161, 180),
     (3396, "Lapso", 161, 180),
     (4922, "Patapatas", 161, 180),
-    (4203, "Rastrejón", 181, 200),
-    (4204, "Tejardor", 181, 200),
-    (4205, "Tejoso", 181, 200),
-    (4208, "Dragoloso", 181, 200),
+    (4203, "Rastrejón", 181, MAX_CHARACTER_LEVEL),
+    (4204, "Tejardor", 181, MAX_CHARACTER_LEVEL),
+    (4205, "Tejoso", 181, MAX_CHARACTER_LEVEL),
+    (4208, "Dragoloso", 181, MAX_CHARACTER_LEVEL),
 )
 
 
@@ -293,12 +295,13 @@ def assignment_templates(definitions, dungeon_metadata):
             native.get("native_criterion")
             or native["qualification_notes"]
             or native["minimum"] is None
+            or native["minimum"] > MAX_CHARACTER_LEVEL
         ):
             continue
         rule = json.loads(canonical(source))
         rule["level_range"] = {
-            "minimum": max(1, min(200, native["minimum"])),
-            "maximum": min(200, native["maximum"] + 20),
+            "minimum": max(1, min(MAX_CHARACTER_LEVEL, native["minimum"])),
+            "maximum": min(MAX_CHARACTER_LEVEL, native["maximum"] + 20),
         }
         name = source["title"].removeprefix("Dungeon: ")
         rule.update(
@@ -326,7 +329,7 @@ def build_catalog(snapshot, profiles):
             row is None
             or row.get("has_conditions") is not False
             or not row.get("name")
-            or not 1 <= row["minimum_level"] <= 200
+            or not 1 <= row["minimum_level"] <= MAX_CHARACTER_LEVEL
             or reference not in stacks
             or stacks[reference]["maximum"] < 1
         ):
@@ -467,7 +470,7 @@ def build_catalog(snapshot, profiles):
         )
     for profile in profiles:
         minimum, maximum = profile["min_level"], profile["max_level"]
-        if not 1 <= minimum <= maximum <= 200:
+        if not 1 <= minimum <= maximum <= MAX_CHARACTER_LEVEL:
             raise ValueError("Challenge content profile exceeds supported player range")
         profile_key = profile["key"]
         references = sorted({member["ref_id"] for member in profile["roster"]})

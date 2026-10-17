@@ -29,13 +29,18 @@ class IopPreparationMovementRuntimeTests(unittest.TestCase):
             native_qi=True,
             target_distance=1,
             variation_seed=17,
+            compact=True,
         )
         arena = local_arena(
             character["map_id"],
             character["id"],
             fight.actors[7].position,
             fight.actors[-7].position,
+            # Match the native actor-seed selection used by native_server_fixture.
+            # Relocating the monster here selects a different QI/perimeter.
+            relocate_monsters=False,
             variation_seed=17,
+            compact=True,
         )
         fight.native_border_constructor = dict(
             reference=46,

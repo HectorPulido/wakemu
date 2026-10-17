@@ -17,6 +17,7 @@ from .combat_native_criterion_failure import (
 )
 from .combat_definitions import effect_profile
 from .combat_effect_groups import decode_group_mode, execute_ordered_group
+from .combat_operation_registry import bind_runtime_contracts, RuntimeOperationBinding
 
 
 _TRIGGER_DEPTH = ContextVar("native_trigger_clone_depth", default=0)
@@ -94,6 +95,7 @@ class EffectDispatcher:
     ):
         self.effects = effects
         self.handlers = handlers
+        self.operation_contracts = bind_runtime_contracts(handlers)
         self.resolve = resolve
         self.condition_context = condition_context
         self.probability_accepts = probability_accepts
@@ -119,6 +121,27 @@ class EffectDispatcher:
         self._active_execution_keys = ()
         self._active_activation = None
         self._prepared_scopes = []
+
+    def _operation_handler(self, family):
+        """Resolve the actual route through its shared operation binding.
+
+        Factories may finish constructing/wrapping handlers after creating the
+        dispatcher. Preserve those exact routes and their native eligibility;
+        a descriptor never admits a missing handler or rejects a skipped branch.
+        """
+        handler = self.handlers.get(family)
+        binding = self.operation_contracts.get(family)
+        if binding is not None and binding.handler is handler:
+            return binding.handler
+        if handler is None:
+            return None
+        # Preserve an already classified provider-backed descriptor on a wrap.
+        contract = binding.contract if binding is not None else None
+        if contract is None:
+            from .combat_operation_registry import operation_for_family
+
+            contract = operation_for_family(family)
+        return RuntimeOperationBinding(family, contract, handler).handler
 
     def execute_activation(
         self, invocation, *, source, condition_context, executable, allocate_uid
@@ -190,7 +213,7 @@ class EffectDispatcher:
         finally:
             try:
                 for effect, selected in reversed(prepared):
-                    handler = self.handlers.get(effect["effect_class"])
+                    handler = self._operation_handler(effect["effect_class"])
                     cancel = getattr(handler, "cancel_prepared", None)
                     if callable(cancel):
                         cancel(selected)
@@ -314,7 +337,9 @@ class EffectDispatcher:
             else nullcontext()
         )
         collection_scope = getattr(
-            self.handlers.get(effect["effect_class"]), "native_collection_scope", None
+            self._operation_handler(effect["effect_class"]),
+            "native_collection_scope",
+            None,
         )
         with scope, collection_scope() if callable(collection_scope) else nullcontext():
             return self._execute_resolved(
@@ -356,7 +381,7 @@ class EffectDispatcher:
                 self._diagnose(selected, status="subscribed_waiting_event")
                 success = True
                 continue  # Native Qe.d skips n()/criteria/probability until an event.
-            handler = self.handlers.get(effect["effect_class"])
+            handler = self._operation_handler(effect["effect_class"])
             native_eligibility = getattr(handler, "native_eligibility", None)
             if callable(native_eligibility) and not native_eligibility(
                 effect, selected
@@ -990,7 +1015,7 @@ class EffectDispatcher:
                     self.group_retention.finish_group(pending_group)
                 success = any(child_success) or success
             else:
-                handler = self.handlers.get(effect["effect_class"])
+                handler = self._operation_handler(effect["effect_class"])
                 if handler is None:
                     raise UnsupportedEffectExecution(
                         f"No handler for native effect class {effect['effect_class']}"

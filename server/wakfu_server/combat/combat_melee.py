@@ -4,6 +4,8 @@ The empty weapon slot selects item2145. Live snapshots supply equipment bonuses
 and retained effects; the caller supplies the explicit normal cast policy.
 The caller confirms authoritative equipment and serializes access to the fight.
 """
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 from wakfu_server import native_catalog as protocol_catalog
 from wakfu_server.paths import DATA_ROOT
 import json
@@ -28,7 +30,7 @@ def decode_request(body):
 
 def animation(fight_id, action_id, actor_id, level, target):
     """cvO.dp: header, actor, item reference, level, no spell, success, no crit."""
-    if not 1 <= level <= 200:
+    if not 1 <= level <= MAX_CHARACTER_LEVEL:
         raise ValueError("Unsupported melee item level")
     return struct.pack(
         ">iiiqihBBB iih",
@@ -78,7 +80,7 @@ def execute_unarmed(
     level = character.get("effective_level", character["level"])
     if (
         type(level) is not int
-        or not 1 <= level <= 200
+        or not 1 <= level <= MAX_CHARACTER_LEVEL
         or caster.effective_level != level
     ):
         raise ValueError("Unsupported or inconsistent effective melee level")

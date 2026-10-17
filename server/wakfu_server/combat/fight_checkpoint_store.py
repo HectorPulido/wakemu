@@ -49,6 +49,10 @@ def _trace_stage(
 
 
 def _plain(value):
+    from wakfu_server.characters.owned_social_context import OwnedSocialContext
+
+    if type(value) is OwnedSocialContext:
+        return value.to_record()
     from .combat_carrying import NativeCarryPair
     from .combat_instance_level_group import InstanceDifficultySnapshot
 

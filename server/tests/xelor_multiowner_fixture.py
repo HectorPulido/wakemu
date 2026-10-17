@@ -31,6 +31,8 @@ class TwoXelorFixture:
         second_player_position=(-7, -7, -1),
         compact_arena=True,
         initialization_seed=0,
+        native_target_ref=None,
+        native_target_level=None,
     ):
         from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
         from wakfu_server.combat_global_pv_collections import (
@@ -143,7 +145,38 @@ class TwoXelorFixture:
             )
             for identity, initiative in ((7, 30), (8, 20), (9, 10))
         ]
-        actors.append(Actor(-7, 1, positions[-7], 1000, 6, 3, 1, 1))
+        native_target_values = None
+        if native_target_ref is None and native_target_level is None:
+            actors.append(Actor(-7, 1, positions[-7], 1000, 6, 3, 1, 1))
+        else:
+            from wakfu_server.combat_actor_snapshot import native_npc_creation_values
+            from wakfu_server.monsters import reference
+
+            if (
+                type(native_target_ref) is not int
+                or type(native_target_level) is not int
+            ):
+                raise ValueError("Native test target requires reference and level")
+            row = reference(native_target_ref)
+            if not row["min_level"] <= native_target_level <= row["max_level"]:
+                raise ValueError("Native test target outside published level range")
+            native_target_values = native_npc_creation_values(
+                native_target_ref, native_target_level
+            )
+            values = native_target_values
+            actors.append(
+                Actor(
+                    -7,
+                    1,
+                    positions[-7],
+                    values[1]["current"],
+                    values[2]["current"],
+                    values[3]["current"],
+                    1,
+                    native_target_level,
+                    max_hp=values[1]["maximum"],
+                )
+            )
         fight = Fight(
             78,
             actors,
@@ -158,12 +191,26 @@ class TwoXelorFixture:
         initialize_global_pv_collections(fight, (7, 8, 9, -7))
         freeze_terrain(fight)
         fight.native_obstacle_cells = frozenset()
-        monster = dict(id=-7, ref=5525, map_id=1134)
+        monster = dict(
+            id=-7,
+            ref=5525 if native_target_values is None else native_target_ref,
+            map_id=1134,
+        )
         initialize_fight_snapshots(
             fight,
             characters=characters,
             monsters={-7: monster},
-            wp_resources={7: (6, 6), 8: (6, 6), 9: (6, 6), -7: (0, 0)},
+            wp_resources={
+                7: (6, 6),
+                8: (6, 6),
+                9: (6, 6),
+                -7: (0, 0)
+                if native_target_values is None
+                else (
+                    native_target_values[4]["current"],
+                    native_target_values[4]["maximum"],
+                ),
+            },
             running_effects={7: (), 8: (), 9: (), -7: ()},
             initial_effect_uid=1,
         )

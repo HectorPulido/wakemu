@@ -403,9 +403,11 @@ class Store:
             result.pop("achievement_authority"),
             db=db,
         )
-        from wakfu_server.characters.nation_state import load as load_nation
+        from wakfu_server.characters.owned_social_context import load as load_social
 
-        result["nation_id"] = load_nation(db, character_id)
+        social = load_social(db, account_id, character_id)
+        result["nation_id"] = social.nation_id
+        result["native_social_context"] = social.to_record()
         from wakfu_server.characters.guild_character import load as load_guild
 
         load_guild(db, self, result)

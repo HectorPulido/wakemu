@@ -1,0 +1,85 @@
+{
+  "asserted_contract": [
+    "Peace Armor grants spell 7052 at level 1 while retaining 7009",
+    "Peace Armor costs 2 AP and 1 WP",
+    "Teleport 7052 costs 0 AP and 1 WP and moves actor to (-8,-8,-1)",
+    "state 6364 is present before expiry",
+    "after 12 actual turn advancements state 6364 is retired and granted spell 7052 is no longer available"
+  ],
+  "catalog_documents": {
+    "breed-innate-definitions.json": "99d83aa956797dfdb8746e485dbe267574ef606bf23c71416244e7393558c25d",
+    "combat-state-definitions.json": "845f211b808b9ce20a14b25f3e3068480094243c507e4aaa8f9da5fad5bca7b9",
+    "granted-spell-effect-trees.json": "2d07839bdf094a23cd6cba02da6853766bc21f82244b59a1d2fcdc3bfb903477",
+    "native-spell-casting.json": "0e6ef6f9f3bd4f3c4192a77673fd0598034e51d1149364d66f5f24f5ff6095c9"
+  },
+  "catalog_revision": "08523b7b8f2dd2e7c5fcac816bfcc7e31f777beb61acb0d76913bfcd568007f8",
+  "engine_sources": {
+    "server/tests/test_aptitude_catalog_coverage.py": "229cdf58d7131438424306f64d29c274e0125da4731a2df7e24bba78997831f9",
+    "server/tests/test_combat_aptitude_healing_runtime.py": "ad3cfaa6dd2af349645e33b323101c819771b5d1e05c95e66f62e6ec61b9f474",
+    "server/tools/combat_audit_turns.py": "9f0c1e78c978be4146f000490de718a721de2a28be5ecb8f1a61fb9b298a2069",
+    "server/wakfu_server/combat/combat_displacement.py": "f9de4f97a5d2b5ac3a4e34f466146c5ffbde43fa43c1b16f4117206aaa1fcb05",
+    "server/wakfu_server/combat/combat_retained_runtime.py": "a1c24a44062be728992407121478831a1d78029cea26a5151d91b4be1e3aaa82",
+    "server/wakfu_server/combat/combat_runtime_messages.py": "24ba1ba093020c5dc5624b8af048ba8dd47592fcf77c11b998666385458157ce",
+    "server/wakfu_server/combat/combat_server_spell.py": "9937119c70f9fbf1e435ffb41cce2db1e564bef54a9e0227c49a1c3a4a40dec7",
+    "server/wakfu_server/combat/combat_spell_commit.py": "1fc85f2ff09e62191ba43bdfff5bff42fc97c7b633d71a4361a7cf84c35a8d16",
+    "server/wakfu_server/combat/combat_spell_grant.py": "e173b5a7fa65467d3b4b50c061d323819bcbbaa60f7c6609f8ad15dd0bd50c91",
+    "server/wakfu_server/combat/combat_spell_grant_book.py": "5152f1c52c7c310c5892fe0bdef4a2c3881d57866a7be79a0a6bfae61bbeed36",
+    "server/wakfu_server/combat/combat_state.py": "f6b5ade54eed7bc0bf6da78430d908fc01f5b9e8998750d9b9df797d320fd57c",
+    "server/wakfu_server/combat/combat_state_handler.py": "b387611dfbfb75bb29dc7268ab2e6ebb7d38516abf151ca0905f87d42f3e29ac",
+    "server/wakfu_server/combat/combat_state_ledger.py": "fe4defa9fc0dd18b19706915a46fbefd1c9045780f11c6682616db381b9c81b2",
+    "server/wakfu_server/combat/combat_timed_expiration.py": "2056cbd7a34f21e41893cac15db0d141a5c6b4e720ffb0b47e452efa016c2f03",
+    "server/wakfu_server/combat/combat_turn_duration.py": "588da2e6fbabd129fdd660e35676edadf7181d19404d47a62ffe7d28744755ec",
+    "server/wakfu_server/storage/native_catalog.py": "b266d215c57a05bdf52708cd14d63a88a090bcd388a12bccbaa72aa9fb81411a"
+  },
+  "errors": 0,
+  "execution": {
+    "duration_seconds": 35.316,
+    "initial_import_path_failure_preserved": true,
+    "python": "CPython3.12.9",
+    "runtime_opt_in": "WAKFU_TEST_GRANTEDCAST=1",
+    "snapshot_manifest_sha256": "a7f5690f156d1d53c3ad9178dcb8087a4f1762d97b1bb46c6d4830e446e0745e",
+    "tools_directory_explicit_in_pythonpath": true
+  },
+  "expected_failures": 0,
+  "failures": 0,
+  "limitations": [
+    "Cached published document bytes and extraction provenance are independently hash-checked, not a fresh Java export or raw SQL re-read.",
+    "Guide is usage intent; native definitions supply exact parameters.",
+    "No network access is required at test execution.",
+    "Other six researched candidate scenarios remain unqualified.",
+    "Explicit fixture Feca/AP6/MP3/WP6 matches native breed defaults. No post-cast resource top-up or native cost modification.",
+    "Seeded RNG and supplied LOS=true isolate grant/movement/lifecycle interaction; LOS validation is not covered.",
+    "Twelve advances traverse a four-actor timeline; not a claim of twelve caster turns or universal duration.",
+    "Existing test does not attempt a post-expiry cast, validate renderer parity or assert guide resistance/glyph arithmetic."
+  ],
+  "native_runtime_enabled": true,
+  "oracle_identity": {
+    "evidence_kind": "hash-verified published native exports; runtime test executes server implementation, not a fresh Java probe",
+    "installed_jar_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+    "native_evidence_path": "server/tests/fixtures/combat_guide_feca_peace_teleport_evidence.json",
+    "native_evidence_sha256": "a074deefe79e70742063d4181fe7c56ced1b3e434f8b790b8e7a94e07234f5c0"
+  },
+  "return_code": 0,
+  "scenario_id": "feca-peace-teleport-grant-lifecycle-qualified",
+  "schema": "wakemu-bounded-scenario-pass-v1",
+  "scope": "Only Peace Armor enables a temporary Teleportation grant, legal teleport succeeds, and actual owner-turn advancement retires state/grant. Not a full guide rotation or visual acceptance.",
+  "skipped": 0,
+  "source_manifest_sha256": "5606d4f20ff9dee113853d5272659f9b31997105ae3d2ca97bdb05f42c87a151",
+  "source_manifest_status": "verified-postrun-read; actual execution from preverified immutable v42 snapshot",
+  "successful": true,
+  "terminal_evidence": {
+    "catalog_observation_sha256": "620ba6b883c0da3534abfab9306425092d644ab85f99865dbb7f4c6f7364099f",
+    "initial_import_failure_log_sha256": "0113e6d12293f67cecf886c6ddfd02441a0598d88d8f2970474929ff4fb85d9c",
+    "private_terminal_receipt_sha256": "f80e58d3973e2860ada3c4e48bc5f1dc499f64fe6e6dc08c627738862604c123",
+    "terminal_log_sha256": "90844be465f445b9900e8a3ba9609f704810e9d7596bc1d94e1cb862f4b69795"
+  },
+  "terminal_status": "passed",
+  "test_ids": [
+    "test_feca_grant_pipeline.FecaGrantPipelineTests.test_peace_armor_grants_teleport_and_retires_it_on_actual_expiry"
+  ],
+  "test_sources": {
+    "server/tests/test_feca_grant_pipeline.py": "2adff9de853dba6a78402d1a1d8a792c2ef71029966a09173dfb4fbce6acfe5a"
+  },
+  "tests_run": 1,
+  "unexpected_successes": 0
+}

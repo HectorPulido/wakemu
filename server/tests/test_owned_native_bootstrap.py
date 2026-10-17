@@ -42,8 +42,18 @@ class _Database:
             row = {"fighting": False}
         elif "FROM dungeon_instances" in sql:
             row = {"context_route_key": "jalato_normal", "context_policy_version": 4}
-        elif "SELECT catalog_hash FROM dungeon_room_runs" in sql:
-            row = {"catalog_hash": "d" * 64} if self.progress is not None else None
+        elif (
+            sql
+            == "SELECT catalog_hash,current_room FROM dungeon_room_runs WHERE instance_id=%s"
+        ):
+            row = (
+                {
+                    "catalog_hash": "d" * 64,
+                    "current_room": self.progress["current_room"],
+                }
+                if self.progress is not None
+                else None
+            )
         elif "current_room, status FROM dungeon_room_runs" in sql:
             row = self.progress
         else:

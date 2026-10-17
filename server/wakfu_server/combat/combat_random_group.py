@@ -39,6 +39,15 @@ def random_group_mode(effect, values):
     )
 
 
+class NativeRandomProbabilityExhausted(ValueError):
+    """Original GS.ne/Random.nextInt cannot draw this remaining total.
+
+    A containing eYg catches this native child execution failure and stops its
+    ordered sequence. Direct execution still rejects; authority errors are
+    deliberately separate and never contained by this exception type.
+    """
+
+
 def weighted_children(candidates, count, *, draw_integer):
     rows = tuple(candidates)
     if (
@@ -64,7 +73,7 @@ def weighted_children(candidates, count, *, draw_integer):
     selected = []
     for _ in range(max(0, count)):
         if total <= 0:
-            raise ValueError(
+            raise NativeRandomProbabilityExhausted(
                 "Native GS.ne requires positive remaining probability total"
             )
         roll = draw_integer(total)

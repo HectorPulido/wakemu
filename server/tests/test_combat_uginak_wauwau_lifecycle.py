@@ -28,7 +28,7 @@ from wakfu_server.spells import encode_deck
     {"WAKFU_NATIVE_GRANTED_CAST": "1", "WAKFU_NATIVE_AREA_CALLBACKS": "1"},
 )
 class WauwauLifecycleTests(unittest.TestCase):
-    def fixture(self):
+    def fixture(self, *, owner_level=90):
         origin = (-4, -18, 0)
         enemy_position = (-2, -18, 0)
         characters = {}
@@ -36,7 +36,7 @@ class WauwauLifecycleTests(unittest.TestCase):
         actors = []
         wp_resources = {}
         for identity, account, team, level, position, active in (
-            (7, 3, 0, 90, origin, []),
+            (7, 3, 0, owner_level, origin, []),
             (8, 4, 1, 200, enemy_position, [6261, 6266]),
         ):
             character = effective_character(
@@ -280,3 +280,318 @@ class WauwauLifecycleTests(unittest.TestCase):
             second.fight.actors[second_id].native_summon_source["ref"], 4559
         )
         self.assertEqual(second.fight.actors[second_id].native_obstacle_id, old_slot)
+
+    def test_paid_fracture_ticks_after_target_movement_expires_at_end_and_real_bowwow_echo_is_passive_scoped(
+        self,
+    ):
+        """Player poison use, actual paid companion, and a matched passive control."""
+        import sys
+        from pathlib import Path
+        import test_combat_spell_transaction as native_fixture_module
+
+        sys.path.insert(
+            0, str(Path(native_fixture_module.__file__).resolve().parents[1] / "tools")
+        )
+        from combat_audit_turns import advance_actual_turn
+        from wakfu_server.combat_server_spell import (
+            prepare_server_turn_start,
+            server_runtime,
+        )
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.combat_terrain import local_arena
+        from wakfu_server.combat_geometry_snapshot import freeze_terrain
+        from wakfu_server.combat_diagnostics import combat_diagnostic_scope
+        from wakfu_server.fight_checkpoint_store import snapshot
+        from wakfu_server.spells import validate_deck, owned_spell_records
+
+        outcomes = {}
+        for passive in (None, 6273):
+            with self.subTest(passive=passive):
+                characters, decks, old = self.fixture(owner_level=200)
+                decks[7] = encode_deck([6269], [] if passive is None else [passive])
+                validate_deck(decks[7], 15, characters[7]["level"])
+                self.assertIn(
+                    6269, {ref for _, ref, _ in owned_spell_records(characters[7])}
+                )
+                if passive is not None:
+                    self.assertIn(
+                        passive,
+                        {ref for _, ref, _ in owned_spell_records(characters[7])},
+                    )
+                arena = local_arena(
+                    1134,
+                    7,
+                    old.actors[7].position,
+                    old.actors[8].position,
+                    relocate_monsters=False,
+                )
+                resources = {
+                    uid: combat_resources(character)
+                    for uid, character in characters.items()
+                }
+                actors = [
+                    Actor(
+                        uid,
+                        old.actors[uid].team,
+                        old.actors[uid].position,
+                        character["hp"],
+                        resources[uid]["ap"],
+                        resources[uid]["mp"],
+                        resources[uid]["initiative"],
+                        character["level"],
+                        character["account_id"],
+                        True,
+                        max_hp=character["max_hp"],
+                    )
+                    for uid, character in characters.items()
+                ]
+                for actor in actors:
+                    actor.direction = old.actors[actor.id].direction
+                fight = Fight(
+                    old.id,
+                    actors,
+                    arena["validated_cells"],
+                    {0: {old.actors[7].position}, 1: {old.actors[8].position}},
+                    arena["valid_edges"],
+                )
+                fight.native_qi_snapshot = {
+                    key: arena[key]
+                    for key in ("x", "y", "width", "height", "cell_masks")
+                }
+                fight.native_qi_surface_provenance = dict(
+                    arena["native_qi_surface_provenance"]
+                )
+                freeze_terrain(fight)
+                initialize_global_pv_collections(fight, (7, 8))
+                initialize_fight_snapshots(
+                    fight,
+                    characters=characters,
+                    monsters={},
+                    wp_resources={
+                        uid: (values["wp"], values["wp"])
+                        for uid, values in resources.items()
+                    },
+                    running_effects={uid: () for uid in fight.actors},
+                    initial_effect_uid=1,
+                )
+                fight.ready(3)
+                fight.ready(4)
+                rng = Random(7)
+                common = dict(player_characters=characters, deck_blobs=decks)
+                for identity in (7, 8):
+                    fight, _ = prepare_server_initialization(
+                        characters[identity],
+                        {},
+                        fight,
+                        characters[identity]["account_id"],
+                        decks[identity],
+                        action_id=identity,
+                        rng=rng,
+                        fight_start=identity == 8,
+                        **common,
+                    )
+                runtime = RuntimeMessages(
+                    fight,
+                    turn_start_provider=lambda preview, **boundary: prepare_server_turn_start(
+                        characters[7],
+                        {},
+                        preview,
+                        decks[7],
+                        rng=rng,
+                        **common,
+                        **boundary,
+                    ),
+                    turn_end_provider=lambda preview, **boundary: prepare_server_turn_end(
+                        characters[7],
+                        {},
+                        preview,
+                        decks[7],
+                        rng=rng,
+                        **common,
+                        **boundary,
+                    ),
+                    expiration_runtime_factory=lambda *, action_id: server_runtime(
+                        characters[7],
+                        {},
+                        decks[7],
+                        action_id=action_id,
+                        critical=False,
+                        rng=rng,
+                        **common,
+                    )[0],
+                )
+                for _ in range(8):
+                    if runtime.fight.current.id == 7:
+                        break
+                    advance_actual_turn(runtime)
+                self.assertEqual(runtime.fight.current.id, 7)
+                self.assertIn(6286, granted_spells(runtime.fight, 7))
+                summoned = self.cast(
+                    characters,
+                    decks,
+                    runtime.fight,
+                    7,
+                    6286,
+                    (-4, -17, 0),
+                    runtime.action_id + 1,
+                )
+                summon_id = next(
+                    iter(set(summoned.fight.actors) - set(runtime.fight.actors))
+                )
+                self.assertEqual(
+                    summoned.fight.actors[summon_id].native_summon_source["ref"], 4559
+                )
+                self.assertEqual(
+                    summoned.fight.actors[summon_id].native_controller_id, 7
+                )
+                self.assertEqual(summoned.plan["costs"]["ap"], 3)
+                runtime.fight = summoned.fight
+                runtime.action_id = summoned.action_id
+                runtime.prepare_delivery(summoned.packets)
+                before = snapshot(runtime.fight)
+                hp = runtime.fight.actors[8].hp
+                trace = []
+                with combat_diagnostic_scope(
+                    lambda **row: trace.append(row), limit=8192
+                ):
+                    poisoned = self.cast(
+                        characters,
+                        decks,
+                        runtime.fight,
+                        7,
+                        (7 << 32) | 6269,
+                        runtime.fight.actors[8].position,
+                        runtime.action_id + 1,
+                    )
+                self.assertEqual(snapshot(runtime.fight), before)
+                self.assertEqual(poisoned.plan["costs"]["ap"], 2)
+                self.assertIn(
+                    7523,
+                    {
+                        s.reference
+                        for s in poisoned.fight.actors[8].state_ledger.entries
+                    },
+                )
+                echo = [
+                    r
+                    for r in trace
+                    if r.get("effect_reference") == 341420
+                    and r.get("status") == "completed"
+                ]
+                if passive is None:
+                    self.assertEqual(echo, [])
+                else:
+                    self.assertTrue(echo, trace)
+                    self.assertTrue(
+                        any(
+                            r.get("caster_id") == summon_id and r.get("target_id") == 8
+                            for r in echo
+                        ),
+                        echo,
+                    )
+                runtime.fight = poisoned.fight
+                runtime.action_id = poisoned.action_id
+                runtime.prepare_delivery(poisoned.packets)
+                after_cast = runtime.fight.actors[8].hp
+                self.assertLess(after_cast, hp)
+                for _ in range(8):
+                    if runtime.fight.current.id == 8:
+                        break
+                    advance_actual_turn(runtime)
+                    self.assertEqual(runtime.fight.actors[8].hp, after_cast)
+                self.assertEqual(runtime.fight.current.id, 8)
+                self.assertIn(
+                    7523,
+                    {s.reference for s in runtime.fight.actors[8].state_ledger.entries},
+                )
+                # Native content.4.6269 and content.33.339726 specify damage
+                # after movement during the target's turn; END is expiry only.
+                from wakfu_server.combat_actor import actual_actor_stats
+                from wakfu_server.combat_area_transaction import prepare_area_movement
+                from wakfu_server.combat_movement_runtime import apply_client
+                from wakfu_server.breed_resources import live_wp
+
+                target = runtime.fight.actors[8]
+                destinations = [
+                    destination
+                    for origin, destination in sorted(runtime.fight.edges)
+                    if origin == target.position
+                    and destination
+                    not in {
+                        actor.position
+                        for actor in runtime.fight.actors.values()
+                        if actor.hp > 0
+                    }
+                ]
+                self.assertTrue(destinations)
+                # Prefer the legal outward step, away from the opposing owner.
+                destination = max(
+                    destinations,
+                    key=lambda cell: abs(cell[0] - runtime.fight.actors[7].position[0])
+                    + abs(cell[1] - runtime.fight.actors[7].position[1]),
+                )
+                before_mp = target.mp
+
+                def provider(preview, **boundary):
+                    return prepare_area_movement(
+                        characters[8],
+                        {},
+                        preview,
+                        decks[8],
+                        rng=rng,
+                        **common,
+                        **boundary,
+                    )
+
+                def target_stats(actor):
+                    wp = live_wp(runtime.fight, actor.id)
+                    return actual_actor_stats(
+                        characters[8],
+                        actor,
+                        runtime.fight.id,
+                        wp_current=wp[0],
+                        wp_maximum=wp[1],
+                    )
+
+                movement_trace = []
+                with combat_diagnostic_scope(
+                    lambda **row: movement_trace.append(row), limit=8192
+                ):
+                    apply_client(
+                        runtime,
+                        characters[8]["account_id"],
+                        struct.pack(">qiih", 8, *destination),
+                        target_stats,
+                        area_provider=provider,
+                    )
+                self.assertEqual(runtime.fight.actors[8].position, destination)
+                self.assertLess(runtime.fight.actors[8].mp, before_mp)
+                self.assertLess(runtime.fight.actors[8].hp, after_cast)
+                completed = {
+                    r.get("effect_reference")
+                    for r in movement_trace
+                    if r.get("status") == "completed"
+                }
+                self.assertTrue({339727, 341061} & completed, movement_trace)
+                after_movement = runtime.fight.actors[8].hp
+                self.assertIn(
+                    7523,
+                    {s.reference for s in runtime.fight.actors[8].state_ledger.entries},
+                )
+                advance_actual_turn(runtime)
+                self.assertIsNone(runtime.awaiting_ack)
+                self.assertEqual(runtime.fight.actors[8].hp, after_movement)
+                self.assertNotIn(
+                    7523,
+                    {s.reference for s in runtime.fight.actors[8].state_ledger.entries},
+                )
+                outcomes[passive] = dict(
+                    direct_damage=hp - after_cast,
+                    movement_damage=after_cast - after_movement,
+                )
+        # Failed subTests already report their primary cause; avoid a trailing
+        # KeyError that would obscure an initialization/ownership failure.
+        if set(outcomes) == {None, 6273}:
+            self.assertGreater(
+                outcomes[6273]["direct_damage"], outcomes[None]["direct_damage"]
+            )

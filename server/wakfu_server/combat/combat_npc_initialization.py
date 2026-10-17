@@ -47,6 +47,14 @@ def initial_plans(fight, monsters):
             continue
         if not row["min_level"] <= actor.effective_level <= row["max_level"]:
             continue
+        if row.get("spell_ids") == []:
+            from .combat_npc_event_controller import event_controller_record
+
+            if (
+                event_controller_record(policy, monster["ref"], actor.effective_level)
+                is None
+            ):
+                continue
         raw = row.get("initial_state_triples", [])
         plan = initial_state_plan(raw, actor.effective_level)
         if plan:

@@ -10,8 +10,8 @@ class DeferredArea314Tests(unittest.TestCase):
         rows = (
             (
                 Path(__file__).parent
-                / "fixtures/next_central_recovery"
-                / "native314-wire-oracle.log"
+                / "fixtures/native_combat_oracles"
+                / "deferred314-wire-oracle.txt"
             )
             .read_text()
             .splitlines()

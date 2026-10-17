@@ -3,7 +3,8 @@
 Initial combat has no timeline bonus effects, queued timed events or permanent
 zones. Their native typed zero-count encodings are included, never empty blobs.
 """
-import struct, time
+import struct
+from .combat_input_observation import wall_time
 
 
 def action_transition(
@@ -15,7 +16,11 @@ def action_transition(
         raise ValueError("Invalid phase duration")
     if type(bonus_period) is not int or not 0 < bonus_period < 2**31:
         raise ValueError("Bonus period must be positive")
-    timestamp_ms = int(time.time() * 1000) if timestamp_ms is None else timestamp_ms
+    timestamp_ms = (
+        int(wall_time("phase.action_transition.wall") * 1000)
+        if timestamp_ms is None
+        else timestamp_ms
+    )
     # feI/feN dNH is a positive turn period, not a round.
     # Native fem.fYD uses fez.fYU()==3. Empty bonus collections are local policy.
     bonuses = struct.pack(">iBBB", bonus_period, 0, 0, 0)

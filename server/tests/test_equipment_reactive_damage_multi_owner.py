@@ -1,0 +1,448 @@
+"""Persisted owned gear enters actual Ready, paid cast and end/ACK callbacks."""
+from random import Random
+import struct
+
+from postgres_case import PostgresCase
+from wakfu_server import health_store, wire
+from wakfu_server.progression import level_xp
+from wakfu_server.equipment_stats import combat_resources
+from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
+from wakfu_server.combat_actor import (
+    actual_actor_stats,
+    actual_monster_actor_stats,
+    actor_effects,
+)
+from wakfu_server.combat_bootstrap import create_placement
+from wakfu_server.combat_wire import arena
+from wakfu_server.combat_ready import prepare_ready
+from wakfu_server.combat_server_spell import (
+    prepare_server_initialization,
+    prepare_server_spell,
+    prepare_server_turn_end,
+    prepare_server_turn_start,
+    server_runtime,
+)
+from wakfu_server.combat_spell_grant import granted_spells
+from wakfu_server.combat_spell_commit import commit_spell_transaction
+from wakfu_server.fight_checkpoint_store import snapshot
+from wakfu_server.monsters import owned_instance
+from wakfu_server.spells import encode_deck
+
+# unittest discovery adds server/tests but does not add server/tools. Resolve
+# this existing API driver explicitly and restore the process import path.
+from pathlib import Path
+import sys
+
+_tools = next(
+    parent / "server" / "tools"
+    for parent in Path(__file__).resolve().parents
+    if (parent / "server" / "tools" / "combat_audit_turns.py").is_file()
+)
+_saved_path = list(sys.path)
+try:
+    sys.path.insert(0, str(_tools))
+    import combat_audit_turns as _turn_driver
+
+    if (
+        Path(_turn_driver.__file__).resolve()
+        != (_tools / "combat_audit_turns.py").resolve()
+    ):
+        raise ImportError("Combat turn driver has a foreign source origin")
+    advance_actual_turn = _turn_driver.advance_actual_turn
+finally:
+    sys.path[:] = _saved_path
+
+
+from wakfu_server.combat_los import authoritative_visible
+from wakfu_server.combat_obstacle_condition import footprint
+from wakfu_server.combat_movement_runtime import apply_client
+from wakfu_server.combat_area_transaction import prepare_area_movement
+
+
+class ReactiveEquipmentMultiOwnerTests(PostgresCase):
+    def _fixture(self, order):
+        account = self.store.register("ebony-" + order, "local-test-password")["id"]
+        char = self.store.create_character(
+            account,
+            ("Ebony Distance" if order == "distance-first" else "Ebony Melee"),
+            breed=8,
+        )
+        generation = self.store.begin_session(account)
+        self.store.select_character(account, generation, char["id"])
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET level=245,map_id=1134,instance_id=0,x=-8,y=-7,z=-1 WHERE id=%s",
+                (char["id"],),
+            )
+            db.execute(
+                "UPDATE character_progression SET xp=%s WHERE character_id=%s",
+                (level_xp(245), char["id"]),
+            )
+        char = health_store.initialize(self.store, account, generation, char["id"])
+        base_maximum = char["max_hp"]
+        gear_uid = 1000 if order == "distance-first" else 1001
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) "
+                "VALUES(%s,%s,%s,%s,%s,%s)",
+                (
+                    gear_uid,
+                    char["id"],
+                    32351,
+                    1,
+                    char["inventory_containers"][0]["uid"],
+                    0,
+                ),
+            )
+        sheet = b"".join(
+            wire.proto_field(t, v)
+            for t, v in ((8, 0), (18, b"Ebony"), (24, (1 << 64) - 1), (56, 0))
+        )
+        deck = encode_deck([4780])
+        char = self.store.save_build(
+            account,
+            generation,
+            char["id"],
+            0,
+            dict(
+                sheet=sheet,
+                equipment=wire.proto_field(
+                    10, wire.proto_field(8, gear_uid) + wire.proto_field(16, 17)
+                ),
+                deck=deck,
+                aptitudes=b"",
+            ),
+        )
+        char = self.store.character(account, char["id"])
+        peer_account = self.store.register(
+            "ebony-peer-" + order, "local-test-password"
+        )["id"]
+        peer = self.store.create_character(
+            peer_account,
+            ("Peer Distance" if order == "distance-first" else "Peer Melee"),
+            breed=8,
+        )
+        peer_generation = self.store.begin_session(peer_account)
+        self.store.select_character(peer_account, peer_generation, peer["id"])
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET level=245,map_id=1134,instance_id=0,x=-6,y=-6,z=-1 WHERE id=%s",
+                (peer["id"],),
+            )
+            db.execute(
+                "UPDATE character_progression SET xp=%s WHERE character_id=%s",
+                (level_xp(245), peer["id"]),
+            )
+        peer = health_store.initialize(
+            self.store, peer_account, peer_generation, peer["id"]
+        )
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO inventory_items(uid,character_id,reference,quantity,container,slot) VALUES(%s,%s,%s,%s,%s,%s)",
+                (2000, peer["id"], 32351, 1, peer["inventory_containers"][0]["uid"], 0),
+            )
+        peer = self.store.save_build(
+            peer_account,
+            peer_generation,
+            peer["id"],
+            0,
+            dict(
+                sheet=sheet,
+                equipment=wire.proto_field(
+                    10, wire.proto_field(8, 2000) + wire.proto_field(16, 17)
+                ),
+                deck=deck,
+                aptitudes=b"",
+            ),
+        )
+        characters = {char["id"]: char, peer["id"]: peer}
+        common = dict(
+            player_characters=characters,
+            deck_blobs={identity: deck for identity in characters},
+        )
+        self._characters, self._common = characters, common
+        resources = combat_resources(char)
+        from wakfu_server.combat_terrain import local_arena
+
+        initial = (-5, -7, -1) if order == "distance-first" else (-6, -7, -1)
+        terrain = local_arena(
+            1134, 1, (-8, -7, -1), initial, relocate_monsters=False, compact=True
+        )
+        monster = owned_instance(
+            4168, 190, -200, map_id=1134, x=initial[0], y=initial[1], z=initial[2]
+        )
+        fight, _ = create_placement(
+            char,
+            monster,
+            terrain,
+            fight_id=7,
+            player_ap=resources["ap"],
+            player_mp=resources["mp"],
+            player_wp=resources["wp"],
+            player_initiative=resources["initiative"],
+            terrain_effect_id=46,
+            terrain_instance_id=9001,
+        )
+        actor_id = char["id"]
+        initialize_fight_snapshots(
+            fight,
+            characters={actor_id: char},
+            monsters={-200: monster},
+            wp_resources={
+                actor_id: (resources["wp"], resources["wp"]),
+                -200: (monster["wp"], monster["wp"]),
+            },
+            running_effects={actor_id: (), -200: ()},
+            initial_effect_uid=1,
+        )
+        from wakfu_server.combat_state import Actor
+        from wakfu_server.combat_actor_snapshot import build_player_snapshot
+        from wakfu_server.combat_join_registration import register_joined_fighter
+
+        peer_resources = combat_resources(peer)
+        peer_actor = Actor(
+            peer["id"],
+            0,
+            (-6, -6, -1),
+            peer["hp"],
+            peer_resources["ap"],
+            peer_resources["mp"],
+            peer_resources["initiative"],
+            245,
+            peer_account,
+            True,
+            max_hp=peer["max_hp"],
+        )
+        build_player_snapshot(
+            peer,
+            peer_actor,
+            wp_current=peer_resources["wp"],
+            wp_maximum=peer_resources["wp"],
+            running_effects=(),
+        ).install(peer_actor)
+        fight.placement[0].add(peer_actor.position)
+        register_joined_fighter(fight, peer_actor, peer_actor.position)
+        for actor in fight.actors.values():
+            actor.direction = 0 if actor.controlled else 3
+        rng = Random(7)
+
+        def initialize(preview, action_id):
+            packets = []
+            for owned in characters.values():
+                preview, out = prepare_server_initialization(
+                    owned,
+                    {-200: monster},
+                    preview,
+                    owned["account_id"],
+                    deck,
+                    action_id=action_id,
+                    rng=rng,
+                    fight_start=owned["id"] == peer["id"],
+                    **common
+                )
+                packets.extend(out)
+            return preview, tuple(packets)
+
+        def stats(actor):
+            if actor.controlled:
+                own = characters[actor.id]
+                return actual_actor_stats(
+                    own,
+                    actor,
+                    7,
+                    wp_current=actor.effect_stats[4],
+                    wp_maximum=combat_resources(own)["wp"],
+                )
+            return actual_monster_actor_stats(
+                monster, actor, 7, wp_current=monster["wp"], wp_maximum=monster["wp"]
+            )
+
+        before = snapshot(fight)
+        prepared, unused, first_ready = prepare_ready(
+            fight,
+            account,
+            True,
+            initialize=initialize,
+            stats_serializer=stats,
+            effects_serializer=actor_effects,
+        )
+        self.assertIsNone(unused)
+        started, runtime, packets = prepare_ready(
+            prepared,
+            peer_account,
+            True,
+            initialize=initialize,
+            stats_serializer=stats,
+            effects_serializer=actor_effects,
+            turn_end_provider=lambda p, **b: prepare_server_turn_end(
+                char, {-200: monster}, p, deck, rng=rng, **common, **b
+            ),
+            turn_start_provider=lambda p, **b: prepare_server_turn_start(
+                char,
+                {-200: monster},
+                p,
+                deck,
+                rng=rng,
+                area_callbacks=True,
+                **common,
+                **b
+            ),
+            expiration_runtime_factory=lambda *, action_id: server_runtime(
+                char,
+                {-200: monster},
+                deck,
+                action_id=action_id,
+                critical=False,
+                rng=rng,
+                **common
+            )[0],
+        )
+        self.assertEqual(snapshot(fight), before)
+        self.assertTrue(packets)
+        for _ in range(len(started.actors)):
+            if runtime.fight.current.id == actor_id:
+                break
+            advance_actual_turn(runtime)
+        self.assertEqual(runtime.fight.current.id, actor_id)
+        self.assertTrue(
+            any(
+                entry.reference == 8784
+                for entry in runtime.fight.actors[actor_id].state_ledger.entries
+            )
+        )
+        return char, monster, deck, rng, runtime, stats
+
+    @staticmethod
+    def _states(actor, reference):
+        return [
+            entry
+            for entry in actor.state_ledger.entries
+            if entry.reference == reference
+        ]
+
+    def _cast(self, values):
+        char, monster, deck, rng, runtime, stats = values
+        actor_id = char["id"]
+        target = runtime.fight.actors[-200]
+
+        def los(origin, destination, current):
+            return authoritative_visible(
+                char["map_id"],
+                origin,
+                destination,
+                current,
+                blocking_footprints={
+                    actor.id: footprint(actor.position, actor.physical_radius)
+                    for actor in current.actors.values()
+                    if actor.hp > 0
+                },
+            )
+
+        before = snapshot(runtime.fight)
+        transaction = prepare_server_spell(
+            struct.pack(">qqiih", actor_id, (actor_id << 32) | 4780, *target.position),
+            char,
+            {-200: monster},
+            runtime.fight,
+            char["account_id"],
+            deck,
+            action_id=runtime.action_id + 1,
+            line_of_sight=los,
+            critical=False,
+            rng=rng,
+            **self._common
+        )
+        self.assertEqual(snapshot(runtime.fight), before)
+        self.assertGreater(transaction.plan["costs"]["ap"], 0)
+        self.assertLess(transaction.fight.actors[-200].hp, target.hp)
+        packets = commit_spell_transaction(
+            runtime, transaction, stats_serializer=lambda actor, preview: stats(actor)
+        )
+        self.assertTrue(packets)
+        return transaction
+
+    def _move(self, values, destination):
+        char, monster, deck, rng, runtime, stats = values
+
+        def provider(preview, **boundary):
+            return prepare_area_movement(
+                char,
+                {-200: monster},
+                preview,
+                deck,
+                rng=rng,
+                **self._common,
+                **boundary
+            )
+
+        before = runtime.fight.actors[char["id"]].mp
+        packets, result = apply_client(
+            runtime,
+            char["account_id"],
+            struct.pack(">qiih", char["id"], *destination),
+            stats,
+            runtime_stats_serializer=lambda actor, preview: stats(actor),
+            area_provider=provider,
+        )
+        self.assertTrue(result)
+        self.assertTrue(packets)
+        self.assertLess(runtime.fight.actors[char["id"]].mp, before)
+
+    def test_paid_counter_completion_buffs_nearby_foreign_owner_without_stealing_ownership(
+        self,
+    ):
+        values = self._fixture("distance-first")
+        owner, runtime = values[0]["id"], values[4]
+        peer = next(identity for identity in self._characters if identity != owner)
+        self._cast(values)
+        self._move(values, (-7, -7, -1))
+        self._cast(values)
+        self.assertEqual(len(self._states(runtime.fight.actors[owner], 8788)), 1)
+        self.assertFalse(self._states(runtime.fight.actors[peer], 8788))
+        for identity in (owner, peer):
+            buff = self._states(runtime.fight.actors[identity], 8787)
+            self.assertEqual(len(buff), 1)
+            self.assertEqual(buff[0].caster_id, owner)
+        self.assertFalse(self._states(runtime.fight.actors[-200], 8787))
+
+    def test_expired_foreign_charge_does_not_complete_peer_cycle(self):
+        from wakfu_server.combat_timeline_snapshot import current_wire_turn
+
+        values = self._fixture("distance-first")
+        owner, runtime = values[0]["id"], values[4]
+        peer = next(identity for identity in self._characters if identity != owner)
+        self._cast(values)
+        charge = self._states(runtime.fight.actors[-200], 8785)
+        self.assertEqual(len(charge), 1)
+        self.assertEqual(charge[0].caster_id, owner)
+        self.assertEqual(
+            (charge[0].duration, charge[0].clock_actor, charge[0].tick_at_turn_end),
+            (1, "caster", True),
+        )
+        self.assertEqual(
+            (charge[0].timer.actor_id, charge[0].timer.phase), (owner, "end")
+        )
+        self.assertEqual(runtime.fight.current.id, owner)
+        # The real owned END runs native end reactions and expiration before
+        # successor publication; inspect before the actual ACK is released.
+        packets = runtime.end_turn(
+            values[0]["account_id"], owner, current_wire_turn(runtime.fight)
+        )
+        self.assertTrue(packets)
+        self.assertFalse(self._states(runtime.fight.actors[-200], 8785))
+        self.assertFalse(self._states(runtime.fight.actors[-200], 8786))
+        pending = runtime.awaiting_ack
+        self.assertIsNotNone(pending)
+        runtime.acknowledge_turn(struct.pack(">i", pending))
+        self.assertEqual(runtime.fight.current.id, peer)
+        # The peer earns an actual opposite-type hit on its own legal turn.
+        # Expired foreign distance history cannot stand in for its own charge.
+        peer_values = (self._characters[peer], *values[1:])
+        self._cast(peer_values)
+        melee = self._states(runtime.fight.actors[-200], 8786)
+        self.assertEqual(len(melee), 1)
+        self.assertEqual(melee[0].caster_id, peer)
+        self.assertFalse(self._states(runtime.fight.actors[-200], 8785))
+        for identity in (owner, peer):
+            self.assertFalse(self._states(runtime.fight.actors[identity], 8788))
+            self.assertFalse(self._states(runtime.fight.actors[identity], 8787))

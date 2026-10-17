@@ -46,6 +46,15 @@ def effective_affiliation(fight, actor):
     if hasattr(fight, "native_controller_registry"):
         from .combat_controller_registry import current_native_team
 
+        if fight.actors.get(actor.id) is not actor:
+            raise ValueError("Missing actual affiliation actor")
+        if hasattr(fight, "native_global_pv_collections"):
+            from .combat_global_pv_collections import global_fighter_registered
+
+            # big.bcM -> buG.kp returns the absent-team sentinel after actual
+            # removal. A retained actor object is not a surviving fdy row.
+            if not global_fighter_registered(fight, actor.id):
+                return -1
         return current_native_team(fight, actor.id)
     value = getattr(actor, "native_fight_affiliation", actor.team)
     if type(value) is not int or not -128 <= value < 128:

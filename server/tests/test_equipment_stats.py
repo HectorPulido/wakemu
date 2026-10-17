@@ -153,7 +153,15 @@ class EquipmentStatsTests(unittest.TestCase):
         removed = stats(response_messages(char, 0, wp=6))
         self.assertEqual(removed[2], (6, 0, 6, 0))
         self.assertEqual(removed[1], (41, 0, maximum(8, 6), 0))
-        self.assertNotIn(20, removed)
+        from wakfu_server.combat_actor_snapshot import native_actor_catalog
+
+        baseline = native_actor_catalog()["characteristics"]["20"]
+        # The native partial consumer needs an explicit baseline to clear the
+        # removed equipment contribution; an omitted row can retain old damage.
+        self.assertEqual(
+            removed[20],
+            (baseline["current"], baseline["minimum"], baseline["maximum"], 0),
+        )
         self.assertEqual(
             [opcode for opcode, _ in response_messages(char, 0, wp=6, status=7)],
             [12284],

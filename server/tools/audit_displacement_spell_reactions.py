@@ -320,8 +320,16 @@ def run(
                         prepare_server_spell.__module__.rsplit(".", 1)[0]
                         + ".combat_damage_handler"
                     )
+                    vitality_module = import_module(
+                        prepare_server_spell.__module__.rsplit(".", 1)[0]
+                        + ".combat_vitality_execution"
+                    )
                     calculate_damage = damage_module.damage_amount
                     consume_damage = damage_module.consume_damage
+                    if vitality_module.consume_damage is not consume_damage:
+                        raise ValueError(
+                            "Damage observer requires one native consumption primitive"
+                        )
                     damage_consumptions = []
                     damage_sources = []
                     damage_handler = damage_module.NativeDamageHandler
@@ -400,6 +408,10 @@ def run(
                         damage_module, "damage_amount", side_effect=observe_damage
                     ), patch.object(
                         damage_module, "consume_damage", side_effect=observe_consumption
+                    ), patch.object(
+                        vitality_module,
+                        "consume_damage",
+                        side_effect=observe_consumption,
                     ):
                         next_result = prepare_server_spell(
                             native.struct.pack(

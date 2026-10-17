@@ -1,5 +1,6 @@
 """Local Python dispatcher/world prototype, seeded from the user's own capture."""
 import base64
+from contextlib import nullcontext
 from datetime import datetime, timezone
 import json
 import itertools
@@ -421,10 +422,12 @@ class Connection:
 
     def __init__(self, socket):
         self.socket = socket
-        self.write_lock = threading.Lock()
+        self.write_lock = threading.RLock()
         from wakfu_server.combat_instance_publication import InstancePublicationTracker
+        from wakfu_server.combat.combat_external_markers import MarkerPublications
 
         self.instance_publications = InstancePublicationTracker()
+        self.marker_publications = MarkerPublications()
         self.native_instance_scope = lambda: None
         self.interactive_publication = None
         self.interactive_scope = lambda: None
@@ -447,10 +450,12 @@ class Connection:
                 if data:
                     self.socket.sendall(data)
             self.instance_publications.after_write(data, publication_scope)
+            self.marker_publications.after_write(data, publication_scope)
             for event in self.interactive_trace:
                 record(event="interactive_wire_publication", **event)
         except BaseException:
             self.instance_publications.invalidate()
+            self.marker_publications.reset(None)
             if self.interactive_publication is not None:
                 self.interactive_publication.clear()
             raise
@@ -861,6 +866,10 @@ def join_world(
     defer_scene_snapshot=False,
 ):
     from wakfu_server.profession_store import ensure_all_learned
+
+    # A fresh scene load creates a new native world, unlike spectator return.
+    with connection.write_lock:
+        connection.marker_publications.reset(connection.native_instance_scope())
 
     profession = ensure_all_learned(
         STORE,
@@ -1632,7 +1641,7 @@ def session(raw, peer, service, context):
         )
 
     @PROFILER.profile("world.snapshot")
-    def send_loaded_world_snapshot():
+    def send_loaded_world_snapshot(*, reconcile_markers=True):
         """Rebuild the current loaded map for this peer after scene transitions."""
         if character is None or not loaded or account_id is None or generation is None:
             raise ValueError("Loaded world session is required")
@@ -1686,12 +1695,38 @@ def session(raw, peer, service, context):
         ):
             send(connection, service, *packet)
         if COMBAT_TEST:
-            for packet in EXTERNAL_FIGHT_MARKERS.world_snapshots(
-                character["map_id"],
-                character.get("instance_id", 0),
-                exclude_character_id=character["id"],
-            ):
-                send(connection, service, *packet)
+            # bvU restores retained external contexts before sending 12154.
+            # Serialize selection with actual writes so concurrent new markers
+            # cannot be created twice for the same native recipient scene.
+            with connection.write_lock:
+                known = (
+                    connection.marker_publications.snapshot(
+                        connection.native_instance_scope()
+                    )
+                    if reconcile_markers
+                    else None
+                )
+                packets = EXTERNAL_FIGHT_MARKERS.world_snapshots(
+                    character["map_id"],
+                    character.get("instance_id", 0),
+                    exclude_character_id=character["id"],
+                    known_phases=known,
+                    known_rosters=(
+                        connection.marker_publications.roster_snapshot(
+                            connection.native_instance_scope()
+                        )
+                        if reconcile_markers
+                        else None
+                    ),
+                    unbound_members=(
+                        connection.marker_publications.unbound_snapshot(
+                            connection.native_instance_scope()
+                        )
+                        if reconcile_markers
+                        else None
+                    ),
+                )
+                send_batch(connection, service, packets)
 
     def sync_loaded_world_snapshot(*, force=False):
         nonlocal world_snapshot_pending
@@ -1739,7 +1774,7 @@ def session(raw, peer, service, context):
         """Restore the loaded observer's current world snapshot after 12154."""
         if character is None or account_id is None or generation is None:
             raise ValueError("Loaded observer session is required")
-        send_loaded_world_snapshot()
+        send_loaded_world_snapshot(reconcile_markers=True)
         nonlocal world_snapshot_pending
         world_snapshot_pending = False
 
@@ -4107,17 +4142,119 @@ def session(raw, peer, service, context):
             summary["actor_ids"] = [member["id"] for member in result["members"]]
         return summary
 
+    def shared_action_incident(
+        runtime,
+        action_type,
+        body,
+        source,
+        owner_deck,
+        characters,
+        decks,
+        *,
+        actor_id=None,
+        turn_id=None,
+    ):
+        if not os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+            return nullcontext()
+        try:
+            from wakfu_server.combat_shared_incident_capture import (
+                current_shared_incident,
+                shared_incidents_suppressed,
+            )
+
+            if shared_incidents_suppressed():
+                return nullcontext()
+            from wakfu_server.combat_incident_capture import (
+                incident_enabled,
+                incident_scope,
+            )
+
+            if not incident_enabled():
+                return nullcontext()
+            # End-turn obtains authority through its actual runtime providers.
+            # Do not add a diagnostic Store read that gameplay never performs;
+            # those providers record their consumed sources when invoked.
+            action = dict(type=action_type, owner_id=combat_session.account_id)
+            if action_type == "end_turn":
+                action.update(actor_id=actor_id, turn_id=turn_id)
+            else:
+                action["body"] = body
+                if action_type != "move":
+                    action["critical"] = (
+                        False
+                        if action_type == "player_unarmed"
+                        else (
+                            None
+                            if COMBAT_TEST_CRITICAL_BRANCH == "auto"
+                            else COMBAT_TEST_CRITICAL_BRANCH == "critical"
+                        )
+                    )
+            # This records the actual connected operation. Its providers are not
+            # accredited as equivalent to the isolated offline authority recipe.
+            inputs = dict(
+                authority_recipe="observed-live-server-v1",
+                map_id=combat_session.map_id if source is None else source["map_id"],
+                native_events=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
+                area_callbacks=os.environ.get("WAKFU_NATIVE_AREA_CALLBACKS", "1")
+                == "1",
+                recipient_evidence="intended-participant-accounts-not-confirmed-routing",
+                client_request_body=body,
+            )
+            if characters is not None:
+                inputs.update(
+                    character=source,
+                    monsters=TEST_MONSTERS_BY_ID,
+                    deck_blob=owner_deck,
+                    player_characters=characters,
+                    deck_blobs=decks,
+                )
+            outer = current_shared_incident()
+            if outer is not None:
+                outer.attach(
+                    runtime, action, inputs, session=dict(requester=combat_session)
+                )
+                return nullcontext(outer)
+            return incident_scope(
+                runtime,
+                action,
+                inputs,
+                session=dict(requester=combat_session),
+                recipients=tuple(
+                    sorted(
+                        {
+                            actor.owner_id
+                            for actor in runtime.fight.actors.values()
+                            if actor.owner_id is not None
+                        }
+                    )
+                ),
+            )
+        except Exception as error:
+            # Diagnostics must never replace the gameplay result or exception.
+            try:
+                record(
+                    event="combat_incident_setup_failed",
+                    error_type=type(error).__name__,
+                )
+            except Exception:
+                pass
+            return nullcontext()
+
     def current_combat_stats(actor, state=None):
         from wakfu_server.combat_actor import (
             actual_actor_stats,
             actual_monster_actor_stats,
         )
+        from wakfu_server.combat_input_observation import observe_fact
 
         current_fight = fight if state is None else state
         if actor.id in getattr(current_fight, "native_summon_registrations", {}):
             from wakfu_server.combat_summon_stats import registered_summon_stats
 
-            return registered_summon_stats(actor, current_fight, character["map_id"])
+            stats = registered_summon_stats(actor, current_fight, character["map_id"])
+            observe_fact("current_combat_stats.summon_actor", actor.id)
+            observe_fact("current_combat_stats.summon", stats)
+            return stats
         if getattr(actor, "native_summon_source", None) is not None:
             raise ValueError("Summon stats require current native registration")
         if actor.effect_stats is not None:
@@ -4135,30 +4272,51 @@ def session(raw, peer, service, context):
             source = (
                 STORE.character(actor.owner_id, actor.id) if COMBAT_TEST else character
             )
-            return actual_actor_stats(
+            observe_fact("current_combat_stats.player_source", source)
+            stats = actual_actor_stats(
                 source,
                 actor,
                 fight.id,
                 wp_current=wp_current,
                 wp_maximum=wp_maximum,
             )
-        return actual_monster_actor_stats(
-            TEST_MONSTERS_BY_ID[actor.id],
+            observe_fact("current_combat_stats.player", stats)
+            return stats
+        source = TEST_MONSTERS_BY_ID[actor.id]
+        observe_fact("current_combat_stats.monster_source", source)
+        stats = actual_monster_actor_stats(
+            source,
             actor,
             fight.id,
             wp_current=wp_current,
             wp_maximum=wp_maximum,
             direction=3,
         )
+        observe_fact("current_combat_stats.monster", stats)
+        return stats
 
     @PROFILER.profile("combat.refresh")
     def refresh_shared_combat():
         nonlocal fight, fight_messages, group_lease, TEST_MONSTERS, TEST_MONSTERS_BY_ID
+        nonlocal pve_withdrawal_pending, combat_session, loaded
         if combat_session is None or fight is None:
             return None
         shared = COMBAT_SESSIONS.registry.lookup(fight.id)
         fight = shared.fight
         fight_messages = shared.runtime
+        receipt = shared.withdrawals.get(combat_session.account_id)
+        if (
+            getattr(shared, "full_abandon_owner", None) is not None
+            and receipt is not None
+            and receipt["session"] == combat_session
+            and not receipt.get("full_abort_requester", False)
+            and combat_session.account_id not in shared.returned
+        ):
+            pve_withdrawal_pending = receipt
+            fight = fight_messages = None
+            combat_session = group_lease = None
+            loaded = False
+            return shared  # Native12925 now selects the existing private-return branch.
         group_lease = getattr(shared, "group_lease", group_lease)
         context = shared.join_context or {}
         monsters = getattr(fight, "rift_monsters", context.get("monsters"))
@@ -4169,6 +4327,23 @@ def session(raw, peer, service, context):
             TEST_MONSTERS = tuple(monsters.values())
         return shared
 
+    def publish_full_abandon_group(shared, result):
+        if not result.get("group_restored") or shared.group_lease is None:
+            return
+        from wakfu_server.ecology_admin import current_available
+        from wakfu_server.combat_monster_world import spawn_group
+
+        key = shared.group_lease[0]
+        members = current_available(STORE, key)
+        if members:
+            WORLD.emit_location(
+                key[0],
+                key[1],
+                12608,
+                spawn_group(members, group_id=key[2]),
+                exclude_generation=generation,
+            )
+
     def publish_external_marker(shared):
         """Publish public-world marker deltas, never to fight participants."""
         if not COMBAT_TEST or shared is None or getattr(shared, "is_duel", False):
@@ -4176,6 +4351,41 @@ def session(raw, peer, service, context):
         fight = getattr(shared, "fight", None)
         if fight is None:
             return
+
+        def public_member_packet(actor, source_fight):
+            from wakfu_server.combat_multiplayer_wire import added
+            from wakfu_server.combat_public_fighter_stats import (
+                public_player_fighter_stats,
+            )
+
+            from wakfu_server.combat_actor import actual_actor_stats, actor_effects
+            from wakfu_server.breed_resources import live_wp
+
+            source = STORE.character(actor.owner_id, actor.id)
+            wp_current, wp_maximum = live_wp(source_fight, actor.id)
+            stats = actual_actor_stats(
+                source,
+                actor,
+                source_fight.id,
+                fight=source_fight,
+                wp_current=wp_current,
+                wp_maximum=wp_maximum,
+            )
+            public = public_player_fighter_stats(
+                stats, actor_id=actor.id, fight_id=source_fight.id
+            )
+            # Native ckT uses fighter stats for external membership; it does
+            # not replay cvg effects or SQ. Preserve the existing canonical
+            # empty effect descriptor instead of exposing owned retained rows.
+            return added(
+                source_fight.id,
+                actor.id,
+                actor_type=0,
+                team=actor.team,
+                stats=public,
+                effects=actor_effects(),
+            )
+
         previous_location = EXTERNAL_FIGHT_MARKERS.location(fight.id)
         if fight.phase == "finished":
             committed_abandon = (
@@ -4192,9 +4402,68 @@ def session(raw, peer, service, context):
                 return
             packet = EXTERNAL_FIGHT_MARKERS.remove(fight.id)
         else:
-            packet = EXTERNAL_FIGHT_MARKERS.update(shared)
-        if packet is None:
-            return
+            try:
+                packet = EXTERNAL_FIGHT_MARKERS.update(
+                    shared, member_packet=public_member_packet
+                )
+            except (KeyError, TypeError, ValueError) as error:
+                record(
+                    event="combat_external_marker_publish_failed",
+                    fight_id=fight.id,
+                    reason=str(error),
+                )
+                return
+        if packet is None or packet[0] == 12233:
+            # Existing native contexts need an incremental member add; a
+            # second13753 would replace their retained external model.
+            exclusions = frozenset(
+                (owner.character_id, owner.generation)
+                for owner in (
+                    *getattr(shared, "participants", {}).values(),
+                    *SPECTATORS.sessions(fight.id),
+                )
+            )
+            with WORLD.lock:
+                peers = tuple(
+                    peer
+                    for lease, peer, owner in WORLD.players.values()
+                    if (owner["map_id"], owner.get("instance_id", 0))
+                    == (shared.map_id, shared.instance_id)
+                    and (owner["id"], lease) not in exclusions
+                )
+            for peer in peers:
+                try:
+                    with peer.write_lock:
+                        scope = peer.native_instance_scope()
+                        phases = peer.marker_publications.snapshot(scope)
+                        if fight.id not in phases:
+                            continue
+                        delta = EXTERNAL_FIGHT_MARKERS.world_snapshots(
+                            shared.map_id,
+                            shared.instance_id,
+                            known_phases=phases,
+                            known_rosters=peer.marker_publications.roster_snapshot(
+                                scope
+                            ),
+                            unbound_members=peer.marker_publications.unbound_snapshot(
+                                scope
+                            ),
+                            only_fight_id=fight.id,
+                        )
+                        if packet is not None:
+                            # The existing uniform transition below follows this
+                            # roster repair in the SAME publication pass.
+                            delta = tuple(row for row in delta if row[0] != 12233)
+                        WORLD._send_batch(peer, delta)
+                except (KeyError, TypeError, ValueError) as error:
+                    record(
+                        event="combat_external_marker_recipient_failed",
+                        fight_id=fight.id,
+                        target_connection_id=getattr(peer, "trace_id", None),
+                        reason=str(error),
+                    )
+            if packet is None:
+                return
         if packet[0] == 12238 and previous_location is not None:
             map_id, instance_id = previous_location
         else:
@@ -4283,7 +4552,10 @@ def session(raw, peer, service, context):
 
         def deliver(owner, batches):
             for batch in batches:
-                delivered_batches.setdefault(batch.sequence, []).append(batch.packets)
+                if batch.public_events:
+                    delivered_batches.setdefault(batch.sequence, []).append(
+                        batch.packets
+                    )
             packets = tuple(packet for batch in batches for packet in batch.packets)
             if not packets:
                 return
@@ -4394,8 +4666,20 @@ def session(raw, peer, service, context):
         ):
             return
         try:
-            if shared.fight.phase == "finished" and not getattr(
-                shared, "settlement_ready", False
+            from wakfu_server.combat_abandon import (
+                committed_abandon_team,
+                aborted_terminal_packets,
+            )
+
+            abandon_team = (
+                committed_abandon_team(getattr(shared, "runtime", None))
+                if shared.fight.phase == "finished"
+                else None
+            )
+            if (
+                shared.fight.phase == "finished"
+                and not getattr(shared, "settlement_ready", False)
+                and abandon_team is None
             ):
                 # Preserve lethal action/death delivery, but do not let the
                 # client return before the durable NPC tombstone is committed.
@@ -4418,7 +4702,13 @@ def session(raw, peer, service, context):
                 event_packets = terminal_batch(
                     event_packets,
                     fight_id=shared.fight.id,
-                    fallback_packet=lambda: terminal_event(copy(shared.runtime)),
+                    fallback_packet=lambda: (
+                        aborted_terminal_packets(
+                            shared.fight, shared.runtime, losing_team=abandon_team
+                        )[0]
+                        if abandon_team is not None
+                        else terminal_event(copy(shared.runtime))
+                    ),
                 )
             participants = tuple(
                 ObserverSession(
@@ -5747,17 +6037,19 @@ def session(raw, peer, service, context):
                     spectator_terminal_pending = None
                     if combat_session is not None and fight is not None:
                         shared_selection = refresh_shared_combat()
-                        if (
-                            not getattr(shared_selection, "is_duel", False)
-                            and len(
-                                set(shared_selection.participants)
-                                - set(shared_selection.withdrawals)
-                            )
-                            > 1
+                        from wakfu_server.combat_pve_withdraw import (
+                            has_other_live_owner,
+                        )
+
+                        if not getattr(
+                            shared_selection, "is_duel", False
+                        ) and has_other_live_owner(
+                            shared_selection.fight, combat_session
                         ):
                             pve_withdrawal_pending = COMBAT_SESSIONS.withdraw_pve(
                                 combat_session, character, b""
                             )
+                            publish_external_marker(shared_selection)
                             character.update(
                                 refresh_owned_character(
                                     pve_withdrawal_pending["character"]
@@ -5779,39 +6071,82 @@ def session(raw, peer, service, context):
                                 selection_runtime = selection_abandon_runtime(
                                     fight, shared_selection.runtime
                                 )
-                                abandoned_selection = prepare_selection_abandon(
-                                    STORE,
-                                    account_id,
-                                    generation,
-                                    character,
-                                    selection_runtime,
-                                    b"",
+                                from wakfu_server.combat_shared_abandon import (
+                                    requires_shared_abort,
                                 )
-                                shared_selection.runtime = selection_runtime
+
+                                if requires_shared_abort(
+                                    shared_selection.fight, combat_session
+                                ):
+                                    abandoned_selection = (
+                                        COMBAT_SESSIONS.abandon_shared_pve(
+                                            combat_session,
+                                            character,
+                                            b"",
+                                            groups=COMBAT_GROUPS,
+                                            shared=shared_selection,
+                                        )
+                                    )
+                                    fight = shared_selection.fight
+                                    selection_runtime = shared_selection.runtime
+                                else:
+                                    abandoned_selection = prepare_selection_abandon(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        selection_runtime,
+                                        b"",
+                                    )
+                                    shared_selection.runtime = selection_runtime
                                 character.update(
                                     refresh_owned_character(
                                         abandoned_selection["character"]
                                     )
                                 )
-                                return_selection_abandon(
-                                    STORE,
-                                    account_id,
-                                    generation,
-                                    character,
-                                    selection_runtime,
-                                    struct.pack(">iB", fight.id, 1),
-                                    wp=COMBAT_TEST_WP,
-                                )
+                                if not abandoned_selection.get("shared_full_abort"):
+                                    return_selection_abandon(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        selection_runtime,
+                                        struct.pack(">iB", fight.id, 1),
+                                        wp=COMBAT_TEST_WP,
+                                    )
                             publish_external_marker(shared_selection)
                             publish_spectator_state(
                                 shared_selection, abandoned_selection["packets"]
                             )
-                            if not COMBAT_SESSIONS.registry.retire_abandoned_single_owner(
-                                fight.id, combat_session
-                            ):
-                                raise ValueError(
-                                    "Selector PvE abandon was not safely retired"
+                            if abandoned_selection.get("shared_full_abort"):
+                                publish_full_abandon_group(
+                                    shared_selection, abandoned_selection
                                 )
+                                drain_shared_combat()
+                                returned_selection = (
+                                    COMBAT_SESSIONS.return_withdrawn_pve(
+                                        combat_session,
+                                        fight.id,
+                                        character,
+                                        struct.pack(">iB", fight.id, 1),
+                                        wp=COMBAT_TEST_WP,
+                                        pending=shared_selection.withdrawals[
+                                            account_id
+                                        ],
+                                    )
+                                )
+                                character.update(
+                                    refresh_owned_character(
+                                        returned_selection["character"]
+                                    )
+                                )
+                            else:
+                                if not COMBAT_SESSIONS.registry.retire_abandoned_single_owner(
+                                    fight.id, combat_session
+                                ):
+                                    raise ValueError(
+                                        "Selector PvE abandon was not safely retired"
+                                    )
                             if shared_selection.group_lease is not None:
                                 COMBAT_GROUPS.finish(
                                     shared_selection.group_lease, defeated=False
@@ -6006,6 +6341,19 @@ def session(raw, peer, service, context):
                         )
                 elif opcode == 23664:
                     request = decode_body("out", opcode, body)
+                    if selected:
+                        from wakfu_server.character_selection_retry import (
+                            already_selected_owned_character,
+                        )
+
+                        if already_selected_owned_character(
+                            STORE, account_id, generation, character, request
+                        ):
+                            record(
+                                event="character_selection_retry_ignored",
+                                character_id=character["id"],
+                            )
+                            continue
                     if account_id is None or selected:
                         raise ValueError(
                             "Authentication required or character already selected"
@@ -7842,6 +8190,7 @@ def session(raw, peer, service, context):
                                         1: TEST_MONSTERS[0]["id"],
                                     },
                                     duration_ms=placement_duration,
+                                    viewer_id=character["id"],
                                 )
                         COMBAT_SESSIONS.register(
                             combat_session,
@@ -7977,8 +8326,37 @@ def session(raw, peer, service, context):
                                 13249,
                                 struct.pack(">qiih", m["id"], m["x"], m["y"], m["z"]),
                             )
-                        for message_id, payload in packets:
-                            send(connection, service, message_id, payload)
+                        starter_delivery = None
+                        if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR"):
+                            try:
+                                from wakfu_server.combat_delivery_observation import (
+                                    begin_direct_bootstrap,
+                                    finish_direct_bootstrap,
+                                )
+
+                                starter_delivery = begin_direct_bootstrap(
+                                    fight.id, combat_session, packets
+                                )
+                            except Exception:
+                                pass
+                        try:
+                            for message_id, payload in packets:
+                                send(connection, service, message_id, payload)
+                        except BaseException as error:
+                            if starter_delivery is not None:
+                                try:
+                                    finish_direct_bootstrap(
+                                        starter_delivery, error=error
+                                    )
+                                except Exception:
+                                    pass
+                            raise
+                        else:
+                            if starter_delivery is not None:
+                                try:
+                                    finish_direct_bootstrap(starter_delivery)
+                                except Exception:
+                                    pass
                         from wakfu_server.combat_initialization_policy import (
                             warning_text,
                         )
@@ -8259,56 +8637,67 @@ def session(raw, peer, service, context):
                                     combat_session.account_id,
                                     cast_request["actor_id"],
                                 )
-                                transaction = prepare_server_spell(
+                                with shared_action_incident(
+                                    runtime,
+                                    "player_spell",
                                     body,
                                     source,
-                                    TEST_MONSTERS_BY_ID,
-                                    candidate,
-                                    combat_session.account_id,
                                     owner_deck,
-                                    action_id=runtime.action_id + 1,
-                                    critical=None
-                                    if COMBAT_TEST_CRITICAL_BRANCH == "auto"
-                                    else COMBAT_TEST_CRITICAL_BRANCH == "critical",
-                                    line_of_sight=lambda origin, target, state: authoritative_visible(
-                                        source["map_id"],
-                                        origin,
-                                        target,
-                                        state,
-                                        blocking_footprints={
-                                            actor.id: {actor.position[:2]}
-                                            for actor in state.actors.values()
-                                            if actor.hp > 0
-                                        },
-                                    ),
-                                    player_characters=characters,
-                                    deck_blobs=decks,
-                                )
-                                delivery = commit_spell_transaction(
-                                    runtime,
-                                    transaction,
-                                    stats_serializer=lambda actor, state: current_combat_stats(
-                                        actor, state
-                                    ),
-                                    diagnostic=lambda **details: record(
-                                        event="combat_commit_stage", **details
-                                    ),
-                                )
-                                packets = list(delivery)
-                                for event in transaction.events:
-                                    if event["kind"] == "death":
-                                        packets.extend(
-                                            runtime.prepare_delivery(
-                                                death_messages(
-                                                    runtime, event["actor_id"]
+                                    characters,
+                                    decks,
+                                ) as incident:
+                                    transaction = prepare_server_spell(
+                                        body,
+                                        source,
+                                        TEST_MONSTERS_BY_ID,
+                                        candidate,
+                                        combat_session.account_id,
+                                        owner_deck,
+                                        action_id=runtime.action_id + 1,
+                                        critical=None
+                                        if COMBAT_TEST_CRITICAL_BRANCH == "auto"
+                                        else COMBAT_TEST_CRITICAL_BRANCH == "critical",
+                                        line_of_sight=lambda origin, target, state: authoritative_visible(
+                                            source["map_id"],
+                                            origin,
+                                            target,
+                                            state,
+                                            blocking_footprints={
+                                                actor.id: {actor.position[:2]}
+                                                for actor in state.actors.values()
+                                                if actor.hp > 0
+                                            },
+                                        ),
+                                        player_characters=characters,
+                                        deck_blobs=decks,
+                                    )
+                                    delivery = commit_spell_transaction(
+                                        runtime,
+                                        transaction,
+                                        stats_serializer=lambda actor, state: current_combat_stats(
+                                            actor, state
+                                        ),
+                                        diagnostic=lambda **details: record(
+                                            event="combat_commit_stage", **details
+                                        ),
+                                    )
+                                    packets = list(delivery)
+                                    for event in transaction.events:
+                                        if event["kind"] == "death":
+                                            packets.extend(
+                                                runtime.prepare_delivery(
+                                                    death_messages(
+                                                        runtime, event["actor_id"]
+                                                    )
                                                 )
                                             )
-                                        )
-                                action_results["transaction"] = transaction
-                                action_results["delivery"] = delivery
-                                return Transition(
-                                    transaction.fight, runtime, tuple(packets)
-                                )
+                                    if incident is not None:
+                                        incident.packets(packets)
+                                    action_results["transaction"] = transaction
+                                    action_results["delivery"] = delivery
+                                    return Transition(
+                                        transaction.fight, runtime, tuple(packets)
+                                    )
 
                             prepare_started = time.monotonic()
                             COMBAT_SESSIONS.execute(
@@ -8316,6 +8705,9 @@ def session(raw, peer, service, context):
                                 fight.id,
                                 cast_request["actor_id"],
                                 shared_cast,
+                                incident_request=dict(opcode=13260, body=body)
+                                if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR")
+                                else None,
                             )
                             prepare_finished = time.monotonic()
                             refresh_shared_combat()
@@ -8574,107 +8966,132 @@ def session(raw, peer, service, context):
                                     raise ValueError(
                                         "Weapon actor has no owner snapshot"
                                     )
-                                if request["item_uid"] == -1:
-                                    from wakfu_server.equipment import validate_sheet
-                                    from wakfu_server.combat_melee import (
-                                        prepare_server_unarmed,
-                                    )
-
-                                    selected = source["builds"].get(
-                                        source.get("active_build_index", 0), {}
-                                    )
-                                    if any(
-                                        row["slot"] == 15
-                                        for row in validate_sheet(
-                                            source,
-                                            bytes.fromhex(
-                                                selected.get("equipment", "")
-                                            ),
-                                        )
-                                    ):
-                                        raise ValueError(
-                                            "Unarmed action requires the owned weapon slot to be empty"
-                                        )
-                                    wp_current, wp_maximum = live_wp(
-                                        candidate, actor_id
-                                    )
-                                    transaction = prepare_server_unarmed(
-                                        body,
-                                        source,
-                                        TEST_MONSTERS_BY_ID,
-                                        candidate,
-                                        combat_session.account_id,
-                                        unarmed=True,
-                                        wp_current=wp_current,
-                                        wp_maximum=wp_maximum,
-                                        action_id=runtime.action_id + 1,
-                                        effect_uid=secrets.randbelow(2**60) + 1,
-                                        critical_chance=0,
-                                        caster_running_effects=(),
-                                        target_running_effects=(),
-                                        caster_bonuses={},
-                                        target_bonuses={},
-                                        mitigate=lambda damage, element, source, target, state: damage,
-                                        player_characters=characters,
-                                        deck_blobs=decks,
-                                    )
-                                else:
-                                    transaction = prepare_server_weapon(
-                                        body,
-                                        source,
-                                        TEST_MONSTERS_BY_ID,
-                                        candidate,
-                                        combat_session.account_id,
-                                        decks[actor_id],
-                                        action_id=runtime.action_id + 1,
-                                        critical=None
-                                        if COMBAT_TEST_CRITICAL_BRANCH == "auto"
-                                        else COMBAT_TEST_CRITICAL_BRANCH == "critical",
-                                        line_of_sight=lambda origin, target, state: authoritative_visible(
-                                            source["map_id"],
-                                            origin,
-                                            target,
-                                            state,
-                                            blocking_footprints={
-                                                actor.id: {actor.position[:2]}
-                                                for actor in state.actors.values()
-                                                if actor.hp > 0
-                                            },
-                                        ),
-                                        player_characters=characters,
-                                        deck_blobs=decks,
-                                    )
-                                delivery = commit_spell_transaction(
+                                with shared_action_incident(
                                     runtime,
-                                    transaction,
-                                    stats_serializer=lambda actor, state: current_combat_stats(
-                                        actor, state
-                                    ),
-                                    diagnostic=lambda **details: record(
-                                        event="combat_commit_stage", **details
-                                    ),
-                                )
-                                packets = list(delivery)
-                                for event in transaction.events:
-                                    if event["kind"] == "death":
-                                        packets.extend(
-                                            runtime.prepare_delivery(
-                                                death_messages(
-                                                    runtime, event["actor_id"]
+                                    "player_unarmed"
+                                    if request["item_uid"] == -1
+                                    else "player_weapon",
+                                    body,
+                                    source,
+                                    decks.get(actor_id),
+                                    characters,
+                                    decks,
+                                ) as incident:
+                                    if request["item_uid"] == -1:
+                                        from wakfu_server.equipment import (
+                                            validate_sheet,
+                                        )
+                                        from wakfu_server.combat_melee import (
+                                            prepare_server_unarmed,
+                                        )
+                                        from wakfu_server.combat_input_observation import (
+                                            observe_fact,
+                                        )
+
+                                        selected = source["builds"].get(
+                                            source.get("active_build_index", 0), {}
+                                        )
+                                        if any(
+                                            row["slot"] == 15
+                                            for row in validate_sheet(
+                                                source,
+                                                bytes.fromhex(
+                                                    selected.get("equipment", "")
+                                                ),
+                                            )
+                                        ):
+                                            raise ValueError(
+                                                "Unarmed action requires the owned weapon slot to be empty"
+                                            )
+                                        wp_current, wp_maximum = live_wp(
+                                            candidate, actor_id
+                                        )
+                                        transaction = prepare_server_unarmed(
+                                            body,
+                                            source,
+                                            TEST_MONSTERS_BY_ID,
+                                            candidate,
+                                            combat_session.account_id,
+                                            unarmed=True,
+                                            wp_current=wp_current,
+                                            wp_maximum=wp_maximum,
+                                            action_id=runtime.action_id + 1,
+                                            effect_uid=observe_fact(
+                                                "shared_weapon.unarmed_effect_uid",
+                                                secrets.randbelow(2**60) + 1,
+                                            ),
+                                            critical_chance=0,
+                                            caster_running_effects=(),
+                                            target_running_effects=(),
+                                            caster_bonuses={},
+                                            target_bonuses={},
+                                            mitigate=lambda damage, element, source, target, state: damage,
+                                            player_characters=characters,
+                                            deck_blobs=decks,
+                                        )
+                                    else:
+                                        transaction = prepare_server_weapon(
+                                            body,
+                                            source,
+                                            TEST_MONSTERS_BY_ID,
+                                            candidate,
+                                            combat_session.account_id,
+                                            decks[actor_id],
+                                            action_id=runtime.action_id + 1,
+                                            critical=None
+                                            if COMBAT_TEST_CRITICAL_BRANCH == "auto"
+                                            else COMBAT_TEST_CRITICAL_BRANCH
+                                            == "critical",
+                                            line_of_sight=lambda origin, target, state: authoritative_visible(
+                                                source["map_id"],
+                                                origin,
+                                                target,
+                                                state,
+                                                blocking_footprints={
+                                                    actor.id: {actor.position[:2]}
+                                                    for actor in state.actors.values()
+                                                    if actor.hp > 0
+                                                },
+                                            ),
+                                            player_characters=characters,
+                                            deck_blobs=decks,
+                                        )
+                                    delivery = commit_spell_transaction(
+                                        runtime,
+                                        transaction,
+                                        stats_serializer=lambda actor, state: current_combat_stats(
+                                            actor, state
+                                        ),
+                                        diagnostic=lambda **details: record(
+                                            event="combat_commit_stage", **details
+                                        ),
+                                    )
+                                    packets = list(delivery)
+                                    for event in transaction.events:
+                                        if event["kind"] == "death":
+                                            packets.extend(
+                                                runtime.prepare_delivery(
+                                                    death_messages(
+                                                        runtime, event["actor_id"]
+                                                    )
                                                 )
                                             )
-                                        )
-                                action_results["transaction"] = transaction
-                                action_results["delivery"] = delivery
-                                return Transition(
-                                    transaction.fight, runtime, tuple(packets)
-                                )
+                                    if incident is not None:
+                                        incident.packets(packets)
+                                    action_results["transaction"] = transaction
+                                    action_results["delivery"] = delivery
+                                    return Transition(
+                                        transaction.fight, runtime, tuple(packets)
+                                    )
 
                             COMBAT_SESSIONS.execute(
                                 combat_session,
                                 fight.id,
                                 request["actor_id"],
                                 shared_weapon,
+                                incident_request=dict(opcode=12889, body=body)
+                                if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR")
+                                else None,
                             )
                             refresh_shared_combat()
                             drain_shared_combat()
@@ -8940,6 +9357,11 @@ def session(raw, peer, service, context):
                                 raise ValueError("Invalid native abandon request")
                             shared = refresh_shared_combat()
                             if shared.fight.phase == "finished":
+                                if (
+                                    getattr(shared, "full_abandon_owner", None)
+                                    == combat_session
+                                ):
+                                    continue  # Its already-queued native abort is authoritative.
                                 # Retry the original terminal settlement;
                                 # a finished victory must not become defeat.
                                 complete_test_fight()
@@ -8958,15 +9380,17 @@ def session(raw, peer, service, context):
                                     fight_id=fight.id,
                                 )
                             else:
-                                active_owners = set(shared.participants) - set(
-                                    shared.withdrawals
+                                from wakfu_server.combat_pve_withdraw import (
+                                    has_other_live_owner,
                                 )
-                                if len(active_owners) > 1:
+
+                                if has_other_live_owner(shared.fight, combat_session):
                                     pve_withdrawal_pending = (
                                         COMBAT_SESSIONS.withdraw_pve(
                                             combat_session, character, body
                                         )
                                     )
+                                    publish_external_marker(shared)
                                     character.update(
                                         pve_withdrawal_pending["character"]
                                     )
@@ -8992,15 +9416,34 @@ def session(raw, peer, service, context):
                                     # Snapshot/readiness/turn transitions share
                                     # this lock; publish abandon only after its
                                     # HP and terminal state are committed.
-                                    abandoned = prepare_abandon(
-                                        STORE,
-                                        account_id,
-                                        generation,
-                                        character,
-                                        abandon_messages,
-                                        body,
+                                    from wakfu_server.combat_shared_abandon import (
+                                        requires_shared_abort,
                                     )
-                                    fight_messages = shared.runtime = abandon_messages
+
+                                    if requires_shared_abort(
+                                        shared.fight, combat_session
+                                    ):
+                                        abandoned = COMBAT_SESSIONS.abandon_shared_pve(
+                                            combat_session,
+                                            character,
+                                            body,
+                                            groups=COMBAT_GROUPS,
+                                            shared=shared,
+                                        )
+                                        fight = shared.fight
+                                        fight_messages = shared.runtime
+                                    else:
+                                        abandoned = prepare_abandon(
+                                            STORE,
+                                            account_id,
+                                            generation,
+                                            character,
+                                            abandon_messages,
+                                            body,
+                                        )
+                                        fight_messages = (
+                                            shared.runtime
+                                        ) = abandon_messages
                                     character.update(
                                         refresh_owned_character(abandoned["character"])
                                     )
@@ -9015,6 +9458,9 @@ def session(raw, peer, service, context):
                                     send(connection, service, message_id, payload)
                                 publish_external_marker(shared)
                                 publish_spectator_state(shared, abandoned["packets"])
+                                if abandoned.get("shared_full_abort"):
+                                    publish_full_abandon_group(shared, abandoned)
+                                    drain_shared_combat()
                                 record(
                                     event="shared_pve_abandoned_waiting_return",
                                     actor_id=character["id"],
@@ -9152,16 +9598,18 @@ def session(raw, peer, service, context):
                             getattr(fight_messages, "abandon_owner", None) is not None
                         )
                         if shared_return:
+                            from wakfu_server.combat_pve_withdraw import (
+                                has_other_live_owner,
+                            )
+
                             refresh_shared_combat()
                             shared_state = COMBAT_SESSIONS.registry.lookup(fight.id)
                             if abandoned:
                                 if (
                                     getattr(shared_state, "is_duel", False)
-                                    or len(
-                                        set(shared_state.participants)
-                                        - set(shared_state.withdrawals)
+                                    or has_other_live_owner(
+                                        shared_state.fight, combat_session
                                     )
-                                    != 1
                                     or shared_state.participants.get(account_id)
                                     != combat_session
                                     or shared_state.settlement_ready
@@ -9178,7 +9626,20 @@ def session(raw, peer, service, context):
                                 return_to_world as return_abandon,
                             )
 
-                            if shared_return:
+                            if (
+                                shared_return
+                                and getattr(shared_state, "full_abandon_owner", None)
+                                is not None
+                            ):
+                                returned = COMBAT_SESSIONS.return_withdrawn_pve(
+                                    combat_session,
+                                    fight.id,
+                                    character,
+                                    body,
+                                    wp=COMBAT_TEST_WP,
+                                    pending=shared_state.withdrawals[account_id],
+                                )
+                            elif shared_return:
                                 with shared_state.lock:
                                     returned = return_abandon(
                                         STORE,
@@ -9328,12 +9789,16 @@ def session(raw, peer, service, context):
                         join_world(generation, connection, character)
                         mark_static_sync_pending()
                         if shared_return and abandoned:
-                            if not COMBAT_SESSIONS.registry.retire_abandoned_single_owner(
-                                fight.id, combat_session
+                            if (
+                                getattr(shared_state, "full_abandon_owner", None)
+                                is None
                             ):
-                                raise ValueError(
-                                    "Shared PvE abandon was not safely retired"
-                                )
+                                if not COMBAT_SESSIONS.registry.retire_abandoned_single_owner(
+                                    fight.id, combat_session
+                                ):
+                                    raise ValueError(
+                                        "Shared PvE abandon was not safely retired"
+                                    )
                         elif shared_return:
                             # Persist the terminal checkpoint while the shared
                             # registry entry still exists. mark_returned may
@@ -9481,7 +9946,7 @@ def session(raw, peer, service, context):
                                     connected_action_source,
                                 )
 
-                                connected_action_source(
+                                source, owner_deck = connected_action_source(
                                     candidate,
                                     characters,
                                     decks,
@@ -9489,28 +9954,44 @@ def session(raw, peer, service, context):
                                     combat_session.account_id,
                                     movement_actor_id,
                                 )
-                                packets, event = apply_client(
+                                with shared_action_incident(
                                     runtime,
-                                    combat_session.account_id,
+                                    "move",
                                     body,
-                                    current_combat_stats,
-                                    runtime_stats_serializer=current_combat_stats,
-                                    area_provider=area_movement_provider
-                                    if os.environ.get(
-                                        "WAKFU_NATIVE_AREA_CALLBACKS", "1"
+                                    source,
+                                    owner_deck,
+                                    characters,
+                                    decks,
+                                ) as incident:
+                                    packets, event = apply_client(
+                                        runtime,
+                                        combat_session.account_id,
+                                        body,
+                                        current_combat_stats,
+                                        runtime_stats_serializer=current_combat_stats,
+                                        area_provider=area_movement_provider
+                                        if os.environ.get(
+                                            "WAKFU_NATIVE_AREA_CALLBACKS", "1"
+                                        )
+                                        == "1"
+                                        else None,
                                     )
-                                    == "1"
-                                    else None,
-                                )
-                                packets = runtime.prepare_delivery(packets)
-                                movement_result["event"] = event
-                                return Transition(candidate, runtime, tuple(packets))
+                                    packets = runtime.prepare_delivery(packets)
+                                    if incident is not None:
+                                        incident.packets(packets)
+                                    movement_result["event"] = event
+                                    return Transition(
+                                        candidate, runtime, tuple(packets)
+                                    )
 
                             COMBAT_SESSIONS.execute(
                                 combat_session,
                                 fight.id,
                                 movement_actor_id,
                                 shared_move,
+                                incident_request=dict(opcode=12161, body=body)
+                                if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR")
+                                else None,
                             )
                             refresh_shared_combat()
                             drain_shared_combat()
@@ -9563,16 +10044,34 @@ def session(raw, peer, service, context):
                             actor_id, actor_turn = struct.unpack(">qh", body)
 
                             def shared_end_turn(candidate, runtime):
-                                packets = runtime.end_turn(
-                                    combat_session.account_id, actor_id, actor_turn
-                                )
-                                return Transition(candidate, runtime, tuple(packets))
+                                with shared_action_incident(
+                                    runtime,
+                                    "end_turn",
+                                    body,
+                                    None,
+                                    None,
+                                    None,
+                                    None,
+                                    actor_id=actor_id,
+                                    turn_id=actor_turn,
+                                ) as incident:
+                                    packets = runtime.end_turn(
+                                        combat_session.account_id, actor_id, actor_turn
+                                    )
+                                    if incident is not None:
+                                        incident.packets(packets)
+                                    return Transition(
+                                        candidate, runtime, tuple(packets)
+                                    )
 
                             COMBAT_SESSIONS.execute(
                                 combat_session,
                                 fight.id,
                                 actor_id,
                                 shared_end_turn,
+                                incident_request=dict(opcode=12403, body=body)
+                                if os.environ.get("WAKFU_COMBAT_INCIDENT_DIR")
+                                else None,
                             )
                             refresh_shared_combat()
                             if fight_messages.awaiting_ack is not None:
@@ -9716,6 +10215,67 @@ def session(raw, peer, service, context):
                         record(
                             event="combat_test_turn_ack_rejected",
                             actor_id=character["id"],
+                            reason=str(error),
+                        )
+                elif opcode in (12014, 13068) and loaded:
+                    from wakfu_server.characters.captured_roster_management import (
+                        manage,
+                    )
+                    from psycopg import Error as DatabaseError
+                    from psycopg_pool import PoolTimeout
+
+                    try:
+                        managed_record = {}
+                        if combat_session is not None:
+                            from wakfu_server.combat_shared import Transition
+
+                            def shared_manage(candidate, runtime):
+                                managed_record.update(
+                                    manage(
+                                        STORE,
+                                        account_id,
+                                        generation,
+                                        character,
+                                        opcode,
+                                        body,
+                                        fight=candidate,
+                                    )
+                                )
+                                return Transition(candidate, runtime, ())
+
+                            COMBAT_SESSIONS.execute(
+                                combat_session,
+                                fight.id,
+                                combat_session.character_id,
+                                shared_manage,
+                                require_turn=False,
+                            )
+                            refresh_shared_combat()
+                            checkpoint_fight()
+                        else:
+                            managed_record = manage(
+                                STORE,
+                                account_id,
+                                generation,
+                                character,
+                                opcode,
+                                body,
+                                fight=fight,
+                            )
+                            if fight is not None:
+                                checkpoint_fight()
+                        character["captured_roster"] = managed_record
+                        record(
+                            event="symbiot_management",
+                            actor_id=character["id"],
+                            opcode=opcode,
+                            selected_slot=managed_record["selected_slot"],
+                        )
+                    except (ValueError, DatabaseError, PoolTimeout) as error:
+                        record(
+                            event="symbiot_management_rejected",
+                            actor_id=character["id"],
+                            opcode=opcode,
                             reason=str(error),
                         )
                 elif opcode == 13571 and loaded:
@@ -13608,6 +14168,8 @@ def session(raw, peer, service, context):
         shared_fight_retained = False
         last_owner_pve_abort = None
         if service == "world" and combat_session is not None and fight is not None:
+            from wakfu_server.combat_pve_withdraw import has_other_live_owner
+
             try:
                 disconnected_fights = COMBAT_SESSIONS.disconnect(combat_session)
                 shared_fight_retained = bool(disconnected_fights)
@@ -13646,11 +14208,7 @@ def session(raw, peer, service, context):
                         shared_fight_retained = True
                     elif (
                         not shared_entry.connected
-                        and len(
-                            set(shared_entry.participants)
-                            - set(shared_entry.withdrawals)
-                        )
-                        == 1
+                        and not has_other_live_owner(shared_entry.fight, combat_session)
                         and getattr(shared_entry.runtime, "abandon_owner", None)
                         == (combat_session.account_id, combat_session.character_id)
                         and shared_entry.fight.phase == "finished"

@@ -1,10 +1,11 @@
 """Server inferred fight-start contract, preserving native null-source replay.
 
 1003's start-combat meaning is supported by installed localized definitions.
-1028 installs class opening mechanics (e.g. Steamer343565 converts PW to SP
+1028 installs opening mechanics (e.g. Steamer343565 converts PW to SP
 and grants its secondary spells). The installed description explicitly places
-that group at combat start. Delivery before1003 is server policy: class setup
-precedes general start reactions, with separate native subscription masks.
+that group at combat start. Native ordinary NPC states also subscribe1028
+(e.g. Ogrest4979/5022). Delivery before1003 is server policy: every installed
+participant receives its own opening event before general start reactions.
 The server-only producer boundary (all participants installed, at the first
 turn boundary) is an explicit implementation inference; no client callsite proves it.
 The server establishes the validated first native timeline round before replay
@@ -51,11 +52,9 @@ def deliver_fight_start(dispatcher, *, initialized_actor_ids):
     fight.native_table_turn = native_round
     # Caller supplies the private transaction preview; any exception discards it.
     outcomes = []
-    # Only installed controlled class managers have this class-setup boundary.
-    # Do not fabricate a running-effect source or NPC class initialization.
+    # Opening listeners belong to native PC and NPC initial-state managers.
+    # Each receives its own null-source event; this creates no class receipt.
     for identity in identities:
-        if not fight.actors[identity].controlled:
-            continue
         for channel in (6, 60, 61):
             outcomes.extend(
                 dispatcher.replay_event(

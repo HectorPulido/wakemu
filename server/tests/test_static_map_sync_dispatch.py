@@ -133,59 +133,54 @@ class StaticMapSyncDispatchTests(unittest.TestCase):
                     if retains_hero_scene(statement.value):
                         continue
                     following = statements[index + 1 :]
-                    while following:
-                        first = following[0]
-                        if (
-                            isinstance(first, ast.Expr)
-                            and isinstance(first.value, ast.Call)
-                            and isinstance(first.value.func, ast.Name)
-                            and first.value.func.id == "resume_settled_shared_combat"
-                        ):
-                            following = following[1:]
-                            continue
-                        if (
-                            isinstance(first, ast.Assign)
-                            and any(
-                                isinstance(target, ast.Name) and target.id == "loaded"
-                                for target in first.targets
-                            )
-                            and isinstance(first.value, ast.Constant)
-                            and first.value.value is True
-                        ):
-                            following = following[1:]
-                            continue
-                        if (
-                            isinstance(first, ast.For)
-                            and isinstance(first.iter, ast.Call)
-                            and isinstance(first.iter.func, ast.Name)
-                            and first.iter.func.id == "bag_furniture_packets"
-                        ):
-                            # The private bag publishes its furniture after
-                            # joining; this does not replace the required rearm.
-                            self.assertEqual(len(first.body), 1)
-                            self.assertIsInstance(first.body[0], ast.Expr)
-                            self.assertIsInstance(first.body[0].value, ast.Call)
-                            self.assertEqual(
-                                ast.unparse(first.body[0].value.func), "send"
-                            )
-                            following = following[1:]
-                            continue
-                        if (
-                            isinstance(first, ast.If)
-                            and ast.unparse(first.test) == "ranch_session is None"
-                        ):
-                            # Returning from a Ranch child restores the parent
-                            # Haven Bag model and furniture after the map join.
-                            following = following[1:]
-                            continue
-                        break
-                    self.assertTrue(following)
-                    self.assertIsInstance(following[0], ast.Expr)
-                    self.assertIsInstance(following[0].value, ast.Call)
-                    self.assertIsInstance(following[0].value.func, ast.Name)
-                    self.assertEqual(
-                        following[0].value.func.id, "mark_static_sync_pending"
+                    rearm = next(
+                        (
+                            offset
+                            for offset, item in enumerate(following)
+                            if isinstance(item, ast.Expr)
+                            and isinstance(item.value, ast.Call)
+                            and isinstance(item.value.func, ast.Name)
+                            and item.value.func.id == "mark_static_sync_pending"
+                        ),
+                        None,
                     )
+                    self.assertIsNotNone(
+                        rearm, "Every owned map join must rearm in its own branch"
+                    )
+                    before_rearm = following[:rearm]
+                    self.assertFalse(
+                        any(
+                            isinstance(
+                                item, (ast.Return, ast.Raise, ast.Break, ast.Continue)
+                            )
+                            for item in before_rearm
+                        )
+                    )
+                    self.assertFalse(
+                        any(
+                            isinstance(item, ast.Expr)
+                            and isinstance(item.value, ast.Call)
+                            and isinstance(item.value.func, ast.Name)
+                            and item.value.func.id == "join_world"
+                            for item in before_rearm
+                        ),
+                        "A later map join must not supply an earlier join's rearm",
+                    )
+                    for item in before_rearm:
+                        if (
+                            isinstance(item, ast.For)
+                            and isinstance(item.iter, ast.Call)
+                            and isinstance(item.iter.func, ast.Name)
+                            and item.iter.func.id == "bag_furniture_packets"
+                        ):
+                            # Private furniture remains owned publication; task
+                            # cards or other unrelated calls do not replace rearm.
+                            self.assertEqual(len(item.body), 1)
+                            self.assertIsInstance(item.body[0], ast.Expr)
+                            self.assertIsInstance(item.body[0].value, ast.Call)
+                            self.assertEqual(
+                                ast.unparse(item.body[0].value.func), "send"
+                            )
                     checked_joins += 1
         self.assertEqual(checked_joins, len(joins))
         self.assertEqual(len(marks), len(joins))
@@ -197,6 +192,7 @@ class StaticMapSyncDispatchTests(unittest.TestCase):
                 isinstance(test, ast.Compare)
                 and isinstance(test.left, ast.Name)
                 and test.left.id == "opcode"
+                and any(isinstance(operator, ast.Eq) for operator in test.ops)
                 and any(
                     isinstance(value, ast.Constant) and value.value == 14689
                     for value in test.comparators
@@ -264,6 +260,7 @@ def build_sync():
 """
         ).body[0]
         nested = [
+            deepcopy(_session_function("active_private_session")),
             deepcopy(_session_function("mark_static_sync_pending")),
             deepcopy(_session_function("sync_static_world")),
         ]
@@ -540,6 +537,7 @@ def build_world_sync():
                 isinstance(test, ast.Compare)
                 and isinstance(test.left, ast.Name)
                 and test.left.id == "opcode"
+                and any(isinstance(operator, ast.Eq) for operator in test.ops)
                 and any(
                     isinstance(item, ast.Constant) and item.value == 14689
                     for item in test.comparators
@@ -573,6 +571,7 @@ def build_world_sync():
                 isinstance(test, ast.Compare)
                 and isinstance(test.left, ast.Name)
                 and test.left.id == "opcode"
+                and any(isinstance(operator, ast.In) for operator in test.ops)
                 for test in node.test.values
             )
         )

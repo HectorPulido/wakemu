@@ -1,0 +1,200 @@
+{
+  "effects": {
+    "327126": {
+      "children": [],
+      "effect_class": 3,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameters": [
+        3.0,
+        0.36
+      ]
+    },
+    "327127": {
+      "children": [],
+      "effect_class": 3,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameters": [
+        3.75,
+        0.45
+      ]
+    },
+    "327128": {
+      "children": [],
+      "effect_class": 302,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameters": []
+    },
+    "327129": {
+      "children": [],
+      "effect_class": 5,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameters": [
+        3.0,
+        0.36
+      ]
+    },
+    "327130": {
+      "children": [],
+      "effect_class": 300,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameters": [
+        1.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "327131": {
+      "children": [],
+      "effect_class": 5,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameters": [
+        3.75,
+        0.45
+      ]
+    },
+    "327132": {
+      "children": [],
+      "effect_class": 300,
+      "maximum_level": 32767,
+      "minimum_level": 0,
+      "parameters": [
+        1.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    }
+  },
+  "level": 1,
+  "monster": {
+    "family_id": 338,
+    "illustration_id": -1,
+    "loot_definitions": [],
+    "max_level": 245,
+    "min_level": 1,
+    "name": "Wonejo",
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 7356
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 7357
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 7358
+      }
+    ],
+    "raw_visual_arrays": {
+      "csb": [
+        40
+      ],
+      "csc": [
+        7
+      ],
+      "csu": []
+    },
+    "ref": 5347,
+    "sprite_id": 117402504,
+    "statistics": {
+      "AP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 1,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      }
+    }
+  },
+  "owned_book": {
+    "abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 7356
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 7357
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 7358
+      }
+    ],
+    "max_level": 245,
+    "min_level": 1
+  },
+  "reference": 5347,
+  "scope": "Native5347 level1 owned-book resource impossibility; no external encounter or class producer claimed",
+  "source_sha256": {
+    ".runtime/combat-resilience-phase7/published-catalog-v9/documents/monsters.json": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4",
+    ".runtime/combat-resilience-phase7/published-catalog-v9/documents/native-npc-spell-effect-trees.json": "7aec221de3b2b5b641f08b261f6e63f6618f16115ce9b6bfdc3ee617a69821b8",
+    ".runtime/combat-resilience-phase7/published-catalog-v9/documents/native-spell-casting.json": "0e6ef6f9f3bd4f3c4192a77673fd0598034e51d1149364d66f5f24f5ff6095c9",
+    ".runtime/combat-resilience-phase7/published-catalog-v9/ownership-and-activation.json": "698bfe10741f7539beb5c965e9076bd53ef5ccb6e67541fd8a90c3cfcd610f95",
+    "server/tests/fixtures/owned-captured-5347-native.json": "fe454dcd7c275a08a6c31bcfea74eabc3664ecf117058fbcca99d0cec28442d2"
+  },
+  "spells": {
+    "7356": {
+      "conditional": [],
+      "costs": [
+        0,
+        0,
+        1
+      ],
+      "level": 1,
+      "roots": [
+        327127,
+        327126
+      ]
+    },
+    "7357": {
+      "conditional": [],
+      "costs": [
+        0,
+        0,
+        1
+      ],
+      "level": 1,
+      "roots": [
+        327128
+      ]
+    },
+    "7358": {
+      "conditional": [],
+      "costs": [
+        0,
+        0,
+        1
+      ],
+      "level": 1,
+      "roots": [
+        327129,
+        327131,
+        327130,
+        327132
+      ]
+    }
+  }
+}

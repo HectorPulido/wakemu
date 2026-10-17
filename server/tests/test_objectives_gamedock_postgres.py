@@ -19,8 +19,12 @@ class ObjectivesGameDockPostgresTests(PostgresCase):
         self.account = self.store.register("dock-owner", "dock-password-123")["id"]
         # Character appearance validation consults the native release catalogue;
         # the bridge behavior needs only isolated account/character rows.
-        with patch("wakfu_server.breed_resources.playable_breeds", return_value=frozenset({15})):
-            self.character = self.store.create_character(self.account, "Dock Main")["id"]
+        with patch(
+            "wakfu_server.breed_resources.playable_breeds", return_value=frozenset({15})
+        ):
+            self.character = self.store.create_character(self.account, "Dock Main")[
+                "id"
+            ]
             self.alt = self.store.create_character(self.account, "Dock Alt")["id"]
 
     def test_bridge_issues_reusable_embed_without_mutating_world_login_state(self):
@@ -64,7 +68,12 @@ class ObjectivesGameDockPostgresTests(PostgresCase):
         self.assertEqual(after_sessions, before_sessions)
         self.assertEqual(after_tokens, before_tokens)
         self.assertEqual(
-            (embed_row["kind"], embed_row["account_id"], embed_row["character_id"], embed_row["generation"]),
+            (
+                embed_row["kind"],
+                embed_row["account_id"],
+                embed_row["character_id"],
+                embed_row["generation"],
+            ),
             ("embed", self.account, self.character, ""),
         )
         self.assertIsNone(embed_row["consumed_at"])
@@ -82,8 +91,16 @@ class ObjectivesGameDockPostgresTests(PostgresCase):
                 with self.assertRaises(player_auth.Unauthorized):
                     gamedock.launch(self.store, credentials)
         for credentials in (
-            {"username": "dock-owner", "password": "dock-password-123", "character_id": 1},
-            {"username": "dock-owner", "password": "dock-password-123", "path": "/data/wakemu/account.json"},
+            {
+                "username": "dock-owner",
+                "password": "dock-password-123",
+                "character_id": 1,
+            },
+            {
+                "username": "dock-owner",
+                "password": "dock-password-123",
+                "path": "/data/wakemu/account.json",
+            },
             {"username": "../dock-owner", "password": "dock-password-123"},
         ):
             with self.subTest(extra=tuple(sorted(credentials))):
@@ -117,7 +134,9 @@ class GameDockLaunchServiceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         path = Path(__file__).resolve().parents[1] / "objectives-service" / "service.py"
-        spec = importlib.util.spec_from_file_location("gamedock_service_under_test", path)
+        spec = importlib.util.spec_from_file_location(
+            "gamedock_service_under_test", path
+        )
         cls.service = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cls.service)
 
@@ -130,14 +149,18 @@ class GameDockLaunchServiceTests(unittest.TestCase):
         thread.start()
         self.addCleanup(self.server.server_close)
         self.addCleanup(self.server.shutdown)
-        self.url = f"http://127.0.0.1:{self.server.server_port}/v1/player/gamedock-launch"
+        self.url = (
+            f"http://127.0.0.1:{self.server.server_port}/v1/player/gamedock-launch"
+        )
 
     def request(self, *, bearer=None, payload=None):
         data = json.dumps(payload).encode() if payload is not None else b"{}"
         headers = {"Content-Type": "application/json"}
         if bearer:
             headers["Authorization"] = "Bearer " + bearer
-        request = urllib.request.Request(self.url, data=data, headers=headers, method="POST")
+        request = urllib.request.Request(
+            self.url, data=data, headers=headers, method="POST"
+        )
         try:
             response = urllib.request.urlopen(request, timeout=3)
         except urllib.error.HTTPError as error:
@@ -145,24 +168,33 @@ class GameDockLaunchServiceTests(unittest.TestCase):
         with response:
             return response.status, json.loads(response.read())
 
-    def test_missing_or_wrong_service_bearer_is_rejected_before_database_or_credentials(self):
-        with patch.object(self.service, "connect", side_effect=AssertionError("DB reached")):
+    def test_missing_or_wrong_service_bearer_is_rejected_before_database_or_credentials(
+        self,
+    ):
+        with patch.object(
+            self.service, "connect", side_effect=AssertionError("DB reached")
+        ):
             for bearer in (None, "private-objectives-test-tokenx"):
                 status, body = self.request(
                     bearer=bearer,
-                    payload={"username": "sensitive-user", "password": "sensitive-password"},
+                    payload={
+                        "username": "sensitive-user",
+                        "password": "sensitive-password",
+                    },
                 )
                 self.assertEqual((status, body), (401, {"error": "Unauthorized"}))
                 self.assertNotIn("sensitive-user", json.dumps(body))
                 self.assertNotIn("sensitive-password", json.dumps(body))
 
-    def test_valid_service_bearer_calls_only_the_native_bridge_and_returns_opaque_link(self):
+    def test_valid_service_bearer_calls_only_the_native_bridge_and_returns_opaque_link(
+        self,
+    ):
         connection = MagicMock()
         connection.__enter__.return_value = connection
         launch_result = {"token": "opaque-player-link", "valid_days": 30}
-        with patch.object(self.service, "connect", return_value=connection), patch.object(
-            self.service, "DATABASE_URL", "isolated-test-dsn"
-        ):
+        with patch.object(
+            self.service, "connect", return_value=connection
+        ), patch.object(self.service, "DATABASE_URL", "isolated-test-dsn"):
             # The module is imported inside the handler, so patch its real import
             # target rather than attaching data to a live service connection.
             with patch(
@@ -170,7 +202,10 @@ class GameDockLaunchServiceTests(unittest.TestCase):
             ) as launch, patch("wakfu_server.storage.store.Store") as store_class:
                 status, body = self.request(
                     bearer="private-objectives-test-token",
-                    payload={"username": "fixture-user", "password": "fixture-password"},
+                    payload={
+                        "username": "fixture-user",
+                        "password": "fixture-password",
+                    },
                 )
         self.assertEqual((status, body), (200, launch_result))
         launch.assert_called_once()

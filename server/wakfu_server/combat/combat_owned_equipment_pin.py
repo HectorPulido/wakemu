@@ -89,11 +89,26 @@ def execution_contract_sha256(sources, compiled, registry):
             state_reference = effect_profile(root, level)["parameters"][0]
             state = compiled.source_states["states"][str(state_reference)]
             states[str(state_reference)] = state
-            for child_reference in state["effect_ids"]:
-                child = compiled.effects[str(child_reference)]
-                effects[str(child_reference)] = child
+            pending = list(state["effect_ids"])
+            while pending:
+                child_reference = str(pending.pop())
+                if child_reference in effects:
+                    continue
+                child = compiled.effects[child_reference]
+                effects[child_reference] = child
                 key = str(child["effect_class"])
                 characteristics[key] = registry["effects"].get(key)
+                pending.extend(child.get("children", ()))
+                if child["effect_class"] == 304:
+                    # Reachable bounded state transitions retain the same
+                    # catalog meaning after checkpoint recovery as at Ready.
+                    for child_level in range(state["maximum_level"] + 1):
+                        nested_id = effect_profile(child, child_level)["parameters"][0]
+                        nested_key = str(nested_id)
+                        if nested_key not in states:
+                            nested_state = compiled.source_states["states"][nested_key]
+                            states[nested_key] = nested_state
+                            pending.extend(nested_state["effect_ids"])
     return _digest(
         dict(states=states, effects=effects, characteristics=characteristics)
     )
@@ -175,7 +190,14 @@ def preparation_for_actor(fight, actor_id, compiled):
 
 
 def pin_transaction(
-    fight, character, attachment_authority, compiled, registry, *, owner_id
+    fight,
+    character,
+    attachment_authority,
+    compiled,
+    registry,
+    *,
+    owner_id,
+    ordinary_only=False
 ):
     """Validate inventory once, then pin a detached immutable private preview.
 
@@ -197,7 +219,9 @@ def pin_transaction(
     pins = getattr(fight, "native_owned_equipment_sources", {})
     if not isinstance(pins, Mapping) or str(actor_id) in pins:
         raise ValueError("Fighter equipment source is already pinned or malformed")
-    initial = prepare(character, attachment_authority, compiled, registry)
+    initial = prepare(
+        character, attachment_authority, compiled, registry, ordinary_only=ordinary_only
+    )
     payload = dict(
         version=1,
         actor_id=actor_id,

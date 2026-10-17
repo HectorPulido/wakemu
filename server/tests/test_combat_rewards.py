@@ -39,6 +39,49 @@ def setup_reward_state(store):
 
 
 class RewardTests(PostgresCase):
+    def test_native_xp_crosses_old_cap_reaches245_and_replays_once(self):
+        from wakfu_server.health_store import initialize
+
+        s, account, character, generation, fight = setup_reward_state(self.store)
+        with s.connection() as db:
+            db.execute(
+                "UPDATE characters SET level=200 WHERE id=%s", (character["id"],)
+            )
+            db.execute(
+                "UPDATE character_progression SET xp=%s WHERE character_id=%s",
+                (level_xp(200), character["id"]),
+            )
+        initialize(s, account, generation, character["id"])
+        first = award(
+            s,
+            account,
+            generation,
+            character["id"],
+            fight,
+            Policy(xp=level_xp(201) - level_xp(200)),
+        )
+        self.assertEqual(first["character"]["level"], 201)
+        self.assertEqual(
+            (first["xp_info"]["start_level"], first["xp_info"]["end_level"]), (200, 201)
+        )
+        fight.id = 8  # The fixture has two distinct finished durable fights.
+        second = award(
+            s,
+            account,
+            generation,
+            character["id"],
+            fight,
+            Policy(xp=level_xp(245) - level_xp(201)),
+        )
+        self.assertEqual(
+            (second["character"]["level"], second["character"]["xp"]),
+            (245, level_xp(245)),
+        )
+        replay = award(s, account, generation, character["id"], fight, Policy(xp=123))
+        self.assertFalse(replay["awarded"])
+        restored = self.reopen().character(account, character["id"])
+        self.assertEqual((restored["level"], restored["xp"]), (245, level_xp(245)))
+
     def test_level_reward_updates_maximum_without_healing_wounds_and_replay(self):
         from wakfu_server.health import maximum
 

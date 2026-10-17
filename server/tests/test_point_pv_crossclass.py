@@ -1,9 +1,5 @@
 """Native point-root targeting preserves cross-class Sacrifice semantics."""
-import gc
-
-gc.disable()
 import os
-from pathlib import Path
 import unittest
 from unittest.mock import patch
 import test_sacrier_sacrifice_pipeline as sacrifice
@@ -38,35 +34,82 @@ class PointPVCrossClassCandidateTests(unittest.TestCase):
         self.assertEqual(original.actors[-7].position, before[-7][1])
 
     def test_point_root_source_retains_all_native_policy_guards(self):
-        # Static source contract; runtime outcomes are covered by the native
-        # acquisition, attack, and Sacrifice tests above.
-        import ast
+        # Exercise the shared boundary's policy, rather than the name or
+        # location of the retired transaction-local helper.
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from wakfu_server.combat_entry_executor import execute_entry_roots
+        from wakfu_server.combat_normal_execution_origin import normal_execution_origin
 
-        source = ast.parse(
-            Path("server/wakfu_server/combat/combat_spell_transaction.py").read_text()
-        )
-        function = next(
-            node
-            for node in ast.walk(source)
-            if isinstance(node, ast.FunctionDef)
-            and node.name == "_native_explicit_point_root_target"
-        )
-        return_value = next(
-            (node.value for node in function.body if isinstance(node, ast.Return)),
-            None,
-        )
-        self.assertIsNotNone(return_value, "point-root helper must return its guard")
-        actual = ast.dump(return_value, include_attributes=False)
-        expected = ast.dump(
-            ast.parse(
-                "plan['target_id'] != caster.id "
-                "and plan['target_id'] in preview.actors "
-                "and preview.actors[plan['target_id']].position == tuple(plan['target']) "
-                "and dispatcher.effects[str(reference)].get('area_class') == 'anD' "
-                "and dispatcher.effects[str(reference)].get('native_target_selector') == {'class': 'fcE', 'mask': 3} "
-                "and root_direct_policies.get(str(reference), (None, None))[1] is False",
-                mode="eval",
-            ).body,
-            include_attributes=False,
-        )
-        self.assertEqual(actual, expected)
+        for route in ("player", "summon.player"):
+            for condition in (
+                "eligible",
+                "self",
+                "missing_actor",
+                "wrong_cell",
+                "wrong_area",
+                "wrong_selector",
+                "direct_policy",
+                "missing_policy",
+                "numeric_policy",
+            ):
+                with self.subTest(route=route, condition=condition):
+                    caster = SimpleNamespace(id=7, position=(0, 0, 0))
+                    target = SimpleNamespace(position=(1, 0, 0))
+                    preview = SimpleNamespace(
+                        actors={7: caster, -7: target}, effect_resolution=nullcontext
+                    )
+                    plan = dict(
+                        actor_id=7,
+                        spell_id=6266,
+                        evaluation_level=12,
+                        target_id=-7,
+                        target=(1, 0, 0),
+                    )
+                    effect = dict(
+                        area_class="anD",
+                        native_target_selector={"class": "fcE", "mask": 3},
+                    )
+                    policies = {"1": (None, False)}
+                    if condition == "self":
+                        plan.update(target_id=7, target=(0, 0, 0))
+                    elif condition == "missing_actor":
+                        del preview.actors[-7]
+                    elif condition == "wrong_cell":
+                        target.position = (2, 0, 0)
+                    elif condition == "wrong_area":
+                        effect["area_class"] = "anA"
+                    elif condition == "wrong_selector":
+                        effect["native_target_selector"] = {"class": "fcE", "mask": 65}
+                    elif condition == "direct_policy":
+                        policies["1"] = (None, True)
+                    elif condition == "missing_policy":
+                        policies.clear()
+                    elif condition == "numeric_policy":
+                        policies["1"] = (None, 0)
+                    dispatcher = SimpleNamespace(
+                        effects={"1": effect}, execute=lambda invocation: invocation
+                    )
+                    with patch(
+                        "wakfu_server.combat_cost_payment_events.replay_paid_spell_costs"
+                    ), patch(
+                        "wakfu_server.combat_breeze_payment_events.replay_paid_breeze_costs"
+                    ), patch(
+                        "wakfu_server.combat_direct_target.native_direct_target_policies",
+                        return_value=policies,
+                    ):
+                        outcomes = execute_entry_roots(
+                            preview,
+                            plan,
+                            caster,
+                            dispatcher,
+                            (1,),
+                            route=route,
+                            execution_origin=normal_execution_origin(plan),
+                            active_scope=lambda *args, **kwargs: nullcontext(),
+                            event_scope=lambda *args: nullcontext(),
+                        )
+                    self.assertEqual(len(outcomes), 1)
+                    self.assertIs(
+                        outcomes[0].native_explicit_target, condition == "eligible"
+                    )

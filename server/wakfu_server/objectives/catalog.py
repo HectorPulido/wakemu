@@ -1,4 +1,6 @@
 """Strict declarative objective definitions; no executable admin expressions."""
+
+from wakfu_server.character_levels import MAX_CHARACTER_LEVEL
 import hashlib
 import json
 import re
@@ -141,7 +143,8 @@ def validate_definition(value):
         if (
             type(band) is not dict
             or set(band) != {"minimum", "maximum"}
-            or integer(band["minimum"], 200) > integer(band["maximum"], 200)
+            or integer(band["minimum"], MAX_CHARACTER_LEVEL)
+            > integer(band["maximum"], MAX_CHARACTER_LEVEL)
         ):
             raise ValueError("Invalid objective level range")
     for field, size in (("title", 256), ("description", 4096)):

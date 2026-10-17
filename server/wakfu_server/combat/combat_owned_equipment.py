@@ -113,14 +113,188 @@ def immediate_scalar_contract(source, compiled, registry):
     return None
 
 
-def prepare(character, attachment_authority, compiled, registry):
+def _ordinary_turn_state_contract(source, compiled, registry):
+    """Qualify permanent self state graphs using the existing native turn motor.
+
+    This structural subset admits state toggles, ordered groups and fixed scalar
+    gains; it never executes ordinary flat item bonuses a second time. Other
+    event domains and effect families remain explicit deferred sources.
+    """
+    if source.get("attachment_field") is not None:
+        return "attachment_requires_separate_native_authority"
+    effects, states = compiled.effects, compiled.source_states["states"]
+    pending = [
+        (reference, (source["native_retained_container"]["level"],))
+        for reference in source["roots"]
+    ]
+    seen, seen_states = set(), set()
+    for reference, _ in pending:
+        root = effects.get(str(reference))
+        if root is None or root["effect_class"] != 304:
+            return "ordinary_nonstate_root_requires_qualification"
+    while pending:
+        reference, levels = pending.pop()
+        key = (reference, levels)
+        if key in seen:
+            continue
+        seen.add(key)
+        effect = effects.get(str(reference))
+        if effect is None:
+            return "missing_ordinary_state_effect_definition"
+        selector = effect.get("native_target_selector")
+        if (
+            selector is None
+            or selector.get("class") != "fcE"
+            or selector.get("mask") not in (0, 1)
+            or effect.get("area_native") not in ("empty", "point")
+        ):
+            return "ordinary_nonself_state_requires_qualification"
+        masks = effect.get("target_masks")
+        if (
+            masks is None
+            or len(masks) != 7
+            or any(masks[i] for i in (0, 1, 2, 3, 4, 6))
+        ):
+            return "ordinary_external_event_requires_qualification"
+        if any(event not in (1001, 1002, 1037) for event in (masks[5] or ())):
+            return "ordinary_external_event_requires_qualification"
+        # The qualified state predicates are evaluated against the live ledger
+        # by the existing native criterion implementation, never a snapshot.
+        from .combat_local_criteria import parse_local_criterion
+        import ast
+
+        try:
+            criterion_text = effect.get("criteria", "").strip()
+            criterion = (
+                parse_local_criterion(criterion_text) if criterion_text else None
+            )
+        except ValueError:
+            return "ordinary_state_criterion_requires_qualification"
+        if criterion is not None and any(
+            isinstance(node, ast.Call)
+            and (not isinstance(node.func, ast.Name) or node.func.id != "HasState")
+            for node in ast.walk(criterion)
+        ):
+            return "ordinary_state_criterion_requires_qualification"
+        from .combat_operation_registry import assess_operation
+
+        support = assess_operation(effect, characteristic_registry=registry)
+        if support.status != "conditional":
+            return "ordinary_state_parameter_contract_requires_qualification"
+        kind = effect["effect_class"]
+        scalar = registry["effects"].get(str(kind))
+        if kind not in (31, 304, 321, 330) and not (
+            scalar is not None
+            and scalar.get("runner") == "eWQ"
+            and scalar.get("dynamic_stat") is False
+            and type(scalar.get("fixed_stat_id")) is int
+            and scalar["fixed_stat_id"] not in (1, 2, 3, 4)
+        ):
+            return "ordinary_state_family_requires_qualification"
+        for level in levels:
+            if not effect["minimum_level"] <= level <= effect["maximum_level"]:
+                continue
+            values = effect_profile(effect, level)
+            if values["probability"] != 100:
+                return "ordinary_state_probability_requires_qualification"
+            if kind != 304:
+                continue
+            parameters = values["parameters"]
+            if (
+                len(parameters) != 3
+                or parameters[1] < 0
+                or parameters[2] not in (-1, 100)
+                or effect["parameters"][1] != 0
+            ):
+                return "ordinary_state_parameters_require_qualification"
+            state_id = parameters[0]
+            if state_id in seen_states:
+                continue
+            definition = states.get(str(state_id))
+            if (
+                definition is None
+                or type(definition.get("maximum_level")) is not int
+                or not 0 <= definition["maximum_level"] <= 32767
+            ):
+                return "ordinary_state_level_domain_requires_qualification"
+            seen_states.add(state_id)
+            for state_level in range(definition["maximum_level"] + 1):
+                state = state_profile(compiled.source_states, state_id, state_level)
+                if state["duration"] != -1 or state["realtime_duration"] > 0:
+                    return "ordinary_timed_state_requires_qualification"
+                pending.extend((child, (state_level,)) for child in state["effects"])
+        pending.extend((child, levels) for child in effect.get("children", ()))
+    return None
+
+
+def ordinary_turn_state_contract(source, compiled, registry):
+    omitted = source.get("unplanned_passive_effect_ids")
+    if not isinstance(omitted, (tuple, list)) or any(
+        type(reference) is not int or reference <= 0 for reference in omitted
+    ):
+        return "ordinary_complete_passive_root_authority_required"
+    if omitted:
+        return "ordinary_incomplete_native_passive_roots_requires_qualification"
+    reason = _ordinary_turn_state_contract(source, compiled, registry)
+    if reason is None:
+        return None
+    from .combat_reactive_equipment_contract import reactive_damage_state_contract
+
+    reactive_reason = reactive_damage_state_contract(source, compiled, registry)
+    if reactive_reason is None:
+        return None
+    from .combat_equipment_turn_scalar_contract import turn_scalar_state_contract
+
+    turn_reason = turn_scalar_state_contract(source, compiled, registry)
+    if turn_reason is None:
+        return None
+    from .combat_equipment_null_carrier_contract import permanent_null_carrier_contract
+
+    null_reason = permanent_null_carrier_contract(source, compiled, registry)
+    if null_reason is None:
+        return None
+    from .combat_equipment_hp_threshold_contract import hp_threshold_state_contract
+
+    hp_reason = hp_threshold_state_contract(source, compiled, registry)
+    if hp_reason is None:
+        return None
+    from .combat_equipment_hp_level_contract import hp_level_state_contract
+
+    hp_level_reason = hp_level_state_contract(source, compiled, registry)
+    return (
+        None
+        if hp_level_reason is None
+        else "; ".join(
+            (
+                reason,
+                reactive_reason,
+                turn_reason,
+                null_reason,
+                hp_reason,
+                hp_level_reason,
+            )
+        )
+    )
+
+
+def prepare(
+    character, attachment_authority, compiled, registry, *, ordinary_only=False
+):
     from .combat_equipment_initialization import plan
 
-    sources = plan(character, attachment_authority=attachment_authority)
+    sources = plan(
+        character,
+        attachment_authority=attachment_authority,
+        ordinary_only=ordinary_only,
+    )
     extended = compiled_with_sources(compiled, sources)
     accepted, deferred = [], []
     for source in sources:
-        reason = immediate_scalar_contract(source, extended, registry)
+        reason = (
+            ordinary_turn_state_contract(source, extended, registry)
+            if ordinary_only
+            else immediate_scalar_contract(source, extended, registry)
+        )
         if reason is None:
             accepted.append(source)
         else:

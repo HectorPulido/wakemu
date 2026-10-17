@@ -8,7 +8,7 @@ creation does not emit it. Unknown event producers are rejected.
 """
 from .combat_effect_dispatch import EffectInvocation
 from .combat_effect_area_queries import _rows
-from .combat_effect_area_geometry import contains_area_cell, contains_area_actor
+from .combat_effect_area_geometry import contains_area_cell
 from .combat_area_removal_masks import area_removal_masks, removal_mask_matches
 
 SUPPORTED_AREA_EVENTS = frozenset({10000, 10001, 10002, 10006, 10008, 10011})
@@ -382,28 +382,23 @@ class NativeAreaEventRuntime:
         return self.event(10000, target_id)
 
     def movement(self, target_id, *, from_cell, to_cell):
-        """Qs freezes three actual-object lists before delivering any callback."""
+        """Deliver the shared frozen Qs movement contract in native order."""
+        from .combat_area_event_contracts import (
+            deliver_area_movement,
+            plan_area_movement,
+        )
+
         target = self.fight.actors.get(target_id)
         if target is None:
             raise ValueError("Missing native area-event target")
-        lists = {event: [] for event in (10001, 10008, 10002)}
-        for row in _rows(self.fight):
-            definition = self._definition(row)
-            before = contains_area_cell(row, from_cell)
-            after = contains_area_actor(row, to_cell, target.physical_radius)
-            event = (
-                (10008 if before else 10001) if after else (10002 if before else None)
-            )
-            if event is not None:
-                lists[event].append((row, definition))
-        return tuple(
-            tuple(
-                outcome
-                for row, definition in rows
-                for outcome in self._deliver_event(row, definition, target, event)
-            )
-            for event, rows in lists.items()
+        plan = plan_area_movement(
+            _rows(self.fight),
+            self._definition,
+            target,
+            from_cell=from_cell,
+            to_cell=to_cell,
         )
+        return deliver_area_movement(plan, target, self._deliver_event)
 
     def removed(self, row, *, target_id=None):
         """Qs unregisters first, then faV entry/exit and rLR event10011."""

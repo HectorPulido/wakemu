@@ -154,7 +154,12 @@ class NativeCostPaymentEvents(OrdinaryHealingEvents):
             )
         ):
             raise ValueError("Unverified native eWf action costs")
+        from .combat_movement_payment_events import WakemuMovementPolicy
+
         policy = effect.get("native_paid_ability_policy")
+        movement = effect.get("native_movement_payment_policy")
+        if policy is not None and movement is not None:
+            raise ValueError("Conflicting spell and movement payment policies")
         descriptor = {
             "runner_class": "eWf",
             "action_costs": dict(costs),
@@ -168,6 +173,14 @@ class NativeCostPaymentEvents(OrdinaryHealingEvents):
             ):
                 raise ValueError("Conflicting actual paid-ability payer")
             descriptor = policy.descriptor(costs)
+        if movement is not None:
+            if (
+                not isinstance(movement, WakemuMovementPolicy)
+                or movement.payer_id != invocation.caster_id
+                or invocation.target_id != movement.payer_id
+            ):
+                raise ValueError("Conflicting actual movement payer")
+            descriptor = movement.descriptor(costs)
         token = _payment.set(descriptor)
         try:
             kwargs["_cost_source"] = descriptor

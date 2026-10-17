@@ -39,26 +39,58 @@ class RewardCapacityPlanTests(unittest.TestCase):
 
 
 class CompletedTrackingTests(unittest.TestCase):
-    def test_completed_achievement_can_be_tracked_and_encoded(self):
-        from unittest.mock import patch
-        from wakfu_server.achievements import service, wire
-
-        state = dict(
+    def state(self, *, tracking=()):
+        return dict(
             variables={},
             objectives=[],
             running=[],
             completed=[7],
-            tracking=[],
+            tracking=list(tracking),
             recent=[],
             completion_dates={},
         )
+
+    def test_completed_achievement_enable_rejects_without_state_or_storage_mutation(
+        self,
+    ):
+        from unittest.mock import patch
+        from wakfu_server.achievements import service, wire
+
+        state = self.state()
+        before = copy.deepcopy(state)
+        # Original bdM.r(true)->Bo rejects Bk(id), which reads bdD.aqc's
+        # completion flag. Completing through bdM.q also removes tracking.
         with patch.object(service, "_owner"), patch.object(
             service.catalog, "load", return_value={"definitions": {7: {}}}
         ), patch.object(
             service.storage, "load_locked", return_value=state
         ), patch.object(
             service.storage, "store"
-        ):
-            service.track(object(), {"id": 5}, 7, True)
-        self.assertEqual(state["tracking"], [7])
+        ) as store:
+            with self.assertRaisesRegex(ValueError, "Completed achievement"):
+                service.track(object(), {"id": 5}, 7, True)
+            store.assert_not_called()
+        self.assertEqual(state, before)
         self.assertTrue(wire.section(state))
+
+    def test_completed_achievement_disable_cleans_stale_tracking_and_encodes_false(
+        self,
+    ):
+        import struct
+        from unittest.mock import patch
+        from wakfu_server.achievements import service
+
+        state = self.state(tracking=(7,))
+        before = copy.deepcopy(state)
+        db = object()
+        with patch.object(service, "_owner"), patch.object(
+            service.catalog, "load", return_value={"definitions": {7: {}}}
+        ), patch.object(
+            service.storage, "load_locked", return_value=state
+        ), patch.object(
+            service.storage, "store"
+        ) as store:
+            packets = service.track(db, {"id": 5}, 7, False)
+            store.assert_called_once_with(db, 5, state)
+        self.assertEqual(state, dict(before, tracking=[]))
+        self.assertEqual(packets, [(13371, struct.pack(">qiB", 5, 7, 0))])

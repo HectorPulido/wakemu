@@ -10,6 +10,7 @@ from .combat_wire import actor_state
 from .combat_area_boundary import atomic_area_turn, adopt_fight
 from .combat_native_action_ids import native_delivery_boundary
 from .combat_additional_turn import timeline_round
+from .combat_input_observation import observe_clock, wall_time
 
 
 class RuntimeMessages:
@@ -82,22 +83,92 @@ class RuntimeMessages:
         self.deadline_turn = None
 
     def prepare_delivery(self, packets):
-        """Assign native cvB IDs once at the owning delivery boundary.
-
-        Logical request/action counters and turn ACK13510 remain independent.
-        The returned tuple carries mapping metadata for logs/client harnesses.
-        """
-        from .combat_native_action_ids import prepare_native_delivery
-
+        """Prepare new native actions without renumbering an owned prefix."""
+        from .combat_native_action_ids import NativeDelivery, prepare_native_delivery
         from .combat_pending_restoration import settle_pending_restoration_deaths
 
-        packets = tuple(packets) + settle_pending_restoration_deaths(self)
+        prepared = isinstance(packets, NativeDelivery)
+        if prepared:
+            # Validate ownership/counter before any lifecycle work. A previous
+            # owned prefix remains legal after this allocator has advanced.
+            prepare_native_delivery(
+                packets, fight_id=self.fight.id, previous_id=self.native_action_id
+            )
+        else:
+            packets = tuple(packets)
+        pending = any(
+            isinstance(getattr(actor, "native_death_status", None), dict)
+            and actor.native_death_status.get("pending_restoration") is not None
+            for actor in self.fight.actors.values()
+        )
+        if pending:
+            from .combat_area_boundary import adopt_runtime
 
+            candidate = deepcopy(self)
+            tail = settle_pending_restoration_deaths(candidate)
+            if prepared and not tail:
+                # Positive-HP marker cleanup can mutate state with no packets.
+                # Adopt that cleanup while retaining the exact sealed batch.
+                adopt_runtime(self, candidate)
+                return packets
+            fresh, last = prepare_native_delivery(
+                tail if prepared else packets + tail,
+                fight_id=candidate.fight.id,
+                previous_id=candidate.native_action_id,
+            )
+            delivery = (
+                NativeDelivery(
+                    tuple(packets) + tuple(fresh),
+                    fight_id=candidate.fight.id,
+                    actions=packets.native_actions + fresh.native_actions,
+                )
+                if prepared
+                else fresh
+            )
+            candidate.native_action_id = last
+            candidate.last_native_delivery = delivery.native_actions
+            candidate._record_prepared_revivals(fresh)
+            adopt_runtime(self, candidate)
+            return delivery
+        if prepared:
+            return packets
+        # Preserve ordinary raw preparation, including restoration validation.
+        packets = packets + settle_pending_restoration_deaths(self)
         delivery, last = prepare_native_delivery(
             packets, fight_id=self.fight.id, previous_id=self.native_action_id
         )
         self.native_action_id = last
         self.last_native_delivery = delivery.native_actions
+        self._record_prepared_revivals(delivery)
+        return delivery
+
+    def prepare_fight_delivery(self, packets, fight, *, action_id, operation):
+        """Prepare and adopt one preview without discarding lifecycle cleanup.
+
+        The caller has validated and serialized this preview. Delivery may
+        finalize pending deaths, so it must use the same fight that is adopted.
+        Keep both the source and the supplied preview unchanged on rejection.
+        """
+        from .combat_area_boundary import adopt_fight
+        from .combat_invariant_observation import observe_prepared_boundary
+
+        if fight.id != self.fight.id:
+            raise ValueError("Delivery preview belongs to another fight")
+        candidate_fight = deepcopy(fight)
+        candidate = deepcopy(self, {id(self.fight): candidate_fight})
+        candidate.fight = candidate_fight
+        candidate.action_id = action_id
+        delivery = candidate.prepare_delivery(packets)
+        observe_prepared_boundary(candidate.fight, candidate, operation=operation)
+        # Preserve the caller's preview identity, including existing actors.
+        # adopt_fight performs pointer/characteristic preflight before mutation.
+        adopt_fight(fight, candidate.fight)
+        candidate.fight = fight
+        self.__dict__.clear()
+        self.__dict__.update(candidate.__dict__)
+        return delivery
+
+    def _record_prepared_revivals(self, delivery):
         # aTS1 revives the same identity; a subsequent real death must be
         # delivered again instead of being suppressed by its previous report.
         for opcode, payload in delivery:
@@ -106,14 +177,14 @@ class RuntimeMessages:
                 self._reported_deaths = getattr(self, "_reported_deaths", set()) - {
                     identity
                 }
-        return delivery
 
     def _arm_turn(self):
         from .combat_turn_duration import current_turn_duration
 
         self.deadline_turn = self.fight.turn_id
         self.turn_deadline = (
-            self.clock() + current_turn_duration(self.fight, self.duration) / 1000
+            observe_clock("runtime.arm_turn.monotonic", self.clock())
+            + current_turn_duration(self.fight, self.duration) / 1000
         )
 
     def expiration_due(self):
@@ -127,7 +198,8 @@ class RuntimeMessages:
             or self.awaiting_ack is not None
             or self.turn_deadline is None
             or self.deadline_turn != self.fight.turn_id
-            or self.clock() < self.turn_deadline
+            or observe_clock("runtime.expire_turn.monotonic", self.clock())
+            < self.turn_deadline
         )
 
     def expire_current_once(self):
@@ -390,7 +462,7 @@ class RuntimeMessages:
                     recovery_packet(
                         self.fight,
                         struct.pack(">i", self.fight.id),
-                        deadline_ms=int(time.time() * 1000)
+                        deadline_ms=int(wall_time("runtime.turn_started.wall") * 1000)
                         + current_turn_duration(self.fight, self.duration),
                         excluded_actor_ids=(
                             getattr(
@@ -696,7 +768,7 @@ class RuntimeMessages:
             restored = recovery_packet(
                 self.fight,
                 struct.pack(">i", self.fight.id),
-                deadline_ms=int(time.time() * 1000)
+                deadline_ms=int(wall_time("runtime.acknowledge_turn.wall") * 1000)
                 + current_turn_duration(self.fight, self.duration),
             )
             packets = [

@@ -9,6 +9,14 @@ from wakfu_server.combat_qi_snapshot import NativeQISnapshot
 from wakfu_server.combat_qi_surfaces import NativeQISurfaces
 
 
+class SurfaceAuthority:
+    def __call__(self, fight, actor):
+        return SimpleNamespace(targeting={"baK": False}, is_carrying=False)
+
+    def properties(self, fight, actor):
+        return set()
+
+
 class TeleportSelectedSurfaceTests(unittest.TestCase):
     def setUp(self):
         self.actor = SimpleNamespace(id=7, position=(0, 0, 0), team=0)
@@ -47,7 +55,7 @@ class TeleportSelectedSurfaceTests(unittest.TestCase):
             allocate_uid=lambda: 2,
             # This fixture isolates Vy selection; the actor has no native
             # movement-blocking properties in the independent property gate.
-            authority=SimpleNamespace(properties=lambda fight, actor: set()),
+            authority=SurfaceAuthority(),
             selected_surface=lambda fight, cell: self.surfaces.i(self.qi, *cell),
         )
         self.handler._ordinary = lambda actor, **kwargs: set()
@@ -57,7 +65,10 @@ class TeleportSelectedSurfaceTests(unittest.TestCase):
         geometry = dict(
             actor=self.actor, force=False, destination=cell, check_cells=check_cells
         )
-        with patch("wakfu_server.combat_displacement.native_definition_timing"), patch(
+        with patch(
+            "wakfu_server.combat_displacement.native_definition_timing",
+            return_value={"retained": False, "delay": False, "duration": 0},
+        ), patch(
             "wakfu_server.combat_displacement.displacement_geometry",
             return_value=geometry,
         ):

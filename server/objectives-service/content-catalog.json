@@ -18,7 +18,7 @@
       "sha256": "038d7ffee82b00590f8abda1228af34f2da1cf834a7b225fddd84f9184f0706b"
     }
   },
-  "policy_note": "Local modest reward amounts and curated item pools. No legacy objectives or earned rewards replaced.",
+  "policy_note": "Local modest reward amounts and curated item pools. No legacy objectives or earned rewards replaced. Player eligibility and terminal reward-band maximum extend to native character level245; reward amounts, native NPC rosters and original extraction provenance are unchanged.",
   "policies": [
     {
       "key": "content-v1.exploration",
@@ -314,7 +314,7 @@
           },
           {
             "minimum": 200,
-            "maximum": 200,
+            "maximum": 245,
             "rewards": [
               {
                 "kind": "kamas",
@@ -633,7 +633,7 @@
           },
           {
             "minimum": 200,
-            "maximum": 200,
+            "maximum": 245,
             "rewards": [
               {
                 "kind": "kamas",
@@ -952,7 +952,7 @@
           },
           {
             "minimum": 200,
-            "maximum": 200,
+            "maximum": 245,
             "rewards": [
               {
                 "kind": "kamas",
@@ -1363,7 +1363,7 @@
           },
           {
             "minimum": 200,
-            "maximum": 200,
+            "maximum": 245,
             "rewards": [
               {
                 "kind": "kamas",
@@ -4935,7 +4935,7 @@
           },
           {
             "minimum": 200,
-            "maximum": 200,
+            "maximum": 245,
             "rewards": [
               {
                 "kind": "kamas",
@@ -5749,7 +5749,7 @@
           },
           {
             "minimum": 200,
-            "maximum": 200,
+            "maximum": 245,
             "rewards": [
               {
                 "kind": "kamas",
@@ -5813,7 +5813,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -5845,7 +5845,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -5877,7 +5877,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -5909,7 +5909,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -5941,7 +5941,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -5973,7 +5973,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6005,7 +6005,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6037,7 +6037,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6069,7 +6069,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6101,7 +6101,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6133,7 +6133,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6165,7 +6165,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6197,7 +6197,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6229,7 +6229,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6261,7 +6261,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6293,7 +6293,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6325,7 +6325,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6357,7 +6357,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6389,7 +6389,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6421,7 +6421,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6453,7 +6453,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6485,7 +6485,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6517,7 +6517,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6549,7 +6549,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6581,7 +6581,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6613,7 +6613,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6645,7 +6645,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6677,7 +6677,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6709,7 +6709,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6741,7 +6741,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6773,7 +6773,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6805,7 +6805,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6837,7 +6837,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6869,7 +6869,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6901,7 +6901,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6933,7 +6933,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6965,7 +6965,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -6997,7 +6997,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7029,7 +7029,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7061,7 +7061,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7093,7 +7093,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7125,7 +7125,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7157,7 +7157,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7189,7 +7189,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7221,7 +7221,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7253,7 +7253,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7285,7 +7285,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7317,7 +7317,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7349,7 +7349,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7381,7 +7381,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7413,7 +7413,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7445,7 +7445,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7477,7 +7477,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7510,7 +7510,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7543,7 +7543,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7576,7 +7576,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7609,7 +7609,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7642,7 +7642,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7675,7 +7675,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7708,7 +7708,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7741,7 +7741,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7774,7 +7774,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7807,7 +7807,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7840,7 +7840,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7873,7 +7873,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7906,7 +7906,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7939,7 +7939,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -7972,7 +7972,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8005,7 +8005,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8038,7 +8038,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8071,7 +8071,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8104,7 +8104,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8137,7 +8137,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8170,7 +8170,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8203,7 +8203,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8236,7 +8236,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8269,7 +8269,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8302,7 +8302,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8335,7 +8335,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8368,7 +8368,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8401,7 +8401,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8434,7 +8434,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8467,7 +8467,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8500,7 +8500,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8533,7 +8533,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8566,7 +8566,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8599,7 +8599,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8632,7 +8632,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8665,7 +8665,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8698,7 +8698,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8731,7 +8731,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8764,7 +8764,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8797,7 +8797,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8830,7 +8830,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8863,7 +8863,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8896,7 +8896,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8929,7 +8929,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8962,7 +8962,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -8995,7 +8995,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9028,7 +9028,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9061,7 +9061,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9094,7 +9094,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9127,7 +9127,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9160,7 +9160,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9193,7 +9193,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9226,7 +9226,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9259,7 +9259,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9292,7 +9292,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9325,7 +9325,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9358,7 +9358,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9391,7 +9391,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9424,7 +9424,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9457,7 +9457,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9490,7 +9490,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9523,7 +9523,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9556,7 +9556,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9589,7 +9589,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9622,7 +9622,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9655,7 +9655,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9688,7 +9688,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9721,7 +9721,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9754,7 +9754,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9787,7 +9787,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9820,7 +9820,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9853,7 +9853,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9886,7 +9886,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9919,7 +9919,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9952,7 +9952,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -9985,7 +9985,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10018,7 +10018,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10051,7 +10051,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10084,7 +10084,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10117,7 +10117,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10150,7 +10150,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10183,7 +10183,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10216,7 +10216,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10249,7 +10249,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10282,7 +10282,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10315,7 +10315,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10348,7 +10348,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10381,7 +10381,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10414,7 +10414,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10447,7 +10447,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10480,7 +10480,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10513,7 +10513,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10546,7 +10546,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10579,7 +10579,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10612,7 +10612,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10645,7 +10645,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10678,7 +10678,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10711,7 +10711,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10744,7 +10744,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10777,7 +10777,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10810,7 +10810,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10843,7 +10843,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10876,7 +10876,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10909,7 +10909,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10942,7 +10942,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -10975,7 +10975,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11008,7 +11008,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11041,7 +11041,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11074,7 +11074,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11106,7 +11106,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11138,7 +11138,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11170,7 +11170,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11202,7 +11202,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11234,7 +11234,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11266,7 +11266,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11298,7 +11298,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11330,7 +11330,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11362,7 +11362,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11394,7 +11394,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11426,7 +11426,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11458,7 +11458,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11490,7 +11490,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11522,7 +11522,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11554,7 +11554,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11586,7 +11586,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11618,7 +11618,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11650,7 +11650,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11682,7 +11682,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11714,7 +11714,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11746,7 +11746,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11778,7 +11778,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11810,7 +11810,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11842,7 +11842,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11874,7 +11874,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11906,7 +11906,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11938,7 +11938,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -11970,7 +11970,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12002,7 +12002,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12034,7 +12034,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12066,7 +12066,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12098,7 +12098,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12130,7 +12130,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12162,7 +12162,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12194,7 +12194,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12226,7 +12226,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12258,7 +12258,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12290,7 +12290,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12322,7 +12322,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12354,7 +12354,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12386,7 +12386,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12418,7 +12418,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12450,7 +12450,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12482,7 +12482,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12514,7 +12514,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12546,7 +12546,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12578,7 +12578,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12610,7 +12610,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12642,7 +12642,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12674,7 +12674,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12706,7 +12706,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12738,7 +12738,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12770,7 +12770,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12802,7 +12802,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12834,7 +12834,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12866,7 +12866,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12898,7 +12898,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12930,7 +12930,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12962,7 +12962,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -12994,7 +12994,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13026,7 +13026,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13058,7 +13058,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13090,7 +13090,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13122,7 +13122,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13154,7 +13154,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13186,7 +13186,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13218,7 +13218,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13250,7 +13250,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13282,7 +13282,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13314,7 +13314,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13346,7 +13346,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13378,7 +13378,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13410,7 +13410,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13442,7 +13442,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13474,7 +13474,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13506,7 +13506,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13538,7 +13538,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13570,7 +13570,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13602,7 +13602,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13634,7 +13634,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13666,7 +13666,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13698,7 +13698,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13730,7 +13730,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13762,7 +13762,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13794,7 +13794,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13826,7 +13826,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -13858,7 +13858,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -14197,7 +14197,7 @@
     },
     {
       "key": "content-v1.daily.hunt.181-200",
-      "title": "Daily hunt: levels 181-200",
+      "title": "Daily hunt: levels 181-245",
       "description": "Defeat 10 original monsters from this bracket's reviewed native challenge roster. Summoned copies do not count.",
       "kind": "daily",
       "enabled": true,
@@ -14228,7 +14228,7 @@
       ],
       "level_range": {
         "minimum": 181,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -14261,7 +14261,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -14296,7 +14296,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -14331,7 +14331,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -14366,7 +14366,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -14399,7 +14399,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     },
@@ -14519,7 +14519,7 @@
       ],
       "level_range": {
         "minimum": 1,
-        "maximum": 200
+        "maximum": 245
       },
       "prerequisite_keys": []
     }
@@ -18883,10 +18883,10 @@
       },
       {
         "key": "weekly-native-181-200",
-        "title": "Weekly native challenge: levels 181-200",
+        "title": "Weekly native challenge: levels 181-245",
         "enabled": true,
         "min_level": 181,
-        "max_level": 200,
+        "max_level": 245,
         "map_id": 1086,
         "anchor": [
           -11,

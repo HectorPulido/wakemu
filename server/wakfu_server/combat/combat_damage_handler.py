@@ -5,6 +5,10 @@ handler on a transaction preview; its outbox is emitted only after the whole
 spell succeeds. Unsupported modes/flags fail before changing any resources.
 """
 from dataclasses import dataclass, replace
+from .combat_vitality_execution import (
+    plan_damage_consumption,
+    apply_damage_consumption,
+)
 from .combat_runner_target import bind_runner_target, runner_target_invocation
 from .combat_damage_parameters import (
     interpret_damage_parameters,
@@ -91,32 +95,6 @@ def _wall_target(fight, identity):
         target=target,
         snapshot=snapshot,
     )
-
-
-def _apply_wall_damage(fight, source_id, wall, amount):
-    """Apply eXt's PA HP change while retaining the active Qq/QI identity."""
-    if type(amount) is not int or amount < 0 or source_id not in fight.actors:
-        raise ValueError("Invalid native fbd damage application")
-    row, constructor = wall["row"], wall["constructor"]
-    from .combat_wall_area import update_wall_hp
-
-    current = wall["snapshot"]["current_hp"]
-    dealt = min(current, amount)
-    after = current - dealt
-    if not callable(getattr(fight, "_event", None)):
-        raise ValueError("Missing native fbd damage event ledger")
-    if row["native_area_contract"] == "faW":
-        from .combat_fake_fighter_resources import update_fake_fighter_hp
-
-        update_fake_fighter_hp(row, wall["definition"], after)
-    else:
-        update_wall_hp(row, constructor, after)
-    fight._event(
-        "damage", source_id=source_id, target_id=row["uid"], amount=dealt, hp=after
-    )
-    # fbd.baD reflects PA HP<=0, while Qq.baG/baK and Qs/QI ownership remain
-    # unchanged. The native Qq.b lifecycle callback is the separate remover.
-    return dealt
 
 
 class NativeDamageHandler:
@@ -506,20 +484,16 @@ class NativeDamageHandler:
             wall["snapshot"]["stats"] if wall is not None else _snapshot(target)
         )
         target_hp = wall["snapshot"]["current_hp"] if wall is not None else target.hp
-        result = consume_damage(
+        result = plan_damage_consumption(
             amount,
-            source_barrier=source_stats[100],
-            target_armor=target_stats.get(97, 0),
-            target_virtual_hp=target_stats.get(92, 0),
-            target_hp=target_hp,
-            blocked=context.blocked,
-            bypass_armor_and_barrier=interpreted["bypass_armor_and_barrier"],
-            frozen_stats=tuple(("source", k) for k in source.effect_frozen)
-            + (
-                ()
-                if wall is not None
-                else tuple(("target", k) for k in target.effect_frozen)
-            ),
+            source,
+            source_stats,
+            target,
+            target_stats,
+            wall,
+            target_hp,
+            context,
+            interpreted,
         )
         pending_retained = None
         from .combat_native_timing_context import native_definition_timing
@@ -554,42 +528,19 @@ class NativeDamageHandler:
             if pending_retained is None
             else bytes.fromhex(pending_retained["payload"]),
         )
-        if wall is None:
-            from .combat_hp_raw import hp_raw_present
-
-            self.fight.apply_effect_damage(
-                source.id,
-                target.id,
-                result["hp_requested"] if hp_raw_present(target) else result["hp_loss"],
-                native_runner_effect=effect,
-                native_death_delivery=(
-                    None
-                    if self.event_lifecycle is None
-                    or not callable(getattr(self.event_lifecycle, "death", None))
-                    else lambda actor_id: self.event_lifecycle.death(
-                        actor_id,
-                        effect=effect,
-                        invocation=invocation,
-                        uid=uid,
-                        value=result["value"],
-                    )
-                ),
-            )
-        else:
-            _apply_wall_damage(self.fight, source.id, wall, result["hp_loss"])
-        if getattr(source, "native_copy_pa_source", None) is not None:
-            from .combat_copied_pa import set_copied_current
-
-            set_copied_current(self.fight, source, 100, result["source_barrier"])
-        source_stats[100] = result["source_barrier"]
-        if wall is None:
-            if getattr(target, "native_copy_pa_source", None) is not None:
-                from .combat_copied_pa import set_copied_current
-
-                set_copied_current(self.fight, target, 97, result["target_armor"])
-                set_copied_current(self.fight, target, 92, result["target_virtual_hp"])
-            target_stats[97] = result["target_armor"]
-            target_stats[92] = result["target_virtual_hp"]
+        apply_damage_consumption(
+            self.fight,
+            source,
+            target,
+            wall,
+            result,
+            source_stats,
+            target_stats,
+            effect,
+            invocation,
+            uid,
+            self.event_lifecycle,
+        )
         runner.set_applied(result["value"])
         if not runner.notification_suppressed:
             self.packets.append((12613, packet))

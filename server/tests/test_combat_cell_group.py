@@ -109,7 +109,7 @@ class CellGroupTests(unittest.TestCase):
         )
 
     def test_dispatches_cells_then_all_children_without_retaining_selected_actor(self):
-        from server.tests.test_combat_effect_dispatch import effect
+        from test_combat_effect_dispatch import effect
         from wakfu_server.combat_conditions import ConditionContext
         from wakfu_server.combat_effect_dispatch import (
             EffectDispatcher,

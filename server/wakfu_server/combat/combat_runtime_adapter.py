@@ -15,6 +15,7 @@ from .combat_native_actor_lookup import native_actor, native_actor_population
 from .combat_original_controller import CURRENT_TARGET, original_target_controller
 from .combat_native_death_status import native_is_dead as current_native_is_dead
 from .combat_departure_predicates import query as native_departure_flag
+from .combat_input_observation import wall_time_ns
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,9 @@ class NativeActorAuthority:
     )
     native_account_id: int | None = None  # Actual eGj.ePn/Xi creation account.
     native_primary_character_id: int | None = None  # Owned fkJ.sS snapshot.
+    native_social_context: object = (
+        None  # Typed owned SQL component admission snapshot.
+    )
     native_sex: int | None = None  # Actual eGj.aXz, never inferred from actor type.
     native_selected_cosmetics: dict | None = (
         None  # eSU selected values, explicit component snapshot.
@@ -396,6 +400,8 @@ class NativeServerRuntimeAdapter:
                 ),
                 is_summoned_from_symbiot=authority.native_summoned_from_symbiot,
                 native_sex=authority.native_sex,
+                native_social_context=authority.native_social_context,
+                native_account_id=authority.native_account_id,
                 is_summon=authority.is_summon,
                 summon_root_id=authority.summon_root_id,
                 retained_effect_ids=retained_ids,
@@ -2123,7 +2129,8 @@ class NativeServerRuntimeAdapter:
             enemy_line_of_sight_query=enemy_line_of_sight_query,
             has_been_raised_query=has_been_raised_query,
             ai_has_cast_spell_query=ai_has_cast_spell_query,
-            world_property_now_ms=time.time_ns() // 1_000_000,
+            world_property_now_ms=wall_time_ns("runtime_adapter.world_property.wall_ns")
+            // 1_000_000,
             current_fighter_id=preview.current.id if preview.current is not None else 0,
             equipment_type_query=(
                 (

@@ -104,7 +104,7 @@ class UnarmedTests(unittest.TestCase):
         )
 
     def test_real_unarmed_damage_replay_preserves_native_item_container_12(self):
-        from dataclasses import asdict
+        from dataclasses import asdict, replace
         from wakfu_server.combat_conditions import ConditionContext, evaluate_condition
         from wakfu_server.combat_event_replay import NativeEventReplay
         from wakfu_server.combat_spell_commit import commit_spell_transaction
@@ -134,7 +134,12 @@ class UnarmedTests(unittest.TestCase):
                 for descriptor, identity in retained_containers
             )
         )
-        context = ConditionContext({}, **condition_identifiers(asdict(source)))
+        # Match production replay's descriptor projection: transient live
+        # accumulators belong to the runtime, not the condition source snapshot.
+        descriptor = asdict(replace(source, final_modifier=None, runner_modifier=None))
+        descriptor.pop("final_modifier")
+        descriptor.pop("runner_modifier")
+        context = ConditionContext({}, **condition_identifiers(descriptor))
         self.assertEqual(context.triggering_container_type, 12)
         self.assertTrue(
             evaluate_condition("GetTriggeringContainerType() == 12", context)
@@ -166,7 +171,10 @@ class UnarmedTests(unittest.TestCase):
         from wakfu_server.combat_melee import execute_unarmed
         from wakfu_server.combat_runtime_adapter import NativeServerRuntimeAdapter
         from wakfu_server.combat_runtime_messages import RuntimeMessages
-        from wakfu_server.combat_server_spell import prepare_server_initialization
+        from wakfu_server.combat_server_spell import (
+            prepare_server_initialization,
+            prepare_server_turn_start,
+        )
         from wakfu_server.combat_spell_commit import commit_spell_transaction
         from wakfu_server.combat_terrain import local_arena
         from wakfu_server.progression import level_xp
@@ -207,8 +215,8 @@ class UnarmedTests(unittest.TestCase):
             fight_start=True,
         )
         self.assertTrue(init_packets)
-        # The real initialization owns 398720; 398721 is its native reverse
-        # clone, so it must appear only if the real item hit selects it.
+        # Initialization owns the start-turn listener 398720. Its melee
+        # listener 398721 is installed by the actual 1001 turn boundary.
         self.assertIn(
             398720,
             {
@@ -217,6 +225,22 @@ class UnarmedTests(unittest.TestCase):
             },
         )
         self.assertNotIn(
+            398721,
+            {
+                row["invocation"]["reference"]
+                for row in initialized.native_owned_group_effects.values()
+            },
+        )
+        initialized, _ = prepare_server_turn_start(
+            character,
+            {monster["id"]: monster},
+            initialized,
+            default_deck(character),
+            actor_id=7,
+            action_id=1,
+            rng=Random(1),
+        )
+        self.assertIn(
             398721,
             {
                 row["invocation"]["reference"]

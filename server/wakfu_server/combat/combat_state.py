@@ -661,41 +661,9 @@ class Fight:
                 sync_hud_resources(self)
 
     def _settle_deaths(self):
-        from .combat_summon_retirement import settle_summon_retirements
+        from .combat_death_reconciliation import settle_deaths_shared
 
-        from .combat_timeline_snapshot import remove
-
-        for identity in tuple(dict.fromkeys(self.order)):
-            if not self._in_play(self.actors[identity]):
-                remove(self, identity)
-        settle_summon_retirements(self)
-        old_order = tuple(self.order)
-        current_id = old_order[self.turn_index]
-        # Validate the entire native population before publishing reconciliation.
-        participating = {a.id for a in self.actors.values() if self._in_play(a)}
-        self.order = [uid for uid in old_order if uid in participating]
-        alive = {a.team for a in self.actors.values() if a.id in participating}
-        defer_victory = False
-        if getattr(self, "rift_wave_state", None) is not None:
-            from .rift_combat_adapter import defer_wave_victory
-
-            defer_victory = defer_wave_victory(self, alive)
-        if len(alive) < 2 and not defer_victory:
-            self.phase = "finished"
-            self.winner = next(iter(alive), None)
-            self._event("finished", winner=self.winner)
-        elif current_id in self.order:
-            self.turn_index = self.order.index(current_id)
-        else:
-            start = old_order.index(current_id)
-            next_id = next(
-                old_order[(start + offset) % len(old_order)]
-                for offset in range(1, len(old_order) + 1)
-                if old_order[(start + offset) % len(old_order)] in self.order
-            )
-            self.turn_index = self.order.index(next_id)
-            self.turn_id += 1
-            self._begin_turn()
+        return settle_deaths_shared(self)
 
     def apply_effect_healing(self, source_id, target_id, amount):
         """Trusted healing effect; resurrection has a separate native path."""

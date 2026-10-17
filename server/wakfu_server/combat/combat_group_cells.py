@@ -94,6 +94,10 @@ def group_cells(fight, effect, center, *, caster_id=None):
     if shape is not None and not shape[1]:
         caster = fight.actors.get(caster_id)
         if caster is None:
+            from .combat_effect_area_targets import retained_area_source_target
+
+            caster = retained_area_source_target(fight, caster_id)
+        if caster is None:
             raise ValueError("Native directional group area requires caster snapshot")
         reference, direction = caster.position, getattr(caster, "direction", None)
     return tuple(
